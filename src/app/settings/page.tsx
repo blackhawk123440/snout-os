@@ -105,7 +105,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#f5f5f5" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: COLORS.primaryLighter }}>
         <div className="text-center">
           <i className="fas fa-spinner fa-spin text-3xl" style={{ color: COLORS.primary }}></i>
           <p className="mt-2 text-gray-600">Loading settings...</p>
@@ -115,9 +115,9 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "#f5f5f5" }}>
+    <div className="min-h-screen" style={{ background: COLORS.primaryLighter }}>
       {/* Header */}
-      <div className="bg-white border-b shadow-sm" style={{ borderColor: "#e0e0e0" }}>
+      <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
         <div className="max-w-[1400px] mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

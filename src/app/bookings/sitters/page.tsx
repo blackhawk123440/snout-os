@@ -113,9 +113,9 @@ export default function SittersPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "#f5f5f5" }}>
+    <div className="min-h-screen" style={{ background: COLORS.primaryLighter }}>
       {/* Header */}
-      <div className="bg-white border-b shadow-sm" style={{ borderColor: "#e0e0e0" }}>
+      <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
         <div className="max-w-[1400px] mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
