@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -104,7 +104,7 @@ model Report {
   createdAt DateTime @default(now())
   bookingId String
   content   String
-  mediaUrls String[]
+  mediaUrls String   // Changed from String[] to String for SQLite compatibility
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([bookingId])

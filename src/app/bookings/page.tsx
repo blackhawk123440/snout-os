@@ -155,6 +155,18 @@ export default function BookingsPage() {
     };
   }, [activeBookings]);
 
+  const todayBookings = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    return activeBookings.filter(booking => {
+      const bookingDate = new Date(booking.startAt);
+      return bookingDate >= today && bookingDate < tomorrow;
+    });
+  }, [activeBookings]);
+
   const upcomingBookings = useMemo(() => {
     const now = new Date();
     return activeBookings
@@ -478,6 +490,43 @@ export default function BookingsPage() {
             </div>
           </div>
         )}
+
+        {/* Today's Summary */}
+        <div className="bg-white rounded-lg border-2 mb-6" style={{ borderColor: COLORS.primaryLight }}>
+          <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
+            <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
+              Today's Summary
+            </h2>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold mb-1" style={{ color: COLORS.primary }}>
+                  {todayBookings.length}
+                </div>
+                <div className="text-sm text-gray-600">Today's Bookings</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold mb-1" style={{ color: COLORS.primary }}>
+                  {todayBookings.filter(b => b.status === 'pending').length}
+                </div>
+                <div className="text-sm text-gray-600">Pending</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold mb-1" style={{ color: COLORS.primary }}>
+                  {todayBookings.filter(b => b.status === 'confirmed').length}
+                </div>
+                <div className="text-sm text-gray-600">Confirmed</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold mb-1" style={{ color: COLORS.primary }}>
+                  ${todayBookings.reduce((sum, b) => sum + b.totalPrice, 0).toFixed(2)}
+                </div>
+                <div className="text-sm text-gray-600">Today's Revenue</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Filters and Search */}
         <div className="bg-white rounded-lg p-4 border-2 mb-6" style={{ borderColor: COLORS.primaryLight }}>
