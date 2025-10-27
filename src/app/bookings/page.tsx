@@ -403,126 +403,112 @@ export default function BookingsPage() {
 
       <div className="max-w-[1400px] mx-auto px-8 py-6">
         {/* Stats Cards */}
-        {showStats && (
-          <div className="grid grid-cols-7 gap-4 mb-6">
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>{stats.total}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-calendar" style={{ color: COLORS.primary }}></i>
-                </div>
+        <div className="grid grid-cols-6 gap-6 mb-6">
+          <div className="bg-white rounded-lg p-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Bookings</p>
+                <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>{stats.total}</p>
               </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Pending</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>{stats.pending}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-clock" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Confirmed</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>{stats.confirmed}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-check-circle" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>{stats.completed}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-check-double" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Revenue</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>${stats.revenue.toFixed(2)}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-dollar-sign" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Paid</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>{stats.paid}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-credit-card" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Paid Amount</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>${stats.paidAmount.toFixed(2)}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-money-bill-wave" style={{ color: COLORS.primary }}></i>
-                </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                <i className="fas fa-calendar text-2xl" style={{ color: COLORS.primary }}></i>
               </div>
             </div>
           </div>
-        )}
+
+          <div className="bg-white rounded-lg p-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>{stats.pending}</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                <i className="fas fa-clock text-2xl" style={{ color: COLORS.primary }}></i>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Confirmed</p>
+                <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>{stats.confirmed}</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                <i className="fas fa-check-circle text-2xl" style={{ color: COLORS.primary }}></i>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Completed</p>
+                <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>{stats.completed}</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                <i className="fas fa-check-double text-2xl" style={{ color: COLORS.primary }}></i>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Revenue</p>
+                <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>${stats.revenue.toFixed(2)}</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                <i className="fas fa-dollar-sign text-2xl" style={{ color: COLORS.primary }}></i>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Paid</p>
+                <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>{stats.paid}</p>
+              </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                <i className="fas fa-credit-card text-2xl" style={{ color: COLORS.primary }}></i>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Today's Summary */}
         <div className="bg-white rounded-lg border-2 mb-6" style={{ borderColor: COLORS.primaryLight }}>
-          <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
-            <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
-              Today's Summary
-            </h2>
-          </div>
-          <div className="p-4">
-            <div className="grid grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold mb-1" style={{ color: COLORS.primary }}>
-                  {todayBookings.length}
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold" style={{ color: COLORS.primary }}>
+                Today's Summary
+              </h2>
+              <div className="flex items-center gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                    {todayBookings.length}
+                  </div>
+                  <div className="text-sm text-gray-600">Total</div>
                 </div>
-                <div className="text-sm text-gray-600">Today's Bookings</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold mb-1" style={{ color: COLORS.primary }}>
-                  {todayBookings.filter(b => b.status === 'pending').length}
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                    {todayBookings.filter(b => b.status === 'pending').length}
+                  </div>
+                  <div className="text-sm text-gray-600">Pending</div>
                 </div>
-                <div className="text-sm text-gray-600">Pending</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold mb-1" style={{ color: COLORS.primary }}>
-                  {todayBookings.filter(b => b.status === 'confirmed').length}
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                    {todayBookings.filter(b => b.status === 'confirmed').length}
+                  </div>
+                  <div className="text-sm text-gray-600">Confirmed</div>
                 </div>
-                <div className="text-sm text-gray-600">Confirmed</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold mb-1" style={{ color: COLORS.primary }}>
-                  ${todayBookings.reduce((sum, b) => sum + b.totalPrice, 0).toFixed(2)}
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                    ${todayBookings.reduce((sum, b) => sum + b.totalPrice, 0).toFixed(2)}
+                  </div>
+                  <div className="text-sm text-gray-600">Revenue</div>
                 </div>
-                <div className="text-sm text-gray-600">Today's Revenue</div>
               </div>
             </div>
           </div>
@@ -548,19 +534,39 @@ export default function BookingsPage() {
 
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium" style={{ color: COLORS.primary }}>Sitter:</label>
-              <select
-                value={selectedSitterFilter}
-                onChange={(e) => setSelectedSitterFilter(e.target.value)}
-                className="px-3 py-1 border rounded-lg text-sm"
-                style={{ borderColor: COLORS.border }}
-              >
-                <option value="all">All Sitters</option>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedSitterFilter("all")}
+                  className={`px-3 py-1 text-sm rounded-lg border transition-colors ${
+                    selectedSitterFilter === "all"
+                      ? "text-white"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                  style={{
+                    backgroundColor: selectedSitterFilter === "all" ? COLORS.primary : "transparent",
+                    borderColor: COLORS.border
+                  }}
+                >
+                  All Sitters
+                </button>
                 {sitters.map(sitter => (
-                  <option key={sitter.id} value={sitter.id}>
+                  <button
+                    key={sitter.id}
+                    onClick={() => setSelectedSitterFilter(sitter.id)}
+                    className={`px-3 py-1 text-sm rounded-lg border transition-colors ${
+                      selectedSitterFilter === sitter.id
+                        ? "text-white"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                    style={{
+                      backgroundColor: selectedSitterFilter === sitter.id ? COLORS.primary : "transparent",
+                      borderColor: COLORS.border
+                    }}
+                  >
                     {sitter.firstName} {sitter.lastName}
-                  </option>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
