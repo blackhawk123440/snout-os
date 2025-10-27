@@ -1,0 +1,42 @@
+{
+  "name": "snout-os",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint",
+    "worker": "tsx src/worker/index.ts",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:seed-settings": "tsx prisma/seed-settings.ts"
+  },
+  "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.19",
+    "@fullcalendar/interaction": "^6.1.19",
+    "@fullcalendar/react": "^6.1.19",
+    "@fullcalendar/timegrid": "^6.1.19",
+    "@prisma/client": "^6.17.1",
+    "@stripe/stripe-js": "^8.1.0",
+    "bullmq": "^5.61.0",
+    "googleapis": "^164.0.0",
+    "ioredis": "^5.8.1",
+    "next": "15.5.6",
+    "prisma": "^6.17.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "stripe": "^19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.6",
+    "tailwindcss": "^4",
+    "tsx": "^4.19.2",
+    "typescript": "^5"
+  }
+}

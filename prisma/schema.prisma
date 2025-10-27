@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Rate {
+  id        String    @id @default(uuid())
+  service   String
+  duration  Int
+  baseRate  Float
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now()) @updatedAt
+
+  @@unique([service, duration], name: "service_duration")
+}
+
+model Booking {
+  id                    String     @id @default(uuid())
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  firstName             String
+  lastName              String
+  phone                 String
+  email                 String?
+  address               String?
+  service               String
+  startAt               DateTime
+  endAt                 DateTime
+  minutes               Int?
+  quantity              Int        @default(1)
+  afterHours            Boolean    @default(false)
+  holiday               Boolean    @default(false)
+  totalPrice            Float?
+  status                String     @default("Pending")
+  paymentStatus         String?
+  stripePaymentIntentId String?
+  stripePaymentLinkUrl  String?
+  paidAt                DateTime?
+  archived              Boolean    @default(false)
+  archivedAt            DateTime?
+  createdFrom           String?
+  sitterId              String?
+  preferredContact      String?
+  special               String?
+  sitter                Sitter?    @relation(fields: [sitterId], references: [id])
+  messages              Message[]
+  payments              Payment[]
+  pets                  Pet[]
+  reports               Report[]
+  timeSlots             TimeSlot[]
+
+  @@index([status])
+  @@index([startAt])
+  @@index([sitterId])
+  @@index([archived])
+}
+
+model Pet {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  name      String
+  species   String
+  notes     String?
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+}
+
+model TimeSlot {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  startAt   DateTime
+  endAt     DateTime
+  bookingId String
+  duration  Int
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+}
+
+model Sitter {
+  id               String    @id @default(uuid())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  firstName        String
+  lastName         String
+  phone            String
+  email            String    @unique
+  active           Boolean   @default(true)
+  stripeAccountId  String?
+  googleCalendarId String?
+  bookings         Booking[]
+
+  @@index([active])
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  bookingId String
+  content   String
+  mediaUrls String[]
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  direction String
+  body      String
+  status    String?
+  bookingId String
+  from      String
+  to        String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  createdAt       DateTime @default(now())
+  amount          Float
+  currency        String   @default("usd")
+  status          String
+  bookingId       String
+  paymentMethod   String?
+  stripePaymentId String?  @unique
+  updatedAt       DateTime
+  booking         Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+model Setting {
+  id        String   @id @default(uuid())
+  updatedAt DateTime @updatedAt
+  key       String   @unique
+  value     String
+  category  String?
+  label     String?
+  createdAt DateTime @default(now())
+
+  @@index([category])
+}
+
+model CalendarAccount {
+  id           String    @id
+  provider     String
+  email        String    @unique
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  calendarId   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime
+}
