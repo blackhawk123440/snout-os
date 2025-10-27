@@ -747,154 +747,183 @@ export default function BookingsPage() {
 
         {/* Booking Detail Modal */}
         {selectedBooking && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b" style={{ borderColor: COLORS.border }}>
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl max-w-5xl w-full max-h-[95vh] overflow-hidden shadow-2xl">
+              {/* Header */}
+              <div className="px-8 py-6 border-b" style={{ borderColor: COLORS.border, background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, ${COLORS.primaryLighter} 100%)` }}>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                    Booking Details
-                  </h2>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ background: COLORS.primary }}>
+                      <i className="fas fa-calendar-check text-white text-lg"></i>
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">
+                        Booking #{selectedBooking.id.slice(-8).toUpperCase()}
+                      </h2>
+                      <p className="text-white/80 font-medium">
+                        {selectedBooking.firstName} {selectedBooking.lastName} • {selectedBooking.service}
+                      </p>
+                    </div>
+                  </div>
                   <button
                     onClick={() => setSelectedBooking(null)}
-                    className="text-gray-500 hover:text-gray-700 text-2xl"
+                    className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all duration-200"
                   >
-                    <i className="fas fa-times"></i>
+                    <i className="fas fa-times text-lg"></i>
                   </button>
                 </div>
               </div>
 
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Client Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>
-                      <i className="fas fa-user mr-2"></i>Client Information
-                    </h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Name</label>
-                          <p className="font-semibold">{selectedBooking.firstName} {selectedBooking.lastName}</p>
+              {/* Content */}
+              <div className="p-8 overflow-y-auto max-h-[calc(95vh-120px)]">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Left Column - Client & Service Info */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Client Information */}
+                    <div className="bg-white border-2 rounded-xl p-6 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                          <i className="fas fa-user text-sm" style={{ color: COLORS.primary }}></i>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Phone</label>
-                          <p className="font-semibold">{formatPhoneNumber(selectedBooking.phone)}</p>
+                        <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Client Information</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Full Name</label>
+                          <p className="text-lg font-semibold text-gray-900">{selectedBooking.firstName} {selectedBooking.lastName}</p>
                         </div>
-                        <div className="col-span-2">
-                          <label className="text-sm font-medium text-gray-600">Email</label>
-                          <p className="font-semibold">{selectedBooking.email || "Not provided"}</p>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Phone Number</label>
+                          <p className="text-lg font-semibold text-gray-900">{formatPhoneNumber(selectedBooking.phone)}</p>
                         </div>
-                        <div className="col-span-2">
-                          <label className="text-sm font-medium text-gray-600">Address</label>
-                          <p className="font-semibold">{selectedBooking.address}</p>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Email Address</label>
+                          <p className="text-lg font-semibold text-gray-900">{selectedBooking.email || "Not provided"}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Service Address</label>
+                          <p className="text-lg font-semibold text-gray-900">{selectedBooking.address}</p>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Service Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>
-                      <i className="fas fa-calendar-alt mr-2"></i>Service Information
-                    </h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Service</label>
-                          <p className="font-semibold">{selectedBooking.service}</p>
+                    {/* Service Information */}
+                    <div className="bg-white border-2 rounded-xl p-6 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                          <i className="fas fa-calendar-alt text-sm" style={{ color: COLORS.primary }}></i>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Status</label>
-                          <span className={`px-2 py-1 text-xs font-bold rounded ${getStatusColor(selectedBooking.status)}`}>
-                            {selectedBooking.status}
-                          </span>
+                        <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Service Details</h3>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Service Type</label>
+                          <p className="text-lg font-semibold text-gray-900">{selectedBooking.service}</p>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Start Date</label>
-                          <p className="font-semibold">{formatDate(selectedBooking.startAt)}</p>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Status</label>
+                          <div className="mt-1">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-bold ${getStatusColor(selectedBooking.status)}`}>
+                              {selectedBooking.status.charAt(0).toUpperCase() + selectedBooking.status.slice(1)}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Start Time</label>
-                          <p className="font-semibold">{formatTime(selectedBooking.startAt)}</p>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Start Date & Time</label>
+                          <p className="text-lg font-semibold text-gray-900">{formatDate(selectedBooking.startAt)} at {formatTime(selectedBooking.startAt)}</p>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">End Date</label>
-                          <p className="font-semibold">{formatDate(selectedBooking.endAt)}</p>
+                        <div className="space-y-1">
+                          <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">End Date & Time</label>
+                          <p className="text-lg font-semibold text-gray-900">{formatDate(selectedBooking.endAt)} at {formatTime(selectedBooking.endAt)}</p>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">End Time</label>
-                          <p className="font-semibold">{formatTime(selectedBooking.endAt)}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <label className="text-sm font-medium text-gray-600">Total Price</label>
-                          <p className="font-semibold text-lg">${selectedBooking.totalPrice.toFixed(2)}</p>
+                        <div className="md:col-span-2 space-y-1">
+                          <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Price</label>
+                          <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>${selectedBooking.totalPrice.toFixed(2)}</p>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Pet Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>
-                      <i className="fas fa-paw mr-2"></i>Pet Information
-                    </h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="space-y-3">
-                        {selectedBooking.pets.map((pet, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-white rounded border">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                                <i className="fas fa-paw text-sm" style={{ color: COLORS.primary }}></i>
+                    {/* Pet Information */}
+                    <div className="bg-white border-2 rounded-xl p-6 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                          <i className="fas fa-paw text-sm" style={{ color: COLORS.primary }}></i>
+                        </div>
+                        <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Pet Information</h3>
+                      </div>
+                      <div className="space-y-4">
+                        {/* Pet Quantities by Type */}
+                        {(() => {
+                          const petCounts: Record<string, number> = {};
+                          selectedBooking.pets.forEach(pet => {
+                            petCounts[pet.species] = (petCounts[pet.species] || 0) + 1;
+                          });
+                          return Object.entries(petCounts).map(([species, count]) => (
+                            <div key={species} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm" style={{ background: COLORS.primaryLight }}>
+                                  <i className="fas fa-paw text-lg" style={{ color: COLORS.primary }}></i>
+                                </div>
+                                <div>
+                                  <p className="text-xl font-bold text-gray-900 capitalize">{species}s</p>
+                                  <p className="text-sm text-gray-600">Pet Species</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-semibold">{pet.name}</p>
-                                <p className="text-sm text-gray-600 capitalize">{pet.species}</p>
+                              <div className="text-right">
+                                <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>{count}</p>
+                                <p className="text-sm text-gray-600">Total</p>
                               </div>
                             </div>
+                          ));
+                        })()}
+                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center gap-2">
+                            <i className="fas fa-info-circle text-blue-600"></i>
+                            <p className="font-semibold text-blue-800">
+                              Total Pets: {formatPetsByQuantity(selectedBooking.pets)}
+                            </p>
                           </div>
-                        ))}
-                        <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
-                          <p className="text-sm font-medium text-blue-800">
-                            <i className="fas fa-info-circle mr-1"></i>
-                            Total: {formatPetsByQuantity(selectedBooking.pets)}
-                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Sitter Assignment */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>
-                      <i className="fas fa-user-friends mr-2"></i>Sitter Assignment
-                    </h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
+                  {/* Right Column - Sitter & Actions */}
+                  <div className="space-y-6">
+                    {/* Sitter Assignment */}
+                    <div className="bg-white border-2 rounded-xl p-6 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                          <i className="fas fa-user-friends text-sm" style={{ color: COLORS.primary }}></i>
+                        </div>
+                        <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Sitter Assignment</h3>
+                      </div>
                       {selectedBooking.sitter ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 p-3 bg-white rounded border">
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                              <i className="fas fa-user text-lg" style={{ color: COLORS.primary }}></i>
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm bg-green-100">
+                              <i className="fas fa-user-check text-green-600 text-lg"></i>
                             </div>
                             <div>
-                              <p className="font-semibold">{selectedBooking.sitter.firstName} {selectedBooking.sitter.lastName}</p>
-                              <p className="text-sm text-gray-600">Assigned Sitter</p>
+                              <p className="font-bold text-green-800">{selectedBooking.sitter.firstName} {selectedBooking.sitter.lastName}</p>
+                              <p className="text-sm text-green-600">Assigned Sitter</p>
                             </div>
                           </div>
                           <button
                             onClick={() => handleSitterAssign(selectedBooking.id, "")}
-                            className="w-full px-4 py-2 text-sm border rounded-lg hover:bg-gray-50"
+                            className="w-full px-4 py-3 text-sm font-semibold border-2 rounded-lg hover:bg-gray-50 transition-colors"
                             style={{ color: COLORS.primary, borderColor: COLORS.border }}
                           >
                             <i className="fas fa-times mr-2"></i>Remove Sitter
                           </button>
                         </div>
                       ) : (
-                        <div className="space-y-3">
-                          <div className="p-3 bg-yellow-50 rounded border border-yellow-200">
-                            <p className="text-sm text-yellow-800">
-                              <i className="fas fa-exclamation-triangle mr-1"></i>
-                              No sitter assigned
-                            </p>
+                        <div className="space-y-4">
+                          <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                            <div className="flex items-center gap-2">
+                              <i className="fas fa-exclamation-triangle text-yellow-600"></i>
+                              <p className="font-semibold text-yellow-800">No sitter assigned</p>
+                            </div>
                           </div>
                           <select
                             value=""
@@ -903,7 +932,7 @@ export default function BookingsPage() {
                                 handleSitterAssign(selectedBooking.id, e.target.value);
                               }
                             }}
-                            className="w-full px-3 py-2 border rounded-lg"
+                            className="w-full px-4 py-3 border-2 rounded-lg font-semibold"
                             style={{ borderColor: COLORS.border }}
                           >
                             <option value="">Select a sitter...</option>
@@ -916,19 +945,20 @@ export default function BookingsPage() {
                         </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Booking Actions */}
-                  <div className="md:col-span-2 space-y-4">
-                    <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>
-                      <i className="fas fa-cogs mr-2"></i>Actions
-                    </h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="flex flex-wrap gap-3">
+                    {/* Quick Actions */}
+                    <div className="bg-white border-2 rounded-xl p-6 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                          <i className="fas fa-cogs text-sm" style={{ color: COLORS.primary }}></i>
+                        </div>
+                        <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Quick Actions</h3>
+                      </div>
+                      <div className="space-y-3">
                         <select
                           value={selectedBooking.status}
                           onChange={(e) => handleStatusChange(selectedBooking.id, e.target.value)}
-                          className="px-3 py-2 border rounded-lg"
+                          className="w-full px-4 py-3 border-2 rounded-lg font-semibold"
                           style={{ borderColor: COLORS.border }}
                         >
                           <option value="pending">Pending</option>
@@ -941,21 +971,10 @@ export default function BookingsPage() {
                             navigator.clipboard.writeText(`Booking ID: ${selectedBooking.id}`);
                             alert('Booking ID copied to clipboard!');
                           }}
-                          className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50"
+                          className="w-full px-4 py-3 text-sm font-semibold border-2 rounded-lg hover:bg-gray-50 transition-colors"
                           style={{ color: COLORS.primary, borderColor: COLORS.border }}
                         >
-                          <i className="fas fa-copy mr-2"></i>Copy ID
-                        </button>
-                        <button
-                          onClick={() => {
-                            const bookingUrl = `${window.location.origin}/bookings?id=${selectedBooking.id}`;
-                            navigator.clipboard.writeText(bookingUrl);
-                            alert('Booking URL copied to clipboard!');
-                          }}
-                          className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50"
-                          style={{ color: COLORS.primary, borderColor: COLORS.border }}
-                        >
-                          <i className="fas fa-link mr-2"></i>Copy URL
+                          <i className="fas fa-copy mr-2"></i>Copy Booking ID
                         </button>
                         <button
                           onClick={() => {
@@ -963,47 +982,48 @@ export default function BookingsPage() {
                             navigator.clipboard.writeText(message);
                             alert('Booking details copied to clipboard!');
                           }}
-                          className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50"
+                          className="w-full px-4 py-3 text-sm font-semibold border-2 rounded-lg hover:bg-gray-50 transition-colors"
                           style={{ color: COLORS.primary, borderColor: COLORS.border }}
                         >
                           <i className="fas fa-clipboard mr-2"></i>Copy Details
                         </button>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Booking Timeline */}
-                  <div className="md:col-span-2 space-y-4">
-                    <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>
-                      <i className="fas fa-history mr-2"></i>Booking Timeline
-                    </h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-green-100">
+                    {/* Booking Timeline */}
+                    <div className="bg-white border-2 rounded-xl p-6 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                          <i className="fas fa-history text-sm" style={{ color: COLORS.primary }}></i>
+                        </div>
+                        <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Timeline</h3>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100 shadow-sm">
                             <i className="fas fa-plus text-green-600"></i>
                           </div>
                           <div>
-                            <p className="font-semibold">Booking Created</p>
+                            <p className="font-semibold text-gray-900">Booking Created</p>
                             <p className="text-sm text-gray-600">{formatDate(selectedBooking.createdAt)} at {formatTime(selectedBooking.createdAt)}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-100">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 shadow-sm">
                             <i className="fas fa-edit text-blue-600"></i>
                           </div>
                           <div>
-                            <p className="font-semibold">Last Updated</p>
+                            <p className="font-semibold text-gray-900">Last Updated</p>
                             <p className="text-sm text-gray-600">{formatDate(selectedBooking.updatedAt)} at {formatTime(selectedBooking.updatedAt)}</p>
                           </div>
                         </div>
                         {selectedBooking.status === 'completed' && (
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-green-100">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100 shadow-sm">
                               <i className="fas fa-check text-green-600"></i>
                             </div>
                             <div>
-                              <p className="font-semibold">Service Completed</p>
+                              <p className="font-semibold text-gray-900">Service Completed</p>
                               <p className="text-sm text-gray-600">Service has been completed</p>
                             </div>
                           </div>
