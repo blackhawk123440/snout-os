@@ -1,7 +1,8 @@
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: 'Client Management - Snout Services',
+  title: "Clients - Snout OS",
+  description: "Manage your pet care clients and their booking history",
 };
 
 export default function ClientsLayout({

@@ -1,71 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { syncBookingToGoogleCalendar } from "@/lib/google-calendar";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
-    // Get all confirmed bookings that aren't completed
-    const bookings = await prisma.booking.findMany({
-      where: {
-        status: {
-          in: ["Confirmed", "Pending"],
-        },
-      },
+    const body = await request.json();
+    const { bookingId, calendarAccountId } = body;
+
+    if (!bookingId || !calendarAccountId) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Get booking details
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
       include: {
         pets: true,
         sitter: true,
       },
     });
 
-    let synced = 0;
-    let failed = 0;
-
-    for (const booking of bookings) {
-      const petNames = booking.pets.map((p) => p.name).join(", ");
-      const sitterName = booking.sitter 
-        ? `${booking.sitter.firstName} ${booking.sitter.lastName}`
-        : "Unassigned";
-
-      const summary = `${booking.service} - ${booking.firstName} ${booking.lastName}`;
-      const description = `Service: ${booking.service}${booking.minutes ? ` (${booking.minutes} min)` : ""}
-Pets: ${petNames}
-Sitter: ${sitterName}
-Client: ${booking.firstName} ${booking.lastName}
-Phone: ${booking.phone}
-${booking.address ? `Address: ${booking.address}` : ""}
-Quote: $${booking.totalPrice?.toFixed(2) || "TBD"}`;
-
-      const googleEventId = await syncBookingToGoogleCalendar({
-        bookingId: booking.id,
-        summary,
-        description,
-        location: booking.address || undefined,
-        startAt: booking.startAt,
-        endAt: booking.endAt,
-      });
-
-      if (googleEventId) {
-        synced++;
-      } else {
-        failed++;
-      }
+    if (!booking) {
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        synced,
-        failed,
-        total: bookings.length,
+    // Get calendar account
+    const account = await prisma.calendarAccount.findUnique({
+      where: { id: calendarAccountId },
+    });
+
+    if (!account) {
+      return NextResponse.json({ error: "Calendar account not found" }, { status: 404 });
+    }
+
+    // Create calendar event
+    const event = await prisma.calendarEvent.create({
+      data: {
+        bookingId,
+        calendarAccountId,
+        title: `${booking.service} - ${booking.firstName} ${booking.lastName}`,
+        description: `Pet care service for ${booking.pets.map(p => p.species).join(', ')}`,
+        startAt: booking.startAt,
+        endAt: booking.endAt,
+        location: booking.address,
+        isAllDay: false,
       },
-      { status: 200 }
-    );
+    });
+
+    return NextResponse.json({ event });
   } catch (error) {
-    console.error("Failed to sync calendar:", error);
+    console.error("Failed to sync booking to calendar:", error);
     return NextResponse.json(
-      { error: "Failed to sync with Google Calendar" },
+      { error: "Failed to sync to calendar" },
       { status: 500 }
     );
   }
 }
-

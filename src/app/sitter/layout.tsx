@@ -1,8 +1,8 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sitter Dashboard | Snout Services",
-  description: "View your assigned bookings and schedule",
+  title: "Sitter Dashboard - Snout OS",
+  description: "Mobile-friendly dashboard for pet care sitters",
 };
 
 export default function SitterLayout({
@@ -10,7 +10,5 @@ export default function SitterLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return children;
 }
-
-

@@ -1,8 +1,8 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Payments | Snout Services",
-  description: "Manage payment links and transactions via Stripe",
+  title: "Payments - Snout OS",
+  description: "Track revenue and payment analytics for your pet care business",
 };
 
 export default function PaymentsLayout({
@@ -10,7 +10,5 @@ export default function PaymentsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return children;
 }
-
-

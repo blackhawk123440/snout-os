@@ -1,45 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const sitter = await prisma.sitter.findUnique({
+      where: { id: params.id },
+    });
 
-    // For demo mode, show all confirmed bookings
-    // In production, filter by sitterId
+    if (!sitter) {
+      return NextResponse.json({ error: "Sitter not found" }, { status: 404 });
+    }
+
+    // Get bookings for this sitter
     const bookings = await prisma.booking.findMany({
-      where: {
-        OR: [
-          { sitterId: id },
-          { sitterId: null, status: "Confirmed" }, // Unassigned confirmed bookings
-        ],
-        startAt: {
-          gte: new Date(), // Only future bookings
-        },
-      },
+      where: { sitterId: params.id },
       include: {
         pets: true,
-        timeSlots: {
-          orderBy: {
-            startAt: "asc",
-          },
-        },
       },
       orderBy: {
-        startAt: "asc",
+        startAt: "desc",
       },
     });
 
-    return NextResponse.json({ bookings }, { status: 200 });
+    return NextResponse.json({ bookings });
   } catch (error) {
     console.error("Failed to fetch sitter bookings:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch bookings" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 });
   }
 }
-

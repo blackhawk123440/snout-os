@@ -1,24 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { COLORS } from "@/lib/booking-utils";
 
-interface GoogleAccount {
+interface CalendarAccount {
   id: string;
-  name: string;
   email: string;
-  calendarId: string;
-  active: boolean;
-  syncEnabled: boolean;
-  sitterId?: string;
-  sitter?: { firstName: string; lastName: string };
-  lastSyncAt?: string;
+  provider: string;
+  isActive: boolean;
+  createdAt: Date;
 }
 
-export default function GoogleCalendarAccountsPage() {
-  const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
+export default function CalendarAccountsPage() {
+  const [accounts, setAccounts] = useState<CalendarAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    email: "",
+    accessToken: "",
+    refreshToken: "",
+    provider: "google",
+  });
 
   useEffect(() => {
     fetchAccounts();
@@ -31,9 +34,51 @@ export default function GoogleCalendarAccountsPage() {
       const data = await response.json();
       setAccounts(data.accounts || []);
     } catch (error) {
-      console.error("Failed to fetch accounts:", error);
+      console.error("Failed to fetch calendar accounts:", error);
     }
     setLoading(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch("/api/calendar/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        alert("Calendar account added!");
+        resetForm();
+        fetchAccounts();
+      }
+    } catch (error) {
+      console.error("Failed to save calendar account:", error);
+      alert("Failed to save calendar account");
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({ email: "", accessToken: "", refreshToken: "", provider: "google" });
+    setShowAddForm(false);
+  };
+
+  const handleToggleActive = async (accountId: string, isActive: boolean) => {
+    try {
+      const response = await fetch(`/api/calendar/accounts/${accountId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !isActive }),
+      });
+
+      if (response.ok) {
+        fetchAccounts();
+      }
+    } catch (error) {
+      console.error("Failed to toggle account status:", error);
+    }
   };
 
   return (
@@ -43,180 +88,200 @@ export default function GoogleCalendarAccountsPage() {
         <div className="max-w-[1400px] mx-auto px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: "#432f21" }}>
-                <i className="fab fa-google" style={{ color: "#fce1ef" }}></i>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: COLORS.primary }}>
+                <i className="fas fa-calendar-alt" style={{ color: COLORS.primaryLight }}></i>
               </div>
               <div>
-                <h1 className="text-xl font-bold" style={{ color: "#432f21" }}>
-                  Google Calendar Accounts
+                <h1 className="text-xl font-bold" style={{ color: COLORS.primary }}>
+                  Calendar Accounts
                 </h1>
-                <p className="text-xs text-gray-500">Connect calendars for owner & sitters • Live two-way sync</p>
+                <p className="text-xs text-gray-500">Manage calendar integrations</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setShowAddForm(true)}
+                onClick={() => {
+                  resetForm();
+                  setShowAddForm(true);
+                }}
                 className="px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all"
-                style={{ background: "#432f21" }}
+                style={{ background: COLORS.primary }}
               >
-                <i className="fab fa-google mr-2"></i>Add Calendar Account
+                <i className="fas fa-plus mr-2"></i>Add Account
               </button>
-              <Link
+              <a
                 href="/calendar"
                 className="px-4 py-2 text-sm font-medium border rounded-lg hover:bg-gray-50 transition-colors"
-                style={{ color: "#432f21", borderColor: "#d0d0d0" }}
+                style={{ color: COLORS.primary, borderColor: COLORS.border }}
               >
                 <i className="fas fa-arrow-left mr-2"></i>Back to Calendar
-              </Link>
+              </a>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-[1400px] mx-auto px-8 py-6">
-        {/* Info Panel */}
-        <div className="mb-6 border-l-4 rounded-lg p-5" style={{ background: "#fce1ef", borderColor: "#432f21" }}>
-          <div className="flex items-start gap-3">
-            <i className="fab fa-google text-2xl" style={{ color: "#432f21" }}></i>
-            <div className="text-sm" style={{ color: "#432f21" }}>
-              <h3 className="font-bold mb-2">How Multi-Calendar Sync Works</h3>
-              <ul className="space-y-1">
-                <li>• Connect your Google Calendar + each sitter's Google Calendar</li>
-                <li>• Bookings automatically sync to the assigned sitter's calendar</li>
-                <li>• View all calendars combined or filter by person</li>
-                <li>• Live updates - changes in Snout OS reflect in Google Calendar</li>
-                <li>• Each person sees only their bookings in their Google Calendar</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
         {/* Accounts List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {accounts.map((account) => (
-            <div key={account.id} className="bg-white rounded-lg border shadow-sm p-5" style={{ borderColor: "#e0e0e0" }}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "#fce1ef" }}>
-                    <i className="fab fa-google text-xl" style={{ color: "#432f21" }}></i>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-base" style={{ color: "#432f21" }}>
-                      {account.name}
-                    </h3>
-                    <p className="text-sm text-gray-600">{account.email}</p>
-                    {account.sitter && (
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Linked to: {account.sitter.firstName} {account.sitter.lastName}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded text-xs font-bold ${
-                    account.active && account.syncEnabled
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}>
-                    {account.active && account.syncEnabled ? "✓ SYNCING" : "○ PAUSED"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2 text-xs text-gray-600">
-                <div className="flex items-center justify-between">
-                  <span>Calendar ID:</span>
-                  <code className="bg-gray-100 px-2 py-1 rounded text-xs">{account.calendarId}</code>
-                </div>
-                {account.lastSyncAt && (
-                  <div className="flex items-center justify-between">
-                    <span>Last synced:</span>
-                    <span className="font-medium">
-                      {new Date(account.lastSyncAt).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 flex gap-2">
-                <button
-                  className="flex-1 px-3 py-2 text-sm font-semibold text-white rounded-lg hover:opacity-90 transition-all"
-                  style={{ background: "#432f21" }}
-                >
-                  <i className="fas fa-sync mr-2"></i>Sync Now
-                </button>
-                <button
-                  className="px-3 py-2 text-sm font-medium border rounded-lg hover:bg-gray-50 transition-colors"
-                  style={{ color: "#666", borderColor: "#d0d0d0" }}
-                >
-                  <i className="fas fa-cog"></i>
-                </button>
-              </div>
+        <div className="grid gap-4">
+          {loading ? (
+            <div className="text-center py-8">
+              <i className="fas fa-spinner fa-spin text-2xl" style={{ color: COLORS.primary }}></i>
+              <p className="mt-2 text-gray-600">Loading accounts...</p>
             </div>
-          ))}
-
-          {accounts.length === 0 && !loading && (
-            <div className="col-span-2 text-center py-16 bg-white rounded-lg border" style={{ borderColor: "#e0e0e0" }}>
-              <i className="fab fa-google text-6xl text-gray-300 mb-4"></i>
-              <h3 className="font-bold text-lg text-gray-700 mb-2">No Calendar Accounts Connected</h3>
-              <p className="text-sm text-gray-500 mb-4">
-                Add your Google Calendar and your sitters' calendars for automatic syncing
-              </p>
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="px-6 py-3 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all"
-                style={{ background: "#432f21" }}
+          ) : accounts.length === 0 ? (
+            <div className="text-center py-8">
+              <i className="fas fa-calendar-alt text-4xl text-gray-300 mb-4"></i>
+              <p className="text-gray-600">No calendar accounts found</p>
+            </div>
+          ) : (
+            accounts.map((account) => (
+              <div
+                key={account.id}
+                className="bg-white rounded-lg p-6 border-2 hover:shadow-md transition-all"
+                style={{ borderColor: COLORS.primaryLight }}
               >
-                <i className="fab fa-google mr-2"></i>Connect First Calendar
-              </button>
-            </div>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                        <i className={`fab fa-${account.provider} text-xl`} style={{ color: COLORS.primary }}></i>
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg" style={{ color: COLORS.primary }}>
+                          {account.email}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-1 text-xs font-bold rounded bg-blue-100 text-blue-700">
+                            {account.provider}
+                          </span>
+                          <span className={`px-2 py-1 text-xs font-bold rounded ${
+                            account.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                          }`}>
+                            {account.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <i className="fas fa-calendar w-4"></i>
+                        <span>Added {new Date(account.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 ml-6">
+                    <button
+                      onClick={() => handleToggleActive(account.id, account.isActive)}
+                      className={`px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all ${
+                        account.isActive 
+                          ? "bg-red-500 text-white" 
+                          : "bg-green-500 text-white"
+                      }`}
+                    >
+                      <i className={`fas fa-${account.isActive ? 'pause' : 'play'} mr-2`}></i>
+                      {account.isActive ? "Deactivate" : "Activate"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
           )}
         </div>
+      </div>
 
-        {/* Instructions */}
-        <div className="mt-6 bg-white rounded-lg border p-6" style={{ borderColor: "#e0e0e0" }}>
-          <h3 className="font-bold text-base mb-3" style={{ color: "#432f21" }}>
-            <i className="fas fa-book mr-2"></i>Setup Instructions
-          </h3>
-          <div className="space-y-3 text-sm text-gray-700">
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ background: "#432f21" }}>1</div>
+      {/* Add Form Modal */}
+      {showAddForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-4" style={{ color: COLORS.primary }}>
+              Add Calendar Account
+            </h3>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <strong>Enable Google Calendar API</strong>
-                <p className="text-xs text-gray-500 mt-1">Go to Google Cloud Console → Enable "Google Calendar API" for your project</p>
+                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ borderColor: COLORS.primaryLight }}
+                />
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ background: "#432f21" }}>2</div>
+
               <div>
-                <strong>Create OAuth Credentials</strong>
-                <p className="text-xs text-gray-500 mt-1">Create OAuth 2.0 client ID with redirect URI: http://localhost:3000/api/calendar/callback</p>
+                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
+                  Provider *
+                </label>
+                <select
+                  required
+                  value={formData.provider}
+                  onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
+                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ borderColor: COLORS.primaryLight }}
+                >
+                  <option value="google">Google Calendar</option>
+                  <option value="outlook">Outlook</option>
+                  <option value="apple">Apple Calendar</option>
+                </select>
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ background: "#432f21" }}>3</div>
+              
               <div>
-                <strong>Get Refresh Tokens</strong>
-                <p className="text-xs text-gray-500 mt-1">For each person (owner + sitters), authorize and get their refresh token</p>
+                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
+                  Access Token *
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={formData.accessToken}
+                  onChange={(e) => setFormData({ ...formData, accessToken: e.target.value })}
+                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ borderColor: COLORS.primaryLight }}
+                  placeholder="Paste your access token here"
+                />
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ background: "#432f21" }}>4</div>
+
               <div>
-                <strong>Add Accounts Here</strong>
-                <p className="text-xs text-gray-500 mt-1">Click "Add Calendar Account" and enter name, email, and refresh token for each person</p>
+                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
+                  Refresh Token
+                </label>
+                <input
+                  type="password"
+                  value={formData.refreshToken}
+                  onChange={(e) => setFormData({ ...formData, refreshToken: e.target.value })}
+                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ borderColor: COLORS.primaryLight }}
+                  placeholder="Paste your refresh token here (optional)"
+                />
               </div>
-            </div>
-          </div>
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-600">
-              <i className="fas fa-book-open mr-2" style={{ color: "#432f21" }}></i>
-              <strong>Full setup guide:</strong> See <code className="bg-white px-2 py-1 rounded ml-1">CALENDAR_SETUP.md</code> for detailed instructions
-            </p>
+              
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all"
+                  style={{ background: COLORS.primary }}
+                >
+                  Add Account
+                </button>
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="flex-1 px-4 py-2 text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all"
+                  style={{ color: COLORS.gray, borderColor: COLORS.border }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
-

@@ -1,8 +1,8 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Settings | Snout Services",
-  description: "Configure automation, SMS templates, and business settings",
+  title: "Settings - Snout OS",
+  description: "Configure your pet care business settings and integrations",
 };
 
 export default function SettingsLayout({
@@ -10,7 +10,5 @@ export default function SettingsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return children;
 }
-
-

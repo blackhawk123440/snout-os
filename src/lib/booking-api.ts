@@ -1,183 +1,242 @@
-// ============================================================================
-// BOOKING DASHBOARD API CALLS
-// ============================================================================
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export interface Booking {
   id: string;
   firstName: string;
   lastName: string;
   phone: string;
-  email?: string;
-  address?: string;
+  email: string;
+  address: string;
   service: string;
-  minutes?: number;
-  quantity: number;
-  startAt: string;
-  endAt: string;
-  afterHours: boolean;
-  holiday: boolean;
-  special?: string;
-  totalPrice?: number;
-  status: string;
-  sitterId?: string;
-  sitter?: Sitter;
+  startAt: Date;
+  endAt: Date;
+  status: "pending" | "confirmed" | "completed" | "cancelled";
+  totalPrice: number;
   pets: Pet[];
-  timeSlots?: TimeSlot[];
-  createdAt: string;
-  createdFrom?: string;
-  paymentStatus?: string;
-  stripePaymentLinkUrl?: string;
-  paidAt?: string;
-  archived?: boolean;
-  archivedAt?: string;
-}
-
-export interface Pet {
-  id: string;
-  name: string;
-  species: string;
-}
-
-export interface TimeSlot {
-  id: string;
-  startAt: string;
-  endAt: string;
-  duration: number;
+  sitter?: Sitter;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Sitter {
   id: string;
   firstName: string;
   lastName: string;
-  email: string;
   phone: string;
-  active: boolean;
-  stripeAccountId?: string;
+  email: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// ============================================================================
-// API CLIENT
-// ============================================================================
+export interface Pet {
+  id: string;
+  name: string;
+  species: string;
+  bookingId: string;
+}
 
-export const bookingAPI = {
-  /**
-   * Fetch all bookings
-   */
-  async fetchBookings(): Promise<Booking[]> {
-    const response = await fetch("/api/bookings");
-    if (!response.ok) throw new Error("Failed to fetch bookings");
-    const data = await response.json();
-    return data.bookings || [];
-  },
+export interface TimeSlot {
+  start: Date;
+  end: Date;
+  available: boolean;
+}
 
-  /**
-   * Fetch active sitters
-   */
-  async fetchSitters(): Promise<Sitter[]> {
-    const response = await fetch("/api/sitters?active=true");
-    if (!response.ok) throw new Error("Failed to fetch sitters");
-    const data = await response.json();
-    return data.sitters || [];
-  },
+export class BookingAPI {
+  async getBookings(): Promise<Booking[]> {
+    try {
+      const bookings = await prisma.booking.findMany({
+        include: {
+          pets: true,
+          sitter: true,
+        },
+        orderBy: {
+          startAt: "desc",
+        },
+      });
 
-  /**
-   * Update a booking
-   */
-  async updateBooking(id: string, updates: Partial<Booking>): Promise<Booking> {
-    const response = await fetch(`/api/bookings/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    });
-    if (!response.ok) throw new Error("Failed to update booking");
-    const data = await response.json();
-    return data.booking;
-  },
-
-  /**
-   * Delete a booking
-   */
-  async deleteBooking(id: string): Promise<void> {
-    const response = await fetch(`/api/bookings/${id}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) throw new Error("Failed to delete booking");
-  },
-
-  /**
-   * Check for sitter scheduling conflicts
-   */
-  async checkConflicts(
-    sitterId: string,
-    startAt: string,
-    endAt: string,
-    excludeBookingId: string
-  ): Promise<{ hasConflict: boolean; conflictingBookings: any[] }> {
-    const response = await fetch(`/api/sitters/${sitterId}/conflicts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ startAt, endAt, excludeBookingId }),
-    });
-    if (!response.ok) throw new Error("Failed to check conflicts");
-    return await response.json();
-  },
-
-  /**
-   * Calculate booking price
-   */
-  async calculatePrice(
-    service: string,
-    minutes: number | undefined,
-    petCount: number,
-    afterHours: boolean,
-    holiday: boolean
-  ): Promise<number> {
-    const response = await fetch("/api/calculate-price", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ service, minutes, petCount, afterHours, holiday }),
-    });
-    if (!response.ok) throw new Error("Failed to calculate price");
-    const data = await response.json();
-    return data.totalPrice;
-  },
-
-  /**
-   * Create Stripe payment link
-   */
-  async createPaymentLink(bookingId: string): Promise<string> {
-    const response = await fetch("/api/payments/create-link", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bookingId }),
-    });
-    if (!response.ok) throw new Error("Failed to create payment link");
-    const data = await response.json();
-    return data.paymentLink;
-  },
-
-  /**
-   * Create Stripe invoice
-   */
-  async createInvoice(bookingId: string): Promise<{ invoiceId: string; invoiceUrl?: string }> {
-    const response = await fetch("/api/stripe/create-invoice", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bookingId }),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Failed to create invoice");
+      return bookings;
+    } catch (error) {
+      console.error("Failed to fetch bookings:", error);
+      return [];
     }
-    return await response.json();
-  },
+  }
 
-  /**
-   * Fetch a single booking by ID
-   */
-  async fetchBookingById(bookingId: string): Promise<Booking | null> {
-    const bookings = await this.fetchBookings();
-    return bookings.find((b) => b.id === bookingId) || null;
-  },
-};
+  async getBooking(id: string): Promise<Booking | null> {
+    try {
+      const booking = await prisma.booking.findUnique({
+        where: { id },
+        include: {
+          pets: true,
+          sitter: true,
+        },
+      });
 
+      return booking;
+    } catch (error) {
+      console.error("Failed to fetch booking:", error);
+      return null;
+    }
+  }
+
+  async createBooking(data: Partial<Booking>): Promise<Booking | null> {
+    try {
+      const booking = await prisma.booking.create({
+        data: {
+          firstName: data.firstName!,
+          lastName: data.lastName!,
+          phone: data.phone!,
+          email: data.email || null,
+          address: data.address!,
+          service: data.service!,
+          startAt: data.startAt!,
+          endAt: data.endAt!,
+          status: data.status || "pending",
+          totalPrice: data.totalPrice || 0,
+          pets: {
+            create: data.pets?.map(pet => ({
+              name: pet.name,
+              species: pet.species,
+            })) || [],
+          },
+        },
+        include: {
+          pets: true,
+          sitter: true,
+        },
+      });
+
+      return booking;
+    } catch (error) {
+      console.error("Failed to create booking:", error);
+      return null;
+    }
+  }
+
+  async updateBooking(id: string, data: Partial<Booking>): Promise<Booking | null> {
+    try {
+      const booking = await prisma.booking.update({
+        where: { id },
+        data: {
+          ...(data.firstName && { firstName: data.firstName }),
+          ...(data.lastName && { lastName: data.lastName }),
+          ...(data.phone && { phone: data.phone }),
+          ...(data.email && { email: data.email }),
+          ...(data.address && { address: data.address }),
+          ...(data.service && { service: data.service }),
+          ...(data.startAt && { startAt: data.startAt }),
+          ...(data.endAt && { endAt: data.endAt }),
+          ...(data.status && { status: data.status }),
+          ...(data.totalPrice && { totalPrice: data.totalPrice }),
+          ...(data.sitter && { sitterId: data.sitter.id }),
+        },
+        include: {
+          pets: true,
+          sitter: true,
+        },
+      });
+
+      return booking;
+    } catch (error) {
+      console.error("Failed to update booking:", error);
+      return null;
+    }
+  }
+
+  async deleteBooking(id: string): Promise<boolean> {
+    try {
+      await prisma.booking.delete({
+        where: { id },
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Failed to delete booking:", error);
+      return false;
+    }
+  }
+
+  async getSitters(): Promise<Sitter[]> {
+    try {
+      const sitters = await prisma.sitter.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      return sitters;
+    } catch (error) {
+      console.error("Failed to fetch sitters:", error);
+      return [];
+    }
+  }
+
+  async getSitter(id: string): Promise<Sitter | null> {
+    try {
+      const sitter = await prisma.sitter.findUnique({
+        where: { id },
+      });
+
+      return sitter;
+    } catch (error) {
+      console.error("Failed to fetch sitter:", error);
+      return null;
+    }
+  }
+
+  async createSitter(data: Partial<Sitter>): Promise<Sitter | null> {
+    try {
+      const sitter = await prisma.sitter.create({
+        data: {
+          firstName: data.firstName!,
+          lastName: data.lastName!,
+          phone: data.phone!,
+          email: data.email!,
+          isActive: data.isActive !== false,
+        },
+      });
+
+      return sitter;
+    } catch (error) {
+      console.error("Failed to create sitter:", error);
+      return null;
+    }
+  }
+
+  async updateSitter(id: string, data: Partial<Sitter>): Promise<Sitter | null> {
+    try {
+      const sitter = await prisma.sitter.update({
+        where: { id },
+        data: {
+          ...(data.firstName && { firstName: data.firstName }),
+          ...(data.lastName && { lastName: data.lastName }),
+          ...(data.phone && { phone: data.phone }),
+          ...(data.email && { email: data.email }),
+          ...(typeof data.isActive === 'boolean' && { isActive: data.isActive }),
+        },
+      });
+
+      return sitter;
+    } catch (error) {
+      console.error("Failed to update sitter:", error);
+      return null;
+    }
+  }
+
+  async deleteSitter(id: string): Promise<boolean> {
+    try {
+      await prisma.sitter.delete({
+        where: { id },
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Failed to delete sitter:", error);
+      return false;
+    }
+  }
+}
+
+export const bookingAPI = new BookingAPI();

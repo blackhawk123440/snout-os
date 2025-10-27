@@ -1,20 +1,16 @@
-// Main worker entry point
-// Runs all automation workers for Snout OS
+import { initializeQueues } from "@/lib/queue";
 
-console.log("🚀 Snout OS Worker System Starting...");
-console.log("=====================================");
+// Initialize background job queues
+export async function startWorkers() {
+  try {
+    await initializeQueues();
+    console.log("Background workers started successfully");
+  } catch (error) {
+    console.error("Failed to start background workers:", error);
+  }
+}
 
-// Import all workers
-import "./automation-worker";
-
-console.log("=====================================");
-console.log("✅ All workers initialized and running");
-console.log("");
-console.log("Automations active:");
-console.log("  ✓ SMS sending");
-console.log("  ✓ Night-before reminders");
-console.log("  ✓ Tip & review reminders");
-console.log("  ✓ Daily summaries");
-console.log("  ✓ Post-visit follow-ups");
-console.log("");
-console.log("Press Ctrl+C to stop");
+// Start workers when this module is imported
+if (typeof window === "undefined") {
+  startWorkers();
+}

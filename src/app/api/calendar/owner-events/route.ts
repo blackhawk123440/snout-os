@@ -1,30 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchOwnerCalendarEvents } from "@/lib/google-calendar";
+import { PrismaClient } from "@prisma/client";
 
-export async function GET(request: NextRequest) {
+const prisma = new PrismaClient();
+
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const startDate = searchParams.get("start");
-    const endDate = searchParams.get("end");
-
-    if (!startDate || !endDate) {
-      return NextResponse.json(
-        { error: "Start and end dates are required" },
-        { status: 400 }
-      );
-    }
-
-    const events = await fetchOwnerCalendarEvents({
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+    const events = await prisma.calendarEvent.findMany({
+      include: {
+        booking: {
+          include: {
+            pets: true,
+            sitter: true,
+          },
+        },
+        calendarAccount: true,
+      },
+      orderBy: {
+        startAt: "asc",
+      },
     });
 
     return NextResponse.json({ events });
   } catch (error) {
-    console.error("Failed to fetch owner calendar events:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch calendar events" },
-      { status: 500 }
-    );
+    console.error("Failed to fetch owner events:", error);
+    return NextResponse.json({ error: "Failed to fetch events" }, { status: 500 });
   }
 }

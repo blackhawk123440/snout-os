@@ -1,8 +1,8 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Calendar | Snout Services",
-  description: "View and manage your booking calendar",
+  title: "Calendar - Snout OS",
+  description: "View and manage your pet care bookings in calendar format",
 };
 
 export default function CalendarLayout({
@@ -10,7 +10,5 @@ export default function CalendarLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return children;
 }
-
-

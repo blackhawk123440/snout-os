@@ -1,49 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { PrismaClient } from "@prisma/client";
 
-export async function GET(request: NextRequest) {
+const prisma = new PrismaClient();
+
+export async function GET() {
   try {
     const accounts = await prisma.calendarAccount.findMany({
       orderBy: {
-        createdAt: "asc",
+        createdAt: "desc",
       },
     });
 
-    return NextResponse.json({ accounts }, { status: 200 });
+    return NextResponse.json({ accounts });
   } catch (error) {
     console.error("Failed to fetch calendar accounts:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch accounts" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch accounts" }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, refreshToken, calendarId, sitterId } = body;
+    const { email, accessToken, refreshToken, provider } = body;
 
-    if (!name || !email || !refreshToken) {
+    // Validate required fields
+    if (!email || !accessToken || !provider) {
       return NextResponse.json(
-        { error: "Name, email, and refresh token are required" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
+    // Create calendar account
     const account = await prisma.calendarAccount.create({
       data: {
-        id: `cal_${Date.now()}`,
-        provider: "google",
         email,
-        accessToken: "temp_token", // In production, use real token
-        refreshToken, // In production, encrypt this!
-        expiresAt: new Date(Date.now() + 3600000), // 1 hour from now
-        updatedAt: new Date(),
+        accessToken,
+        refreshToken: refreshToken || null,
+        provider,
+        isActive: true,
       },
     });
 
-    return NextResponse.json({ account }, { status: 201 });
+    return NextResponse.json({ account });
   } catch (error) {
     console.error("Failed to create calendar account:", error);
     return NextResponse.json(
@@ -52,4 +51,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

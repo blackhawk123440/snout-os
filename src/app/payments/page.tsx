@@ -1,68 +1,59 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { COLORS } from "@/lib/booking-utils";
 
-interface PaymentAnalytics {
+interface Payment {
+  id: string;
+  amount: number;
+  status: string;
+  created: Date;
+  customerEmail: string;
+}
+
+interface Analytics {
   totalRevenue: number;
-  totalBookings: number;
-  paidBookings: number;
-  pendingPayments: number;
-  monthlyRevenue: number;
-  weeklyRevenue: number;
-  todayRevenue: number;
-  averageBookingValue: number;
-  paymentMethods: {
-    card: number;
-    bank_transfer: number;
-    other: number;
-  };
-  recentPayments: Array<{
-    id: string;
-    amount: number;
-    status: string;
-    customerEmail: string;
-    createdAt: string;
-    bookingId: string;
-  }>;
+  totalCustomers: number;
+  totalInvoices: number;
+  recentPayments: Payment[];
 }
 
 export default function PaymentsPage() {
-  const [analytics, setAnalytics] = useState<PaymentAnalytics | null>(null);
+  const [analytics, setAnalytics] = useState<Analytics>({
+    totalRevenue: 0,
+    totalCustomers: 0,
+    totalInvoices: 0,
+    recentPayments: [],
+  });
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
 
   useEffect(() => {
     fetchAnalytics();
-  }, [dateRange]);
+  }, []);
 
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/stripe/analytics?range=${dateRange}`);
+      const response = await fetch("/api/stripe/analytics");
       const data = await response.json();
-      setAnalytics(data.analytics);
+      setAnalytics(data.analytics || analytics);
     } catch (error) {
       console.error("Failed to fetch analytics:", error);
     }
     setLoading(false);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "paid": return "bg-green-100 text-green-800";
+      case "pending": return "bg-yellow-100 text-yellow-800";
+      case "failed": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString();
   };
 
   return (
@@ -73,255 +64,136 @@ export default function PaymentsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: COLORS.primary }}>
-                <i className="fas fa-chart-line" style={{ color: COLORS.primaryLight }}></i>
+                <i className="fas fa-credit-card" style={{ color: COLORS.primaryLight }}></i>
               </div>
               <div>
                 <h1 className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                  Payment Analytics
+                  Payments & Analytics
                 </h1>
-                <p className="text-xs text-gray-500">Live Stripe payment data and revenue tracking</p>
+                <p className="text-xs text-gray-500">Track revenue and payment analytics</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <select
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value as any)}
-                className="px-3 py-2 text-sm font-bold border-2 rounded-lg focus:outline-none focus:ring-2"
-                style={{ borderColor: COLORS.primaryLight, color: COLORS.primary }}
-              >
-                <option value="7d">Last 7 days</option>
-                <option value="30d">Last 30 days</option>
-                <option value="90d">Last 90 days</option>
-                <option value="all">All time</option>
-              </select>
               <button
                 onClick={fetchAnalytics}
-                className="px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all"
-                style={{ background: COLORS.primary }}
+                disabled={loading}
+                className="px-4 py-2 text-sm font-bold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+                title="Refresh analytics"
               >
-                <i className="fas fa-sync-alt mr-2"></i>Refresh
+                <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i>
               </button>
-              <Link
+              <a
                 href="/bookings"
                 className="px-4 py-2 text-sm font-medium border rounded-lg hover:bg-gray-50 transition-colors"
                 style={{ color: COLORS.primary, borderColor: COLORS.border }}
               >
                 <i className="fas fa-arrow-left mr-2"></i>Back to Bookings
-              </Link>
+              </a>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-[1400px] mx-auto px-8 py-6">
-        {loading ? (
-          <div className="text-center py-8">
-            <i className="fas fa-spinner fa-spin text-2xl" style={{ color: COLORS.primary }}></i>
-            <p className="mt-2 text-gray-600">Loading payment analytics...</p>
+        {/* Analytics Cards */}
+        <div className="grid grid-cols-3 gap-6 mb-6">
+          <div className="bg-white rounded-lg p-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>
+                  ${analytics.totalRevenue.toFixed(2)}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                <i className="fas fa-dollar-sign text-2xl" style={{ color: COLORS.primary }}></i>
+              </div>
+            </div>
           </div>
-        ) : analytics ? (
-          <div className="space-y-6">
-            {/* Revenue Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                      {formatCurrency(analytics.totalRevenue)}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-dollar-sign text-lg" style={{ color: COLORS.primary }}></i>
-                  </div>
-                </div>
-              </div>
 
-              <div className="bg-white rounded-lg p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                    <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                      {analytics.totalBookings}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-calendar-check text-lg" style={{ color: COLORS.primary }}></i>
-                  </div>
-                </div>
+          <div className="bg-white rounded-lg p-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Customers</p>
+                <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>
+                  {analytics.totalCustomers}
+                </p>
               </div>
-
-              <div className="bg-white rounded-lg p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Paid Bookings</p>
-                    <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                      {analytics.paidBookings}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-check-circle text-lg" style={{ color: COLORS.primary }}></i>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Avg Booking Value</p>
-                    <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                      {formatCurrency(analytics.averageBookingValue)}
-                    </p>
-                  </div>
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-chart-bar text-lg" style={{ color: COLORS.primary }}></i>
-                  </div>
-                </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                <i className="fas fa-users text-2xl" style={{ color: COLORS.primary }}></i>
               </div>
             </div>
+          </div>
 
-            {/* Time Period Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white rounded-lg p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Today</p>
-                    <p className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                      {formatCurrency(analytics.todayRevenue)}
-                    </p>
-                  </div>
-                  <i className="fas fa-calendar-day text-lg" style={{ color: COLORS.primary }}></i>
-                </div>
+          <div className="bg-white rounded-lg p-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Invoices</p>
+                <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>
+                  {analytics.totalInvoices}
+                </p>
               </div>
-
-              <div className="bg-white rounded-lg p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">This Week</p>
-                    <p className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                      {formatCurrency(analytics.weeklyRevenue)}
-                    </p>
-                  </div>
-                  <i className="fas fa-calendar-week text-lg" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">This Month</p>
-                    <p className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                      {formatCurrency(analytics.monthlyRevenue)}
-                    </p>
-                  </div>
-                  <i className="fas fa-calendar-alt text-lg" style={{ color: COLORS.primary }}></i>
-                </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                <i className="fas fa-file-invoice text-2xl" style={{ color: COLORS.primary }}></i>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Payment Methods Breakdown */}
-            <div className="bg-white rounded-lg p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-              <h3 className="text-lg font-bold mb-4" style={{ color: COLORS.primary }}>
-                Payment Methods
-              </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                    {formatCurrency(analytics.paymentMethods.card)}
-                  </div>
-                  <div className="text-sm text-gray-600">Card Payments</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                    {formatCurrency(analytics.paymentMethods.bank_transfer)}
-                  </div>
-                  <div className="text-sm text-gray-600">Bank Transfer</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                    {formatCurrency(analytics.paymentMethods.other)}
-                  </div>
-                  <div className="text-sm text-gray-600">Other</div>
-                </div>
+        {/* Recent Payments */}
+        <div className="bg-white rounded-lg border-2" style={{ borderColor: COLORS.primaryLight }}>
+          <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
+            <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
+              Recent Payments
+            </h2>
+          </div>
+
+          <div className="p-6">
+            {loading ? (
+              <div className="text-center py-8">
+                <i className="fas fa-spinner fa-spin text-2xl" style={{ color: COLORS.primary }}></i>
+                <p className="mt-2 text-gray-600">Loading payments...</p>
               </div>
-            </div>
-
-            {/* Recent Payments */}
-            <div className="bg-white rounded-lg p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-              <h3 className="text-lg font-bold mb-4" style={{ color: COLORS.primary }}>
-                Recent Payments
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b" style={{ borderColor: COLORS.border }}>
-                      <th className="text-left py-3 px-4 font-semibold text-sm" style={{ color: COLORS.primary }}>
-                        Customer
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm" style={{ color: COLORS.primary }}>
-                        Amount
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm" style={{ color: COLORS.primary }}>
-                        Status
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm" style={{ color: COLORS.primary }}>
-                        Date
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-sm" style={{ color: COLORS.primary }}>
-                        Booking
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analytics.recentPayments.map((payment) => (
-                      <tr key={payment.id} className="border-b" style={{ borderColor: COLORS.border }}>
-                        <td className="py-3 px-4 text-sm text-gray-900">
-                          {payment.customerEmail}
-                        </td>
-                        <td className="py-3 px-4 text-sm font-semibold" style={{ color: COLORS.primary }}>
-                          {formatCurrency(payment.amount)}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-1 text-xs font-bold rounded ${
-                            payment.status === 'succeeded' ? 'bg-green-100 text-green-700' :
-                            payment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
+            ) : analytics.recentPayments.length === 0 ? (
+              <div className="text-center py-8">
+                <i className="fas fa-credit-card text-4xl text-gray-300 mb-4"></i>
+                <p className="text-gray-600">No payments found</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {analytics.recentPayments.map((payment) => (
+                  <div
+                    key={payment.id}
+                    className="p-4 border rounded-lg hover:shadow-md transition-all"
+                    style={{ borderColor: COLORS.border }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-bold text-lg">
+                            Payment #{payment.id.slice(-8)}
+                          </h3>
+                          <span className={`px-2 py-1 text-xs font-bold rounded ${getStatusColor(payment.status)}`}>
                             {payment.status}
                           </span>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
-                          {formatDate(payment.createdAt)}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Link
-                            href={`/bookings?id=${payment.bookingId}`}
-                            className="text-sm font-medium hover:underline"
-                            style={{ color: COLORS.primary }}
-                          >
-                            View Booking
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+                        
+                        <div className="text-sm text-gray-600">
+                          <div className="flex items-center gap-4">
+                            <span><i className="fas fa-calendar mr-1"></i>{formatDate(payment.created)}</span>
+                            <span><i className="fas fa-envelope mr-1"></i>{payment.customerEmail}</span>
+                            <span><i className="fas fa-dollar-sign mr-1"></i>${payment.amount.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
-        ) : (
-          <div className="text-center py-8">
-            <i className="fas fa-exclamation-triangle text-4xl text-gray-300 mb-4"></i>
-            <p className="text-gray-600">Failed to load payment analytics</p>
-            <button
-              onClick={fetchAnalytics}
-              className="mt-4 px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all"
-              style={{ background: COLORS.primary }}
-            >
-              Try Again
-            </button>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
