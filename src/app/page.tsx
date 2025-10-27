@@ -65,8 +65,8 @@ export default function HomePage() {
             <div className="flex items-center gap-3">
               <a
                 href="/bookings"
-                className="px-6 py-3 text-lg font-bold text-white rounded-lg hover:opacity-90 transition-all shadow-lg"
-                style={{ background: COLORS.primary }}
+                className="px-6 py-3 text-lg font-bold rounded-lg hover:opacity-90 transition-all shadow-lg"
+                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
               >
                 <i className="fas fa-tachometer-alt mr-2"></i>Dashboard
               </a>
@@ -88,8 +88,8 @@ export default function HomePage() {
           <div className="flex justify-center gap-4">
             <a
               href="/bookings"
-              className="px-8 py-4 text-lg font-bold text-white rounded-lg hover:opacity-90 transition-all shadow-lg"
-              style={{ background: COLORS.primary }}
+              className="px-8 py-4 text-lg font-bold rounded-lg hover:opacity-90 transition-all shadow-lg"
+              style={{ background: COLORS.primary, color: COLORS.primaryLight }}
             >
               <i className="fas fa-calendar-alt mr-2"></i>Manage Bookings
             </a>

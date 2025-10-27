@@ -135,8 +135,8 @@ export default function SettingsPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
-                style={{ background: COLORS.primary }}
+                className="px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
+                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
               >
                 <i className={`fas fa-save mr-2 ${saving ? 'animate-spin' : ''}`}></i>
                 {saving ? "Saving..." : "Save Settings"}

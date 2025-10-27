@@ -137,8 +137,8 @@ export default function MessagesPage() {
                   resetForm();
                   setShowAddForm(true);
                 }}
-                className="px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all"
-                style={{ background: COLORS.primary }}
+                className="px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
               >
                 <i className="fas fa-plus mr-2"></i>Add Template
               </button>
@@ -222,8 +222,8 @@ export default function MessagesPage() {
                           setPreviewData({});
                           // Show preview modal
                         }}
-                        className="px-3 py-1 text-xs font-bold text-white rounded-lg hover:opacity-90 transition-all"
-                        style={{ background: COLORS.primary }}
+                        className="px-3 py-1 text-xs font-bold rounded-lg hover:opacity-90 transition-all"
+                        style={{ background: COLORS.primary, color: COLORS.primaryLight }}
                       >
                         Preview
                       </button>
@@ -316,8 +316,8 @@ export default function MessagesPage() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all"
-                  style={{ background: COLORS.primary }}
+                  className="flex-1 px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                  style={{ background: COLORS.primary, color: COLORS.primaryLight }}
                 >
                   {editingTemplate ? "Update" : "Add"} Template
                 </button>

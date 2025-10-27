@@ -145,7 +145,7 @@ export default function PaymentsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ background: COLORS.primary }}>
-                <i className="fas fa-chart-line text-white text-xl"></i>
+                <i className="fas fa-chart-line text-xl" style={{ color: COLORS.primaryLight }}></i>
               </div>
               <div>
                 <h1 className="text-2xl font-bold" style={{ color: COLORS.primary }}>
@@ -205,10 +205,10 @@ export default function PaymentsPage() {
                 onClick={() => setSelectedTab(tab.id as any)}
                 className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-all ${
                   selectedTab === tab.id
-                    ? 'bg-white shadow-sm text-white'
+                    ? 'bg-white shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
-                style={selectedTab === tab.id ? { background: COLORS.primary, color: 'white' } : {}}
+                style={selectedTab === tab.id ? { background: COLORS.primary, color: COLORS.primaryLight } : {}}
               >
                 <i className={tab.icon}></i>
                 {tab.label}

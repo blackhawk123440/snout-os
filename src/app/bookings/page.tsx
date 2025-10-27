@@ -363,8 +363,8 @@ export default function BookingsPage() {
               </a>
               <a
                 href="/calendar"
-                className="px-4 py-2.5 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all shadow-sm"
-                style={{ background: COLORS.primary }}
+                className="px-4 py-2.5 text-sm font-bold rounded-lg hover:opacity-90 transition-all shadow-sm"
+                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
               >
                 <i className="fas fa-calendar-alt mr-2"></i>Calendar
               </a>
@@ -754,20 +754,21 @@ export default function BookingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ background: COLORS.primary }}>
-                      <i className="fas fa-calendar-check text-white text-lg"></i>
+                      <i className="fas fa-calendar-check text-lg" style={{ color: COLORS.primaryLight }}></i>
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-white">
+                      <h2 className="text-2xl font-bold" style={{ color: COLORS.primary }}>
                         Booking #{selectedBooking.id.slice(-8).toUpperCase()}
                       </h2>
-                      <p className="text-white/80 font-medium">
+                      <p className="font-medium" style={{ color: COLORS.primary }}>
                         {selectedBooking.firstName} {selectedBooking.lastName} • {selectedBooking.service}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedBooking(null)}
-                    className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-all duration-200"
+                    className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all duration-200"
+                    style={{ color: COLORS.primary }}
                   >
                     <i className="fas fa-times text-lg"></i>
                   </button>

@@ -207,8 +207,8 @@ export default function AutomationPage() {
                   resetForm();
                   setShowAddForm(true);
                 }}
-                className="px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all"
-                style={{ background: COLORS.primary }}
+                className="px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
               >
                 <i className="fas fa-plus mr-2"></i>Add Template
               </button>
@@ -230,27 +230,27 @@ export default function AutomationPage() {
           <button
             onClick={() => setActiveTab("templates")}
             className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${
-              activeTab === "templates" ? "text-white" : "hover:bg-gray-100"
+              activeTab === "templates" ? "" : "hover:bg-gray-100"
             }`}
-            style={activeTab === "templates" ? { background: COLORS.primary } : { color: COLORS.primary }}
+            style={activeTab === "templates" ? { background: COLORS.primary, color: COLORS.primaryLight } : { color: COLORS.primary }}
           >
             <i className="fas fa-envelope mr-2"></i>Message Templates
           </button>
           <button
             onClick={() => setActiveTab("settings")}
             className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${
-              activeTab === "settings" ? "text-white" : "hover:bg-gray-100"
+              activeTab === "settings" ? "" : "hover:bg-gray-100"
             }`}
-            style={activeTab === "settings" ? { background: COLORS.primary } : { color: COLORS.primary }}
+            style={activeTab === "settings" ? { background: COLORS.primary, color: COLORS.primaryLight } : { color: COLORS.primary }}
           >
             <i className="fas fa-cog mr-2"></i>Automation Settings
           </button>
           <button
             onClick={() => setActiveTab("preview")}
             className={`px-4 py-2 text-sm font-bold rounded-lg transition-all ${
-              activeTab === "preview" ? "text-white" : "hover:bg-gray-100"
+              activeTab === "preview" ? "" : "hover:bg-gray-100"
             }`}
-            style={activeTab === "preview" ? { background: COLORS.primary } : { color: COLORS.primary }}
+            style={activeTab === "preview" ? { background: COLORS.primary, color: COLORS.primaryLight } : { color: COLORS.primary }}
           >
             <i className="fas fa-eye mr-2"></i>Field Reference
           </button>
@@ -326,8 +326,8 @@ export default function AutomationPage() {
                             setPreviewData({});
                             // Show preview modal
                           }}
-                          className="px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all"
-                          style={{ background: COLORS.primary }}
+                          className="px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                          style={{ background: COLORS.primary, color: COLORS.primaryLight }}
                         >
                           <i className="fas fa-eye mr-2"></i>Preview
                         </button>
@@ -475,8 +475,8 @@ export default function AutomationPage() {
             <div className="mt-6 flex gap-3">
               <button
                 onClick={handleSettingsSave}
-                className="px-6 py-3 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all"
-                style={{ background: COLORS.primary }}
+                className="px-6 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
               >
                 <i className="fas fa-save mr-2"></i>Save Settings
               </button>
@@ -606,8 +606,8 @@ export default function AutomationPage() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all"
-                  style={{ background: COLORS.primary }}
+                  className="flex-1 px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                  style={{ background: COLORS.primary, color: COLORS.primaryLight }}
                 >
                   {editingTemplate ? "Update" : "Add"} Template
                 </button>
