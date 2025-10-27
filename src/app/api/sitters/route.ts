@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
         lastName,
         phone,
         email,
-        isActive: isActive !== false,
+        active: isActive !== false,
       },
     });
 

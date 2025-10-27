@@ -31,10 +31,11 @@ export async function POST(request: NextRequest) {
     const offer = await prisma.sitterPoolOffer.create({
       data: {
         bookingId,
-        sitterIds,
+        sitterIds: JSON.stringify(sitterIds),
         message: message || `New ${booking.service} opportunity available!`,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         status: "active",
+        responses: JSON.stringify([]),
       },
     });
 

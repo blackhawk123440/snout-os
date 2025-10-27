@@ -27,17 +27,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Offer not found" }, { status: 404 });
     }
 
+    // Parse existing responses
+    const existingResponses = JSON.parse(offer.responses || "[]");
+    
+    // Add new response
+    const newResponse = {
+      sitterId,
+      response,
+      respondedAt: new Date().toISOString(),
+    };
+    
+    existingResponses.push(newResponse);
+
     // Update offer with response
     const updatedOffer = await prisma.sitterPoolOffer.update({
       where: { id: offerId },
       data: {
-        responses: {
-          push: {
-            sitterId,
-            response,
-            respondedAt: new Date(),
-          },
-        },
+        responses: JSON.stringify(existingResponses),
       },
     });
 
