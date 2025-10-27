@@ -1,12 +1,11 @@
-module.exports = {
-  extends: ['next/core-web-vitals'],
+import { defineConfig } from "eslint-define-config";
+
+export default defineConfig({
+  extends: ["next/core-web-vitals"],
   rules: {
-    '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/no-unused-vars': 'warn',
-    '@typescript-eslint/no-require-imports': 'warn',
-    'react-hooks/exhaustive-deps': 'warn',
-    'react/no-unescaped-entities': 'warn',
-    '@next/next/no-img-element': 'warn',
-    '@next/next/no-html-link-for-pages': 'warn',
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "react-hooks/exhaustive-deps": "warn",
   },
-};
+  ignorePatterns: ["node_modules/", ".next/", "out/"],
+});
