@@ -234,6 +234,30 @@ export default function BookingsPage() {
     }
   };
 
+  const handleSitterPoolOffer = async (bookingId: string) => {
+    try {
+      const response = await fetch("/api/sitter-pool/offer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId,
+          sitterIds: sitters.filter(s => s.active).map(s => s.id),
+          message: "New booking opportunity available!"
+        }),
+      });
+
+      if (response.ok) {
+        alert("Sitter pool offer created successfully!");
+        fetchBookings();
+      } else {
+        alert("Failed to create sitter pool offer");
+      }
+    } catch (error) {
+      console.error("Failed to create sitter pool offer:", error);
+      alert("Failed to create sitter pool offer");
+    }
+  };
+
   const handleBulkAction = async (action: string) => {
     if (selectedBookingIds.length === 0) return;
 
@@ -943,6 +967,14 @@ export default function BookingsPage() {
                               </option>
                             ))}
                           </select>
+                          
+                          <button
+                            onClick={() => handleSitterPoolOffer(selectedBooking.id)}
+                            className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                            style={{ background: COLORS.primary, color: COLORS.primaryLight }}
+                          >
+                            <i className="fas fa-users mr-2"></i>Create Sitter Pool Offer
+                          </button>
                         </div>
                       )}
                     </div>
