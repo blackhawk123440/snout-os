@@ -21,6 +21,8 @@ interface Booking {
     firstName: string;
     lastName: string;
   };
+  stripePaymentLinkUrl?: string;
+  tipLinkUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +65,7 @@ export default function BookingsPage() {
 
   // Payment link states
   const [generatingPaymentLink, setGeneratingPaymentLink] = useState(false);
+  const [generatingTipLink, setGeneratingTipLink] = useState(false);
 
   // Dashboard sections visibility
   const [showStats, setShowStats] = useState(true);
@@ -309,6 +312,38 @@ export default function BookingsPage() {
       alert("Failed to generate payment link");
     }
     setGeneratingPaymentLink(false);
+  };
+
+  const handleGenerateTipLink = async (booking: Booking) => {
+    setGeneratingTipLink(true);
+    try {
+      const response = await fetch("/api/payments/create-tip-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: booking.id,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Copy tip link to clipboard
+        await navigator.clipboard.writeText(data.tipLink);
+        
+        // Show detailed tip calculations
+        const tipCalc = data.tipCalculations;
+        alert(`Tip link generated and copied to clipboard!\n\nTip Link: ${data.tipLink}\n\nService Amount: $${tipCalc.serviceAmount}\n\nTip Options:\n• 10%: $${tipCalc.tip10} (Total: $${tipCalc.total10})\n• 15%: $${tipCalc.tip15} (Total: $${tipCalc.total15})\n• 20%: $${tipCalc.tip20} (Total: $${tipCalc.total20})\n• 25%: $${tipCalc.tip25} (Total: $${tipCalc.total25})`);
+        
+        // Refresh bookings to show updated tip link
+        fetchBookings();
+      } else {
+        alert("Failed to generate tip link");
+      }
+    } catch (error) {
+      console.error("Failed to generate tip link:", error);
+      alert("Failed to generate tip link");
+    }
+    setGeneratingTipLink(false);
   };
 
   const handleBulkAction = async (action: string) => {
@@ -1084,6 +1119,16 @@ export default function BookingsPage() {
                           {generatingPaymentLink ? 'Generating...' : 'Generate Payment Link'}
                         </button>
                         
+                        <button
+                          onClick={() => handleGenerateTipLink(selectedBooking)}
+                          disabled={generatingTipLink || !selectedBooking.totalPrice}
+                          className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
+                          style={{ background: COLORS.primaryLight, color: COLORS.primary }}
+                        >
+                          <i className={`fas fa-gift mr-2 ${generatingTipLink ? 'animate-spin' : ''}`}></i>
+                          {generatingTipLink ? 'Generating...' : 'Generate Tip Link'}
+                        </button>
+                        
                         {selectedBooking.stripePaymentLinkUrl && (
                           <button
                             onClick={() => {
@@ -1094,6 +1139,19 @@ export default function BookingsPage() {
                             style={{ background: COLORS.primaryLight, color: COLORS.primary }}
                           >
                             <i className="fas fa-link mr-2"></i>Copy Payment Link
+                          </button>
+                        )}
+                        
+                        {selectedBooking.tipLinkUrl && (
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(selectedBooking.tipLinkUrl!);
+                              alert("Tip link copied to clipboard!");
+                            }}
+                            className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                            style={{ background: COLORS.primaryLight, color: COLORS.primary }}
+                          >
+                            <i className="fas fa-gift mr-2"></i>Copy Tip Link
                           </button>
                         )}
                       </div>
