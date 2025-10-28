@@ -36,7 +36,7 @@ export async function PATCH(
 ) {
   try {
     const body = await request.json();
-    const { firstName, lastName, phone, email, isActive } = body;
+    const { firstName, lastName, phone, email, active } = body;
 
     const sitter = await prisma.sitter.update({
       where: { id: params.id },
@@ -45,7 +45,7 @@ export async function PATCH(
         ...(lastName && { lastName }),
         ...(phone && { phone }),
         ...(email && { email }),
-        ...(typeof isActive === 'boolean' && { isActive }),
+        ...(typeof active === 'boolean' && { active }),
       },
     });
 

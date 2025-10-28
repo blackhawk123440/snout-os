@@ -9,7 +9,7 @@ interface Sitter {
   lastName: string;
   phone: string;
   email: string;
-  isActive: boolean;
+  active: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,7 +25,7 @@ export default function SittersPage() {
     lastName: "",
     phone: "",
     email: "",
-    isActive: true,
+    active: true,
   });
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function SittersPage() {
   };
 
   const resetForm = () => {
-    setFormData({ firstName: "", lastName: "", phone: "", email: "", isActive: true });
+    setFormData({ firstName: "", lastName: "", phone: "", email: "", active: true });
     setShowAddForm(false);
     setEditingSitter(null);
   };
@@ -80,7 +80,7 @@ export default function SittersPage() {
       lastName: sitter.lastName,
       phone: sitter.phone,
       email: sitter.email,
-      isActive: sitter.isActive,
+      active: sitter.active,
     });
     setEditingSitter(sitter);
     setShowAddForm(true);
@@ -183,9 +183,9 @@ export default function SittersPage() {
                           {sitter.firstName} {sitter.lastName}
                         </h3>
                         <span className={`px-2 py-1 text-xs font-bold rounded ${
-                          sitter.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                          sitter.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                         }`}>
-                          {sitter.isActive ? "Active" : "Inactive"}
+                          {sitter.active ? "Active" : "Inactive"}
                         </span>
                       </div>
                     </div>
@@ -299,12 +299,12 @@ export default function SittersPage() {
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  id="active"
+                  checked={formData.active}
+                  onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
                   className="w-4 h-4"
                 />
-                <label htmlFor="isActive" className="text-sm font-medium" style={{ color: COLORS.primary }}>
+                <label htmlFor="active" className="text-sm font-medium" style={{ color: COLORS.primary }}>
                   Active Sitter
                 </label>
               </div>
