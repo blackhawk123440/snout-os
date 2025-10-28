@@ -35,12 +35,10 @@ function isHoliday(startISO: string, endISO: string, holidays: Set<string>): boo
   
   // iterate calendar days from start to end inclusive
   const days: string[] = [];
-  for (
-    let d = new Date(start);
-    d.setHours(0, 0, 0, 0);
-    d <= end;
-    d = new Date(d.getTime() + 24 * 60 * 60 * 1000)
-  ) {
+  let d = new Date(start);
+  d.setHours(0, 0, 0, 0);
+  
+  while (d <= end) {
     // format YYYY-MM-DD in America Chicago
     const parts = new Intl.DateTimeFormat("en-CA", { 
       timeZone: tz, 
@@ -53,6 +51,9 @@ function isHoliday(startISO: string, endISO: string, holidays: Set<string>): boo
     const m = parts.find(p => p.type === "month")!.value;
     const da = parts.find(p => p.type === "day")!.value;
     days.push(`${y}-${m}-${da}`);
+    
+    // Move to next day
+    d = new Date(d.getTime() + 24 * 60 * 60 * 1000);
   }
   
   return days.some(day => holidays.has(day));
