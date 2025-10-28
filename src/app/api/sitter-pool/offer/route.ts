@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { sendSMS } from "@/lib/openphone";
 
 const prisma = new PrismaClient();
 
@@ -27,6 +28,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
+    // Get sitter details for SMS
+    const sitters = await prisma.sitter.findMany({
+      where: { id: { in: sitterIds } },
+    });
+
     // Create sitter pool offer
     const offer = await prisma.sitterPoolOffer.create({
       data: {
@@ -38,6 +44,31 @@ export async function POST(request: NextRequest) {
         responses: JSON.stringify([]),
       },
     });
+
+    // Send SMS to all selected sitters
+    const smsPromises = sitters.map(async (sitter) => {
+      try {
+        const smsMessage = `${message}\n\nReply YES to accept this booking opportunity!`;
+        await sendSMS(sitter.phone, smsMessage);
+        
+        // Log the message in the database
+        await prisma.message.create({
+          data: {
+            direction: "outbound",
+            body: smsMessage,
+            status: "sent",
+            bookingId: bookingId,
+            from: "system",
+            to: sitter.phone,
+          },
+        });
+      } catch (error) {
+        console.error(`Failed to send SMS to sitter ${sitter.id}:`, error);
+      }
+    });
+
+    // Wait for all SMS to be sent (don't fail the request if SMS fails)
+    await Promise.allSettled(smsPromises);
 
     return NextResponse.json({ offer });
   } catch (error) {

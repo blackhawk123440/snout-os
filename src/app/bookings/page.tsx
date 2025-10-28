@@ -56,6 +56,11 @@ export default function BookingsPage() {
   const [calculating, setCalculating] = useState(false);
   const [pendingChanges, setPendingChanges] = useState(false);
 
+  // Sitter pool states
+  const [showSitterPoolModal, setShowSitterPoolModal] = useState(false);
+  const [selectedSittersForPool, setSelectedSittersForPool] = useState<string[]>([]);
+  const [poolBookingId, setPoolBookingId] = useState<string | null>(null);
+
   // Dashboard sections visibility
   const [showStats, setShowStats] = useState(true);
   const [showUpcoming, setShowUpcoming] = useState(true);
@@ -234,20 +239,28 @@ export default function BookingsPage() {
     }
   };
 
-  const handleSitterPoolOffer = async (bookingId: string) => {
+  const handleSitterPoolOffer = async () => {
+    if (!poolBookingId || selectedSittersForPool.length === 0) return;
+
     try {
+      const booking = bookings.find(b => b.id === poolBookingId);
+      if (!booking) return;
+
       const response = await fetch("/api/sitter-pool/offer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bookingId,
-          sitterIds: sitters.filter(s => s.active).map(s => s.id),
-          message: "New booking opportunity available!"
+          bookingId: poolBookingId,
+          sitterIds: selectedSittersForPool,
+          message: `New ${booking.service} opportunity! ${booking.firstName} ${booking.lastName} - ${new Date(booking.startAt).toLocaleDateString()} at ${new Date(booking.startAt).toLocaleTimeString()}. Reply YES to accept!`
         }),
       });
 
       if (response.ok) {
-        alert("Sitter pool offer created successfully!");
+        alert(`Sitter pool offer sent to ${selectedSittersForPool.length} sitters!`);
+        setShowSitterPoolModal(false);
+        setSelectedSittersForPool([]);
+        setPoolBookingId(null);
         fetchBookings();
       } else {
         alert("Failed to create sitter pool offer");
@@ -256,6 +269,12 @@ export default function BookingsPage() {
       console.error("Failed to create sitter pool offer:", error);
       alert("Failed to create sitter pool offer");
     }
+  };
+
+  const openSitterPoolModal = (bookingId: string) => {
+    setPoolBookingId(bookingId);
+    setSelectedSittersForPool([]);
+    setShowSitterPoolModal(true);
   };
 
   const handleBulkAction = async (action: string) => {
@@ -969,7 +988,7 @@ export default function BookingsPage() {
                           </select>
                           
                           <button
-                            onClick={() => handleSitterPoolOffer(selectedBooking.id)}
+                            onClick={() => openSitterPoolModal(selectedBooking.id)}
                             className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
                             style={{ background: COLORS.primary, color: COLORS.primaryLight }}
                           >
@@ -1063,6 +1082,116 @@ export default function BookingsPage() {
                         )}
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sitter Pool Selection Modal */}
+        {showSitterPoolModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+              {/* Header */}
+              <div className="px-8 py-6 border-b" style={{ borderColor: COLORS.border, background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, ${COLORS.primaryLighter} 100%)` }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ background: COLORS.primary }}>
+                      <i className="fas fa-users text-lg" style={{ color: COLORS.primaryLight }}></i>
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                        Create Sitter Pool Offer
+                      </h2>
+                      <p className="font-medium" style={{ color: COLORS.primary }}>
+                        Select sitters to send this booking opportunity to
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowSitterPoolModal(false)}
+                    className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all duration-200"
+                    style={{ color: COLORS.primary }}
+                  >
+                    <i className="fas fa-times text-lg"></i>
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-8">
+                <div className="space-y-6">
+                  {/* Booking Summary */}
+                  {poolBookingId && (() => {
+                    const booking = bookings.find(b => b.id === poolBookingId);
+                    if (!booking) return null;
+                    return (
+                      <div className="bg-gray-50 rounded-lg p-4 border" style={{ borderColor: COLORS.border }}>
+                        <h3 className="font-semibold mb-2" style={{ color: COLORS.primary }}>Booking Details</h3>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium">Client:</span> {booking.firstName} {booking.lastName}
+                          </div>
+                          <div>
+                            <span className="font-medium">Service:</span> {booking.service}
+                          </div>
+                          <div>
+                            <span className="font-medium">Date:</span> {new Date(booking.startAt).toLocaleDateString()}
+                          </div>
+                          <div>
+                            <span className="font-medium">Time:</span> {new Date(booking.startAt).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Sitter Selection */}
+                  <div>
+                    <h3 className="text-lg font-bold mb-4" style={{ color: COLORS.primary }}>Select Sitters</h3>
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                      {sitters.filter(sitter => sitter.active).map(sitter => (
+                        <label key={sitter.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors" style={{ borderColor: COLORS.border }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedSittersForPool.includes(sitter.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedSittersForPool([...selectedSittersForPool, sitter.id]);
+                              } else {
+                                setSelectedSittersForPool(selectedSittersForPool.filter(id => id !== sitter.id));
+                              }
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <div className="flex-1">
+                            <div className="font-semibold">{sitter.firstName} {sitter.lastName}</div>
+                            <div className="text-sm text-gray-600">{sitter.email}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={handleSitterPoolOffer}
+                      disabled={selectedSittersForPool.length === 0}
+                      className="flex-1 px-6 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
+                      style={{ background: COLORS.primary, color: COLORS.primaryLight }}
+                    >
+                      <i className="fas fa-paper-plane mr-2"></i>
+                      Send to {selectedSittersForPool.length} Sitter{selectedSittersForPool.length !== 1 ? 's' : ''}
+                    </button>
+                    <button
+                      onClick={() => setShowSitterPoolModal(false)}
+                      className="px-6 py-3 text-sm font-bold border-2 rounded-lg hover:bg-gray-50 transition-all"
+                      style={{ borderColor: COLORS.border, color: COLORS.primary }}
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
               </div>
