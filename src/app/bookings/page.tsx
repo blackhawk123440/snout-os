@@ -146,8 +146,9 @@ export default function BookingsPage() {
     const confirmed = activeBookings.filter(b => b.status === "confirmed").length;
     const completed = activeBookings.filter(b => b.status === "completed").length;
     const revenue = activeBookings.reduce((sum, b) => sum + b.totalPrice, 0);
-    const paid = activeBookings.filter(b => b.status === "completed").length;
-    const paidAmount = activeBookings.filter(b => b.status === "completed").reduce((sum, b) => sum + b.totalPrice, 0);
+    // Treat confirmed bookings as paid
+    const paid = activeBookings.filter(b => b.status === "confirmed" || b.status === "completed").length;
+    const paidAmount = activeBookings.filter(b => b.status === "confirmed" || b.status === "completed").reduce((sum, b) => sum + b.totalPrice, 0);
 
     return {
       total,

@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
           data: {
             sitterId,
             status: "confirmed",
+            paymentStatus: "paid", // Set payment status to paid when confirmed
           },
         });
 

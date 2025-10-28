@@ -54,6 +54,8 @@ export async function PATCH(
       data: {
         ...(status && { status }),
         ...(sitterId && { sitterId }),
+        // If status is being set to confirmed, also set payment status to paid
+        ...(status === "confirmed" && { paymentStatus: "paid" }),
       },
       include: {
         pets: true,
