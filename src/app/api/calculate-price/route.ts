@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { service, startAt, endAt, petCount } = body;
+    const { service, startAt, endAt, petCount, quantity = 1, afterHours = false } = body;
 
     if (!service || !startAt || !endAt || !petCount) {
       return NextResponse.json(
@@ -16,14 +16,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const price = await calculateBookingPrice(
+    const result = await calculateBookingPrice(
       service,
       new Date(startAt),
       new Date(endAt),
-      petCount
+      petCount,
+      quantity,
+      afterHours
     );
 
-    return NextResponse.json({ price });
+    return NextResponse.json({ 
+      price: result.total,
+      notes: result.notes,
+      holidayApplied: result.holidayApplied
+    });
   } catch (error) {
     console.error("Failed to calculate price:", error);
     return NextResponse.json(

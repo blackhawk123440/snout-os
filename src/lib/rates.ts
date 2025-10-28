@@ -3,6 +3,111 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export interface Rate {
+  base: number;
+  addlPet: number;
+  holidayAdd: number;       // flat holiday add for this service
+  overtimeAdd?: number;     // flat overtime add for house sitting (e.g., 40)
+}
+
+export interface QuoteInput {
+  service: string;                 // "Drop-ins" | "Walk" | "Housesitting" | "Pet Taxi"
+  minutes?: number | null;
+  quantity: number;                // visits count for non sitting services
+  petCount: number;                // you can keep 1 if you do not collect pets yet
+  afterHours: boolean;
+  startAt: string;                 // ISO
+  endAt: string;                   // ISO
+  holidayDatesISO: string[];       // e.g. ["2025-11-27","2025-12-25"]
+  rate: Rate;
+}
+
+export interface QuoteResult {
+  total: number;
+  notes: string;
+  holidayApplied: boolean;
+}
+
+function isHoliday(startISO: string, endISO: string, holidays: Set<string>): boolean {
+  // compare as America Chicago calendar dates
+  const tz = "America/Chicago";
+  const start = new Date(startISO);
+  const end = new Date(endISO);
+  
+  // iterate calendar days from start to end inclusive
+  const days: string[] = [];
+  for (
+    let d = new Date(start);
+    d.setHours(0, 0, 0, 0);
+    d <= end;
+    d = new Date(d.getTime() + 24 * 60 * 60 * 1000)
+  ) {
+    // format YYYY-MM-DD in America Chicago
+    const parts = new Intl.DateTimeFormat("en-CA", { 
+      timeZone: tz, 
+      year: "numeric", 
+      month: "2-digit", 
+      day: "2-digit" 
+    }).formatToParts(d);
+    
+    const y = parts.find(p => p.type === "year")!.value;
+    const m = parts.find(p => p.type === "month")!.value;
+    const da = parts.find(p => p.type === "day")!.value;
+    days.push(`${y}-${m}-${da}`);
+  }
+  
+  return days.some(day => holidays.has(day));
+}
+
+export function computeQuote(i: QuoteInput): QuoteResult {
+  const qty = Math.max(1, i.quantity || 1);
+  const addlPets = Math.max(i.petCount - 1, 0);
+
+  // base per visit for non sitting
+  let per = i.rate.base;
+
+  // auto apply holiday if any day overlaps your holiday list
+  const holidaysSet = new Set(i.holidayDatesISO || []);
+  const holidayApplies = isHoliday(i.startAt, i.endAt, holidaysSet);
+  if (holidayApplies) per += i.rate.holidayAdd;
+
+  // after hours add if you use it as a flat add
+  // keep it zero if you do not want after hours for now
+  const afterHoursAdd = i.afterHours ? 0 : 0;
+  per += afterHoursAdd;
+
+  // additional pets
+  per += addlPets * i.rate.addlPet;
+
+  let total = 0;
+  let notes = `Base ${i.service}${i.minutes ? " " + i.minutes + "m" : ""}, pets ${i.petCount}, visits ${qty}`;
+
+  if (i.service === "Housesitting") {
+    // housesitting usually priced as a block not by visits
+    // overtime rule: only add overtime if end is later than start
+    const startT = new Date(i.startAt).getTime();
+    const endT = new Date(i.endAt).getTime();
+    const overtime = endT > startT ? (i.rate.overtimeAdd || 40) : 0;
+
+    // housesitting total is base plus holiday add already included above
+    total = per + overtime;
+    notes += holidayApplies ? " +holiday" : "";
+    notes += overtime ? " +overtime" : "";
+  } else {
+    // non sitting multiply by quantity
+    total = per * qty;
+    notes += holidayApplies ? " +holiday" : "";
+    if (i.afterHours) notes += " +after-hours";
+  }
+
+  return { 
+    total: Number(total.toFixed(2)), 
+    notes, 
+    holidayApplied: holidayApplies 
+  };
+}
+
+// Legacy interface for backward compatibility
+export interface LegacyRate {
   id: string;
   service: string;
   duration: number;
@@ -10,7 +115,7 @@ export interface Rate {
   description: string;
 }
 
-export async function getAllRates(): Promise<Rate[]> {
+export async function getAllRates(): Promise<LegacyRate[]> {
   try {
     const rates = await prisma.rate.findMany({
       orderBy: { duration: 'asc' }
@@ -22,51 +127,74 @@ export async function getAllRates(): Promise<Rate[]> {
   }
 }
 
+// Default rates configuration
+export const DEFAULT_RATES: Record<string, Rate> = {
+  "Drop-ins": {
+    base: 25,
+    addlPet: 5,
+    holidayAdd: 10,
+  },
+  "Walk": {
+    base: 20,
+    addlPet: 5,
+    holidayAdd: 10,
+  },
+  "Housesitting": {
+    base: 50,
+    addlPet: 10,
+    holidayAdd: 25,
+    overtimeAdd: 40,
+  },
+  "Pet Taxi": {
+    base: 30,
+    addlPet: 5,
+    holidayAdd: 15,
+  },
+};
+
+// Default holiday dates for 2025
+export const DEFAULT_HOLIDAYS = [
+  "2025-01-01", // New Year's Day
+  "2025-01-20", // Martin Luther King Jr. Day
+  "2025-02-17", // Presidents' Day
+  "2025-05-26", // Memorial Day
+  "2025-07-04", // Independence Day
+  "2025-09-01", // Labor Day
+  "2025-10-13", // Columbus Day
+  "2025-11-11", // Veterans Day
+  "2025-11-27", // Thanksgiving
+  "2025-12-25", // Christmas Day
+];
+
 export async function calculateBookingPrice(
   service: string,
   startAt: Date,
   endAt: Date,
-  petCount: number
-): Promise<number> {
+  petCount: number,
+  quantity: number = 1,
+  afterHours: boolean = false
+): Promise<{ total: number; notes: string; holidayApplied: boolean }> {
   try {
-    const rates = await getAllRates();
-    const serviceRate = rates.find(rate => rate.service === service);
-    
-    if (!serviceRate) {
+    const rate = DEFAULT_RATES[service];
+    if (!rate) {
       throw new Error(`No rate found for service: ${service}`);
     }
 
-    const start = new Date(startAt);
-    const end = new Date(endAt);
-    const durationMs = end.getTime() - start.getTime();
-    const durationHours = durationMs / (1000 * 60 * 60);
+    const quoteInput: QuoteInput = {
+      service,
+      quantity,
+      petCount,
+      afterHours,
+      startAt: startAt.toISOString(),
+      endAt: endAt.toISOString(),
+      holidayDatesISO: DEFAULT_HOLIDAYS,
+      rate,
+    };
 
-    let totalPrice = 0;
-
-    if (service === "Pet Sitting") {
-      // Housesitting: $50 base rate per day
-      const days = Math.ceil(durationHours / 24);
-      totalPrice = days * 50;
-      
-      // Overtime: $10 per hour after 8 hours per day
-      const overtimeHours = Math.max(0, durationHours - (days * 8));
-      totalPrice += overtimeHours * 10;
-    } else {
-      // Other services: use duration-based pricing
-      const basePrice = serviceRate.price;
-      const durationMultiplier = Math.ceil(durationHours);
-      totalPrice = basePrice * durationMultiplier;
-    }
-
-    // Pet count multiplier
-    if (petCount > 1) {
-      totalPrice += (petCount - 1) * 5; // $5 per additional pet
-    }
-
-    return Math.round(totalPrice * 100) / 100; // Round to 2 decimal places
+    return computeQuote(quoteInput);
   } catch (error) {
     console.error("Failed to calculate booking price:", error);
-    return 0;
+    return { total: 0, notes: "Error calculating price", holidayApplied: false };
   }
 }
 
