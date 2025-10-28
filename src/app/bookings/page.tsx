@@ -61,6 +61,9 @@ export default function BookingsPage() {
   const [selectedSittersForPool, setSelectedSittersForPool] = useState<string[]>([]);
   const [poolBookingId, setPoolBookingId] = useState<string | null>(null);
 
+  // Tip link states
+  const [generatingTipLink, setGeneratingTipLink] = useState(false);
+
   // Dashboard sections visibility
   const [showStats, setShowStats] = useState(true);
   const [showUpcoming, setShowUpcoming] = useState(true);
@@ -276,6 +279,36 @@ export default function BookingsPage() {
     setPoolBookingId(bookingId);
     setSelectedSittersForPool([]);
     setShowSitterPoolModal(true);
+  };
+
+  const handleGenerateTipLink = async (booking: Booking) => {
+    setGeneratingTipLink(true);
+    try {
+      const response = await fetch("/api/payments/create-tip-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: booking.id,
+          sitterAlias: booking.sitter ? `${booking.sitter.firstName}-${booking.sitter.lastName}` : 'sitter',
+          serviceAmount: booking.totalPrice || 0,
+          customerEmail: booking.email,
+          customerName: `${booking.firstName} ${booking.lastName}`
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Copy tip link to clipboard
+        await navigator.clipboard.writeText(data.tipLink);
+        alert(`Tip link generated and copied to clipboard!\n\nTip Link: ${data.tipLink}\n\nService Amount: $${data.serviceAmount}\nTip Options: 10%, 15%, 20%, 25%`);
+      } else {
+        alert("Failed to generate tip link");
+      }
+    } catch (error) {
+      console.error("Failed to generate tip link:", error);
+      alert("Failed to generate tip link");
+    }
+    setGeneratingTipLink(false);
   };
 
   const handleBulkAction = async (action: string) => {
@@ -1028,6 +1061,16 @@ export default function BookingsPage() {
                           style={{ color: COLORS.primary, borderColor: COLORS.border }}
                         >
                           <i className="fas fa-copy mr-2"></i>Copy Booking ID
+                        </button>
+                        
+                        <button
+                          onClick={() => handleGenerateTipLink(selectedBooking)}
+                          disabled={generatingTipLink || !selectedBooking.totalPrice}
+                          className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
+                          style={{ background: COLORS.primary, color: COLORS.primaryLight }}
+                        >
+                          <i className={`fas fa-gift mr-2 ${generatingTipLink ? 'animate-spin' : ''}`}></i>
+                          {generatingTipLink ? 'Generating...' : 'Generate Tip Link'}
                         </button>
                         <button
                           onClick={() => {
