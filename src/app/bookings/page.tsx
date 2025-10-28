@@ -61,8 +61,8 @@ export default function BookingsPage() {
   const [selectedSittersForPool, setSelectedSittersForPool] = useState<string[]>([]);
   const [poolBookingId, setPoolBookingId] = useState<string | null>(null);
 
-  // Tip link states
-  const [generatingTipLink, setGeneratingTipLink] = useState(false);
+  // Payment link states
+  const [generatingPaymentLink, setGeneratingPaymentLink] = useState(false);
 
   // Dashboard sections visibility
   const [showStats, setShowStats] = useState(true);
@@ -281,34 +281,34 @@ export default function BookingsPage() {
     setShowSitterPoolModal(true);
   };
 
-  const handleGenerateTipLink = async (booking: Booking) => {
-    setGeneratingTipLink(true);
+  const handleGeneratePaymentLink = async (booking: Booking) => {
+    setGeneratingPaymentLink(true);
     try {
-      const response = await fetch("/api/payments/create-tip-link", {
+      const response = await fetch("/api/payments/create-payment-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bookingId: booking.id,
-          sitterAlias: booking.sitter ? `${booking.sitter.firstName}-${booking.sitter.lastName}` : 'sitter',
-          serviceAmount: booking.totalPrice || 0,
-          customerEmail: booking.email,
-          customerName: `${booking.firstName} ${booking.lastName}`
+          includeTip: true,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Copy tip link to clipboard
-        await navigator.clipboard.writeText(data.tipLink);
-        alert(`Tip link generated and copied to clipboard!\n\nTip Link: ${data.tipLink}\n\nService Amount: $${data.serviceAmount}\nTip Options: 10%, 15%, 20%, 25%`);
+        // Copy payment link to clipboard
+        await navigator.clipboard.writeText(data.paymentLink);
+        alert(`Payment link generated and copied to clipboard!\n\nPayment Link: ${data.paymentLink}\n\nService Amount: $${data.baseAmount}\nTip Options: ${data.tipOptions.join('%, ')}%`);
+        
+        // Refresh bookings to show updated payment link
+        fetchBookings();
       } else {
-        alert("Failed to generate tip link");
+        alert("Failed to generate payment link");
       }
     } catch (error) {
-      console.error("Failed to generate tip link:", error);
-      alert("Failed to generate tip link");
+      console.error("Failed to generate payment link:", error);
+      alert("Failed to generate payment link");
     }
-    setGeneratingTipLink(false);
+    setGeneratingPaymentLink(false);
   };
 
   const handleBulkAction = async (action: string) => {
@@ -1062,16 +1062,6 @@ export default function BookingsPage() {
                         >
                           <i className="fas fa-copy mr-2"></i>Copy Booking ID
                         </button>
-                        
-                        <button
-                          onClick={() => handleGenerateTipLink(selectedBooking)}
-                          disabled={generatingTipLink || !selectedBooking.totalPrice}
-                          className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
-                          style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-                        >
-                          <i className={`fas fa-gift mr-2 ${generatingTipLink ? 'animate-spin' : ''}`}></i>
-                          {generatingTipLink ? 'Generating...' : 'Generate Tip Link'}
-                        </button>
                         <button
                           onClick={() => {
                             const message = `Booking Details:\nClient: ${selectedBooking.firstName} ${selectedBooking.lastName}\nService: ${selectedBooking.service}\nDate: ${formatDate(selectedBooking.startAt)}\nTime: ${formatTime(selectedBooking.startAt)}\nPets: ${formatPetsByQuantity(selectedBooking.pets)}\nPrice: $${selectedBooking.totalPrice.toFixed(2)}`;
@@ -1083,6 +1073,29 @@ export default function BookingsPage() {
                         >
                           <i className="fas fa-clipboard mr-2"></i>Copy Details
                         </button>
+                        
+                        <button
+                          onClick={() => handleGeneratePaymentLink(selectedBooking)}
+                          disabled={generatingPaymentLink || !selectedBooking.totalPrice}
+                          className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
+                          style={{ background: COLORS.primary, color: COLORS.primaryLight }}
+                        >
+                          <i className={`fas fa-credit-card mr-2 ${generatingPaymentLink ? 'animate-spin' : ''}`}></i>
+                          {generatingPaymentLink ? 'Generating...' : 'Generate Payment Link'}
+                        </button>
+                        
+                        {selectedBooking.stripePaymentLinkUrl && (
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(selectedBooking.stripePaymentLinkUrl!);
+                              alert("Payment link copied to clipboard!");
+                            }}
+                            className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                            style={{ background: COLORS.primaryLight, color: COLORS.primary }}
+                          >
+                            <i className="fas fa-link mr-2"></i>Copy Payment Link
+                          </button>
+                        )}
                       </div>
                     </div>
 
