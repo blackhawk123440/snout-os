@@ -1,7 +1,7 @@
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-09-30.clover",
+  apiVersion: "2023-10-16" as any,
 });
 
 export { stripe };
@@ -12,16 +12,22 @@ export async function createPaymentLink(
   customerEmail?: string
 ): Promise<string | null> {
   try {
+    // Create a product first
+    const product = await stripe.products.create({
+      name: description,
+    });
+
+    // Create a price for the product
+    const price = await stripe.prices.create({
+      product: product.id,
+      unit_amount: Math.round(amount * 100), // Convert to cents
+      currency: "usd",
+    });
+
     const paymentLink = await stripe.paymentLinks.create({
       line_items: [
         {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: description,
-            },
-            unit_amount: Math.round(amount * 100), // Convert to cents
-          },
+          price: price.id,
           quantity: 1,
         },
       ],
@@ -74,7 +80,7 @@ export async function createInvoice(
     // Finalize invoice
     const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
     
-    return finalizedInvoice.hosted_invoice_url;
+    return finalizedInvoice.hosted_invoice_url || null;
   } catch (error) {
     console.error("Failed to create invoice:", error);
     return null;

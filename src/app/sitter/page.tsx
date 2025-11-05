@@ -45,10 +45,11 @@ export default function SitterPage() {
       const response = await fetch(`/api/sitter/${id}/bookings`);
       const data = await response.json();
       setBookings(data.bookings || []);
-    } catch (error) {
-      console.error("Failed to fetch sitter bookings:", error);
+    } catch {
+      setBookings([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const formatPetsByQuantity = (pets: Array<{ species: string }>): string => {
@@ -90,7 +91,7 @@ export default function SitterPage() {
   );
 
   return (
-    <div className="min-h-screen" style={{ background: COLORS.primaryLighter }}>
+    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
       {/* Header */}
       <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
         <div className="max-w-[1400px] mx-auto px-8 py-4">

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
+import { calculatePriceBreakdown } from "@/lib/booking-utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,44 +27,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
-    // Calculate the service amount (base total)
-    const serviceAmount = booking.totalPrice || 0;
+    // Calculate the true total using price breakdown
+    const breakdown = calculatePriceBreakdown(booking);
+    const serviceAmount = breakdown.total;
     
     // Generate sitter alias for the tip link
     const sitterAlias = booking.sitter 
       ? `${booking.sitter.firstName}-${booking.sitter.lastName}`.toLowerCase().replace(/\s+/g, '-')
-      : 'sitter';
+      : 'snout-services';
 
-    // Create tip link URL similar to tip.snoutservices.com
-    const tipLinkUrl = `https://tip.snoutservices.com/link.html?amount=${serviceAmount}&sitter=${sitterAlias}`;
+    // Create tip link URL using internal route: /tip/t/{amount}/{sitter-alias}
+    const tipLinkUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/tip/t/${serviceAmount}/${sitterAlias}`;
 
     // Calculate tip amounts for display
     const tipCalculations = {
-      serviceAmount: serviceAmount,
+      serviceAmount,
       tip10: Math.round(serviceAmount * 0.10 * 100) / 100,
       tip15: Math.round(serviceAmount * 0.15 * 100) / 100,
       tip20: Math.round(serviceAmount * 0.20 * 100) / 100,
       tip25: Math.round(serviceAmount * 0.25 * 100) / 100,
-      total10: Math.round((serviceAmount + serviceAmount * 0.10) * 100) / 100,
-      total15: Math.round((serviceAmount + serviceAmount * 0.15) * 100) / 100,
-      total20: Math.round((serviceAmount + serviceAmount * 0.20) * 100) / 100,
-      total25: Math.round((serviceAmount + serviceAmount * 0.25) * 100) / 100,
+      total10: Math.round(serviceAmount * 1.10 * 100) / 100,
+      total15: Math.round(serviceAmount * 1.15 * 100) / 100,
+      total20: Math.round(serviceAmount * 1.20 * 100) / 100,
+      total25: Math.round(serviceAmount * 1.25 * 100) / 100,
     };
 
     // Update booking with tip link
     await prisma.booking.update({
       where: { id: bookingId },
-      data: {
-        tipLinkUrl: tipLinkUrl,
-      },
+      data: { tipLinkUrl },
     });
 
     return NextResponse.json({
       tipLink: tipLinkUrl,
       bookingId: booking.id,
-      serviceAmount: serviceAmount,
-      sitterAlias: sitterAlias,
-      tipCalculations: tipCalculations,
+      serviceAmount,
+      sitterAlias,
+      tipCalculations,
       customerEmail: booking.email,
       customerName: `${booking.firstName} ${booking.lastName}`,
       sitterName: booking.sitter ? `${booking.sitter.firstName} ${booking.sitter.lastName}` : 'Unassigned',

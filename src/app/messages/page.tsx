@@ -38,10 +38,11 @@ export default function MessagesPage() {
       const response = await fetch("/api/message-templates");
       const data = await response.json();
       setTemplates(data.templates || []);
-    } catch (error) {
-      console.error("Failed to fetch templates:", error);
+    } catch {
+      setTemplates([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,8 +63,7 @@ export default function MessagesPage() {
         resetForm();
         fetchTemplates();
       }
-    } catch (error) {
-      console.error("Failed to save template:", error);
+    } catch {
       alert("Failed to save template");
     }
   };
@@ -115,7 +115,7 @@ export default function MessagesPage() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: COLORS.primaryLighter }}>
+    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
       {/* Header */}
       <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
         <div className="max-w-[1400px] mx-auto px-8 py-4">

@@ -39,6 +39,7 @@ model Booking {
   paymentStatus         String?
   stripePaymentIntentId String?
   stripePaymentLinkUrl  String?
+  tipLinkUrl            String?
   paidAt                DateTime?
   archived              Boolean    @default(false)
   archivedAt            DateTime?
@@ -91,6 +92,9 @@ model Sitter {
   firstName        String
   lastName         String
   phone            String
+  personalPhone    String?
+  openphonePhone   String?
+  phoneType        String?   // "personal" | "openphone"
   email            String    @unique
   active           Boolean   @default(true)
   stripeAccountId  String?
@@ -105,7 +109,7 @@ model Report {
   createdAt DateTime @default(now())
   bookingId String
   content   String
-  mediaUrls String   // Changed from String[] to String for SQLite compatibility
+  mediaUrls String
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([bookingId])
@@ -153,24 +157,6 @@ model Setting {
   @@index([category])
 }
 
-model SitterPoolOffer {
-  id               String   @id @default(uuid())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  bookingId        String
-  sitterIds        String   // JSON array of sitter IDs
-  message          String
-  expiresAt        DateTime
-  status           String   @default("active") // active, accepted, expired
-  acceptedSitterId String?
-  responses        String   // JSON array of responses
-  booking          Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-
-  @@index([bookingId])
-  @@index([status])
-  @@index([expiresAt])
-}
-
 model CalendarAccount {
   id           String    @id
   provider     String
@@ -181,4 +167,21 @@ model CalendarAccount {
   calendarId   String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime
+}
+
+model SitterPoolOffer {
+  id               String    @id @default(uuid())
+  bookingId        String
+  sitterIds        String
+  message          String?
+  expiresAt        DateTime
+  status           String    @default("active")
+  responses        String    @default("[]")
+  acceptedSitterId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  booking          Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([status])
 }

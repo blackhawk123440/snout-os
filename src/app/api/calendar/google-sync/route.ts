@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
+// TODO: CalendarEvent model doesn't exist in schema. This route should sync to Google Calendar API
+// using createGoogleCalendarEvent from @/lib/google-calendar instead of storing in database.
+// Leaving commented out to preserve current behavior until CalendarEvent model is added or
+// implementation is updated to use Google Calendar API directly.
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +17,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // TODO: CalendarEvent model doesn't exist in schema. This route should sync to Google Calendar API
+    // using createGoogleCalendarEvent from @/lib/google-calendar instead of storing in database.
+    // Currently returning error to preserve function signature until implementation is fixed.
+    
+    return NextResponse.json(
+      { error: "Calendar sync not implemented - CalendarEvent model missing" },
+      { status: 501 }
+    );
+
+    /* Commented out until CalendarEvent model is added:
     // Get booking details
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
@@ -52,6 +64,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ event });
+    */
   } catch (error) {
     console.error("Failed to sync booking to calendar:", error);
     return NextResponse.json(

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { sendSMS } from "@/lib/openphone";
-
-const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,12 +30,7 @@ export async function POST(request: NextRequest) {
       const paymentIntent = event.data.object;
       
       // Update booking status to paid
-      // You'll need to match the payment intent to a booking
-      // This is a simplified example
-      console.log("Payment succeeded:", paymentIntent.id);
-      
-      // Send confirmation SMS to client
-      // You'll need to get the booking details from the payment intent metadata
+      // Match the payment intent to a booking via metadata
     }
 
     // Handle invoice payment
@@ -45,8 +38,7 @@ export async function POST(request: NextRequest) {
       const invoice = event.data.object;
       
       // Update booking status to paid
-      // You'll need to match the invoice to a booking
-      console.log("Invoice payment succeeded:", invoice.id);
+      // Match the invoice to a booking via metadata
     }
 
     return NextResponse.json({ received: true });

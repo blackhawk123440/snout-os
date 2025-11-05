@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { COLORS } from "@/lib/booking-utils";
 
 interface Client {
@@ -48,10 +49,11 @@ export default function ClientsPage() {
       const response = await fetch("/api/clients");
       const data = await response.json();
       setClients(data.clients || []);
-    } catch (error) {
-      console.error("Failed to fetch clients:", error);
+    } catch {
+      setClients([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,8 +74,7 @@ export default function ClientsPage() {
         resetForm();
         fetchClients();
       }
-    } catch (error) {
-      console.error("Failed to save client:", error);
+    } catch {
       alert("Failed to save client");
     }
   };
@@ -103,10 +104,15 @@ export default function ClientsPage() {
     client.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Import phone formatting utility
   const formatPhoneNumber = (phone: string) => {
+    if (!phone) return "";
     const cleaned = phone.replace(/\D/g, '');
     if (cleaned.length === 10) {
       return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    }
+    if (cleaned.length === 11 && cleaned.startsWith('1')) {
+      return `(${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
     }
     return phone;
   };
@@ -124,7 +130,7 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: COLORS.primaryLighter }}>
+    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
       {/* Header */}
       <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
         <div className="max-w-[1400px] mx-auto px-8 py-4">
@@ -151,13 +157,13 @@ export default function ClientsPage() {
               >
                 <i className="fas fa-plus mr-2"></i>Add Client
               </button>
-              <a
+              <Link
                 href="/bookings"
                 className="px-4 py-2 text-sm font-medium border rounded-lg hover:bg-gray-50 transition-colors"
                 style={{ color: COLORS.primary, borderColor: COLORS.border }}
               >
                 <i className="fas fa-arrow-left mr-2"></i>Back to Bookings
-              </a>
+              </Link>
             </div>
           </div>
         </div>

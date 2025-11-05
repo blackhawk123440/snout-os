@@ -1,20 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { sendSMS } from "@/lib/openphone";
-import { formatPetsByQuantity } from "@/lib/booking-utils";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
+import { formatPetsByQuantity, calculatePriceBreakdown } from "@/lib/booking-utils";
+import { sendMessage } from "@/lib/message-utils";
+import { getSitterPhone } from "@/lib/phone-utils";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const booking = await prisma.booking.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         pets: true,
         sitter: true,
+        timeSlots: {
+          orderBy: {
+            startAt: "asc",
+          },
+        },
       },
     });
 
@@ -31,17 +36,44 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
-    const { status, sitterId } = body;
+    const { 
+      status, 
+      sitterId, 
+      firstName, 
+      lastName, 
+      phone, 
+      email, 
+      address, 
+      service, 
+      startAt, 
+      endAt, 
+      minutes, 
+      quantity, 
+      afterHours, 
+      holiday, 
+      totalPrice, 
+      paymentStatus, 
+      preferredContact, 
+      special,
+      timeSlots,
+      pets
+    } = body;
 
     const booking = await prisma.booking.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         pets: true,
         sitter: true,
+        timeSlots: {
+          orderBy: {
+            startAt: "asc",
+          },
+        },
       },
     });
 
@@ -50,42 +82,137 @@ export async function PATCH(
     }
 
     const updatedBooking = await prisma.booking.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(status && { status }),
-        ...(sitterId && { sitterId }),
+        ...(sitterId !== undefined && { sitterId: sitterId === "" || sitterId === null ? null : sitterId }),
+        ...(firstName && { firstName }),
+        ...(lastName && { lastName }),
+        ...(phone && { phone }),
+        ...(email && { email }),
+        ...(address && { address }),
+        ...(service && { service }),
+        ...(startAt && { startAt: new Date(startAt) }),
+        ...(endAt && { endAt: new Date(endAt) }),
+        ...(minutes !== undefined && { minutes }),
+        ...(quantity !== undefined && { quantity }),
+        ...(afterHours !== undefined && { afterHours }),
+        ...(holiday !== undefined && { holiday }),
+        ...(totalPrice !== undefined && { totalPrice }),
+        ...(paymentStatus && { paymentStatus }),
+        ...(preferredContact && { preferredContact }),
+        ...(special && { special }),
         // If status is being set to confirmed, also set payment status to paid
         ...(status === "confirmed" && { paymentStatus: "paid" }),
       },
       include: {
         pets: true,
         sitter: true,
+        timeSlots: {
+          orderBy: {
+            startAt: "asc",
+          },
+        },
       },
     });
 
+    // Handle timeSlots updates if provided
+    if (timeSlots && Array.isArray(timeSlots)) {
+      // Delete existing timeSlots for this booking
+      await prisma.timeSlot.deleteMany({
+        where: { bookingId: id },
+      });
+
+      // Create new timeSlots
+      if (timeSlots.length > 0) {
+        await prisma.timeSlot.createMany({
+          data: timeSlots.map((ts: any) => ({
+            bookingId: id,
+            startAt: new Date(ts.startAt),
+            endAt: new Date(ts.endAt),
+            duration: ts.duration || Math.round((new Date(ts.endAt).getTime() - new Date(ts.startAt).getTime()) / 60000),
+          })),
+        });
+      }
+
+      // Update quantity based on timeSlots count
+      await prisma.booking.update({
+        where: { id },
+        data: { quantity: timeSlots.length > 0 ? timeSlots.length : updatedBooking.quantity },
+      });
+    }
+
+    // Handle pets updates if provided
+    if (pets && Array.isArray(pets)) {
+      // Delete existing pets for this booking
+      await prisma.pet.deleteMany({
+        where: { bookingId: id },
+      });
+
+      // Create new pets
+      if (pets.length > 0) {
+        await prisma.pet.createMany({
+          data: pets.map((pet: any) => ({
+            bookingId: id,
+            name: pet.name || `Pet ${pet.species}`,
+            species: pet.species,
+            notes: pet.notes || null,
+          })),
+        });
+      }
+    }
+
+    // Fetch final booking with all relations after all updates
+    const finalBooking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        pets: true,
+        sitter: true,
+        timeSlots: {
+          orderBy: {
+            startAt: "asc",
+          },
+        },
+      },
+    });
+
+    if (!finalBooking) {
+      return NextResponse.json({ error: "Failed to fetch updated booking" }, { status: 500 });
+    }
+
     // Send confirmation SMS to client if booking is confirmed
     if (status === "confirmed") {
-      const petQuantities = formatPetsByQuantity(booking.pets);
-      const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll see you soon!`;
+      const petQuantities = formatPetsByQuantity(finalBooking.pets);
+      // Calculate the true total
+      const breakdown = calculatePriceBreakdown(finalBooking);
+      const calculatedTotal = breakdown.total;
+      const message = `🐾 BOOKING CONFIRMED!\n\nHi ${finalBooking.firstName},\n\nYour ${finalBooking.service} booking is confirmed for ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${calculatedTotal.toFixed(2)}\n\nWe'll see you soon!`;
       
-      await sendSMS(booking.phone, message);
+      await sendMessage(finalBooking.phone, message, finalBooking.id);
     }
 
     // Send sitter assignment notification
-    if (sitterId && booking.sitterId !== sitterId) {
+    if (sitterId !== undefined && booking.sitterId !== sitterId) {
       const sitter = await prisma.sitter.findUnique({
         where: { id: sitterId },
       });
 
       if (sitter) {
-        const petQuantities = formatPetsByQuantity(booking.pets);
-        const message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${booking.firstName} ${booking.lastName}'s ${booking.service} booking on ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${booking.address}\n\nPlease confirm your availability.`;
+        const sitterPhone = await getSitterPhone(sitterId, undefined, "sitterAssignment");
         
-        await sendSMS(sitter.phone, message);
+        if (sitterPhone) {
+          const petQuantities = formatPetsByQuantity(finalBooking.pets);
+          // Calculate the true total
+          const breakdown = calculatePriceBreakdown(finalBooking);
+          const calculatedTotal = breakdown.total;
+          const message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${finalBooking.firstName} ${finalBooking.lastName}'s ${finalBooking.service} booking on ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${finalBooking.address}\nTotal: $${calculatedTotal.toFixed(2)}\n\nPlease confirm your availability.`;
+          
+          await sendMessage(sitterPhone, message, finalBooking.id);
+        }
       }
     }
 
-    return NextResponse.json({ booking: updatedBooking });
+    return NextResponse.json({ booking: finalBooking });
   } catch (error) {
     console.error("Failed to update booking:", error);
     return NextResponse.json({ error: "Failed to update booking" }, { status: 500 });

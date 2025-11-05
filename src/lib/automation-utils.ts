@@ -1,0 +1,133 @@
+/**
+ * Helper functions for automation management
+ */
+
+import { prisma } from "@/lib/db";
+
+/**
+ * Get automation settings from database
+ */
+export async function getAutomationSettings(): Promise<Record<string, any>> {
+  const automationSetting = await prisma.setting.findUnique({
+    where: { key: "automation" },
+  });
+
+  if (!automationSetting) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(automationSetting.value);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Get message template from database for a specific automation type and recipient
+ */
+export async function getMessageTemplate(
+  automationType: string,
+  recipient: "client" | "sitter" | "owner" = "client"
+): Promise<string | null> {
+  // First try to get from automation settings
+  const automationSettings = await getAutomationSettings();
+  const automation = automationSettings[automationType];
+  
+  if (automation && typeof automation === 'object') {
+    const templateKey = `messageTemplate${recipient.charAt(0).toUpperCase() + recipient.slice(1)}` as "messageTemplateClient" | "messageTemplateSitter" | "messageTemplateOwner";
+    if (automation[templateKey]) {
+      return automation[templateKey];
+    }
+  }
+  
+  // Fallback to database settings
+  const templateKey = `messageTemplate.${automationType}.${recipient}`;
+  const template = await prisma.setting.findUnique({
+    where: { key: templateKey },
+  });
+
+  if (!template) {
+    return null;
+  }
+
+  return template.value;
+}
+
+/**
+ * Replace template variables in a message
+ */
+export function replaceTemplateVariables(
+  template: string,
+  variables: Record<string, string | number>
+): string {
+  let message = template;
+  Object.keys(variables).forEach(key => {
+    const value = String(variables[key]);
+    message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+    // Also support old format [VariableName]
+    const oldKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
+    message = message.replace(new RegExp(`\\[${oldKey}\\]`, 'gi'), value);
+  });
+  return message;
+}
+
+/**
+ * Check if an automation is enabled
+ */
+export async function isAutomationEnabled(automationType: string): Promise<boolean> {
+  const settings = await getAutomationSettings();
+  const automation = settings[automationType];
+  
+  if (!automation || typeof automation !== 'object') {
+    return false;
+  }
+  
+  return automation.enabled === true;
+}
+
+/**
+ * Check if automation should send to a specific recipient
+ */
+export async function shouldSendToRecipient(
+  automationType: string,
+  recipient: 'client' | 'sitter' | 'owner'
+): Promise<boolean> {
+  if (!(await isAutomationEnabled(automationType))) {
+    return false;
+  }
+  
+  const settings = await getAutomationSettings();
+  const automation = settings[automationType];
+  
+  if (!automation || typeof automation !== 'object') {
+    return false;
+  }
+  
+  switch (recipient) {
+    case 'client':
+      return automation.sendToClient === true;
+    case 'sitter':
+      return automation.sendToSitter === true || automation.sendToSitters === true;
+    case 'owner':
+      return automation.sendToOwner === true;
+    default:
+      return false;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

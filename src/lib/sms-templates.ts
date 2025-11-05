@@ -1,5 +1,6 @@
-import { sendSMS } from "@/lib/openphone";
+import { sendMessage } from "@/lib/message-utils";
 import { formatPetsByQuantity } from "@/lib/booking-utils";
+import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
 
 interface Booking {
   id: string;
@@ -7,6 +8,7 @@ interface Booking {
   lastName: string;
   phone: string;
   email: string;
+  address?: string | null;
   service: string;
   startAt: Date;
   endAt: Date;
@@ -22,49 +24,69 @@ export async function sendInitialBookingConfirmation(booking: Booking): Promise<
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll see you soon!`;
   
-  return await sendSMS(booking.phone, message);
+  return await sendMessage(booking.phone, message);
 }
 
 export async function sendBookingConfirmedToClient(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll see you soon!`;
   
-  return await sendSMS(booking.phone, message);
+  return await sendMessage(booking.phone, message);
 }
 
 export async function sendClientNightBeforeReminder(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `🌙 REMINDER!\n\nHi ${booking.firstName},\n\nJust a friendly reminder about your ${booking.service} appointment tomorrow at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\n\nWe're excited to care for your pets!`;
   
-  return await sendSMS(booking.phone, message);
+  return await sendMessage(booking.phone, message);
 }
 
-export async function sendSitterNightBeforeReminder(booking: Booking, sitterPhone: string): Promise<boolean> {
+export async function sendSitterNightBeforeReminder(booking: Booking, sitterId?: string): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `🌙 REMINDER!\n\nHi,\n\nYou have a ${booking.service} appointment tomorrow at ${booking.startAt.toLocaleTimeString()}.\n\nClient: ${booking.firstName} ${booking.lastName}\nPets: ${petQuantities}\nAddress: ${booking.address}\n\nPlease confirm your availability.`;
   
-  return await sendSMS(sitterPhone, message);
+  let sitterPhone: string | null = null;
+  if (sitterId) {
+    sitterPhone = await getSitterPhone(sitterId, undefined, "nightBeforeReminder");
+  }
+  
+  if (!sitterPhone) {
+    console.error("Sitter phone number not found");
+    return false;
+  }
+  
+  return await sendMessage(sitterPhone, message);
 }
 
 export async function sendPostVisitThankYou(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `🐾 THANK YOU!\n\nHi ${booking.firstName},\n\nThank you for choosing Snout Services! We hope your pets enjoyed their ${booking.service.toLowerCase()}.\n\nPets: ${petQuantities}\n\nWe look forward to caring for your pets again soon!`;
   
-  return await sendSMS(booking.phone, message);
+  return await sendMessage(booking.phone, message);
 }
 
-export async function sendSitterAssignmentNotification(booking: Booking, sitterPhone: string): Promise<boolean> {
+export async function sendSitterAssignmentNotification(booking: Booking, sitterId?: string): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `👋 SITTER ASSIGNED!\n\nHi,\n\nYou've been assigned to ${booking.firstName} ${booking.lastName}'s ${booking.service} booking on ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${booking.address}\n\nPlease confirm your availability.`;
   
-  return await sendSMS(sitterPhone, message);
+  let sitterPhone: string | null = null;
+  if (sitterId) {
+    sitterPhone = await getSitterPhone(sitterId, undefined, "sitterAssignment");
+  }
+  
+  if (!sitterPhone) {
+    console.error("Sitter phone number not found");
+    return false;
+  }
+  
+  return await sendMessage(sitterPhone, message);
 }
 
 export async function sendReportToClient(booking: Booking, reportContent: string): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `🐾 VISIT REPORT\n\nHi ${booking.firstName},\n\nYour ${booking.service} visit has been completed!\n\nPets: ${petQuantities}\nSitter: ${booking.sitter?.firstName || 'Assigned sitter'}\n\nReport: ${reportContent}\n\nThank you for choosing Snout Services!`;
   
-  return await sendSMS(booking.phone, message);
+  return await sendMessage(booking.phone, message);
 }
 
 export async function sendOwnerAlert(
@@ -78,18 +100,18 @@ export async function sendOwnerAlert(
   const petQuantities = formatPetsByQuantity(pets);
   const message = `📱 NEW BOOKING ALERT\n\n${firstName} ${lastName} - ${service}\nDate: ${startAt.toLocaleDateString()} at ${startAt.toLocaleTimeString()}\nPets: ${petQuantities}\nPhone: ${phone}`;
   
-  const ownerPhone = process.env.OWNER_PHONE;
+  const ownerPhone = await getOwnerPhone(undefined, "ownerNewBookingAlert");
   if (!ownerPhone) {
     console.error("Owner phone number not configured");
     return false;
   }
   
-  return await sendSMS(ownerPhone, message);
+  return await sendMessage(ownerPhone, message);
 }
 
 export async function sendPaymentReminder(booking: Booking, paymentLink: string): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `💳 PAYMENT REMINDER\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking on ${booking.startAt.toLocaleDateString()} is ready for payment.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nPay now: ${paymentLink}`;
   
-  return await sendSMS(booking.phone, message);
+  return await sendMessage(booking.phone, message);
 }

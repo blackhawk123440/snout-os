@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const sitter = await prisma.sitter.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!sitter) {
@@ -18,7 +17,7 @@ export async function GET(
 
     // Get bookings for this sitter
     const bookings = await prisma.booking.findMany({
-      where: { sitterId: params.id },
+      where: { sitterId: id },
       include: {
         pets: true,
       },

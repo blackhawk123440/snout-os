@@ -67,8 +67,11 @@ export async function getStripeAnalytics(timeRange: string = "30d"): Promise<{
     // Payment methods breakdown
     const paymentMethods: Record<string, number> = {};
     filteredPaymentIntents.forEach(intent => {
-      if (intent.payment_method_types) {
-        intent.payment_method_types.forEach(method => {
+      const paymentMethodTypes = typeof intent === 'string' 
+        ? null 
+        : (intent as any).payment_method_types;
+      if (paymentMethodTypes && Array.isArray(paymentMethodTypes)) {
+        paymentMethodTypes.forEach((method: string) => {
           paymentMethods[method] = (paymentMethods[method] || 0) + 1;
         });
       }
@@ -119,7 +122,9 @@ export async function getStripeAnalytics(timeRange: string = "30d"): Promise<{
         customerEmail: invoice.customer_email,
         customerName: invoice.customer_name,
         description: invoice.description,
-        paymentMethod: invoice.payment_intent?.payment_method_types?.[0] || 'card',
+        paymentMethod: (invoice.payment_intent && typeof invoice.payment_intent !== 'string' 
+          ? (invoice.payment_intent as any).payment_method_types?.[0] 
+          : null) || 'card',
         currency: invoice.currency,
       }));
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { COLORS } from "@/lib/booking-utils";
 
 interface Sitter {
@@ -8,6 +9,9 @@ interface Sitter {
   firstName: string;
   lastName: string;
   phone: string;
+  personalPhone?: string | null;
+  openphonePhone?: string | null;
+  phoneType?: "personal" | "openphone";
   email: string;
   isActive: boolean;
   createdAt: Date;
@@ -24,6 +28,9 @@ export default function SittersPage() {
     firstName: "",
     lastName: "",
     phone: "",
+    personalPhone: "",
+    openphonePhone: "",
+    phoneType: "personal" as "personal" | "openphone",
     email: "",
     isActive: true,
   });
@@ -38,10 +45,11 @@ export default function SittersPage() {
       const response = await fetch("/api/sitters");
       const data = await response.json();
       setSitters(data.sitters || []);
-    } catch (error) {
-      console.error("Failed to fetch sitters:", error);
+    } catch {
+      setSitters([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,10 +59,27 @@ export default function SittersPage() {
       const url = editingSitter ? `/api/sitters/${editingSitter.id}` : "/api/sitters";
       const method = editingSitter ? "PATCH" : "POST";
 
+      // Determine primary phone based on phoneType
+      let primaryPhone = formData.phone;
+      if (formData.phoneType === "personal" && formData.personalPhone) {
+        primaryPhone = formData.personalPhone;
+      } else if (formData.phoneType === "openphone" && formData.openphonePhone) {
+        primaryPhone = formData.openphonePhone;
+      } else if (formData.personalPhone) {
+        primaryPhone = formData.personalPhone;
+      } else if (formData.openphonePhone) {
+        primaryPhone = formData.openphonePhone;
+      }
+
+      const submitData = {
+        ...formData,
+        phone: primaryPhone,
+      };
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       if (response.ok) {
@@ -62,14 +87,22 @@ export default function SittersPage() {
         resetForm();
         fetchSitters();
       }
-    } catch (error) {
-      console.error("Failed to save sitter:", error);
+    } catch {
       alert("Failed to save sitter");
     }
   };
 
   const resetForm = () => {
-    setFormData({ firstName: "", lastName: "", phone: "", email: "", isActive: true });
+    setFormData({ 
+      firstName: "", 
+      lastName: "", 
+      phone: "", 
+      personalPhone: "",
+      openphonePhone: "",
+      phoneType: "personal",
+      email: "", 
+      isActive: true 
+    });
     setShowAddForm(false);
     setEditingSitter(null);
   };
@@ -79,6 +112,9 @@ export default function SittersPage() {
       firstName: sitter.firstName,
       lastName: sitter.lastName,
       phone: sitter.phone,
+      personalPhone: sitter.personalPhone || "",
+      openphonePhone: sitter.openphonePhone || "",
+      phoneType: sitter.phoneType || "personal",
       email: sitter.email,
       isActive: sitter.isActive,
     });
@@ -98,22 +134,26 @@ export default function SittersPage() {
         alert("Sitter deleted!");
         fetchSitters();
       }
-    } catch (error) {
-      console.error("Failed to delete sitter:", error);
+    } catch {
       alert("Failed to delete sitter");
     }
   };
 
-  const formatPhoneNumber = (phone: string) => {
+  // Import phone formatting utility
+  const formatPhoneNumber = (phone: string | null | undefined) => {
+    if (!phone) return "";
     const cleaned = phone.replace(/\D/g, '');
     if (cleaned.length === 10) {
       return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    }
+    if (cleaned.length === 11 && cleaned.startsWith('1')) {
+      return `(${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
     }
     return phone;
   };
 
   return (
-    <div className="min-h-screen" style={{ background: COLORS.primaryLighter }}>
+    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
       {/* Header */}
       <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
         <div className="max-w-[1400px] mx-auto px-8 py-4">
@@ -140,13 +180,13 @@ export default function SittersPage() {
               >
                 <i className="fas fa-plus mr-2"></i>Add Sitter
               </button>
-              <a
+              <Link
                 href="/bookings"
                 className="px-4 py-2 text-sm font-medium border rounded-lg hover:bg-gray-50 transition-colors"
                 style={{ color: COLORS.primary, borderColor: COLORS.border }}
               >
                 <i className="fas fa-arrow-left mr-2"></i>Back to Bookings
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -194,7 +234,24 @@ export default function SittersPage() {
                       <div className="flex items-center gap-2">
                         <i className="fas fa-phone w-4"></i>
                         <span>{formatPhoneNumber(sitter.phone)}</span>
+                        {sitter.phoneType && (
+                          <span className="text-xs px-2 py-0.5 rounded" style={{ background: COLORS.primaryLight, color: COLORS.primary }}>
+                            {sitter.phoneType === "personal" ? "Personal" : "OpenPhone"}
+                          </span>
+                        )}
                       </div>
+                      {sitter.personalPhone && (
+                        <div className="flex items-center gap-2">
+                          <i className="fas fa-mobile-alt w-4"></i>
+                          <span>Personal: {formatPhoneNumber(sitter.personalPhone)}</span>
+                        </div>
+                      )}
+                      {sitter.openphonePhone && (
+                        <div className="flex items-center gap-2">
+                          <i className="fas fa-phone-alt w-4"></i>
+                          <span>OpenPhone: {formatPhoneNumber(sitter.openphonePhone)}</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2">
                         <i className="fas fa-envelope w-4"></i>
                         <span>{sitter.email}</span>
@@ -269,13 +326,12 @@ export default function SittersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    Phone Number *
+                    Personal Phone Number
                   </label>
                   <input
                     type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    value={formData.personalPhone}
+                    onChange={(e) => setFormData({ ...formData, personalPhone: e.target.value })}
                     className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
                     style={{ borderColor: COLORS.primaryLight }}
                     placeholder="(555) 123-4567"
@@ -283,17 +339,64 @@ export default function SittersPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    Email *
+                    OpenPhone Number
                   </label>
                   <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    type="tel"
+                    value={formData.openphonePhone}
+                    onChange={(e) => setFormData({ ...formData, openphonePhone: e.target.value })}
                     className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
                     style={{ borderColor: COLORS.primaryLight }}
+                    placeholder="(555) 123-4567"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-2" style={{ color: COLORS.primary }}>
+                  Use Phone Number Type for Messages
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="phoneType"
+                      value="personal"
+                      checked={formData.phoneType === "personal"}
+                      onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as "personal" | "openphone" })}
+                      className="w-4 h-4"
+                      style={{ accentColor: COLORS.primary }}
+                    />
+                    <span className="text-sm font-medium" style={{ color: COLORS.primary }}>Personal Phone</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="phoneType"
+                      value="openphone"
+                      checked={formData.phoneType === "openphone"}
+                      onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as "personal" | "openphone" })}
+                      className="w-4 h-4"
+                      style={{ accentColor: COLORS.primary }}
+                    />
+                    <span className="text-sm font-medium" style={{ color: COLORS.primary }}>OpenPhone</span>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Choose which phone number to use for sitter notifications</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ borderColor: COLORS.primaryLight }}
+                />
               </div>
 
               <div className="flex items-center gap-3">

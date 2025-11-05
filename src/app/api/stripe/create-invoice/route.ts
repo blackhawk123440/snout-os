@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { createInvoice } from "@/lib/stripe";
 import { formatPetsByQuantity } from "@/lib/booking-utils";
-
-const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,6 +32,13 @@ export async function POST(request: NextRequest) {
     const description = `${booking.service} - ${petQuantities}`;
 
     // Create Stripe invoice
+    if (!booking.totalPrice) {
+      return NextResponse.json(
+        { error: "Booking has no total price" },
+        { status: 400 }
+      );
+    }
+
     const invoiceUrl = await createInvoice(
       booking.email || "",
       booking.totalPrice,

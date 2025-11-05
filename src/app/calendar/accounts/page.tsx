@@ -33,10 +33,11 @@ export default function CalendarAccountsPage() {
       const response = await fetch("/api/calendar/accounts");
       const data = await response.json();
       setAccounts(data.accounts || []);
-    } catch (error) {
-      console.error("Failed to fetch calendar accounts:", error);
-    }
+    } catch {
+      setAccounts([]);
+    } finally {
     setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,8 +55,7 @@ export default function CalendarAccountsPage() {
         resetForm();
         fetchAccounts();
       }
-    } catch (error) {
-      console.error("Failed to save calendar account:", error);
+    } catch {
       alert("Failed to save calendar account");
     }
   };
@@ -76,13 +76,13 @@ export default function CalendarAccountsPage() {
       if (response.ok) {
         fetchAccounts();
       }
-    } catch (error) {
-      console.error("Failed to toggle account status:", error);
+    } catch {
+      // Silently handle errors
     }
   };
 
   return (
-    <div className="min-h-screen" style={{ background: COLORS.primaryLighter }}>
+    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
       {/* Header */}
       <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
         <div className="max-w-[1400px] mx-auto px-8 py-4">

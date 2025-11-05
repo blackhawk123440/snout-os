@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { sendSMS } from "@/lib/openphone";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
+import { formatPetsByQuantity } from "@/lib/booking-utils";
+import { getSitterPhone, getOwnerPhone } from "@/lib/phone-utils";
+import { sendMessage } from "@/lib/message-utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,16 +69,38 @@ export async function POST(request: NextRequest) {
     });
 
     // If accepted, assign sitter and close offer (first-response-wins)
-    if (response.toLowerCase() === "yes" || response.toLowerCase() === "accept") {
-      // Use a transaction to ensure atomicity
-      await prisma.$transaction(async (tx) => {
+    if (response.toLowerCase() === "yes" || response.toLowerCase() === "accept" || response.toLowerCase() === "y") {
+      // Check if offer is still active (atomic check)
+      const currentOffer = await prisma.sitterPoolOffer.findUnique({
+        where: { id: offerId },
+      });
+
+      if (!currentOffer || currentOffer.status !== "active") {
+        return NextResponse.json({ error: "Offer is no longer available" }, { status: 400 });
+      }
+
+      // Use a transaction to ensure atomicity (first YES wins)
+      const result = await prisma.$transaction(async (tx) => {
+        // Re-check offer status inside transaction
+        const lockOffer = await tx.sitterPoolOffer.findUnique({
+          where: { id: offerId },
+        });
+
+        if (!lockOffer || lockOffer.status !== "active") {
+          throw new Error("Offer already accepted");
+        }
+
         // Update booking with sitter assignment
-        await tx.booking.update({
+        const updatedBooking = await tx.booking.update({
           where: { id: offer.bookingId },
           data: {
             sitterId,
             status: "confirmed",
             paymentStatus: "paid", // Set payment status to paid when confirmed
+          },
+          include: {
+            pets: true,
+            sitter: true,
           },
         });
 
@@ -90,6 +112,8 @@ export async function POST(request: NextRequest) {
             acceptedSitterId: sitterId,
           },
         });
+
+        return updatedBooking;
       });
 
       // Get sitter details for notification
@@ -108,20 +132,15 @@ export async function POST(request: NextRequest) {
 
         const notificationPromises = otherSitters.map(async (otherSitter) => {
           try {
-            const notificationMessage = `The booking opportunity for ${offer.booking.firstName} ${offer.booking.lastName} has been accepted by another sitter. Thank you for your interest!`;
-            await sendSMS(otherSitter.phone, notificationMessage);
+            const sitterPhone = await getSitterPhone(otherSitter.id, undefined, "sitterPoolOffers");
+            if (!sitterPhone) {
+              console.error(`No phone number found for sitter ${otherSitter.id}`);
+              return;
+            }
+
+            const notificationMessage = `📱 JOB TAKEN\n\nThe booking opportunity for ${offer.booking.firstName} ${offer.booking.lastName} has been accepted by another sitter. Thank you for your interest!`;
             
-            // Log the notification
-            await prisma.message.create({
-              data: {
-                direction: "outbound",
-                body: notificationMessage,
-                status: "sent",
-                bookingId: offer.bookingId,
-                from: "system",
-                to: otherSitter.phone,
-              },
-            });
+            await sendMessage(sitterPhone, notificationMessage, offer.bookingId);
           } catch (error) {
             console.error(`Failed to notify sitter ${otherSitter.id}:`, error);
           }
@@ -133,22 +152,36 @@ export async function POST(request: NextRequest) {
       // Send confirmation to the accepted sitter
       if (sitter) {
         try {
-          const confirmationMessage = `Congratulations! You've been assigned the booking for ${offer.booking.firstName} ${offer.booking.lastName}. Please check your dashboard for details.`;
-          await sendSMS(sitter.phone, confirmationMessage);
-          
-          await prisma.message.create({
-            data: {
-              direction: "outbound",
-              body: confirmationMessage,
-              status: "sent",
-              bookingId: offer.bookingId,
-              from: "system",
-              to: sitter.phone,
-            },
-          });
+          const sitterPhone = await getSitterPhone(sitterId, undefined, "sitterPoolOffers");
+          if (sitterPhone) {
+            const petQuantities = formatPetsByQuantity(result.pets);
+            const startDate = new Date(result.startAt).toLocaleDateString();
+            const startTime = new Date(result.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            const confirmationMessage = `🎉 CONGRATULATIONS!\n\nYou've been assigned:\n\n${result.service} for ${result.firstName} ${result.lastName}\nDate: ${startDate}\nTime: ${startTime}\nPets: ${petQuantities}\nAddress: ${result.address || 'TBD'}\n\nPlease confirm your availability.`;
+            
+            await sendMessage(sitterPhone, confirmationMessage, offer.bookingId);
+          }
         } catch (error) {
           console.error(`Failed to send confirmation to sitter ${sitterId}:`, error);
         }
+      }
+
+      // Notify owner that someone accepted the job
+      try {
+        const ownerPhone = await getOwnerPhone(undefined, "sitterPoolOffers");
+        if (ownerPhone && sitter) {
+          const petQuantities = formatPetsByQuantity(result.pets);
+          const startDate = new Date(result.startAt).toLocaleDateString();
+          const startTime = new Date(result.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const sitterPhone = await getSitterPhone(sitterId, undefined, "sitterPoolOffers");
+          
+          const ownerMessage = `✅ SITTER ACCEPTED JOB\n\n${sitter.firstName} ${sitter.lastName} has accepted the booking:\n\n${result.service} for ${result.firstName} ${result.lastName}\nDate: ${startDate}\nTime: ${startTime}\nPets: ${petQuantities}\n\nSitter: ${sitter.firstName} ${sitter.lastName}\nPhone: ${sitterPhone || sitter.phone}`;
+          
+          await sendMessage(ownerPhone, ownerMessage, offer.bookingId);
+        }
+      } catch (error) {
+        console.error(`Failed to notify owner:`, error);
       }
     }
 

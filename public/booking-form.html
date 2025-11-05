@@ -1061,7 +1061,7 @@
       height: 100%;
       background: rgba(0, 0, 0, 0.3);
       display: none;
-      align-items: flex-start;
+      align-items: center;
       justify-content: center;
       z-index: 1000;
       padding: var(--space-xl);
@@ -1080,12 +1080,15 @@
       border-radius: var(--radius-lg);
       width: 100%;
       max-width: 500px;
-      max-height: 90vh;
+      max-height: calc(90vh - 40px);
+      height: auto;
+      min-height: 300px;
       display: flex;
       flex-direction: column;
       animation: modalSlideIn 0.3s ease;
       position: relative;
       z-index: 1001;
+      overflow: hidden;
     }
 
     @keyframes modalSlideIn {
@@ -1100,7 +1103,7 @@
     }
 
     .time-modal-header {
-      padding: var(--space-lg);
+      padding: var(--space-md) var(--space-lg);
       border-bottom: 1px solid var(--secondary);
       display: flex;
       align-items: center;
@@ -1109,7 +1112,7 @@
     }
 
     .time-modal-title {
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-base);
       font-weight: 600;
       color: var(--primary);
     }
@@ -1117,14 +1120,16 @@
     .time-modal-close {
       background: none;
       border: none;
-      font-size: var(--font-size-lg);
+      font-size: var(--font-size-base);
       color: var(--primary);
       cursor: pointer;
-      padding: var(--space-sm);
+      padding: var(--space-xs);
       border-radius: var(--radius-sm);
       transition: all var(--transition-base);
-      width: var(--touch-target);
-      height: var(--touch-target);
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1135,7 +1140,7 @@
     }
 
     .time-modal-date {
-      padding: var(--space-md) var(--space-lg);
+      padding: var(--space-sm) var(--space-lg);
       background: var(--accent);
       border-bottom: 1px solid var(--secondary);
       text-align: center;
@@ -1143,21 +1148,45 @@
     }
 
     .time-modal-date-text {
-      font-size: var(--font-size-base);
+      font-size: var(--font-size-sm);
       font-weight: 500;
       color: var(--primary);
     }
 
     .time-slots-container {
       padding: var(--space-lg);
-      flex: 1;
-      overflow-y: auto;
-      min-height: 0;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
+      padding-bottom: calc(var(--space-lg) + 40px) !important; /* Reduced padding - just enough to see last item */
+      flex: 1 1 0;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      min-height: 200px;
+      max-height: 100%;
+      height: 0;
+      -webkit-overflow-scrolling: auto !important;
+      overscroll-behavior: none !important;
+      overscroll-behavior-y: none !important;
+      overscroll-behavior-x: none !important;
+      -webkit-overscroll-behavior: none !important;
+      -webkit-overscroll-behavior-y: none !important;
+      -webkit-overscroll-behavior-x: none !important;
       transform: translateZ(0);
       -webkit-transform: translateZ(0);
       contain: layout style paint;
+      scroll-behavior: auto !important;
+      position: relative;
+      /* Disable momentum scrolling on iOS */
+      -webkit-momentum-scrolling: disabled;
+      touch-action: pan-y;
+      will-change: scroll-position;
+    }
+    
+    /* iOS specific fixes to prevent bounce */
+    @supports (-webkit-touch-callout: none) {
+      .time-slots-container {
+        -webkit-overflow-scrolling: auto !important;
+        overscroll-behavior-y: none !important;
+        -webkit-overscroll-behavior-y: none !important;
+      }
     }
 
     .time-slots-grid {
@@ -1165,6 +1194,8 @@
       flex-direction: column;
       gap: var(--space-sm);
       padding: var(--space-sm);
+      padding-bottom: calc(var(--space-sm) + 20px) !important; /* Minimal padding - just enough spacing */
+      min-height: fit-content;
     }
 
     .time-slot {
@@ -1233,7 +1264,7 @@
     }
 
     .time-modal-actions {
-      padding: var(--space-lg);
+      padding: var(--space-md);
       border-top: 1px solid var(--secondary);
       display: flex;
       justify-content: flex-end;
@@ -2123,22 +2154,31 @@
       }
 
       .time-modal-header {
-        padding: var(--space-lg);
+        padding: var(--space-sm) var(--space-md);
         border-bottom: 1px solid var(--secondary);
       }
 
       .time-modal-title {
-        font-size: var(--font-size-lg);
+        font-size: var(--font-size-base);
         font-weight: 700;
       }
 
       .time-slots-container {
         padding: var(--space-md);
-        max-height: 75vh;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-        scroll-behavior: smooth;
+        padding-bottom: calc(var(--space-md) + 20px) !important; /* Reduced padding - just enough to see last item */
+        max-height: calc(80vh - 200px) !important; /* Account for header and actions height with more space */
+        min-height: 300px;
+        height: auto !important;
+        -webkit-overflow-scrolling: auto !important;
+        overscroll-behavior: none !important;
+        overscroll-behavior-y: none !important;
+        overscroll-behavior-x: none !important;
+        -webkit-overscroll-behavior: none !important;
+        -webkit-overscroll-behavior-y: none !important;
+        -webkit-overscroll-behavior-x: none !important;
+        scroll-behavior: auto !important;
         scroll-padding: var(--space-sm);
+        scroll-padding-bottom: var(--space-md) !important; /* Minimal scroll padding */
       }
 
       /* Enhanced mobile modal optimizations */
@@ -2150,17 +2190,29 @@
       }
 
       .time-modal-content {
-        max-height: 95vh;
+        max-height: calc(95vh - 20px) !important;
         margin: var(--space-sm);
         border-radius: var(--radius-lg);
-        overflow: hidden;
+        overflow: hidden !important;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      
+      .time-modal-content .time-slots-container {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        flex: 1 1 0 !important;
+        height: 0 !important;
+        max-height: 100% !important;
       }
 
       .time-slots-grid {
         gap: var(--space-sm);
         padding: var(--space-sm);
+        padding-bottom: calc(var(--space-sm) + 20px) !important; /* Minimal padding - just enough spacing */
+        min-height: fit-content;
       }
 
       .time-slot {
@@ -3520,10 +3572,26 @@
           address: this.state.contactInfo.address || undefined,
           service: serviceMap[this.state.selectedService] || 'Drop-ins',
           minutes: duration,
-          quantity: 1,
+          quantity: this.state.selectedDates.length > 0 ? (() => {
+            // Count total time slots across all dates
+            return this.state.selectedDates.reduce((total, date) => {
+              return total + (this.state.dateTimes[date]?.length || 0);
+            }, 0);
+          })() : 1,
           startAt: new Date(startDateTime).toISOString(),
           endAt: endDateTime,
           pets: pets.length > 0 ? pets : [{ name: 'Pet', species: 'Dog' }],
+          selectedDates: this.state.selectedDates,
+          dateTimes: this.state.dateTimes,
+          // Debug: Log what we're sending
+          _debug: {
+            selectedDatesCount: this.state.selectedDates.length,
+            dateTimesKeys: Object.keys(this.state.dateTimes || {}),
+            dateTimesSample: Object.keys(this.state.dateTimes || {}).slice(0, 2).reduce((acc, key) => {
+              acc[key] = this.state.dateTimes[key];
+              return acc;
+            }, {})
+          },
           special: this.state.contactInfo.notes || undefined,
           afterHours: false,
           holiday: false,
@@ -3531,8 +3599,9 @@
         };
 
         try {
-          // Send to API - CHANGE THIS URL FOR PRODUCTION
-          const apiUrl = window.location.origin + '/api/form'; // Use same origin as the page
+          // Send to API - Use your deployed backend URL
+          // For Webflow embedding: Change this to your Render/Vercel backend URL
+          const apiUrl = window.BOOKING_API_URL || window.location.origin + '/api/form';
           
           const response = await fetch(apiUrl, {
             method: 'POST',
@@ -3768,12 +3837,22 @@
       constructor() {
         this.currentDate = null;
         this.timeSlots = this.generateTimeSlots();
+        // Store event handlers so we can remove them
+        this.scrollHandler = null;
+        this.wheelHandler = null;
+        this.touchStartHandler = null;
+        this.touchMoveHandler = null;
+        this.touchEndHandler = null;
+        this.scrollTimeout = null;
+        this.isScrolling = false;
       }
 
       generateTimeSlots() {
         const slots = [];
         for (let hour = 6; hour <= 22; hour++) {
           for (let minute = 0; minute < 60; minute += 30) {
+            // Stop at 10:30 PM (22:30)
+            if (hour === 22 && minute > 30) break;
             const timeStr = this.formatTime(hour, minute);
             slots.push(timeStr);
           }
@@ -3796,6 +3875,9 @@
         const container = document.getElementById('timeSlotsContainer');
 
         if (!modal || !title || !dateDisplay || !container) return;
+        
+        // Clean up previous event listeners before setting up new ones
+        this.cleanupEventListeners(container);
 
         // For house sitting, show "Start Time" or "End Time"
         const isHouseSitting = window.bookingForm.state.selectedService === 'pet-sitting';
@@ -3826,9 +3908,208 @@
           day: 'numeric'
         });
 
+        // Reset scroll position to top when opening for a new date
+        container.scrollTop = 0;
+        
         this.renderTimeSlots(container, dateStr);
         modal.classList.add('active');
         document.body.classList.add('modal-open');
+        
+        // Set up scroll bounds to prevent scrolling past last item (10:30 PM)
+        this.setupScrollBounds(container);
+      }
+      
+      cleanupEventListeners(container) {
+        // Remove all previous event listeners if they exist
+        if (this.scrollHandler) {
+          container.removeEventListener('scroll', this.scrollHandler);
+          this.scrollHandler = null;
+        }
+        if (this.wheelHandler) {
+          container.removeEventListener('wheel', this.wheelHandler);
+          this.wheelHandler = null;
+        }
+        if (this.touchStartHandler) {
+          container.removeEventListener('touchstart', this.touchStartHandler);
+          this.touchStartHandler = null;
+        }
+        if (this.touchMoveHandler) {
+          container.removeEventListener('touchmove', this.touchMoveHandler);
+          this.touchMoveHandler = null;
+        }
+        if (this.touchEndHandler) {
+          container.removeEventListener('touchend', this.touchEndHandler);
+          this.touchEndHandler = null;
+        }
+        if (this.scrollTimeout) {
+          clearTimeout(this.scrollTimeout);
+          this.scrollTimeout = null;
+        }
+        this.isScrolling = false;
+      }
+      
+      setupScrollBounds(container) {
+        // Wait for DOM to render
+        setTimeout(() => {
+          const grid = container.querySelector('.time-slots-grid');
+          if (!grid) return;
+          
+          // Helper to get max scroll position
+          const getMaxScroll = () => {
+            const scrollHeight = grid.scrollHeight;
+            const clientHeight = container.clientHeight;
+            return Math.max(0, scrollHeight - clientHeight);
+          };
+          
+          // Disable momentum scrolling and prevent bouncing
+          let lastScrollTop = 0;
+          let isUserScrolling = false;
+          
+          // Throttled scroll handler to prevent bouncing - only check at end of scroll
+          this.scrollHandler = () => {
+            if (this.isScrolling) return;
+            
+            const scrollTop = container.scrollTop;
+            const maxScroll = getMaxScroll();
+            
+            // If past max scroll, immediately snap back without smooth behavior
+            if (scrollTop > maxScroll) {
+              this.isScrolling = true;
+              container.scrollTop = maxScroll; // Direct assignment, no smooth
+              setTimeout(() => {
+                this.isScrolling = false;
+              }, 50);
+              return;
+            }
+            
+            // If past top, snap back
+            if (scrollTop < 0) {
+              this.isScrolling = true;
+              container.scrollTop = 0;
+              setTimeout(() => {
+                this.isScrolling = false;
+              }, 50);
+              return;
+            }
+            
+            lastScrollTop = scrollTop;
+            
+            // Check if scroll ended
+            if (this.scrollTimeout) clearTimeout(this.scrollTimeout);
+            isUserScrolling = true;
+            
+            this.scrollTimeout = setTimeout(() => {
+              isUserScrolling = false;
+              // Final check when scroll ends
+              if (!this.isScrolling) {
+                const finalScrollTop = container.scrollTop;
+                const finalMaxScroll = getMaxScroll();
+                if (finalScrollTop > finalMaxScroll) {
+                  container.scrollTop = finalMaxScroll;
+                }
+              }
+            }, 100);
+          };
+          
+          container.addEventListener('scroll', this.scrollHandler, { passive: true });
+          
+          // Prevent wheel scroll past bounds - more aggressive
+          this.wheelHandler = (e) => {
+            if (this.isScrolling) {
+              e.preventDefault();
+              return false;
+            }
+            
+            const scrollTop = container.scrollTop;
+            const maxScroll = getMaxScroll();
+            
+            // If at or near bottom and trying to scroll down, prevent it
+            if (scrollTop >= maxScroll - 1 && e.deltaY > 0) {
+              e.preventDefault();
+              e.stopPropagation();
+              container.scrollTop = maxScroll;
+              return false;
+            }
+            
+            // If at or near top and trying to scroll up, prevent it
+            if (scrollTop <= 1 && e.deltaY < 0) {
+              e.preventDefault();
+              e.stopPropagation();
+              container.scrollTop = 0;
+              return false;
+            }
+          };
+          
+          container.addEventListener('wheel', this.wheelHandler, { passive: false });
+          
+          // Prevent touch scrolling past bounds on mobile - more aggressive
+          let touchStartY = 0;
+          let touchStartScroll = 0;
+          let lastTouchY = 0;
+          let touchMoved = false;
+          
+          this.touchStartHandler = (e) => {
+            if (this.isScrolling) {
+              e.preventDefault();
+              return false;
+            }
+            touchStartY = e.touches[0].clientY;
+            touchStartScroll = container.scrollTop;
+            lastTouchY = touchStartY;
+            touchMoved = false;
+          };
+          
+          container.addEventListener('touchstart', this.touchStartHandler, { passive: true });
+          
+          this.touchMoveHandler = (e) => {
+            if (this.isScrolling) {
+              e.preventDefault();
+              return false;
+            }
+            
+            touchMoved = true;
+            const scrollTop = container.scrollTop;
+            const maxScroll = getMaxScroll();
+            const touchY = e.touches[0].clientY;
+            const scrollDelta = touchStartScroll + (touchStartY - touchY);
+            
+            // If at bottom and trying to scroll down past bounds
+            if (scrollTop >= maxScroll - 1 && scrollDelta > maxScroll) {
+              e.preventDefault();
+              e.stopPropagation();
+              container.scrollTop = maxScroll;
+              return false;
+            }
+            // If at top and trying to scroll up past bounds
+            else if (scrollTop <= 1 && scrollDelta < 0) {
+              e.preventDefault();
+              e.stopPropagation();
+              container.scrollTop = 0;
+              return false;
+            }
+            
+            lastTouchY = touchY;
+          };
+          
+          container.addEventListener('touchmove', this.touchMoveHandler, { passive: false });
+          
+          this.touchEndHandler = () => {
+            if (touchMoved) {
+              const scrollTop = container.scrollTop;
+              const maxScroll = getMaxScroll();
+              
+              // Final snap check
+              if (scrollTop > maxScroll) {
+                container.scrollTop = maxScroll;
+              } else if (scrollTop < 0) {
+                container.scrollTop = 0;
+              }
+            }
+            touchMoved = false;
+          };
+          
+          container.addEventListener('touchend', this.touchEndHandler, { passive: true });
+        }, 100);
       }
 
       renderTimeSlots(container, dateStr) {
@@ -3997,6 +4278,13 @@
 
       close() {
         const modal = document.getElementById('timeModal');
+        const container = document.getElementById('timeSlotsContainer');
+        
+        if (container) {
+          // Clean up event listeners when closing
+          this.cleanupEventListeners(container);
+        }
+        
         if (modal) {
           modal.classList.remove('active');
           document.body.classList.remove('modal-open');

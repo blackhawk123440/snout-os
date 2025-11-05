@@ -20,6 +20,9 @@ async function main() {
 
     // House Sitting (per day) - Base $80, +$10 per pet, +$15 holiday
     { service: "Housesitting", duration: 1440, baseRate: 80.0 }, // 24 hours in minutes
+    
+    // 24/7 Care (per day) - Base $120, +$10 per pet, +$15 holiday
+    { service: "24/7 Care", duration: 1440, baseRate: 120.0 }, // 24 hours in minutes
 
     // Pet Taxi (per trip) - Base $20, +$5 per pet, +$5 holiday
     { service: "Pet Taxi", duration: 60, baseRate: 20.0 }, // 1 hour trip

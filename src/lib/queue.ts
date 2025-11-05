@@ -12,9 +12,7 @@ export const summaryQueue = new Queue("daily-summary", { connection });
 export const reminderWorker = new Worker(
   "reminders",
   async (job) => {
-    console.log("Processing reminder job:", job.id);
-    // Import and call reminder processing function
-    const { processReminders } = await import("./automation-worker");
+    const { processReminders } = await import("../worker/automation-worker");
     return await processReminders();
   },
   { connection }
@@ -23,9 +21,7 @@ export const reminderWorker = new Worker(
 export const summaryWorker = new Worker(
   "daily-summary",
   async (job) => {
-    console.log("Processing daily summary job:", job.id);
-    // Import and call summary processing function
-    const { processDailySummary } = await import("./automation-worker");
+    const { processDailySummary } = await import("../worker/automation-worker");
     return await processDailySummary();
   },
   { connection }
@@ -38,7 +34,9 @@ export async function scheduleReminders() {
     "process-reminders",
     {},
     {
-      repeat: { cron: "0 * * * *" }, // Every hour
+      repeat: {
+        pattern: "0 * * * *", // Every hour
+      },
       removeOnComplete: 10,
       removeOnFail: 5,
     }
@@ -51,7 +49,9 @@ export async function scheduleDailySummary() {
     "process-daily-summary",
     {},
     {
-      repeat: { cron: "0 21 * * *" }, // 9 PM daily
+      repeat: {
+        pattern: "0 21 * * *", // 9 PM daily
+      },
       removeOnComplete: 10,
       removeOnFail: 5,
     }
@@ -63,7 +63,6 @@ export async function initializeQueues() {
   try {
     await scheduleReminders();
     await scheduleDailySummary();
-    console.log("Queues initialized successfully");
   } catch (error) {
     console.error("Failed to initialize queues:", error);
   }

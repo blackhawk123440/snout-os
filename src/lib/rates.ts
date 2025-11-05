@@ -1,12 +1,10 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
 
 export interface Rate {
   base: number;
   addlPet: number;
   holidayAdd: number;       // flat holiday add for this service
-  overtimeAdd?: number;     // flat overtime add for house sitting (e.g., 40)
+  base60?: number;          // optional 60-minute base for non-sitting services
 }
 
 export interface QuoteInput {
@@ -84,15 +82,11 @@ export function computeQuote(i: QuoteInput): QuoteResult {
 
   if (i.service === "Housesitting") {
     // housesitting usually priced as a block not by visits
-    // overtime rule: only add overtime if end is later than start
-    const startT = new Date(i.startAt).getTime();
-    const endT = new Date(i.endAt).getTime();
-    const overtime = endT > startT ? (i.rate.overtimeAdd || 40) : 0;
+    // overtime removed - no longer adding overtime charges
 
     // housesitting total is base plus holiday add already included above
-    total = per + overtime;
+    total = per;
     notes += holidayApplies ? " +holiday" : "";
-    notes += overtime ? " +overtime" : "";
   } else {
     // non sitting multiply by quantity
     total = per * qty;
@@ -121,7 +115,13 @@ export async function getAllRates(): Promise<LegacyRate[]> {
     const rates = await prisma.rate.findMany({
       orderBy: { duration: 'asc' }
     });
-    return rates;
+    return rates.map(rate => ({
+      id: rate.id,
+      service: rate.service,
+      duration: rate.duration,
+      price: rate.baseRate,
+      description: `${rate.service} - ${rate.duration} minutes`,
+    }));
   } catch (error) {
     console.error("Failed to fetch rates:", error);
     return [];
@@ -131,23 +131,29 @@ export async function getAllRates(): Promise<LegacyRate[]> {
 // Default rates configuration
 export const DEFAULT_RATES: Record<string, Rate> = {
   "Drop-ins": {
-    base: 25,
+    base: 20,
+    base60: 32,
     addlPet: 5,
     holidayAdd: 10,
   },
-  "Walk": {
+  "Dog Walking": {
     base: 20,
+    base60: 32,
     addlPet: 5,
     holidayAdd: 10,
   },
   "Housesitting": {
-    base: 50,
+    base: 80,
     addlPet: 10,
     holidayAdd: 25,
-    overtimeAdd: 40,
+  },
+  "24/7 Care": {
+    base: 120,
+    addlPet: 10,
+    holidayAdd: 25,
   },
   "Pet Taxi": {
-    base: 30,
+    base: 20,
     addlPet: 5,
     holidayAdd: 15,
   },
@@ -167,6 +173,27 @@ export const DEFAULT_HOLIDAYS = [
   "2025-12-25", // Christmas Day
 ];
 
+export function getRateForService(service: string): Rate | undefined {
+  const s = (service || "").toLowerCase().trim();
+  const aliases: Record<string, keyof typeof DEFAULT_RATES> = {
+    "drop-ins": "Drop-ins",
+    "drop ins": "Drop-ins",
+    "drop in": "Drop-ins",
+    "dog walking": "Dog Walking",
+    "walk": "Dog Walking",
+    "walking": "Dog Walking",
+    "house sitting": "Housesitting",
+    "housesitting": "Housesitting",
+    "24/7 care": "24/7 Care",
+    "24 7 care": "24/7 Care",
+    "pet taxi": "Pet Taxi",
+    "pet care": "Drop-ins",
+    "pet sitting": "Housesitting",
+  };
+  const key = aliases[s] || (Object.keys(DEFAULT_RATES).find(k => k.toLowerCase() === s) as keyof typeof DEFAULT_RATES | undefined);
+  return key ? DEFAULT_RATES[key] : undefined;
+}
+
 export async function calculateBookingPrice(
   service: string,
   startAt: Date,
@@ -176,18 +203,21 @@ export async function calculateBookingPrice(
   afterHours: boolean = false
 ): Promise<{ total: number; notes: string; holidayApplied: boolean }> {
   try {
-    const rate = DEFAULT_RATES[service];
+    const rate = getRateForService(service);
     if (!rate) {
       throw new Error(`No rate found for service: ${service}`);
     }
 
+    const startDate = startAt instanceof Date ? startAt : new Date(startAt);
+    const endDate = endAt instanceof Date ? endAt : new Date(endAt);
+    
     const quoteInput: QuoteInput = {
       service,
       quantity,
       petCount,
       afterHours,
-      startAt: startAt.toISOString(),
-      endAt: endAt.toISOString(),
+      startAt: startDate.toISOString(),
+      endAt: endDate.toISOString(),
       holidayDatesISO: DEFAULT_HOLIDAYS,
       rate,
     };

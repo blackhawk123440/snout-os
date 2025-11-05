@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { DEFAULT_RATES, computeQuote, DEFAULT_HOLIDAYS, getRateForService } from "./rates";
 
 export interface Booking {
   id: string;
@@ -30,7 +28,7 @@ export interface Sitter {
   lastName: string;
   phone: string;
   email: string;
-  isActive: boolean;
+  active: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +45,9 @@ export const COLORS = {
   primary: "#432f21",
   primaryLight: "#fce1ef",
   primaryLighter: "#fef7fb",
+  secondary: "#e2e8f0",
+  accent: "#f8fafc",
+  white: "#ffffff",
   gray: "#6b7280",
   border: "#e5e7eb",
   success: "#10b981",
@@ -66,6 +67,7 @@ export function formatPetsByQuantity(pets: Array<{ species: string }>): string {
     .join(', ');
 }
 
+
 export function groupPets(pets: Array<{ species: string }>): Record<string, number> {
   const groups: Record<string, number> = {};
   
@@ -74,6 +76,282 @@ export function groupPets(pets: Array<{ species: string }>): Record<string, numb
   });
   
   return groups;
+}
+
+export function getPetIcon(species: string): string {
+  const iconMap: Record<string, string> = {
+    'dog': 'fas fa-dog',
+    'cat': 'fas fa-cat',
+    'bird': 'fas fa-dove',
+    'fish': 'fas fa-fish',
+    'rabbit': 'fas fa-rabbit',
+    'reptile': 'fas fa-dragon',
+    'reptiles': 'fas fa-dragon',
+    'farm animal': 'fas fa-horse',
+    'farm animals': 'fas fa-horse',
+    'farm': 'fas fa-horse',
+    'hamster': 'fas fa-paw',
+    'guinea pig': 'fas fa-paw',
+    'turtle': 'fas fa-paw',
+    'snake': 'fas fa-paw',
+    'lizard': 'fas fa-paw',
+    'ferret': 'fas fa-paw',
+    'chinchilla': 'fas fa-paw',
+    'hedgehog': 'fas fa-paw',
+    'other': 'fas fa-paw'
+  };
+  
+  return iconMap[species.toLowerCase()] || 'fas fa-paw';
+}
+
+export function getServiceIcon(service: string): string {
+  const iconMap: Record<string, string> = {
+    'Dog Walking': 'fas fa-dog',
+    'Housesitting': 'fas fa-home',
+    'Drop-ins': 'fas fa-bone',
+    'Pet Taxi': 'fas fa-car',
+    '24/7 Care': 'fas fa-heart',
+    'Pet Sitting': 'fas fa-home',
+    'Pet Care': 'fas fa-paw'
+  };
+  
+  return iconMap[service] || 'fas fa-paw';
+}
+
+export interface PriceBreakdown {
+  basePrice: number;
+  additionalPets: number;
+  holidayAdd: number;
+  afterHoursAdd: number;
+  quantity: number;
+  total: number;
+  breakdown: Array<{
+    label: string;
+    amount: number;
+    description?: string;
+  }>;
+}
+
+export function calculatePriceBreakdown(booking: {
+  service: string;
+  startAt: Date | string;
+  endAt: Date | string;
+  pets: Array<{ species: string }>;
+  quantity?: number;
+  afterHours?: boolean;
+  holiday?: boolean;
+  totalPrice?: number | null;
+  timeSlots?: Array<{ id?: string; startAt: Date | string; endAt: Date | string; duration: number }>;
+}): PriceBreakdown {
+  const petCount = booking.pets.length;
+  const rate = getRateForService(booking.service);
+  
+  if (!rate) {
+    return {
+      basePrice: 0,
+      additionalPets: 0,
+      holidayAdd: 0,
+      afterHoursAdd: 0,
+      quantity: booking.quantity || 1,
+      total: booking.totalPrice || 0,
+      breakdown: [{
+        label: 'Service Not Found',
+        amount: booking.totalPrice || 0,
+        description: 'Unable to calculate breakdown'
+      }]
+    };
+  }
+
+  const startDate = booking.startAt instanceof Date ? booking.startAt : new Date(booking.startAt);
+  const endDate = booking.endAt instanceof Date ? booking.endAt : new Date(booking.endAt);
+  
+  const quoteInput = {
+    service: booking.service,
+    quantity: booking.quantity || 1,
+    petCount,
+    afterHours: booking.afterHours || false,
+    startAt: startDate.toISOString(),
+    endAt: endDate.toISOString(),
+    holidayDatesISO: DEFAULT_HOLIDAYS,
+    rate,
+  };
+
+  const holidayApplied = computeQuote(quoteInput).holidayApplied;
+  
+  const breakdown: Array<{ label: string; amount: number; description?: string }> = [];
+  let basePrice = 0;
+
+  if (booking.service === "Housesitting" || booking.service === "24/7 Care") {
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    basePrice = rate.base * diffDays;
+    breakdown.push({
+      label: `${booking.service} (${diffDays} ${diffDays === 1 ? 'night' : 'nights'})`,
+      amount: basePrice,
+      description: `$${rate.base} × ${diffDays} nights`
+    });
+    
+    // Add additional pets cost for house sitting and 24/7 care
+    const addlPets = Math.max(petCount - 1, 0);
+    if (addlPets > 0) {
+      const addlPetTotal = addlPets * rate.addlPet * diffDays;
+      basePrice += addlPetTotal;
+      breakdown.push({
+        label: `Additional Pets (${addlPets})`,
+        amount: addlPetTotal,
+        description: `$${rate.addlPet} × ${addlPets} × ${diffDays} nights`
+      });
+    }
+  } else {
+    // Visit-based services: price per time slot, supporting 30/60 minute pricing
+    const hasSlots = Array.isArray(booking.timeSlots) && booking.timeSlots.length > 0;
+    if (hasSlots) {
+      const addlPets = Math.max(petCount - 1, 0);
+      let count30 = 0;
+      let count60 = 0;
+      booking.timeSlots!.forEach(ts => {
+        const dur = typeof ts.duration === 'number' ? ts.duration : 30;
+        if (dur >= 60) count60++; else count30++;
+      });
+      const per30 = rate.base;
+      const per60 = rate.base60 ?? rate.base;
+      const holidayAddPerVisit = holidayApplied ? rate.holidayAdd : 0;
+      // Additional pets: $5 per additional pet per visit for Drop-ins, Dog Walking, Pet Taxi
+      // $10 per additional pet per visit for House sitting, 24/7 Care
+      const addlPetsPerVisit = addlPets * rate.addlPet;
+      const afterHoursPerVisit = booking.afterHours ? 0 : 0;
+
+      // Calculate base price without additional pets (they'll be added separately)
+      const base30 = count30 * (per30 + holidayAddPerVisit + afterHoursPerVisit);
+      const base60 = count60 * (per60 + holidayAddPerVisit + afterHoursPerVisit);
+      basePrice = base30 + base60;
+
+      if (count30 > 0) {
+        breakdown.push({
+          label: `${booking.service} (30 min × ${count30})`,
+          amount: count30 * per30,
+          description: `$${per30} × ${count30} visits`
+        });
+      }
+      if (count60 > 0) {
+        breakdown.push({
+          label: `${booking.service} (60 min × ${count60})`,
+          amount: count60 * per60,
+          description: `$${per60} × ${count60} visits`
+        });
+      }
+
+      if (addlPetsPerVisit > 0) {
+        const visits = count30 + count60;
+        const additionalPetsAmount = addlPetsPerVisit * visits;
+        // Debug logging (can be removed later)
+        console.log('[Price Calculation]', {
+          service: booking.service,
+          petCount,
+          addlPets,
+          rateAddlPet: rate.addlPet,
+          addlPetsPerVisit,
+          visits,
+          additionalPetsAmount
+        });
+        breakdown.push({
+          label: `Additional Pets (${addlPets})`,
+          amount: additionalPetsAmount,
+          description: `$${rate.addlPet} × ${addlPets} × ${visits} visits`
+        });
+      }
+
+      if (holidayAddPerVisit > 0) {
+        const visits = count30 + count60;
+        breakdown.push({
+          label: `Holiday Rate`,
+          amount: holidayAddPerVisit * visits,
+          description: `$${rate.holidayAdd} × ${visits} visits`
+        });
+      }
+
+    } else {
+      // For services without timeSlots (Housesitting, 24/7 Care), calculate based on nights
+      const startDate = new Date(booking.startAt);
+      const endDate = new Date(booking.endAt);
+      const diffTime = endDate.getTime() - startDate.getTime();
+      const diffDays = Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)), 1);
+      const quantity = diffDays; // Number of nights
+      const addlPets = Math.max(petCount - 1, 0);
+      basePrice = rate.base * quantity;
+      breakdown.push({
+        label: `${booking.service} (${quantity} ${quantity === 1 ? 'visit' : 'visits'})`,
+        amount: basePrice,
+        description: `$${rate.base} × ${quantity} visits`
+      });
+
+      // Add additional pets cost
+      if (addlPets > 0) {
+        const addlPetTotal = addlPets * rate.addlPet * quantity;
+        basePrice += addlPetTotal;
+        breakdown.push({
+          label: `Additional Pets (${addlPets})`,
+          amount: addlPetTotal,
+          description: `$${rate.addlPet} × ${addlPets} × ${quantity} visits`
+        });
+      }
+
+      if (holidayApplied) {
+        const holidayTotal = rate.holidayAdd * quantity;
+        breakdown.push({
+          label: `Holiday Rate`,
+          amount: holidayTotal,
+          description: `$${rate.holidayAdd} × ${quantity} visits`
+        });
+      }
+    }
+  }
+
+  // Overtime removed - no longer calculating overtime charges
+  let overtimeTotal = 0;
+
+  // After hours (kept as separate line only if used as a flat fee; currently 0)
+  let afterHoursTotal = 0;
+  if (booking.afterHours) {
+    // If changed in future to a flat fee, adjust here
+    afterHoursTotal = 0;
+  }
+
+  // Calculate additional pets total separately for visit-based services with timeSlots
+  // (For house sitting/24-7 care, additional pets are already added to basePrice above)
+  // (For services without timeSlots, additional pets are already added to basePrice in the else block)
+  let additionalPetsTotal = 0;
+  const isHouseSittingService = booking.service === "Housesitting" || booking.service === "24/7 Care";
+  if (!isHouseSittingService && Array.isArray(booking.timeSlots) && booking.timeSlots.length > 0) {
+    // For visit-based services with timeSlots, additional pets are calculated separately
+    // We need to calculate the same way as in the breakdown above
+    const addlPets = Math.max(petCount - 1, 0);
+    if (addlPets > 0) {
+      // Count visits the same way as in the breakdown (count30 + count60)
+      let count30 = 0;
+      let count60 = 0;
+      booking.timeSlots.forEach(ts => {
+        const dur = typeof ts.duration === 'number' ? ts.duration : 30;
+        if (dur >= 60) count60++; else count30++;
+      });
+      const visits = count30 + count60;
+      additionalPetsTotal = addlPets * rate.addlPet * visits;
+    }
+  }
+  // For house sitting/24-7 care, additional pets are already in basePrice (added at line 200)
+  // For services without timeSlots, additional pets are already in basePrice (added at line 263)
+
+  const total = basePrice + additionalPetsTotal + afterHoursTotal;
+
+  return {
+    basePrice,
+    additionalPets: 0, // rolled into per-visit above when slots are present
+    holidayAdd: 0,     // rolled into per-visit above when slots are present
+    afterHoursAdd: afterHoursTotal,
+    quantity: booking.timeSlots?.length || booking.quantity || 1,
+    total: Number(total.toFixed(2)),
+    breakdown
+  };
 }
 
 export function isValidStatus(status: string): status is "pending" | "confirmed" | "completed" | "cancelled" {
@@ -119,11 +397,11 @@ export function hasSitterConflict(
 }
 
 export function getBookingConflicts(
-  booking: { startAt: Date; endAt: Date; sitterId?: string },
+  booking: { id?: string; startAt: Date; endAt: Date; sitterId?: string },
   allBookings: Array<{ id: string; startAt: Date; endAt: Date; sitterId?: string }>
 ): Array<{ id: string; startAt: Date; endAt: Date }> {
   return allBookings
-    .filter(b => b.id !== booking.id)
+    .filter(b => !booking.id || b.id !== booking.id)
     .filter(b => {
       if (booking.sitterId && b.sitterId && booking.sitterId !== b.sitterId) {
         return false;

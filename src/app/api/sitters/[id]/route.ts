@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const sitter = await prisma.sitter.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         bookings: {
           include: {
@@ -32,21 +31,38 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
-    const { firstName, lastName, phone, email, isActive } = body;
+    const { firstName, lastName, phone, personalPhone, openphonePhone, phoneType, email, isActive } = body;
+
+    // Determine which phone to use as primary based on phoneType
+    let primaryPhone = phone;
+    if (phoneType === "personal" && personalPhone) {
+      primaryPhone = personalPhone;
+    } else if (phoneType === "openphone" && openphonePhone) {
+      primaryPhone = openphonePhone;
+    } else if (personalPhone) {
+      primaryPhone = personalPhone;
+    } else if (openphonePhone) {
+      primaryPhone = openphonePhone;
+    }
+
+    const updateData: any = {};
+    if (firstName) updateData.firstName = firstName;
+    if (lastName) updateData.lastName = lastName;
+    if (email) updateData.email = email;
+    if (typeof isActive === 'boolean') updateData.active = isActive;
+    if (primaryPhone) updateData.phone = primaryPhone;
+    if (personalPhone !== undefined) updateData.personalPhone = personalPhone || null;
+    if (openphonePhone !== undefined) updateData.openphonePhone = openphonePhone || null;
+    if (phoneType !== undefined) updateData.phoneType = phoneType || "personal";
 
     const sitter = await prisma.sitter.update({
-      where: { id: params.id },
-      data: {
-        ...(firstName && { firstName }),
-        ...(lastName && { lastName }),
-        ...(phone && { phone }),
-        ...(email && { email }),
-        ...(typeof isActive === 'boolean' && { isActive }),
-      },
+      where: { id },
+      data: updateData,
     });
 
     return NextResponse.json({ sitter });
@@ -58,11 +74,12 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await prisma.sitter.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

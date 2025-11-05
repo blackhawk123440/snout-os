@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client";
-import { sendClientNightBeforeReminder } from "@/lib/sms-templates";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/db";
+import { sendClientNightBeforeReminder, sendSitterNightBeforeReminder } from "@/lib/sms-templates";
+import { sendSMS } from "@/lib/openphone";
+import { getOwnerPhone } from "@/lib/phone-utils";
 
 export async function processReminders() {
   try {
@@ -27,20 +27,33 @@ export async function processReminders() {
       },
     });
 
-    console.log(`Found ${tomorrowBookings.length} bookings for tomorrow`);
-
     // Send reminders
     for (const booking of tomorrowBookings) {
       try {
-        // Send reminder to client
-        await sendClientNightBeforeReminder(booking);
-        
-        // Send reminder to sitter if assigned
-        if (booking.sitter) {
-          await sendSitterNightBeforeReminder(booking, booking.sitter.phone);
+        // Skip if email is required but missing
+        if (!booking.email) {
+          console.warn(`Skipping reminder for booking ${booking.id} - no email`);
+          continue;
         }
 
-        console.log(`Sent reminders for booking ${booking.id}`);
+        // Create a booking object with required fields
+        const bookingForReminder = {
+          ...booking,
+          email: booking.email,
+          totalPrice: booking.totalPrice || 0,
+          sitter: booking.sitter ? {
+            firstName: booking.sitter.firstName,
+            lastName: booking.sitter.lastName,
+          } : undefined,
+        };
+
+        // Send reminder to client
+        await sendClientNightBeforeReminder(bookingForReminder);
+        
+        // Send reminder to sitter if assigned
+        if (booking.sitter && booking.sitterId) {
+          await sendSitterNightBeforeReminder(bookingForReminder, booking.sitterId);
+        }
       } catch (error) {
         console.error(`Failed to send reminders for booking ${booking.id}:`, error);
       }
@@ -80,16 +93,15 @@ export async function processDailySummary() {
       pending: todayBookings.filter(b => b.status === "pending").length,
       confirmed: todayBookings.filter(b => b.status === "confirmed").length,
       completed: todayBookings.filter(b => b.status === "completed").length,
-      revenue: todayBookings.reduce((sum, b) => sum + b.totalPrice, 0),
+      revenue: todayBookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0),
     };
 
     // Send summary to owner
-    const ownerPhone = process.env.OWNER_PHONE;
+    const ownerPhone = await getOwnerPhone(undefined, "dailySummary");
     if (ownerPhone) {
       const message = `📊 DAILY SUMMARY\n\nToday's Bookings:\n• Total: ${stats.total}\n• Pending: ${stats.pending}\n• Confirmed: ${stats.confirmed}\n• Completed: ${stats.completed}\n• Revenue: $${stats.revenue.toFixed(2)}`;
       
-      // You would call sendSMS here
-      console.log("Daily summary:", message);
+      await sendSMS(ownerPhone, message);
     }
 
     return stats;
@@ -101,8 +113,6 @@ export async function processDailySummary() {
 
 // Background job processor
 export async function startAutomationWorker() {
-  console.log("Starting automation worker...");
-  
   // Process reminders every hour
   setInterval(async () => {
     try {
@@ -123,6 +133,4 @@ export async function startAutomationWorker() {
       }
     }
   }, 60 * 60 * 1000); // Check every hour
-
-  console.log("Automation worker started");
 }
