@@ -1506,90 +1506,56 @@ function BookingsPageContent() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
         {/* Stats Cards */}
         {showStats && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>{stats.total}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-calendar" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Pending</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>{stats.pending}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-clock" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Confirmed</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>{stats.confirmed}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-check-circle" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Completed</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>{stats.completed}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-check-double" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Revenue</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>${stats.revenue.toFixed(2)}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-dollar-sign" style={{ color: COLORS.primary }}></i>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
+            {[
+              {
+                label: "Total Bookings",
+                value: stats.total,
+                icon: "fas fa-calendar"
+              },
+              {
+                label: "Pending",
+                value: stats.pending,
+                icon: "fas fa-clock"
+              },
+              {
+                label: "Confirmed",
+                value: stats.confirmed,
+                icon: "fas fa-check"
+              },
+              {
+                label: "Completed",
+                value: stats.completed,
+                icon: "fas fa-flag-checkered"
+              },
+              {
+                label: "Revenue",
+                value: `$${stats.revenue.toFixed(2)}`,
+                icon: "fas fa-dollar-sign"
+              },
+              {
+                label: "Paid Bookings",
+                value: stats.paid,
+                icon: "fas fa-receipt"
+              },
+              {
+                label: "Paid Amount",
+                value: `$${stats.paidAmount.toFixed(2)}`,
+                icon: "fas fa-wallet"
+              }
+            ].map((card) => (
+              <div key={card.label} className="bg-white rounded-lg p-4 sm:p-5 border-2" style={{ borderColor: COLORS.primaryLight }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-600">{card.label}</p>
+                    <p className="text-xl sm:text-2xl font-bold" style={{ color: COLORS.primary }}>{card.value}</p>
+                  </div>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: COLORS.primaryLight }}>
+                    <i className={`${card.icon} text-sm sm:text-base`} style={{ color: COLORS.primary }}></i>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Paid</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>{stats.paid}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-credit-card" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Paid Amount</p>
-                  <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>${stats.paidAmount.toFixed(2)}</p>
-                </div>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                  <i className="fas fa-money-bill-wave" style={{ color: COLORS.primary }}></i>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
@@ -1733,7 +1699,7 @@ function BookingsPageContent() {
               <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
                 Bookings ({filteredBookings.length})
               </h2>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <button
                   onClick={selectAllBookings}
                   className="px-3 py-2 sm:py-1 text-sm border rounded-lg active:bg-gray-50 touch-manipulation min-h-[44px] sm:min-h-[auto]"
