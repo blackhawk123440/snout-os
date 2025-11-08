@@ -1410,9 +1410,9 @@ function BookingsPageContent() {
     <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
       {/* Header */}
       <div className="bg-white border-b shadow-sm w-full" style={{ borderColor: COLORS.border }}>
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
+            <div className="flex items-center gap-3 sm:gap-4">
               <Link href="/" className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: COLORS.primary }}>
                   <img 
@@ -1436,13 +1436,13 @@ function BookingsPageContent() {
                 </div>
               </Link>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap gap-2 sm:gap-3 w-full lg:w-auto">
               <Link
                 href="/"
-                className="px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all whitespace-nowrap"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
                 style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
               >
-                <i className="fas fa-home mr-1 sm:mr-2"></i><span className="hidden sm:inline">Home</span>
+                <i className="fas fa-home"></i><span className="text-xs sm:text-sm">Home</span>
               </Link>
               <button
                 onClick={() => {
@@ -1450,53 +1450,53 @@ function BookingsPageContent() {
                   fetchSitters();
                 }}
                 disabled={loading}
-                className="px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                 style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
                 title="Refresh data"
               >
-                <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i>
+                <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i><span className="text-xs sm:text-sm">Refresh</span>
               </button>
               <Link
                 href="/payments"
-                className="px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all whitespace-nowrap"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
                 style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
               >
-                <i className="fas fa-credit-card mr-1 sm:mr-2"></i><span className="hidden sm:inline">Payments</span>
+                <i className="fas fa-credit-card"></i><span className="text-xs sm:text-sm">Payments</span>
               </Link>
               <Link
                 href="/calendar"
-                className="px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all whitespace-nowrap"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
                 style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
               >
-                <i className="fas fa-calendar-alt mr-1 sm:mr-2"></i><span className="hidden sm:inline">Calendar</span>
+                <i className="fas fa-calendar-alt"></i><span className="text-xs sm:text-sm">Calendar</span>
               </Link>
               <Link
                 href="/clients"
-                className="px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all whitespace-nowrap"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
                 style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
               >
-                <i className="fas fa-users mr-1 sm:mr-2"></i><span className="hidden sm:inline">Clients</span>
+                <i className="fas fa-users"></i><span className="text-xs sm:text-sm">Clients</span>
               </Link>
               <Link
                 href="/automation"
-                className="px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all whitespace-nowrap"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
                 style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
               >
-                <i className="fas fa-robot mr-1 sm:mr-2"></i><span className="hidden sm:inline">Automation</span>
+                <i className="fas fa-robot"></i><span className="text-xs sm:text-sm">Automation</span>
               </Link>
               <Link
                 href="/settings"
-                className="px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all whitespace-nowrap"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
                 style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
               >
-                <i className="fas fa-cog mr-1 sm:mr-2"></i><span className="hidden sm:inline">Settings</span>
+                <i className="fas fa-cog"></i><span className="text-xs sm:text-sm">Settings</span>
               </Link>
               <Link
                 href="/bookings/sitters"
-                className="px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all whitespace-nowrap"
+                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
                 style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
               >
-                <i className="fas fa-user-friends mr-1 sm:mr-2"></i><span className="hidden sm:inline">Sitters</span>
+                <i className="fas fa-user-friends"></i><span className="text-xs sm:text-sm">Sitters</span>
               </Link>
             </div>
           </div>

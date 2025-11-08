@@ -63,7 +63,7 @@ export default function HomePage() {
       {/* Header */}
       <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <div className="flex items-center justify-between flex-wrap gap-3 sm:gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
             <div className="flex items-center gap-2 sm:gap-4">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: COLORS.primary }}>
                 <img 
@@ -79,14 +79,14 @@ export default function HomePage() {
                 <p className="text-sm sm:text-base lg:text-lg text-gray-700 font-medium hidden sm:block">Professional Pet Care Management</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3 w-full lg:w-auto">
               <Link
                 href="/bookings"
-                className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-sm sm:text-base lg:text-lg font-bold rounded-lg hover:opacity-90 transition-all shadow-lg touch-manipulation min-h-[44px] flex items-center justify-center"
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-sm sm:text-base lg:text-lg font-bold rounded-lg hover:opacity-90 transition-all shadow-lg touch-manipulation min-h-[44px] w-full sm:w-auto"
                 style={{ background: COLORS.primary, color: COLORS.primaryLight }}
               >
-                <i className="fas fa-tachometer-alt sm:mr-2"></i>
-                <span className="hidden sm:inline">Dashboard</span>
+                <i className="fas fa-tachometer-alt"></i>
+                <span className="text-sm sm:text-base">Dashboard</span>
               </Link>
             </div>
           </div>
