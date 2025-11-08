@@ -173,20 +173,3 @@ model GoogleCalendarAccount {
 
   @@index([email])
 }
-
-model SitterPoolOffer {
-  id               String    @id @default(uuid())
-  bookingId        String
-  sitterIds        String
-  message          String?
-  expiresAt        DateTime
-  status           String    @default("active")
-  responses        String    @default("[]")
-  acceptedSitterId String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  booking          Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-
-  @@index([bookingId])
-  @@index([status])
-}
