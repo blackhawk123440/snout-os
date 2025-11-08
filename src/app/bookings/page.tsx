@@ -1436,68 +1436,70 @@ function BookingsPageContent() {
                 </div>
               </Link>
             </div>
-            <div className="flex flex-wrap gap-2 sm:gap-3 w-full lg:w-auto">
-              <Link
-                href="/"
-                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
-                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-              >
-                <i className="fas fa-home"></i><span className="text-xs sm:text-sm">Home</span>
-              </Link>
-              <button
-                onClick={() => {
-                  fetchBookings();
-                  fetchSitters();
-                }}
-                disabled={loading}
-                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
-                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-                title="Refresh data"
-              >
-                <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i><span className="text-xs sm:text-sm">Refresh</span>
-              </button>
-              <Link
-                href="/payments"
-                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
-                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-              >
-                <i className="fas fa-credit-card"></i><span className="text-xs sm:text-sm">Payments</span>
-              </Link>
-              <Link
-                href="/calendar"
-                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
-                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-              >
-                <i className="fas fa-calendar-alt"></i><span className="text-xs sm:text-sm">Calendar</span>
-              </Link>
-              <Link
-                href="/clients"
-                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
-                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-              >
-                <i className="fas fa-users"></i><span className="text-xs sm:text-sm">Clients</span>
-              </Link>
-              <Link
-                href="/automation"
-                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
-                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-              >
-                <i className="fas fa-robot"></i><span className="text-xs sm:text-sm">Automation</span>
-              </Link>
-              <Link
-                href="/settings"
-                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
-                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-              >
-                <i className="fas fa-cog"></i><span className="text-xs sm:text-sm">Settings</span>
-              </Link>
-              <Link
-                href="/bookings/sitters"
-                className="flex items-center justify-center gap-2 px-3 py-2 text-xs sm:text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
-                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-              >
-                <i className="fas fa-user-friends"></i><span className="text-xs sm:text-sm">Sitters</span>
-              </Link>
+            <div className="relative w-full">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                <Link
+                  href="/"
+                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+                >
+                  <i className="fas fa-home"></i><span className="hidden sm:inline">Home</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    fetchBookings();
+                    fetchSitters();
+                  }}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+                  title="Refresh data"
+                >
+                  <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i><span className="hidden sm:inline">Refresh</span>
+                </button>
+                <Link
+                  href="/payments"
+                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+                >
+                  <i className="fas fa-credit-card"></i><span className="hidden sm:inline">Payments</span>
+                </Link>
+                <Link
+                  href="/calendar"
+                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+                >
+                  <i className="fas fa-calendar-alt"></i><span className="hidden sm:inline">Calendar</span>
+                </Link>
+                <Link
+                  href="/clients"
+                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+                >
+                  <i className="fas fa-users"></i><span className="hidden sm:inline">Clients</span>
+                </Link>
+                <Link
+                  href="/automation"
+                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+                >
+                  <i className="fas fa-robot"></i><span className="hidden sm:inline">Automation</span>
+                </Link>
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+                >
+                  <i className="fas fa-cog"></i><span className="hidden sm:inline">Settings</span>
+                </Link>
+                <Link
+                  href="/bookings/sitters"
+                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+                >
+                  <i className="fas fa-user-friends"></i><span className="hidden sm:inline">Sitters</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
