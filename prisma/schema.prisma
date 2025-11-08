@@ -31,6 +31,9 @@ model Booking {
   totalPrice    Float
   status        String        @default("pending")
   notes         String?
+  stripePaymentLinkUrl String?
+  tipLinkUrl    String?
+  paymentStatus String        @default("unpaid")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   afterHours    Boolean       @default(false)
@@ -41,6 +44,7 @@ model Booking {
   sitterId      String?
   timeSlots     TimeSlot[]
   messages      Message[]
+  reports       Report[]
   sitterPoolOffers SitterPoolOffer[]
 
   @@index([sitterId])
@@ -86,6 +90,7 @@ model Sitter {
   personalPhone   String?
   openphonePhone  String?
   phoneType       String?
+  stripeAccountId String?
   sitterPoolOffers SitterPoolOffer[]
 
   @@index([active])
@@ -95,12 +100,17 @@ model SitterPoolOffer {
   id         String   @id @default(uuid())
   booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   bookingId  String
-  sitter     Sitter   @relation(fields: [sitterId], references: [id], onDelete: Cascade)
-  sitterId   String
+  sitter     Sitter?  @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+  sitterId   String?
+  sitterIds  String?
   sentAt     DateTime @default(now())
+  expiresAt  DateTime?
+  status     String    @default("pending")
+  message    String?
+  responses  String?
   respondedAt DateTime?
   response   String?
-  status     String   @default("pending")
+  acceptedSitterId String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -139,25 +149,24 @@ model Setting {
 model Report {
   id            String   @id @default(uuid())
   bookingId     String?
-  clientName    String
-  petName       String
-  visitDate     DateTime
-  photos        String?
-  notes         String?
-  activities    String?
+  booking       Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  content       String
+  mediaUrls     String?
+  visitStarted  DateTime?
+  visitCompleted DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([bookingId])
-  @@index([visitDate])
 }
 
 model GoogleCalendarAccount {
   id           String   @id @default(uuid())
   email        String   @unique
+  provider     String   @default("google")
   accessToken  String
-  refreshToken String
-  expiresAt    DateTime
+  refreshToken String?
+  expiresAt    DateTime?
   calendarId   String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
