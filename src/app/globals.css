@@ -210,6 +210,15 @@ img {
   }
 }
 
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Custom checkbox styling with brand colors */
 input[type="checkbox"] {
   accent-color: var(--text-primary, #432f21);
