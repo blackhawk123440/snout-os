@@ -1773,8 +1773,7 @@ function BookingsPageContent() {
                   onClick={(e) => {
                     // Don't open modal if clicking on checkbox or its container
                     const target = e.target as HTMLElement;
-                    const inputTarget = e.target as HTMLInputElement;
-                    if (target.closest('.checkbox-container') || inputTarget.type === 'checkbox' || target.tagName === 'INPUT') {
+                    if (target.closest('.checkbox-container') || target.type === 'checkbox' || target.tagName === 'INPUT') {
                       return;
                     }
                     handleBookingSelect(booking);

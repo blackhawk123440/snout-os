@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
         bookingId,
         content,
         mediaUrls: Array.isArray(mediaUrls) ? mediaUrls.join(',') : (mediaUrls || ''),
+        visitStarted: visitStarted ? new Date(visitStarted) : null,
+        visitCompleted: visitCompleted ? new Date(visitCompleted) : null,
       },
     });
 

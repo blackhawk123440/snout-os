@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -19,130 +19,109 @@ model Rate {
 }
 
 model Booking {
-  id                    String     @id @default(uuid())
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
-  firstName             String
-  lastName              String
-  phone                 String
-  email                 String?
-  address               String?
-  service               String
-  startAt               DateTime
-  endAt                 DateTime
-  minutes               Int?
-  quantity              Int        @default(1)
-  afterHours            Boolean    @default(false)
-  holiday               Boolean    @default(false)
-  totalPrice            Float?
-  status                String     @default("Pending")
-  paymentStatus         String?
-  stripePaymentIntentId String?
-  stripePaymentLinkUrl  String?
-  tipLinkUrl            String?
-  paidAt                DateTime?
-  archived              Boolean    @default(false)
-  archivedAt            DateTime?
-  createdFrom           String?
-  sitterId              String?
-  preferredContact      String?
-  special               String?
-  sitter                Sitter?    @relation(fields: [sitterId], references: [id])
-  messages              Message[]
-  payments              Payment[]
-  pets                  Pet[]
-  reports               Report[]
-  timeSlots             TimeSlot[]
-  sitterPoolOffers      SitterPoolOffer[]
+  id            String        @id @default(uuid())
+  firstName     String
+  lastName      String
+  phone         String
+  email         String
+  address       String
+  service       String
+  startAt       DateTime
+  endAt         DateTime
+  totalPrice    Float
+  status        String        @default("pending")
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  afterHours    Boolean       @default(false)
+  holiday       Boolean       @default(false)
+  quantity      Int           @default(1)
+  pets          Pet[]
+  sitter        Sitter?       @relation(fields: [sitterId], references: [id])
+  sitterId      String?
+  timeSlots     TimeSlot[]
+  messages      Message[]
+  sitterPoolOffers SitterPoolOffer[]
 
-  @@index([status])
-  @@index([startAt])
   @@index([sitterId])
-  @@index([archived])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Pet {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  name      String
-  species   String
-  notes     String?
-  bookingId String
-  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  name       String
+  species    String
+  breed      String?
+  age        Int?
+  notes      String?
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId  String
 
   @@index([bookingId])
 }
 
 model TimeSlot {
   id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
   startAt   DateTime
   endAt     DateTime
-  bookingId String
   duration  Int
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId String
+  createdAt DateTime @default(now())
 
   @@index([bookingId])
 }
 
 model Sitter {
-  id               String    @id @default(uuid())
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  firstName        String
-  lastName         String
-  phone            String
-  personalPhone    String?
-  openphonePhone   String?
-  phoneType        String?   // "personal" | "openphone"
-  email            String    @unique
-  active           Boolean   @default(true)
-  stripeAccountId  String?
-  googleCalendarId String?
-  bookings         Booking[]
+  id              String              @id @default(uuid())
+  firstName       String
+  lastName        String
+  phone           String
+  email           String
+  active          Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  bookings        Booking[]
+  personalPhone   String?
+  openphonePhone  String?
+  phoneType       String?
+  sitterPoolOffers SitterPoolOffer[]
 
   @@index([active])
 }
 
-model Report {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  bookingId String
-  content   String
-  mediaUrls String
-  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+model SitterPoolOffer {
+  id         String   @id @default(uuid())
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId  String
+  sitter     Sitter   @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+  sitterId   String
+  sentAt     DateTime @default(now())
+  respondedAt DateTime?
+  response   String?
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([bookingId])
+  @@index([sitterId])
+  @@index([status])
 }
 
 model Message {
   id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
   direction String
-  body      String
-  status    String?
-  bookingId String
   from      String
   to        String
-  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  body      String
+  status    String
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId String?
+  createdAt DateTime @default(now())
 
   @@index([bookingId])
-}
-
-model Payment {
-  id              String   @id @default(uuid())
-  createdAt       DateTime @default(now())
-  amount          Float
-  currency        String   @default("usd")
-  status          String
-  bookingId       String
-  paymentMethod   String?
-  stripePaymentId String?  @unique
-  updatedAt       DateTime
-  booking         Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-
-  @@index([bookingId])
-  @@index([status])
+  @@index([direction])
 }
 
 model Setting {
@@ -157,31 +136,31 @@ model Setting {
   @@index([category])
 }
 
-model CalendarAccount {
-  id           String    @id
-  provider     String
-  email        String    @unique
-  accessToken  String
-  refreshToken String?
-  expiresAt    DateTime?
-  calendarId   String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime
-}
-
-model SitterPoolOffer {
-  id               String    @id @default(uuid())
-  bookingId        String
-  sitterIds        String
-  message          String?
-  expiresAt        DateTime
-  status           String    @default("active")
-  responses        String    @default("[]")
-  acceptedSitterId String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  booking          Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+model Report {
+  id            String   @id @default(uuid())
+  bookingId     String?
+  clientName    String
+  petName       String
+  visitDate     DateTime
+  photos        String?
+  notes         String?
+  activities    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([bookingId])
-  @@index([status])
+  @@index([visitDate])
+}
+
+model GoogleCalendarAccount {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  calendarId   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
 }

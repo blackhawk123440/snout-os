@@ -10,30 +10,37 @@ A comprehensive dashboard for managing pet care services, bookings, sitters, and
 - 💳 **Payment Processing** - Stripe integration for payments
 - 🤖 **Automations** - Configurable automated messages and reminders
 - 📊 **Analytics** - Dashboard with booking and payment analytics
+- 📆 **Calendar View** - Visual calendar with conflict detection
+- 🔄 **Sitter Pool** - Automated sitter matching and assignment
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 20+
-- npm, pnpm, or yarn
-- PostgreSQL or SQLite database
-- Redis (for BullMQ queue)
+- npm or pnpm
+- PostgreSQL or SQLite database (for development)
+- Redis (optional, for background jobs)
 
 ### Installation
 
-1. Clone the repository
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd snout-os
+   ```
+
 2. Install dependencies:
    ```bash
    npm install
-   # or
-   pnpm install
    ```
 
-3. Copy `.env.example` to `.env.local` and fill in your configuration:
+3. Set up environment variables:
    ```bash
    cp .env.example .env.local
    ```
+   
+   Edit `.env.local` and fill in your configuration values.
 
 4. Set up the database:
    ```bash
@@ -57,28 +64,26 @@ See `.env.example` for all required environment variables.
 - `OPENPHONE_API_KEY` - OpenPhone API key
 - `OPENPHONE_NUMBER_ID` - OpenPhone number ID
 
+**Recommended:**
+- `STRIPE_SECRET_KEY` - For payment processing
+- `STRIPE_PUBLISHABLE_KEY` - For payment links
+- `OWNER_PERSONAL_PHONE` - Owner's personal phone number
+- `OWNER_OPENPHONE_PHONE` - Owner's OpenPhone number
+
 **Optional:**
-- `STRIPE_SECRET_KEY` - Stripe secret key
 - `REDIS_URL` - Redis connection URL (default: redis://localhost:6379)
+- `GOOGLE_CLIENT_ID` - For Google Calendar integration
+- `GOOGLE_CLIENT_SECRET` - For Google Calendar integration
 
 ## Scripts
 
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run format` - Format code with Prettier
 - `npm run typecheck` - Run TypeScript type checking
-- `npm run test` - Run unit tests
-- `npm run test:ui` - Run Playwright E2E tests
 - `npm run db:push` - Push database schema
-- `npm run db:seed` - Seed database
+- `npm run db:seed` - Seed database with sample data
 - `npm run db:studio` - Open Prisma Studio
-
-## Health Checks
-
-- `/api/health` - General health check
-- `/api/integrations/openphone/health` - OpenPhone integration health
 
 ## Project Structure
 
@@ -87,58 +92,22 @@ snout-os/
 ├── src/
 │   ├── app/              # Next.js app directory
 │   │   ├── api/          # API routes
-│   │   └── [pages]/      # Page components
+│   │   ├── bookings/     # Booking management
+│   │   ├── calendar/     # Calendar view
+│   │   ├── automation/   # Automation settings
+│   │   ├── settings/     # System settings
+│   │   └── [pages]/      # Other pages
 │   ├── lib/              # Utility functions
-│   └── worker/            # Background workers
-├── prisma/               # Database schema and migrations
+│   │   ├── booking-utils.ts
+│   │   ├── rates.ts
+│   │   ├── openphone.ts
+│   │   ├── automation-utils.ts
+│   │   └── message-utils.ts
+│   └── worker/           # Background workers
+├── prisma/               # Database schema
 ├── public/               # Static assets
+│   └── booking-form.html # Public booking form
 └── tests/                # Test files
-```
-
-## Development
-
-### Code Style
-
-- Use TypeScript for all new code
-- Follow ESLint and Prettier configurations
-- Use 2 spaces for indentation
-- Use LF line endings
-
-### Testing
-
-- Unit tests: `npm run test`
-- E2E tests: `npm run test:ui`
-- Run tests in watch mode: `npm run test -- --watch`
-
-## Production Deployment
-
-1. Set all required environment variables
-2. Run `npm run build`
-3. Start the server with `npm run start`
-4. Verify health endpoints are responding
-
-## License
-
-Private - All Rights Reserved
-
-src/
-├── app/                 # Next.js app directory
-│   ├── api/            # API routes
-│   ├── bookings/       # Booking management pages
-│   ├── calendar/       # Calendar pages
-│   ├── clients/        # Client management
-│   ├── payments/       # Payment analytics
-│   ├── settings/       # System settings
-│   └── sitter/         # Mobile sitter dashboard
-├── lib/                # Utility libraries
-│   ├── booking-utils.ts
-│   ├── rates.ts
-│   ├── stripe.ts
-│   ├── openphone.ts
-│   └── sms-templates.ts
-└── worker/             # Background job processing
-    ├── automation-worker.ts
-    └── index.ts
 ```
 
 ## Key Features
@@ -147,39 +116,90 @@ src/
 - Create, edit, and track bookings
 - Sitter assignment with conflict detection
 - Status management (pending, confirmed, completed, cancelled)
-- Pet quantity tracking
+- Multiple service types (Dog Walking, Drop-ins, House Sitting, Pet Taxi, 24/7 Care)
+- Dynamic pricing based on service, duration, and pets
+
+### Automations
+- Booking confirmations (client, owner, sitter)
+- Payment reminders
+- Night-before reminders
+- Sitter pool offers
+- Post-visit thank you messages
+- Customizable message templates
+- Configurable phone routing (personal vs OpenPhone)
 
 ### Payment Processing
-- Live Stripe integration
-- Payment link generation
-- Invoice creation
-- Revenue analytics
-
-### SMS Automation
-- Automated booking confirmations
-- Payment reminders
-- Sitter notifications
-- Customizable message templates
+- Stripe integration for payment links
+- Multiple service pricing
+- Tip link generation
+- Payment tracking
 
 ### Calendar Integration
-- Google Calendar sync
-- Event creation and management
-- Conflict detection
+- Month view with booking overview
+- Conflict detection for sitter assignments
+- Multi-day booking support (House Sitting, 24/7 Care)
+- Sitter filtering
+- Mobile responsive
 
-### Mobile Sitter Dashboard
-- Mobile-friendly interface
-- Upcoming bookings view
-- Earnings tracking
-- Status updates
+### Mobile Optimization
+- Fully responsive design
+- Touch-optimized controls
+- Mobile-friendly calendar and forms
+- Optimized for iOS and Android
 
 ## Deployment
 
-The application is configured for deployment on Render with:
-- Automatic builds from Git
-- Environment variable configuration
-- Database migrations
-- Background job processing
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+
+### Quick Deploy
+
+1. Build the application:
+   ```bash
+   npm run build
+   ```
+
+2. Set environment variables on your hosting platform
+
+3. Deploy with:
+   ```bash
+   npm run start
+   ```
+
+## Health Checks
+
+- `/api/health` - General health check
+- `/api/integrations/openphone/health` - OpenPhone integration health
+- `/api/integrations/test/stripe` - Stripe integration test
+- `/api/integrations/test/database` - Database connection test
+
+## Development
+
+### Code Style
+
+- TypeScript for all code
+- 2 spaces for indentation
+- ESLint and Prettier for formatting
+
+### Testing
+
+- Unit tests: `npm run test`
+- E2E tests: `npm run test:ui`
+
+## Security Notes
+
+- Never commit `.env` or `.env.local` files
+- Use environment variables for all secrets
+- Enable HTTPS in production
+- Regularly rotate API keys
+
+## Support
+
+For issues or questions, please check:
+1. Application logs
+2. Health check endpoints
+3. Environment variables
+4. Individual integration tests
 
 ## License
 
-Private - All rights reserved
+Private - All Rights Reserved

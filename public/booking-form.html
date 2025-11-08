@@ -3599,9 +3599,8 @@
         };
 
         try {
-          // Send to API - Use your deployed backend URL
-          // For Webflow embedding: Change this to your Render/Vercel backend URL
-          const apiUrl = window.BOOKING_API_URL || window.location.origin + '/api/form';
+          // Send to API - CHANGE THIS URL FOR PRODUCTION
+          const apiUrl = window.location.origin + '/api/form'; // Use same origin as the page
           
           const response = await fetch(apiUrl, {
             method: 'POST',

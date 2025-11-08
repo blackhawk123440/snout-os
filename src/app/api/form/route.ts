@@ -8,17 +8,6 @@ import { getOwnerPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
 import { sendMessage } from "@/lib/message-utils";
 
-// CORS headers for cross-origin requests (Webflow embedding)
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
-
-export async function OPTIONS(request: NextRequest) {
-  return NextResponse.json({}, { headers: corsHeaders });
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -43,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (!firstName || !lastName || !phone || !service || !startAt || !endAt) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400, headers: corsHeaders }
+        { status: 400 }
       );
     }
 
@@ -240,7 +229,7 @@ export async function POST(request: NextRequest) {
         totalPrice: priceCalculation.total,
         status: booking.status,
       },
-    }, { headers: corsHeaders });
+    });
   } catch (error) {
     console.error("Failed to create booking:", error);
     return NextResponse.json(
@@ -248,7 +237,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to create booking", 
         details: error instanceof Error ? error.message : String(error) 
       },
-      { status: 500, headers: corsHeaders }
+      { status: 500 }
     );
   }
 }

@@ -46,6 +46,7 @@ next-env.d.ts
 dev.db
 prisma/dev.db
 prisma/*.db
+prisma/prisma/
 
 # IDE
 .vscode
