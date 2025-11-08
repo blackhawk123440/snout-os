@@ -146,20 +146,20 @@ export default function PaymentsPage() {
     <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
       {/* Header */}
       <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
-        <div className="max-w-[1600px] mx-auto px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ background: COLORS.primary }}>
                 <i className="fas fa-chart-line text-xl" style={{ color: COLORS.primaryLight }}></i>
               </div>
               <div>
-                <h1 className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                <h1 className="text-xl sm:text-2xl font-bold leading-tight" style={{ color: COLORS.primary }}>
                   Payment Analytics Dashboard
                 </h1>
-                <p className="text-sm text-gray-600">Comprehensive financial insights and payment analytics</p>
+                <p className="text-xs sm:text-sm text-gray-600">Comprehensive financial insights and payment analytics</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
               {/* Time Range Selector */}
               <select
                 value={selectedTimeRange.value}
@@ -167,7 +167,7 @@ export default function PaymentsPage() {
                   const range = timeRanges.find(r => r.value === e.target.value);
                   if (range) setSelectedTimeRange(range);
                 }}
-                className="px-4 py-2 text-sm font-semibold border-2 rounded-lg"
+                className="flex-1 sm:flex-none min-w-[150px] px-3 py-2 text-sm font-semibold border-2 rounded-lg"
                 style={{ borderColor: COLORS.border }}
               >
                 {timeRanges.map(range => (
@@ -177,43 +177,43 @@ export default function PaymentsPage() {
               <button
                 onClick={fetchAnalytics}
                 disabled={loading}
-                className="px-4 py-2 text-sm font-bold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-2 text-sm font-bold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
                 title="Refresh analytics"
               >
-                <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i>
+                <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i><span className="hidden sm:inline">Refresh</span>
               </button>
               <Link
                 href="/bookings"
-                className="px-4 py-2 text-sm font-medium border rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-3 py-2 text-sm font-semibold border rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                 style={{ color: COLORS.primary, borderColor: COLORS.border }}
               >
-                <i className="fas fa-arrow-left mr-2"></i>Back to Bookings
+                <i className="fas fa-arrow-left"></i><span>Back</span>
               </Link>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-8 py-6">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
         {/* Tab Navigation */}
-        <div className="mb-8">
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+        <div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {[
               { id: 'overview', label: 'Overview', icon: 'fas fa-chart-pie' },
-              { id: 'analytics', label: 'Analytics', icon: 'fas fa-chart-line' },
+              { id: 'analytics', label: 'Advanced Analytics', icon: 'fas fa-chart-area' },
               { id: 'customers', label: 'Customers', icon: 'fas fa-users' },
               { id: 'reports', label: 'Reports', icon: 'fas fa-file-alt' }
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setSelectedTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-all ${
+                className={`px-3 py-2 text-sm font-semibold rounded-lg transition-all touch-manipulation min-h-[44px] flex items-center gap-2 ${
                   selectedTab === tab.id
-                    ? 'bg-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'shadow-lg border-2'
+                    : 'border'
                 }`}
-                style={selectedTab === tab.id ? { background: COLORS.primary, color: COLORS.primaryLight } : {}}
+                style={selectedTab === tab.id ? { background: COLORS.primary, color: COLORS.primaryLight, borderColor: COLORS.primaryLight } : { borderColor: COLORS.border, color: COLORS.primary }}
+                onClick={() => setSelectedTab(tab.id as typeof selectedTab)}
               >
                 <i className={tab.icon}></i>
                 {tab.label}
@@ -339,16 +339,20 @@ export default function PaymentsPage() {
             {/* Recent Payments */}
             <div className="bg-white rounded-xl border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
               <div className="p-6 border-b" style={{ borderColor: COLORS.border }}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                      <i className="fas fa-credit-card text-sm" style={{ color: COLORS.primary }}></i>
-                    </div>
-                    <h2 className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                      Recent Payments
-                    </h2>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6">
+                  <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>Recent Payments</h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      className="px-3 py-2 text-sm font-semibold border rounded-lg hover:bg-gray-50 transition-colors"
+                      style={{ borderColor: COLORS.border, color: COLORS.primary }}
+                      onClick={fetchAnalytics}
+                      disabled={loading}
+                      title="Refresh payments"
+                    >
+                      <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i>
+                    </button>
+                    <span className="text-sm text-gray-500">{analytics.recentPayments.length} payments</span>
                   </div>
-                  <span className="text-sm text-gray-500">{analytics.recentPayments.length} payments</span>
                 </div>
               </div>
 
