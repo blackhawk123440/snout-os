@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
             species: pet.species,
           })),
         },
-        special: specialInstructions || additionalNotes || null,
+        notes: specialInstructions || additionalNotes || null,
       },
       include: {
         pets: true,

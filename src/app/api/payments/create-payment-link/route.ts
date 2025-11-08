@@ -98,9 +98,9 @@ export async function POST(request: NextRequest) {
         console.log(`Counted: ${count30} x 30 min, ${count60} x 60 min`);
       } else {
         // Fallback if no timeSlots
-        console.log(`No timeSlots found, using fallback: minutes=${booking.minutes}, quantity=${booking.quantity}`);
-        const duration = booking.minutes || 30;
+        console.log(`No timeSlots found, using fallback quantity=${booking.quantity || 1}`);
         const quantity = booking.quantity || 1;
+        const duration = booking.service === 'Drop-ins' || booking.service === 'Dog Walking' ? 30 : 30;
         if (duration >= 60) {
           count60 = quantity;
         } else {

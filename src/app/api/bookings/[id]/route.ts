@@ -59,7 +59,7 @@ export async function PATCH(
       totalPrice, 
       paymentStatus, 
       preferredContact, 
-      special,
+      notes,
       timeSlots,
       pets
     } = body;
@@ -101,7 +101,7 @@ export async function PATCH(
         ...(totalPrice !== undefined && { totalPrice }),
         ...(paymentStatus && { paymentStatus }),
         ...(preferredContact && { preferredContact }),
-        ...(special && { special }),
+        ...(notes && { notes }),
         // If status is being set to confirmed, also set payment status to paid
         ...(status === "confirmed" && { paymentStatus: "paid" }),
       },

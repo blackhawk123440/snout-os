@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 
 export async function GET() {
   try {
-    const accounts = await prisma.calendarAccount.findMany({
+    const accounts = await prisma.googleCalendarAccount.findMany({
       orderBy: {
         createdAt: "desc",
       },
@@ -20,10 +20,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, accessToken, refreshToken, provider } = body;
+    const { email, accessToken, refreshToken, provider = "google", expiresAt, calendarId } = body;
 
     // Validate required fields
-    if (!email || !accessToken || !provider) {
+    if (!email || !accessToken) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -31,14 +31,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Create calendar account
-    const account = await prisma.calendarAccount.create({
+    const account = await prisma.googleCalendarAccount.create({
       data: {
-        id: randomUUID(),
         email,
+        provider,
         accessToken,
         refreshToken: refreshToken || null,
-        provider,
-        updatedAt: new Date(),
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+        calendarId: calendarId || null,
       },
     });
 

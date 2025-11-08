@@ -203,3 +203,66 @@ For issues or questions, please check:
 ## License
 
 Private - All Rights Reserved
+
+src/
+├── app/                 # Next.js app directory
+│   ├── api/            # API routes
+│   ├── bookings/       # Booking management pages
+│   ├── calendar/       # Calendar pages
+│   ├── clients/        # Client management
+│   ├── payments/       # Payment analytics
+│   ├── settings/       # System settings
+│   └── sitter/         # Mobile sitter dashboard
+├── lib/                # Utility libraries
+│   ├── booking-utils.ts
+│   ├── rates.ts
+│   ├── stripe.ts
+│   ├── openphone.ts
+│   └── sms-templates.ts
+└── worker/             # Background job processing
+    ├── automation-worker.ts
+    └── index.ts
+```
+
+## Key Features
+
+### Booking Management
+- Create, edit, and track bookings
+- Sitter assignment with conflict detection
+- Status management (pending, confirmed, completed, cancelled)
+- Pet quantity tracking
+
+### Payment Processing
+- Live Stripe integration
+- Payment link generation
+- Invoice creation
+- Revenue analytics
+
+### SMS Automation
+- Automated booking confirmations
+- Payment reminders
+- Sitter notifications
+- Customizable message templates
+
+### Calendar Integration
+- Google Calendar sync
+- Event creation and management
+- Conflict detection
+
+### Mobile Sitter Dashboard
+- Mobile-friendly interface
+- Upcoming bookings view
+- Earnings tracking
+- Status updates
+
+## Deployment
+
+The application is configured for deployment on Render with:
+- Automatic builds from Git
+- Environment variable configuration
+- Database migrations
+- Background job processing
+
+## License
+
+Private - All rights reserved

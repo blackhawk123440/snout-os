@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if offer has expired
-    if (new Date() > new Date(offer.expiresAt)) {
+    if (offer.expiresAt && new Date() > new Date(offer.expiresAt)) {
       await prisma.sitterPoolOffer.update({
         where: { id: offerId },
         data: { status: "expired" },
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Notify other sitters that offer is no longer available
-      const sitterIds = JSON.parse(offer.sitterIds);
+      const sitterIds = JSON.parse(offer.sitterIds || "[]");
       const otherSitterIds = sitterIds.filter((id: string) => id !== sitterId);
       
       if (otherSitterIds.length > 0) {

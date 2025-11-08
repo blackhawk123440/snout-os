@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get calendar account
-    const account = await prisma.calendarAccount.findUnique({
+    const account = await prisma.googleCalendarAccount.findUnique({
       where: { id: calendarAccountId },
     });
 

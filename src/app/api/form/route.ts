@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
         timeSlots: timeSlotsData.length > 0 ? {
           create: timeSlotsData,
         } : undefined,
-        special: specialInstructions || additionalNotes || null,
+        notes: specialInstructions || additionalNotes || null,
       },
       include: {
         pets: true,

@@ -46,3 +46,11 @@ After deployment:
 Your dashboard will be live at: `https://snout-os-dashboard.onrender.com`
 
 For detailed setup instructions, see [RENDER_SETUP.md](./RENDER_SETUP.md)
+
+
+
+
+
+
+
+
