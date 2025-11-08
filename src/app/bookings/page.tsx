@@ -1503,7 +1503,7 @@ function BookingsPageContent() {
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
         {/* Stats Cards */}
         {showStats && (
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4 mb-4 sm:mb-6">
@@ -1636,27 +1636,28 @@ function BookingsPageContent() {
         {/* Filters and Search */}
         <div className="bg-white rounded-lg p-3 sm:p-4 border-2 mb-4 sm:mb-6" style={{ borderColor: COLORS.primaryLight }}>
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
               <label className="text-sm font-medium" style={{ color: COLORS.primary }}>Status:</label>
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value as "all" | "pending" | "confirmed" | "completed" | "cancelled")}
-                className="px-3 py-1 border rounded-lg text-sm"
+                className="px-3 py-2 sm:py-1 border rounded-lg text-sm w-full sm:w-auto"
                 style={{ borderColor: COLORS.border }}
               >
                 <option value="all">All</option>
                 <option value="pending">Pending</option>
                 <option value="confirmed">Confirmed</option>
                 <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
               <label className="text-sm font-medium" style={{ color: COLORS.primary }}>Sitter:</label>
               <select
                 value={selectedSitterFilter}
                 onChange={(e) => setSelectedSitterFilter(e.target.value)}
-                className="px-3 py-1 border rounded-lg text-sm"
+                className="px-3 py-2 sm:py-1 border rounded-lg text-sm w-full sm:w-auto"
                 style={{ borderColor: COLORS.border }}
               >
                 <option value="all">All Sitters</option>
@@ -1668,12 +1669,12 @@ function BookingsPageContent() {
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
               <label className="text-sm font-medium" style={{ color: COLORS.primary }}>Sort:</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-1 border rounded-lg text-sm"
+                className="px-3 py-2 sm:py-1 border rounded-lg text-sm w-full sm:w-auto"
                 style={{ borderColor: COLORS.border }}
               >
                 <option value="date">Date</option>
@@ -1694,7 +1695,7 @@ function BookingsPageContent() {
             </div>
 
             {selectedBookingIds.length > 0 && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-gray-600">{selectedBookingIds.length} selected</span>
                 <button
                   onClick={() => handleBulkAction("confirm")}
@@ -1728,11 +1729,11 @@ function BookingsPageContent() {
         {/* Bookings List */}
         <div className="bg-white rounded-lg border-2" style={{ borderColor: COLORS.primaryLight }}>
           <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
               <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
                 Bookings ({filteredBookings.length})
               </h2>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={selectAllBookings}
                   className="px-3 py-2 sm:py-1 text-sm border rounded-lg active:bg-gray-50 touch-manipulation min-h-[44px] sm:min-h-[auto]"
@@ -1785,8 +1786,8 @@ function BookingsPageContent() {
                     handleBookingSelect(booking);
                   }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full">
                       <div className="checkbox-container" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
@@ -1805,8 +1806,8 @@ function BookingsPageContent() {
                           }}
                         />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div className="w-full space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-2">
                           <span className="px-2.5 py-1 text-xs font-bold rounded-md uppercase tracking-wide whitespace-nowrap" style={{ 
                             background: COLORS.primaryLight, 
                             color: COLORS.primary,
@@ -1815,15 +1816,15 @@ function BookingsPageContent() {
                             <i className={`${getServiceIcon(booking.service)} mr-1.5`}></i>
                             {booking.service}
                           </span>
-                          <h3 className="font-semibold text-lg">
+                          <h3 className="font-semibold text-lg leading-snug">
                             {booking.firstName} {booking.lastName}
                           </h3>
                           <span className={`px-2 py-1 text-xs font-bold rounded ${getStatusColor(booking.status)}`}>
                             {booking.status}
                           </span>
                         </div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          <div className="flex items-center gap-4 flex-wrap">
+                        <div className="text-sm text-gray-600">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-wrap">
                             {booking.service === "Housesitting" ? (
                               <>
                                 <span><i className="fas fa-calendar mr-1"></i>{formatDate(booking.startAt)} - {formatDate(booking.endAt)}</span>
@@ -1864,7 +1865,12 @@ function BookingsPageContent() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-right">
+                        <p className="text-sm font-semibold" style={{ color: COLORS.primary }}>
+                          ${calculatePriceBreakdown(booking).total.toFixed(2)}
+                        </p>
+                      </div>
                       <select
                         value={booking.status}
                         onChange={(e) => {
