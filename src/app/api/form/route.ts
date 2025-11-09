@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { calculateBookingPrice } from "@/lib/rates";
 import { formatPhoneForAPI } from "@/lib/phone-format";
@@ -7,6 +8,36 @@ import { sendOwnerAlert } from "@/lib/sms-templates";
 import { getOwnerPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
 import { sendMessage } from "@/lib/message-utils";
+
+const ALLOWED_ORIGINS = [
+  "https://snout-form.onrender.com",
+  process.env.NEXT_PUBLIC_WEBFLOW_ORIGIN,
+  process.env.NEXT_PUBLIC_APP_URL,
+  process.env.NEXT_PUBLIC_BASE_URL,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+  process.env.RENDER_EXTERNAL_URL,
+  "http://localhost:3000",
+  "http://localhost:3001",
+].filter(Boolean) as string[];
+
+const buildCorsHeaders = (request: NextRequest) => {
+  const origin = request.headers.get("origin");
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin || "*",
+    "Access-Control-Allow-Methods": "POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+    "Access-Control-Allow-Credentials": "true",
+  };
+};
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: buildCorsHeaders(request),
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,7 +63,7 @@ export async function POST(request: NextRequest) {
     if (!firstName || !lastName || !phone || !service || !startAt || !endAt) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400, headers: buildCorsHeaders(request) }
       );
     }
 
@@ -115,32 +146,40 @@ export async function POST(request: NextRequest) {
     }
 
     // Create booking with timeSlots
-    const booking = await prisma.booking.create({
-      data: {
-        firstName,
-        lastName,
-        phone: formatPhoneForAPI(phone),
-        email: email || null,
-        address: address || null,
-        service,
-        startAt: new Date(startAt),
-        endAt: new Date(endAt),
-        status: "pending",
-        totalPrice: priceCalculation.total,
-        quantity: timeSlotsData.length > 0 ? timeSlotsData.length : 1,
-        afterHours: false,
-        holiday: priceCalculation.holidayApplied,
-        pets: {
-          create: pets.map(pet => ({
-            name: pet.name,
-            species: pet.species,
-          })),
-        },
-        timeSlots: timeSlotsData.length > 0 ? {
-          create: timeSlotsData,
-        } : undefined,
-        notes: specialInstructions || additionalNotes || null,
+    const bookingData = {
+      firstName,
+      lastName,
+      phone: formatPhoneForAPI(phone),
+      email: email || null,
+      address: address || null,
+      service,
+      startAt: new Date(startAt),
+      endAt: new Date(endAt),
+      status: "pending",
+      totalPrice: priceCalculation.total,
+      quantity: timeSlotsData.length > 0 ? timeSlotsData.length : 1,
+      afterHours: false,
+      holiday: priceCalculation.holidayApplied,
+      pets: {
+        create: pets.map(pet => ({
+          name: pet.name,
+          species: pet.species,
+        })),
       },
+      notes: specialInstructions || additionalNotes || null,
+      timeSlots: timeSlotsData.length > 0
+        ? {
+            create: timeSlotsData.map(slot => ({
+              startAt: slot.startAt,
+              endAt: slot.endAt,
+              duration: slot.duration,
+            })),
+          }
+        : undefined,
+    };
+
+    const booking = await prisma.booking.create({
+      data: bookingData as Prisma.BookingCreateInput,
       include: {
         pets: true,
         timeSlots: true,
@@ -229,6 +268,8 @@ export async function POST(request: NextRequest) {
         totalPrice: priceCalculation.total,
         status: booking.status,
       },
+    }, {
+      headers: buildCorsHeaders(request),
     });
   } catch (error) {
     console.error("Failed to create booking:", error);
@@ -237,7 +278,7 @@ export async function POST(request: NextRequest) {
         error: "Failed to create booking", 
         details: error instanceof Error ? error.message : String(error) 
       },
-      { status: 500 }
+      { status: 500, headers: buildCorsHeaders(request) }
     );
   }
 }

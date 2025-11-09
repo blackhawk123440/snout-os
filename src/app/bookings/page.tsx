@@ -2144,87 +2144,91 @@ function BookingsPageContent() {
                                         <i className="fas fa-chevron-right text-sm"></i>
                                       </button>
                                     </div>
-                                    <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 sm:mb-3">
-                                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                                        <div key={day} className="text-center text-xs sm:text-xs font-bold py-1 sm:py-2" style={{ color: COLORS.primary, opacity: 0.7 }}>
-                                          <span className="hidden sm:inline">{day}</span>
-                                          <span className="sm:hidden">{day.substring(0, 1)}</span>
+                                    <div className="relative -mx-2 sm:mx-0 overflow-x-auto pb-1">
+                                      <div className="min-w-[392px] sm:min-w-0">
+                                        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 sm:mb-3">
+                                          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                            <div key={day} className="text-center text-[11px] sm:text-xs font-bold py-1 sm:py-2" style={{ color: COLORS.primary, opacity: 0.7 }}>
+                                              <span className="hidden sm:inline">{day}</span>
+                                              <span className="sm:hidden">{day.substring(0, 1)}</span>
+                                            </div>
+                                          ))}
                                         </div>
-                                      ))}
-                                    </div>
-                                    <div className="grid grid-cols-7 gap-1 sm:gap-2">
-                                      {getCalendarDays().map((dayInfo, idx) => {
-                                        const today = new Date();
-                                        today.setHours(0, 0, 0, 0);
-                                        const isPast = dayInfo.date < today;
-                                        
-                                        return (
-                                          <button
-                                            key={idx}
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.preventDefault();
-                                              e.stopPropagation();
-                                              if (dayInfo.isCurrentMonth && !isPast) {
-                                                handleCalendarDateClick(dayInfo.date);
-                                              }
-                                            }}
-                                            disabled={!dayInfo.isCurrentMonth || isPast}
-                                            className={`
-                                              aspect-square flex items-center justify-center text-sm sm:text-sm font-medium rounded-lg transition-all touch-manipulation min-h-[36px] sm:min-h-[auto]
-                                              ${!dayInfo.isCurrentMonth ? 'opacity-30' : ''}
-                                              ${isPast ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer active:scale-95'}
-                                            `}
-                                            style={{
-                                              border: dayInfo.isToday 
-                                                ? `2px solid ${COLORS.primary}` 
-                                                : dayInfo.isSelected
-                                                  ? 'none'
-                                                  : `1px solid ${COLORS.secondary}`,
-                                              borderRadius: '6px',
-                                              background: dayInfo.isSelected 
-                                                ? `linear-gradient(135deg, ${COLORS.primary} 0%, #5c4032 100%)`
-                                                : dayInfo.isToday 
-                                                  ? COLORS.primaryLight 
-                                                  : COLORS.white,
-                                              color: dayInfo.isSelected ? COLORS.white : COLORS.primary,
-                                              fontWeight: dayInfo.isToday || dayInfo.isSelected ? 600 : 500,
-                                              boxShadow: dayInfo.isSelected 
-                                                ? '0 4px 12px rgba(67, 47, 33, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)' 
-                                                : dayInfo.isToday
-                                                  ? '0 2px 4px rgba(67, 47, 33, 0.1)'
-                                                  : 'none',
-                                              transition: 'all 0.2s ease',
-                                            }}
-                                            onMouseEnter={(e) => {
-                                              if (!isPast && dayInfo.isCurrentMonth && !dayInfo.isSelected) {
-                                                e.currentTarget.style.borderColor = COLORS.primary;
-                                                e.currentTarget.style.background = COLORS.primaryLight;
-                                                e.currentTarget.style.transform = 'scale(1.05)';
-                                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(67, 47, 33, 0.15)';
-                                              }
-                                            }}
-                                            onMouseLeave={(e) => {
-                                              if (!isPast && dayInfo.isCurrentMonth && !dayInfo.isSelected) {
-                                                e.currentTarget.style.borderColor = dayInfo.isToday ? COLORS.primary : COLORS.secondary;
-                                                e.currentTarget.style.background = dayInfo.isToday ? COLORS.primaryLight : COLORS.white;
-                                                e.currentTarget.style.transform = 'scale(1)';
-                                                e.currentTarget.style.boxShadow = dayInfo.isToday ? '0 2px 4px rgba(67, 47, 33, 0.1)' : 'none';
-                                              }
-                                            }}
-                                            onMouseDown={(e) => {
-                                              if (!isPast && dayInfo.isCurrentMonth) {
-                                                e.currentTarget.style.transform = 'scale(0.95)';
-                                              }
-                                            }}
-                                            onMouseUp={(e) => {
-                                              e.currentTarget.style.transform = 'scale(1)';
-                                            }}
-                                          >
-                                            {dayInfo.day > 0 ? dayInfo.day : ''}
-                                          </button>
-                                        );
-                                      })}
+                                        <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                                          {getCalendarDays().map((dayInfo, idx) => {
+                                            const today = new Date();
+                                            today.setHours(0, 0, 0, 0);
+                                            const isPast = dayInfo.date < today;
+                                            
+                                            return (
+                                              <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  if (dayInfo.isCurrentMonth && !isPast) {
+                                                    handleCalendarDateClick(dayInfo.date);
+                                                  }
+                                                }}
+                                                disabled={!dayInfo.isCurrentMonth || isPast}
+                                                className={`
+                                                  h-12 sm:h-14 flex items-center justify-center text-sm sm:text-sm font-medium rounded-lg transition-all touch-manipulation min-h-[44px]
+                                                  ${!dayInfo.isCurrentMonth ? 'opacity-30' : ''}
+                                                  ${isPast ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer active:scale-95'}
+                                                `}
+                                                style={{
+                                                  border: dayInfo.isToday 
+                                                    ? `2px solid ${COLORS.primary}` 
+                                                    : dayInfo.isSelected
+                                                      ? 'none'
+                                                      : `1px solid ${COLORS.secondary}`,
+                                                  borderRadius: '6px',
+                                                  background: dayInfo.isSelected 
+                                                    ? `linear-gradient(135deg, ${COLORS.primary} 0%, #5c4032 100%)`
+                                                    : dayInfo.isToday 
+                                                      ? COLORS.primaryLight 
+                                                      : COLORS.white,
+                                                  color: dayInfo.isSelected ? COLORS.white : COLORS.primary,
+                                                  fontWeight: dayInfo.isToday || dayInfo.isSelected ? 600 : 500,
+                                                  boxShadow: dayInfo.isSelected 
+                                                    ? '0 4px 12px rgba(67, 47, 33, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)' 
+                                                    : dayInfo.isToday
+                                                      ? '0 2px 4px rgba(67, 47, 33, 0.1)'
+                                                      : 'none',
+                                                  transition: 'all 0.2s ease',
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                  if (!isPast && dayInfo.isCurrentMonth && !dayInfo.isSelected) {
+                                                    e.currentTarget.style.borderColor = COLORS.primary;
+                                                    e.currentTarget.style.background = COLORS.primaryLight;
+                                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(67, 47, 33, 0.15)';
+                                                  }
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                  if (!isPast && dayInfo.isCurrentMonth && !dayInfo.isSelected) {
+                                                    e.currentTarget.style.borderColor = dayInfo.isToday ? COLORS.primary : COLORS.secondary;
+                                                    e.currentTarget.style.background = dayInfo.isToday ? COLORS.primaryLight : COLORS.white;
+                                                    e.currentTarget.style.transform = 'scale(1)';
+                                                    e.currentTarget.style.boxShadow = dayInfo.isToday ? '0 2px 4px rgba(67, 47, 33, 0.1)' : 'none';
+                                                  }
+                                                }}
+                                                onMouseDown={(e) => {
+                                                  if (!isPast && dayInfo.isCurrentMonth) {
+                                                    e.currentTarget.style.transform = 'scale(0.95)';
+                                                  }
+                                                }}
+                                                onMouseUp={(e) => {
+                                                  e.currentTarget.style.transform = 'scale(1)';
+                                                }}
+                                              >
+                                                {dayInfo.day > 0 ? dayInfo.day : ''}
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                   

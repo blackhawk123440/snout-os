@@ -97,22 +97,19 @@ model Sitter {
 }
 
 model SitterPoolOffer {
-  id         String   @id @default(uuid())
-  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  bookingId  String
-  sitter     Sitter?  @relation(fields: [sitterId], references: [id], onDelete: Cascade)
-  sitterId   String?
-  sitterIds  String?
-  sentAt     DateTime @default(now())
-  expiresAt  DateTime?
-  status     String    @default("pending")
-  message    String?
-  responses  String?
-  respondedAt DateTime?
-  response   String?
+  id               String   @id @default(uuid())
+  bookingId        String
+  sitterId         String?
+  sitterIds        String?
+  message          String?
+  expiresAt        DateTime
+  status           String   @default("active")
+  responses        String   @default("[]")
   acceptedSitterId String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  booking          Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sitter           Sitter?  @relation(fields: [sitterId], references: [id], onDelete: Cascade)
 
   @@index([bookingId])
   @@index([sitterId])
@@ -172,4 +169,21 @@ model GoogleCalendarAccount {
   updatedAt    DateTime @updatedAt
 
   @@index([email])
+}
+
+model SitterPoolOffer {
+  id               String    @id @default(uuid())
+  bookingId        String
+  sitterIds        String
+  message          String?
+  expiresAt        DateTime
+  status           String    @default("active")
+  responses        String    @default("[]")
+  acceptedSitterId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  booking          Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([status])
 }
