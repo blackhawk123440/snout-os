@@ -36,6 +36,14 @@ interface CalendarDay {
   bookings: Booking[];
 }
 
+function getStartOfWeek(date: Date) {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const day = start.getDay();
+  start.setDate(start.getDate() - day);
+  return start;
+}
+
 export default function CalendarPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +53,8 @@ export default function CalendarPage() {
   const [selectedSitterFilter, setSelectedSitterFilter] = useState<string>("all");
   const [sitters, setSitters] = useState<Array<{ id: string; firstName: string; lastName: string }>>([]);
   const [conflictNoticeEnabled, setConflictNoticeEnabled] = useState(true);
+  const [viewMode, setViewMode] = useState<"month" | "week" | "agenda">("month");
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => getStartOfWeek(new Date()));
 
   useEffect(() => {
     fetchBookings();
@@ -255,15 +265,23 @@ export default function CalendarPage() {
       if (currentMonth === 0) {
         setCurrentMonth(11);
         setCurrentYear(currentYear - 1);
+        const newDate = new Date(currentYear - 1, 11, 1);
+        setCurrentWeekStart(getStartOfWeek(newDate));
       } else {
         setCurrentMonth(currentMonth - 1);
+        const newDate = new Date(currentYear, currentMonth - 1, 1);
+        setCurrentWeekStart(getStartOfWeek(newDate));
       }
     } else {
       if (currentMonth === 11) {
         setCurrentMonth(0);
         setCurrentYear(currentYear + 1);
+        const newDate = new Date(currentYear + 1, 0, 1);
+        setCurrentWeekStart(getStartOfWeek(newDate));
       } else {
         setCurrentMonth(currentMonth + 1);
+        const newDate = new Date(currentYear, currentMonth + 1, 1);
+        setCurrentWeekStart(getStartOfWeek(newDate));
       }
     }
   };
@@ -272,6 +290,30 @@ export default function CalendarPage() {
     const today = new Date();
     setCurrentMonth(today.getMonth());
     setCurrentYear(today.getFullYear());
+    setSelectedDate(null);
+    setCurrentWeekStart(getStartOfWeek(today));
+  };
+
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    const delta = direction === 'prev' ? -7 : 7;
+    const newStart = new Date(currentWeekStart);
+    newStart.setDate(newStart.getDate() + delta);
+    const aligned = getStartOfWeek(newStart);
+    setCurrentWeekStart(aligned);
+    setCurrentMonth(aligned.getMonth());
+    setCurrentYear(aligned.getFullYear());
+  };
+
+  const handleViewChange = (mode: "month" | "week" | "agenda") => {
+    setViewMode(mode);
+    if (mode === "month") {
+      const reference = new Date(currentWeekStart);
+      setCurrentMonth(reference.getMonth());
+      setCurrentYear(reference.getFullYear());
+    } else if (mode === "week") {
+      const firstOfMonth = new Date(currentYear, currentMonth, 1);
+      setCurrentWeekStart(getStartOfWeek(firstOfMonth));
+    }
     setSelectedDate(null);
   };
 
@@ -335,6 +377,34 @@ export default function CalendarPage() {
   ];
 
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const weekDays = useMemo(() => {
+    if (viewMode !== "week") return [] as Array<{ date: Date; bookings: Booking[] }>;
+    const days: Array<{ date: Date; bookings: Booking[] }> = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(currentWeekStart);
+      date.setDate(currentWeekStart.getDate() + i);
+      date.setHours(0, 0, 0, 0);
+      days.push({ date, bookings: getBookingsForDate(date) });
+    }
+    return days;
+  }, [viewMode, currentWeekStart, filteredBookings]);
+
+  const upcomingBookings = useMemo(() => {
+    if (viewMode !== "agenda") return [] as Booking[];
+    const now = new Date();
+    return [...filteredBookings]
+      .filter(booking => new Date(booking.startAt).getTime() >= now.getTime())
+      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+  }, [viewMode, filteredBookings]);
+
+  const weekLabel = useMemo(() => {
+    const start = new Date(currentWeekStart);
+    const end = new Date(currentWeekStart);
+    end.setDate(end.getDate() + 6);
+    const format = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${format(start)} – ${format(end)}`;
+  }, [currentWeekStart]);
 
   // Sort selected date bookings chronologically (already sorted in getBookingsForDate, but ensure it's maintained)
   const selectedDateBookings = selectedDate ? getBookingsForDate(selectedDate) : [];
@@ -460,241 +530,363 @@ export default function CalendarPage() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
         {/* Filters and Month Navigation */}
         <div className="bg-white rounded-lg p-3 sm:p-4 border-2 mb-4 sm:mb-6" style={{ borderColor: COLORS.primaryLight }}>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 flex-wrap">
-            <div className="flex items-center gap-2 flex-1">
-              <button
-                onClick={() => navigateMonth('prev')}
-                className="px-3 py-2 border rounded-lg hover:bg-gray-50 transition-colors touch-manipulation min-h-[44px] sm:min-h-auto"
-                style={{ borderColor: COLORS.border }}
-              >
-                <i className="fas fa-chevron-left"></i>
-              </button>
-              <h2 className="text-base sm:text-lg font-bold px-2 sm:px-4 truncate" style={{ color: COLORS.primary }}>
-                {monthNames[currentMonth]} {currentYear}
-              </h2>
-              <button
-                onClick={() => navigateMonth('next')}
-                className="px-3 py-2 border rounded-lg hover:bg-gray-50 transition-colors touch-manipulation min-h-[44px] sm:min-h-auto"
-                style={{ borderColor: COLORS.border }}
-              >
-                <i className="fas fa-chevron-right"></i>
-              </button>
+          <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
+              {viewMode === "month" && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigateMonth('prev')}
+                    className="px-3 py-2 border rounded-lg hover:bg-gray-50 transition-colors touch-manipulation min-h-[44px]"
+                    style={{ borderColor: COLORS.border }}
+                  >
+                    <i className="fas fa-chevron-left"></i>
+                  </button>
+                  <h2 className="text-base sm:text-lg font-bold px-2 sm:px-4 truncate" style={{ color: COLORS.primary }}>
+                    {monthNames[currentMonth]} {currentYear}
+                  </h2>
+                  <button
+                    onClick={() => navigateMonth('next')}
+                    className="px-3 py-2 border rounded-lg hover:bg-gray-50 transition-colors touch-manipulation min-h-[44px]"
+                    style={{ borderColor: COLORS.border }}
+                  >
+                    <i className="fas fa-chevron-right"></i>
+                  </button>
+                </div>
+              )}
+              {viewMode === "week" && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigateWeek('prev')}
+                    className="px-3 py-2 border rounded-lg hover:bg-gray-50 transition-colors touch-manipulation min-h-[44px]"
+                    style={{ borderColor: COLORS.border }}
+                  >
+                    <i className="fas fa-chevron-left"></i>
+                  </button>
+                  <h2 className="text-base sm:text-lg font-bold px-2 sm:px-4 truncate" style={{ color: COLORS.primary }}>
+                    {weekLabel}
+                  </h2>
+                  <button
+                    onClick={() => navigateWeek('next')}
+                    className="px-3 py-2 border rounded-lg hover:bg-gray-50 transition-colors touch-manipulation min-h-[44px]"
+                    style={{ borderColor: COLORS.border }}
+                  >
+                    <i className="fas fa-chevron-right"></i>
+                  </button>
+                </div>
+              )}
+              {viewMode === "agenda" && (
+                <h2 className="text-base sm:text-lg font-bold" style={{ color: COLORS.primary }}>
+                  Upcoming Bookings
+                </h2>
+              )}
               <button
                 onClick={goToToday}
-                className="px-3 py-2 text-xs sm:text-sm border rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors ml-1 sm:ml-2 touch-manipulation min-h-[44px] sm:min-h-auto"
+                className="px-3 py-2 text-xs sm:text-sm border rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation min-h-[44px] sm:min-h-auto"
                 style={{ borderColor: COLORS.border, color: COLORS.primary }}
               >
                 Today
               </button>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <label className="text-sm font-medium whitespace-nowrap" style={{ color: COLORS.primary }}>Sitter:</label>
-              <select
-                value={selectedSitterFilter}
-                onChange={(e) => setSelectedSitterFilter(e.target.value)}
-                className="px-3 py-2 border rounded-lg text-sm touch-manipulation min-h-[44px] flex-1 sm:flex-initial"
-                style={{ borderColor: COLORS.border }}
-              >
-                <option value="all">All Sitters</option>
-                {sitters.map(sitter => (
-                  <option key={sitter.id} value={sitter.id}>
-                    {sitter.firstName} {sitter.lastName}
-                  </option>
+
+            <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                {[
+                  { id: "month", label: "Month", icon: "fas fa-th" },
+                  { id: "week", label: "Week", icon: "fas fa-calendar-week" },
+                  { id: "agenda", label: "Agenda", icon: "fas fa-list" }
+                ].map(option => (
+                  <button
+                    key={option.id}
+                    onClick={() => handleViewChange(option.id as typeof viewMode)}
+                    className={`flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all ${viewMode === option.id ? 'bg-white shadow border' : ''}`}
+                    style={{ borderColor: COLORS.primaryLight, color: viewMode === option.id ? COLORS.primary : COLORS.gray }}
+                  >
+                    <i className={option.icon}></i>
+                    <span className="hidden sm:inline">{option.label}</span>
+                  </button>
                 ))}
-              </select>
+              </div>
+
+              <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+                <label className="text-sm font-medium whitespace-nowrap" style={{ color: COLORS.primary }}>Sitter:</label>
+                <select
+                  value={selectedSitterFilter}
+                  onChange={(e) => setSelectedSitterFilter(e.target.value)}
+                  className="px-3 py-2 border rounded-lg text-sm touch-manipulation min-h-[44px] flex-1 sm:flex-initial"
+                  style={{ borderColor: COLORS.border }}
+                >
+                  <option value="all">All Sitters</option>
+                  {sitters.map(sitter => (
+                    <option key={sitter.id} value={sitter.id}>
+                      {sitter.firstName} {sitter.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Calendar Grid */}
-        <div className="bg-white rounded-lg border-2 mb-6 overflow-hidden" style={{ borderColor: COLORS.border }}>
-          <div className="overflow-x-auto">
-            <div className="p-0">
-              {/* Day Names Header */}
-              <div className="grid grid-cols-7 border-t border-l border-r" style={{ borderColor: COLORS.border }}>
-                {dayNames.map(day => (
-                  <div
-                    key={day}
-                    className="text-center text-xs sm:text-sm font-bold py-2 border-b bg-gray-50"
-                    style={{ 
-                      color: COLORS.primary,
-                      borderColor: COLORS.border
-                    }}
-                  >
-                    <span className="hidden sm:inline">{day}</span>
-                    <span className="sm:hidden">{day[0]}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar Days */}
-              {loading ? (
-                <div className="text-center py-12">
-                  <i className="fas fa-spinner fa-spin text-2xl" style={{ color: COLORS.primary }}></i>
-                  <p className="mt-2 text-gray-600">Loading calendar...</p>
+        {/* Month View */}
+        {viewMode === "month" && (
+          <div className="bg-white rounded-lg border-2 mb-6 overflow-hidden" style={{ borderColor: COLORS.border }}>
+            <div className="overflow-x-auto">
+              <div className="p-0">
+                {/* Day Names Header */}
+                <div className="grid grid-cols-7 border-t border-l border-r" style={{ borderColor: COLORS.border }}>
+                  {dayNames.map(day => (
+                    <div
+                      key={day}
+                      className="text-center text-xs sm:text-sm font-bold py-2 border-b bg-gray-50"
+                      style={{ 
+                        color: COLORS.primary,
+                        borderColor: COLORS.border
+                      }}
+                    >
+                      <span className="hidden sm:inline">{day}</span>
+                      <span className="sm:hidden">{day[0]}</span>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <div className="grid grid-cols-7 gap-px border-t border-l" style={{ borderColor: COLORS.border }}>
-                  {calendarDays.map((day, index) => {
-                    const statusColors = day.bookings.length > 0 ? getStatusColor(day.bookings[0].status) : null;
-                    const maxVisibleBookings = 2;
-                    const remainingCount = Math.max(0, day.bookings.length - maxVisibleBookings);
-                    
-                    return (
-                      <div
-                        key={index}
-                        onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
-                        className={`h-[100px] sm:h-[140px] flex flex-col border-r border-b transition-all touch-manipulation ${
-                          !day.isCurrentMonth ? 'opacity-30 bg-gray-50' : 'bg-white'
-                        } ${day.isCurrentMonth && !day.isPast ? 'hover:bg-gray-50 active:bg-gray-100' : ''} ${day.isCurrentMonth ? 'cursor-pointer' : 'cursor-default'}`}
-                        style={{ 
-                          borderColor: COLORS.border,
-                          backgroundColor: selectedDate && selectedDate.getTime() === day.date.getTime() 
-                            ? COLORS.primaryLighter 
-                            : (day.isPast && day.isCurrentMonth ? '#fafafa' : (day.isCurrentMonth ? 'white' : '#f9fafb')),
-                          borderWidth: selectedDate && selectedDate.getTime() === day.date.getTime() ? '2px' : '1px',
-                          borderTopWidth: selectedDate && selectedDate.getTime() === day.date.getTime() ? '2px' : '1px',
-                          borderRightWidth: selectedDate && selectedDate.getTime() === day.date.getTime() ? '2px' : '1px',
-                          borderBottomWidth: selectedDate && selectedDate.getTime() === day.date.getTime() ? '2px' : '1px',
-                          borderLeftWidth: selectedDate && selectedDate.getTime() === day.date.getTime() ? '2px' : '1px',
-                        }}
-                      >
-                        {/* Date Number */}
-                        <div className="flex items-center justify-between px-1.5 sm:px-2 py-1 flex-shrink-0">
-                          <span 
-                            className={`text-[11px] sm:text-sm font-medium ${
-                              day.isToday ? 'font-bold' : 'font-normal'
-                            }`}
-                            style={{
-                              color: day.isToday 
-                                ? COLORS.primary 
-                                : (day.isCurrentMonth ? COLORS.primary : COLORS.gray)
-                            }}
-                          >
-                            {day.date.getDate()}
-                          </span>
-                          {day.isToday && (
-                            <span 
-                              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: COLORS.primary }}
-                            ></span>
-                          )}
-                        </div>
 
-                        {/* Bookings Container - Fixed Height */}
-                        <div className="flex-1 px-1 pb-1 overflow-hidden flex flex-col">
-                          <div className="space-y-0.5 flex-1 min-h-0">
-                            {day.bookings.slice(0, maxVisibleBookings).map((booking) => {
-                              const colors = getStatusColor(booking.status);
-                              const dateStr = day.date.toISOString().split('T')[0];
-                              
-                              // Get time slots for this date
-                              let displayTime = '';
-                              let tooltipTime = '';
-                              
-                              if (booking.timeSlots && booking.timeSlots.length > 0) {
-                                const daySlots = booking.timeSlots
-                                  .filter(slot => {
-                                    const slotDate = new Date(slot.startAt);
-                                    return slotDate.toISOString().split('T')[0] === dateStr;
-                                  })
-                                  .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+                {/* Calendar Days */}
+                {loading ? (
+                  <div className="text-center py-12">
+                    <i className="fas fa-spinner fa-spin text-2xl" style={{ color: COLORS.primary }}></i>
+                    <p className="mt-2 text-gray-600">Loading calendar...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-7 gap-px border-t border-l" style={{ borderColor: COLORS.border }}>
+                    {calendarDays.map((day, index) => {
+                      const statusColors = day.bookings.length > 0 ? getStatusColor(day.bookings[0].status) : null;
+                      const maxVisibleBookings = 2;
+                      const remainingCount = Math.max(0, day.bookings.length - maxVisibleBookings);
+                      
+                      return (
+                        <div
+                          key={index}
+                          onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
+                          className={`h-[100px] sm:h-[140px] flex flex-col border-r border-b transition-all touch-manipulation ${
+                            !day.isCurrentMonth ? 'opacity-30 bg-gray-50' : 'bg-white'
+                          } ${day.isCurrentMonth && !day.isPast ? 'hover:bg-gray-50 active:bg-gray-100' : ''} ${day.isCurrentMonth ? 'cursor-pointer' : 'cursor-default'}`}
+                          style={{ 
+                            borderColor: COLORS.border,
+                            backgroundColor: selectedDate && selectedDate.getTime() === day.date.getTime() 
+                              ? COLORS.primaryLighter 
+                              : (day.isPast && day.isCurrentMonth ? '#fafafa' : (day.isCurrentMonth ? 'white' : '#f9fafb')),
+                            borderWidth: selectedDate && selectedDate.getTime() === day.date.getTime() ? '2px' : '1px',
+                            borderTopWidth: selectedDate && selectedDate.getTime() === day.date.getTime() ? '2px' : '1px',
+                            borderRightWidth: selectedDate && selectedDate.getTime() === day.date.getTime() ? '2px' : '1px',
+                            borderBottomWidth: selectedDate && selectedDate.getTime() === day.date.getTime() ? '2px' : '1px',
+                            borderLeftWidth: selectedDate && selectedDate.getTime() === day.date.getTime() ? '2px' : '1px',
+                          }}
+                        >
+                          {/* Date Number */}
+                          <div className="flex items-center justify-between px-1.5 sm:px-2 py-1 flex-shrink-0">
+                            <span 
+                              className={`text-[11px] sm:text-sm font-medium ${
+                                day.isToday ? 'font-bold' : 'font-normal'
+                              }`}
+                              style={{
+                                color: day.isToday 
+                                  ? COLORS.primary 
+                                  : (day.isCurrentMonth ? COLORS.primary : COLORS.gray)
+                              }}
+                            >
+                              {day.date.getDate()}
+                            </span>
+                            {day.isToday && (
+                              <span 
+                                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: COLORS.primary }}
+                              ></span>
+                            )}
+                          </div>
+
+                          {/* Bookings Container - Fixed Height */}
+                          <div className="flex-1 px-1 pb-1 overflow-hidden flex flex-col">
+                            <div className="space-y-0.5 flex-1 min-h-0">
+                              {day.bookings.slice(0, maxVisibleBookings).map((booking) => {
+                                const colors = getStatusColor(booking.status);
+                                const dateStr = day.date.toISOString().split('T')[0];
                                 
-                                if (daySlots.length > 0) {
-                                  // Show all time slots for this day
-                                  const times = daySlots.map(slot => {
-                                    const start = formatTime(new Date(slot.startAt));
-                                    const end = formatTime(new Date(slot.endAt));
-                                    return `${start}-${end}`;
-                                  });
-                                  displayTime = times.length > 1 ? `${times.length} slots` : times[0];
-                                  tooltipTime = times.join(', ');
+                                // Get time slots for this date
+                                let displayTime = '';
+                                let tooltipTime = '';
+                                
+                                if (booking.timeSlots && booking.timeSlots.length > 0) {
+                                  const daySlots = booking.timeSlots
+                                    .filter(slot => {
+                                      const slotDate = new Date(slot.startAt);
+                                      return slotDate.toISOString().split('T')[0] === dateStr;
+                                    })
+                                    .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+                                  
+                                  if (daySlots.length > 0) {
+                                    // Show all time slots for this day
+                                    const times = daySlots.map(slot => {
+                                      const start = formatTime(new Date(slot.startAt));
+                                      const end = formatTime(new Date(slot.endAt));
+                                      return `${start}-${end}`;
+                                    });
+                                    displayTime = times.length > 1 ? `${times.length} slots` : times[0];
+                                    tooltipTime = times.join(', ');
+                                  } else {
+                                    displayTime = formatTime(new Date(booking.startAt));
+                                    tooltipTime = displayTime;
+                                  }
+                                } else if (booking.service === "Housesitting" || booking.service === "24/7 Care") {
+                                  // For house sitting/24/7 care, show start-end time if it's the start or end date
+                                  const startAt = new Date(booking.startAt);
+                                  const endAt = new Date(booking.endAt);
+                                  const startDateStr = startAt.toISOString().split('T')[0];
+                                  const endDateStr = endAt.toISOString().split('T')[0];
+                                  
+                                  if (dateStr === startDateStr) {
+                                    displayTime = formatTime(startAt);
+                                    tooltipTime = `Start: ${formatTime(startAt)}`;
+                                  } else if (dateStr === endDateStr) {
+                                    displayTime = formatTime(endAt);
+                                    tooltipTime = `End: ${formatTime(endAt)}`;
+                                  } else {
+                                    displayTime = 'All day';
+                                    tooltipTime = 'Ongoing';
+                                  }
                                 } else {
                                   displayTime = formatTime(new Date(booking.startAt));
                                   tooltipTime = displayTime;
                                 }
-                              } else if (booking.service === "Housesitting" || booking.service === "24/7 Care") {
-                                // For house sitting/24/7 care, show start-end time if it's the start or end date
-                                const startAt = new Date(booking.startAt);
-                                const endAt = new Date(booking.endAt);
-                                const startDateStr = startAt.toISOString().split('T')[0];
-                                const endDateStr = endAt.toISOString().split('T')[0];
                                 
-                                if (dateStr === startDateStr) {
-                                  displayTime = formatTime(startAt);
-                                  tooltipTime = `Start: ${formatTime(startAt)}`;
-                                } else if (dateStr === endDateStr) {
-                                  displayTime = formatTime(endAt);
-                                  tooltipTime = `End: ${formatTime(endAt)}`;
-                                } else {
-                                  displayTime = 'All day';
-                                  tooltipTime = 'Ongoing';
-                                }
-                              } else {
-                                displayTime = formatTime(new Date(booking.startAt));
-                                tooltipTime = displayTime;
-                              }
+                                const hasConflict = bookingsWithConflicts.has(booking.id);
+                                return (
+                                  <div
+                                    key={booking.id}
+                                    className={`text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 sm:py-1 rounded cursor-pointer hover:opacity-90 active:opacity-75 transition-opacity truncate touch-manipulation relative ${
+                                      hasConflict ? 'border-2' : ''
+                                    }`}
+                                    style={{
+                                      backgroundColor: colors.bg,
+                                      color: colors.text,
+                                      borderLeft: `2px solid ${hasConflict ? COLORS.error : colors.border}`,
+                                      borderColor: hasConflict ? COLORS.error : 'transparent',
+                                    }}
+                                    title={`${booking.firstName} ${booking.lastName} - ${booking.service}${booking.sitter ? ` - ${booking.sitter.firstName} ${booking.sitter.lastName}` : ''} - ${tooltipTime}${hasConflict ? ' ⚠️ CONFLICT' : ''}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedDate(day.date);
+                                    }}
+                                  >
+                                    {hasConflict && (
+                                      <i className="fas fa-exclamation-triangle absolute top-0 right-0 text-[8px] sm:text-[10px]" style={{ color: COLORS.error }}></i>
+                                    )}
+                                    <div className="font-semibold truncate leading-tight text-[10px] sm:text-xs pr-2">
+                                      {booking.firstName} {booking.lastName.charAt(0)}.
+                                    </div>
+                                    <div className="truncate leading-tight opacity-80 text-[9px] sm:text-[10px]">
+                                      {displayTime}
+                                    </div>
+                                  </div>
+                                );
+                              })}
                               
-                              const hasConflict = bookingsWithConflicts.has(booking.id);
-                              return (
-                                <div
-                                  key={booking.id}
-                                  className={`text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 sm:py-1 rounded cursor-pointer hover:opacity-90 active:opacity-75 transition-opacity truncate touch-manipulation relative ${
-                                    hasConflict ? 'border-2' : ''
-                                  }`}
-                                  style={{
-                                    backgroundColor: colors.bg,
-                                    color: colors.text,
-                                    borderLeft: `2px solid ${hasConflict ? COLORS.error : colors.border}`,
-                                    borderColor: hasConflict ? COLORS.error : 'transparent',
-                                  }}
-                                  title={`${booking.firstName} ${booking.lastName} - ${booking.service}${booking.sitter ? ` - ${booking.sitter.firstName} ${booking.sitter.lastName}` : ''} - ${tooltipTime}${hasConflict ? ' ⚠️ CONFLICT' : ''}`}
+                              {/* "See more" link */}
+                              {remainingCount > 0 && (
+                                <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setSelectedDate(day.date);
                                   }}
+                                  className="text-[10px] sm:text-xs px-1 sm:px-1.5 py-1 sm:py-0.5 rounded w-full text-left hover:opacity-80 active:opacity-70 transition-opacity font-medium mt-0.5 touch-manipulation min-h-[32px] sm:min-h-auto"
+                                  style={{
+                                    color: COLORS.primary,
+                                    backgroundColor: COLORS.primaryLight + '40',
+                                  }}
                                 >
-                                  {hasConflict && (
-                                    <i className="fas fa-exclamation-triangle absolute top-0 right-0 text-[8px] sm:text-[10px]" style={{ color: COLORS.error }}></i>
-                                  )}
-                                  <div className="font-semibold truncate leading-tight text-[10px] sm:text-xs pr-2">
-                                    {booking.firstName} {booking.lastName.charAt(0)}.
-                                  </div>
-                                  <div className="truncate leading-tight opacity-80 text-[9px] sm:text-[10px]">
-                                    {displayTime}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            
-                            {/* "See more" link */}
-                            {remainingCount > 0 && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedDate(day.date);
-                                }}
-                                className="text-[10px] sm:text-xs px-1 sm:px-1.5 py-1 sm:py-0.5 rounded w-full text-left hover:opacity-80 active:opacity-70 transition-opacity font-medium mt-0.5 touch-manipulation min-h-[32px] sm:min-h-auto"
-                                style={{
-                                  color: COLORS.primary,
-                                  backgroundColor: COLORS.primaryLight + '40',
-                                }}
-                              >
-                                {remainingCount} more
-                              </button>
-                            )}
+                                  {remainingCount} more
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Week View */}
+        {viewMode === "week" && (
+          <div className="bg-white rounded-lg border-2 mb-6 overflow-hidden" style={{ borderColor: COLORS.border }}>
+            <div className="overflow-x-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-7 gap-3 sm:gap-px">
+                {weekDays.map((day, index) => (
+                  <div key={index} className="border sm:border-none sm:border-r sm:border-b p-3 min-w-[220px]" style={{ borderColor: COLORS.border }}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <div className="text-xs uppercase text-gray-500">{day.date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                        <div className="text-base font-bold" style={{ color: COLORS.primary }}>{day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
                       </div>
-                    );
-                  })}
-                </div>
+                      {day.date.toDateString() === new Date().toDateString() && (
+                        <span className="px-2 py-1 text-[10px] font-bold rounded-full" style={{ background: COLORS.primaryLight, color: COLORS.primary }}>Today</span>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {day.bookings.length === 0 ? (
+                        <p className="text-xs text-gray-400">No bookings</p>
+                      ) : (
+                        day.bookings.map(booking => {
+                          const colors = getStatusColor(booking.status);
+                          return (
+                            <div key={booking.id} className="border rounded-lg px-3 py-2 text-xs" style={{ borderColor: colors.border, background: colors.bg, color: colors.text }}>
+                              <div className="font-semibold truncate">{booking.firstName} {booking.lastName}</div>
+                              <div className="text-[11px]">{formatTime(new Date(booking.startAt))} - {formatTime(new Date(booking.endAt))}</div>
+                              <div className="text-[11px] capitalize">{booking.service}</div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Agenda View */}
+        {viewMode === "agenda" && (
+          <div className="bg-white rounded-lg border-2 mb-6" style={{ borderColor: COLORS.border }}>
+            <div className="divide-y" style={{ borderColor: COLORS.border }}>
+              {upcomingBookings.length === 0 ? (
+                <div className="text-center py-6 text-sm text-gray-500">No upcoming bookings</div>
+              ) : (
+                upcomingBookings.map(booking => {
+                  const colors = getStatusColor(booking.status);
+                  return (
+                    <div key={booking.id} className="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-bold" style={{ color: COLORS.primary }}>{booking.firstName} {booking.lastName}</div>
+                        <div className="text-xs text-gray-500 capitalize">{booking.service}</div>
+                      </div>
+                      <div className="flex-1 text-xs text-gray-600">
+                        <div>{new Date(booking.startAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                        <div>{formatTime(new Date(booking.startAt))} - {formatTime(new Date(booking.endAt))}</div>
+                      </div>
+                      <div className="text-xs font-semibold px-2 py-1 rounded-full" style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}>
+                        {booking.status}
+                      </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Selected Date Bookings Modal */}
+        {/* Selected Date Modal */}
         {selectedDate && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
