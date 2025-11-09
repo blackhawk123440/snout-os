@@ -133,36 +133,36 @@ export default function ClientsPage() {
     <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
       {/* Header */}
       <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
-        <div className="max-w-[1400px] mx-auto px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: COLORS.primary }}>
                 <i className="fas fa-users" style={{ color: COLORS.primaryLight }}></i>
               </div>
               <div>
-                <h1 className="text-xl font-bold" style={{ color: COLORS.primary }}>
+                <h1 className="text-lg sm:text-xl font-bold" style={{ color: COLORS.primary }}>
                   Clients Management
                 </h1>
-                <p className="text-xs text-gray-500">Manage your pet care clients</p>
+                <p className="text-xs sm:text-sm text-gray-500">Manage your pet care clients</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
               <button
                 onClick={() => {
                   resetForm();
                   setShowAddForm(true);
                 }}
-                className="px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
                 style={{ background: COLORS.primary, color: COLORS.primaryLight }}
               >
-                <i className="fas fa-plus mr-2"></i>Add Client
+                <i className="fas fa-plus"></i><span>Add Client</span>
               </button>
               <Link
                 href="/bookings"
-                className="px-4 py-2 text-sm font-medium border rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold border rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto"
                 style={{ color: COLORS.primary, borderColor: COLORS.border }}
               >
-                <i className="fas fa-arrow-left mr-2"></i>Back to Bookings
+                <i className="fas fa-arrow-left"></i><span>Back to Bookings</span>
               </Link>
             </div>
           </div>
