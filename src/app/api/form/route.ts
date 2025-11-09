@@ -9,9 +9,18 @@ import { getOwnerPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
 import { sendMessage } from "@/lib/message-utils";
 
+const parseOrigins = (value?: string | null) => {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map(origin => origin.trim())
+    .filter(Boolean);
+};
+
 const ALLOWED_ORIGINS = [
   "https://snout-form.onrender.com",
-  process.env.NEXT_PUBLIC_WEBFLOW_ORIGIN,
+  "https://leahs-supercool-site-c731e5.webflow.io",
+  ...parseOrigins(process.env.NEXT_PUBLIC_WEBFLOW_ORIGIN),
   process.env.NEXT_PUBLIC_APP_URL,
   process.env.NEXT_PUBLIC_BASE_URL,
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
