@@ -20,7 +20,7 @@ export async function GET() {
     // Ensure automation object exists
     if (!settingsObj.automation || typeof settingsObj.automation !== 'object') {
       settingsObj.automation = {};
-    }
+      }
     
     // Load message templates and merge them into automation settings
     const messageTemplateSettings = await prisma.setting.findMany({
@@ -134,15 +134,15 @@ export async function PATCH(request: NextRequest) {
             value,
             updatedAt: new Date(),
           },
-          create: {
+      create: {
             key,
             value,
             category: "general",
             label: key,
-          },
+      },
         });
-      });
-    
+    });
+
     await Promise.all(updatePromises);
 
     return NextResponse.json({ success: true, message: "Settings saved successfully" });

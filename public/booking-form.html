@@ -3599,8 +3599,10 @@
         };
 
         try {
-          // Send to API - CHANGE THIS URL FOR PRODUCTION
-          const apiUrl = window.location.origin + '/api/form'; // Use same origin as the page
+          // Determine API target (defaults to production dashboard, overrideable for local testing)
+          const defaultApiBase = 'https://snout-os-dashboard.onrender.com';
+          const apiBase = (typeof window !== 'undefined' && window.__SNOUT_API_BASE__) || defaultApiBase;
+          const apiUrl = `${apiBase.replace(/\/$/, '')}/api/form`;
           
           const response = await fetch(apiUrl, {
             method: 'POST',
