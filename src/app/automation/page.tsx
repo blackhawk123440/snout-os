@@ -668,20 +668,25 @@ export default function AutomationPage() {
                   </div>
                   
                   {/* Enable/Disable Toggle */}
-                  <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 touch-manipulation">
-                    <input
-                      type="checkbox"
-                      checked={config.enabled}
-                      onChange={(e) => updateAutomation(automation.id as keyof AutomationSettings, { enabled: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div 
-                      className="w-12 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all min-h-[44px] sm:min-h-[auto]"
-                      style={{
-                        backgroundColor: config.enabled ? categoryColor : '#e5e7eb',
-                      }}
-                    ></div>
-                  </label>
+                  <div className="flex items-center justify-center">
+                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 touch-manipulation">
+                      <input
+                        type="checkbox"
+                        checked={config.enabled}
+                        onChange={(e) => updateAutomation(automation.id as keyof AutomationSettings, { enabled: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div
+                        className="relative w-14 h-8 bg-gray-200 rounded-full transition-colors duration-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-opacity-50"
+                        style={{ backgroundColor: config.enabled ? categoryColor : '#e5e7eb' }}
+                      >
+                        <span
+                          className="absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow transition-transform duration-200"
+                          style={{ transform: config.enabled ? 'translateX(24px)' : 'translateX(0)' }}
+                        />
+                      </div>
+                    </label>
+                  </div>
                 </div>
 
                 {/* Configuration Inputs */}
