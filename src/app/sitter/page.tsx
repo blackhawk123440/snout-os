@@ -48,7 +48,7 @@ export default function SitterPage() {
     } catch {
       setBookings([]);
     } finally {
-      setLoading(false);
+    setLoading(false);
     }
   };
 

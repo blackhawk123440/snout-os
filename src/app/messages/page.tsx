@@ -41,7 +41,7 @@ export default function MessagesPage() {
     } catch {
       setTemplates([]);
     } finally {
-      setLoading(false);
+    setLoading(false);
     }
   };
 
