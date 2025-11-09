@@ -1440,10 +1440,10 @@ function BookingsPageContent() {
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
                 <Link
                   href="/"
-                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
                   style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
                 >
-                  <i className="fas fa-home"></i><span className="hidden sm:inline">Home</span>
+                  <i className="fas fa-home"></i><span>Home</span>
                 </Link>
                 <button
                   onClick={() => {
@@ -1451,53 +1451,53 @@ function BookingsPageContent() {
                     fetchSitters();
                   }}
                   disabled={loading}
-                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                  className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap"
                   style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
                   title="Refresh data"
                 >
-                  <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i><span className="hidden sm:inline">Refresh</span>
+                  <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i><span>Refresh</span>
                 </button>
                 <Link
                   href="/payments"
-                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
                   style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
                 >
-                  <i className="fas fa-credit-card"></i><span className="hidden sm:inline">Payments</span>
+                  <i className="fas fa-credit-card"></i><span>Payments</span>
                 </Link>
                 <Link
                   href="/calendar"
-                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
                   style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
                 >
-                  <i className="fas fa-calendar-alt"></i><span className="hidden sm:inline">Calendar</span>
+                  <i className="fas fa-calendar-alt"></i><span>Calendar</span>
                 </Link>
                 <Link
                   href="/clients"
-                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
                   style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
                 >
-                  <i className="fas fa-users"></i><span className="hidden sm:inline">Clients</span>
+                  <i className="fas fa-users"></i><span>Clients</span>
                 </Link>
                 <Link
                   href="/automation"
-                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
                   style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
                 >
-                  <i className="fas fa-robot"></i><span className="hidden sm:inline">Automation</span>
+                  <i className="fas fa-robot"></i><span>Automation</span>
                 </Link>
                 <Link
                   href="/settings"
-                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
                   style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
                 >
-                  <i className="fas fa-cog"></i><span className="hidden sm:inline">Settings</span>
+                  <i className="fas fa-cog"></i><span>Settings</span>
                 </Link>
                 <Link
                   href="/bookings/sitters"
-                  className="flex items-center gap-2 px-3 py-2 text-xs sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0"
+                  className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
                   style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
                 >
-                  <i className="fas fa-user-friends"></i><span className="hidden sm:inline">Sitters</span>
+                  <i className="fas fa-user-friends"></i><span>Sitters</span>
                 </Link>
               </div>
             </div>
