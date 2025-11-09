@@ -1,8 +1,17 @@
 const path = require("path");
 
+const parseOrigins = (value) => {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+};
+
 const allowedEmbedOrigins = [
   "https://snout-form.onrender.com",
-  process.env.NEXT_PUBLIC_WEBFLOW_ORIGIN,
+  "https://leahs-supercool-site-c731e5.webflow.io",
+  ...parseOrigins(process.env.NEXT_PUBLIC_WEBFLOW_ORIGIN),
   process.env.NEXT_PUBLIC_APP_URL,
   process.env.NEXT_PUBLIC_BASE_URL,
   process.env.RENDER_EXTERNAL_URL,
@@ -26,7 +35,10 @@ const nextConfig = {
     ];
   },
   async headers() {
-    const cspFrameAncestors = ["'self'", ...allowedEmbedOrigins].join(" ");
+    const frameAncestors = allowedEmbedOrigins.length
+      ? ["'self'", ...allowedEmbedOrigins]
+      : ["'self'"];
+    const cspFrameAncestors = frameAncestors.join(" ");
 
     return [
       {
