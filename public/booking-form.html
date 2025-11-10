@@ -2150,23 +2150,23 @@
         box-sizing: border-box !important;
         align-items: center !important;
         justify-content: center !important;
-        overflow: hidden !important;
-        overflow-y: hidden !important;
-        overflow-x: hidden !important;
       }
 
       .time-modal-content {
         width: 100% !important;
         max-width: 500px !important;
-        height: calc(100vh - 24px) !important;
         max-height: calc(100vh - 24px) !important;
         margin: 0 !important;
         border-radius: var(--radius-lg) !important;
         overflow: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
         display: flex !important;
         flex-direction: column !important;
         box-sizing: border-box !important;
         position: relative !important;
+        height: auto !important;
+        min-height: 420px !important;
       }
 
       .time-modal-header {
@@ -2189,8 +2189,7 @@
       
       .time-modal-content .time-slots-container {
         flex: 1 1 0 !important;
-        min-height: 0 !important;
-        max-height: 100% !important;
+        min-height: 280px !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
         padding: 12px !important;
@@ -2199,7 +2198,6 @@
         overscroll-behavior: contain !important;
         box-sizing: border-box !important;
         width: 100% !important;
-        height: 0 !important;
       }
 
       .time-modal-actions {
@@ -2216,9 +2214,9 @@
       }
 
       .time-slot {
-        padding: 10px 12px !important;
-        font-size: var(--font-size-sm) !important;
-        min-height: 48px !important;
+        padding: var(--space-md);
+        font-size: var(--font-size-base);
+        min-height: 56px;
         border-radius: var(--radius-md);
         border: 2px solid var(--secondary);
       }
