@@ -2143,7 +2143,7 @@
       }
 
       .time-modal {
-        padding: var(--space-xl) !important;
+        padding: 8px !important;
         background: rgba(0, 0, 0, 0.3);
         box-sizing: border-box !important;
         align-items: center !important;
@@ -2153,7 +2153,7 @@
       .time-modal-content {
         width: 100% !important;
         max-width: 500px !important;
-        max-height: calc(90vh - 40px) !important;
+        max-height: calc(100vh - 16px) !important;
         margin: 0 !important;
         border-radius: var(--radius-lg) !important;
         overflow: hidden !important;
@@ -2169,7 +2169,7 @@
       }
 
       .time-modal-header {
-        padding: var(--space-md) var(--space-lg) !important;
+        padding: 8px 12px !important;
         border-bottom: 1px solid var(--secondary);
         display: flex !important;
         align-items: center !important;
@@ -2178,13 +2178,21 @@
       }
 
       .time-modal-title {
-        font-size: var(--font-size-base);
+        font-size: var(--font-size-sm);
         font-weight: 600;
         color: var(--primary);
       }
 
+      .time-modal-close {
+        width: 32px !important;
+        height: 32px !important;
+        min-width: 32px !important;
+        min-height: 32px !important;
+        font-size: var(--font-size-sm) !important;
+      }
+
       .time-modal-date {
-        padding: var(--space-sm) var(--space-lg) !important;
+        padding: 6px 12px !important;
         background: var(--accent);
         border-bottom: 1px solid var(--secondary);
         text-align: center;
@@ -2192,14 +2200,14 @@
       }
 
       .time-modal-date-text {
-        font-size: var(--font-size-sm);
+        font-size: var(--font-size-xs);
         font-weight: 500;
         color: var(--primary);
       }
       
       .time-modal-content .time-slots-container {
-        padding: var(--space-lg) !important;
-        padding-bottom: calc(var(--space-lg) + 40px) !important;
+        padding: 8px !important;
+        padding-bottom: 50px !important;
         flex: 1 1 0 !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
@@ -2213,7 +2221,7 @@
       }
 
       .time-modal-actions {
-        padding: var(--space-md) !important;
+        padding: 8px 12px !important;
         border-top: 1px solid var(--secondary);
         display: flex !important;
         justify-content: flex-end !important;
@@ -2221,16 +2229,16 @@
       }
 
       .time-slots-grid {
-        gap: var(--space-sm);
-        padding: var(--space-sm);
-        padding-bottom: calc(var(--space-sm) + 20px) !important; /* Minimal padding - just enough spacing */
+        gap: 6px !important;
+        padding: 0 !important;
+        padding-bottom: 10px !important;
         min-height: fit-content;
       }
 
       .time-slot {
-        padding: var(--space-md);
-        font-size: var(--font-size-base);
-        min-height: 56px;
+        padding: 8px 10px !important;
+        font-size: var(--font-size-sm) !important;
+        min-height: 44px !important;
         border-radius: var(--radius-md);
         border: 2px solid var(--secondary);
       }
@@ -2240,10 +2248,18 @@
         background: var(--primary-light);
       }
 
+      .time-display {
+        font-size: var(--font-size-sm) !important;
+      }
+
+      .duration-toggle {
+        gap: 4px !important;
+      }
+
       .duration-chip {
-        padding: 4px var(--space-sm);
-        font-size: var(--font-size-xs);
-        min-width: 32px;
+        padding: 3px 6px !important;
+        font-size: 10px !important;
+        min-width: 28px !important;
         border-radius: var(--radius-sm);
       }
 
