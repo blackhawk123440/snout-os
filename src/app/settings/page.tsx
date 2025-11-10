@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { COLORS } from "@/lib/booking-utils";
+import { ToggleSwitch } from "@/components/ToggleSwitch";
 
 interface Settings {
   businessName: string;
@@ -506,17 +507,11 @@ export default function SettingsPage() {
                   <div className="font-semibold text-sm sm:text-base">SMS Notifications</div>
                   <div className="text-xs sm:text-sm text-gray-600">Send automated SMS messages</div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.automation.smsEnabled}
-                    onChange={(e) => handleInputChange("automation.smsEnabled", e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-12 h-6 bg-gray-200 rounded-full peer-focus:outline-none peer-focus:ring-4 peer-checked:bg-[#432f21] transition-colors peer-focus:ring-[#fce1ef]">
-                    <div className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white border border-gray-300 transition-transform peer-checked:translate-x-6" />
-                  </div>
-                </label>
+                <ToggleSwitch
+                  checked={settings.automation.smsEnabled}
+                  onChange={(checked) => handleInputChange("automation.smsEnabled", checked)}
+                  aria-label="Enable SMS notifications"
+                />
               </div>
 
               <div className="flex items-center justify-between p-3 sm:p-4 border rounded-lg touch-manipulation min-h-[44px]" style={{ borderColor: COLORS.border }}>
@@ -524,17 +519,11 @@ export default function SettingsPage() {
                   <div className="font-semibold text-sm sm:text-base">Email Notifications</div>
                   <div className="text-xs sm:text-sm text-gray-600">Send automated email messages</div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.automation.emailEnabled}
-                    onChange={(e) => handleInputChange("automation.emailEnabled", e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-12 h-6 bg-gray-200 rounded-full peer-focus:outline-none peer-focus:ring-4 peer-checked:bg-[#432f21] transition-colors peer-focus:ring-[#fce1ef]">
-                    <div className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white border border-gray-300 transition-transform peer-checked:translate-x-6" />
-                  </div>
-                </label>
+                <ToggleSwitch
+                  checked={settings.automation.emailEnabled}
+                  onChange={(checked) => handleInputChange("automation.emailEnabled", checked)}
+                  aria-label="Enable email notifications"
+                />
               </div>
             </div>
 
@@ -546,17 +535,11 @@ export default function SettingsPage() {
                   <div className="font-semibold text-sm sm:text-base">Auto-Confirm Bookings</div>
                   <div className="text-xs sm:text-sm text-gray-600">Automatically confirm new bookings</div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.automation.autoConfirm}
-                    onChange={(e) => handleInputChange("automation.autoConfirm", e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-12 h-6 bg-gray-200 rounded-full peer-focus:outline-none peer-focus:ring-4 peer-checked:bg-[#432f21] transition-colors peer-focus:ring-[#fce1ef]">
-                    <div className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white border border-gray-300 transition-transform peer-checked:translate-x-6" />
-                  </div>
-                </label>
+                <ToggleSwitch
+                  checked={settings.automation.autoConfirm}
+                  onChange={(checked) => handleInputChange("automation.autoConfirm", checked)}
+                  aria-label="Auto confirm bookings"
+                />
               </div>
 
               <div className="p-3 sm:p-4 border rounded-lg" style={{ borderColor: COLORS.border }}>
@@ -583,17 +566,11 @@ export default function SettingsPage() {
                   <div className="font-semibold text-sm sm:text-base">Payment Reminders</div>
                   <div className="text-xs sm:text-sm text-gray-600">Send payment reminder messages</div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.automation.paymentReminders}
-                    onChange={(e) => handleInputChange("automation.paymentReminders", e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-12 h-6 bg-gray-200 rounded-full peer-focus:outline-none peer-focus:ring-4 peer-checked:bg-[#432f21] transition-colors peer-focus:ring-[#fce1ef]">
-                    <div className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white border border-gray-300 transition-transform peer-checked:translate-x-6" />
-                  </div>
-                </label>
+                <ToggleSwitch
+                  checked={settings.automation.paymentReminders}
+                  onChange={(checked) => handleInputChange("automation.paymentReminders", checked)}
+                  aria-label="Enable payment reminders"
+                />
               </div>
 
               <div className="flex items-center justify-between p-3 sm:p-4 border rounded-lg touch-manipulation min-h-[44px]" style={{ borderColor: COLORS.border }}>
@@ -601,17 +578,11 @@ export default function SettingsPage() {
                   <div className="font-semibold text-sm sm:text-base">Sitter Notifications</div>
                   <div className="text-xs sm:text-sm text-gray-600">Notify sitters of assignments</div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.automation.sitterNotifications}
-                    onChange={(e) => handleInputChange("automation.sitterNotifications", e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-12 h-6 bg-gray-200 rounded-full peer-focus:outline-none peer-focus:ring-4 peer-checked:bg-[#432f21] transition-colors peer-focus:ring-[#fce1ef]">
-                    <div className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white border border-gray-300 transition-transform peer-checked:translate-x-6" />
-                  </div>
-                </label>
+                <ToggleSwitch
+                  checked={settings.automation.sitterNotifications}
+                  onChange={(checked) => handleInputChange("automation.sitterNotifications", checked)}
+                  aria-label="Enable sitter notifications"
+                />
               </div>
 
               <div className="flex items-center justify-between p-3 sm:p-4 border rounded-lg touch-manipulation min-h-[44px]" style={{ borderColor: COLORS.border }}>
@@ -619,17 +590,11 @@ export default function SettingsPage() {
                   <div className="font-semibold text-sm sm:text-base">Owner Alerts</div>
                   <div className="text-xs sm:text-sm text-gray-600">Send alerts to owner</div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.automation.ownerAlerts}
-                    onChange={(e) => handleInputChange("automation.ownerAlerts", e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-12 h-6 bg-gray-200 rounded-full peer-focus:outline-none peer-focus:ring-4 peer-checked:bg-[#432f21] transition-colors peer-focus:ring-[#fce1ef]">
-                    <div className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white border border-gray-300 transition-transform peer-checked:translate-x-6" />
-                  </div>
-                </label>
+                <ToggleSwitch
+                  checked={settings.automation.ownerAlerts}
+                  onChange={(checked) => handleInputChange("automation.ownerAlerts", checked)}
+                  aria-label="Enable owner alerts"
+                />
               </div>
             </div>
           </div>
@@ -648,17 +613,11 @@ export default function SettingsPage() {
                   <div className="font-semibold text-sm sm:text-base">Scheduling Conflict Notices</div>
                   <div className="text-xs sm:text-sm text-gray-600">Show warnings when assigning sitters with scheduling conflicts</div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.conflictNoticeEnabled}
-                    onChange={(e) => setSettings({ ...settings, conflictNoticeEnabled: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-12 h-6 bg-gray-200 rounded-full peer-focus:outline-none peer-focus:ring-4 peer-checked:bg-[#432f21] transition-colors peer-focus:ring-[#fce1ef]">
-                    <div className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white border border-gray-300 transition-transform peer-checked:translate-x-6" />
-                  </div>
-                </label>
+                <ToggleSwitch
+                  checked={settings.conflictNoticeEnabled}
+                  onChange={(checked) => setSettings({ ...settings, conflictNoticeEnabled: checked })}
+                  aria-label="Enable conflict notices"
+                />
               </div>
 
               <div className="p-3 sm:p-4 border rounded-lg" style={{ borderColor: COLORS.border, background: COLORS.primaryLighter }}>

@@ -773,11 +773,12 @@
       background: var(--accent);
       border-radius: var(--radius-lg);
       padding: var(--space-lg);
-      margin-bottom: var(--space-xl);
+      margin: 0 auto var(--space-xl);
       border: 1px solid var(--secondary);
       overflow: visible;
       box-sizing: border-box;
       width: 100%;
+      max-width: 540px;
     }
 
     .calendar-header {
@@ -1079,8 +1080,8 @@
       background: var(--white);
       border-radius: var(--radius-lg);
       width: 100%;
-      max-width: 500px;
-      max-height: calc(90vh - 40px);
+      max-width: none;
+      max-height: calc(100vh - 40px);
       height: auto;
       min-height: 300px;
       display: flex;
@@ -1089,6 +1090,7 @@
       position: relative;
       z-index: 1001;
       overflow: hidden;
+      margin: var(--space-md) auto;
     }
 
     @keyframes modalSlideIn {
@@ -1162,6 +1164,10 @@
       min-height: 200px;
       max-height: 100%;
       height: 0;
+      max-width: 100%;
+      width: 100%;
+      margin: 0 auto;
+      box-sizing: border-box;
       -webkit-overflow-scrolling: auto !important;
       overscroll-behavior: none !important;
       overscroll-behavior-y: none !important;
@@ -1196,6 +1202,8 @@
       padding: var(--space-sm);
       padding-bottom: calc(var(--space-sm) + 20px) !important; /* Minimal padding - just enough spacing */
       min-height: fit-content;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .time-slot {
@@ -1212,6 +1220,8 @@
       min-height: 56px;
       position: relative;
       font-size: var(--font-size-base);
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .time-slot:hover:not(.selected) {
@@ -1352,17 +1362,18 @@
     }
 
     .pet-taxi-addresses {
-      margin-top: var(--space-lg);
-      padding: var(--space-lg);
+      margin: var(--space-md) auto;
+      padding: var(--space-md);
       background: var(--accent);
       border-radius: var(--radius-lg);
       border: 1px solid var(--secondary);
+      max-width: 540px;
     }
 
     .address-section {
       display: flex;
       flex-direction: column;
-      gap: var(--space-md);
+      gap: var(--space-sm);
     }
 
     .address-title {
@@ -1375,7 +1386,7 @@
     .address-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: var(--space-md);
+      gap: var(--space-sm);
     }
 
     .policy-checkbox {
@@ -2148,9 +2159,12 @@
       .time-modal-content {
         width: 100%;
         max-width: none;
-        max-height: 92vh;
+        max-height: calc(100vh - 40px);
         border-radius: var(--radius-lg);
-        margin: var(--space-md);
+        margin: var(--space-md) auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
 
       .time-modal-header {
@@ -2164,7 +2178,7 @@
       }
 
       .time-slots-container {
-        padding: var(--space-md);
+        padding: var(--space-sm) var(--space-md);
         padding-bottom: calc(var(--space-md) + 20px) !important; /* Reduced padding - just enough to see last item */
         max-height: calc(80vh - 200px) !important; /* Account for header and actions height with more space */
         min-height: 300px;
@@ -2179,6 +2193,10 @@
         scroll-behavior: auto !important;
         scroll-padding: var(--space-sm);
         scroll-padding-bottom: var(--space-md) !important; /* Minimal scroll padding */
+        max-width: 100%;
+        width: 100%;
+        margin: 0 auto;
+        box-sizing: border-box;
       }
 
       /* Enhanced mobile modal optimizations */
@@ -2190,29 +2208,29 @@
       }
 
       .time-modal-content {
-        max-height: calc(95vh - 20px) !important;
-        margin: var(--space-sm);
-        border-radius: var(--radius-lg);
-        overflow: hidden !important;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-        display: flex !important;
-        flex-direction: column !important;
+        max-height: calc(100vh - 32px) !important;
+        margin: var(--space-sm) auto;
       }
-      
-      .time-modal-content .time-slots-container {
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        flex: 1 1 0 !important;
-        height: 0 !important;
-        max-height: 100% !important;
+
+      .time-modal-header,
+      .time-modal-date,
+      .time-modal-actions {
+        flex-shrink: 0;
+      }
+
+      .time-slots-container {
+        min-height: 0;
+        height: auto !important;
+        flex: 1 1 auto !important;
       }
 
       .time-slots-grid {
         gap: var(--space-sm);
-        padding: var(--space-sm);
+        padding: var(--space-sm) var(--space-sm);
         padding-bottom: calc(var(--space-sm) + 20px) !important; /* Minimal padding - just enough spacing */
         min-height: fit-content;
+        width: 100%;
+        box-sizing: border-box;
       }
 
       .time-slot {
@@ -2221,6 +2239,8 @@
         min-height: 56px;
         border-radius: var(--radius-md);
         border: 2px solid var(--secondary);
+        width: 100%;
+        box-sizing: border-box;
       }
 
       .time-slot.selected {
