@@ -2143,10 +2143,8 @@
       }
 
       .time-modal {
-        padding: 12px !important;
+        padding: var(--space-xl) !important;
         background: rgba(0, 0, 0, 0.3);
-        -webkit-backdrop-filter: blur(4px);
-        backdrop-filter: blur(4px);
         box-sizing: border-box !important;
         align-items: center !important;
         justify-content: center !important;
@@ -2155,7 +2153,7 @@
       .time-modal-content {
         width: 100% !important;
         max-width: 500px !important;
-        max-height: calc(100vh - 24px) !important;
+        max-height: calc(90vh - 40px) !important;
         margin: 0 !important;
         border-radius: var(--radius-lg) !important;
         overflow: hidden !important;
@@ -2166,34 +2164,48 @@
         box-sizing: border-box !important;
         position: relative !important;
         height: auto !important;
-        min-height: 420px !important;
+        min-height: 300px !important;
+        animation: modalSlideIn 0.3s ease !important;
       }
 
       .time-modal-header {
-        padding: 10px 12px !important;
+        padding: var(--space-md) var(--space-lg) !important;
         border-bottom: 1px solid var(--secondary);
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
         flex-shrink: 0;
-        min-height: 44px;
       }
 
       .time-modal-title {
         font-size: var(--font-size-base);
         font-weight: 600;
+        color: var(--primary);
       }
 
       .time-modal-date {
+        padding: var(--space-sm) var(--space-lg) !important;
+        background: var(--accent);
+        border-bottom: 1px solid var(--secondary);
+        text-align: center;
         flex-shrink: 0;
-        padding: 8px 12px !important;
-        min-height: 36px;
+      }
+
+      .time-modal-date-text {
+        font-size: var(--font-size-sm);
+        font-weight: 500;
+        color: var(--primary);
       }
       
       .time-modal-content .time-slots-container {
+        padding: var(--space-lg) !important;
+        padding-bottom: calc(var(--space-lg) + 40px) !important;
         flex: 1 1 0 !important;
-        min-height: 280px !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
-        padding: 12px !important;
-        padding-bottom: 60px !important;
+        min-height: 200px !important;
+        max-height: 100% !important;
+        height: 0 !important;
         -webkit-overflow-scrolling: touch !important;
         overscroll-behavior: contain !important;
         box-sizing: border-box !important;
@@ -2203,6 +2215,8 @@
       .time-modal-actions {
         padding: var(--space-md) !important;
         border-top: 1px solid var(--secondary);
+        display: flex !important;
+        justify-content: flex-end !important;
         flex-shrink: 0 !important;
       }
 
