@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { COLORS } from "@/lib/booking-utils";
-import { ToggleSwitch } from "@/components/ToggleSwitch";
 
 interface AutomationConfig {
   id: string;
@@ -670,14 +669,21 @@ export default function AutomationPage() {
                   
                   {/* Enable/Disable Toggle */}
                   <div className="flex items-center justify-center">
-                    <ToggleSwitch
-                      checked={config.enabled}
-                      onChange={(checked) => updateAutomation(automation.id as keyof AutomationSettings, { enabled: checked })}
-                      checkedColor={categoryColor}
-                      className="flex-shrink-0 touch-manipulation"
-                      aria-label={`Toggle ${automation.name}`}
-                      uncheckedColor="#e5e7eb"
-                    />
+                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0 touch-manipulation">
+                      <input
+                        type="checkbox"
+                        checked={config.enabled}
+                        onChange={(e) => updateAutomation(automation.id as keyof AutomationSettings, { enabled: e.target.checked })}
+                        className="sr-only"
+                      />
+                      <span
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${config.enabled ? 'bg-[#432f21]' : 'bg-gray-300'}`}
+                      >
+                        <span
+                          className={`absolute left-[2px] top-[2px] h-5 w-5 rounded-full border border-gray-300 bg-white transition-transform duration-200 ${config.enabled ? 'translate-x-5' : ''}`}
+                        />
+                      </span>
+                    </label>
                   </div>
                 </div>
 
