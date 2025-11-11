@@ -3013,6 +3013,10 @@
               this.dateTimes[date] && this.dateTimes[date].length > 0
             );
           case 5:
+            // Step 5 is only for pet-taxi service
+            if (this.selectedService !== 'pet-taxi') {
+              return true; // Skip validation for non-pet-taxi services
+            }
             return this.isPetTaxiFormValid();
           case 6:
             return this.isContactFormValid();
@@ -3046,9 +3050,9 @@
         const isPetTaxi = this.selectedService === 'pet-taxi';
         if (!isPetTaxi) {
           const address = document.getElementById('address')?.value.trim();
-          return address;
+          return address && address.length > 0;
         }
-        return true; // Pet taxi address validation is in step 6
+        return true; // Pet taxi address validation is in step 5
       }
 
       isPetTaxiFormValid() {
@@ -3822,8 +3826,19 @@
         };
 
         try {
-          // Send to API - CHANGE THIS URL FOR PRODUCTION
-          const apiUrl = window.location.origin + '/api/form'; // Use same origin as the page
+          // Get API URL from data attribute, global variable, or fallback
+          const formWrapper = document.querySelector('.form-wrapper');
+          const backendUrl = formWrapper?.dataset?.backendUrl || 
+                            (typeof window !== 'undefined' && (window as any).SNOUT_BACKEND_URL) ||
+                            'https://backend-291r.onrender.com';
+          
+          // Use same origin if embedded in the same app, otherwise use backend URL
+          const isSameOrigin = window.location.origin.includes('render.com') || 
+                              window.location.origin.includes('localhost') ||
+                              window.location.origin.includes('vercel.app');
+          const apiUrl = isSameOrigin 
+            ? `${window.location.origin}/api/form`
+            : `${backendUrl}/api/form`;
           
           const response = await fetch(apiUrl, {
             method: 'POST',
@@ -3848,13 +3863,18 @@
             }, 50);
           } else {
             console.error('❌ Booking failed:', data);
-            showCustomAlert(`Booking failed: ${data.error || 'Unknown error'}`, 'fa-circle-exclamation');
+            const errorMessage = data.error || data.details || 'Unknown error occurred. Please try again.';
+            showCustomAlert(`Booking failed: ${errorMessage}`, 'fa-circle-exclamation');
             this.elements.submitBtn.classList.remove('loading');
             this.elements.submitBtn.disabled = false;
           }
         } catch (error) {
           console.error('❌ Network error:', error);
-          showCustomAlert('Network error. Please check your connection and try again.', 'fa-wifi');
+          let errorMessage = 'Network error. Please check your connection and try again.';
+          if (error instanceof TypeError && error.message.includes('fetch')) {
+            errorMessage = 'Unable to connect to server. Please check your internet connection.';
+          }
+          showCustomAlert(errorMessage, 'fa-wifi');
           this.elements.submitBtn.classList.remove('loading');
           this.elements.submitBtn.disabled = false;
         }
