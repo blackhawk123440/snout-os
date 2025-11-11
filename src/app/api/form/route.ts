@@ -115,16 +115,6 @@ export async function POST(request: NextRequest) {
       pets = [{ name: "Pet 1", species: "Dog" }]; // Default to one pet if none provided
     }
 
-    // Calculate price
-    const priceCalculation = await calculateBookingPrice(
-      service,
-      new Date(startAt),
-      new Date(endAt),
-      pets.length,
-      1, // quantity - will be overridden by timeSlots length if present
-      false // afterHours
-    );
-
     // Helper function to convert 12-hour time to 24-hour format
     const convertTo24Hour = (time12h: string): string => {
       if (!time12h) return '09:00:00';
@@ -262,6 +252,27 @@ export async function POST(request: NextRequest) {
         }
       });
     }
+
+    // Calculate price with correct quantity based on service type
+    let quantity = 1;
+    if (service === "Housesitting" || service === "24/7 Care") {
+      // For house sitting, quantity is number of nights (days)
+      const diffTime = Math.abs(new Date(endAt).getTime() - new Date(startAt).getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      quantity = Math.max(diffDays, 1);
+    } else {
+      // For visit-based services, quantity is number of time slots
+      quantity = timeSlotsData.length > 0 ? timeSlotsData.length : 1;
+    }
+    
+    const priceCalculation = await calculateBookingPrice(
+      service,
+      new Date(startAt),
+      new Date(endAt),
+      pets.length,
+      quantity,
+      false // afterHours
+    );
 
     // Create booking with timeSlots
     const bookingData = {
