@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { calculateBookingPrice } from "@/lib/rates";
 import { formatPhoneForAPI } from "@/lib/phone-format";
 import { formatPetsByQuantity, calculatePriceBreakdown } from "@/lib/booking-utils";
 import { sendOwnerAlert } from "@/lib/sms-templates";
@@ -113,6 +114,16 @@ export async function POST(request: NextRequest) {
     } else {
       pets = [{ name: "Pet 1", species: "Dog" }]; // Default to one pet if none provided
     }
+
+    // Calculate price
+    const priceCalculation = await calculateBookingPrice(
+      service,
+      new Date(startAt),
+      new Date(endAt),
+      pets.length,
+      1, // quantity - will be overridden by timeSlots length if present
+      false // afterHours
+    );
 
     // Helper function to convert 12-hour time to 24-hour format
     const convertTo24Hour = (time12h: string): string => {
@@ -252,28 +263,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Calculate price using the same logic as the dashboard
-    // Create a temporary booking object to use calculatePriceBreakdown
-    const tempBooking = {
-      service,
-      startAt: new Date(startAt),
-      endAt: new Date(endAt),
-      pets: pets.map(p => ({ species: p.species })),
-      quantity: timeSlotsData.length > 0 ? timeSlotsData.length : 1,
-      afterHours: false,
-      holiday: false,
-      timeSlots: timeSlotsData.map(slot => ({
-        startAt: slot.startAt,
-        endAt: slot.endAt,
-        duration: slot.duration,
-      })),
-    };
-    
-    const priceBreakdown = calculatePriceBreakdown(tempBooking);
-    const calculatedTotal = priceBreakdown.total;
-    // Holiday status: true if holidayAdd > 0
-    const holidayApplied = priceBreakdown.holidayAdd > 0;
-
     // Create booking with timeSlots
     const bookingData = {
       firstName,
@@ -287,10 +276,10 @@ export async function POST(request: NextRequest) {
       startAt: new Date(startAt),
       endAt: new Date(endAt),
       status: "pending",
-      totalPrice: calculatedTotal,
+      totalPrice: priceCalculation.total,
       quantity: timeSlotsData.length > 0 ? timeSlotsData.length : 1,
       afterHours: false,
-      holiday: holidayApplied,
+      holiday: priceCalculation.holidayApplied,
       pets: {
         create: pets.map(pet => ({
           name: pet.name,
@@ -317,18 +306,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Recalculate price using the actual booking object to ensure it matches the dashboard exactly
-    const finalPriceBreakdown = calculatePriceBreakdown(booking);
-    const finalCalculatedTotal = finalPriceBreakdown.total;
-
-    // Update stored totalPrice to match the calculated total (in case of any rounding differences)
-    if (Math.abs((booking.totalPrice || 0) - finalCalculatedTotal) > 0.01) {
-      await prisma.booking.update({
-        where: { id: booking.id },
-        data: { totalPrice: finalCalculatedTotal },
-      });
-      booking.totalPrice = finalCalculatedTotal;
-    }
+    // Calculate price breakdown using the same method as the booking details page
+    const breakdown = calculatePriceBreakdown({
+      service: booking.service,
+      startAt: booking.startAt,
+      endAt: booking.endAt,
+      pets: booking.pets,
+      quantity: booking.quantity,
+      afterHours: booking.afterHours,
+      holiday: booking.holiday,
+      timeSlots: booking.timeSlots.map(ts => ({
+        startAt: ts.startAt,
+        endAt: ts.endAt,
+        duration: ts.duration,
+      })),
+    });
 
     // Send SMS confirmation to client (if automation enabled)
     const petQuantities = formatPetsByQuantity(booking.pets);
@@ -351,7 +343,7 @@ export async function POST(request: NextRequest) {
         date: new Date(startAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
         time: new Date(startAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
         petQuantities,
-        totalPrice: finalCalculatedTotal.toFixed(2),
+        totalPrice: breakdown.total.toFixed(2),
       });
       
       console.log(`[form/route] Sending client message to ${phone}`);
@@ -388,7 +380,7 @@ export async function POST(request: NextRequest) {
           date: new Date(startAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
           time: new Date(startAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
           petQuantities,
-          totalPrice: finalCalculatedTotal.toFixed(2),
+          totalPrice: breakdown.total.toFixed(2),
           bookingUrl: bookingDetailsUrl,
         });
         
@@ -414,7 +406,7 @@ export async function POST(request: NextRequest) {
       success: true,
       booking: {
         id: booking.id,
-        totalPrice: finalCalculatedTotal,
+        totalPrice: breakdown.total,
         status: booking.status,
       },
     }, {
