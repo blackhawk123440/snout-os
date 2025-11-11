@@ -2148,23 +2148,11 @@
         font-size: var(--font-size-xs);
       }
 
-      @keyframes modalSlideInMobile {
-        from {
-          opacity: 0;
-          transform: translate(-50%, calc(-50% - 20px)) scale(0.95);
-        }
-        to {
-          opacity: 1;
-          transform: translate(-50%, -50%) scale(1);
-        }
-      }
-
       .time-modal {
         padding: 0 !important;
         margin: 0 !important;
         background: rgba(0, 0, 0, 0.3);
         box-sizing: border-box !important;
-        display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         position: fixed !important;
@@ -2181,7 +2169,7 @@
         width: calc(100% - 16px) !important;
         max-width: 500px !important;
         max-height: calc(100vh - 16px) !important;
-        margin: 0 !important;
+        margin: 8px auto !important;
         border-radius: var(--radius-lg) !important;
         overflow: hidden !important;
         -webkit-overflow-scrolling: touch;
@@ -2189,13 +2177,10 @@
         display: flex !important;
         flex-direction: column !important;
         box-sizing: border-box !important;
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
+        position: relative !important;
         height: auto !important;
-        min-height: 400px !important;
-        animation: modalSlideInMobile 0.3s ease !important;
+        min-height: 350px !important;
+        animation: modalSlideIn 0.3s ease !important;
       }
 
       .time-modal-header {
@@ -2238,12 +2223,11 @@
       .time-modal-content .time-slots-container {
         padding: 8px !important;
         padding-bottom: 50px !important;
-        flex: 1 1 0 !important;
+        flex: 1 1 auto !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
-        min-height: 300px !important;
-        max-height: 100% !important;
-        height: 0 !important;
+        min-height: 250px !important;
+        max-height: none !important;
         -webkit-overflow-scrolling: touch !important;
         overscroll-behavior: contain !important;
         box-sizing: border-box !important;
