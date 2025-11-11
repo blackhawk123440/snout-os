@@ -400,6 +400,7 @@
       background: linear-gradient(135deg, var(--primary-light), transparent);
       opacity: 0;
       transition: opacity var(--transition-base);
+      pointer-events: none;
     }
 
     .service-card:hover {
@@ -3091,9 +3092,17 @@
 
       initializeEventListeners() {
         // Service selection
-        this.elements.serviceCards.forEach(card => {
-          card.addEventListener('click', () => this.selectService(card.dataset.service));
-        });
+        if (this.elements.serviceCards && this.elements.serviceCards.length > 0) {
+          this.elements.serviceCards.forEach(card => {
+            if (card && card.dataset && card.dataset.service) {
+              card.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.selectService(card.dataset.service);
+              });
+            }
+          });
+        }
 
         // Booking type selection
         this.elements.typeCards.forEach(card => {
