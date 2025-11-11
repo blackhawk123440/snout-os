@@ -1752,7 +1752,7 @@
 
     /* Tooltip bubble */
     .tooltip-bubble {
-      position: fixed;
+      position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
@@ -1762,7 +1762,7 @@
       border-radius: var(--radius-lg);
       font-size: var(--font-size-base);
       line-height: 1.6;
-      max-width: 90vw;
+      max-width: 90%;
       width: 320px;
       z-index: 10001;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
@@ -1779,16 +1779,17 @@
     }
 
     .tooltip-overlay {
-      position: fixed;
+      position: absolute;
       top: 0;
       left: 0;
-      right: 0;
-      bottom: 0;
+      width: 100%;
+      height: 100%;
       background: rgba(0, 0, 0, 0.4);
       z-index: 10000;
       opacity: 0;
       visibility: hidden;
       transition: opacity 0.2s ease, visibility 0.2s ease;
+      border-radius: var(--radius-lg);
     }
 
     .tooltip-overlay.show {
@@ -4817,6 +4818,13 @@
       // Remove existing tooltip if any
       hideTooltip();
 
+      // Find the active form section
+      const activeSection = document.querySelector('.form-section.active');
+      if (!activeSection) {
+        console.error('No active form section found');
+        return;
+      }
+
       // Create overlay
       tooltipOverlay = document.createElement('div');
       tooltipOverlay.className = 'tooltip-overlay';
@@ -4826,9 +4834,9 @@
       tooltipBubble.className = 'tooltip-bubble';
       tooltipBubble.textContent = message;
 
-      // Add to page
-      document.body.appendChild(tooltipOverlay);
-      document.body.appendChild(tooltipBubble);
+      // Add to active form section
+      activeSection.appendChild(tooltipOverlay);
+      activeSection.appendChild(tooltipBubble);
 
       // Trigger animation
       requestAnimationFrame(() => {
