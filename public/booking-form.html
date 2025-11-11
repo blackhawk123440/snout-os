@@ -1161,36 +1161,11 @@
       padding: var(--space-lg);
       padding-bottom: calc(var(--space-lg) + 40px) !important; /* Reduced padding - just enough to see last item */
       flex: 1 1 0;
-      overflow-y: auto !important;
-      overflow-x: hidden !important;
+      overflow: hidden !important;
       min-height: 400px;
       max-height: 100%;
-      height: 0;
-      -webkit-overflow-scrolling: auto !important;
-      overscroll-behavior: none !important;
-      overscroll-behavior-y: none !important;
-      overscroll-behavior-x: none !important;
-      -webkit-overscroll-behavior: none !important;
-      -webkit-overscroll-behavior-y: none !important;
-      -webkit-overscroll-behavior-x: none !important;
-      transform: translateZ(0);
-      -webkit-transform: translateZ(0);
-      contain: layout style paint;
-      scroll-behavior: auto !important;
+      height: auto;
       position: relative;
-      /* Disable momentum scrolling on iOS */
-      -webkit-momentum-scrolling: disabled;
-      touch-action: pan-y;
-      will-change: scroll-position;
-    }
-    
-    /* iOS specific fixes to prevent bounce */
-    @supports (-webkit-touch-callout: none) {
-      .time-slots-container {
-        -webkit-overflow-scrolling: auto !important;
-        overscroll-behavior-y: none !important;
-        -webkit-overscroll-behavior-y: none !important;
-      }
     }
 
     .time-slots-grid {
@@ -2241,26 +2216,11 @@
         padding: var(--space-lg) !important;
         padding-bottom: calc(var(--space-lg) + 40px) !important;
         flex: 1 1 0 !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
+        overflow: hidden !important;
         min-height: 340px !important;
         max-height: 100% !important;
-        height: 0 !important;
-        -webkit-overflow-scrolling: auto !important;
-        overscroll-behavior: none !important;
-        overscroll-behavior-y: none !important;
-        overscroll-behavior-x: none !important;
-        -webkit-overscroll-behavior: none !important;
-        -webkit-overscroll-behavior-y: none !important;
-        -webkit-overscroll-behavior-x: none !important;
-        transform: translateZ(0) !important;
-        -webkit-transform: translateZ(0) !important;
-        contain: layout style paint !important;
-        scroll-behavior: auto !important;
+        height: auto !important;
         position: relative !important;
-        -webkit-momentum-scrolling: disabled !important;
-        touch-action: pan-y !important;
-        will-change: scroll-position !important;
         box-sizing: border-box !important;
         width: 100% !important;
       }
