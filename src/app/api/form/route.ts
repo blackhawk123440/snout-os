@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { calculateBookingPrice } from "@/lib/rates";
 import { formatPhoneForAPI } from "@/lib/phone-format";
-import { formatPetsByQuantity } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown } from "@/lib/booking-utils";
 import { sendOwnerAlert } from "@/lib/sms-templates";
 import { getOwnerPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
@@ -253,24 +253,33 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Calculate price with correct quantity based on service type
-    let quantity = 1;
-    if (service === "Housesitting" || service === "24/7 Care") {
-      // For house sitting, quantity is number of nights (days)
-      const diffTime = Math.abs(new Date(endAt).getTime() - new Date(startAt).getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      quantity = Math.max(diffDays, 1);
-    } else {
-      // For visit-based services, quantity is number of time slots
-      quantity = timeSlotsData.length > 0 ? timeSlotsData.length : 1;
-    }
+    // Calculate price using the same logic as the dashboard
+    // Create a temporary booking object to use calculatePriceBreakdown
+    const tempBooking = {
+      service,
+      startAt: new Date(startAt),
+      endAt: new Date(endAt),
+      pets: pets.map(p => ({ species: p.species })),
+      quantity: timeSlotsData.length > 0 ? timeSlotsData.length : 1,
+      afterHours: false,
+      holiday: false,
+      timeSlots: timeSlotsData.map(slot => ({
+        startAt: slot.startAt,
+        endAt: slot.endAt,
+        duration: slot.duration,
+      })),
+    };
     
+    const priceBreakdown = calculatePriceBreakdown(tempBooking);
+    const calculatedTotal = priceBreakdown.total;
+    
+    // Also get holiday status for storing
     const priceCalculation = await calculateBookingPrice(
       service,
       new Date(startAt),
       new Date(endAt),
       pets.length,
-      quantity,
+      timeSlotsData.length > 0 ? timeSlotsData.length : 1,
       false // afterHours
     );
 
@@ -287,7 +296,7 @@ export async function POST(request: NextRequest) {
       startAt: new Date(startAt),
       endAt: new Date(endAt),
       status: "pending",
-      totalPrice: priceCalculation.total,
+      totalPrice: calculatedTotal,
       quantity: timeSlotsData.length > 0 ? timeSlotsData.length : 1,
       afterHours: false,
       holiday: priceCalculation.holidayApplied,
@@ -338,7 +347,7 @@ export async function POST(request: NextRequest) {
         date: new Date(startAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
         time: new Date(startAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
         petQuantities,
-        totalPrice: priceCalculation.total.toFixed(2),
+        totalPrice: calculatedTotal.toFixed(2),
       });
       
       console.log(`[form/route] Sending client message to ${phone}`);
@@ -375,7 +384,7 @@ export async function POST(request: NextRequest) {
           date: new Date(startAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
           time: new Date(startAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
           petQuantities,
-          totalPrice: priceCalculation.total.toFixed(2),
+          totalPrice: calculatedTotal.toFixed(2),
           bookingUrl: bookingDetailsUrl,
         });
         
@@ -401,7 +410,7 @@ export async function POST(request: NextRequest) {
       success: true,
       booking: {
         id: booking.id,
-        totalPrice: priceCalculation.total,
+        totalPrice: calculatedTotal,
         status: booking.status,
       },
     }, {
