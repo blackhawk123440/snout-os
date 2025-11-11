@@ -3143,7 +3143,23 @@
         });
 
         // Submit button
-        this.elements.submitBtn.addEventListener('click', () => this.submitForm());
+        if (this.elements.submitBtn) {
+          this.elements.submitBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Submit button clicked');
+            this.submitForm().catch(error => {
+              console.error('Error in submitForm:', error);
+              showCustomAlert('An error occurred while submitting. Please try again.', 'fa-circle-exclamation');
+              if (this.elements.submitBtn) {
+                this.elements.submitBtn.classList.remove('loading');
+                this.elements.submitBtn.disabled = false;
+              }
+            });
+          });
+        } else {
+          console.error('Submit button not found!');
+        }
 
         // Start new booking
         this.elements.startNewBtn.addEventListener('click', () => this.startNewBooking());
@@ -3424,9 +3440,10 @@
           console.warn(`Button for step ${this.state.currentStep} not found`);
         }
 
-        // Update submit button
-        if (this.elements.submitBtn) {
+        // Update submit button (only on step 6 - contact info)
+        if (this.elements.submitBtn && this.state.currentStep === 6) {
           this.elements.submitBtn.disabled = !isValid;
+          console.log('Submit button updated:', { isValid, disabled: this.elements.submitBtn.disabled, currentStep: this.state.currentStep });
         }
 
         // Update apply all button (only on step 4)
@@ -3710,8 +3727,29 @@
       }
 
       async submitForm() {
-        // Validate step 6 (contact info) for all services
-        if (!this.state.validateStep(6)) return;
+        const isPetTaxi = this.state.selectedService === 'pet-taxi';
+        const currentStep = this.state.currentStep;
+        
+        console.log('submitForm called', { currentStep, isPetTaxi, selectedService: this.state.selectedService });
+        
+        // Validate current step (should be 6 for contact info)
+        if (!this.state.validateStep(currentStep)) {
+          console.error('Form validation failed for step', currentStep);
+          const validationErrors = [];
+          if (!document.getElementById('firstName')?.value.trim()) validationErrors.push('First name is required');
+          if (!document.getElementById('lastName')?.value.trim()) validationErrors.push('Last name is required');
+          if (!document.getElementById('email')?.value.trim()) validationErrors.push('Email is required');
+          if (!document.getElementById('phone')?.value.trim()) validationErrors.push('Phone is required');
+          if (!isPetTaxi && !document.getElementById('address')?.value.trim()) validationErrors.push('Address is required');
+          if (isPetTaxi && !document.getElementById('pickupAddress')?.value.trim()) validationErrors.push('Pickup address is required');
+          if (isPetTaxi && !document.getElementById('dropoffAddress')?.value.trim()) validationErrors.push('Dropoff address is required');
+          if (!document.getElementById('policyAgreement')?.checked) validationErrors.push('Terms agreement is required');
+          
+          showCustomAlert(`Please fill in all required fields:\n${validationErrors.join('\n')}`, 'fa-circle-exclamation');
+          return;
+        }
+
+        console.log('Submitting form...', { service: this.state.selectedService, isPetTaxi });
 
         // Collect contact information
         this.state.contactInfo = {
@@ -3719,10 +3757,10 @@
           lastName: document.getElementById('lastName').value,
           email: document.getElementById('email').value,
           phone: document.getElementById('phone').value,
-          address: isPetTaxi ? null : document.getElementById('address').value,
-          pickupAddress: isPetTaxi ? document.getElementById('pickupAddress').value : null,
-          dropoffAddress: isPetTaxi ? document.getElementById('dropoffAddress').value : null,
-          notes: document.getElementById('notes').value,
+          address: isPetTaxi ? null : document.getElementById('address')?.value || null,
+          pickupAddress: isPetTaxi ? document.getElementById('pickupAddress')?.value || null : null,
+          dropoffAddress: isPetTaxi ? document.getElementById('dropoffAddress')?.value || null : null,
+          notes: document.getElementById('notes')?.value || null,
         };
 
         // Show loading state
@@ -3832,7 +3870,7 @@
             console.log('✅ Booking created:', data);
             // Clear auto-save after successful submission
             this.state.clearState();
-            this.setupStep(6);
+            this.setupStep(7); // Step 7 is confirmation
             // Update iframe height for confirmation page
             setTimeout(() => {
               if (typeof sendHeightToParent === 'function') {
