@@ -3934,7 +3934,42 @@
         const time24h = convertTo24Hour(firstTime?.time || '09:00 AM');
         const startDateTime = `${firstDate}T${time24h}`;
         const duration = firstTime?.duration || 30;
-        const endDateTime = new Date(new Date(startDateTime).getTime() + duration * 60000).toISOString();
+        
+        // For house sitting and 24/7 care, calculate endAt based on last selected date
+        let endDateTime;
+        let quantity;
+        const isHouseSittingService = serviceName === 'Housesitting' || serviceName === '24/7 Care';
+        
+        if (isHouseSittingService && this.state.selectedDates.length > 1) {
+          // For house sitting, use the last selected date as end date
+          const sortedDates = [...this.state.selectedDates].sort();
+          const lastDate = sortedDates[sortedDates.length - 1];
+          // Get the last time from the last date, or use end of day
+          const lastDateTimes = this.state.dateTimes[lastDate] || [];
+          const lastTime = lastDateTimes.length > 0 ? lastDateTimes[lastDateTimes.length - 1] : null;
+          
+          if (lastTime && lastTime.time) {
+            const lastTime24h = convertTo24Hour(lastTime.time);
+            endDateTime = new Date(`${lastDate}T${lastTime24h}`).toISOString();
+          } else {
+            // Use end of day for last date
+            endDateTime = new Date(`${lastDate}T23:59:59`).toISOString();
+          }
+          
+          // Quantity for house sitting is number of nights (number of days - 1)
+          quantity = sortedDates.length - 1;
+        } else {
+          // For other services, calculate endAt based on duration
+          endDateTime = new Date(new Date(startDateTime).getTime() + duration * 60000).toISOString();
+          
+          // Quantity for other services is total time slots
+          quantity = this.state.selectedDates.length > 0 ? (() => {
+            // Count total time slots across all dates
+            return this.state.selectedDates.reduce((total, date) => {
+              return total + (this.state.dateTimes[date]?.length || 0);
+            }, 0);
+          })() : 1;
+        }
 
         // Build API payload
         const payload = {
@@ -3947,12 +3982,7 @@
           dropoffAddress: this.state.contactInfo.dropoffAddress || undefined,
           service: serviceName,
           minutes: duration,
-          quantity: this.state.selectedDates.length > 0 ? (() => {
-            // Count total time slots across all dates
-            return this.state.selectedDates.reduce((total, date) => {
-              return total + (this.state.dateTimes[date]?.length || 0);
-            }, 0);
-          })() : 1,
+          quantity: quantity,
           startAt: new Date(startDateTime).toISOString(),
           endAt: endDateTime,
           pets: pets.length > 0 ? pets : [{ name: 'Pet', species: 'Dog' }],
