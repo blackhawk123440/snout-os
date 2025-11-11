@@ -2915,7 +2915,6 @@
         if (savedState) {
           // Restore from auto-save
           Object.assign(this, savedState);
-          // Form data restored from auto-save
         } else {
           // Initialize fresh state
           this.currentStep = 1;
@@ -2929,26 +2928,37 @@
           this.isHouseSitting = false;
           this.is24SevenCare = false;
         }
+        
+        // Debounce timer for state saves
+        this.saveTimer = null;
       }
 
       saveState() {
-        try {
-          const stateToSave = {
-            currentStep: this.currentStep,
-            selectedService: this.selectedService,
-            selectedType: this.selectedType,
-            pets: this.pets,
-            selectedDates: this.selectedDates,
-            dateTimes: this.dateTimes,
-            contactInfo: this.contactInfo,
-            isHouseSitting: this.isHouseSitting,
-            is24SevenCare: this.is24SevenCare,
-            timestamp: Date.now()
-          };
-          localStorage.setItem('snoutBookingForm', JSON.stringify(stateToSave));
-        } catch (e) {
-          console.error('Failed to save form state:', e);
+        // Clear existing timer
+        if (this.saveTimer) {
+          clearTimeout(this.saveTimer);
         }
+        
+        // Debounce state saves to improve performance
+        this.saveTimer = setTimeout(() => {
+          try {
+            const stateToSave = {
+              currentStep: this.currentStep,
+              selectedService: this.selectedService,
+              selectedType: this.selectedType,
+              pets: this.pets,
+              selectedDates: this.selectedDates,
+              dateTimes: this.dateTimes,
+              contactInfo: this.contactInfo,
+              isHouseSitting: this.isHouseSitting,
+              is24SevenCare: this.is24SevenCare,
+              timestamp: Date.now()
+            };
+            localStorage.setItem('snoutBookingForm', JSON.stringify(stateToSave));
+          } catch (e) {
+            // Silently fail - localStorage might be disabled
+          }
+        }, 300); // Debounce by 300ms
       }
 
       loadState() {
@@ -3050,13 +3060,14 @@
           return false;
         }
         
-        // Check address (only for non-pet-taxi services)
+        // Check address (only for non-pet-taxi and non-house-sitting services)
         const isPetTaxi = this.selectedService === 'pet-taxi';
-        if (!isPetTaxi) {
+        const isHouseSitting = this.selectedService === 'pet-sitting';
+        if (!isPetTaxi && !isHouseSitting) {
           const address = document.getElementById('address')?.value.trim();
-          return address;
+          return !!address;
         }
-        return true; // Pet taxi address validation is in step 6
+        return true; // Pet taxi and house sitting don't require address in step 6
       }
 
       isPetTaxiFormValid() {
@@ -3073,25 +3084,9 @@
         this.elements = this.initializeElements();
         this.calendar = new CalendarController();
         this.timeModal = new TimeModalController();
-        // Debounce validation to improve performance
-        this.debouncedValidateContact = this.debounce(() => this.validateContactForm(), 300);
-        this.debouncedValidatePetTaxi = this.debounce(() => this.validatePetTaxiForm(), 300);
         this.initializeEventListeners();
         this.restoreVisualState();
         this.setupStep(this.state.currentStep || 1);
-      }
-      
-      // Debounce utility function
-      debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-          const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-          };
-          clearTimeout(timeout);
-          timeout = setTimeout(later, wait);
-        };
       }
       
       restoreVisualState() {
@@ -3116,6 +3111,16 @@
             input.value = this.state.pets[type] || 0;
           }
         });
+        
+        // Restore contact form values
+        if (this.state.contactInfo) {
+          Object.keys(this.state.contactInfo).forEach(key => {
+            const input = document.getElementById(key);
+            if (input && this.state.contactInfo[key]) {
+              input.value = this.state.contactInfo[key];
+            }
+          });
+        }
       }
 
       initializeElements() {
@@ -3157,11 +3162,6 @@
 
       initializeEventListeners() {
         // Service selection
-        if (!this.elements.serviceCards || this.elements.serviceCards.length === 0) {
-          console.error('Service cards not found!');
-          return;
-        }
-        
         this.elements.serviceCards.forEach(card => {
           const service = card.dataset.service;
           if (service) {
@@ -3212,7 +3212,6 @@
             e.preventDefault();
             e.stopPropagation();
             this.submitForm().catch(error => {
-              console.error('Error in submitForm:', error);
               showCustomAlert('An error occurred while submitting. Please try again.', 'fa-circle-exclamation');
               if (this.elements.submitBtn) {
                 this.elements.submitBtn.classList.remove('loading');
@@ -3220,8 +3219,6 @@
               }
             });
           });
-        } else {
-          console.error('Submit button not found!');
         }
 
         // Start new booking
@@ -3232,24 +3229,46 @@
           this.elements.applyAllBtn.addEventListener('click', () => this.applyFirstDateTimesToAll());
         }
 
-        // Contact form validation - validate on blur for better UX, debounced on input
+        // Contact form validation and auto-save
         this.elements.contactInputs.forEach(input => {
-          input.addEventListener('blur', () => this.validateContactForm());
-          input.addEventListener('input', () => this.debouncedValidateContact());
+          input.addEventListener('input', () => {
+            this.validateContactForm();
+            // Auto-save contact info
+            if (!this.state.contactInfo) {
+              this.state.contactInfo = {};
+            }
+            this.state.contactInfo[input.id] = input.value;
+            this.state.saveState();
+          });
         });
 
-        this.elements.policyCheckbox.addEventListener('change', () => this.validateContactForm());
+        this.elements.policyCheckbox.addEventListener('change', () => {
+          this.validateContactForm();
+          this.state.saveState();
+        });
 
-        // Pet taxi form validation - validate on blur for better UX, debounced on input
+        // Pet taxi form validation and auto-save
         const pickupAddressInput = document.getElementById('pickupAddress');
         const dropoffAddressInput = document.getElementById('dropoffAddress');
         if (pickupAddressInput) {
-          pickupAddressInput.addEventListener('blur', () => this.validatePetTaxiForm());
-          pickupAddressInput.addEventListener('input', () => this.debouncedValidatePetTaxi());
+          pickupAddressInput.addEventListener('input', () => {
+            this.validatePetTaxiForm();
+            if (!this.state.contactInfo) {
+              this.state.contactInfo = {};
+            }
+            this.state.contactInfo.pickupAddress = pickupAddressInput.value;
+            this.state.saveState();
+          });
         }
         if (dropoffAddressInput) {
-          dropoffAddressInput.addEventListener('blur', () => this.validatePetTaxiForm());
-          dropoffAddressInput.addEventListener('input', () => this.debouncedValidatePetTaxi());
+          dropoffAddressInput.addEventListener('input', () => {
+            this.validatePetTaxiForm();
+            if (!this.state.contactInfo) {
+              this.state.contactInfo = {};
+            }
+            this.state.contactInfo.dropoffAddress = dropoffAddressInput.value;
+            this.state.saveState();
+          });
         }
 
         // Close pet dropdown when clicking outside
@@ -3279,7 +3298,7 @@
           if (houseSittingOptions) {
             houseSittingOptions.style.display = this.state.isHouseSitting ? 'block' : 'none';
           }
-          // Restore visual state of 24/7 care option if it was previously selected
+          // Restore 24/7 care option state
           if (this.elements.houseSittingOption) {
             this.elements.houseSittingOption.classList.toggle('selected', this.state.is24SevenCare);
           }
@@ -3373,8 +3392,6 @@
 
         this.updateButtonStates();
         this.state.saveState(); // Auto-save
-        
-        // Service selected
       }
 
       resetServiceSpecificData() {
@@ -3858,7 +3875,6 @@
         
         // Validate current step (should be 6 for contact info)
         if (!this.state.validateStep(currentStep)) {
-          
           // Show inline errors for all missing fields
           const firstName = document.getElementById('firstName')?.value.trim() || '';
           const lastName = document.getElementById('lastName')?.value.trim() || '';
@@ -3897,8 +3913,6 @@
           
           return;
         }
-
-        // Submitting form
 
         // Collect contact information
         this.state.contactInfo = {
@@ -4033,21 +4047,14 @@
           // Send to API
           const apiUrl = window.location.origin + '/api/form';
           
-          // Add timeout to prevent hanging requests
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-          
           const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(payload),
-            signal: controller.signal
+            body: JSON.stringify(payload)
           });
 
-          clearTimeout(timeoutId);
-          
           let data;
           try {
             data = await response.json();
@@ -4056,7 +4063,6 @@
           }
 
           if (response.ok) {
-            // Booking created successfully
             // Clear auto-save after successful submission
             this.state.clearState();
             this.setupStep(7); // Step 7 is confirmation
@@ -4074,15 +4080,11 @@
           }
         } catch (error) {
           let errorMessage = 'Network error. Please check your connection and try again.';
-          
-          if (error.name === 'AbortError') {
-            errorMessage = 'Request timed out. Please try again.';
-          } else if (error instanceof TypeError && error.message.includes('fetch')) {
+          if (error instanceof TypeError && error.message.includes('fetch')) {
             errorMessage = 'Unable to connect to server. Please check your connection and try again.';
           } else if (error instanceof Error) {
             errorMessage = error.message;
           }
-          
           showCustomAlert(errorMessage, 'fa-wifi');
           this.elements.submitBtn.classList.remove('loading');
           this.elements.submitBtn.disabled = false;
