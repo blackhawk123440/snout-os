@@ -1351,6 +1351,20 @@
       display: block;
     }
 
+    .field-error {
+      font-size: var(--font-size-xs);
+      color: var(--error);
+      margin-top: var(--space-xs);
+      padding: var(--space-xs);
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: var(--radius-sm);
+      display: none;
+    }
+
+    .field-error.show {
+      display: block;
+    }
+
     .contact-textarea {
       resize: vertical;
       min-height: 100px;
@@ -2751,10 +2765,12 @@
               <div class="contact-group">
                 <label class="contact-label" for="pickupAddress">Pickup Address</label>
                 <input type="text" class="contact-input" id="pickupAddress" name="pickupAddress" placeholder="Enter pickup location" required>
+                <div class="field-error" id="pickupAddressError" style="display: none;"></div>
               </div>
               <div class="contact-group">
                 <label class="contact-label" for="dropoffAddress">Dropoff Address</label>
                 <input type="text" class="contact-input" id="dropoffAddress" name="dropoffAddress" placeholder="Enter dropoff location" required>
+                <div class="field-error" id="dropoffAddressError" style="display: none;"></div>
               </div>
             </div>
           </div>
@@ -2790,26 +2806,31 @@
             <div class="contact-group">
               <label class="contact-label" for="firstName">First Name</label>
               <input type="text" class="contact-input" id="firstName" name="firstName" placeholder="Enter your first name" required>
+              <div class="field-error" id="firstNameError" style="display: none;"></div>
             </div>
             <div class="contact-group">
               <label class="contact-label" for="lastName">Last Name</label>
               <input type="text" class="contact-input" id="lastName" name="lastName" placeholder="Enter your last name" required>
+              <div class="field-error" id="lastNameError" style="display: none;"></div>
             </div>
           </div>
           
           <div class="contact-group">
             <label class="contact-label" for="email">Email Address</label>
             <input type="email" class="contact-input" id="email" name="email" placeholder="Enter your email address" required>
+            <div class="field-error" id="emailError" style="display: none;"></div>
           </div>
           
           <div class="contact-group">
             <label class="contact-label" for="phone">Phone Number</label>
             <input type="tel" class="contact-input" id="phone" name="phone" placeholder="Enter your phone number" required>
+            <div class="field-error" id="phoneError" style="display: none;"></div>
           </div>
           
           <div class="contact-group" id="regularAddressGroup">
             <label class="contact-label" for="address">Service Address</label>
             <input type="text" class="contact-input" id="address" name="address" placeholder="Enter your address" required>
+            <div class="field-error" id="addressError" style="display: none;"></div>
           </div>
           
           <div class="contact-group">
@@ -2823,6 +2844,7 @@
           <label for="policyAgreement" class="policy-text">
             I agree to the <a href="#" style="color: var(--primary); text-decoration: underline;">Terms of Service</a> and <a href="#" style="color: var(--primary); text-decoration: underline;">Privacy Policy</a>
           </label>
+          <div class="field-error" id="policyError" style="display: none;"></div>
         </div>
         </form>
 
@@ -3624,70 +3646,126 @@
         }
       }
 
+      showFieldError(fieldId, message) {
+        const errorElement = document.getElementById(`${fieldId}Error`);
+        const inputElement = document.getElementById(fieldId);
+        if (errorElement) {
+          errorElement.textContent = message;
+          errorElement.style.display = 'block';
+          errorElement.classList.add('show');
+        }
+        if (inputElement) {
+          inputElement.classList.add('invalid');
+          inputElement.classList.remove('valid');
+        }
+      }
+
+      hideFieldError(fieldId) {
+        const errorElement = document.getElementById(`${fieldId}Error`);
+        const inputElement = document.getElementById(fieldId);
+        if (errorElement) {
+          errorElement.textContent = '';
+          errorElement.style.display = 'none';
+          errorElement.classList.remove('show');
+        }
+        if (inputElement) {
+          inputElement.classList.remove('invalid');
+        }
+      }
+
+      clearAllErrors() {
+        const errorFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'pickupAddress', 'dropoffAddress', 'policy'];
+        errorFields.forEach(fieldId => this.hideFieldError(fieldId));
+      }
+
       validateContactForm() {
         // Validate required fields
-        const firstName = document.getElementById('firstName').value.trim();
-        const lastName = document.getElementById('lastName').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const phone = document.getElementById('phone').value.trim();
-        const policyAgreed = document.getElementById('policyAgreement').checked;
+        const firstName = document.getElementById('firstName')?.value.trim() || '';
+        const lastName = document.getElementById('lastName')?.value.trim() || '';
+        const email = document.getElementById('email')?.value.trim() || '';
+        const phone = document.getElementById('phone')?.value.trim() || '';
+        const policyAgreed = document.getElementById('policyAgreement')?.checked || false;
         
-        // Real-time validation for first name
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phoneRegex = /^[\d\s\-\(\)+]+$/;
+        
+        // Clear all errors first
+        this.clearAllErrors();
+        
+        // Validate first name
         const firstNameInput = document.getElementById('firstName');
         if (firstName) {
-          firstNameInput.classList.remove('invalid');
-          firstNameInput.classList.add('valid');
-        } else if (firstNameInput.value) {
-          firstNameInput.classList.add('invalid');
-          firstNameInput.classList.remove('valid');
+          this.hideFieldError('firstName');
+          firstNameInput?.classList.remove('invalid');
+          firstNameInput?.classList.add('valid');
+        } else if (firstNameInput?.value) {
+          this.showFieldError('firstName', 'First name is required');
         }
         
-        // Real-time validation for last name
+        // Validate last name
         const lastNameInput = document.getElementById('lastName');
         if (lastName) {
-          lastNameInput.classList.remove('invalid');
-          lastNameInput.classList.add('valid');
-        } else if (lastNameInput.value) {
-          lastNameInput.classList.add('invalid');
-          lastNameInput.classList.remove('valid');
+          this.hideFieldError('lastName');
+          lastNameInput?.classList.remove('invalid');
+          lastNameInput?.classList.add('valid');
+        } else if (lastNameInput?.value) {
+          this.showFieldError('lastName', 'Last name is required');
         }
         
-        // Real-time validation for email
+        // Validate email
         const emailInput = document.getElementById('email');
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (email && emailRegex.test(email)) {
-          emailInput.classList.remove('invalid');
-          emailInput.classList.add('valid');
-        } else if (emailInput.value) {
-          emailInput.classList.add('invalid');
-          emailInput.classList.remove('valid');
+          this.hideFieldError('email');
+          emailInput?.classList.remove('invalid');
+          emailInput?.classList.add('valid');
+        } else if (emailInput?.value) {
+          this.showFieldError('email', email ? 'Please enter a valid email address' : 'Email is required');
         }
         
-        // Real-time validation for phone
+        // Validate phone
         const phoneInput = document.getElementById('phone');
-        const phoneRegex = /^[\d\s\-\(\)+]+$/;
         if (phone && phone.length >= 10 && phoneRegex.test(phone)) {
-          phoneInput.classList.remove('invalid');
-          phoneInput.classList.add('valid');
-        } else if (phoneInput.value) {
-          phoneInput.classList.add('invalid');
-          phoneInput.classList.remove('valid');
+          this.hideFieldError('phone');
+          phoneInput?.classList.remove('invalid');
+          phoneInput?.classList.add('valid');
+        } else if (phoneInput?.value) {
+          this.showFieldError('phone', phone.length < 10 ? 'Phone number must be at least 10 digits' : 'Phone is required');
         }
-        
-        let isValid = firstName && lastName && email && emailRegex.test(email) && phone && phone.length >= 10 && policyAgreed;
         
         // Validate address (only for non-pet-taxi services)
         const isPetTaxi = this.state.selectedService === 'pet-taxi';
         if (!isPetTaxi) {
-          const address = document.getElementById('address').value.trim();
+          const address = document.getElementById('address')?.value.trim() || '';
           const addressInput = document.getElementById('address');
           if (address) {
-            addressInput.classList.remove('invalid');
-            addressInput.classList.add('valid');
-          } else if (addressInput.value) {
-            addressInput.classList.add('invalid');
-            addressInput.classList.remove('valid');
+            this.hideFieldError('address');
+            addressInput?.classList.remove('invalid');
+            addressInput?.classList.add('valid');
+          } else if (addressInput?.value) {
+            this.showFieldError('address', 'Service address is required');
           }
+        }
+        
+        // Validate policy agreement
+        if (!policyAgreed) {
+          const policyError = document.getElementById('policyError');
+          if (policyError) {
+            policyError.textContent = 'You must agree to the Terms of Service and Privacy Policy';
+            policyError.style.display = 'block';
+            policyError.classList.add('show');
+          }
+        } else {
+          const policyError = document.getElementById('policyError');
+          if (policyError) {
+            policyError.textContent = '';
+            policyError.style.display = 'none';
+            policyError.classList.remove('show');
+          }
+        }
+        
+        let isValid = firstName && lastName && email && emailRegex.test(email) && phone && phone.length >= 10 && phoneRegex.test(phone) && policyAgreed;
+        if (!isPetTaxi) {
+          const address = document.getElementById('address')?.value.trim() || '';
           isValid = isValid && address;
         }
         
@@ -3697,27 +3775,31 @@
       }
 
       validatePetTaxiForm() {
-        const pickupAddress = document.getElementById('pickupAddress').value.trim();
-        const dropoffAddress = document.getElementById('dropoffAddress').value.trim();
+        const pickupAddress = document.getElementById('pickupAddress')?.value.trim() || '';
+        const dropoffAddress = document.getElementById('dropoffAddress')?.value.trim() || '';
+        
+        // Clear errors first
+        this.hideFieldError('pickupAddress');
+        this.hideFieldError('dropoffAddress');
         
         // Real-time validation for pickup address
         const pickupInput = document.getElementById('pickupAddress');
         if (pickupAddress) {
-          pickupInput.classList.remove('invalid');
-          pickupInput.classList.add('valid');
-        } else if (pickupInput.value) {
-          pickupInput.classList.add('invalid');
-          pickupInput.classList.remove('valid');
+          this.hideFieldError('pickupAddress');
+          pickupInput?.classList.remove('invalid');
+          pickupInput?.classList.add('valid');
+        } else if (pickupInput?.value) {
+          this.showFieldError('pickupAddress', 'Pickup address is required');
         }
         
         // Real-time validation for dropoff address
         const dropoffInput = document.getElementById('dropoffAddress');
         if (dropoffAddress) {
-          dropoffInput.classList.remove('invalid');
-          dropoffInput.classList.add('valid');
-        } else if (dropoffInput.value) {
-          dropoffInput.classList.add('invalid');
-          dropoffInput.classList.remove('valid');
+          this.hideFieldError('dropoffAddress');
+          dropoffInput?.classList.remove('invalid');
+          dropoffInput?.classList.add('valid');
+        } else if (dropoffInput?.value) {
+          this.showFieldError('dropoffAddress', 'Dropoff address is required');
         }
         
         const isValid = pickupAddress && dropoffAddress;
@@ -3735,17 +3817,43 @@
         // Validate current step (should be 6 for contact info)
         if (!this.state.validateStep(currentStep)) {
           console.error('Form validation failed for step', currentStep);
-          const validationErrors = [];
-          if (!document.getElementById('firstName')?.value.trim()) validationErrors.push('First name is required');
-          if (!document.getElementById('lastName')?.value.trim()) validationErrors.push('Last name is required');
-          if (!document.getElementById('email')?.value.trim()) validationErrors.push('Email is required');
-          if (!document.getElementById('phone')?.value.trim()) validationErrors.push('Phone is required');
-          if (!isPetTaxi && !document.getElementById('address')?.value.trim()) validationErrors.push('Address is required');
-          if (isPetTaxi && !document.getElementById('pickupAddress')?.value.trim()) validationErrors.push('Pickup address is required');
-          if (isPetTaxi && !document.getElementById('dropoffAddress')?.value.trim()) validationErrors.push('Dropoff address is required');
-          if (!document.getElementById('policyAgreement')?.checked) validationErrors.push('Terms agreement is required');
           
-          showCustomAlert(`Please fill in all required fields:\n${validationErrors.join('\n')}`, 'fa-circle-exclamation');
+          // Show inline errors for all missing fields
+          const firstName = document.getElementById('firstName')?.value.trim() || '';
+          const lastName = document.getElementById('lastName')?.value.trim() || '';
+          const email = document.getElementById('email')?.value.trim() || '';
+          const phone = document.getElementById('phone')?.value.trim() || '';
+          const policyAgreed = document.getElementById('policyAgreement')?.checked || false;
+          
+          if (!firstName) this.showFieldError('firstName', 'First name is required');
+          if (!lastName) this.showFieldError('lastName', 'Last name is required');
+          if (!email) this.showFieldError('email', 'Email is required');
+          if (!phone) this.showFieldError('phone', 'Phone is required');
+          if (!policyAgreed) {
+            const policyError = document.getElementById('policyError');
+            if (policyError) {
+              policyError.textContent = 'You must agree to the Terms of Service and Privacy Policy';
+              policyError.style.display = 'block';
+              policyError.classList.add('show');
+            }
+          }
+          
+          if (!isPetTaxi) {
+            const address = document.getElementById('address')?.value.trim() || '';
+            if (!address) this.showFieldError('address', 'Service address is required');
+          } else {
+            const pickupAddress = document.getElementById('pickupAddress')?.value.trim() || '';
+            const dropoffAddress = document.getElementById('dropoffAddress')?.value.trim() || '';
+            if (!pickupAddress) this.showFieldError('pickupAddress', 'Pickup address is required');
+            if (!dropoffAddress) this.showFieldError('dropoffAddress', 'Dropoff address is required');
+          }
+          
+          // Scroll to first error
+          const firstError = document.querySelector('.field-error.show');
+          if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          
           return;
         }
 
