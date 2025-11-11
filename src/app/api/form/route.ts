@@ -263,12 +263,52 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // For house sitting and 24/7 care, calculate quantity based on number of nights
+    // For other services, use timeSlots length
+    const isHouseSittingService = service === "Housesitting" || service === "24/7 Care";
+    let quantity: number;
+    let bookingStartAt = startAt;
+    let bookingEndAt = endAt;
+    
+    if (isHouseSittingService && selectedDates && Array.isArray(selectedDates) && selectedDates.length > 1) {
+      // For house sitting, quantity is number of nights (number of days - 1)
+      const sortedDates = [...selectedDates].sort();
+      quantity = sortedDates.length - 1;
+      
+      // Update startAt and endAt to use first and last dates
+      const firstDate = sortedDates[0];
+      const lastDate = sortedDates[sortedDates.length - 1];
+      
+      // Get times from first and last dates
+      const firstDateTimes = parsedDateTimes[firstDate] || [];
+      const lastDateTimes = parsedDateTimes[lastDate] || [];
+      
+      const firstTime = firstDateTimes.length > 0 ? firstDateTimes[0] : null;
+      const lastTime = lastDateTimes.length > 0 ? lastDateTimes[lastDateTimes.length - 1] : null;
+      
+      if (firstTime && firstTime.time) {
+        const time24h = convertTo24Hour(firstTime.time);
+        bookingStartAt = `${firstDate}T${time24h}`;
+      } else {
+        bookingStartAt = `${firstDate}T09:00:00`;
+      }
+      
+      if (lastTime && lastTime.time) {
+        const time24h = convertTo24Hour(lastTime.time);
+        bookingEndAt = new Date(`${lastDate}T${time24h}`).toISOString();
+      } else {
+        bookingEndAt = new Date(`${lastDate}T23:59:59`).toISOString();
+      }
+    } else {
+      // For other services, quantity is number of time slots
+      quantity = timeSlotsData.length > 0 ? timeSlotsData.length : 1;
+    }
+    
     // Calculate price breakdown BEFORE creating booking using the same method as the booking details page
-    const quantity = timeSlotsData.length > 0 ? timeSlotsData.length : 1;
     const breakdown = calculatePriceBreakdown({
       service,
-      startAt: new Date(startAt),
-      endAt: new Date(endAt),
+      startAt: new Date(bookingStartAt),
+      endAt: new Date(bookingEndAt),
       pets: pets.map(pet => ({ species: pet.species })),
       quantity,
       afterHours: false,
@@ -290,8 +330,8 @@ export async function POST(request: NextRequest) {
       pickupAddress: pickupAddress || null,
       dropoffAddress: dropoffAddress || null,
       service,
-      startAt: new Date(startAt),
-      endAt: new Date(endAt),
+      startAt: new Date(bookingStartAt),
+      endAt: new Date(bookingEndAt),
       status: "pending",
       totalPrice: breakdown.total, // Use calculated breakdown total
       quantity,
