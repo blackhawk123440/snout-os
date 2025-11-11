@@ -3238,6 +3238,10 @@
           case 6:
             // Validate contact form when entering step 6
             this.validateContactForm();
+            // Also validate step 5 (pet taxi) if applicable
+            if (this.state.selectedService === 'pet-taxi') {
+              this.validatePetTaxiForm();
+            }
             break;
         }
       }
@@ -3389,6 +3393,13 @@
 
       updateButtonStates() {
         const isValid = this.state.validateStep(this.state.currentStep);
+        const isPetTaxi = this.state.selectedService === 'pet-taxi';
+        
+        // For submit button on step 6, also validate step 5 if pet taxi
+        let submitButtonValid = isValid;
+        if (this.state.currentStep === 6 && isPetTaxi) {
+          submitButtonValid = isValid && this.state.validateStep(5);
+        }
         
         // Update current step button
         const currentButton = this.elements.nextButtons[this.state.currentStep];
@@ -3398,7 +3409,7 @@
 
         // Update submit button
         if (this.elements.submitBtn) {
-          this.elements.submitBtn.disabled = !isValid;
+          this.elements.submitBtn.disabled = !submitButtonValid;
         }
 
         // Update apply all button (only on step 4)
@@ -3682,7 +3693,10 @@
       }
 
       async submitForm() {
-        // Validate step 6 (contact info) for all services
+        const isPetTaxi = this.state.selectedService === 'pet-taxi';
+        
+        // Validate step 5 (pet taxi addresses) for pet taxi, then step 6 (contact info) for all services
+        if (isPetTaxi && !this.state.validateStep(5)) return;
         if (!this.state.validateStep(6)) return;
 
         // Collect contact information
