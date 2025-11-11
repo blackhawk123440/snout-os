@@ -58,7 +58,7 @@ export async function PATCH(
       quantity, 
       afterHours, 
       holiday, 
-      totalPrice, 
+      // totalPrice is ignored - always recalculated
       paymentStatus, 
       preferredContact, 
       notes,
@@ -102,7 +102,7 @@ export async function PATCH(
         ...(quantity !== undefined && { quantity }),
         ...(afterHours !== undefined && { afterHours }),
         ...(holiday !== undefined && { holiday }),
-        ...(totalPrice !== undefined && { totalPrice }),
+        // totalPrice is always recalculated, never set from request
         ...(paymentStatus && { paymentStatus }),
         ...(preferredContact && { preferredContact }),
         ...(notes && { notes }),
@@ -182,6 +182,21 @@ export async function PATCH(
 
     if (!finalBooking) {
       return NextResponse.json({ error: "Failed to fetch updated booking" }, { status: 500 });
+    }
+
+    // Always recalculate totalPrice based on current booking data
+    // This ensures the stored totalPrice always matches the calculated total
+    const breakdown = calculatePriceBreakdown(finalBooking);
+    const calculatedTotal = breakdown.total;
+    
+    // Update totalPrice if it differs from calculated (more than 0.01 difference to account for rounding)
+    if (Math.abs((finalBooking.totalPrice || 0) - calculatedTotal) > 0.01) {
+      await prisma.booking.update({
+        where: { id },
+        data: { totalPrice: calculatedTotal },
+      });
+      // Update finalBooking object with new totalPrice
+      finalBooking.totalPrice = calculatedTotal;
     }
 
     // Send confirmation SMS to client if booking is confirmed

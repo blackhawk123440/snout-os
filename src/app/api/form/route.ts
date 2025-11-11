@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { calculateBookingPrice } from "@/lib/rates";
 import { formatPhoneForAPI } from "@/lib/phone-format";
 import { formatPetsByQuantity, calculatePriceBreakdown } from "@/lib/booking-utils";
 import { sendOwnerAlert } from "@/lib/sms-templates";
@@ -272,16 +271,8 @@ export async function POST(request: NextRequest) {
     
     const priceBreakdown = calculatePriceBreakdown(tempBooking);
     const calculatedTotal = priceBreakdown.total;
-    
-    // Also get holiday status for storing
-    const priceCalculation = await calculateBookingPrice(
-      service,
-      new Date(startAt),
-      new Date(endAt),
-      pets.length,
-      timeSlotsData.length > 0 ? timeSlotsData.length : 1,
-      false // afterHours
-    );
+    // Holiday status: true if holidayAdd > 0
+    const holidayApplied = priceBreakdown.holidayAdd > 0;
 
     // Create booking with timeSlots
     const bookingData = {
@@ -299,7 +290,7 @@ export async function POST(request: NextRequest) {
       totalPrice: calculatedTotal,
       quantity: timeSlotsData.length > 0 ? timeSlotsData.length : 1,
       afterHours: false,
-      holiday: priceCalculation.holidayApplied,
+      holiday: holidayApplied,
       pets: {
         create: pets.map(pet => ({
           name: pet.name,

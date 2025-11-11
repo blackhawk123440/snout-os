@@ -710,9 +710,10 @@ function BookingsPageContent() {
     try {
       const requestBody: any = {};
 
-      // Include editedBooking fields if any exist
+      // Include editedBooking fields if any exist (except totalPrice - it's always calculated)
       if (Object.keys(editedBooking).length > 0) {
-        Object.assign(requestBody, editedBooking);
+        const { totalPrice, ...bookingFields } = editedBooking;
+        Object.assign(requestBody, bookingFields);
       }
 
       // Always include timeSlots if we're in edit mode (even if unchanged, we send current state)
@@ -3133,7 +3134,7 @@ function BookingsPageContent() {
                                     quantity: isHouse ? (hasDates ? (selectedBooking?.quantity ?? 1) : 1) : Math.max(editedTimeSlots.length, 0),
                                     afterHours: editedBooking.afterHours !== undefined ? editedBooking.afterHours : (selectedBooking?.afterHours ?? false),
                                     holiday: editedBooking.holiday !== undefined ? editedBooking.holiday : (selectedBooking?.holiday ?? false),
-                                    totalPrice: editedBooking.totalPrice !== undefined ? editedBooking.totalPrice : (selectedBooking?.totalPrice ?? undefined),
+                                    // totalPrice is always calculated, never use stored value
                                     timeSlots: editedTimeSlots.length > 0 ? editedTimeSlots.map(ts => ({ startAt: ts.startAt, endAt: ts.endAt, duration: ts.duration })) : (hasTimeSlots ? (selectedBooking?.timeSlots || []) : []),
                                   }
                                 : selectedBooking ? { ...selectedBooking, service: currentService } : {
