@@ -379,10 +379,10 @@ export async function POST(request: NextRequest) {
       
       const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
         firstName,
-        service,
+        service: booking.service, // Use the actual service name from the booking
         datesTimes: formattedDatesTimes,
-        date: new Date(startAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-        time: new Date(startAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+        date: new Date(bookingStartAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        time: new Date(bookingStartAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
         petQuantities,
         totalPrice: breakdown.total.toFixed(2),
       });
@@ -416,10 +416,10 @@ export async function POST(request: NextRequest) {
           firstName,
           lastName,
           phone,
-          service,
+          service: booking.service, // Use the actual service name from the booking
           datesTimes: formattedDatesTimes,
-          date: new Date(startAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-          time: new Date(startAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          date: new Date(bookingStartAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+          time: new Date(bookingStartAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
           petQuantities,
           totalPrice: breakdown.total.toFixed(2),
           bookingUrl: bookingDetailsUrl,
@@ -434,8 +434,8 @@ export async function POST(request: NextRequest) {
           firstName,
           lastName,
           phone,
-          service,
-          new Date(startAt),
+          booking.service, // Use the actual service name from the booking
+          new Date(bookingStartAt),
           pets
         );
       }
