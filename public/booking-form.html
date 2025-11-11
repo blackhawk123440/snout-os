@@ -2877,6 +2877,27 @@
   </div> <!-- Close form-wrapper -->
 
   <script>
+    // ===== ERROR HANDLING =====
+    // Log but don't break on external errors (like Webflow Google Maps)
+    const originalErrorHandler = window.onerror;
+    window.onerror = function(msg, url, line, col, error) {
+      // Suppress Google Maps and Webflow errors that don't affect the booking form
+      if (msg && (
+        msg.includes('maps') || 
+        msg.includes('_wf_maps') ||
+        msg.includes('setMapPosition') ||
+        (url && url.includes('webflow'))
+      )) {
+        // Log silently - these are Webflow/Google Maps issues, not booking form issues
+        return true; // Prevent default error handling
+      }
+      // Call original error handler for other errors
+      if (originalErrorHandler) {
+        return originalErrorHandler.call(this, msg, url, line, col, error);
+      }
+      return false;
+    };
+
     // ===== BOOKING FORM STATE MANAGEMENT =====
     class BookingFormState {
       constructor() {
@@ -4698,8 +4719,17 @@
     let bookingForm;
 
     document.addEventListener('DOMContentLoaded', () => {
-      bookingForm = new BookingFormController();
-      window.bookingForm = bookingForm; // Make globally accessible
+      try {
+        bookingForm = new BookingFormController();
+        window.bookingForm = bookingForm; // Make globally accessible
+      } catch (error) {
+        console.error('Failed to initialize booking form:', error);
+        // Show user-friendly error message
+        const formWrapper = document.querySelector('.form-wrapper');
+        if (formWrapper) {
+          formWrapper.innerHTML = '<div style="padding: 2rem; text-align: center;"><h2>Unable to load booking form</h2><p>Please refresh the page or contact support if the problem persists.</p></div>';
+        }
+      }
     });
 
     // ===== ACCESSIBILITY ENHANCEMENTS =====
