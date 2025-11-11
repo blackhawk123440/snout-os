@@ -3178,11 +3178,6 @@ function BookingsPageContent() {
                                         <p className="text-lg font-bold" style={{ color: COLORS.primary }}>Total</p>
                                         <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>${breakdown.total.toFixed(2)}</p>
                                       </div>
-                                      {!isEditMode && Math.abs(breakdown.total - (selectedBooking.totalPrice || 0)) > 0.01 && (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          *Stored total: ${(selectedBooking.totalPrice || 0).toFixed(2)} (difference: ${((selectedBooking.totalPrice || 0) - breakdown.total).toFixed(2)})
-                                        </p>
-                                      )}
                                     </div>
                                 </div>
                               );
