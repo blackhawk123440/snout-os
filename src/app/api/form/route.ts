@@ -263,6 +263,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Calculate price breakdown BEFORE creating booking using the same method as the booking details page
+    const quantity = timeSlotsData.length > 0 ? timeSlotsData.length : 1;
+    const breakdown = calculatePriceBreakdown({
+      service,
+      startAt: new Date(startAt),
+      endAt: new Date(endAt),
+      pets: pets.map(pet => ({ species: pet.species })),
+      quantity,
+      afterHours: false,
+      holiday: priceCalculation.holidayApplied,
+      timeSlots: timeSlotsData.map(slot => ({
+        startAt: slot.startAt,
+        endAt: slot.endAt,
+        duration: slot.duration,
+      })),
+    });
+
     // Create booking with timeSlots
     const bookingData = {
       firstName,
@@ -276,8 +293,8 @@ export async function POST(request: NextRequest) {
       startAt: new Date(startAt),
       endAt: new Date(endAt),
       status: "pending",
-      totalPrice: priceCalculation.total,
-      quantity: timeSlotsData.length > 0 ? timeSlotsData.length : 1,
+      totalPrice: breakdown.total, // Use calculated breakdown total
+      quantity,
       afterHours: false,
       holiday: priceCalculation.holidayApplied,
       pets: {
@@ -304,22 +321,6 @@ export async function POST(request: NextRequest) {
         pets: true,
         timeSlots: true,
       },
-    });
-
-    // Calculate price breakdown using the same method as the booking details page
-    const breakdown = calculatePriceBreakdown({
-      service: booking.service,
-      startAt: booking.startAt,
-      endAt: booking.endAt,
-      pets: booking.pets,
-      quantity: booking.quantity,
-      afterHours: booking.afterHours,
-      holiday: booking.holiday,
-      timeSlots: booking.timeSlots.map(ts => ({
-        startAt: ts.startAt,
-        endAt: ts.endAt,
-        duration: ts.duration,
-      })),
     });
 
     // Send SMS confirmation to client (if automation enabled)
