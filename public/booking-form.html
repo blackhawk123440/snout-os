@@ -2732,8 +2732,47 @@
         </div>
       </div>
 
-      <!-- Step 5: Contact Information -->
-      <div class="form-section" id="step5">
+      <!-- Step 5: Pet Taxi Transportation Details -->
+      <div class="form-section" id="step5" style="display: none;">
+        <div class="section-header">
+          <div class="section-icon">
+            <i class="fas fa-car"></i>
+          </div>
+          <div class="section-content">
+            <h2 class="section-title">Transportation Details</h2>
+            <p class="section-subtitle">Tell us where to pick up and drop off your pet</p>
+          </div>
+        </div>
+
+        <div class="pet-taxi-addresses" id="petTaxiAddresses">
+          <div class="address-section">
+            <div class="address-grid">
+              <div class="contact-group">
+                <label class="contact-label" for="pickupAddress">Pickup Address</label>
+                <input type="text" class="contact-input" id="pickupAddress" name="pickupAddress" placeholder="Enter pickup location" required>
+              </div>
+              <div class="contact-group">
+                <label class="contact-label" for="dropoffAddress">Dropoff Address</label>
+                <input type="text" class="contact-input" id="dropoffAddress" name="dropoffAddress" placeholder="Enter dropoff location" required>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-secondary back-btn" id="backBtn5" data-automation="back-button-step5">
+            <i class="fas fa-arrow-left"></i>
+            Back
+          </button>
+          <button class="btn btn-primary" id="nextBtn5" data-automation="continue-from-transportation" disabled>
+            Continue
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 6: Contact Information -->
+      <div class="form-section" id="step6">
         <div class="section-header">
           <div class="section-icon">
             <i class="fas fa-user"></i>
@@ -2785,45 +2824,6 @@
           </label>
         </div>
         </form>
-
-        <div class="button-group">
-          <button class="btn btn-secondary back-btn" id="backBtn5" data-automation="back-button-step5">
-            <i class="fas fa-arrow-left"></i>
-            Back
-          </button>
-          <button class="btn btn-primary" id="nextBtn5" data-automation="continue-from-contact" disabled>
-            Continue
-            <i class="fas fa-arrow-right"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Step 6: Pet Taxi Transportation Details -->
-      <div class="form-section" id="step6" style="display: none;">
-        <div class="section-header">
-          <div class="section-icon">
-            <i class="fas fa-car"></i>
-          </div>
-          <div class="section-content">
-            <h2 class="section-title">Transportation Details</h2>
-            <p class="section-subtitle">Tell us where to pick up and drop off your pet</p>
-          </div>
-        </div>
-
-        <div class="pet-taxi-addresses" id="petTaxiAddresses">
-          <div class="address-section">
-            <div class="address-grid">
-              <div class="contact-group">
-                <label class="contact-label" for="pickupAddress">Pickup Address</label>
-                <input type="text" class="contact-input" id="pickupAddress" name="pickupAddress" placeholder="Enter pickup location" required>
-              </div>
-              <div class="contact-group">
-                <label class="contact-label" for="dropoffAddress">Dropoff Address</label>
-                <input type="text" class="contact-input" id="dropoffAddress" name="dropoffAddress" placeholder="Enter dropoff location" required>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <div class="button-group">
           <button class="btn btn-secondary back-btn" id="backBtn6" data-automation="back-button-step6">
@@ -2992,9 +2992,9 @@
               this.dateTimes[date] && this.dateTimes[date].length > 0
             );
           case 5:
-            return this.isContactFormValid();
-          case 6:
             return this.isPetTaxiFormValid();
+          case 6:
+            return this.isContactFormValid();
           default:
             return false;
         }
@@ -3190,21 +3190,21 @@
           }
         }
 
-        // Show/hide step 6 (Pet Taxi Transportation) based on service and current step
-        const step6Element = document.getElementById('step6');
-        if (step6Element) {
+        // Show/hide step 5 (Pet Taxi Transportation) based on service and current step
+        const step5Element = document.getElementById('step5');
+        if (step5Element) {
           const isPetTaxi = this.state.selectedService === 'pet-taxi';
-          // Only show step 6 if it's the current step and service is pet-taxi
-          if (step === 6 && isPetTaxi) {
-            step6Element.style.display = 'block';
-          } else if (step !== 6) {
-            // Hide step 6 when not on it
-            step6Element.style.display = 'none';
+          // Only show step 5 if it's the current step and service is pet-taxi
+          if (step === 5 && isPetTaxi) {
+            step5Element.style.display = 'block';
+          } else if (step !== 5) {
+            // Hide step 5 when not on it
+            step5Element.style.display = 'none';
           }
         }
         
-        // Show/hide regular address field in step 5 (hide for pet-taxi)
-        if (step === 5) {
+        // Show/hide regular address field in step 6 (hide for pet-taxi)
+        if (step === 6) {
           const regularAddressGroup = document.getElementById('regularAddressGroup');
           if (regularAddressGroup) {
             const isPetTaxi = this.state.selectedService === 'pet-taxi';
@@ -3232,12 +3232,12 @@
             this.updateSelectedDatesDisplay();
             break;
           case 5:
-            // Validate contact form when entering step 5
-            this.validateContactForm();
+            // Validate pet taxi addresses when entering step 5
+            this.validatePetTaxiForm();
             break;
           case 6:
-            // Validate pet taxi addresses when entering step 6
-            this.validatePetTaxiForm();
+            // Validate contact form when entering step 6
+            this.validateContactForm();
             break;
         }
       }
@@ -3428,9 +3428,9 @@
         if (this.state.validateStep(this.state.currentStep)) {
           let nextStep = this.state.currentStep + 1;
           
-          // Skip step 6 (pet taxi) if not pet-taxi service
-          if (nextStep === 6 && this.state.selectedService !== 'pet-taxi') {
-            nextStep = 7; // Go directly to confirmation
+          // Skip step 5 (pet taxi) if not pet-taxi service
+          if (nextStep === 5 && this.state.selectedService !== 'pet-taxi') {
+            nextStep = 6; // Go directly to contact info
           }
           
           this.setupStep(nextStep);
@@ -3441,9 +3441,9 @@
         if (this.state.currentStep > 1) {
           let prevStep = this.state.currentStep - 1;
           
-          // Skip step 6 (pet taxi) if not pet-taxi service when going back
-          if (prevStep === 6 && this.state.selectedService !== 'pet-taxi') {
-            prevStep = 5; // Go back to contact info
+          // Skip step 5 (pet taxi) if not pet-taxi service when going back
+          if (prevStep === 5 && this.state.selectedService !== 'pet-taxi') {
+            prevStep = 4; // Go back to times
           }
           
           this.setupStep(prevStep);
@@ -3682,10 +3682,8 @@
       }
 
       async submitForm() {
-        // Validate current step (5 for non-pet-taxi, 6 for pet-taxi)
-        const isPetTaxi = this.state.selectedService === 'pet-taxi';
-        const stepToValidate = isPetTaxi ? 6 : 5;
-        if (!this.state.validateStep(stepToValidate)) return;
+        // Validate step 6 (contact info) for all services
+        if (!this.state.validateStep(6)) return;
 
         // Collect contact information
         this.state.contactInfo = {
