@@ -3793,9 +3793,10 @@
           this.showFieldError('phone', phone.length < 10 ? 'Phone number must be at least 10 digits' : 'Phone is required');
         }
         
-        // Validate address (only for non-pet-taxi services)
+        // Validate address (only for non-pet-taxi and non-house-sitting services)
         const isPetTaxi = this.state.selectedService === 'pet-taxi';
-        if (!isPetTaxi) {
+        const isHouseSitting = this.state.selectedService === 'pet-sitting';
+        if (!isPetTaxi && !isHouseSitting) {
           const address = document.getElementById('address')?.value.trim() || '';
           const addressInput = document.getElementById('address');
           if (address) {
@@ -3808,15 +3809,14 @@
         }
         
         // Validate policy agreement
+        const policyError = document.getElementById('policyError');
         if (!policyAgreed) {
-          const policyError = document.getElementById('policyError');
           if (policyError) {
             policyError.textContent = 'You must agree to the Terms of Service and Privacy Policy';
             policyError.style.display = 'block';
             policyError.classList.add('show');
           }
         } else {
-          const policyError = document.getElementById('policyError');
           if (policyError) {
             policyError.textContent = '';
             policyError.style.display = 'none';
@@ -3825,7 +3825,7 @@
         }
         
         let isValid = firstName && lastName && email && emailRegex.test(email) && phone && phone.length >= 10 && phoneRegex.test(phone) && policyAgreed;
-        if (!isPetTaxi) {
+        if (!isPetTaxi && !isHouseSitting) {
           const address = document.getElementById('address')?.value.trim() || '';
           isValid = isValid && address;
         }
