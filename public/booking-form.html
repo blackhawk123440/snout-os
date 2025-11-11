@@ -3882,12 +3882,19 @@
         this.elements.submitBtn.disabled = true;
 
         // Map service names to API format
-        const serviceMap = {
-          'dog-walking': 'Dog Walking',
-          'pet-sitting': 'Housesitting',
-          'drop-in': 'Drop-ins',
-          'pet-taxi': 'Pet Taxi'
-        };
+        // Map service, checking for 24/7 care option
+        let serviceName;
+        if (this.state.selectedService === 'pet-sitting' && this.state.is24SevenCare) {
+          serviceName = '24/7 Care';
+        } else {
+          const serviceMap = {
+            'dog-walking': 'Dog Walking',
+            'pet-sitting': 'Housesitting',
+            'drop-in': 'Drop-ins',
+            'pet-taxi': 'Pet Taxi'
+          };
+          serviceName = serviceMap[this.state.selectedService] || 'Drop-ins';
+        }
 
         // Get first selected date and time
         const firstDate = this.state.selectedDates[0];
@@ -3938,7 +3945,7 @@
           address: this.state.contactInfo.address || undefined,
           pickupAddress: this.state.contactInfo.pickupAddress || undefined,
           dropoffAddress: this.state.contactInfo.dropoffAddress || undefined,
-          service: serviceMap[this.state.selectedService] || 'Drop-ins',
+          service: serviceName,
           minutes: duration,
           quantity: this.state.selectedDates.length > 0 ? (() => {
             // Count total time slots across all dates
