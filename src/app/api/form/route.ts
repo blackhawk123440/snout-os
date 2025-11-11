@@ -253,26 +253,52 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate price using the same logic as the dashboard
+    // For house sitting, calculate quantity as days; for others, use timeSlots count
+    let quantity = 1;
+    if (service === "Housesitting" || service === "24/7 Care") {
+      const diffTime = Math.abs(new Date(endAt).getTime() - new Date(startAt).getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      quantity = Math.max(diffDays, 1);
+    } else {
+      quantity = timeSlotsData.length > 0 ? timeSlotsData.length : 1;
+    }
+    
     // Create a temporary booking object to use calculatePriceBreakdown
+    // For house sitting, don't include timeSlots (they're not used for pricing)
     const tempBooking = {
       service,
       startAt: new Date(startAt),
       endAt: new Date(endAt),
       pets: pets.map(p => ({ species: p.species })),
-      quantity: timeSlotsData.length > 0 ? timeSlotsData.length : 1,
+      quantity,
       afterHours: false,
       holiday: false,
-      timeSlots: timeSlotsData.map(slot => ({
-        startAt: slot.startAt,
-        endAt: slot.endAt,
-        duration: slot.duration,
-      })),
+      timeSlots: (service === "Housesitting" || service === "24/7 Care")
+        ? undefined
+        : timeSlotsData.map(slot => ({
+            startAt: slot.startAt,
+            endAt: slot.endAt,
+            duration: slot.duration,
+          })),
     };
     
     const priceBreakdown = calculatePriceBreakdown(tempBooking);
     const calculatedTotal = priceBreakdown.total;
     // Holiday status: true if holidayAdd > 0
     const holidayApplied = priceBreakdown.holidayAdd > 0;
+    
+    // Debug logging
+    console.log('[Form Route] Price Calculation:', {
+      service,
+      quantity,
+      petCount: pets.length,
+      timeSlotsCount: timeSlotsData.length,
+      startAt: new Date(startAt).toISOString(),
+      endAt: new Date(endAt).toISOString(),
+      calculatedTotal,
+      holidayApplied,
+      breakdown: priceBreakdown.breakdown,
+    });
 
     // Create booking with timeSlots
     const bookingData = {
@@ -288,7 +314,7 @@ export async function POST(request: NextRequest) {
       endAt: new Date(endAt),
       status: "pending",
       totalPrice: calculatedTotal,
-      quantity: timeSlotsData.length > 0 ? timeSlotsData.length : 1,
+      quantity,
       afterHours: false,
       holiday: holidayApplied,
       pets: {
@@ -298,15 +324,18 @@ export async function POST(request: NextRequest) {
         })),
       },
       notes: specialInstructions || additionalNotes || null,
-      timeSlots: timeSlotsData.length > 0
-        ? {
-            create: timeSlotsData.map(slot => ({
-              startAt: slot.startAt,
-              endAt: slot.endAt,
-              duration: slot.duration,
-            })),
-          }
-        : undefined,
+      // Only create timeSlots for visit-based services, not for house sitting
+      timeSlots: (service === "Housesitting" || service === "24/7 Care") 
+        ? undefined
+        : (timeSlotsData.length > 0
+          ? {
+              create: timeSlotsData.map(slot => ({
+                startAt: slot.startAt,
+                endAt: slot.endAt,
+                duration: slot.duration,
+              })),
+            }
+          : undefined),
     };
 
     const booking = await prisma.booking.create({
