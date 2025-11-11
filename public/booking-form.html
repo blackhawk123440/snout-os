@@ -884,11 +884,15 @@
 
     /* ===== SELECTED DATES ===== */
     .selected-dates-container {
-      margin-top: var(--space-lg);
+      margin: 0 auto var(--space-xl);
       padding: var(--space-lg);
-      background: var(--white);
+      background: var(--accent);
       border: 1px solid var(--secondary);
       border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 540px;
+      box-sizing: border-box;
+      min-height: 400px;
     }
 
     .selected-dates-header {
@@ -925,9 +929,8 @@
     .selected-dates-list {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-      gap: var(--space-xs);
-      max-height: 200px;
-      overflow-y: auto;
+      gap: var(--space-md);
+      min-height: 300px;
     }
 
     .selected-date-item {
@@ -2036,14 +2039,17 @@
         }
 
       .selected-dates-container {
-        margin-top: var(--space-md);
-        padding: var(--space-md);
+        margin: 0 auto var(--space-lg) !important;
+        padding: var(--space-md) !important;
+        width: 100% !important;
+        max-width: 540px !important;
+        min-height: 350px !important;
       }
 
       .selected-dates-list {
-        max-height: 200px;
+        min-height: 250px !important;
         grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
-        gap: var(--space-xs) !important;
+        gap: var(--space-sm) !important;
       }
 
       .selected-dates-header {
