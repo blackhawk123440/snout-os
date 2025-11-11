@@ -3090,36 +3090,41 @@
       }
       
       restoreVisualState() {
-        // Restore service selection
-        if (this.state.selectedService) {
-          this.elements.serviceCards.forEach(card => {
-            if (card.dataset.service === this.state.selectedService) {
-              card.classList.add('selected');
-            }
-          });
-        }
-        
-        // Restore 24/7 care option state
-        if (this.state.is24SevenCare && this.elements.houseSittingOption) {
-          this.elements.houseSittingOption.classList.add('selected');
-        }
-        
-        // Restore pet counts
-        Object.keys(this.state.pets).forEach(type => {
-          const input = document.getElementById(`${type}Count`);
-          if (input) {
-            input.value = this.state.pets[type] || 0;
+        try {
+          // Restore service selection
+          if (this.state.selectedService) {
+            this.elements.serviceCards.forEach(card => {
+              if (card.dataset.service === this.state.selectedService) {
+                card.classList.add('selected');
+              }
+            });
           }
-        });
-        
-        // Restore contact form values
-        if (this.state.contactInfo) {
-          Object.keys(this.state.contactInfo).forEach(key => {
-            const input = document.getElementById(key);
-            if (input && this.state.contactInfo[key]) {
-              input.value = this.state.contactInfo[key];
+          
+          // Restore 24/7 care option state
+          if (this.state.is24SevenCare && this.elements.houseSittingOption) {
+            this.elements.houseSittingOption.classList.add('selected');
+          }
+          
+          // Restore pet counts
+          Object.keys(this.state.pets).forEach(type => {
+            const input = document.getElementById(`${type}Count`);
+            if (input) {
+              input.value = this.state.pets[type] || 0;
             }
           });
+          
+          // Restore contact form values
+          if (this.state.contactInfo) {
+            Object.keys(this.state.contactInfo).forEach(key => {
+              const input = document.getElementById(key);
+              if (input && this.state.contactInfo[key]) {
+                input.value = this.state.contactInfo[key];
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error restoring visual state:', error);
+          // Silently fail - visual state restoration is not critical
         }
       }
 
@@ -3280,16 +3285,26 @@
       }
 
       setupStep(step) {
-        this.state.currentStep = step;
-        this.state.updateProgress();
+        try {
+          this.state.currentStep = step;
+          this.state.updateProgress();
 
-        // Hide all steps
-        this.elements.steps.forEach(s => s.classList.remove('active'));
+          // Hide all steps
+          this.elements.steps.forEach(s => s.classList.remove('active'));
 
-        // Show current step
-        const currentStepElement = document.getElementById(`step${step}`);
-        if (currentStepElement) {
-          currentStepElement.classList.add('active');
+          // Show current step
+          const currentStepElement = document.getElementById(`step${step}`);
+          if (currentStepElement) {
+            currentStepElement.classList.add('active');
+          }
+        } catch (error) {
+          console.error('Error setting up step:', error);
+          // Fallback: show step 1
+          this.state.currentStep = 1;
+          const step1Element = document.getElementById('step1');
+          if (step1Element) {
+            step1Element.classList.add('active');
+          }
         }
 
         // Show/hide house sitting options in step 2
@@ -3366,32 +3381,37 @@
       }
 
       selectService(service) {
-        if (!service) {
-          console.error('selectService called without service parameter');
-          return;
-        }
-        
-        // Reset service-specific data when changing services
-        const previousService = this.state.selectedService;
-        if (previousService && previousService !== service) {
-          this.resetServiceSpecificData();
-        }
-        
-        this.state.selectedService = service;
-        
-        // Update visual state
-        this.elements.serviceCards.forEach(card => {
-          card.classList.remove('selected');
-          if (card.dataset.service === service) {
-            card.classList.add('selected');
+        try {
+          if (!service) {
+            console.error('selectService called without service parameter');
+            return;
           }
-        });
+          
+          // Reset service-specific data when changing services
+          const previousService = this.state.selectedService;
+          if (previousService && previousService !== service) {
+            this.resetServiceSpecificData();
+          }
+          
+          this.state.selectedService = service;
+          
+          // Update visual state
+          this.elements.serviceCards.forEach(card => {
+            card.classList.remove('selected');
+            if (card.dataset.service === service) {
+              card.classList.add('selected');
+            }
+          });
 
-        // Store house sitting selection for step 2
-        this.state.isHouseSitting = service === 'pet-sitting';
+          // Store house sitting selection for step 2
+          this.state.isHouseSitting = service === 'pet-sitting';
 
-        this.updateButtonStates();
-        this.state.saveState(); // Auto-save
+          this.updateButtonStates();
+          this.state.saveState(); // Auto-save
+        } catch (error) {
+          console.error('Error selecting service:', error);
+          showCustomAlert('An error occurred while selecting the service. Please try again.', 'fa-circle-exclamation');
+        }
       }
 
       resetServiceSpecificData() {
@@ -3553,28 +3573,38 @@
       }
 
       nextStep() {
-        if (this.state.validateStep(this.state.currentStep)) {
-          let nextStep = this.state.currentStep + 1;
-          
-          // Skip step 5 (pet taxi) if not pet-taxi service
-          if (nextStep === 5 && this.state.selectedService !== 'pet-taxi') {
-            nextStep = 6; // Go directly to contact info
+        try {
+          if (this.state.validateStep(this.state.currentStep)) {
+            let nextStep = this.state.currentStep + 1;
+            
+            // Skip step 5 (pet taxi) if not pet-taxi service
+            if (nextStep === 5 && this.state.selectedService !== 'pet-taxi') {
+              nextStep = 6; // Go directly to contact info
+            }
+            
+            this.setupStep(nextStep);
           }
-          
-          this.setupStep(nextStep);
+        } catch (error) {
+          console.error('Error navigating to next step:', error);
+          showCustomAlert('An error occurred while navigating. Please try again.', 'fa-circle-exclamation');
         }
       }
 
       prevStep() {
-        if (this.state.currentStep > 1) {
-          let prevStep = this.state.currentStep - 1;
-          
-          // Skip step 5 (pet taxi) if not pet-taxi service when going back
-          if (prevStep === 5 && this.state.selectedService !== 'pet-taxi') {
-            prevStep = 4; // Go back to times
+        try {
+          if (this.state.currentStep > 1) {
+            let prevStep = this.state.currentStep - 1;
+            
+            // Skip step 5 (pet taxi) if not pet-taxi service when going back
+            if (prevStep === 5 && this.state.selectedService !== 'pet-taxi') {
+              prevStep = 4; // Go back to times
+            }
+            
+            this.setupStep(prevStep);
           }
-          
-          this.setupStep(prevStep);
+        } catch (error) {
+          console.error('Error navigating to previous step:', error);
+          showCustomAlert('An error occurred while navigating. Please try again.', 'fa-circle-exclamation');
         }
       }
 
@@ -4972,8 +5002,18 @@
     let bookingForm;
 
     document.addEventListener('DOMContentLoaded', () => {
-      bookingForm = new BookingFormController();
-      window.bookingForm = bookingForm; // Make globally accessible
+      try {
+        bookingForm = new BookingFormController();
+        window.bookingForm = bookingForm; // Make globally accessible
+      } catch (error) {
+        console.error('Failed to initialize booking form:', error);
+        // Show user-friendly error message
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'error-message';
+        errorMessage.style.cssText = 'padding: 20px; text-align: center; color: #ef4444; background: #fee; border-radius: 8px; margin: 20px;';
+        errorMessage.textContent = 'Failed to load booking form. Please refresh the page.';
+        document.body.appendChild(errorMessage);
+      }
     });
 
     // ===== ACCESSIBILITY ENHANCEMENTS =====
@@ -5004,29 +5044,37 @@
     // ===== IFRAME DYNAMIC HEIGHT RESIZING =====
     // This script sends the form height to the parent window for smooth iframe resizing
     function sendHeightToParent() {
-      // Get the actual height of the content
-      const wrapper = document.querySelector('.form-wrapper');
-      if (!wrapper) return;
-      
-      const height = wrapper.scrollHeight + 40; // Add padding
-      
-      // Send height to parent window (Webflow)
-      if (window.parent !== window) {
-        window.parent.postMessage({
-          type: 'iframe-resize',
-          height: height
-        }, '*');
+      try {
+        // Get the actual height of the content
+        const wrapper = document.querySelector('.form-wrapper');
+        if (!wrapper) return;
+        
+        const height = wrapper.scrollHeight + 40; // Add padding
+        
+        // Send height to parent window (Webflow)
+        if (window.parent !== window) {
+          window.parent.postMessage({
+            type: 'iframe-resize',
+            height: height
+          }, '*');
+        }
+      } catch (error) {
+        // Silently fail - iframe resizing is not critical
       }
     }
 
     // Initialize ResizeObserver for dynamic height tracking
     if (typeof ResizeObserver !== 'undefined') {
-      const wrapper = document.querySelector('.form-wrapper');
-      if (wrapper) {
-        const resizeObserver = new ResizeObserver(() => {
-          sendHeightToParent();
-        });
-        resizeObserver.observe(wrapper);
+      try {
+        const wrapper = document.querySelector('.form-wrapper');
+        if (wrapper) {
+          const resizeObserver = new ResizeObserver(() => {
+            sendHeightToParent();
+          });
+          resizeObserver.observe(wrapper);
+        }
+      } catch (error) {
+        // Silently fail - ResizeObserver is not critical
       }
     }
 
@@ -5037,15 +5085,19 @@
     // Send height when form content changes
     const bookingContent = document.querySelector('.booking-content');
     if (bookingContent) {
-      const contentObserver = new MutationObserver(() => {
-        setTimeout(sendHeightToParent, 100);
-      });
-      contentObserver.observe(bookingContent, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        characterData: true
-      });
+      try {
+        const contentObserver = new MutationObserver(() => {
+          setTimeout(sendHeightToParent, 100);
+        });
+        contentObserver.observe(bookingContent, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          characterData: true
+        });
+      } catch (error) {
+        // Silently fail - MutationObserver is not critical
+      }
     }
 
     // Send initial height
