@@ -1070,7 +1070,9 @@
       z-index: 1000;
       padding: var(--space-xl);
       box-sizing: border-box;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
     }
 
     .time-modal.active {
@@ -1159,11 +1161,36 @@
       padding: var(--space-lg);
       padding-bottom: calc(var(--space-lg) + 40px) !important; /* Reduced padding - just enough to see last item */
       flex: 1 1 0;
-      overflow: hidden !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
       min-height: 400px;
       max-height: 100%;
-      height: auto;
+      height: 0;
+      -webkit-overflow-scrolling: auto !important;
+      overscroll-behavior: none !important;
+      overscroll-behavior-y: none !important;
+      overscroll-behavior-x: none !important;
+      -webkit-overscroll-behavior: none !important;
+      -webkit-overscroll-behavior-y: none !important;
+      -webkit-overscroll-behavior-x: none !important;
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      contain: layout style paint;
+      scroll-behavior: auto !important;
       position: relative;
+      /* Disable momentum scrolling on iOS */
+      -webkit-momentum-scrolling: disabled;
+      touch-action: pan-y;
+      will-change: scroll-position;
+    }
+    
+    /* iOS specific fixes to prevent bounce */
+    @supports (-webkit-touch-callout: none) {
+      .time-slots-container {
+        -webkit-overflow-scrolling: auto !important;
+        overscroll-behavior-y: none !important;
+        -webkit-overscroll-behavior-y: none !important;
+      }
     }
 
     .time-slots-grid {
@@ -2134,7 +2161,9 @@
         z-index: 1000 !important;
         padding: var(--space-xl) !important;
         box-sizing: border-box !important;
-        overflow: hidden !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
       }
 
       .time-modal.active {
@@ -2212,11 +2241,26 @@
         padding: var(--space-lg) !important;
         padding-bottom: calc(var(--space-lg) + 40px) !important;
         flex: 1 1 0 !important;
-        overflow: hidden !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
         min-height: 340px !important;
         max-height: 100% !important;
-        height: auto !important;
+        height: 0 !important;
+        -webkit-overflow-scrolling: auto !important;
+        overscroll-behavior: none !important;
+        overscroll-behavior-y: none !important;
+        overscroll-behavior-x: none !important;
+        -webkit-overscroll-behavior: none !important;
+        -webkit-overscroll-behavior-y: none !important;
+        -webkit-overscroll-behavior-x: none !important;
+        transform: translateZ(0) !important;
+        -webkit-transform: translateZ(0) !important;
+        contain: layout style paint !important;
+        scroll-behavior: auto !important;
         position: relative !important;
+        -webkit-momentum-scrolling: disabled !important;
+        touch-action: pan-y !important;
+        will-change: scroll-position !important;
         box-sizing: border-box !important;
         width: 100% !important;
       }
@@ -2727,23 +2771,6 @@
             <label class="contact-label" for="address">Service Address</label>
             <input type="text" class="contact-input" id="address" name="address" placeholder="Enter your address" required>
           </div>
-
-          <!-- Pet Taxi Address Fields -->
-          <div class="pet-taxi-addresses" id="petTaxiAddresses" style="display: none;">
-            <div class="address-section">
-              <h3 class="address-title">Transportation Details</h3>
-              <div class="address-grid">
-                <div class="contact-group">
-                  <label class="contact-label" for="pickupAddress">Pickup Address</label>
-                  <input type="text" class="contact-input" id="pickupAddress" name="pickupAddress" placeholder="Enter pickup location" required>
-                </div>
-                <div class="contact-group">
-                  <label class="contact-label" for="dropoffAddress">Dropoff Address</label>
-                  <input type="text" class="contact-input" id="dropoffAddress" name="dropoffAddress" placeholder="Enter dropoff location" required>
-                </div>
-              </div>
-            </div>
-          </div>
           
           <div class="contact-group">
             <label class="contact-label" for="notes">Additional Notes (Optional)</label>
@@ -2764,6 +2791,47 @@
             <i class="fas fa-arrow-left"></i>
             Back
           </button>
+          <button class="btn btn-primary" id="nextBtn5" data-automation="next-button-step5">
+            Next
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 6: Pet Taxi Transportation Details -->
+      <div class="form-section" id="step6">
+        <div class="section-header">
+          <div class="section-icon">
+            <i class="fas fa-car"></i>
+          </div>
+          <div class="section-content">
+            <h2 class="section-title">Transportation Details</h2>
+            <p class="section-subtitle">Please provide pickup and dropoff locations</p>
+          </div>
+        </div>
+
+        <form id="petTaxiForm" data-automation="pet-taxi-form">
+          <div class="pet-taxi-addresses" id="petTaxiAddresses">
+            <div class="address-section">
+              <div class="address-grid">
+                <div class="contact-group">
+                  <label class="contact-label" for="pickupAddress">Pickup Address</label>
+                  <input type="text" class="contact-input" id="pickupAddress" name="pickupAddress" placeholder="Enter pickup location" required>
+                </div>
+                <div class="contact-group">
+                  <label class="contact-label" for="dropoffAddress">Dropoff Address</label>
+                  <input type="text" class="contact-input" id="dropoffAddress" name="dropoffAddress" placeholder="Enter dropoff location" required>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <div class="button-group">
+          <button class="btn btn-secondary back-btn" id="backBtn6" data-automation="back-button-step6">
+            <i class="fas fa-arrow-left"></i>
+            Back
+          </button>
           <button class="btn btn-primary" id="submitBtn" data-automation="complete-booking" disabled>
             Complete Booking
             <i class="fas fa-check"></i>
@@ -2771,8 +2839,8 @@
         </div>
       </div>
 
-      <!-- Step 6: Confirmation -->
-      <div class="form-section" id="step6">
+      <!-- Step 7: Confirmation -->
+      <div class="form-section" id="step7">
         <div class="confirmation-message">
           <h3><i class="fas fa-check-circle" style="color: var(--primary); margin-right: 8px;"></i>Booking Confirmed!</h3>
           <p>Thank you for choosing Snout Services! We've received your booking request and will contact you within 24 hours to confirm all details.</p>
@@ -2924,6 +2992,12 @@
             );
           case 5:
             return this.isContactFormValid();
+          case 6:
+            // Step 6: Pet Taxi transportation details validation
+            if (this.selectedService === 'pet-taxi') {
+              return this.isPetTaxiFormValid();
+            }
+            return false;
           default:
             return false;
         }
@@ -2950,16 +3024,20 @@
           return false;
         }
         
-        // Check address based on service type
+        // Check address based on service type (only for non-pet-taxi services)
         const isPetTaxi = this.selectedService === 'pet-taxi';
-        if (isPetTaxi) {
-          const pickupAddress = document.getElementById('pickupAddress')?.value.trim();
-          const dropoffAddress = document.getElementById('dropoffAddress')?.value.trim();
-          return pickupAddress && dropoffAddress;
-        } else {
+        if (!isPetTaxi) {
           const address = document.getElementById('address')?.value.trim();
           return address;
         }
+        // For pet taxi, address validation is in step 6
+        return true;
+      }
+
+      isPetTaxiFormValid() {
+        const pickupAddress = document.getElementById('pickupAddress')?.value.trim();
+        const dropoffAddress = document.getElementById('dropoffAddress')?.value.trim();
+        return pickupAddress && dropoffAddress;
       }
     }
 
@@ -2989,7 +3067,9 @@
             3: document.getElementById('backBtn3'),
             4: document.getElementById('backBtn4'),
             5: document.getElementById('backBtn5'),
+            6: document.getElementById('backBtn6'),
           },
+          nextBtn5: document.getElementById('nextBtn5'),
           submitBtn: document.getElementById('submitBtn'),
           startNewBtn: document.getElementById('startNewBooking'),
           serviceCards: document.querySelectorAll('.service-card'),
@@ -3048,6 +3128,18 @@
           if (btn) btn.addEventListener('click', () => this.prevStep());
         });
 
+        // Next button for step 5 (conditional navigation)
+        if (this.elements.nextBtn5) {
+          this.elements.nextBtn5.addEventListener('click', () => {
+            if (this.state.validateStep(5)) {
+              // If pet taxi, go to step 6 (transportation details)
+              // Otherwise, go to step 7 (confirmation)
+              const nextStep = this.state.selectedService === 'pet-taxi' ? 6 : 7;
+              this.setupStep(nextStep);
+            }
+          });
+        }
+
         // Submit button
         this.elements.submitBtn.addEventListener('click', () => this.submitForm());
 
@@ -3065,6 +3157,16 @@
         });
 
         this.elements.policyCheckbox.addEventListener('change', () => this.validateContactForm());
+
+        // Pet taxi form validation
+        const pickupAddressInput = document.getElementById('pickupAddress');
+        const dropoffAddressInput = document.getElementById('dropoffAddress');
+        if (pickupAddressInput) {
+          pickupAddressInput.addEventListener('input', () => this.validatePetTaxiForm());
+        }
+        if (dropoffAddressInput) {
+          dropoffAddressInput.addEventListener('input', () => this.validatePetTaxiForm());
+        }
 
         // Close pet dropdown when clicking outside
         document.addEventListener('click', (e) => {
@@ -3104,14 +3206,31 @@
           }
         }
 
-        // Show/hide Pet Taxi address fields in step 5
+        // Show/hide submit button and next button based on step and service
+        const isPetTaxi = this.state.selectedService === 'pet-taxi';
         if (step === 5) {
-          const petTaxiAddresses = document.getElementById('petTaxiAddresses');
-          const regularAddressGroup = document.getElementById('regularAddressGroup');
-          if (petTaxiAddresses && regularAddressGroup) {
-            const isPetTaxi = this.state.selectedService === 'pet-taxi';
-            petTaxiAddresses.style.display = isPetTaxi ? 'block' : 'none';
-            regularAddressGroup.style.display = isPetTaxi ? 'none' : 'block';
+          // Step 5: Show next button, hide submit button
+          if (this.elements.nextBtn5) {
+            this.elements.nextBtn5.style.display = 'flex';
+          }
+          if (this.elements.submitBtn) {
+            this.elements.submitBtn.style.display = 'none';
+          }
+        } else if (step === 6) {
+          // Step 6 (Pet Taxi only): Show submit button, hide next button
+          if (this.elements.nextBtn5) {
+            this.elements.nextBtn5.style.display = 'none';
+          }
+          if (this.elements.submitBtn) {
+            this.elements.submitBtn.style.display = 'flex';
+          }
+        } else if (step === 7) {
+          // Step 7 (Confirmation): Hide both buttons
+          if (this.elements.nextBtn5) {
+            this.elements.nextBtn5.style.display = 'none';
+          }
+          if (this.elements.submitBtn) {
+            this.elements.submitBtn.style.display = 'none';
           }
         }
 
@@ -3137,6 +3256,10 @@
           case 5:
             // Validate contact form when entering step 5
             this.validateContactForm();
+            break;
+          case 6:
+            // Validate pet taxi form when entering step 6
+            this.validatePetTaxiForm();
             break;
         }
       }
@@ -3293,6 +3416,11 @@
         const currentButton = this.elements.nextButtons[this.state.currentStep];
         if (currentButton) {
           currentButton.disabled = !isValid;
+        }
+
+        // Update next button for step 5
+        if (this.elements.nextBtn5 && this.state.currentStep === 5) {
+          this.elements.nextBtn5.disabled = !isValid;
         }
 
         // Update submit button
@@ -3516,33 +3644,11 @@
           phoneInput.classList.remove('valid');
         }
         
+        const isPetTaxi = this.state.selectedService === 'pet-taxi';
         let isValid = firstName && lastName && email && emailRegex.test(email) && phone && phone.length >= 10 && policyAgreed;
         
-        // Validate address fields based on service type
-        if (isPetTaxi) {
-          const pickupAddress = document.getElementById('pickupAddress').value.trim();
-          const dropoffAddress = document.getElementById('dropoffAddress').value.trim();
-          
-          const pickupInput = document.getElementById('pickupAddress');
-          if (pickupAddress) {
-            pickupInput.classList.remove('invalid');
-            pickupInput.classList.add('valid');
-          } else if (pickupInput.value) {
-            pickupInput.classList.add('invalid');
-            pickupInput.classList.remove('valid');
-          }
-          
-          const dropoffInput = document.getElementById('dropoffAddress');
-          if (dropoffAddress) {
-            dropoffInput.classList.remove('invalid');
-            dropoffInput.classList.add('valid');
-          } else if (dropoffInput.value) {
-            dropoffInput.classList.add('invalid');
-            dropoffInput.classList.remove('valid');
-          }
-          
-          isValid = isValid && pickupAddress && dropoffAddress;
-        } else {
+        // Validate address fields (only for non-pet-taxi services)
+        if (!isPetTaxi) {
           const address = document.getElementById('address').value.trim();
           const addressInput = document.getElementById('address');
           if (address) {
@@ -3560,16 +3666,51 @@
         this.state.saveState(); // Auto-save
       }
 
+      validatePetTaxiForm() {
+        const pickupAddress = document.getElementById('pickupAddress')?.value.trim();
+        const dropoffAddress = document.getElementById('dropoffAddress')?.value.trim();
+        
+        // Real-time validation for pickup address
+        const pickupInput = document.getElementById('pickupAddress');
+        if (pickupInput) {
+          if (pickupAddress) {
+            pickupInput.classList.remove('invalid');
+            pickupInput.classList.add('valid');
+          } else if (pickupInput.value) {
+            pickupInput.classList.add('invalid');
+            pickupInput.classList.remove('valid');
+          }
+        }
+        
+        // Real-time validation for dropoff address
+        const dropoffInput = document.getElementById('dropoffAddress');
+        if (dropoffInput) {
+          if (dropoffAddress) {
+            dropoffInput.classList.remove('invalid');
+            dropoffInput.classList.add('valid');
+          } else if (dropoffInput.value) {
+            dropoffInput.classList.add('invalid');
+            dropoffInput.classList.remove('valid');
+          }
+        }
+        
+        this.updateButtonStates();
+      }
+
       async submitForm() {
-        if (!this.state.validateStep(5)) return;
+        // Validate current step (could be 5 or 6)
+        if (!this.state.validateStep(this.state.currentStep)) return;
 
         // Collect contact information
+        const isPetTaxi = this.state.selectedService === 'pet-taxi';
         this.state.contactInfo = {
           firstName: document.getElementById('firstName').value,
           lastName: document.getElementById('lastName').value,
           email: document.getElementById('email').value,
           phone: document.getElementById('phone').value,
-          address: document.getElementById('address').value,
+          address: isPetTaxi ? null : document.getElementById('address').value,
+          pickupAddress: isPetTaxi ? document.getElementById('pickupAddress').value : null,
+          dropoffAddress: isPetTaxi ? document.getElementById('dropoffAddress').value : null,
           notes: document.getElementById('notes').value,
         };
 
