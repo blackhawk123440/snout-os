@@ -54,7 +54,7 @@ export default function RootLayout({
       </head>
       <body className="overflow-x-hidden w-full" style={{ WebkitTextSizeAdjust: '100%', textSizeAdjust: '100%' }}>
         <div className="w-full min-h-screen">
-          {children}
+        {children}
         </div>
       </body>
     </html>
