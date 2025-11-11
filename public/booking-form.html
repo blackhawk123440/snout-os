@@ -400,7 +400,6 @@
       background: linear-gradient(135deg, var(--primary-light), transparent);
       opacity: 0;
       transition: opacity var(--transition-base);
-      pointer-events: none;
     }
 
     .service-card:hover {
@@ -2792,41 +2791,39 @@
             <i class="fas fa-arrow-left"></i>
             Back
           </button>
-          <button class="btn btn-primary" id="nextBtn5" data-automation="next-button-step5">
-            Next
+          <button class="btn btn-primary" id="nextBtn5" data-automation="continue-from-contact" disabled>
+            Continue
             <i class="fas fa-arrow-right"></i>
           </button>
         </div>
       </div>
 
       <!-- Step 6: Pet Taxi Transportation Details -->
-      <div class="form-section" id="step6">
+      <div class="form-section" id="step6" style="display: none;">
         <div class="section-header">
           <div class="section-icon">
             <i class="fas fa-car"></i>
           </div>
           <div class="section-content">
             <h2 class="section-title">Transportation Details</h2>
-            <p class="section-subtitle">Please provide pickup and dropoff locations</p>
+            <p class="section-subtitle">Tell us where to pick up and drop off your pet</p>
           </div>
         </div>
 
-        <form id="petTaxiForm" data-automation="pet-taxi-form">
-          <div class="pet-taxi-addresses" id="petTaxiAddresses">
-            <div class="address-section">
-              <div class="address-grid">
-                <div class="contact-group">
-                  <label class="contact-label" for="pickupAddress">Pickup Address</label>
-                  <input type="text" class="contact-input" id="pickupAddress" name="pickupAddress" placeholder="Enter pickup location" required>
-                </div>
-                <div class="contact-group">
-                  <label class="contact-label" for="dropoffAddress">Dropoff Address</label>
-                  <input type="text" class="contact-input" id="dropoffAddress" name="dropoffAddress" placeholder="Enter dropoff location" required>
-                </div>
+        <div class="pet-taxi-addresses" id="petTaxiAddresses">
+          <div class="address-section">
+            <div class="address-grid">
+              <div class="contact-group">
+                <label class="contact-label" for="pickupAddress">Pickup Address</label>
+                <input type="text" class="contact-input" id="pickupAddress" name="pickupAddress" placeholder="Enter pickup location" required>
+              </div>
+              <div class="contact-group">
+                <label class="contact-label" for="dropoffAddress">Dropoff Address</label>
+                <input type="text" class="contact-input" id="dropoffAddress" name="dropoffAddress" placeholder="Enter dropoff location" required>
               </div>
             </div>
           </div>
-        </form>
+        </div>
 
         <div class="button-group">
           <button class="btn btn-secondary back-btn" id="backBtn6" data-automation="back-button-step6">
@@ -2957,8 +2954,11 @@
         const progressFill = document.getElementById('progressFill');
         const progressSteps = document.querySelectorAll('.progress-step');
         
+        // Calculate total steps (6 for pet-taxi, 5 for others)
+        const totalSteps = this.selectedService === 'pet-taxi' ? 6 : 5;
+        
         if (progressFill) {
-          progressFill.style.width = `${(this.currentStep / 5) * 100}%`;
+          progressFill.style.width = `${(this.currentStep / totalSteps) * 100}%`;
         }
 
         progressSteps.forEach((step, index) => {
@@ -2994,11 +2994,7 @@
           case 5:
             return this.isContactFormValid();
           case 6:
-            // Step 6: Pet Taxi transportation details validation
-            if (this.selectedService === 'pet-taxi') {
-              return this.isPetTaxiFormValid();
-            }
-            return false;
+            return this.isPetTaxiFormValid();
           default:
             return false;
         }
@@ -3025,14 +3021,13 @@
           return false;
         }
         
-        // Check address based on service type (only for non-pet-taxi services)
+        // Check address (only for non-pet-taxi services)
         const isPetTaxi = this.selectedService === 'pet-taxi';
         if (!isPetTaxi) {
           const address = document.getElementById('address')?.value.trim();
           return address;
         }
-        // For pet taxi, address validation is in step 6
-        return true;
+        return true; // Pet taxi address validation is in step 6
       }
 
       isPetTaxiFormValid() {
@@ -3061,6 +3056,7 @@
             2: document.getElementById('nextBtn2'),
             3: document.getElementById('nextBtn3'),
             4: document.getElementById('nextBtn4'),
+            5: document.getElementById('nextBtn5'),
           },
           backButtons: {
             1: document.getElementById('backBtn1'),
@@ -3070,7 +3066,6 @@
             5: document.getElementById('backBtn5'),
             6: document.getElementById('backBtn6'),
           },
-          nextBtn5: document.getElementById('nextBtn5'),
           submitBtn: document.getElementById('submitBtn'),
           startNewBtn: document.getElementById('startNewBooking'),
           serviceCards: document.querySelectorAll('.service-card'),
@@ -3092,17 +3087,9 @@
 
       initializeEventListeners() {
         // Service selection
-        if (this.elements.serviceCards && this.elements.serviceCards.length > 0) {
-          this.elements.serviceCards.forEach(card => {
-            if (card && card.dataset && card.dataset.service) {
-              card.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.selectService(card.dataset.service);
-              });
-            }
-          });
-        }
+        this.elements.serviceCards.forEach(card => {
+          card.addEventListener('click', () => this.selectService(card.dataset.service));
+        });
 
         // Booking type selection
         this.elements.typeCards.forEach(card => {
@@ -3136,18 +3123,6 @@
         Object.values(this.elements.backButtons).forEach(btn => {
           if (btn) btn.addEventListener('click', () => this.prevStep());
         });
-
-        // Next button for step 5 (conditional navigation)
-        if (this.elements.nextBtn5) {
-          this.elements.nextBtn5.addEventListener('click', () => {
-            if (this.state.validateStep(5)) {
-              // If pet taxi, go to step 6 (transportation details)
-              // Otherwise, go to step 7 (confirmation)
-              const nextStep = this.state.selectedService === 'pet-taxi' ? 6 : 7;
-              this.setupStep(nextStep);
-            }
-          });
-        }
 
         // Submit button
         this.elements.submitBtn.addEventListener('click', () => this.submitForm());
@@ -3215,31 +3190,25 @@
           }
         }
 
-        // Show/hide submit button and next button based on step and service
-        const isPetTaxi = this.state.selectedService === 'pet-taxi';
+        // Show/hide step 6 (Pet Taxi Transportation) based on service and current step
+        const step6Element = document.getElementById('step6');
+        if (step6Element) {
+          const isPetTaxi = this.state.selectedService === 'pet-taxi';
+          // Only show step 6 if it's the current step and service is pet-taxi
+          if (step === 6 && isPetTaxi) {
+            step6Element.style.display = 'block';
+          } else if (step !== 6) {
+            // Hide step 6 when not on it
+            step6Element.style.display = 'none';
+          }
+        }
+        
+        // Show/hide regular address field in step 5 (hide for pet-taxi)
         if (step === 5) {
-          // Step 5: Show next button, hide submit button
-          if (this.elements.nextBtn5) {
-            this.elements.nextBtn5.style.display = 'flex';
-          }
-          if (this.elements.submitBtn) {
-            this.elements.submitBtn.style.display = 'none';
-          }
-        } else if (step === 6) {
-          // Step 6 (Pet Taxi only): Show submit button, hide next button
-          if (this.elements.nextBtn5) {
-            this.elements.nextBtn5.style.display = 'none';
-          }
-          if (this.elements.submitBtn) {
-            this.elements.submitBtn.style.display = 'flex';
-          }
-        } else if (step === 7) {
-          // Step 7 (Confirmation): Hide both buttons
-          if (this.elements.nextBtn5) {
-            this.elements.nextBtn5.style.display = 'none';
-          }
-          if (this.elements.submitBtn) {
-            this.elements.submitBtn.style.display = 'none';
+          const regularAddressGroup = document.getElementById('regularAddressGroup');
+          if (regularAddressGroup) {
+            const isPetTaxi = this.state.selectedService === 'pet-taxi';
+            regularAddressGroup.style.display = isPetTaxi ? 'none' : 'block';
           }
         }
 
@@ -3267,7 +3236,7 @@
             this.validateContactForm();
             break;
           case 6:
-            // Validate pet taxi form when entering step 6
+            // Validate pet taxi addresses when entering step 6
             this.validatePetTaxiForm();
             break;
         }
@@ -3427,11 +3396,6 @@
           currentButton.disabled = !isValid;
         }
 
-        // Update next button for step 5
-        if (this.elements.nextBtn5 && this.state.currentStep === 5) {
-          this.elements.nextBtn5.disabled = !isValid;
-        }
-
         // Update submit button
         if (this.elements.submitBtn) {
           this.elements.submitBtn.disabled = !isValid;
@@ -3462,13 +3426,27 @@
 
       nextStep() {
         if (this.state.validateStep(this.state.currentStep)) {
-          this.setupStep(this.state.currentStep + 1);
+          let nextStep = this.state.currentStep + 1;
+          
+          // Skip step 6 (pet taxi) if not pet-taxi service
+          if (nextStep === 6 && this.state.selectedService !== 'pet-taxi') {
+            nextStep = 7; // Go directly to confirmation
+          }
+          
+          this.setupStep(nextStep);
         }
       }
 
       prevStep() {
         if (this.state.currentStep > 1) {
-          this.setupStep(this.state.currentStep - 1);
+          let prevStep = this.state.currentStep - 1;
+          
+          // Skip step 6 (pet taxi) if not pet-taxi service when going back
+          if (prevStep === 6 && this.state.selectedService !== 'pet-taxi') {
+            prevStep = 5; // Go back to contact info
+          }
+          
+          this.setupStep(prevStep);
         }
       }
 
@@ -3602,8 +3580,6 @@
       }
 
       validateContactForm() {
-        const isPetTaxi = this.state.selectedService === 'pet-taxi';
-        
         // Validate required fields
         const firstName = document.getElementById('firstName').value.trim();
         const lastName = document.getElementById('lastName').value.trim();
@@ -3653,10 +3629,10 @@
           phoneInput.classList.remove('valid');
         }
         
-        const isPetTaxi = this.state.selectedService === 'pet-taxi';
         let isValid = firstName && lastName && email && emailRegex.test(email) && phone && phone.length >= 10 && policyAgreed;
         
-        // Validate address fields (only for non-pet-taxi services)
+        // Validate address (only for non-pet-taxi services)
+        const isPetTaxi = this.state.selectedService === 'pet-taxi';
         if (!isPetTaxi) {
           const address = document.getElementById('address').value.trim();
           const addressInput = document.getElementById('address');
@@ -3676,42 +3652,42 @@
       }
 
       validatePetTaxiForm() {
-        const pickupAddress = document.getElementById('pickupAddress')?.value.trim();
-        const dropoffAddress = document.getElementById('dropoffAddress')?.value.trim();
+        const pickupAddress = document.getElementById('pickupAddress').value.trim();
+        const dropoffAddress = document.getElementById('dropoffAddress').value.trim();
         
         // Real-time validation for pickup address
         const pickupInput = document.getElementById('pickupAddress');
-        if (pickupInput) {
-          if (pickupAddress) {
-            pickupInput.classList.remove('invalid');
-            pickupInput.classList.add('valid');
-          } else if (pickupInput.value) {
-            pickupInput.classList.add('invalid');
-            pickupInput.classList.remove('valid');
-          }
+        if (pickupAddress) {
+          pickupInput.classList.remove('invalid');
+          pickupInput.classList.add('valid');
+        } else if (pickupInput.value) {
+          pickupInput.classList.add('invalid');
+          pickupInput.classList.remove('valid');
         }
         
         // Real-time validation for dropoff address
         const dropoffInput = document.getElementById('dropoffAddress');
-        if (dropoffInput) {
-          if (dropoffAddress) {
-            dropoffInput.classList.remove('invalid');
-            dropoffInput.classList.add('valid');
-          } else if (dropoffInput.value) {
-            dropoffInput.classList.add('invalid');
-            dropoffInput.classList.remove('valid');
-          }
+        if (dropoffAddress) {
+          dropoffInput.classList.remove('invalid');
+          dropoffInput.classList.add('valid');
+        } else if (dropoffInput.value) {
+          dropoffInput.classList.add('invalid');
+          dropoffInput.classList.remove('valid');
         }
         
+        const isValid = pickupAddress && dropoffAddress;
+        this.state.isValid = isValid;
         this.updateButtonStates();
+        this.state.saveState(); // Auto-save
       }
 
       async submitForm() {
-        // Validate current step (could be 5 or 6)
-        if (!this.state.validateStep(this.state.currentStep)) return;
+        // Validate current step (5 for non-pet-taxi, 6 for pet-taxi)
+        const isPetTaxi = this.state.selectedService === 'pet-taxi';
+        const stepToValidate = isPetTaxi ? 6 : 5;
+        if (!this.state.validateStep(stepToValidate)) return;
 
         // Collect contact information
-        const isPetTaxi = this.state.selectedService === 'pet-taxi';
         this.state.contactInfo = {
           firstName: document.getElementById('firstName').value,
           lastName: document.getElementById('lastName').value,
@@ -3782,6 +3758,8 @@
           phone: this.state.contactInfo.phone,
           email: this.state.contactInfo.email || undefined,
           address: this.state.contactInfo.address || undefined,
+          pickupAddress: this.state.contactInfo.pickupAddress || undefined,
+          dropoffAddress: this.state.contactInfo.dropoffAddress || undefined,
           service: serviceMap[this.state.selectedService] || 'Drop-ins',
           minutes: duration,
           quantity: this.state.selectedDates.length > 0 ? (() => {
