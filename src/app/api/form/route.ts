@@ -78,6 +78,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate service-specific required fields
+    if (service === "Pet Taxi") {
+      if (!pickupAddress || !dropoffAddress) {
+        return NextResponse.json(
+          { error: "Pickup and dropoff addresses are required for Pet Taxi service" },
+          { status: 400, headers: buildCorsHeaders(request) }
+        );
+      }
+    } else {
+      if (!address) {
+        return NextResponse.json(
+          { error: "Service address is required" },
+          { status: 400, headers: buildCorsHeaders(request) }
+        );
+      }
+    }
+
     // Create pets array - handle cases where petNames might be undefined or not an array
     // Also handle if pets are sent as an array directly
     let pets: Array<{ name: string; species: string }> = [];
