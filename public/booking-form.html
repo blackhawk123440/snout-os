@@ -3884,8 +3884,14 @@
         // Map service names to API format
         // Map service, checking for 24/7 care option
         let serviceName;
+        console.log('Service mapping:', {
+          selectedService: this.state.selectedService,
+          is24SevenCare: this.state.is24SevenCare
+        });
+        
         if (this.state.selectedService === 'pet-sitting' && this.state.is24SevenCare) {
           serviceName = '24/7 Care';
+          console.log('Mapped to 24/7 Care');
         } else {
           const serviceMap = {
             'dog-walking': 'Dog Walking',
@@ -3894,6 +3900,7 @@
             'pet-taxi': 'Pet Taxi'
           };
           serviceName = serviceMap[this.state.selectedService] || 'Drop-ins';
+          console.log('Mapped to:', serviceName);
         }
 
         // Get first selected date and time

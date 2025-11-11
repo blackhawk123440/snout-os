@@ -70,6 +70,9 @@ export async function POST(request: NextRequest) {
       dateTimes,
     } = body;
 
+    // Log received service for debugging
+    console.log('[form/route] Received service:', service);
+    
     // Validate required fields
     if (!firstName || !lastName || !phone || !service || !startAt || !endAt) {
       return NextResponse.json(
@@ -355,6 +358,8 @@ export async function POST(request: NextRequest) {
         : undefined,
     };
 
+    console.log('[form/route] Creating booking with service:', bookingData.service);
+    
     const booking = await prisma.booking.create({
       data: bookingData as Prisma.BookingCreateInput,
       include: {
@@ -362,6 +367,8 @@ export async function POST(request: NextRequest) {
         timeSlots: true,
       },
     });
+
+    console.log('[form/route] Booking created with service:', booking.service);
 
     // Send SMS confirmation to client (if automation enabled)
     const petQuantities = formatPetsByQuantity(booking.pets);
