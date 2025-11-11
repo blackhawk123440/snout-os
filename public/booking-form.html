@@ -2149,7 +2149,7 @@
       }
 
       .time-modal {
-        padding: 0 !important;
+        padding: var(--space-xl) !important;
         margin: 0 !important;
         background: rgba(0, 0, 0, 0.3);
         box-sizing: border-box !important;
@@ -2166,25 +2166,25 @@
       }
 
       .time-modal-content {
-        width: calc(100% - 16px) !important;
-        max-width: 500px !important;
-        max-height: calc(100vh - 16px) !important;
-        margin: 8px auto !important;
+        background: var(--white) !important;
         border-radius: var(--radius-lg) !important;
-        overflow: hidden !important;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
+        width: 100% !important;
+        max-width: 500px !important;
+        max-height: calc(90vh - 40px) !important;
+        height: auto !important;
+        min-height: 500px !important;
         display: flex !important;
         flex-direction: column !important;
-        box-sizing: border-box !important;
-        position: relative !important;
-        height: auto !important;
-        min-height: 350px !important;
         animation: modalSlideIn 0.3s ease !important;
+        position: relative !important;
+        z-index: 1001 !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
       }
 
       .time-modal-header {
-        padding: 8px 12px !important;
+        padding: var(--space-md) var(--space-lg) !important;
         border-bottom: 1px solid var(--secondary);
         display: flex !important;
         align-items: center !important;
@@ -2193,21 +2193,35 @@
       }
 
       .time-modal-title {
-        font-size: var(--font-size-sm);
+        font-size: var(--font-size-base) !important;
         font-weight: 600;
         color: var(--primary);
       }
 
       .time-modal-close {
-        width: 32px !important;
-        height: 32px !important;
-        min-width: 32px !important;
-        min-height: 32px !important;
-        font-size: var(--font-size-sm) !important;
+        background: none !important;
+        border: none !important;
+        font-size: var(--font-size-base) !important;
+        color: var(--primary) !important;
+        cursor: pointer !important;
+        padding: var(--space-xs) !important;
+        border-radius: var(--radius-sm) !important;
+        transition: all var(--transition-base) !important;
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+
+      .time-modal-close:hover {
+        background: var(--secondary) !important;
       }
 
       .time-modal-date {
-        padding: 6px 12px !important;
+        padding: var(--space-sm) var(--space-lg) !important;
         background: var(--accent);
         border-bottom: 1px solid var(--secondary);
         text-align: center;
@@ -2215,27 +2229,41 @@
       }
 
       .time-modal-date-text {
-        font-size: var(--font-size-xs);
+        font-size: var(--font-size-sm) !important;
         font-weight: 500;
         color: var(--primary);
       }
       
       .time-modal-content .time-slots-container {
-        padding: 8px !important;
-        padding-bottom: 50px !important;
-        flex: 1 1 auto !important;
+        padding: var(--space-lg) !important;
+        padding-bottom: calc(var(--space-lg) + 40px) !important;
+        flex: 1 1 0 !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
-        min-height: 250px !important;
-        max-height: none !important;
-        -webkit-overflow-scrolling: touch !important;
-        overscroll-behavior: contain !important;
+        min-height: 400px !important;
+        max-height: 100% !important;
+        height: 0 !important;
+        -webkit-overflow-scrolling: auto !important;
+        overscroll-behavior: none !important;
+        overscroll-behavior-y: none !important;
+        overscroll-behavior-x: none !important;
+        -webkit-overscroll-behavior: none !important;
+        -webkit-overscroll-behavior-y: none !important;
+        -webkit-overscroll-behavior-x: none !important;
+        transform: translateZ(0) !important;
+        -webkit-transform: translateZ(0) !important;
+        contain: layout style paint !important;
+        scroll-behavior: auto !important;
+        position: relative !important;
+        -webkit-momentum-scrolling: disabled !important;
+        touch-action: pan-y !important;
+        will-change: scroll-position !important;
         box-sizing: border-box !important;
         width: 100% !important;
       }
 
       .time-modal-actions {
-        padding: 8px 12px !important;
+        padding: var(--space-md) !important;
         border-top: 1px solid var(--secondary);
         display: flex !important;
         justify-content: flex-end !important;
@@ -2243,44 +2271,77 @@
       }
 
       .time-slots-grid {
-        gap: 6px !important;
-        padding: 0 !important;
-        padding-bottom: 10px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: var(--space-sm) !important;
+        padding: var(--space-sm) !important;
+        padding-bottom: calc(var(--space-sm) + 20px) !important;
         min-height: fit-content;
       }
 
       .time-slot {
-        padding: 8px 10px !important;
-        font-size: var(--font-size-sm) !important;
-        min-height: 44px !important;
-        border-radius: var(--radius-md);
-        border: 2px solid var(--secondary);
+        padding: var(--space-md) !important;
+        border: 2px solid var(--secondary) !important;
+        border-radius: var(--radius-md) !important;
+        background: var(--white) !important;
+        cursor: pointer !important;
+        transition: all var(--transition-base) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: var(--space-md) !important;
+        min-height: 56px !important;
+        position: relative !important;
+        font-size: var(--font-size-base) !important;
+      }
+
+      .time-slot:hover:not(.selected) {
+        border-color: var(--primary) !important;
+        background: var(--primary-light) !important;
+      }
+
+      .time-slot:active:not(.selected) {
+        transform: scale(0.98) !important;
       }
 
       .time-slot.selected {
-        border-color: var(--primary);
-        background: var(--primary-light);
+        border-color: var(--primary) !important;
+        background: var(--primary-light) !important;
+        box-shadow: var(--shadow-sm) !important;
       }
 
       .time-display {
+        flex: 1 !important;
         font-size: var(--font-size-sm) !important;
+        font-weight: 500 !important;
+        color: var(--primary) !important;
       }
 
       .duration-toggle {
-        gap: 4px !important;
+        display: flex !important;
+        gap: var(--space-xs) !important;
       }
 
       .duration-chip {
-        padding: 3px 6px !important;
-        font-size: 10px !important;
+        padding: var(--space-xs) var(--space-sm) !important;
+        border-radius: var(--radius-sm) !important;
+        background: var(--secondary) !important;
+        font-size: var(--font-size-xs) !important;
+        font-weight: 600 !important;
+        cursor: pointer !important;
+        transition: all var(--transition-base) !important;
+        color: var(--primary) !important;
         min-width: 28px !important;
-        border-radius: var(--radius-sm);
+        text-align: center !important;
+      }
+
+      .duration-chip:hover:not(.active) {
+        background: var(--primary-light) !important;
       }
 
       .duration-chip.active {
-        background: var(--primary);
-        color: var(--white);
-        font-weight: 600;
+        background: var(--primary) !important;
+        color: var(--white) !important;
       }
 
       .confirmation-message {
