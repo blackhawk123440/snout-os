@@ -400,6 +400,7 @@
       background: linear-gradient(135deg, var(--primary-light), transparent);
       opacity: 0;
       transition: opacity var(--transition-base);
+      pointer-events: none;
     }
 
     .service-card:hover {
@@ -2877,27 +2878,6 @@
   </div> <!-- Close form-wrapper -->
 
   <script>
-    // ===== ERROR HANDLING =====
-    // Log but don't break on external errors (like Webflow Google Maps)
-    const originalErrorHandler = window.onerror;
-    window.onerror = function(msg, url, line, col, error) {
-      // Suppress Google Maps and Webflow errors that don't affect the booking form
-      if (msg && (
-        msg.includes('maps') || 
-        msg.includes('_wf_maps') ||
-        msg.includes('setMapPosition') ||
-        (url && url.includes('webflow'))
-      )) {
-        // Log silently - these are Webflow/Google Maps issues, not booking form issues
-        return true; // Prevent default error handling
-      }
-      // Call original error handler for other errors
-      if (originalErrorHandler) {
-        return originalErrorHandler.call(this, msg, url, line, col, error);
-      }
-      return false;
-    };
-
     // ===== BOOKING FORM STATE MANAGEMENT =====
     class BookingFormState {
       constructor() {
@@ -3013,10 +2993,6 @@
               this.dateTimes[date] && this.dateTimes[date].length > 0
             );
           case 5:
-            // Step 5 is only for pet-taxi service
-            if (this.selectedService !== 'pet-taxi') {
-              return true; // Skip validation for non-pet-taxi services
-            }
             return this.isPetTaxiFormValid();
           case 6:
             return this.isContactFormValid();
@@ -3050,9 +3026,9 @@
         const isPetTaxi = this.selectedService === 'pet-taxi';
         if (!isPetTaxi) {
           const address = document.getElementById('address')?.value.trim();
-          return address && address.length > 0;
+          return address;
         }
-        return true; // Pet taxi address validation is in step 5
+        return true; // Pet taxi address validation is in step 6
       }
 
       isPetTaxiFormValid() {
@@ -3112,8 +3088,25 @@
 
       initializeEventListeners() {
         // Service selection
+        if (!this.elements.serviceCards || this.elements.serviceCards.length === 0) {
+          console.error('Service cards not found!');
+          return;
+        }
+        
+        console.log(`Found ${this.elements.serviceCards.length} service cards`);
         this.elements.serviceCards.forEach(card => {
-          card.addEventListener('click', () => this.selectService(card.dataset.service));
+          const service = card.dataset.service;
+          console.log('Setting up listener for service:', service);
+          card.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (service) {
+              console.log('Service card clicked:', service);
+              this.selectService(service);
+            } else {
+              console.error('Service card clicked but no service data attribute found');
+            }
+          });
         });
 
         // Booking type selection
@@ -3263,15 +3256,16 @@
           case 6:
             // Validate contact form when entering step 6
             this.validateContactForm();
-            // Also validate step 5 (pet taxi) if applicable
-            if (this.state.selectedService === 'pet-taxi') {
-              this.validatePetTaxiForm();
-            }
             break;
         }
       }
 
       selectService(service) {
+        if (!service) {
+          console.error('selectService called without service parameter');
+          return;
+        }
+        
         // Reset service-specific data when changing services
         const previousService = this.state.selectedService;
         if (previousService && previousService !== service) {
@@ -3293,6 +3287,8 @@
 
         this.updateButtonStates();
         this.state.saveState(); // Auto-save
+        
+        console.log('Service selected:', service, 'Button enabled:', !this.elements.nextButtons[1]?.disabled);
       }
 
       resetServiceSpecificData() {
@@ -3418,23 +3414,19 @@
 
       updateButtonStates() {
         const isValid = this.state.validateStep(this.state.currentStep);
-        const isPetTaxi = this.state.selectedService === 'pet-taxi';
-        
-        // For submit button on step 6, also validate step 5 if pet taxi
-        let submitButtonValid = isValid;
-        if (this.state.currentStep === 6 && isPetTaxi) {
-          submitButtonValid = isValid && this.state.validateStep(5);
-        }
         
         // Update current step button
         const currentButton = this.elements.nextButtons[this.state.currentStep];
         if (currentButton) {
           currentButton.disabled = !isValid;
+          console.log(`Step ${this.state.currentStep} button:`, { isValid, disabled: currentButton.disabled });
+        } else {
+          console.warn(`Button for step ${this.state.currentStep} not found`);
         }
 
         // Update submit button
         if (this.elements.submitBtn) {
-          this.elements.submitBtn.disabled = !submitButtonValid;
+          this.elements.submitBtn.disabled = !isValid;
         }
 
         // Update apply all button (only on step 4)
@@ -3718,10 +3710,7 @@
       }
 
       async submitForm() {
-        const isPetTaxi = this.state.selectedService === 'pet-taxi';
-        
-        // Validate step 5 (pet taxi addresses) for pet taxi, then step 6 (contact info) for all services
-        if (isPetTaxi && !this.state.validateStep(5)) return;
+        // Validate step 6 (contact info) for all services
         if (!this.state.validateStep(6)) return;
 
         // Collect contact information
@@ -3826,19 +3815,8 @@
         };
 
         try {
-          // Get API URL from data attribute, global variable, or fallback
-          const formWrapper = document.querySelector('.form-wrapper');
-          const backendUrl = formWrapper?.dataset?.backendUrl || 
-                            (typeof window !== 'undefined' && (window as any).SNOUT_BACKEND_URL) ||
-                            'https://backend-291r.onrender.com';
-          
-          // Use same origin if embedded in the same app, otherwise use backend URL
-          const isSameOrigin = window.location.origin.includes('render.com') || 
-                              window.location.origin.includes('localhost') ||
-                              window.location.origin.includes('vercel.app');
-          const apiUrl = isSameOrigin 
-            ? `${window.location.origin}/api/form`
-            : `${backendUrl}/api/form`;
+          // Send to API - CHANGE THIS URL FOR PRODUCTION
+          const apiUrl = window.location.origin + '/api/form'; // Use same origin as the page
           
           const response = await fetch(apiUrl, {
             method: 'POST',
@@ -3863,18 +3841,13 @@
             }, 50);
           } else {
             console.error('❌ Booking failed:', data);
-            const errorMessage = data.error || data.details || 'Unknown error occurred. Please try again.';
-            showCustomAlert(`Booking failed: ${errorMessage}`, 'fa-circle-exclamation');
+            showCustomAlert(`Booking failed: ${data.error || 'Unknown error'}`, 'fa-circle-exclamation');
             this.elements.submitBtn.classList.remove('loading');
             this.elements.submitBtn.disabled = false;
           }
         } catch (error) {
           console.error('❌ Network error:', error);
-          let errorMessage = 'Network error. Please check your connection and try again.';
-          if (error instanceof TypeError && error.message.includes('fetch')) {
-            errorMessage = 'Unable to connect to server. Please check your internet connection.';
-          }
-          showCustomAlert(errorMessage, 'fa-wifi');
+          showCustomAlert('Network error. Please check your connection and try again.', 'fa-wifi');
           this.elements.submitBtn.classList.remove('loading');
           this.elements.submitBtn.disabled = false;
         }
@@ -4739,17 +4712,8 @@
     let bookingForm;
 
     document.addEventListener('DOMContentLoaded', () => {
-      try {
-        bookingForm = new BookingFormController();
-        window.bookingForm = bookingForm; // Make globally accessible
-      } catch (error) {
-        console.error('Failed to initialize booking form:', error);
-        // Show user-friendly error message
-        const formWrapper = document.querySelector('.form-wrapper');
-        if (formWrapper) {
-          formWrapper.innerHTML = '<div style="padding: 2rem; text-align: center;"><h2>Unable to load booking form</h2><p>Please refresh the page or contact support if the problem persists.</p></div>';
-        }
-      }
+      bookingForm = new BookingFormController();
+      window.bookingForm = bookingForm; // Make globally accessible
     });
 
     // ===== ACCESSIBILITY ENHANCEMENTS =====
