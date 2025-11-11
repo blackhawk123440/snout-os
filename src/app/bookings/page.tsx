@@ -710,10 +710,9 @@ function BookingsPageContent() {
     try {
       const requestBody: any = {};
 
-      // Include editedBooking fields if any exist (except totalPrice - it's always calculated)
+      // Include editedBooking fields if any exist
       if (Object.keys(editedBooking).length > 0) {
-        const { totalPrice, ...bookingFields } = editedBooking;
-        Object.assign(requestBody, bookingFields);
+        Object.assign(requestBody, editedBooking);
       }
 
       // Always include timeSlots if we're in edit mode (even if unchanged, we send current state)
@@ -3134,7 +3133,7 @@ function BookingsPageContent() {
                                     quantity: isHouse ? (hasDates ? (selectedBooking?.quantity ?? 1) : 1) : Math.max(editedTimeSlots.length, 0),
                                     afterHours: editedBooking.afterHours !== undefined ? editedBooking.afterHours : (selectedBooking?.afterHours ?? false),
                                     holiday: editedBooking.holiday !== undefined ? editedBooking.holiday : (selectedBooking?.holiday ?? false),
-                                    // totalPrice is always calculated, never use stored value
+                                    totalPrice: editedBooking.totalPrice !== undefined ? editedBooking.totalPrice : (selectedBooking?.totalPrice ?? undefined),
                                     timeSlots: editedTimeSlots.length > 0 ? editedTimeSlots.map(ts => ({ startAt: ts.startAt, endAt: ts.endAt, duration: ts.duration })) : (hasTimeSlots ? (selectedBooking?.timeSlots || []) : []),
                                   }
                                 : selectedBooking ? { ...selectedBooking, service: currentService } : {
@@ -3179,6 +3178,11 @@ function BookingsPageContent() {
                                         <p className="text-lg font-bold" style={{ color: COLORS.primary }}>Total</p>
                                         <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>${breakdown.total.toFixed(2)}</p>
                                       </div>
+                                      {!isEditMode && Math.abs(breakdown.total - (selectedBooking.totalPrice || 0)) > 0.01 && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          *Stored total: ${(selectedBooking.totalPrice || 0).toFixed(2)} (difference: ${((selectedBooking.totalPrice || 0) - breakdown.total).toFixed(2)})
+                                        </p>
+                                      )}
                                     </div>
                                 </div>
                               );

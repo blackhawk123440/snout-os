@@ -70,29 +70,94 @@ export async function POST(request: NextRequest) {
       dateTimes,
     } = body;
 
-    // Log received service for debugging
-    console.log('[form/route] Received service:', service);
+    // Validate required fields with specific error messages
+    const missingFields: string[] = [];
+    if (!firstName?.trim()) missingFields.push('First name');
+    if (!lastName?.trim()) missingFields.push('Last name');
+    if (!phone?.trim()) missingFields.push('Phone number');
+    if (!service?.trim()) missingFields.push('Service');
+    if (!startAt) missingFields.push('Start date/time');
+    if (!endAt) missingFields.push('End date/time');
     
-    // Validate required fields
-    if (!firstName || !lastName || !phone || !service || !startAt || !endAt) {
+    if (missingFields.length > 0) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { 
+          error: `Missing required fields: ${missingFields.join(', ')}`,
+          missingFields 
+        },
+        { status: 400, headers: buildCorsHeaders(request) }
+      );
+    }
+
+    // Validate service name
+    const validServices = ["Dog Walking", "Housesitting", "24/7 Care", "Drop-ins", "Pet Taxi"];
+    if (!validServices.includes(service)) {
+      return NextResponse.json(
+        { 
+          error: `Invalid service: ${service}. Valid services are: ${validServices.join(', ')}`,
+          validServices
+        },
+        { status: 400, headers: buildCorsHeaders(request) }
+      );
+    }
+
+    // Validate date formats
+    let startDate: Date;
+    let endDate: Date;
+    try {
+      startDate = new Date(startAt);
+      endDate = new Date(endAt);
+      
+      if (isNaN(startDate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid start date/time format" },
+          { status: 400, headers: buildCorsHeaders(request) }
+        );
+      }
+      
+      if (isNaN(endDate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid end date/time format" },
+          { status: 400, headers: buildCorsHeaders(request) }
+        );
+      }
+      
+      if (endDate < startDate) {
+        return NextResponse.json(
+          { error: "End date/time must be after start date/time" },
+          { status: 400, headers: buildCorsHeaders(request) }
+        );
+      }
+    } catch (dateError) {
+      return NextResponse.json(
+        { error: "Invalid date/time format" },
         { status: 400, headers: buildCorsHeaders(request) }
       );
     }
 
     // Validate service-specific required fields
     if (service === "Pet Taxi") {
-      if (!pickupAddress || !dropoffAddress) {
+      const missingAddresses: string[] = [];
+      if (!pickupAddress?.trim()) missingAddresses.push('pickup address');
+      if (!dropoffAddress?.trim()) missingAddresses.push('dropoff address');
+      
+      if (missingAddresses.length > 0) {
         return NextResponse.json(
-          { error: "Pickup and dropoff addresses are required for Pet Taxi service" },
+          { 
+            error: `Missing required ${missingAddresses.join(' and ')} for Pet Taxi service`,
+            missingFields: missingAddresses
+          },
           { status: 400, headers: buildCorsHeaders(request) }
         );
       }
-    } else {
-      if (!address) {
+    } else if (service !== "Housesitting" && service !== "24/7 Care") {
+      // For non-house sitting services, address is required
+      if (!address?.trim()) {
         return NextResponse.json(
-          { error: "Service address is required" },
+          { 
+            error: "Service address is required",
+            missingFields: ['address']
+          },
           { status: 400, headers: buildCorsHeaders(request) }
         );
       }
@@ -104,18 +169,25 @@ export async function POST(request: NextRequest) {
     
     if (Array.isArray(body.pets) && body.pets.length > 0) {
       // Pets are sent as an array of objects with name and species
-      pets = body.pets.map((pet: any) => ({
-        name: pet.name || "Pet",
-        species: pet.species || "Dog",
-      }));
+      pets = body.pets
+        .filter((pet: any) => pet && (pet.name || pet.species)) // Filter out invalid pets
+        .map((pet: any) => ({
+          name: (pet.name || "Pet").trim() || "Pet",
+          species: (pet.species || "Dog").trim() || "Dog",
+        }));
     } else if (Array.isArray(petNames) && petNames.length > 0) {
       // Pets are sent as separate arrays for names and species
-      pets = petNames.map((name: string, index: number) => ({
-        name: name || `Pet ${index + 1}`,
-        species: (Array.isArray(petSpecies) ? petSpecies[index] : petSpecies) || "Dog",
-      }));
-    } else {
-      pets = [{ name: "Pet 1", species: "Dog" }]; // Default to one pet if none provided
+      pets = petNames
+        .map((name: string, index: number) => ({
+          name: (name || `Pet ${index + 1}`).trim() || `Pet ${index + 1}`,
+          species: ((Array.isArray(petSpecies) ? petSpecies[index] : petSpecies) || "Dog").trim() || "Dog",
+        }))
+        .filter(pet => pet.name && pet.species); // Filter out invalid pets
+    }
+    
+    // Ensure at least one pet
+    if (pets.length === 0) {
+      pets = [{ name: "Pet 1", species: "Dog" }];
     }
 
     // Calculate price
@@ -358,8 +430,6 @@ export async function POST(request: NextRequest) {
         : undefined,
     };
 
-    console.log('[form/route] Creating booking with service:', bookingData.service);
-    
     const booking = await prisma.booking.create({
       data: bookingData as Prisma.BookingCreateInput,
       include: {
@@ -368,13 +438,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('[form/route] Booking created with service:', booking.service);
-
     // Send SMS confirmation to client (if automation enabled)
     const petQuantities = formatPetsByQuantity(booking.pets);
     const shouldSendToClient = await shouldSendToRecipient("ownerNewBookingAlert", "client");
-    
-    console.log(`[form/route] Should send to client: ${shouldSendToClient}`);
     
     if (shouldSendToClient) {
       const formattedDatesTimes = formatDatesAndTimes(timeSlotsData, selectedDates, parsedDateTimes);
@@ -394,21 +460,14 @@ export async function POST(request: NextRequest) {
         totalPrice: breakdown.total.toFixed(2),
       });
       
-      console.log(`[form/route] Sending client message to ${phone}`);
-      const clientMessageSent = await sendMessage(phone, clientMessage, booking.id);
-      console.log(`[form/route] Client message sent: ${clientMessageSent}`);
-    } else {
-      console.log(`[form/route] Skipping client message - automation disabled or recipient not configured`);
+      await sendMessage(phone, clientMessage, booking.id);
     }
 
     // Send alert to owner (if automation enabled)
     const shouldSendToOwner = await shouldSendToRecipient("ownerNewBookingAlert", "owner");
     
-    console.log(`[form/route] Should send to owner: ${shouldSendToOwner}`);
-    
     if (shouldSendToOwner) {
       const ownerPhone = await getOwnerPhone(undefined, "ownerNewBookingAlert");
-      console.log(`[form/route] Owner phone: ${ownerPhone || 'Not configured'}`);
       
       if (ownerPhone) {
         const bookingDetailsUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/bookings?booking=${booking.id}`;
@@ -432,11 +491,8 @@ export async function POST(request: NextRequest) {
           bookingUrl: bookingDetailsUrl,
         });
         
-        console.log(`[form/route] Sending owner message to ${ownerPhone}`);
-        const ownerMessageSent = await sendMessage(ownerPhone, ownerMessage, booking.id);
-        console.log(`[form/route] Owner message sent: ${ownerMessageSent}`);
+        await sendMessage(ownerPhone, ownerMessage, booking.id);
       } else {
-        console.log(`[form/route] Owner phone not configured, using fallback sendOwnerAlert`);
         await sendOwnerAlert(
           firstName,
           lastName,
@@ -446,8 +502,6 @@ export async function POST(request: NextRequest) {
           pets
         );
       }
-    } else {
-      console.log(`[form/route] Skipping owner message - automation disabled or recipient not configured`);
     }
 
     return NextResponse.json({
