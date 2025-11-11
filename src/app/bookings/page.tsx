@@ -11,7 +11,9 @@ interface Booking {
   lastName: string;
   phone: string;
   email: string;
-  address: string;
+  address: string | null;
+  pickupAddress: string | null;
+  dropoffAddress: string | null;
   service: string;
   startAt: Date;
   endAt: Date;
@@ -1825,7 +1827,14 @@ function BookingsPageContent() {
                             })()}</span>
                           </div>
                           <div className="mt-1">
-                            <span><i className="fas fa-map-marker-alt mr-1"></i>{booking.address}</span>
+                            {booking.service === 'Pet Taxi' && booking.pickupAddress && booking.dropoffAddress ? (
+                              <>
+                                <span><i className="fas fa-map-marker-alt mr-1"></i>Pickup: {booking.pickupAddress}</span>
+                                <span className="ml-4"><i className="fas fa-map-marker-alt mr-1"></i>Dropoff: {booking.dropoffAddress}</span>
+                              </>
+                            ) : (
+                              <span><i className="fas fa-map-marker-alt mr-1"></i>{booking.address || 'No address'}</span>
+                            )}
                             {booking.sitter && (
                               <span className="ml-4"><i className="fas fa-user mr-1"></i>{booking.sitter.firstName} {booking.sitter.lastName}</span>
                             )}
@@ -1968,16 +1977,41 @@ function BookingsPageContent() {
                               style={{ borderColor: COLORS.border }}
                             />
                           </div>
-                          <div className="md:col-span-2 space-y-1">
-                            <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Service Address</label>
-                            <textarea
-                              value={editedBooking.address || ''}
-                              onChange={(e) => setEditedBooking({...editedBooking, address: e.target.value})}
-                              className="w-full px-3 py-2.5 sm:py-2 border rounded-lg text-base sm:text-lg font-semibold touch-manipulation"
-                              style={{ borderColor: COLORS.border }}
-                              rows={3}
-                            />
-                          </div>
+                          {editedBooking.service === 'Pet Taxi' ? (
+                            <>
+                              <div className="md:col-span-2 space-y-1">
+                                <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Pickup Address</label>
+                                <textarea
+                                  value={editedBooking.pickupAddress || ''}
+                                  onChange={(e) => setEditedBooking({...editedBooking, pickupAddress: e.target.value})}
+                                  className="w-full px-3 py-2.5 sm:py-2 border rounded-lg text-base sm:text-lg font-semibold touch-manipulation"
+                                  style={{ borderColor: COLORS.border }}
+                                  rows={2}
+                                />
+                              </div>
+                              <div className="md:col-span-2 space-y-1">
+                                <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Dropoff Address</label>
+                                <textarea
+                                  value={editedBooking.dropoffAddress || ''}
+                                  onChange={(e) => setEditedBooking({...editedBooking, dropoffAddress: e.target.value})}
+                                  className="w-full px-3 py-2.5 sm:py-2 border rounded-lg text-base sm:text-lg font-semibold touch-manipulation"
+                                  style={{ borderColor: COLORS.border }}
+                                  rows={2}
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <div className="md:col-span-2 space-y-1">
+                              <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Service Address</label>
+                              <textarea
+                                value={editedBooking.address || ''}
+                                onChange={(e) => setEditedBooking({...editedBooking, address: e.target.value})}
+                                className="w-full px-3 py-2.5 sm:py-2 border rounded-lg text-base sm:text-lg font-semibold touch-manipulation"
+                                style={{ borderColor: COLORS.border }}
+                                rows={3}
+                              />
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2028,10 +2062,23 @@ function BookingsPageContent() {
                             <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Email Address</label>
                             <p className="text-lg font-semibold text-gray-900">{selectedBooking.email || "Not provided"}</p>
                           </div>
-                          <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Service Address</label>
-                            <p className="text-lg font-semibold text-gray-900">{selectedBooking.address}</p>
-                          </div>
+                          {selectedBooking.service === 'Pet Taxi' && selectedBooking.pickupAddress && selectedBooking.dropoffAddress ? (
+                            <>
+                              <div className="space-y-1">
+                                <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Pickup Address</label>
+                                <p className="text-lg font-semibold text-gray-900">{selectedBooking.pickupAddress}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Dropoff Address</label>
+                                <p className="text-lg font-semibold text-gray-900">{selectedBooking.dropoffAddress}</p>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="space-y-1">
+                              <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Service Address</label>
+                              <p className="text-lg font-semibold text-gray-900">{selectedBooking.address || 'Not provided'}</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
