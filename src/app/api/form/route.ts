@@ -135,6 +135,96 @@ export async function POST(request: NextRequest) {
       return `${String(hours).padStart(2, '0')}:${minutes}:00`;
     };
 
+    // Helper function to format dates and times for messages
+    const formatDatesAndTimes = (
+      timeSlots: Array<{ startAt: Date; endAt: Date; duration: number }>,
+      selectedDates?: string[],
+      dateTimes?: any
+    ): string => {
+      // If we have timeSlots, use those
+      if (timeSlots.length > 0) {
+        // Group by date
+        const byDate: { [key: string]: Array<{ time: string; duration: number }> } = {};
+        timeSlots.forEach(slot => {
+          const dateKey = slot.startAt.toISOString().split('T')[0];
+          const timeStr = slot.startAt.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+          });
+          if (!byDate[dateKey]) byDate[dateKey] = [];
+          byDate[dateKey].push({ time: timeStr, duration: slot.duration });
+        });
+
+        // Format grouped dates
+        const dateStrings = Object.keys(byDate).sort().map(dateKey => {
+          const date = new Date(dateKey);
+          const dateStr = date.toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            month: 'short', 
+            day: 'numeric' 
+          });
+          const times = byDate[dateKey].map(t => {
+            if (t.duration) {
+              return `${t.time} (${t.duration}min)`;
+            }
+            return t.time;
+          }).join(', ');
+          return `${dateStr} at ${times}`;
+        });
+
+        return dateStrings.join('\n');
+      }
+
+      // Fallback to selectedDates and dateTimes if available
+      if (selectedDates && Array.isArray(selectedDates) && selectedDates.length > 0) {
+        let parsedDateTimes: any = dateTimes;
+        if (typeof dateTimes === 'string') {
+          try {
+            parsedDateTimes = JSON.parse(dateTimes);
+          } catch {
+            parsedDateTimes = {};
+          }
+        }
+
+        const dateStrings = selectedDates.sort().map(dateStr => {
+          const date = new Date(dateStr);
+          const dateFormatted = date.toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            month: 'short', 
+            day: 'numeric' 
+          });
+          const times = parsedDateTimes[dateStr];
+          if (Array.isArray(times) && times.length > 0) {
+            const timeStrings = times.map((timeEntry: any) => {
+              const timeValue = timeEntry?.time || timeEntry?.timeValue || timeEntry;
+              const durationValue = timeEntry?.duration || timeEntry?.durationValue;
+              if (typeof timeValue === 'string') {
+                return durationValue ? `${timeValue} (${durationValue}min)` : timeValue;
+              }
+              return '';
+            }).filter(Boolean).join(', ');
+            return `${dateFormatted} at ${timeStrings}`;
+          }
+          return dateFormatted;
+        });
+
+        return dateStrings.join('\n');
+      }
+
+      // Final fallback to startAt
+      const date = new Date(startAt);
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric' 
+      }) + ' at ' + date.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    };
+
     // Create timeSlots array from selectedDates and dateTimes
     const timeSlotsData: Array<{ startAt: Date; endAt: Date; duration: number }> = [];
     
@@ -223,16 +313,19 @@ export async function POST(request: NextRequest) {
     console.log(`[form/route] Should send to client: ${shouldSendToClient}`);
     
     if (shouldSendToClient) {
+      const formattedDatesTimes = formatDatesAndTimes(timeSlotsData, selectedDates, parsedDateTimes);
+      
       let clientMessageTemplate = await getMessageTemplate("ownerNewBookingAlert", "client");
       if (!clientMessageTemplate) {
-        clientMessageTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nWe'll confirm your booking shortly. Thank you!";
+        clientMessageTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nWe'll confirm your booking shortly. Thank you!";
       }
       
       const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
         firstName,
         service,
-        date: new Date(startAt).toLocaleDateString(),
-        time: new Date(startAt).toLocaleTimeString(),
+        datesTimes: formattedDatesTimes,
+        date: new Date(startAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        time: new Date(startAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
         petQuantities,
         totalPrice: priceCalculation.total.toFixed(2),
       });
@@ -255,10 +348,11 @@ export async function POST(request: NextRequest) {
       
       if (ownerPhone) {
         const bookingDetailsUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/bookings?booking=${booking.id}`;
+        const formattedDatesTimes = formatDatesAndTimes(timeSlotsData, selectedDates, parsedDateTimes);
         
         let ownerMessageTemplate = await getMessageTemplate("ownerNewBookingAlert", "owner");
         if (!ownerMessageTemplate) {
-          ownerMessageTemplate = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}} — {{date}} at {{time}}\n{{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView details: {{bookingUrl}}";
+          ownerMessageTemplate = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}}\n{{datesTimes}}\n{{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView details: {{bookingUrl}}";
         }
         
         const ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
@@ -266,8 +360,9 @@ export async function POST(request: NextRequest) {
           lastName,
           phone,
           service,
-          date: new Date(startAt).toLocaleDateString(),
-          time: new Date(startAt).toLocaleTimeString(),
+          datesTimes: formattedDatesTimes,
+          date: new Date(startAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+          time: new Date(startAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
           petQuantities,
           totalPrice: priceCalculation.total.toFixed(2),
           bookingUrl: bookingDetailsUrl,
