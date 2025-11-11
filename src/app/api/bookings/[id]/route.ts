@@ -48,9 +48,9 @@ export async function PATCH(
       lastName, 
       phone, 
       email, 
-      address,
+      address, 
       pickupAddress,
-      dropoffAddress, 
+      dropoffAddress,
       service, 
       startAt, 
       endAt, 
@@ -209,10 +209,7 @@ export async function PATCH(
           // Calculate the true total
           const breakdown = calculatePriceBreakdown(finalBooking);
           const calculatedTotal = breakdown.total;
-          const addressInfo = finalBooking.service === 'Pet Taxi' && finalBooking.pickupAddress && finalBooking.dropoffAddress
-            ? `Pickup: ${finalBooking.pickupAddress}\nDropoff: ${finalBooking.dropoffAddress}`
-            : `Address: ${finalBooking.address || 'Not provided'}`;
-          const message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${finalBooking.firstName} ${finalBooking.lastName}'s ${finalBooking.service} booking on ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\n${addressInfo}\nTotal: $${calculatedTotal.toFixed(2)}\n\nPlease confirm your availability.`;
+          const message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${finalBooking.firstName} ${finalBooking.lastName}'s ${finalBooking.service} booking on ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${finalBooking.address}\nTotal: $${calculatedTotal.toFixed(2)}\n\nPlease confirm your availability.`;
           
           await sendMessage(sitterPhone, message, finalBooking.id);
         }
