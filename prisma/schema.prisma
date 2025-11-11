@@ -23,8 +23,8 @@ model Booking {
   firstName     String
   lastName      String
   phone         String
-  email         String
-  address       String
+  email         String?
+  address       String?
   pickupAddress String?
   dropoffAddress String?
   service       String
