@@ -1304,9 +1304,10 @@ function BookingsPageContent() {
     
     const dateStr = selectedDateForTime;
     const [year, month, day] = dateStr.split('-').map(Number);
-    const startAt = new Date(year, month - 1, day, time.hour, time.minute);
-    const endAt = new Date(startAt);
-    endAt.setMinutes(endAt.getMinutes() + duration);
+    // Create dates using the same method as the API - store local time as UTC
+    const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(time.hour).padStart(2, '0')}:${String(time.minute).padStart(2, '0')}:00.000Z`;
+    const startAt = new Date(isoString);
+    const endAt = new Date(startAt.getTime() + duration * 60000);
     
     // Find any slot at this exact date+time (regardless of duration)
     // Use UTC methods since dates are stored with local time as UTC
