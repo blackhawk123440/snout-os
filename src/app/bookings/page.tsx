@@ -383,6 +383,8 @@ function BookingsPageContent() {
       setCalendarYear(startDate.getFullYear());
     } else {
       // For other services, use timeSlots
+      // Dates from database are stored as UTC, but we need to display them in local time
+      // JavaScript's Date constructor automatically converts UTC to local timezone
     setEditedTimeSlots(booking.timeSlots?.map(ts => ({
       id: ts.id,
       startAt: new Date(ts.startAt),
@@ -1348,13 +1350,14 @@ function BookingsPageContent() {
     
     return editedTimeSlots.some(ts => {
       const tsDate = new Date(ts.startAt);
+      // Use local date components (not UTC) since times are stored as local time
       const tsYear = tsDate.getFullYear();
       const tsMonth = tsDate.getMonth() + 1;
       const tsDay = tsDate.getDate();
       const tsHour = tsDate.getHours();
       const tsMinute = tsDate.getMinutes();
       
-      // Compare using local date components to avoid timezone issues
+      // Compare using local date components - dates are stored in local timezone
       return tsYear === year &&
              tsMonth === month &&
              tsDay === day &&

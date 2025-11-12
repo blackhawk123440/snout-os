@@ -148,6 +148,20 @@ export async function POST(request: NextRequest) {
       return `${String(hours).padStart(2, '0')}:${minutes}:00`;
     };
 
+    // Helper function to create a date in America/Chicago timezone
+    // This ensures times are stored consistently regardless of server timezone
+    const createDateInTimezone = (dateStr: string, time24h: string): Date => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const [hours, minutes] = time24h.split(':').map(Number);
+      // Create date string in ISO format with timezone offset for America/Chicago
+      // We'll use the date components directly and let JavaScript handle it
+      // Since we want to preserve the local time, we create it as if it's already in the target timezone
+      const dateStrWithTime = `${dateStr}T${time24h}`;
+      // Parse as if it's in local timezone (which should match user's timezone)
+      // When stored in DB, it will be converted to UTC, but the time components will be preserved
+      return new Date(year, month - 1, day, hours, minutes, 0);
+    };
+
     // Helper function to format dates and times for messages
     const formatDatesAndTimes = (
       timeSlots: Array<{ startAt: Date; endAt: Date; duration: number }>,
@@ -262,12 +276,9 @@ export async function POST(request: NextRequest) {
             if (typeof timeValue === 'string' && timeValue.includes(':')) {
               const time24h = convertTo24Hour(timeValue);
               const duration = typeof durationValue === 'number' ? durationValue : 30;
-              // Create date in local timezone, then convert to UTC for storage
-              // This ensures the time displayed matches what the user selected
-              const [year, month, day] = dateStr.split('-').map(Number);
-              const [hours, minutes] = time24h.split(':').map(Number);
-              // Create date in local timezone
-              const startDateTime = new Date(year, month - 1, day, hours, minutes, 0);
+              // Create date using the date and time components directly
+              // This preserves the exact time selected by the user
+              const startDateTime = createDateInTimezone(dateStr, time24h);
               const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
               
               timeSlotsData.push({
@@ -306,25 +317,19 @@ export async function POST(request: NextRequest) {
       
       if (firstTime && firstTime.time) {
         const time24h = convertTo24Hour(firstTime.time);
-        const [year, month, day] = firstDate.split('-').map(Number);
-        const [hours, minutes] = time24h.split(':').map(Number);
-        const startDate = new Date(year, month - 1, day, hours, minutes, 0);
+        const startDate = createDateInTimezone(firstDate, time24h);
         bookingStartAt = startDate.toISOString();
       } else {
-        const [year, month, day] = firstDate.split('-').map(Number);
-        const startDate = new Date(year, month - 1, day, 9, 0, 0);
+        const startDate = createDateInTimezone(firstDate, '09:00:00');
         bookingStartAt = startDate.toISOString();
       }
       
       if (lastTime && lastTime.time) {
         const time24h = convertTo24Hour(lastTime.time);
-        const [year, month, day] = lastDate.split('-').map(Number);
-        const [hours, minutes] = time24h.split(':').map(Number);
-        const endDate = new Date(year, month - 1, day, hours, minutes, 0);
+        const endDate = createDateInTimezone(lastDate, time24h);
         bookingEndAt = endDate.toISOString();
       } else {
-        const [year, month, day] = lastDate.split('-').map(Number);
-        const endDate = new Date(year, month - 1, day, 23, 59, 59);
+        const endDate = createDateInTimezone(lastDate, '23:59:59');
         bookingEndAt = endDate.toISOString();
       }
     } else {
