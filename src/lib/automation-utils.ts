@@ -6,8 +6,10 @@ import { prisma } from "@/lib/db";
 
 /**
  * Get automation settings from database
+ * Always reads fresh from database - no caching
  */
 export async function getAutomationSettings(): Promise<Record<string, any>> {
+  // Always read fresh from database to ensure we get the latest settings
   const automationSetting = await prisma.setting.findUnique({
     where: { key: "automation" },
   });
