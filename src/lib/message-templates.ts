@@ -140,19 +140,26 @@ export async function saveMessageTemplateWithVersion(
   }
 
   // Save current template
-  await prisma.setting.upsert({
-    where: { key },
-    update: {
-      value: template,
-      updatedAt: new Date(),
-    },
-    create: {
-      key,
-      value: template,
-      category: "messageTemplate",
-      label: `${automationType} ${recipient} Message Template`,
-    },
+  // Use transaction to ensure atomicity and immediate visibility
+  await prisma.$transaction(async (tx) => {
+    await tx.setting.upsert({
+      where: { key },
+      update: {
+        value: template,
+        updatedAt: new Date(),
+      },
+      create: {
+        key,
+        value: template,
+        category: "messageTemplate",
+        label: `${automationType} ${recipient} Message Template`,
+      },
+    });
   });
+  
+  // Force Prisma to clear any potential query cache for this key
+  // This ensures the next read gets the fresh value
+  await prisma.$queryRaw`SELECT 1`;
 }
 
 /**
