@@ -103,46 +103,46 @@ export async function saveMessageTemplateWithVersion(
     }
   }
 
-  // Only create new version if template changed
-  if (!current || current.value !== template) {
-    const newVersion: MessageTemplateVersion = {
-      version: generateVersion(versions),
-      template,
-      description,
-      variables: extractVariables(template),
-      channel: "sms",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  // Use a single transaction to save both version history and current template
+  // This ensures atomicity and immediate visibility
+  await prisma.$transaction(async (tx) => {
+    // Only create new version if template changed
+    if (!current || current.value !== template) {
+      const newVersion: MessageTemplateVersion = {
+        version: generateVersion(versions),
+        template,
+        description,
+        variables: extractVariables(template),
+        channel: "sms",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
-    // Add new version to front of array
-    versions.unshift(newVersion);
+      // Add new version to front of array
+      versions.unshift(newVersion);
 
-    // Keep only last 10 versions
-    if (versions.length > 10) {
-      versions = versions.slice(0, 10);
+      // Keep only last 10 versions
+      if (versions.length > 10) {
+        versions = versions.slice(0, 10);
+      }
+
+      // Save version history within the same transaction
+      await tx.setting.upsert({
+        where: { key: versionKey },
+        update: {
+          value: JSON.stringify(versions),
+          updatedAt: new Date(),
+        },
+        create: {
+          key: versionKey,
+          value: JSON.stringify(versions),
+          category: "messageTemplateVersion",
+          label: `${automationType} ${recipient} Version History`,
+        },
+      });
     }
 
-    // Save version history
-    await prisma.setting.upsert({
-      where: { key: versionKey },
-      update: {
-        value: JSON.stringify(versions),
-        updatedAt: new Date(),
-      },
-      create: {
-        key: versionKey,
-        value: JSON.stringify(versions),
-        category: "messageTemplateVersion",
-        label: `${automationType} ${recipient} Version History`,
-      },
-    });
-  }
-
-  // Save current template
-  // Use transaction to ensure atomicity and immediate visibility
-  // This ensures the save is committed before any subsequent reads
-  await prisma.$transaction(async (tx) => {
+    // Save current template within the same transaction
     await tx.setting.upsert({
       where: { key },
       update: {
