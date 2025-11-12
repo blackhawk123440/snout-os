@@ -704,12 +704,12 @@ function BookingsPageContent() {
 
   const formatTime = (date: Date | string) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true,
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    });
+    // Dates are stored with local time as UTC, so use UTC methods to get the original time
+    const hours = dateObj.getUTCHours();
+    const minutes = dateObj.getUTCMinutes();
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    return `${displayHours}:${String(minutes).padStart(2, '0')} ${period}`;
   };
 
   const handleSave = async () => {
