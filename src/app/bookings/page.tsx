@@ -1310,7 +1310,7 @@ function BookingsPageContent() {
     
     // Find any slot at this exact date+time (regardless of duration)
     const sameTimeIndex = editedTimeSlots.findIndex(ts => {
-      const tsDate = new Date(ts.startAt);
+      const tsDate = ts.startAt instanceof Date ? ts.startAt : new Date(ts.startAt);
       const tsYear = tsDate.getFullYear();
       const tsMonth = tsDate.getMonth() + 1;
       const tsDay = tsDate.getDate();
