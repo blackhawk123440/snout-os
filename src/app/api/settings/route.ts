@@ -91,31 +91,32 @@ export async function PATCH(request: NextRequest) {
           const config = automation[automationType];
           
           // Store client message template with versioning
-          if (config.messageTemplateClient) {
+          // Save even if empty string to ensure updates are persisted
+          if (config.hasOwnProperty('messageTemplateClient')) {
             await saveMessageTemplateWithVersion(
               automationType,
               "client",
-              config.messageTemplateClient,
+              config.messageTemplateClient || "",
               `Client message template for ${automationType}`
             );
           }
           
           // Store sitter message template with versioning
-          if (config.messageTemplateSitter) {
+          if (config.hasOwnProperty('messageTemplateSitter')) {
             await saveMessageTemplateWithVersion(
               automationType,
               "sitter",
-              config.messageTemplateSitter,
+              config.messageTemplateSitter || "",
               `Sitter message template for ${automationType}`
             );
           }
           
           // Store owner message template with versioning
-          if (config.messageTemplateOwner) {
+          if (config.hasOwnProperty('messageTemplateOwner')) {
             await saveMessageTemplateWithVersion(
               automationType,
               "owner",
-              config.messageTemplateOwner,
+              config.messageTemplateOwner || "",
               `Owner message template for ${automationType}`
             );
           }

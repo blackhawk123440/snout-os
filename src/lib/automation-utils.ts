@@ -33,6 +33,7 @@ export async function getMessageTemplate(
   recipient: "client" | "sitter" | "owner" = "client"
 ): Promise<string | null> {
   // First check individual messageTemplate.* settings (these are updated with versioning)
+  // Always read fresh from database - no caching
   const templateKey = `messageTemplate.${automationType}.${recipient}`;
   const template = await prisma.setting.findUnique({
     where: { key: templateKey },
@@ -43,13 +44,14 @@ export async function getMessageTemplate(
   }
   
   // Fallback to automation settings JSON object (for backwards compatibility)
+  // This should only be used if individual template doesn't exist
   const automationSettings = await getAutomationSettings();
   const automation = automationSettings[automationType];
   
   if (automation && typeof automation === 'object') {
-    const templateKey = `messageTemplate${recipient.charAt(0).toUpperCase() + recipient.slice(1)}` as "messageTemplateClient" | "messageTemplateSitter" | "messageTemplateOwner";
-    if (automation[templateKey]) {
-      return automation[templateKey];
+    const fallbackTemplateKey = `messageTemplate${recipient.charAt(0).toUpperCase() + recipient.slice(1)}` as "messageTemplateClient" | "messageTemplateSitter" | "messageTemplateOwner";
+    if (automation[fallbackTemplateKey]) {
+      return automation[fallbackTemplateKey];
     }
   }
 
