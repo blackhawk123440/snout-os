@@ -385,7 +385,7 @@ export async function POST(request: NextRequest) {
       
       let clientMessageTemplate = await getMessageTemplate("ownerNewBookingAlert", "client");
       if (!clientMessageTemplate) {
-        clientMessageTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nWe'll confirm your booking shortly. Thank you!";
+        clientMessageTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll confirm your booking shortly. Thank you!";
       }
       
       const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
@@ -395,7 +395,6 @@ export async function POST(request: NextRequest) {
         date: new Date(bookingStartAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
         time: new Date(bookingStartAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
         petQuantities,
-        totalPrice: breakdown.total.toFixed(2),
       });
       
       await sendMessage(phone, clientMessage, booking.id);
