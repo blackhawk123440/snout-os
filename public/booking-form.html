@@ -4074,8 +4074,35 @@
         };
 
         try {
-          // Send to API
-          const apiUrl = window.location.origin + '/api/form';
+          // Determine API URL - check multiple sources for configuration
+          let apiUrl;
+          
+          // 1. Check for data attribute on form container
+          const formContainer = document.querySelector('.booking-container, .form-wrapper, .booking-form');
+          if (formContainer && formContainer.dataset.apiUrl) {
+            apiUrl = formContainer.dataset.apiUrl;
+          }
+          // 2. Check for global variable
+          else if (window.BOOKING_FORM_API_URL) {
+            apiUrl = window.BOOKING_FORM_API_URL;
+          }
+          // 3. Check for meta tag
+          else {
+            const metaTag = document.querySelector('meta[name="booking-api-url"]');
+            if (metaTag && metaTag.content) {
+              apiUrl = metaTag.content;
+            }
+          }
+          
+          // 4. Fallback to window.location.origin (for same-origin requests)
+          if (!apiUrl) {
+            apiUrl = window.location.origin + '/api/form';
+          } else {
+            // Ensure the URL ends with /api/form if only base URL provided
+            if (!apiUrl.includes('/api/form')) {
+              apiUrl = apiUrl.replace(/\/$/, '') + '/api/form';
+            }
+          }
           
           const response = await fetch(apiUrl, {
             method: 'POST',
@@ -4104,7 +4131,11 @@
             }, 50);
           } else {
             const errorMessage = data?.error || data?.details || 'Unknown error occurred. Please try again.';
-            showCustomAlert(`Booking failed: ${errorMessage}`, 'fa-circle-exclamation');
+            // Include API URL in error for debugging (only in development)
+            const debugInfo = window.location.hostname === 'localhost' || window.location.hostname.includes('staging') 
+              ? `\n\nAPI URL: ${apiUrl}` 
+              : '';
+            showCustomAlert(`Booking failed: ${errorMessage}${debugInfo}`, 'fa-circle-exclamation');
             this.elements.submitBtn.classList.remove('loading');
             this.elements.submitBtn.disabled = false;
           }
@@ -4112,6 +4143,10 @@
           let errorMessage = 'Network error. Please check your connection and try again.';
           if (error instanceof TypeError && error.message.includes('fetch')) {
             errorMessage = 'Unable to connect to server. Please check your connection and try again.';
+            // Include API URL in error for debugging (only in development)
+            if (window.location.hostname === 'localhost' || window.location.hostname.includes('staging')) {
+              errorMessage += `\n\nAPI URL attempted: ${apiUrl}`;
+            }
           } else if (error instanceof Error) {
             errorMessage = error.message;
           }
