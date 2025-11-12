@@ -1309,13 +1309,14 @@ function BookingsPageContent() {
     endAt.setMinutes(endAt.getMinutes() + duration);
     
     // Find any slot at this exact date+time (regardless of duration)
+    // Use UTC methods since dates are stored with local time as UTC
     const sameTimeIndex = editedTimeSlots.findIndex(ts => {
       const tsDate = ts.startAt instanceof Date ? ts.startAt : new Date(ts.startAt);
-      const tsYear = tsDate.getFullYear();
-      const tsMonth = tsDate.getMonth() + 1;
-      const tsDay = tsDate.getDate();
-      const tsHour = tsDate.getHours();
-      const tsMinute = tsDate.getMinutes();
+      const tsYear = tsDate.getUTCFullYear();
+      const tsMonth = tsDate.getUTCMonth() + 1;
+      const tsDay = tsDate.getUTCDate();
+      const tsHour = tsDate.getUTCHours();
+      const tsMinute = tsDate.getUTCMinutes();
       return tsYear === year && tsMonth === month && tsDay === day && tsHour === time.hour && tsMinute === time.minute;
     });
 
@@ -1352,16 +1353,17 @@ function BookingsPageContent() {
       // Handle both Date objects and date strings
       const tsDate = ts.startAt instanceof Date ? ts.startAt : new Date(ts.startAt);
       
-      // Extract date components - dates from DB are UTC strings that JS converts to local time
-      // We need to compare using the local time components as they appear to the user
-      const tsYear = tsDate.getFullYear();
-      const tsMonth = tsDate.getMonth() + 1;
-      const tsDay = tsDate.getDate();
-      const tsHour = tsDate.getHours();
-      const tsMinute = tsDate.getMinutes();
+      // IMPORTANT: Dates are stored as UTC strings with local time components
+      // When we read them back, we need to use UTC methods to get the original time components
+      // This is because we stored them as if the local time was UTC
+      const tsYear = tsDate.getUTCFullYear();
+      const tsMonth = tsDate.getUTCMonth() + 1;
+      const tsDay = tsDate.getUTCDate();
+      const tsHour = tsDate.getUTCHours();
+      const tsMinute = tsDate.getUTCMinutes();
       
-      // Compare date and time components
-      // The dates should match the selected date, and times should match the time slot
+      // Compare date and time components using UTC methods
+      // This matches how we stored them (local time as UTC)
       const dateMatches = tsYear === year && tsMonth === month && tsDay === day;
       const timeMatches = tsHour === time.hour && tsMinute === time.minute;
       const durationMatches = ts.duration === duration;
