@@ -25,12 +25,24 @@ export async function getAutomationSettings(): Promise<Record<string, any>> {
 
 /**
  * Get message template from database for a specific automation type and recipient
+ * Prioritizes individual messageTemplate.* settings over automation JSON object
+ * to ensure latest saved templates are used
  */
 export async function getMessageTemplate(
   automationType: string,
   recipient: "client" | "sitter" | "owner" = "client"
 ): Promise<string | null> {
-  // First try to get from automation settings
+  // First check individual messageTemplate.* settings (these are updated with versioning)
+  const templateKey = `messageTemplate.${automationType}.${recipient}`;
+  const template = await prisma.setting.findUnique({
+    where: { key: templateKey },
+  });
+
+  if (template && template.value) {
+    return template.value;
+  }
+  
+  // Fallback to automation settings JSON object (for backwards compatibility)
   const automationSettings = await getAutomationSettings();
   const automation = automationSettings[automationType];
   
@@ -40,18 +52,8 @@ export async function getMessageTemplate(
       return automation[templateKey];
     }
   }
-  
-  // Fallback to database settings
-  const templateKey = `messageTemplate.${automationType}.${recipient}`;
-  const template = await prisma.setting.findUnique({
-    where: { key: templateKey },
-  });
 
-  if (!template) {
-    return null;
-  }
-
-  return template.value;
+  return null;
 }
 
 /**
