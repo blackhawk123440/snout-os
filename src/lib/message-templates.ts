@@ -141,6 +141,7 @@ export async function saveMessageTemplateWithVersion(
 
   // Save current template
   // Use transaction to ensure atomicity and immediate visibility
+  // This ensures the save is committed before any subsequent reads
   await prisma.$transaction(async (tx) => {
     await tx.setting.upsert({
       where: { key },
@@ -156,10 +157,6 @@ export async function saveMessageTemplateWithVersion(
       },
     });
   });
-  
-  // Force Prisma to clear any potential query cache for this key
-  // This ensures the next read gets the fresh value
-  await prisma.$queryRaw`SELECT 1`;
 }
 
 /**
