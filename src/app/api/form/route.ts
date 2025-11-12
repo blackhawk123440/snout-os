@@ -148,18 +148,20 @@ export async function POST(request: NextRequest) {
       return `${String(hours).padStart(2, '0')}:${minutes}:00`;
     };
 
-    // Helper function to create a date in America/Chicago timezone
-    // This ensures times are stored consistently regardless of server timezone
+    // Helper function to create a date that preserves local time components
+    // The key is to create a date string that represents the local time as if it were UTC
+    // This way, when stored in the database (which uses UTC), the time components are preserved
+    // When read back, we need to interpret it as local time, not UTC
     const createDateInTimezone = (dateStr: string, time24h: string): Date => {
       const [year, month, day] = dateStr.split('-').map(Number);
       const [hours, minutes] = time24h.split(':').map(Number);
-      // Create date string in ISO format with timezone offset for America/Chicago
-      // We'll use the date components directly and let JavaScript handle it
-      // Since we want to preserve the local time, we create it as if it's already in the target timezone
-      const dateStrWithTime = `${dateStr}T${time24h}`;
-      // Parse as if it's in local timezone (which should match user's timezone)
-      // When stored in DB, it will be converted to UTC, but the time components will be preserved
-      return new Date(year, month - 1, day, hours, minutes, 0);
+      
+      // Create an ISO string that represents the local time as UTC
+      // This ensures the time components (hours, minutes) are preserved when stored
+      // Format: YYYY-MM-DDTHH:MM:SS.000Z (the Z means UTC)
+      // We're treating the local time as if it were UTC to preserve the components
+      const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00.000Z`;
+      return new Date(isoString);
     };
 
     // Helper function to format dates and times for messages
