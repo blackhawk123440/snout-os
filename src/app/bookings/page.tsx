@@ -1349,21 +1349,24 @@ function BookingsPageContent() {
     const [year, month, day] = dateStr.split('-').map(Number);
     
     return editedTimeSlots.some(ts => {
-      const tsDate = new Date(ts.startAt);
-      // Use local date components (not UTC) since times are stored as local time
+      // Handle both Date objects and date strings
+      const tsDate = ts.startAt instanceof Date ? ts.startAt : new Date(ts.startAt);
+      
+      // Extract date components - dates from DB are UTC strings that JS converts to local time
+      // We need to compare using the local time components as they appear to the user
       const tsYear = tsDate.getFullYear();
       const tsMonth = tsDate.getMonth() + 1;
       const tsDay = tsDate.getDate();
       const tsHour = tsDate.getHours();
       const tsMinute = tsDate.getMinutes();
       
-      // Compare using local date components - dates are stored in local timezone
-      return tsYear === year &&
-             tsMonth === month &&
-             tsDay === day &&
-             tsHour === time.hour &&
-             tsMinute === time.minute &&
-             ts.duration === duration;
+      // Compare date and time components
+      // The dates should match the selected date, and times should match the time slot
+      const dateMatches = tsYear === year && tsMonth === month && tsDay === day;
+      const timeMatches = tsHour === time.hour && tsMinute === time.minute;
+      const durationMatches = ts.duration === duration;
+      
+      return dateMatches && timeMatches && durationMatches;
     });
   };
 
