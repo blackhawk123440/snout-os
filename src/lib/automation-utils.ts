@@ -41,9 +41,10 @@ export async function getMessageTemplate(
     // Force fresh read by not using any cache
   });
 
-  if (template && template.value) {
+  if (template) {
     // Return the template value, even if it's an empty string (user might have cleared it)
-    return template.value;
+    // Empty string is a valid template (user might want to disable the message)
+    return template.value || null;
   }
   
   // Fallback to automation settings JSON object (for backwards compatibility)
