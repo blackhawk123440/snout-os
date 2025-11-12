@@ -262,7 +262,12 @@ export async function POST(request: NextRequest) {
             if (typeof timeValue === 'string' && timeValue.includes(':')) {
               const time24h = convertTo24Hour(timeValue);
               const duration = typeof durationValue === 'number' ? durationValue : 30;
-              const startDateTime = new Date(`${dateStr}T${time24h}`);
+              // Create date in local timezone, then convert to UTC for storage
+              // This ensures the time displayed matches what the user selected
+              const [year, month, day] = dateStr.split('-').map(Number);
+              const [hours, minutes] = time24h.split(':').map(Number);
+              // Create date in local timezone
+              const startDateTime = new Date(year, month - 1, day, hours, minutes, 0);
               const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
               
               timeSlotsData.push({
@@ -301,16 +306,26 @@ export async function POST(request: NextRequest) {
       
       if (firstTime && firstTime.time) {
         const time24h = convertTo24Hour(firstTime.time);
-        bookingStartAt = `${firstDate}T${time24h}`;
+        const [year, month, day] = firstDate.split('-').map(Number);
+        const [hours, minutes] = time24h.split(':').map(Number);
+        const startDate = new Date(year, month - 1, day, hours, minutes, 0);
+        bookingStartAt = startDate.toISOString();
       } else {
-        bookingStartAt = `${firstDate}T09:00:00`;
+        const [year, month, day] = firstDate.split('-').map(Number);
+        const startDate = new Date(year, month - 1, day, 9, 0, 0);
+        bookingStartAt = startDate.toISOString();
       }
       
       if (lastTime && lastTime.time) {
         const time24h = convertTo24Hour(lastTime.time);
-        bookingEndAt = new Date(`${lastDate}T${time24h}`).toISOString();
+        const [year, month, day] = lastDate.split('-').map(Number);
+        const [hours, minutes] = time24h.split(':').map(Number);
+        const endDate = new Date(year, month - 1, day, hours, minutes, 0);
+        bookingEndAt = endDate.toISOString();
       } else {
-        bookingEndAt = new Date(`${lastDate}T23:59:59`).toISOString();
+        const [year, month, day] = lastDate.split('-').map(Number);
+        const endDate = new Date(year, month - 1, day, 23, 59, 59);
+        bookingEndAt = endDate.toISOString();
       }
     } else {
       // For other services, quantity is number of time slots
