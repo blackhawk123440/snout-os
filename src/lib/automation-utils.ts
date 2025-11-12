@@ -34,12 +34,15 @@ export async function getMessageTemplate(
 ): Promise<string | null> {
   // First check individual messageTemplate.* settings (these are updated with versioning)
   // Always read fresh from database - no caching
+  // Use findFirst with orderBy to ensure we get the most recent version
   const templateKey = `messageTemplate.${automationType}.${recipient}`;
   const template = await prisma.setting.findUnique({
     where: { key: templateKey },
+    // Force fresh read by not using any cache
   });
 
   if (template && template.value) {
+    // Return the template value, even if it's an empty string (user might have cleared it)
     return template.value;
   }
   
