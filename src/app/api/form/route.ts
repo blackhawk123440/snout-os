@@ -19,6 +19,7 @@ const parseOrigins = (value?: string | null) => {
 
 const ALLOWED_ORIGINS = [
   "https://snout-form.onrender.com",
+  "https://backend-291r.onrender.com",
   "https://www.snoutservices.com",
   "https://snoutservices.com",
   "https://leahs-supercool-site-c731e5.webflow.io",
