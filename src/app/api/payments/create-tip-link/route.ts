@@ -14,12 +14,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get booking details
+    // Get booking details - include timeSlots for accurate price calculation
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
         pets: true,
         sitter: true,
+        timeSlots: {
+          orderBy: {
+            startAt: "asc",
+          },
+        },
       },
     });
 
