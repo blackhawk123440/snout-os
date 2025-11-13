@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
             const commissionPercentage = sitter.commissionPercentage || 80.0;
             const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
             
-            const confirmationMessage = `🎉 CONGRATULATIONS!\n\nYou've been assigned:\n\n${result.service} for ${result.firstName} ${result.lastName}\nDate: ${startDate}\nTime: ${startTime}\nPets: ${petQuantities}\nAddress: ${result.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)} (${commissionPercentage}%)\n\nPlease confirm your availability.`;
+            const confirmationMessage = `🎉 CONGRATULATIONS!\n\nYou've been assigned:\n\n${result.service} for ${result.firstName} ${result.lastName}\nDate: ${startDate}\nTime: ${startTime}\nPets: ${petQuantities}\nAddress: ${result.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nPlease confirm your availability.`;
             
             await sendMessage(sitterPhone, confirmationMessage, offer.bookingId);
           }

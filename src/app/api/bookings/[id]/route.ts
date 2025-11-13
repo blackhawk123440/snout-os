@@ -222,7 +222,7 @@ export async function PATCH(
             // Use automation template if available
             let sitterMessageTemplate = await getMessageTemplate("sitterAssignment", "sitter");
             if (!sitterMessageTemplate) {
-              sitterMessageTemplate = "👋 SITTER ASSIGNED!\n\nHi {{sitterFirstName}},\n\nYou've been assigned to {{firstName}} {{lastName}}'s {{service}} booking on {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}} ({{commissionPercentage}}%)\n\nPlease confirm your availability.";
+              sitterMessageTemplate = "👋 SITTER ASSIGNED!\n\nHi {{sitterFirstName}},\n\nYou've been assigned to {{firstName}} {{lastName}}'s {{service}} booking on {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
             }
             
             message = replaceTemplateVariables(sitterMessageTemplate, {
@@ -244,7 +244,7 @@ export async function PATCH(
             });
           } else {
             // Use hardcoded message if automation is not enabled
-            message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${finalBooking.firstName} ${finalBooking.lastName}'s ${finalBooking.service} booking on ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${finalBooking.address}\nYour Earnings: $${sitterEarnings.toFixed(2)} (${commissionPercentage}%)\n\nPlease confirm your availability.`;
+            message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${finalBooking.firstName} ${finalBooking.lastName}'s ${finalBooking.service} booking on ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${finalBooking.address}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nPlease confirm your availability.`;
           }
           
           await sendMessage(sitterPhone, message, finalBooking.id);
