@@ -107,7 +107,10 @@ export async function saveMessageTemplateWithVersion(
   // This ensures atomicity and immediate visibility
   console.log(`[message-templates] Saving template: ${automationType}.${recipient}`, {
     templateLength: template.length,
-    hasValue: !!template
+    hasValue: !!template,
+    templatePreview: template.substring(0, 50) + (template.length > 50 ? '...' : ''),
+    currentValue: current?.value?.substring(0, 50) || 'none',
+    willCreateVersion: !current || current.value !== template
   });
   
   await prisma.$transaction(async (tx) => {
