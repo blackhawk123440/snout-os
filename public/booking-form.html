@@ -20,6 +20,11 @@
     html {
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      margin: 0;
+      padding: 0;
+      height: auto;
+      min-height: auto;
+      background: transparent;
     }
     
     /* Optimize form performance */
@@ -124,8 +129,9 @@
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
       margin: 0;
-      padding: 20px;
-      min-height: 100vh;
+      padding: 0;
+      min-height: auto;
+      height: auto;
       display: flex;
       align-items: flex-start;
       justify-content: center;
@@ -140,10 +146,12 @@
       box-shadow: 0 20px 60px rgba(67, 47, 33, 0.12), 
                   0 0 0 1px rgba(67, 47, 33, 0.05);
       padding: 20px;
-      margin: 0 auto;
+      margin: 0;
       transition: all 0.3s ease;
       overflow: visible;
       position: relative;
+      min-height: auto;
+      height: auto;
     }
 
 
@@ -5080,14 +5088,19 @@
     // This script sends the form height to the parent window for smooth iframe resizing
     function sendHeightToParent() {
       try {
-        // Get the actual height of the content
+        // Get the actual height of the content - use body or wrapper, whichever is larger
         const wrapper = document.querySelector('.form-wrapper');
-        if (!wrapper) return;
+        const body = document.body;
         
-        const height = wrapper.scrollHeight + 40; // Add padding
+        if (!wrapper && !body) return;
+        
+        // Get the actual scroll height of the content
+        const wrapperHeight = wrapper ? wrapper.scrollHeight : 0;
+        const bodyHeight = body ? body.scrollHeight : 0;
+        const height = Math.max(wrapperHeight, bodyHeight);
         
         // Send height to parent window (Webflow)
-        if (window.parent !== window) {
+        if (window.parent !== window && height > 0) {
           window.parent.postMessage({
             type: 'iframe-resize',
             height: height
