@@ -428,3 +428,92 @@ export function getConflictStatus(
   
   return sitterConflicts.length > 0 ? "sitter" : "time";
 }
+
+/**
+ * Format date to match booking details page format
+ * Uses toLocaleDateString() default format
+ */
+export function formatDateForMessage(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleDateString();
+}
+
+/**
+ * Format time to match booking details page format
+ * Uses UTC methods to get original time components (since dates are stored with local time as UTC)
+ * Formats as "H:MM AM/PM"
+ */
+export function formatTimeForMessage(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  // Dates are stored with local time as UTC, so use UTC methods to get the original time
+  const hours = dateObj.getUTCHours();
+  const minutes = dateObj.getUTCMinutes();
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  return `${displayHours}:${String(minutes).padStart(2, '0')} ${period}`;
+}
+
+/**
+ * Format dates and times for automated messages
+ * Matches the exact format used in booking details page
+ * Handles both timeSlots (visit-based services) and date ranges (house sitting)
+ */
+export function formatDatesAndTimesForMessage(booking: {
+  service: string;
+  startAt: Date | string;
+  endAt: Date | string;
+  timeSlots?: Array<{ startAt: Date | string; endAt: Date | string; duration: number }>;
+}): string {
+  const isHouseSittingService = booking.service === "Housesitting" || booking.service === "24/7 Care";
+  const hasTimeSlots = Array.isArray(booking.timeSlots) && booking.timeSlots.length > 0;
+
+  // For visit-based services with timeSlots, group by date and show all times
+  if (hasTimeSlots && !isHouseSittingService) {
+    // Group timeSlots by date
+    const slotsByDate: Record<string, Array<{ startAt: Date; endAt: Date; duration: number }>> = {};
+    
+    booking.timeSlots!.forEach(slot => {
+      const slotStart = typeof slot.startAt === 'string' ? new Date(slot.startAt) : slot.startAt;
+      const slotEnd = typeof slot.endAt === 'string' ? new Date(slot.endAt) : slot.endAt;
+      const dateKey = formatDateForMessage(slotStart);
+      
+      if (!slotsByDate[dateKey]) {
+        slotsByDate[dateKey] = [];
+      }
+      slotsByDate[dateKey].push({ startAt: slotStart, endAt: slotEnd, duration: slot.duration });
+    });
+
+    // Format each date with its time slots
+    const dateStrings = Object.keys(slotsByDate).sort().map(dateKey => {
+      const slots = slotsByDate[dateKey];
+      const timeStrings = slots.map(slot => {
+        const startTime = formatTimeForMessage(slot.startAt);
+        const endTime = formatTimeForMessage(slot.endAt);
+        return `${startTime} - ${endTime} (${slot.duration} min)`;
+      });
+      return `${dateKey}\n${timeStrings.join('\n')}`;
+    });
+
+    return dateStrings.join('\n\n');
+  }
+
+  // For house sitting/24-7 care, show date range
+  if (isHouseSittingService) {
+    const startDate = typeof booking.startAt === 'string' ? new Date(booking.startAt) : booking.startAt;
+    const endDate = typeof booking.endAt === 'string' ? new Date(booking.endAt) : booking.endAt;
+    
+    const startDateStr = formatDateForMessage(startDate);
+    const startTimeStr = formatTimeForMessage(startDate);
+    const endDateStr = formatDateForMessage(endDate);
+    const endTimeStr = formatTimeForMessage(endDate);
+    
+    return `Start: ${startDateStr} at ${startTimeStr}\nEnd: ${endDateStr} at ${endTimeStr}`;
+  }
+
+  // Fallback: single date/time
+  const startDate = typeof booking.startAt === 'string' ? new Date(booking.startAt) : booking.startAt;
+  const dateStr = formatDateForMessage(startDate);
+  const timeStr = formatTimeForMessage(startDate);
+  
+  return `${dateStr} at ${timeStr}`;
+}
