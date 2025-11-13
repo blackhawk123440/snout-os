@@ -53,26 +53,14 @@ export async function getMessageTemplate(
   // If we found a template (even if empty string), return it
   // Empty string is a valid saved template (user might want to disable the message)
   if (template && template.value !== undefined && template.value !== null) {
-    console.log(`[automation-utils] Using saved template for ${automationType}.${recipient}`);
+    console.log(`[automation-utils] ✅ Using saved individual template for ${automationType}.${recipient} (length: ${template.value.length})`);
     return template.value;
   }
   
-  // Fallback to automation settings JSON object (for backwards compatibility)
-  // This should only be used if individual template doesn't exist
-  // NOTE: This fallback should rarely be used since templates are saved individually
-  console.log(`[automation-utils] No individual template found, checking fallback for ${automationType}.${recipient}`);
-  const automationSettings = await getAutomationSettings();
-  const automation = automationSettings[automationType];
-  
-  if (automation && typeof automation === 'object') {
-    const fallbackTemplateKey = `messageTemplate${recipient.charAt(0).toUpperCase() + recipient.slice(1)}` as "messageTemplateClient" | "messageTemplateSitter" | "messageTemplateOwner";
-    if (automation[fallbackTemplateKey]) {
-      console.log(`[automation-utils] Using fallback template for ${automationType}.${recipient}`);
-      return automation[fallbackTemplateKey];
-    }
-  }
-
-  console.log(`[automation-utils] No template found for ${automationType}.${recipient}`);
+  // IMPORTANT: Do NOT fallback to automation JSON object
+  // The fallback was causing old templates from the JSON object to be used instead of new saved ones
+  // If no individual template exists, return null so the default hardcoded template is used
+  console.log(`[automation-utils] ⚠️ No individual template found for ${automationType}.${recipient} - returning null (no fallback to avoid stale data)`);
   return null;
 }
 
