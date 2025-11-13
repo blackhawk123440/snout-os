@@ -200,7 +200,8 @@ export async function PATCH(
       // Send to client
       if (shouldSendToClient) {
         let clientMessageTemplate = await getMessageTemplate("bookingConfirmation", "client");
-        if (!clientMessageTemplate) {
+        // If template is null (doesn't exist) or empty string, use default
+        if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
           clientMessageTemplate = "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nWe'll see you soon!";
         }
         
@@ -234,7 +235,8 @@ export async function PATCH(
             const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
             
             let sitterMessageTemplate = await getMessageTemplate("bookingConfirmation", "sitter");
-            if (!sitterMessageTemplate) {
+            // If template is null (doesn't exist) or empty string, use default
+            if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
               sitterMessageTemplate = "✅ BOOKING CONFIRMED!\n\nHi {{sitterFirstName}},\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nView details in your dashboard.";
             }
             
@@ -267,7 +269,8 @@ export async function PATCH(
         
         if (ownerPhone) {
           let ownerMessageTemplate = await getMessageTemplate("bookingConfirmation", "owner");
-          if (!ownerMessageTemplate) {
+          // If template is null (doesn't exist) or empty string, use default
+          if (!ownerMessageTemplate || ownerMessageTemplate.trim() === "") {
             ownerMessageTemplate = "✅ BOOKING CONFIRMED!\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}";
           }
           
@@ -311,7 +314,8 @@ export async function PATCH(
           if (shouldSendToSitter) {
             // Use automation template if available
             let sitterMessageTemplate = await getMessageTemplate("sitterAssignment", "sitter");
-            if (!sitterMessageTemplate) {
+            // If template is null (doesn't exist) or empty string, use default
+            if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
               sitterMessageTemplate = "👋 SITTER ASSIGNED!\n\nHi {{sitterFirstName}},\n\nYou've been assigned to {{firstName}} {{lastName}}'s {{service}} booking on {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
             }
             

@@ -56,29 +56,19 @@ export async function processReminders() {
         // Send reminder to client
         if (shouldSendToClient) {
           let clientMessageTemplate = await getMessageTemplate("nightBeforeReminder", "client");
-          if (!clientMessageTemplate) {
-            // Fallback to hardcoded function
-            const bookingForReminder = {
-              ...booking,
-              email: booking.email,
-              totalPrice: calculatedTotal,
-              sitter: booking.sitter ? {
-                firstName: booking.sitter.firstName,
-                lastName: booking.sitter.lastName,
-              } : undefined,
-            };
-            await sendClientNightBeforeReminder(bookingForReminder);
-          } else {
-            const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
-              firstName: booking.firstName,
-              lastName: booking.lastName,
-              service: booking.service,
-              date: booking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-              time: booking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-              petQuantities,
-            });
-            await sendMessage(booking.phone, clientMessage, booking.id);
+          // If template is null (doesn't exist) or empty string, use default
+          if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
+            clientMessageTemplate = "🌙 REMINDER!\n\nHi {{firstName}},\n\nJust a friendly reminder about your {{service}} appointment tomorrow at {{time}}.\n\nPets: {{petQuantities}}\n\nWe're excited to care for your pets!";
           }
+          const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
+            firstName: booking.firstName,
+            lastName: booking.lastName,
+            service: booking.service,
+            date: booking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+            time: booking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+            petQuantities,
+          });
+          await sendMessage(booking.phone, clientMessage, booking.id);
         } else {
           // Fallback to hardcoded function if automation disabled
           const bookingForReminder = {
@@ -108,38 +98,28 @@ export async function processReminders() {
                 const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
                 
                 let sitterMessageTemplate = await getMessageTemplate("nightBeforeReminder", "sitter");
-                if (!sitterMessageTemplate) {
-                  // Fallback to hardcoded function
-                  const bookingForReminder = {
-                    ...booking,
-                    email: booking.email,
-                    totalPrice: calculatedTotal,
-                    sitter: booking.sitter ? {
-                      firstName: booking.sitter.firstName,
-                      lastName: booking.sitter.lastName,
-                    } : undefined,
-                  };
-                  await sendSitterNightBeforeReminder(bookingForReminder, booking.sitterId);
-                } else {
-                  const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
-                    sitterFirstName: sitter.firstName,
-                    firstName: booking.firstName,
-                    lastName: booking.lastName,
-                    service: booking.service,
-                    date: booking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-                    time: booking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-                    petQuantities,
-                    address: booking.address || 'TBD',
-                    earnings: sitterEarnings.toFixed(2),
-                    totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
-                    total: calculatedTotal,
-                  }, {
-                    isSitterMessage: true,
-                    sitterCommissionPercentage: commissionPercentage,
-                  });
-                  
-                  await sendMessage(sitterPhone, sitterMessage, booking.id);
+                // If template is null (doesn't exist) or empty string, use default
+                if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
+                  sitterMessageTemplate = "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment tomorrow at {{time}}.\n\nClient: {{firstName}} {{lastName}}\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
                 }
+                const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
+                  sitterFirstName: sitter.firstName,
+                  firstName: booking.firstName,
+                  lastName: booking.lastName,
+                  service: booking.service,
+                  date: booking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+                  time: booking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                  petQuantities,
+                  address: booking.address || 'TBD',
+                  earnings: sitterEarnings.toFixed(2),
+                  totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
+                  total: calculatedTotal,
+                }, {
+                  isSitterMessage: true,
+                  sitterCommissionPercentage: commissionPercentage,
+                });
+                
+                await sendMessage(sitterPhone, sitterMessage, booking.id);
               }
             }
           } else {

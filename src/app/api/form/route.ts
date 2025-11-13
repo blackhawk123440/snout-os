@@ -406,7 +406,8 @@ export async function POST(request: NextRequest) {
       const formattedDatesTimes = formatDatesAndTimes(timeSlotsData, selectedDates, parsedDateTimes);
       
       let clientMessageTemplate = await getMessageTemplate("ownerNewBookingAlert", "client");
-      if (!clientMessageTemplate) {
+      // If template is null (doesn't exist) or empty string, use default
+      if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
         clientMessageTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll confirm your booking shortly. Thank you!";
       }
       
@@ -433,7 +434,8 @@ export async function POST(request: NextRequest) {
         const formattedDatesTimes = formatDatesAndTimes(timeSlotsData, selectedDates, parsedDateTimes);
         
         let ownerMessageTemplate = await getMessageTemplate("ownerNewBookingAlert", "owner");
-        if (!ownerMessageTemplate) {
+        // If template is null (doesn't exist) or empty string, use default
+        if (!ownerMessageTemplate || ownerMessageTemplate.trim() === "") {
           ownerMessageTemplate = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}}\n{{datesTimes}}\n{{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView details: {{bookingUrl}}";
         }
         
