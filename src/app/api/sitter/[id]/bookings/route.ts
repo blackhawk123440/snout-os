@@ -26,7 +26,15 @@ export async function GET(
       },
     });
 
-    return NextResponse.json({ bookings });
+    return NextResponse.json({ 
+      bookings,
+      sitter: {
+        id: sitter.id,
+        firstName: sitter.firstName,
+        lastName: sitter.lastName,
+        commissionPercentage: sitter.commissionPercentage || 80.0,
+      }
+    });
   } catch (error) {
     console.error("Failed to fetch sitter bookings:", error);
     return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 });

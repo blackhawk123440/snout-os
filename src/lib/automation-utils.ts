@@ -6,10 +6,8 @@ import { prisma } from "@/lib/db";
 
 /**
  * Get automation settings from database
- * Always reads fresh from database - no caching
  */
 export async function getAutomationSettings(): Promise<Record<string, any>> {
-  // Always read fresh from database to ensure we get the latest settings
   const automationSetting = await prisma.setting.findUnique({
     where: { key: "automation" },
   });
@@ -36,31 +34,27 @@ export async function getMessageTemplate(
 ): Promise<string | null> {
   // First check individual messageTemplate.* settings (these are updated with versioning)
   // Always read fresh from database - no caching
-  // Use findFirst with orderBy to ensure we get the most recent version
   const templateKey = `messageTemplate.${automationType}.${recipient}`;
   const template = await prisma.setting.findUnique({
     where: { key: templateKey },
-    // Force fresh read by not using any cache
-  });
-  
-  console.log(`[automation-utils] getMessageTemplate: ${automationType}.${recipient}`, {
-    found: !!template,
-    hasValue: template?.value !== undefined && template?.value !== null,
-    valueLength: template?.value?.length || 0,
-    valuePreview: template?.value ? template.value.substring(0, 50) + '...' : 'none'
   });
 
-  // If we found a template (even if empty string), return it
-  // Empty string is a valid saved template (user might want to disable the message)
-  if (template && template.value !== undefined && template.value !== null) {
-    console.log(`[automation-utils] ✅ Using saved individual template for ${automationType}.${recipient} (length: ${template.value.length})`);
+  if (template && template.value) {
     return template.value;
   }
   
-  // IMPORTANT: Do NOT fallback to automation JSON object
-  // The fallback was causing old templates from the JSON object to be used instead of new saved ones
-  // If no individual template exists, return null so the default hardcoded template is used
-  console.log(`[automation-utils] ⚠️ No individual template found for ${automationType}.${recipient} - returning null (no fallback to avoid stale data)`);
+  // Fallback to automation settings JSON object (for backwards compatibility)
+  // This should only be used if individual template doesn't exist
+  const automationSettings = await getAutomationSettings();
+  const automation = automationSettings[automationType];
+  
+  if (automation && typeof automation === 'object') {
+    const fallbackTemplateKey = `messageTemplate${recipient.charAt(0).toUpperCase() + recipient.slice(1)}` as "messageTemplateClient" | "messageTemplateSitter" | "messageTemplateOwner";
+    if (automation[fallbackTemplateKey]) {
+      return automation[fallbackTemplateKey];
+    }
+  }
+
   return null;
 }
 

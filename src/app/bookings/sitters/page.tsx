@@ -14,6 +14,7 @@ interface Sitter {
   phoneType?: "personal" | "openphone";
   email: string;
   isActive: boolean;
+  commissionPercentage?: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +34,7 @@ export default function SittersPage() {
     phoneType: "personal" as "personal" | "openphone",
     email: "",
     isActive: true,
+    commissionPercentage: 80.0,
   });
 
   useEffect(() => {
@@ -98,6 +100,7 @@ export default function SittersPage() {
       lastName: "", 
       phone: "", 
       personalPhone: "",
+      commissionPercentage: 80.0,
       openphonePhone: "",
       phoneType: "personal",
       email: "", 
@@ -117,6 +120,7 @@ export default function SittersPage() {
       phoneType: sitter.phoneType || "personal",
       email: sitter.email,
       isActive: sitter.isActive,
+      commissionPercentage: sitter.commissionPercentage || 80.0,
     });
     setEditingSitter(sitter);
     setShowAddForm(true);
@@ -260,6 +264,10 @@ export default function SittersPage() {
                         <i className="fas fa-calendar w-4"></i>
                         <span>Added {new Date(sitter.createdAt).toLocaleDateString()}</span>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <i className="fas fa-percentage w-4"></i>
+                        <span>Commission: {sitter.commissionPercentage || 80}%</span>
+                      </div>
                     </div>
                   </div>
                   
@@ -397,6 +405,27 @@ export default function SittersPage() {
                   className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
                   style={{ borderColor: COLORS.primaryLight }}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
+                  Commission Percentage *
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    required
+                    value={formData.commissionPercentage}
+                    onChange={(e) => setFormData({ ...formData, commissionPercentage: parseFloat(e.target.value) || 80.0 })}
+                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
+                    style={{ borderColor: COLORS.primaryLight }}
+                  />
+                  <span className="text-sm font-medium" style={{ color: COLORS.primary }}>%</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Percentage of booking total the sitter receives (typically 70% or 80%)</p>
               </div>
 
               <div className="flex items-center gap-3">

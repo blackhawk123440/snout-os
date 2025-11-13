@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { firstName, lastName, phone, personalPhone, openphonePhone, phoneType, email, isActive } = body;
+    const { firstName, lastName, phone, personalPhone, openphonePhone, phoneType, email, isActive, commissionPercentage } = body;
 
     // Validate required fields
     if (!firstName || !lastName || !email) {
@@ -50,6 +50,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate commission percentage if provided
+    let commission = 80.0; // Default
+    if (commissionPercentage !== undefined) {
+      const percentage = parseFloat(commissionPercentage);
+      if (!isNaN(percentage) && percentage >= 0 && percentage <= 100) {
+        commission = percentage;
+      }
+    }
+
     // Create sitter
     const sitter = await prisma.sitter.create({
       data: {
@@ -61,6 +70,7 @@ export async function POST(request: NextRequest) {
         phoneType: phoneType || "personal",
         email,
         active: isActive !== false,
+        commissionPercentage: commission,
       },
     });
 

@@ -19,35 +19,35 @@ model Rate {
 }
 
 model Booking {
-  id            String        @id @default(uuid())
-  firstName     String
-  lastName      String
-  phone         String
-  email         String?
-  address       String?
-  pickupAddress String?
-  dropoffAddress String?
-  service       String
-  startAt       DateTime
-  endAt         DateTime
-  totalPrice    Float
-  status        String        @default("pending")
-  notes         String?
+  id                   String            @id @default(uuid())
+  firstName            String
+  lastName             String
+  phone                String
+  email                String?
+  address              String?
+  pickupAddress        String?
+  dropoffAddress       String?
+  service              String
+  startAt              DateTime
+  endAt                DateTime
+  totalPrice           Float
+  status               String            @default("pending")
+  notes                String?
   stripePaymentLinkUrl String?
-  tipLinkUrl    String?
-  paymentStatus String        @default("unpaid")
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  afterHours    Boolean       @default(false)
-  holiday       Boolean       @default(false)
-  quantity      Int           @default(1)
-  pets          Pet[]
-  sitter        Sitter?       @relation(fields: [sitterId], references: [id])
-  sitterId      String?
-  timeSlots     TimeSlot[]
-  messages      Message[]
-  reports       Report[]
-  sitterPoolOffers SitterPoolOffer[]
+  tipLinkUrl           String?
+  paymentStatus        String            @default("unpaid")
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  afterHours           Boolean           @default(false)
+  holiday              Boolean           @default(false)
+  quantity             Int               @default(1)
+  pets                 Pet[]
+  sitter               Sitter?           @relation(fields: [sitterId], references: [id])
+  sitterId             String?
+  timeSlots            TimeSlot[]
+  messages             Message[]
+  reports              Report[]
+  sitterPoolOffers     SitterPoolOffer[]
 
   @@index([sitterId])
   @@index([status])
@@ -55,14 +55,14 @@ model Booking {
 }
 
 model Pet {
-  id         String   @id @default(uuid())
-  name       String
-  species    String
-  breed      String?
-  age        Int?
-  notes      String?
-  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  bookingId  String
+  id        String  @id @default(uuid())
+  name      String
+  species   String
+  breed     String?
+  age       Int?
+  notes     String?
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId String
 
   @@index([bookingId])
 }
@@ -80,20 +80,21 @@ model TimeSlot {
 }
 
 model Sitter {
-  id              String              @id @default(uuid())
-  firstName       String
-  lastName        String
-  phone           String
-  email           String
-  active          Boolean             @default(true)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  bookings        Booking[]
-  personalPhone   String?
-  openphonePhone  String?
-  phoneType       String?
-  stripeAccountId String?
-  sitterPoolOffers SitterPoolOffer[]
+  id                   String            @id @default(uuid())
+  firstName            String
+  lastName             String
+  phone                String
+  email                String
+  active               Boolean           @default(true)
+  commissionPercentage Float             @default(80.0) // Percentage of booking totalPrice (70-80%)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  bookings             Booking[]
+  personalPhone        String?
+  openphonePhone       String?
+  phoneType            String?
+  stripeAccountId      String?
+  sitterPoolOffers     SitterPoolOffer[]
 
   @@index([active])
 }
@@ -146,29 +147,29 @@ model Setting {
 }
 
 model Report {
-  id            String   @id @default(uuid())
-  bookingId     String?
-  booking       Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  content       String
-  mediaUrls     String?
-  visitStarted  DateTime?
+  id             String    @id @default(uuid())
+  bookingId      String?
+  booking        Booking?  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  content        String
+  mediaUrls      String?
+  visitStarted   DateTime?
   visitCompleted DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([bookingId])
 }
 
 model GoogleCalendarAccount {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  provider     String   @default("google")
+  id           String    @id @default(uuid())
+  email        String    @unique
+  provider     String    @default("google")
   accessToken  String
   refreshToken String?
   expiresAt    DateTime?
   calendarId   String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([email])
 }
