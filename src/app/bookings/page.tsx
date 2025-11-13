@@ -94,6 +94,8 @@ function BookingsPageContent() {
   // Payment link states
   const [generatingPaymentLink, setGeneratingPaymentLink] = useState(false);
   const [generatingTipLink, setGeneratingTipLink] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkModalContent, setLinkModalContent] = useState<{ title: string; link: string; details?: string } | null>(null);
 
   // Conflict checking state
   const [conflictModal, setConflictModal] = useState<{
@@ -557,6 +559,36 @@ function BookingsPageContent() {
     setShowSitterPoolModal(true);
   };
 
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      // Fallback for older browsers/mobile
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return successful;
+      } catch (err) {
+        document.body.removeChild(textArea);
+        return false;
+      }
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+      return false;
+    }
+  };
+
   const handleGeneratePaymentLink = async (booking: Booking) => {
     setGeneratingPaymentLink(true);
     try {
@@ -571,23 +603,35 @@ function BookingsPageContent() {
 
       if (response.ok) {
         const data = await response.json();
-        // Try to copy payment link to clipboard, with fallback for mobile
-        try {
-          await navigator.clipboard.writeText(data.paymentLink);
-          alert(`Payment link generated and copied to clipboard!\n\nPayment Link: ${data.paymentLink}\n\nService Amount: $${data.baseAmount?.toFixed(2) || 'N/A'}`);
-        } catch (clipboardError) {
-          // Fallback for mobile or when clipboard API fails
-          alert(`Payment link generated!\n\nPayment Link: ${data.paymentLink}\n\nService Amount: $${data.baseAmount?.toFixed(2) || 'N/A'}\n\n(Link shown above - you can copy it manually)`);
-        }
+        // Try to copy to clipboard
+        const copied = await copyToClipboard(data.paymentLink);
+        
+        // Show modal with link (works better on mobile)
+        setLinkModalContent({
+          title: 'Payment Link Generated',
+          link: data.paymentLink,
+          details: `Service Amount: $${data.baseAmount?.toFixed(2) || 'N/A'}${copied ? '\n\n✓ Copied to clipboard!' : '\n\nTap the link below to copy it'}`
+        });
+        setShowLinkModal(true);
         
         // Refresh bookings to show updated payment link
         fetchBookings();
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        alert(`Failed to generate payment link: ${errorData.error || 'Unknown error'}${errorData.details ? `\n\nDetails: ${errorData.details}` : ''}`);
+        setLinkModalContent({
+          title: 'Error',
+          link: '',
+          details: `Failed to generate payment link: ${errorData.error || 'Unknown error'}${errorData.details ? `\n\nDetails: ${errorData.details}` : ''}`
+        });
+        setShowLinkModal(true);
       }
     } catch (error) {
-      alert(`Failed to generate payment link: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setLinkModalContent({
+        title: 'Error',
+        link: '',
+        details: 'Failed to generate payment link. Please try again.'
+      });
+      setShowLinkModal(true);
     }
     setGeneratingPaymentLink(false);
   };
@@ -605,27 +649,37 @@ function BookingsPageContent() {
 
       if (response.ok) {
         const data = await response.json();
-        // Try to copy tip link to clipboard, with fallback for mobile
-        try {
-          await navigator.clipboard.writeText(data.tipLink);
-          
-          // Show detailed tip calculations
-          const tipCalc = data.tipCalculations;
-          alert(`Tip link generated and copied to clipboard!\n\nTip Link: ${data.tipLink}\n\nService Amount: $${tipCalc.serviceAmount}\n\nTip Options:\n• 10%: $${tipCalc.tip10} (Total: $${tipCalc.total10})\n• 15%: $${tipCalc.tip15} (Total: $${tipCalc.total15})\n• 20%: $${tipCalc.tip20} (Total: $${tipCalc.total20})\n• 25%: $${tipCalc.tip25} (Total: $${tipCalc.total25})`);
-        } catch (clipboardError) {
-          // Fallback for mobile or when clipboard API fails
-          const tipCalc = data.tipCalculations;
-          alert(`Tip link generated!\n\nTip Link: ${data.tipLink}\n\nService Amount: $${tipCalc.serviceAmount}\n\nTip Options:\n• 10%: $${tipCalc.tip10} (Total: $${tipCalc.total10})\n• 15%: $${tipCalc.tip15} (Total: $${tipCalc.total15})\n• 20%: $${tipCalc.tip20} (Total: $${tipCalc.total20})\n• 25%: $${tipCalc.tip25} (Total: $${tipCalc.total25})\n\n(Link shown above - you can copy it manually)`);
-        }
+        // Try to copy to clipboard
+        const copied = await copyToClipboard(data.tipLink);
+        
+        // Show detailed tip calculations
+        const tipCalc = data.tipCalculations;
+        const details = `Service Amount: $${tipCalc.serviceAmount}\n\nTip Options:\n• 10%: $${tipCalc.tip10} (Total: $${tipCalc.total10})\n• 15%: $${tipCalc.tip15} (Total: $${tipCalc.total15})\n• 20%: $${tipCalc.tip20} (Total: $${tipCalc.total20})\n• 25%: $${tipCalc.tip25} (Total: $${tipCalc.total25})${copied ? '\n\n✓ Copied to clipboard!' : '\n\nTap the link below to copy it'}`;
+        
+        setLinkModalContent({
+          title: 'Tip Link Generated',
+          link: data.tipLink,
+          details
+        });
+        setShowLinkModal(true);
         
         // Refresh bookings to show updated tip link
         fetchBookings();
       } else {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        alert(`Failed to generate tip link: ${errorData.error || 'Unknown error'}`);
+        setLinkModalContent({
+          title: 'Error',
+          link: '',
+          details: 'Failed to generate tip link. Please try again.'
+        });
+        setShowLinkModal(true);
       }
     } catch (error) {
-      alert(`Failed to generate tip link: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setLinkModalContent({
+        title: 'Error',
+        link: '',
+        details: 'Failed to generate tip link. Please try again.'
+      });
+      setShowLinkModal(true);
     }
     setGeneratingTipLink(false);
   };
@@ -3508,38 +3562,20 @@ function BookingsPageContent() {
                         </button>
                         
                         <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleGeneratePaymentLink(selectedBooking);
-                          }}
+                          onClick={() => handleGeneratePaymentLink(selectedBooking)}
                           disabled={generatingPaymentLink || !selectedBooking.totalPrice}
-                          className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 active:opacity-75 transition-all disabled:opacity-50 touch-manipulation"
-                          style={{ 
-                            background: COLORS.primary, 
-                            color: COLORS.primaryLight,
-                            minHeight: '44px', // Minimum touch target size for mobile
-                            WebkitTapHighlightColor: 'transparent'
-                          }}
+                          className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
+                          style={{ background: COLORS.primary, color: COLORS.primaryLight }}
                         >
                           <i className={`fas fa-credit-card mr-2 ${generatingPaymentLink ? 'animate-spin' : ''}`}></i>
                           {generatingPaymentLink ? 'Generating...' : 'Generate Payment Link'}
                         </button>
                         
                         <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleGenerateTipLink(selectedBooking);
-                          }}
+                          onClick={() => handleGenerateTipLink(selectedBooking)}
                           disabled={generatingTipLink || !selectedBooking.totalPrice}
-                          className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 active:opacity-75 transition-all disabled:opacity-50 touch-manipulation"
-                          style={{ 
-                            background: COLORS.primaryLight, 
-                            color: COLORS.primary,
-                            minHeight: '44px', // Minimum touch target size for mobile
-                            WebkitTapHighlightColor: 'transparent'
-                          }}
+                          className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
+                          style={{ background: COLORS.primaryLight, color: COLORS.primary }}
                         >
                           <i className={`fas fa-gift mr-2 ${generatingTipLink ? 'animate-spin' : ''}`}></i>
                           {generatingTipLink ? 'Generating...' : 'Generate Tip Link'}
@@ -3547,24 +3583,12 @@ function BookingsPageContent() {
                         
                         {selectedBooking.stripePaymentLinkUrl && (
                           <button
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              try {
-                                await navigator.clipboard.writeText(selectedBooking.stripePaymentLinkUrl!);
-                                alert("Payment link copied to clipboard!");
-                              } catch (error) {
-                                // Fallback for mobile - show the link
-                                alert(`Payment Link:\n\n${selectedBooking.stripePaymentLinkUrl}\n\n(You can copy this link manually)`);
-                              }
+                            onClick={() => {
+                              navigator.clipboard.writeText(selectedBooking.stripePaymentLinkUrl!);
+                              alert("Payment link copied to clipboard!");
                             }}
-                            className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 active:opacity-75 transition-all touch-manipulation"
-                            style={{ 
-                              background: COLORS.primaryLight, 
-                              color: COLORS.primary,
-                              minHeight: '44px',
-                              WebkitTapHighlightColor: 'transparent'
-                            }}
+                            className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                            style={{ background: COLORS.primaryLight, color: COLORS.primary }}
                           >
                             <i className="fas fa-link mr-2"></i>Copy Payment Link
                           </button>
@@ -3572,24 +3596,12 @@ function BookingsPageContent() {
                         
                         {selectedBooking.tipLinkUrl && (
                           <button
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              try {
-                                await navigator.clipboard.writeText(selectedBooking.tipLinkUrl!);
-                                alert("Tip link copied to clipboard!");
-                              } catch (error) {
-                                // Fallback for mobile - show the link
-                                alert(`Tip Link:\n\n${selectedBooking.tipLinkUrl}\n\n(You can copy this link manually)`);
-                              }
+                            onClick={() => {
+                              navigator.clipboard.writeText(selectedBooking.tipLinkUrl!);
+                              alert("Tip link copied to clipboard!");
                             }}
-                            className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 active:opacity-75 transition-all touch-manipulation"
-                            style={{ 
-                              background: COLORS.primaryLight, 
-                              color: COLORS.primary,
-                              minHeight: '44px',
-                              WebkitTapHighlightColor: 'transparent'
-                            }}
+                            className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                            style={{ background: COLORS.primaryLight, color: COLORS.primary }}
                           >
                             <i className="fas fa-gift mr-2"></i>Copy Tip Link
                           </button>
@@ -3851,6 +3863,80 @@ function BookingsPageContent() {
                     Cancel
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Link Modal for Payment/Tip Links */}
+        {showLinkModal && linkModalContent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto" style={{ border: `2px solid ${COLORS.primary}` }}>
+              <div className="sticky top-0 bg-white border-b-2 p-4 flex items-center justify-between" style={{ borderColor: COLORS.border }}>
+                <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>{linkModalContent.title}</h2>
+                <button
+                  onClick={() => {
+                    setShowLinkModal(false);
+                    setLinkModalContent(null);
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  style={{ color: COLORS.primary }}
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <div className="p-4 space-y-4">
+                {linkModalContent.details && (
+                  <div className="text-sm text-gray-700 whitespace-pre-line">
+                    {linkModalContent.details}
+                  </div>
+                )}
+                {linkModalContent.link && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-gray-600">Link:</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={linkModalContent.link}
+                        className="flex-1 px-3 py-2 border-2 rounded-lg text-sm"
+                        style={{ borderColor: COLORS.border }}
+                        onClick={(e) => (e.target as HTMLInputElement).select()}
+                      />
+                      <button
+                        onClick={async () => {
+                          const copied = await copyToClipboard(linkModalContent!.link);
+                          if (copied) {
+                            alert('Link copied to clipboard!');
+                          } else {
+                            // Select the input text as fallback
+                            const input = document.querySelector('input[value="' + linkModalContent!.link + '"]') as HTMLInputElement;
+                            if (input) {
+                              input.select();
+                              input.setSelectionRange(0, 99999);
+                            }
+                            alert('Please manually copy the link above');
+                          }
+                        }}
+                        className="px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-opacity"
+                        style={{ background: COLORS.primary, color: COLORS.primaryLight }}
+                      >
+                        <i className="fas fa-copy"></i>
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500">Tap the link above to select and copy it</p>
+                  </div>
+                )}
+                <button
+                  onClick={() => {
+                    setShowLinkModal(false);
+                    setLinkModalContent(null);
+                  }}
+                  className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-opacity"
+                  style={{ background: COLORS.primary, color: COLORS.primaryLight }}
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
