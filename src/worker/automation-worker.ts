@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/db";
 import { sendClientNightBeforeReminder, sendSitterNightBeforeReminder } from "@/lib/sms-templates";
 import { sendSMS } from "@/lib/openphone";
-import { getOwnerPhone } from "@/lib/phone-utils";
+import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
+import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown } from "@/lib/booking-utils";
+import { sendMessage } from "@/lib/message-utils";
 
 export async function processReminders() {
   try {
@@ -24,8 +27,17 @@ export async function processReminders() {
       include: {
         pets: true,
         sitter: true,
+        timeSlots: {
+          orderBy: {
+            startAt: "asc",
+          },
+        },
       },
     });
+
+    // Check if automation is enabled
+    const shouldSendToClient = await shouldSendToRecipient("nightBeforeReminder", "client");
+    const shouldSendToSitter = await shouldSendToRecipient("nightBeforeReminder", "sitter");
 
     // Send reminders
     for (const booking of tomorrowBookings) {
@@ -36,23 +48,113 @@ export async function processReminders() {
           continue;
         }
 
-        // Create a booking object with required fields
-        const bookingForReminder = {
-          ...booking,
-          email: booking.email,
-          totalPrice: booking.totalPrice || 0,
-          sitter: booking.sitter ? {
-            firstName: booking.sitter.firstName,
-            lastName: booking.sitter.lastName,
-          } : undefined,
-        };
+        // Calculate accurate total
+        const breakdown = calculatePriceBreakdown(booking);
+        const calculatedTotal = breakdown.total;
+        const petQuantities = formatPetsByQuantity(booking.pets);
 
         // Send reminder to client
-        await sendClientNightBeforeReminder(bookingForReminder);
+        if (shouldSendToClient) {
+          let clientMessageTemplate = await getMessageTemplate("nightBeforeReminder", "client");
+          if (!clientMessageTemplate) {
+            // Fallback to hardcoded function
+            const bookingForReminder = {
+              ...booking,
+              email: booking.email,
+              totalPrice: calculatedTotal,
+              sitter: booking.sitter ? {
+                firstName: booking.sitter.firstName,
+                lastName: booking.sitter.lastName,
+              } : undefined,
+            };
+            await sendClientNightBeforeReminder(bookingForReminder);
+          } else {
+            const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
+              firstName: booking.firstName,
+              lastName: booking.lastName,
+              service: booking.service,
+              date: booking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+              time: booking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+              petQuantities,
+            });
+            await sendMessage(booking.phone, clientMessage, booking.id);
+          }
+        } else {
+          // Fallback to hardcoded function if automation disabled
+          const bookingForReminder = {
+            ...booking,
+            email: booking.email,
+            totalPrice: calculatedTotal,
+            sitter: booking.sitter ? {
+              firstName: booking.sitter.firstName,
+              lastName: booking.sitter.lastName,
+            } : undefined,
+          };
+          await sendClientNightBeforeReminder(bookingForReminder);
+        }
         
         // Send reminder to sitter if assigned
         if (booking.sitter && booking.sitterId) {
-          await sendSitterNightBeforeReminder(bookingForReminder, booking.sitterId);
+          if (shouldSendToSitter) {
+            const sitter = await prisma.sitter.findUnique({
+              where: { id: booking.sitterId },
+            });
+            
+            if (sitter) {
+              const sitterPhone = await getSitterPhone(booking.sitterId, undefined, "nightBeforeReminder");
+              
+              if (sitterPhone) {
+                const commissionPercentage = sitter.commissionPercentage || 80.0;
+                const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
+                
+                let sitterMessageTemplate = await getMessageTemplate("nightBeforeReminder", "sitter");
+                if (!sitterMessageTemplate) {
+                  // Fallback to hardcoded function
+                  const bookingForReminder = {
+                    ...booking,
+                    email: booking.email,
+                    totalPrice: calculatedTotal,
+                    sitter: booking.sitter ? {
+                      firstName: booking.sitter.firstName,
+                      lastName: booking.sitter.lastName,
+                    } : undefined,
+                  };
+                  await sendSitterNightBeforeReminder(bookingForReminder, booking.sitterId);
+                } else {
+                  const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
+                    sitterFirstName: sitter.firstName,
+                    firstName: booking.firstName,
+                    lastName: booking.lastName,
+                    service: booking.service,
+                    date: booking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+                    time: booking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                    petQuantities,
+                    address: booking.address || 'TBD',
+                    earnings: sitterEarnings.toFixed(2),
+                    totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
+                    total: calculatedTotal,
+                  }, {
+                    isSitterMessage: true,
+                    sitterCommissionPercentage: commissionPercentage,
+                  });
+                  
+                  await sendMessage(sitterPhone, sitterMessage, booking.id);
+                }
+              }
+            }
+          } else {
+            // Fallback to hardcoded function if automation disabled
+            const bookingForReminder = {
+              ...booking,
+              email: booking.email,
+              totalPrice: calculatedTotal,
+              sitter: booking.sitter ? {
+                firstName: booking.sitter.firstName,
+                lastName: booking.sitter.lastName,
+              } : undefined,
+            };
+            await sendSitterNightBeforeReminder(bookingForReminder, booking.sitterId);
+          }
         }
       } catch (error) {
         console.error(`Failed to send reminders for booking ${booking.id}:`, error);

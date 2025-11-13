@@ -185,15 +185,105 @@ export async function PATCH(
       return NextResponse.json({ error: "Failed to fetch updated booking" }, { status: 500 });
     }
 
-    // Send confirmation SMS to client if booking is confirmed
+    // Send confirmation SMS if booking is confirmed (using automation templates if enabled)
     if (status === "confirmed") {
       const petQuantities = formatPetsByQuantity(finalBooking.pets);
       // Calculate the true total
       const breakdown = calculatePriceBreakdown(finalBooking);
       const calculatedTotal = breakdown.total;
-      const message = `🐾 BOOKING CONFIRMED!\n\nHi ${finalBooking.firstName},\n\nYour ${finalBooking.service} booking is confirmed for ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${calculatedTotal.toFixed(2)}\n\nWe'll see you soon!`;
       
-      await sendMessage(finalBooking.phone, message, finalBooking.id);
+      // Check if bookingConfirmation automation is enabled
+      const shouldSendToClient = await shouldSendToRecipient("bookingConfirmation", "client");
+      const shouldSendToSitter = finalBooking.sitterId ? await shouldSendToRecipient("bookingConfirmation", "sitter") : false;
+      const shouldSendToOwner = await shouldSendToRecipient("bookingConfirmation", "owner");
+      
+      // Send to client
+      if (shouldSendToClient) {
+        let clientMessageTemplate = await getMessageTemplate("bookingConfirmation", "client");
+        if (!clientMessageTemplate) {
+          clientMessageTemplate = "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nWe'll see you soon!";
+        }
+        
+        const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
+          firstName: finalBooking.firstName,
+          service: finalBooking.service,
+          date: finalBooking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+          time: finalBooking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          petQuantities,
+          totalPrice: calculatedTotal.toFixed(2),
+        });
+        
+        await sendMessage(finalBooking.phone, clientMessage, finalBooking.id);
+      } else {
+        // Fallback to hardcoded message if automation is disabled
+        const message = `🐾 BOOKING CONFIRMED!\n\nHi ${finalBooking.firstName},\n\nYour ${finalBooking.service} booking is confirmed for ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${calculatedTotal.toFixed(2)}\n\nWe'll see you soon!`;
+        await sendMessage(finalBooking.phone, message, finalBooking.id);
+      }
+      
+      // Send to sitter if assigned
+      if (shouldSendToSitter && finalBooking.sitterId) {
+        const sitter = await prisma.sitter.findUnique({
+          where: { id: finalBooking.sitterId },
+        });
+        
+        if (sitter) {
+          const sitterPhone = await getSitterPhone(finalBooking.sitterId, undefined, "bookingConfirmation");
+          
+          if (sitterPhone) {
+            const commissionPercentage = sitter.commissionPercentage || 80.0;
+            const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
+            
+            let sitterMessageTemplate = await getMessageTemplate("bookingConfirmation", "sitter");
+            if (!sitterMessageTemplate) {
+              sitterMessageTemplate = "✅ BOOKING CONFIRMED!\n\nHi {{sitterFirstName}},\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nView details in your dashboard.";
+            }
+            
+            const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
+              sitterFirstName: sitter.firstName,
+              firstName: finalBooking.firstName,
+              lastName: finalBooking.lastName,
+              service: finalBooking.service,
+              date: finalBooking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+              time: finalBooking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+              petQuantities,
+              address: finalBooking.address || 'TBD',
+              earnings: sitterEarnings.toFixed(2),
+              totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
+              total: calculatedTotal,
+            }, {
+              isSitterMessage: true,
+              sitterCommissionPercentage: commissionPercentage,
+            });
+            
+            await sendMessage(sitterPhone, sitterMessage, finalBooking.id);
+          }
+        }
+      }
+      
+      // Send to owner if enabled
+      if (shouldSendToOwner) {
+        const { getOwnerPhone } = await import("@/lib/phone-utils");
+        const ownerPhone = await getOwnerPhone(undefined, "bookingConfirmation");
+        
+        if (ownerPhone) {
+          let ownerMessageTemplate = await getMessageTemplate("bookingConfirmation", "owner");
+          if (!ownerMessageTemplate) {
+            ownerMessageTemplate = "✅ BOOKING CONFIRMED!\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}";
+          }
+          
+          const ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
+            firstName: finalBooking.firstName,
+            lastName: finalBooking.lastName,
+            service: finalBooking.service,
+            date: finalBooking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+            time: finalBooking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+            petQuantities,
+            totalPrice: calculatedTotal.toFixed(2),
+          });
+          
+          await sendMessage(ownerPhone, ownerMessage, finalBooking.id);
+        }
+      }
     }
 
     // Send sitter assignment notification
