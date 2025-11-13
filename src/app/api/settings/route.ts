@@ -86,10 +86,6 @@ export async function PATCH(request: NextRequest) {
         "sitterPoolOffers",
       ];
       
-      // Save all message templates in parallel for better performance
-      // Each save uses a transaction to ensure atomicity
-      const templateSavePromises: Promise<void>[] = [];
-      
       for (const automationType of templateKeys) {
         if (automation[automationType]) {
           const config = automation[automationType];
@@ -97,51 +93,35 @@ export async function PATCH(request: NextRequest) {
           // Store client message template with versioning
           // Save even if empty string to ensure updates are persisted
           if (config.hasOwnProperty('messageTemplateClient')) {
-            templateSavePromises.push(
-              saveMessageTemplateWithVersion(
-                automationType,
-                "client",
-                config.messageTemplateClient || "",
-                `Client message template for ${automationType}`
-              )
+            await saveMessageTemplateWithVersion(
+              automationType,
+              "client",
+              config.messageTemplateClient || "",
+              `Client message template for ${automationType}`
             );
           }
           
           // Store sitter message template with versioning
           if (config.hasOwnProperty('messageTemplateSitter')) {
-            templateSavePromises.push(
-              saveMessageTemplateWithVersion(
-                automationType,
-                "sitter",
-                config.messageTemplateSitter || "",
-                `Sitter message template for ${automationType}`
-              )
+            await saveMessageTemplateWithVersion(
+              automationType,
+              "sitter",
+              config.messageTemplateSitter || "",
+              `Sitter message template for ${automationType}`
             );
           }
           
           // Store owner message template with versioning
           if (config.hasOwnProperty('messageTemplateOwner')) {
-            templateSavePromises.push(
-              saveMessageTemplateWithVersion(
-                automationType,
-                "owner",
-                config.messageTemplateOwner || "",
-                `Owner message template for ${automationType}`
-              )
+            await saveMessageTemplateWithVersion(
+              automationType,
+              "owner",
+              config.messageTemplateOwner || "",
+              `Owner message template for ${automationType}`
             );
           }
         }
       }
-      
-      // Wait for all templates to be saved before returning
-      // This ensures all saves are complete before the API responds
-      await Promise.all(templateSavePromises);
-      
-      // Log saved templates for debugging
-      console.log('[settings/route] Saved message templates:', {
-        count: templateSavePromises.length,
-        types: templateKeys.filter(key => automation[key])
-      });
     }
 
     // Update other settings if provided

@@ -27,6 +27,7 @@ export default function SitterPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [sitterId, setSitterId] = useState<string>("");
+  const [commissionPercentage, setCommissionPercentage] = useState<number>(80.0);
 
   useEffect(() => {
     // Get sitter ID from URL params or localStorage
@@ -45,11 +46,19 @@ export default function SitterPage() {
       const response = await fetch(`/api/sitter/${id}/bookings`);
       const data = await response.json();
       setBookings(data.bookings || []);
+      if (data.sitter?.commissionPercentage) {
+        setCommissionPercentage(data.sitter.commissionPercentage);
+      }
     } catch {
       setBookings([]);
     } finally {
     setLoading(false);
     }
+  };
+  
+  // Calculate sitter earnings based on commission percentage
+  const calculateSitterEarnings = (totalPrice: number): number => {
+    return (totalPrice * commissionPercentage) / 100;
   };
 
   const formatPetsByQuantity = (pets: Array<{ species: string }>): string => {
@@ -156,9 +165,9 @@ export default function SitterPage() {
           <div className="bg-white rounded-lg p-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Earnings</p>
+                <p className="text-sm font-medium text-gray-600">Total Earnings ({commissionPercentage}%)</p>
                 <p className="text-3xl font-bold" style={{ color: COLORS.primary }}>
-                  ${completedBookings.reduce((sum, b) => sum + b.totalPrice, 0).toFixed(2)}
+                  ${completedBookings.reduce((sum, b) => sum + calculateSitterEarnings(b.totalPrice), 0).toFixed(2)}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>

@@ -200,31 +200,6 @@ export default function AutomationPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Log what we're sending (safely handle all types)
-      const templatesToSave: string[] = [];
-      try {
-        Object.keys(settings).forEach(key => {
-          const config = settings[key as keyof AutomationSettings];
-          // Only check for templates if config is an object (not boolean, string, number, etc.)
-          if (config !== null && config !== undefined && typeof config === 'object' && !Array.isArray(config)) {
-            const configObj = config as Record<string, any>;
-            if (configObj.messageTemplateClient && typeof configObj.messageTemplateClient === 'string') {
-              templatesToSave.push(`${key}.client (${configObj.messageTemplateClient.length} chars)`);
-            }
-            if (configObj.messageTemplateSitter && typeof configObj.messageTemplateSitter === 'string') {
-              templatesToSave.push(`${key}.sitter (${configObj.messageTemplateSitter.length} chars)`);
-            }
-            if (configObj.messageTemplateOwner && typeof configObj.messageTemplateOwner === 'string') {
-              templatesToSave.push(`${key}.owner (${configObj.messageTemplateOwner.length} chars)`);
-            }
-          }
-        });
-      } catch (logError) {
-        console.warn('[automation/page] Error logging templates:', logError);
-      }
-      
-      console.log('[automation/page] Saving automation settings with templates:', templatesToSave);
-      
       const response = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -232,16 +207,11 @@ export default function AutomationPage() {
       });
 
       if (response.ok) {
-        const result = await response.json();
-        console.log('[automation/page] Save response:', result);
         alert("Automation settings saved successfully!");
       } else {
-        const error = await response.text();
-        console.error('[automation/page] Save failed:', error);
         alert("Failed to save settings");
       }
-    } catch (error) {
-      console.error('[automation/page] Save error:', error);
+    } catch {
       alert("Failed to save settings");
     }
     setSaving(false);

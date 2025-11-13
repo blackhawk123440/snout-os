@@ -36,7 +36,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { firstName, lastName, phone, personalPhone, openphonePhone, phoneType, email, isActive } = body;
+    const { firstName, lastName, phone, personalPhone, openphonePhone, phoneType, email, isActive, commissionPercentage } = body;
 
     // Determine which phone to use as primary based on phoneType
     let primaryPhone = phone;
@@ -59,6 +59,13 @@ export async function PATCH(
     if (personalPhone !== undefined) updateData.personalPhone = personalPhone || null;
     if (openphonePhone !== undefined) updateData.openphonePhone = openphonePhone || null;
     if (phoneType !== undefined) updateData.phoneType = phoneType || "personal";
+    if (commissionPercentage !== undefined) {
+      // Validate commission percentage (should be between 0 and 100)
+      const percentage = parseFloat(commissionPercentage);
+      if (!isNaN(percentage) && percentage >= 0 && percentage <= 100) {
+        updateData.commissionPercentage = percentage;
+      }
+    }
 
     const sitter = await prisma.sitter.update({
       where: { id },
