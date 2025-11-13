@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { calculateBookingPrice } from "@/lib/rates";
 import { formatPhoneForAPI } from "@/lib/phone-format";
-import { formatPetsByQuantity, calculatePriceBreakdown } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
 import { sendOwnerAlert } from "@/lib/sms-templates";
 import { getOwnerPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
