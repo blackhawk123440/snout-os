@@ -200,6 +200,24 @@ export default function AutomationPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Log what we're sending
+      const templatesToSave = Object.keys(settings).map(key => {
+        const config = settings[key as keyof AutomationSettings];
+        const templates: string[] = [];
+        if ('messageTemplateClient' in config && config.messageTemplateClient) {
+          templates.push(`${key}.client (${config.messageTemplateClient.length} chars)`);
+        }
+        if ('messageTemplateSitter' in config && config.messageTemplateSitter) {
+          templates.push(`${key}.sitter (${config.messageTemplateSitter.length} chars)`);
+        }
+        if ('messageTemplateOwner' in config && config.messageTemplateOwner) {
+          templates.push(`${key}.owner (${config.messageTemplateOwner.length} chars)`);
+        }
+        return templates;
+      }).flat();
+      
+      console.log('[automation/page] Saving automation settings with templates:', templatesToSave);
+      
       const response = await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -207,11 +225,16 @@ export default function AutomationPage() {
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log('[automation/page] Save response:', result);
         alert("Automation settings saved successfully!");
       } else {
+        const error = await response.text();
+        console.error('[automation/page] Save failed:', error);
         alert("Failed to save settings");
       }
-    } catch {
+    } catch (error) {
+      console.error('[automation/page] Save error:', error);
       alert("Failed to save settings");
     }
     setSaving(false);
