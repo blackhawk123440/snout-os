@@ -60,13 +60,46 @@ export async function getMessageTemplate(
 
 /**
  * Replace template variables in a message
+ * For sitter messages, if totalPrice or total is present and sitterCommissionPercentage is provided,
+ * it will be replaced with earnings instead of the full total
  */
 export function replaceTemplateVariables(
   template: string,
-  variables: Record<string, string | number>
+  variables: Record<string, string | number>,
+  options?: {
+    sitterCommissionPercentage?: number;
+    isSitterMessage?: boolean;
+  }
 ): string {
   let message = template;
+  
+  // If this is a sitter message and commission percentage is provided, calculate earnings for totalPrice/total
+  if (options?.isSitterMessage && options?.sitterCommissionPercentage !== undefined) {
+    // Get totalPrice from variables (could be number or string)
+    let totalPrice: number | null = null;
+    if (variables.totalPrice !== undefined) {
+      totalPrice = typeof variables.totalPrice === 'number' ? variables.totalPrice : parseFloat(String(variables.totalPrice));
+    } else if (variables.total !== undefined) {
+      totalPrice = typeof variables.total === 'number' ? variables.total : parseFloat(String(variables.total));
+    }
+    
+    // If we have a valid totalPrice, calculate earnings
+    if (totalPrice !== null && !isNaN(totalPrice)) {
+      const earnings = (totalPrice * options.sitterCommissionPercentage) / 100;
+      // Replace totalPrice and total with earnings for sitter messages
+      message = message.replace(/\{\{totalPrice\}\}/g, earnings.toFixed(2));
+      message = message.replace(/\{\{total\}\}/g, earnings.toFixed(2));
+      // Also support old format
+      message = message.replace(/\[TotalPrice\]/gi, earnings.toFixed(2));
+      message = message.replace(/\[Total\]/gi, earnings.toFixed(2));
+    }
+  }
+  
   Object.keys(variables).forEach(key => {
+    // Skip totalPrice and total if we already handled them for sitter messages
+    if (options?.isSitterMessage && (key === 'totalPrice' || key === 'total')) {
+      return;
+    }
     const value = String(variables[key]);
     message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
     // Also support old format [VariableName]

@@ -100,6 +100,11 @@ export async function POST(request: NextRequest) {
       dateTimeInfo = `${startDate} at ${startTime}`;
     }
     
+    // Calculate price breakdown for accurate total
+    const { calculatePriceBreakdown } = await import("@/lib/booking-utils");
+    const breakdown = calculatePriceBreakdown(booking);
+    const calculatedTotal = breakdown.total;
+
     // Send SMS to all selected sitters using their phone numbers
     const smsPromises = sitters.map(async (sitter) => {
       try {
@@ -109,7 +114,11 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        const smsMessage = `🐾 NEW BOOKING OPPORTUNITY\n\n${booking.service} for ${booking.firstName} ${booking.lastName}\n\nDates & Times:\n${dateTimeInfo}\n\nPets: ${petQuantities}\nAddress: ${booking.address || 'TBD'}\n\nReply YES to accept this booking opportunity!`;
+        // Calculate sitter earnings based on their commission percentage
+        const commissionPercentage = sitter.commissionPercentage || 80.0;
+        const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
+
+        const smsMessage = `🐾 NEW BOOKING OPPORTUNITY\n\n${booking.service} for ${booking.firstName} ${booking.lastName}\n\nDates & Times:\n${dateTimeInfo}\n\nPets: ${petQuantities}\nAddress: ${booking.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)} (${commissionPercentage}%)\n\nReply YES to accept this booking opportunity!`;
         
         await sendMessage(sitterPhone, smsMessage, bookingId);
       } catch (error) {

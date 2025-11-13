@@ -205,7 +205,14 @@ export async function POST(request: NextRequest) {
                 const startDate = new Date(result.startAt).toLocaleDateString();
                 const startTime = new Date(result.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 
-                const confirmationMessage = `🎉 CONGRATULATIONS!\n\nYou've been assigned:\n\n${result.service} for ${result.firstName} ${result.lastName}\nDate: ${startDate}\nTime: ${startTime}\nPets: ${petQuantities}\nAddress: ${result.address || 'TBD'}\n\nPlease confirm your availability.`;
+                // Calculate sitter earnings based on their commission percentage
+                const { calculatePriceBreakdown } = await import("@/lib/booking-utils");
+                const breakdown = calculatePriceBreakdown(result);
+                const calculatedTotal = breakdown.total;
+                const commissionPercentage = sitter.commissionPercentage || 80.0;
+                const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
+                
+                const confirmationMessage = `🎉 CONGRATULATIONS!\n\nYou've been assigned:\n\n${result.service} for ${result.firstName} ${result.lastName}\nDate: ${startDate}\nTime: ${startTime}\nPets: ${petQuantities}\nAddress: ${result.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)} (${commissionPercentage}%)\n\nPlease confirm your availability.`;
                 
                 await sendMessage(sitterPhone, confirmationMessage, offer.bookingId);
               }
