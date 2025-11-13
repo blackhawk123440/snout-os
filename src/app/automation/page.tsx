@@ -204,14 +204,17 @@ export default function AutomationPage() {
       const templatesToSave = Object.keys(settings).map(key => {
         const config = settings[key as keyof AutomationSettings];
         const templates: string[] = [];
-        if ('messageTemplateClient' in config && config.messageTemplateClient) {
-          templates.push(`${key}.client (${config.messageTemplateClient.length} chars)`);
-        }
-        if ('messageTemplateSitter' in config && config.messageTemplateSitter) {
-          templates.push(`${key}.sitter (${config.messageTemplateSitter.length} chars)`);
-        }
-        if ('messageTemplateOwner' in config && config.messageTemplateOwner) {
-          templates.push(`${key}.owner (${config.messageTemplateOwner.length} chars)`);
+        // Only check for templates if config is an object
+        if (config && typeof config === 'object' && !Array.isArray(config)) {
+          if ('messageTemplateClient' in config && config.messageTemplateClient) {
+            templates.push(`${key}.client (${config.messageTemplateClient.length} chars)`);
+          }
+          if ('messageTemplateSitter' in config && config.messageTemplateSitter) {
+            templates.push(`${key}.sitter (${config.messageTemplateSitter.length} chars)`);
+          }
+          if ('messageTemplateOwner' in config && config.messageTemplateOwner) {
+            templates.push(`${key}.owner (${config.messageTemplateOwner.length} chars)`);
+          }
         }
         return templates;
       }).flat();
