@@ -136,6 +136,12 @@ export async function PATCH(request: NextRequest) {
       // Wait for all templates to be saved before returning
       // This ensures all saves are complete before the API responds
       await Promise.all(templateSavePromises);
+      
+      // Log saved templates for debugging
+      console.log('[settings/route] Saved message templates:', {
+        count: templateSavePromises.length,
+        types: templateKeys.filter(key => automation[key])
+      });
     }
 
     // Update other settings if provided

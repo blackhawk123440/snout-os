@@ -105,6 +105,11 @@ export async function saveMessageTemplateWithVersion(
 
   // Use a single transaction to save both version history and current template
   // This ensures atomicity and immediate visibility
+  console.log(`[message-templates] Saving template: ${automationType}.${recipient}`, {
+    templateLength: template.length,
+    hasValue: !!template
+  });
+  
   await prisma.$transaction(async (tx) => {
     // Only create new version if template changed
     if (!current || current.value !== template) {
@@ -157,6 +162,8 @@ export async function saveMessageTemplateWithVersion(
       },
     });
   });
+  
+  console.log(`[message-templates] Template saved successfully: ${automationType}.${recipient}`);
 }
 
 /**

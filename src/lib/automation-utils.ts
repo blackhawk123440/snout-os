@@ -42,6 +42,12 @@ export async function getMessageTemplate(
     where: { key: templateKey },
     // Force fresh read by not using any cache
   });
+  
+  console.log(`[automation-utils] getMessageTemplate: ${automationType}.${recipient}`, {
+    found: !!template,
+    hasValue: template?.value ? true : false,
+    valueLength: template?.value?.length || 0
+  });
 
   if (template) {
     // Return the template value, even if it's an empty string (user might have cleared it)
