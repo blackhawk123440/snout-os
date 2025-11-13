@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { formatPetsByQuantity, calculatePriceBreakdown } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
 import { sendMessage } from "@/lib/message-utils";
 import { getSitterPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
@@ -197,19 +197,28 @@ export async function PATCH(
       const shouldSendToSitter = finalBooking.sitterId ? await shouldSendToRecipient("bookingConfirmation", "sitter") : false;
       const shouldSendToOwner = await shouldSendToRecipient("bookingConfirmation", "owner");
       
+      // Format dates and times using the shared function that matches booking details
+      const formattedDatesTimes = formatDatesAndTimesForMessage({
+        service: finalBooking.service,
+        startAt: finalBooking.startAt,
+        endAt: finalBooking.endAt,
+        timeSlots: finalBooking.timeSlots || [],
+      });
+      
       // Send to client
       if (shouldSendToClient) {
         let clientMessageTemplate = await getMessageTemplate("bookingConfirmation", "client");
         // If template is null (doesn't exist) or empty string, use default
         if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
-          clientMessageTemplate = "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nWe'll see you soon!";
+          clientMessageTemplate = "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nWe'll see you soon!";
         }
         
         const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
           firstName: finalBooking.firstName,
           service: finalBooking.service,
-          date: finalBooking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-          time: finalBooking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          datesTimes: formattedDatesTimes,
+          date: formatDateForMessage(finalBooking.startAt),
+          time: formatTimeForMessage(finalBooking.startAt),
           petQuantities,
           totalPrice: calculatedTotal.toFixed(2),
         });
@@ -217,7 +226,7 @@ export async function PATCH(
         await sendMessage(finalBooking.phone, clientMessage, finalBooking.id);
       } else {
         // Fallback to hardcoded message if automation is disabled
-        const message = `🐾 BOOKING CONFIRMED!\n\nHi ${finalBooking.firstName},\n\nYour ${finalBooking.service} booking is confirmed for ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${calculatedTotal.toFixed(2)}\n\nWe'll see you soon!`;
+        const message = `🐾 BOOKING CONFIRMED!\n\nHi ${finalBooking.firstName},\n\nYour ${finalBooking.service} booking is confirmed:\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nTotal: $${calculatedTotal.toFixed(2)}\n\nWe'll see you soon!`;
         await sendMessage(finalBooking.phone, message, finalBooking.id);
       }
       
@@ -237,7 +246,7 @@ export async function PATCH(
             let sitterMessageTemplate = await getMessageTemplate("bookingConfirmation", "sitter");
             // If template is null (doesn't exist) or empty string, use default
             if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
-              sitterMessageTemplate = "✅ BOOKING CONFIRMED!\n\nHi {{sitterFirstName}},\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nView details in your dashboard.";
+              sitterMessageTemplate = "✅ BOOKING CONFIRMED!\n\nHi {{sitterFirstName}},\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nView details in your dashboard.";
             }
             
             const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
@@ -245,8 +254,9 @@ export async function PATCH(
               firstName: finalBooking.firstName,
               lastName: finalBooking.lastName,
               service: finalBooking.service,
-              date: finalBooking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-              time: finalBooking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+              datesTimes: formattedDatesTimes,
+              date: formatDateForMessage(finalBooking.startAt),
+              time: formatTimeForMessage(finalBooking.startAt),
               petQuantities,
               address: finalBooking.address || 'TBD',
               earnings: sitterEarnings.toFixed(2),
@@ -271,15 +281,16 @@ export async function PATCH(
           let ownerMessageTemplate = await getMessageTemplate("bookingConfirmation", "owner");
           // If template is null (doesn't exist) or empty string, use default
           if (!ownerMessageTemplate || ownerMessageTemplate.trim() === "") {
-            ownerMessageTemplate = "✅ BOOKING CONFIRMED!\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}";
+            ownerMessageTemplate = "✅ BOOKING CONFIRMED!\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}";
           }
           
           const ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
             firstName: finalBooking.firstName,
             lastName: finalBooking.lastName,
             service: finalBooking.service,
-            date: finalBooking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-            time: finalBooking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+            datesTimes: formattedDatesTimes,
+            date: formatDateForMessage(finalBooking.startAt),
+            time: formatTimeForMessage(finalBooking.startAt),
             petQuantities,
             totalPrice: calculatedTotal.toFixed(2),
           });
@@ -307,6 +318,14 @@ export async function PATCH(
           const commissionPercentage = sitter.commissionPercentage || 80.0;
           const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
           
+          // Format dates and times using the shared function that matches booking details
+          const formattedDatesTimes = formatDatesAndTimesForMessage({
+            service: finalBooking.service,
+            startAt: finalBooking.startAt,
+            endAt: finalBooking.endAt,
+            timeSlots: finalBooking.timeSlots || [],
+          });
+          
           // Check if automation is enabled and should send to sitter
           const shouldSendToSitter = await shouldSendToRecipient("sitterAssignment", "sitter");
           
@@ -316,7 +335,7 @@ export async function PATCH(
             let sitterMessageTemplate = await getMessageTemplate("sitterAssignment", "sitter");
             // If template is null (doesn't exist) or empty string, use default
             if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
-              sitterMessageTemplate = "👋 SITTER ASSIGNED!\n\nHi {{sitterFirstName}},\n\nYou've been assigned to {{firstName}} {{lastName}}'s {{service}} booking on {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
+              sitterMessageTemplate = "👋 SITTER ASSIGNED!\n\nHi {{sitterFirstName}},\n\nYou've been assigned to {{firstName}} {{lastName}}'s {{service}} booking:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
             }
             
             message = replaceTemplateVariables(sitterMessageTemplate, {
@@ -324,8 +343,9 @@ export async function PATCH(
               firstName: finalBooking.firstName,
               lastName: finalBooking.lastName,
               service: finalBooking.service,
-              date: finalBooking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-              time: finalBooking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+              datesTimes: formattedDatesTimes,
+              date: formatDateForMessage(finalBooking.startAt),
+              time: formatTimeForMessage(finalBooking.startAt),
               petQuantities,
               address: finalBooking.address || 'TBD',
               earnings: sitterEarnings.toFixed(2),
@@ -338,7 +358,7 @@ export async function PATCH(
             });
           } else {
             // Use hardcoded message if automation is not enabled
-            message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${finalBooking.firstName} ${finalBooking.lastName}'s ${finalBooking.service} booking on ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${finalBooking.address}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nPlease confirm your availability.`;
+            message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${finalBooking.firstName} ${finalBooking.lastName}'s ${finalBooking.service} booking:\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nAddress: ${finalBooking.address}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nPlease confirm your availability.`;
           }
           
           await sendMessage(sitterPhone, message, finalBooking.id);
