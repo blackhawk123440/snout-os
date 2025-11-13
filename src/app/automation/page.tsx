@@ -915,7 +915,8 @@ export default function AutomationPage() {
                                   style={{ borderColor: COLORS.primaryLight }}
                                   placeholder="Message template with {{variables}}..."
                                 />
-                                <p className="text-xs text-gray-500 mt-1">Available: {"{{sitterFirstName}}"}, {"{{service}}"}, {"{{time}}"}, {"{{firstName}}"}, {"{{lastName}}"}, {"{{petQuantities}}"}, {"{{address}}"}</p>
+                                <p className="text-xs text-gray-500 mt-1">Available: {"{{sitterFirstName}}"}, {"{{service}}"}, {"{{time}}"}, {"{{firstName}}"}, {"{{lastName}}"}, {"{{petQuantities}}"}, {"{{address}}"}, {"{{earnings}}"}, {"{{totalPrice}}"}, {"{{total}}"}</p>
+                                <p className="text-xs text-gray-400 mt-1 italic">Note: {"{{totalPrice}}"} and {"{{total}}"} will automatically show earnings for sitters</p>
                                 <button
                                   onClick={() => {
                                     const defaultTemplate = "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment tomorrow at {{time}}.\n\nClient: {{firstName}} {{lastName}}\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
