@@ -43,7 +43,22 @@ export async function sendClientNightBeforeReminder(booking: Booking): Promise<b
 
 export async function sendSitterNightBeforeReminder(booking: Booking, sitterId?: string): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const message = `🌙 REMINDER!\n\nHi,\n\nYou have a ${booking.service} appointment tomorrow at ${booking.startAt.toLocaleTimeString()}.\n\nClient: ${booking.firstName} ${booking.lastName}\nPets: ${petQuantities}\nAddress: ${booking.address}\n\nPlease confirm your availability.`;
+  
+  // Calculate sitter earnings if sitterId is provided
+  let earningsText = '';
+  if (sitterId && booking.totalPrice) {
+    const { prisma } = await import("@/lib/db");
+    const sitter = await prisma.sitter.findUnique({
+      where: { id: sitterId },
+    });
+    if (sitter) {
+      const commissionPercentage = sitter.commissionPercentage || 80.0;
+      const earnings = (booking.totalPrice * commissionPercentage) / 100;
+      earningsText = `\nYour Earnings: $${earnings.toFixed(2)} (${commissionPercentage}%)`;
+    }
+  }
+  
+  const message = `🌙 REMINDER!\n\nHi,\n\nYou have a ${booking.service} appointment tomorrow at ${booking.startAt.toLocaleTimeString()}.\n\nClient: ${booking.firstName} ${booking.lastName}\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease confirm your availability.`;
   
   let sitterPhone: string | null = null;
   if (sitterId) {
@@ -67,7 +82,22 @@ export async function sendPostVisitThankYou(booking: Booking): Promise<boolean> 
 
 export async function sendSitterAssignmentNotification(booking: Booking, sitterId?: string): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const message = `👋 SITTER ASSIGNED!\n\nHi,\n\nYou've been assigned to ${booking.firstName} ${booking.lastName}'s ${booking.service} booking on ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${booking.address}\n\nPlease confirm your availability.`;
+  
+  // Calculate sitter earnings if sitterId is provided
+  let earningsText = '';
+  if (sitterId && booking.totalPrice) {
+    const { prisma } = await import("@/lib/db");
+    const sitter = await prisma.sitter.findUnique({
+      where: { id: sitterId },
+    });
+    if (sitter) {
+      const commissionPercentage = sitter.commissionPercentage || 80.0;
+      const earnings = (booking.totalPrice * commissionPercentage) / 100;
+      earningsText = `\nYour Earnings: $${earnings.toFixed(2)} (${commissionPercentage}%)`;
+    }
+  }
+  
+  const message = `👋 SITTER ASSIGNED!\n\nHi,\n\nYou've been assigned to ${booking.firstName} ${booking.lastName}'s ${booking.service} booking on ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease confirm your availability.`;
   
   let sitterPhone: string | null = null;
   if (sitterId) {

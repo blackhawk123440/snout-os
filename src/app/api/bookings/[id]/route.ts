@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { formatPetsByQuantity, calculatePriceBreakdown } from "@/lib/booking-utils";
 import { sendMessage } from "@/lib/message-utils";
 import { getSitterPhone } from "@/lib/phone-utils";
+import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
 
 export async function GET(
   request: NextRequest,
@@ -209,7 +210,42 @@ export async function PATCH(
           // Calculate the true total
           const breakdown = calculatePriceBreakdown(finalBooking);
           const calculatedTotal = breakdown.total;
-          const message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${finalBooking.firstName} ${finalBooking.lastName}'s ${finalBooking.service} booking on ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${finalBooking.address}\nTotal: $${calculatedTotal.toFixed(2)}\n\nPlease confirm your availability.`;
+          // Calculate sitter earnings based on their commission percentage
+          const commissionPercentage = sitter.commissionPercentage || 80.0;
+          const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
+          
+          // Check if automation is enabled and should send to sitter
+          const shouldSendToSitter = await shouldSendToRecipient("sitterAssignment", "sitter");
+          
+          let message: string;
+          if (shouldSendToSitter) {
+            // Use automation template if available
+            let sitterMessageTemplate = await getMessageTemplate("sitterAssignment", "sitter");
+            if (!sitterMessageTemplate) {
+              sitterMessageTemplate = "👋 SITTER ASSIGNED!\n\nHi {{sitterFirstName}},\n\nYou've been assigned to {{firstName}} {{lastName}}'s {{service}} booking on {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}} ({{commissionPercentage}}%)\n\nPlease confirm your availability.";
+            }
+            
+            message = replaceTemplateVariables(sitterMessageTemplate, {
+              sitterFirstName: sitter.firstName,
+              firstName: finalBooking.firstName,
+              lastName: finalBooking.lastName,
+              service: finalBooking.service,
+              date: finalBooking.startAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+              time: finalBooking.startAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+              petQuantities,
+              address: finalBooking.address || 'TBD',
+              earnings: sitterEarnings.toFixed(2),
+              commissionPercentage: commissionPercentage.toFixed(0),
+              totalPrice: calculatedTotal, // Pass the actual total so earnings can be calculated
+              total: calculatedTotal, // Pass the actual total so earnings can be calculated
+            }, {
+              isSitterMessage: true,
+              sitterCommissionPercentage: commissionPercentage,
+            });
+          } else {
+            // Use hardcoded message if automation is not enabled
+            message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${finalBooking.firstName} ${finalBooking.lastName}'s ${finalBooking.service} booking on ${finalBooking.startAt.toLocaleDateString()} at ${finalBooking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${finalBooking.address}\nYour Earnings: $${sitterEarnings.toFixed(2)} (${commissionPercentage}%)\n\nPlease confirm your availability.`;
+          }
           
           await sendMessage(sitterPhone, message, finalBooking.id);
         }
