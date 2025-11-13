@@ -3583,9 +3583,18 @@ function BookingsPageContent() {
                         
                         {selectedBooking.stripePaymentLinkUrl && (
                           <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(selectedBooking.stripePaymentLinkUrl!);
-                              alert("Payment link copied to clipboard!");
+                            onClick={async () => {
+                              const copied = await copyToClipboard(selectedBooking.stripePaymentLinkUrl!);
+                              if (copied) {
+                                alert("Payment link copied to clipboard!");
+                              } else {
+                                setLinkModalContent({
+                                  title: 'Payment Link',
+                                  link: selectedBooking.stripePaymentLinkUrl!,
+                                  details: 'Tap the link below to copy it'
+                                });
+                                setShowLinkModal(true);
+                              }
                             }}
                             className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
                             style={{ background: COLORS.primaryLight, color: COLORS.primary }}
@@ -3596,9 +3605,18 @@ function BookingsPageContent() {
                         
                         {selectedBooking.tipLinkUrl && (
                           <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(selectedBooking.tipLinkUrl!);
-                              alert("Tip link copied to clipboard!");
+                            onClick={async () => {
+                              const copied = await copyToClipboard(selectedBooking.tipLinkUrl!);
+                              if (copied) {
+                                alert("Tip link copied to clipboard!");
+                              } else {
+                                setLinkModalContent({
+                                  title: 'Tip Link',
+                                  link: selectedBooking.tipLinkUrl!,
+                                  details: 'Tap the link below to copy it'
+                                });
+                                setShowLinkModal(true);
+                              }
                             }}
                             className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
                             style={{ background: COLORS.primaryLight, color: COLORS.primary }}
