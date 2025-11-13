@@ -200,24 +200,28 @@ export default function AutomationPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Log what we're sending
-      const templatesToSave = Object.keys(settings).map(key => {
-        const config = settings[key as keyof AutomationSettings];
-        const templates: string[] = [];
-        // Only check for templates if config is an object
-        if (config && typeof config === 'object' && !Array.isArray(config)) {
-          if ('messageTemplateClient' in config && config.messageTemplateClient) {
-            templates.push(`${key}.client (${config.messageTemplateClient.length} chars)`);
+      // Log what we're sending (safely handle all types)
+      const templatesToSave: string[] = [];
+      try {
+        Object.keys(settings).forEach(key => {
+          const config = settings[key as keyof AutomationSettings];
+          // Only check for templates if config is an object (not boolean, string, number, etc.)
+          if (config !== null && config !== undefined && typeof config === 'object' && !Array.isArray(config)) {
+            const configObj = config as Record<string, any>;
+            if (configObj.messageTemplateClient && typeof configObj.messageTemplateClient === 'string') {
+              templatesToSave.push(`${key}.client (${configObj.messageTemplateClient.length} chars)`);
+            }
+            if (configObj.messageTemplateSitter && typeof configObj.messageTemplateSitter === 'string') {
+              templatesToSave.push(`${key}.sitter (${configObj.messageTemplateSitter.length} chars)`);
+            }
+            if (configObj.messageTemplateOwner && typeof configObj.messageTemplateOwner === 'string') {
+              templatesToSave.push(`${key}.owner (${configObj.messageTemplateOwner.length} chars)`);
+            }
           }
-          if ('messageTemplateSitter' in config && config.messageTemplateSitter) {
-            templates.push(`${key}.sitter (${config.messageTemplateSitter.length} chars)`);
-          }
-          if ('messageTemplateOwner' in config && config.messageTemplateOwner) {
-            templates.push(`${key}.owner (${config.messageTemplateOwner.length} chars)`);
-          }
-        }
-        return templates;
-      }).flat();
+        });
+      } catch (logError) {
+        console.warn('[automation/page] Error logging templates:', logError);
+      }
       
       console.log('[automation/page] Saving automation settings with templates:', templatesToSave);
       
