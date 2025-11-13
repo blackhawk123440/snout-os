@@ -39,8 +39,10 @@ export async function getMessageTemplate(
     where: { key: templateKey },
   });
 
-  if (template && template.value) {
-    return template.value;
+  // If template exists in database (even if empty string), return it
+  // Empty string means user cleared the template, so we return it (caller should handle default)
+  if (template !== null) {
+    return template.value || ""; // Return empty string if value is null/undefined
   }
   
   // Fallback to automation settings JSON object (for backwards compatibility)
@@ -50,8 +52,9 @@ export async function getMessageTemplate(
   
   if (automation && typeof automation === 'object') {
     const fallbackTemplateKey = `messageTemplate${recipient.charAt(0).toUpperCase() + recipient.slice(1)}` as "messageTemplateClient" | "messageTemplateSitter" | "messageTemplateOwner";
-    if (automation[fallbackTemplateKey]) {
-      return automation[fallbackTemplateKey];
+    // Check if the key exists (even if value is empty string)
+    if (fallbackTemplateKey in automation) {
+      return automation[fallbackTemplateKey] || "";
     }
   }
 
