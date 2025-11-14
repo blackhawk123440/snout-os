@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { formatPetsByQuantity } from "@/lib/booking-utils";
+import { formatPetsByQuantity, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
 import { sendMessage } from "@/lib/message-utils";
+import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,16 +49,70 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send report to client
-    const petQuantities = formatPetsByQuantity(booking.pets);
-    const clientMessage = `🐾 VISIT REPORT\n\nHi ${booking.firstName},\n\nYour ${booking.service} visit has been completed!\n\nPets: ${petQuantities}\nSitter: ${booking.sitter?.firstName || 'Assigned sitter'}\n\nReport: ${content}\n\nThank you for choosing Snout Services!`;
-    
-    await sendMessage(booking.phone, clientMessage, bookingId);
+    // Get booking with timeSlots for proper date/time formatting
+    const bookingWithSlots = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        pets: true,
+        sitter: true,
+        timeSlots: {
+          orderBy: {
+            startAt: "asc",
+          },
+        },
+      },
+    });
 
-    // Send thank you message
-    const thankYouMessage = `🐾 THANK YOU!\n\nHi ${booking.firstName},\n\nThank you for choosing Snout Services! We hope your pets enjoyed their ${booking.service.toLowerCase()}.\n\nWe look forward to caring for your pets again soon!`;
+    const petQuantities = formatPetsByQuantity(booking.pets);
     
-    await sendMessage(booking.phone, thankYouMessage, bookingId);
+    // Format dates and times using the shared function that matches booking details
+    const formattedDatesTimes = bookingWithSlots ? formatDatesAndTimesForMessage({
+      service: booking.service,
+      startAt: booking.startAt,
+      endAt: booking.endAt,
+      timeSlots: bookingWithSlots.timeSlots || [],
+    }) : "";
+
+    // Send visit report to client (if automation enabled)
+    const shouldSendReport = await shouldSendToRecipient("visitReport", "client");
+    if (shouldSendReport) {
+      let reportTemplate = await getMessageTemplate("visitReport", "client");
+      // If template is null (doesn't exist) or empty string, use default
+      if (!reportTemplate || reportTemplate.trim() === "") {
+        reportTemplate = "🐾 VISIT REPORT\n\nHi {{firstName}},\n\nYour {{service}} visit has been completed!\n\n{{datesTimes}}\n\nPets: {{petQuantities}}\nSitter: {{sitterName}}\n\nReport: {{reportContent}}\n\nThank you for choosing Snout Services!";
+      }
+      
+      const reportMessage = replaceTemplateVariables(reportTemplate, {
+        firstName: booking.firstName,
+        service: booking.service,
+        datesTimes: formattedDatesTimes,
+        date: formatDateForMessage(booking.startAt),
+        time: formatTimeForMessage(booking.startAt),
+        petQuantities,
+        sitterName: booking.sitter?.firstName || 'Assigned sitter',
+        reportContent: content,
+      });
+      
+      await sendMessage(booking.phone, reportMessage, bookingId);
+    }
+
+    // Send thank you message (if automation enabled)
+    const shouldSendThankYou = await shouldSendToRecipient("postVisitThankYou", "client");
+    if (shouldSendThankYou) {
+      let thankYouTemplate = await getMessageTemplate("postVisitThankYou", "client");
+      // If template is null (doesn't exist) or empty string, use default
+      if (!thankYouTemplate || thankYouTemplate.trim() === "") {
+        thankYouTemplate = "🐾 THANK YOU!\n\nHi {{firstName}},\n\nThank you for choosing Snout Services! We hope your pets enjoyed their {{service}}.\n\nPets: {{petQuantities}}\n\nWe look forward to caring for your pets again soon!";
+      }
+      
+      const thankYouMessage = replaceTemplateVariables(thankYouTemplate, {
+        firstName: booking.firstName,
+        service: booking.service.toLowerCase(),
+        petQuantities,
+      });
+      
+      await sendMessage(booking.phone, thankYouMessage, bookingId);
+    }
 
     return NextResponse.json({
       success: true,

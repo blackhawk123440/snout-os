@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { formatPetsByQuantity } from "@/lib/booking-utils";
+import { formatPetsByQuantity, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, calculatePriceBreakdown } from "@/lib/booking-utils";
 import { getSitterPhone } from "@/lib/phone-utils";
 import { sendMessage } from "@/lib/message-utils";
+import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,57 +54,20 @@ export async function POST(request: NextRequest) {
     // Format booking details for SMS
     const petQuantities = formatPetsByQuantity(booking.pets);
     
-    // Check if booking has time slots (Drop-ins, Walks, Pet Taxi) or date range (House Sitting, 24/7 Care)
-    const hasTimeSlots = booking.timeSlots && booking.timeSlots.length > 0;
-    const isHouseSittingService = booking.service === "House Sitting" || booking.service === "24/7 Care";
-    
-    // Build date/time information
-    let dateTimeInfo = "";
-    
-    if (hasTimeSlots) {
-      // Group time slots by date
-      const slotsByDate: Record<string, Array<{ start: Date; end: Date }>> = {};
-      booking.timeSlots.forEach((slot) => {
-        const slotDate = new Date(slot.startAt).toLocaleDateString();
-        if (!slotsByDate[slotDate]) {
-          slotsByDate[slotDate] = [];
-        }
-        slotsByDate[slotDate].push({
-          start: new Date(slot.startAt),
-          end: new Date(slot.endAt),
-        });
-      });
-      
-      // Format all dates and times
-      const dateTimeEntries = Object.entries(slotsByDate).map(([date, slots]) => {
-        const timeSlots = slots.map((slot) => {
-          const startTime = slot.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const endTime = slot.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          return `${startTime} - ${endTime}`;
-        }).join(", ");
-        return `${date}: ${timeSlots}`;
-      });
-      
-      dateTimeInfo = dateTimeEntries.join("\n");
-    } else if (isHouseSittingService) {
-      // For House Sitting/24-7 Care, show start and end dates with times
-      const startDate = new Date(booking.startAt).toLocaleDateString();
-      const startTime = new Date(booking.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const endDate = new Date(booking.endAt).toLocaleDateString();
-      const endTime = new Date(booking.endAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
-      dateTimeInfo = `Start: ${startDate} at ${startTime}\nEnd: ${endDate} at ${endTime}`;
-    } else {
-      // Fallback to single date/time
-      const startDate = new Date(booking.startAt).toLocaleDateString();
-      const startTime = new Date(booking.startAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      dateTimeInfo = `${startDate} at ${startTime}`;
-    }
+    // Format dates and times using the shared function that matches booking details
+    const formattedDatesTimes = formatDatesAndTimesForMessage({
+      service: booking.service,
+      startAt: booking.startAt,
+      endAt: booking.endAt,
+      timeSlots: booking.timeSlots || [],
+    });
     
     // Calculate price breakdown for accurate total
-    const { calculatePriceBreakdown } = await import("@/lib/booking-utils");
     const breakdown = calculatePriceBreakdown(booking);
     const calculatedTotal = breakdown.total;
+
+    // Check if automation is enabled
+    const shouldSendToSitters = await shouldSendToRecipient("sitterPoolOffers", "sitter");
 
     // Send SMS to all selected sitters using their phone numbers
     const smsPromises = sitters.map(async (sitter) => {
@@ -118,7 +82,35 @@ export async function POST(request: NextRequest) {
         const commissionPercentage = sitter.commissionPercentage || 80.0;
         const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
 
-        const smsMessage = `🐾 NEW BOOKING OPPORTUNITY\n\n${booking.service} for ${booking.firstName} ${booking.lastName}\n\nDates & Times:\n${dateTimeInfo}\n\nPets: ${petQuantities}\nAddress: ${booking.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nReply YES to accept this booking opportunity!`;
+        let smsMessage: string;
+        if (shouldSendToSitters) {
+          // Use automation template if available
+          let sitterTemplate = await getMessageTemplate("sitterPoolOffers", "sitter");
+          // If template is null (doesn't exist) or empty string, use default
+          if (!sitterTemplate || sitterTemplate.trim() === "") {
+            sitterTemplate = "🐾 NEW BOOKING OPPORTUNITY\n\n{{service}} for {{firstName}} {{lastName}}\n\nDates & Times:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nReply YES to accept this booking opportunity!";
+          }
+          
+          smsMessage = replaceTemplateVariables(sitterTemplate, {
+            service: booking.service,
+            firstName: booking.firstName,
+            lastName: booking.lastName,
+            datesTimes: formattedDatesTimes,
+            date: formatDateForMessage(booking.startAt),
+            time: formatTimeForMessage(booking.startAt),
+            petQuantities,
+            address: booking.address || 'TBD',
+            earnings: sitterEarnings.toFixed(2),
+            totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
+            total: calculatedTotal,
+          }, {
+            isSitterMessage: true,
+            sitterCommissionPercentage: commissionPercentage,
+          });
+        } else {
+          // Fallback to hardcoded message if automation disabled
+          smsMessage = `🐾 NEW BOOKING OPPORTUNITY\n\n${booking.service} for ${booking.firstName} ${booking.lastName}\n\nDates & Times:\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nAddress: ${booking.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nReply YES to accept this booking opportunity!`;
+        }
         
         await sendMessage(sitterPhone, smsMessage, bookingId);
       } catch (error) {
