@@ -20,11 +20,6 @@ export async function GET(
       where: { sitterId: id },
       include: {
         pets: true,
-        timeSlots: {
-          orderBy: {
-            startAt: "asc",
-          },
-        },
       },
       orderBy: {
         startAt: "desc",
