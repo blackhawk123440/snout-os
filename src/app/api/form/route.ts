@@ -73,34 +73,80 @@ export async function POST(request: NextRequest) {
       dateTimes,
     } = body;
 
-    // Validate required fields
-    if (!firstName || !lastName || !phone || !service || !startAt || !endAt) {
+    // Validate required fields with proper trimming
+    const trimmedFirstName = firstName?.trim();
+    const trimmedLastName = lastName?.trim();
+    const trimmedPhone = phone?.trim();
+    const trimmedService = service?.trim();
+    
+    if (!trimmedFirstName || !trimmedLastName || !trimmedPhone || !trimmedService || !startAt || !endAt) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields: firstName, lastName, phone, service, startAt, and endAt are required" },
+        { status: 400, headers: buildCorsHeaders(request) }
+      );
+    }
+
+    // Validate phone number format (basic validation)
+    const phoneRegex = /^[\d\s\-\(\)+]+$/;
+    if (!phoneRegex.test(trimmedPhone)) {
+      return NextResponse.json(
+        { error: "Invalid phone number format" },
+        { status: 400, headers: buildCorsHeaders(request) }
+      );
+    }
+
+    // Validate email format if provided
+    if (email && email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        return NextResponse.json(
+          { error: "Invalid email format" },
+          { status: 400, headers: buildCorsHeaders(request) }
+        );
+      }
+    }
+
+    // Validate date formats
+    const startDate = new Date(startAt);
+    const endDate = new Date(endAt);
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return NextResponse.json(
+        { error: "Invalid date format for startAt or endAt" },
+        { status: 400, headers: buildCorsHeaders(request) }
+      );
+    }
+
+    if (startDate >= endDate) {
+      return NextResponse.json(
+        { error: "endAt must be after startAt" },
         { status: 400, headers: buildCorsHeaders(request) }
       );
     }
 
     // Validate and normalize service name
     const validServices = ["Dog Walking", "Housesitting", "24/7 Care", "Drop-ins", "Pet Taxi"];
-    if (!validServices.includes(service)) {
+    if (!validServices.includes(trimmedService)) {
       return NextResponse.json(
-        { error: `Invalid service: ${service}. Valid services are: ${validServices.join(', ')}` },
+        { error: `Invalid service: ${trimmedService}. Valid services are: ${validServices.join(', ')}` },
         { status: 400, headers: buildCorsHeaders(request) }
       );
     }
 
     // Validate service-specific required fields
-    if (service === "Pet Taxi") {
-      if (!pickupAddress || !dropoffAddress) {
+    if (trimmedService === "Pet Taxi") {
+      const trimmedPickup = pickupAddress?.trim();
+      const trimmedDropoff = dropoffAddress?.trim();
+      if (!trimmedPickup || !trimmedDropoff) {
         return NextResponse.json(
           { error: "Pickup and dropoff addresses are required for Pet Taxi service" },
           { status: 400, headers: buildCorsHeaders(request) }
         );
       }
-    } else if (service !== "Housesitting" && service !== "24/7 Care") {
+    } else if (trimmedService !== "Housesitting" && trimmedService !== "24/7 Care") {
       // For non-house sitting services, address is required
-      if (!address) {
+      const trimmedAddress = address?.trim();
+      if (!trimmedAddress) {
         return NextResponse.json(
           { error: "Service address is required" },
           { status: 400, headers: buildCorsHeaders(request) }
@@ -130,9 +176,9 @@ export async function POST(request: NextRequest) {
 
     // Calculate price
     const priceCalculation = await calculateBookingPrice(
-      service,
-      new Date(startAt),
-      new Date(endAt),
+      trimmedService,
+      startDate,
+      endDate,
       pets.length,
       1, // quantity - will be overridden by timeSlots length if present
       false // afterHours
@@ -206,7 +252,7 @@ export async function POST(request: NextRequest) {
 
     // For house sitting and 24/7 care, calculate quantity based on number of nights
     // For other services, use timeSlots length
-    const isHouseSittingService = service === "Housesitting" || service === "24/7 Care";
+    const isHouseSittingService = trimmedService === "Housesitting" || trimmedService === "24/7 Care";
     let quantity: number;
     let bookingStartAt = startAt;
     let bookingEndAt = endAt;
@@ -251,10 +297,10 @@ export async function POST(request: NextRequest) {
     
     // Calculate price breakdown BEFORE creating booking using the same method as the booking details page
     const breakdown = calculatePriceBreakdown({
-      service,
+      service: trimmedService,
       startAt: new Date(bookingStartAt),
       endAt: new Date(bookingEndAt),
-      pets: pets.map(pet => ({ species: pet.species })),
+      pets: pets.map(pet => ({ species: pet.species.trim() })),
       quantity,
       afterHours: false,
       holiday: priceCalculation.holidayApplied,
@@ -267,14 +313,14 @@ export async function POST(request: NextRequest) {
 
     // Create booking with timeSlots
     const bookingData = {
-      firstName,
-      lastName,
-      phone: formatPhoneForAPI(phone),
-      email: email || null,
-      address: address || null,
-      pickupAddress: pickupAddress || null,
-      dropoffAddress: dropoffAddress || null,
-      service,
+      firstName: trimmedFirstName,
+      lastName: trimmedLastName,
+      phone: formatPhoneForAPI(trimmedPhone),
+      email: email ? email.trim() : null,
+      address: address ? address.trim() : null,
+      pickupAddress: pickupAddress ? pickupAddress.trim() : null,
+      dropoffAddress: dropoffAddress ? dropoffAddress.trim() : null,
+      service: trimmedService,
       startAt: new Date(bookingStartAt),
       endAt: new Date(bookingEndAt),
       status: "pending",
@@ -284,11 +330,11 @@ export async function POST(request: NextRequest) {
       holiday: priceCalculation.holidayApplied,
       pets: {
         create: pets.map(pet => ({
-          name: pet.name,
-          species: pet.species,
+          name: (pet.name || "Pet").trim(),
+          species: (pet.species || "Dog").trim(),
         })),
       },
-      notes: specialInstructions || additionalNotes || null,
+      notes: (specialInstructions || additionalNotes) ? (specialInstructions || additionalNotes).trim() : null,
       timeSlots: timeSlotsData.length > 0
         ? {
             create: timeSlotsData.map(slot => ({
@@ -328,7 +374,7 @@ export async function POST(request: NextRequest) {
       }
       
       const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
-        firstName,
+        firstName: trimmedFirstName,
         service: booking.service, // Use the actual service name from the booking
         datesTimes: formattedDatesTimes,
         date: formatDateForMessage(booking.startAt),
@@ -336,7 +382,7 @@ export async function POST(request: NextRequest) {
         petQuantities,
       });
       
-      await sendMessage(phone, clientMessage, booking.id);
+      await sendMessage(trimmedPhone, clientMessage, booking.id);
     }
 
     // Send alert to owner (if automation enabled)
@@ -363,9 +409,9 @@ export async function POST(request: NextRequest) {
         }
         
         const ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
-          firstName,
-          lastName,
-          phone,
+          firstName: trimmedFirstName,
+          lastName: trimmedLastName,
+          phone: trimmedPhone,
           service: booking.service, // Use the actual service name from the booking
           datesTimes: formattedDatesTimes,
           date: formatDateForMessage(booking.startAt),
@@ -378,9 +424,9 @@ export async function POST(request: NextRequest) {
         await sendMessage(ownerPhone, ownerMessage, booking.id);
       } else {
         await sendOwnerAlert(
-          firstName,
-          lastName,
-          phone,
+          trimmedFirstName,
+          trimmedLastName,
+          trimmedPhone,
           booking.service, // Use the actual service name from the booking
           new Date(bookingStartAt),
           pets

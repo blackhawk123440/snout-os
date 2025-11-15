@@ -55,13 +55,11 @@ export async function PATCH(
       service, 
       startAt, 
       endAt, 
-      minutes, 
       quantity, 
       afterHours, 
       holiday, 
       totalPrice, 
       paymentStatus, 
-      preferredContact, 
       notes,
       timeSlots,
       pets
@@ -84,29 +82,92 @@ export async function PATCH(
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
+    // Validate status if provided
+    const validStatuses = ["pending", "confirmed", "completed", "cancelled"];
+    if (status && !validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: `Invalid status: ${status}. Valid statuses are: ${validStatuses.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate service if provided
+    if (service) {
+      const validServices = ["Dog Walking", "Housesitting", "24/7 Care", "Drop-ins", "Pet Taxi"];
+      if (!validServices.includes(service)) {
+        return NextResponse.json(
+          { error: `Invalid service: ${service}. Valid services are: ${validServices.join(', ')}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate dates if provided
+    if (startAt || endAt) {
+      if (startAt) {
+        const startDate = new Date(startAt);
+        if (isNaN(startDate.getTime())) {
+          return NextResponse.json(
+            { error: "Invalid date format for startAt" },
+            { status: 400 }
+          );
+        }
+      }
+      if (endAt) {
+        const endDate = new Date(endAt);
+        if (isNaN(endDate.getTime())) {
+          return NextResponse.json(
+            { error: "Invalid date format for endAt" },
+            { status: 400 }
+          );
+        }
+      }
+      if (startAt && endAt) {
+        const startDate = new Date(startAt);
+        const endDate = new Date(endAt);
+        if (startDate >= endDate) {
+          return NextResponse.json(
+            { error: "endAt must be after startAt" },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // Validate sitterId if provided
+    if (sitterId !== undefined && sitterId !== null && sitterId !== "") {
+      const sitterExists = await prisma.sitter.findUnique({
+        where: { id: sitterId },
+      });
+      if (!sitterExists) {
+        return NextResponse.json(
+          { error: "Sitter not found" },
+          { status: 404 }
+        );
+      }
+    }
+
     const updatedBooking = await prisma.booking.update({
       where: { id },
       data: {
         ...(status && { status }),
         ...(sitterId !== undefined && { sitterId: sitterId === "" || sitterId === null ? null : sitterId }),
-        ...(firstName && { firstName }),
-        ...(lastName && { lastName }),
-        ...(phone && { phone }),
-        ...(email && { email }),
-        ...(address !== undefined && { address }),
-        ...(pickupAddress !== undefined && { pickupAddress }),
-        ...(dropoffAddress !== undefined && { dropoffAddress }),
-        ...(service && { service }),
+        ...(firstName && { firstName: firstName.trim() }),
+        ...(lastName && { lastName: lastName.trim() }),
+        ...(phone && { phone: phone.trim() }),
+        ...(email !== undefined && { email: email ? email.trim() : null }),
+        ...(address !== undefined && { address: address ? address.trim() : null }),
+        ...(pickupAddress !== undefined && { pickupAddress: pickupAddress ? pickupAddress.trim() : null }),
+        ...(dropoffAddress !== undefined && { dropoffAddress: dropoffAddress ? dropoffAddress.trim() : null }),
+        ...(service && { service: service.trim() }),
         ...(startAt && { startAt: new Date(startAt) }),
         ...(endAt && { endAt: new Date(endAt) }),
-        ...(minutes !== undefined && { minutes }),
-        ...(quantity !== undefined && { quantity }),
+        ...(quantity !== undefined && quantity >= 0 && { quantity }),
         ...(afterHours !== undefined && { afterHours }),
         ...(holiday !== undefined && { holiday }),
-        ...(totalPrice !== undefined && { totalPrice }),
+        ...(totalPrice !== undefined && totalPrice >= 0 && { totalPrice }),
         ...(paymentStatus && { paymentStatus }),
-        ...(preferredContact && { preferredContact }),
-        ...(notes && { notes }),
+        ...(notes !== undefined && { notes: notes ? notes.trim() : null }),
         // If status is being set to confirmed, also set payment status to paid
         ...(status === "confirmed" && { paymentStatus: "paid" }),
       },
@@ -121,50 +182,87 @@ export async function PATCH(
       },
     });
 
-    // Handle timeSlots updates if provided
-    if (timeSlots && Array.isArray(timeSlots)) {
-      // Delete existing timeSlots for this booking
-      await prisma.timeSlot.deleteMany({
-        where: { bookingId: id },
+    // Handle timeSlots and pets updates in a transaction for atomicity
+    if ((timeSlots && Array.isArray(timeSlots)) || (pets && Array.isArray(pets))) {
+      await prisma.$transaction(async (tx) => {
+        // Handle timeSlots updates if provided
+        if (timeSlots && Array.isArray(timeSlots)) {
+          // Validate timeSlots structure
+          for (const ts of timeSlots) {
+            if (!ts || typeof ts !== 'object') {
+              throw new Error("Invalid timeSlot data structure");
+            }
+            const tsStart = new Date(ts.startAt);
+            const tsEnd = new Date(ts.endAt);
+            if (isNaN(tsStart.getTime()) || isNaN(tsEnd.getTime())) {
+              throw new Error("Invalid date format in timeSlot");
+            }
+            if (tsStart >= tsEnd) {
+              throw new Error("timeSlot endAt must be after startAt");
+            }
+          }
+
+          // Delete existing timeSlots for this booking
+          await tx.timeSlot.deleteMany({
+            where: { bookingId: id },
+          });
+
+          // Create new timeSlots
+          if (timeSlots.length > 0) {
+            await tx.timeSlot.createMany({
+              data: timeSlots.map((ts: { startAt: string | Date; endAt: string | Date; duration?: number }) => {
+                const startDate = new Date(ts.startAt);
+                const endDate = new Date(ts.endAt);
+                const calculatedDuration = ts.duration || Math.round((endDate.getTime() - startDate.getTime()) / 60000);
+                return {
+                  bookingId: id,
+                  startAt: startDate,
+                  endAt: endDate,
+                  duration: calculatedDuration > 0 ? calculatedDuration : 30, // Default to 30 min if invalid
+                };
+              }),
+            });
+          }
+
+          // Update quantity based on timeSlots count
+          await tx.booking.update({
+            where: { id },
+            data: { quantity: timeSlots.length > 0 ? timeSlots.length : updatedBooking.quantity },
+          });
+        }
+
+        // Handle pets updates if provided
+        if (pets && Array.isArray(pets)) {
+          // Validate pets structure
+          if (pets.length === 0) {
+            throw new Error("At least one pet is required");
+          }
+
+          for (const pet of pets) {
+            if (!pet || typeof pet !== 'object') {
+              throw new Error("Invalid pet data structure");
+            }
+            if (!pet.species || !pet.species.trim()) {
+              throw new Error("Each pet must have a species");
+            }
+          }
+
+          // Delete existing pets for this booking
+          await tx.pet.deleteMany({
+            where: { bookingId: id },
+          });
+
+          // Create new pets
+          await tx.pet.createMany({
+            data: pets.map((pet: { name?: string; species: string; notes?: string }) => ({
+              bookingId: id,
+              name: (pet.name || `Pet ${pet.species}`).trim(),
+              species: pet.species.trim(),
+              notes: pet.notes ? pet.notes.trim() : null,
+            })),
+          });
+        }
       });
-
-      // Create new timeSlots
-      if (timeSlots.length > 0) {
-        await prisma.timeSlot.createMany({
-          data: timeSlots.map((ts: any) => ({
-            bookingId: id,
-            startAt: new Date(ts.startAt),
-            endAt: new Date(ts.endAt),
-            duration: ts.duration || Math.round((new Date(ts.endAt).getTime() - new Date(ts.startAt).getTime()) / 60000),
-          })),
-        });
-      }
-
-      // Update quantity based on timeSlots count
-      await prisma.booking.update({
-        where: { id },
-        data: { quantity: timeSlots.length > 0 ? timeSlots.length : updatedBooking.quantity },
-      });
-    }
-
-    // Handle pets updates if provided
-    if (pets && Array.isArray(pets)) {
-      // Delete existing pets for this booking
-      await prisma.pet.deleteMany({
-        where: { bookingId: id },
-      });
-
-      // Create new pets
-      if (pets.length > 0) {
-        await prisma.pet.createMany({
-          data: pets.map((pet: any) => ({
-            bookingId: id,
-            name: pet.name || `Pet ${pet.species}`,
-            species: pet.species,
-            notes: pet.notes || null,
-          })),
-        });
-      }
     }
 
     // Fetch final booking with all relations after all updates
