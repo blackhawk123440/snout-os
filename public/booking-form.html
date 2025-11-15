@@ -1238,13 +1238,6 @@
       box-shadow: var(--shadow-sm);
     }
 
-    /* Ensure unselected state is immediately white */
-    .time-slot:not(.selected) {
-      background: var(--white) !important;
-      border-color: var(--secondary) !important;
-      box-shadow: none !important;
-    }
-
     .time-display {
       flex: 1;
       font-size: var(--font-size-sm);
@@ -4760,11 +4753,11 @@
             const cleanTime = timeMatch ? timeMatch[1] : time;
             
             if (cleanTime === time || currentText === time) {
-              // Check if this time is currently selected
-              const isSelected = window.bookingForm.state.dateTimes[dateStr] && 
-                                 window.bookingForm.state.dateTimes[dateStr].some(entry => entry.time === time);
+              // Check if time is selected - handle case where dateTimes[dateStr] might not exist
+              const dateTimes = window.bookingForm.state.dateTimes[dateStr] || [];
+              const isSelected = dateTimes.some(entry => entry.time === time);
               
-              // Immediately update the selected state - remove or add class explicitly
+              // Immediately update selected state - use explicit add/remove for instant feedback
               if (isSelected) {
                 slot.classList.add('selected');
               } else {
@@ -4810,7 +4803,7 @@
                     }
                   }
                 } else {
-                  // Reset duration chips when time is unselected - immediately remove active state
+                  // Reset duration chips when time is unselected
                   chip30.classList.remove('active');
                   chip60.classList.remove('active');
                 }
