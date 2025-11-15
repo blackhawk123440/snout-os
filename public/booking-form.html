@@ -1262,6 +1262,8 @@
       align-items: center;
       justify-content: center;
       position: relative;
+      font-size: 0;
+      color: transparent;
     }
     
     .duration-chip::before {
@@ -2366,13 +2368,14 @@
         border-radius: var(--radius-sm) !important;
         background: var(--secondary) !important;
         cursor: pointer !important;
-        transition: all var(--transition-base) !important;
         width: 24px !important;
         height: 24px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         position: relative !important;
+        font-size: 0 !important;
+        color: transparent !important;
       }
       
       .duration-chip::before {
@@ -3752,8 +3755,19 @@
       }
 
       formatTimesForService(times, dateStr) {
-        // Always show times as simple list without range or duration
-        return times.map(t => t.time).join(', ');
+        if (this.state.selectedService === 'pet-sitting' && times.length === 2) {
+          // For house sitting with 2 times, show as range
+          const sortedTimes = times.sort((a, b) => a.time.localeCompare(b.time));
+          const startTime = sortedTimes[0].time;
+          const endTime = sortedTimes[1].time;
+          return `${startTime} - ${endTime}`;
+        } else if (this.state.selectedService === 'pet-sitting' || this.state.selectedService === 'pet-taxi') {
+          // For house sitting and pet taxi, show times without duration
+          return times.map(t => t.time).join(', ');
+        } else {
+          // For other services, show individual times with duration
+          return times.map(t => `${t.time} (${t.duration}min)`).join(', ');
+        }
       }
 
       showFieldError(fieldId, message) {
@@ -4678,8 +4692,8 @@
              const chip30 = document.createElement('span');
              chip30.className = 'duration-chip';
              chip30.setAttribute('data-automation', `duration-chip-30-${time.replace(':', '')}`);
-             chip30.setAttribute('aria-label', '30 minutes');
              chip30.setAttribute('title', '30 minutes');
+             chip30.setAttribute('aria-label', '30 minutes duration');
              chip30.onclick = (e) => {
                e.stopPropagation();
                this.setDuration(time, dateStr, 30);
@@ -4688,8 +4702,8 @@
              const chip60 = document.createElement('span');
              chip60.className = 'duration-chip';
              chip60.setAttribute('data-automation', `duration-chip-60-${time.replace(':', '')}`);
-             chip60.setAttribute('aria-label', '60 minutes');
              chip60.setAttribute('title', '60 minutes');
+             chip60.setAttribute('aria-label', '60 minutes duration');
              chip60.onclick = (e) => {
                e.stopPropagation();
                this.setDuration(time, dateStr, 60);
