@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { COLORS } from "@/lib/booking-utils";
+import {
+  bookingToCanonical,
+  groupSelectionsByDate,
+} from "@/lib/booking-format";
 
 interface Booking {
   id: string;
@@ -11,11 +15,16 @@ interface Booking {
   email: string;
   address: string;
   service: string;
-  startAt: Date;
-  endAt: Date;
+  startAt: Date | string;
+  endAt: Date | string;
   status: "pending" | "confirmed" | "completed" | "cancelled";
   totalPrice: number;
-  pets: Array<{ species: string }>;
+  pets: Array<{ species: string; name?: string }>;
+  timeSlots?: Array<{
+    startAt: Date | string;
+    endAt: Date | string;
+    duration: number;
+  }>;
   sitter?: {
     id: string;
     firstName: string;
@@ -83,12 +92,36 @@ export default function SitterPage() {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString();
+  // Get service label from service type
+  const getServiceLabel = (service: string): string => {
+    const serviceLower = service.toLowerCase();
+    if (serviceLower.includes("walk")) return "Dog walking";
+    if (serviceLower.includes("drop")) return "Drop-in";
+    if (serviceLower.includes("taxi")) return "Pet Taxi";
+    return "Pet sitting";
   };
 
-  const formatTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // Format pets summary
+  const formatPetsSummary = (pets: Array<{ species: string }>): string => {
+    const counts: Record<string, number> = {};
+    pets.forEach(pet => {
+      const species = pet.species.toLowerCase();
+      let key = "other";
+      if (species.includes("dog")) key = "dog";
+      else if (species.includes("cat")) key = "cat";
+      else if (species.includes("farm") || species.includes("horse")) key = "farm";
+      else if (species.includes("reptile")) key = "reptile";
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    const parts: string[] = [];
+    if (counts.dog) parts.push(`${counts.dog} dog${counts.dog > 1 ? "s" : ""}`);
+    if (counts.cat) parts.push(`${counts.cat} cat${counts.cat > 1 ? "s" : ""}`);
+    if (counts.farm) parts.push(`${counts.farm} farm animal${counts.farm > 1 ? "s" : ""}`);
+    if (counts.reptile) parts.push(`${counts.reptile} reptile${counts.reptile > 1 ? "s" : ""}`);
+    if (counts.other) parts.push(`${counts.other} other`);
+
+    return parts.length > 0 ? parts.join(", ") : "No pets";
   };
 
   const upcomingBookings = bookings.filter(booking => 
@@ -197,39 +230,79 @@ export default function SitterPage() {
                 <p className="text-gray-600">No upcoming bookings</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {upcomingBookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    className="p-4 border rounded-lg hover:shadow-md transition-all"
-                    style={{ borderColor: COLORS.border }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-bold text-lg">
-                            {booking.firstName} {booking.lastName}
-                          </h3>
-                          <span className={`px-2 py-1 text-xs font-bold rounded ${getStatusColor(booking.status)}`}>
-                            {booking.status}
-                          </span>
+              <div className="space-y-6">
+                {upcomingBookings.map((booking) => {
+                  // Convert to canonical format
+                  const canonical = bookingToCanonical({
+                    id: booking.id,
+                    service: booking.service,
+                    firstName: booking.firstName,
+                    lastName: booking.lastName,
+                    phone: booking.phone,
+                    email: booking.email,
+                    notes: null,
+                    createdAt: new Date(),
+                    startAt: booking.startAt,
+                    endAt: booking.endAt,
+                    pets: booking.pets,
+                    timeSlots: booking.timeSlots || [],
+                  });
+
+                  // Group selections by date
+                  const grouped = groupSelectionsByDate(canonical.selections);
+
+                  return (
+                    <div
+                      key={booking.id}
+                      className="p-4 border rounded-lg hover:shadow-md transition-all"
+                      style={{ borderColor: COLORS.border }}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="flex items-center gap-3 mb-1">
+                            <h3 className="font-bold text-lg">
+                              {booking.firstName} {booking.lastName}
+                            </h3>
+                            <span className={`px-2 py-1 text-xs font-bold rounded ${getStatusColor(booking.status)}`}>
+                              {booking.status}
+                            </span>
+                          </div>
+                          {booking.address && (
+                            <div className="text-sm text-gray-600">
+                              <i className="fas fa-map-marker-alt mr-1"></i>{booking.address}
+                            </div>
+                          )}
                         </div>
-                        
-                        <div className="text-sm text-gray-600">
-                          <div className="flex items-center gap-4">
-                            <span><i className="fas fa-calendar mr-1"></i>{formatDate(booking.startAt)}</span>
-                            <span><i className="fas fa-clock mr-1"></i>{formatTime(booking.startAt)}</span>
-                            <span><i className="fas fa-paw mr-1"></i>{formatPetsByQuantity(booking.pets)}</span>
-                            <span><i className="fas fa-dollar-sign mr-1"></i>${booking.totalPrice.toFixed(2)}</span>
-                          </div>
-                          <div className="mt-1">
-                            <span><i className="fas fa-map-marker-alt mr-1"></i>{booking.address}</span>
-                          </div>
+                        <div className="text-sm font-semibold" style={{ color: COLORS.primary }}>
+                          ${booking.totalPrice.toFixed(2)}
                         </div>
                       </div>
+
+                      {/* Dates and Times */}
+                      <div className="space-y-4 mb-3">
+                        {grouped.map((group, groupIdx) => (
+                          <div key={groupIdx} className="border-l-2 pl-3" style={{ borderColor: COLORS.primaryLight }}>
+                            <div className="font-semibold text-base mb-2" style={{ color: COLORS.primary }}>
+                              {group.dateLabel}
+                            </div>
+                            <div className="space-y-1 ml-2">
+                              {group.slots.map((slot, slotIdx) => (
+                                <div key={slotIdx} className="text-sm text-gray-700">
+                                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+                                    <span className="font-medium">{slot.combined}</span>
+                                    <span className="text-gray-500 sm:before:content-['·'] sm:before:mx-2">
+                                      {getServiceLabel(booking.service)} · {formatPetsSummary(booking.pets)}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -251,34 +324,62 @@ export default function SitterPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {completedBookings.slice(0, 5).map((booking) => (
-                  <div
-                    key={booking.id}
-                    className="p-4 border rounded-lg hover:shadow-md transition-all"
-                    style={{ borderColor: COLORS.border }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-bold text-lg">
-                            {booking.firstName} {booking.lastName}
-                          </h3>
-                          <span className={`px-2 py-1 text-xs font-bold rounded ${getStatusColor(booking.status)}`}>
-                            {booking.status}
-                          </span>
-                        </div>
-                        
-                        <div className="text-sm text-gray-600">
-                          <div className="flex items-center gap-4">
-                            <span><i className="fas fa-calendar mr-1"></i>{formatDate(booking.startAt)}</span>
-                            <span><i className="fas fa-paw mr-1"></i>{formatPetsByQuantity(booking.pets)}</span>
-                            <span><i className="fas fa-dollar-sign mr-1"></i>${booking.totalPrice.toFixed(2)}</span>
+                {completedBookings.slice(0, 5).map((booking) => {
+                  // Convert to canonical format
+                  const canonical = bookingToCanonical({
+                    id: booking.id,
+                    service: booking.service,
+                    firstName: booking.firstName,
+                    lastName: booking.lastName,
+                    phone: booking.phone,
+                    email: booking.email,
+                    notes: null,
+                    createdAt: new Date(),
+                    startAt: booking.startAt,
+                    endAt: booking.endAt,
+                    pets: booking.pets,
+                    timeSlots: booking.timeSlots || [],
+                  });
+
+                  // Group selections by date
+                  const grouped = groupSelectionsByDate(canonical.selections);
+
+                  return (
+                    <div
+                      key={booking.id}
+                      className="p-4 border rounded-lg hover:shadow-md transition-all"
+                      style={{ borderColor: COLORS.border }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-bold text-lg">
+                              {booking.firstName} {booking.lastName}
+                            </h3>
+                            <span className={`px-2 py-1 text-xs font-bold rounded ${getStatusColor(booking.status)}`}>
+                              {booking.status}
+                            </span>
+                          </div>
+                          
+                          <div className="text-sm text-gray-600 space-y-1">
+                            {grouped.length > 0 && (
+                              <div>
+                                <span className="font-medium">{grouped[0].dateLabel}</span>
+                                {grouped[0].slots.length > 0 && (
+                                  <span className="ml-2">{grouped[0].slots[0].combined}</span>
+                                )}
+                              </div>
+                            )}
+                            <div className="flex items-center gap-4 flex-wrap">
+                              <span><i className="fas fa-paw mr-1"></i>{formatPetsSummary(booking.pets)}</span>
+                              <span><i className="fas fa-dollar-sign mr-1"></i>${booking.totalPrice.toFixed(2)}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {completedBookings.length > 5 && (
                   <div className="text-center text-sm text-gray-500">
                     +{completedBookings.length - 5} more completed bookings

@@ -278,3 +278,80 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+                lastName: result.lastName,
+                datesTimes: formattedDatesTimes,
+                date: formatDateForMessage(result.startAt),
+                time: formatTimeForMessage(result.startAt),
+                petQuantities,
+                address: result.address || 'TBD',
+                earnings: sitterEarnings.toFixed(2),
+                totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
+                total: calculatedTotal,
+              }, {
+                isSitterMessage: true,
+                sitterCommissionPercentage: commissionPercentage,
+              });
+            } else {
+              // Fallback to hardcoded message if automation disabled
+              confirmationMessage = `🎉 CONGRATULATIONS!\n\nYou've been assigned:\n\n${result.service} for ${result.firstName} ${result.lastName}\n\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nAddress: ${result.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nPlease confirm your availability.`;
+            }
+            
+            await sendMessage(sitterPhone, confirmationMessage, offer.bookingId);
+          }
+        } catch (error) {
+          console.error(`Failed to send confirmation to sitter ${sitterId}:`, error);
+        }
+      }
+
+      // Notify owner that someone accepted the job
+      try {
+        const ownerPhone = await getOwnerPhone(undefined, "sitterPoolOffers");
+        if (ownerPhone && sitter) {
+          const petQuantities = formatPetsByQuantity(result.pets);
+          const sitterPhone = await getSitterPhone(sitterId, undefined, "sitterPoolOffers");
+          
+          // Check if automation is enabled
+          const shouldSendToOwner = await shouldSendToRecipient("sitterPoolOffers", "owner");
+          
+          let ownerMessage: string;
+          if (shouldSendToOwner) {
+            // Use automation template if available
+            let ownerTemplate = await getMessageTemplate("sitterPoolOffers", "owner");
+            // If template is null (doesn't exist) or empty string, use default
+            if (!ownerTemplate || ownerTemplate.trim() === "") {
+              ownerTemplate = "✅ SITTER ACCEPTED JOB\n\n{{sitterFirstName}} {{sitterLastName}} has accepted the booking:\n\n{{service}} for {{firstName}} {{lastName}}\n\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nSitter: {{sitterFirstName}} {{sitterLastName}}\nPhone: {{sitterPhone}}";
+            }
+            
+            ownerMessage = replaceTemplateVariables(ownerTemplate, {
+              sitterFirstName: sitter.firstName,
+              sitterLastName: sitter.lastName,
+              service: result.service,
+              firstName: result.firstName,
+              lastName: result.lastName,
+              datesTimes: formattedDatesTimes,
+              date: formatDateForMessage(result.startAt),
+              time: formatTimeForMessage(result.startAt),
+              petQuantities,
+              sitterPhone: sitterPhone || sitter.phone,
+            });
+          } else {
+            // Fallback to hardcoded message if automation disabled
+            ownerMessage = `✅ SITTER ACCEPTED JOB\n\n${sitter.firstName} ${sitter.lastName} has accepted the booking:\n\n${result.service} for ${result.firstName} ${result.lastName}\n\n${formattedDatesTimes}\n\nPets: ${petQuantities}\n\nSitter: ${sitter.firstName} ${sitter.lastName}\nPhone: ${sitterPhone || sitter.phone}`;
+          }
+          
+          await sendMessage(ownerPhone, ownerMessage, offer.bookingId);
+        }
+      } catch (error) {
+        console.error(`Failed to notify owner:`, error);
+      }
+    }
+
+    return NextResponse.json({ offer: updatedOffer });
+  } catch (error) {
+    console.error("Failed to respond to sitter pool offer:", error);
+    return NextResponse.json(
+      { error: "Failed to respond to offer" },
+      { status: 500 }
+    );
+  }
+}
