@@ -3728,12 +3728,10 @@
           const startTime = sortedTimes[0].time;
           const endTime = sortedTimes[1].time;
           return `${startTime} - ${endTime}`;
-        } else if (this.state.selectedService === 'pet-sitting' || this.state.selectedService === 'pet-taxi') {
-          // For house sitting and pet taxi, show times without duration
-          return times.map(t => t.time).join(', ');
         } else {
-          // For other services, show individual times with duration
-          return times.map(t => `${t.time} (${t.duration}min)`).join(', ');
+          // For all services, show times only (no duration, no range)
+          // Duration is handled internally but not displayed to user
+          return times.map(t => t.time).join(', ');
         }
       }
 
