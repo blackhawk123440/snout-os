@@ -4753,16 +4753,8 @@
             const cleanTime = timeMatch ? timeMatch[1] : time;
             
             if (cleanTime === time || currentText === time) {
-              // Check if time is selected - handle case where dateTimes[dateStr] might not exist
-              const dateTimes = window.bookingForm.state.dateTimes[dateStr] || [];
-              const isSelected = dateTimes.some(entry => entry.time === time);
-              
-              // Immediately update selected state - use explicit add/remove for instant feedback
-              if (isSelected) {
-                slot.classList.add('selected');
-              } else {
-                slot.classList.remove('selected');
-              }
+              const isSelected = window.bookingForm.state.dateTimes[dateStr].some(entry => entry.time === time);
+              slot.classList.toggle('selected', isSelected);
 
               // Force time display to show ONLY the time, never a range or calculated text
               timeDisplay.textContent = time;

@@ -27,19 +27,25 @@ export async function getAutomationSettings(): Promise<Record<string, any>> {
  * Get message template from database for a specific automation type and recipient
  * Prioritizes individual messageTemplate.* settings over automation JSON object
  * to ensure latest saved templates are used
+ * 
+ * IMPORTANT: Always reads fresh from database - NO CACHING
+ * This ensures templates update instantly after being saved
  */
 export async function getMessageTemplate(
   automationType: string,
   recipient: "client" | "sitter" | "owner" = "client"
 ): Promise<string | null> {
-  // First check individual messageTemplate.* settings (these are updated with versioning)
-  // Always read fresh from database - no caching
+  // CRITICAL: Always read fresh from database - no caching, no memoization
+  // This ensures the newest saved version is used immediately with zero delay
   const templateKey = `messageTemplate.${automationType}.${recipient}`;
+  
+  // Direct database query - bypasses any potential caching layers
+  // Prisma always reads fresh from database by default, but we ensure no application-level caching
   const template = await prisma.setting.findUnique({
     where: { key: templateKey },
   });
 
-  // If template exists in database (even if empty string), return it
+  // If template exists in database (even if empty string), return it immediately
   // Empty string means user cleared the template, so we return it (caller should handle default)
   if (template !== null) {
     return template.value || ""; // Return empty string if value is null/undefined
@@ -47,6 +53,7 @@ export async function getMessageTemplate(
   
   // Fallback to automation settings JSON object (for backwards compatibility)
   // This should only be used if individual template doesn't exist
+  // Also read fresh - no caching
   const automationSettings = await getAutomationSettings();
   const automation = automationSettings[automationType];
   
