@@ -28,14 +28,15 @@ export async function GET() {
     });
 
     return NextResponse.json({ bookings: bookings || [] });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to fetch bookings:", error);
-    // Return empty array instead of error to prevent dashboard crash
+    // Return empty array with proper error status to prevent dashboard crash
+    // Frontend should handle this gracefully
     return NextResponse.json({ 
       bookings: [],
       error: "Failed to fetch bookings",
-      details: error?.message || "Unknown database error"
-    }, { status: 200 }); // Return 200 with empty array so frontend doesn't crash
+      details: error instanceof Error ? error.message : "Unknown database error"
+    }, { status: 500 }); // Use proper error status, frontend should handle gracefully
   }
 }
 
@@ -65,15 +66,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate pets array
+    if (!Array.isArray(pets) || pets.length === 0) {
+      return NextResponse.json(
+        { error: "At least one pet is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate pet data structure
+    for (const pet of pets) {
+      if (!pet || typeof pet !== 'object') {
+        return NextResponse.json(
+          { error: "Invalid pet data structure" },
+          { status: 400 }
+        );
+      }
+      if (!pet.name || !pet.species) {
+        return NextResponse.json(
+          { error: "Each pet must have a name and species" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate date formats
+    const startDate = new Date(startAt);
+    const endDate = new Date(endAt);
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return NextResponse.json(
+        { error: "Invalid date format for startAt or endAt" },
+        { status: 400 }
+      );
+    }
+
+    if (startDate >= endDate) {
+      return NextResponse.json(
+        { error: "endAt must be after startAt" },
+        { status: 400 }
+      );
+    }
+
     // Calculate the correct price using our pricing logic
-    const petCount = pets ? pets.length : 1;
+    const petCount = pets.length;
     const quantity = 1; // Default to 1 visit
     const afterHours = false; // Default to false
     
     const priceCalculation = await calculateBookingPrice(
       service,
-      new Date(startAt),
-      new Date(endAt),
+      startDate,
+      endDate,
       petCount,
       quantity,
       afterHours
@@ -82,26 +125,26 @@ export async function POST(request: NextRequest) {
     // Create booking
     const booking = await prisma.booking.create({
       data: {
-        firstName,
-        lastName,
-        phone,
-        email: email || null,
-        address,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        phone: phone.trim(),
+        email: email ? email.trim() : null,
+        address: address ? address.trim() : null,
         service,
-        startAt: new Date(startAt),
-        endAt: new Date(endAt),
+        startAt: startDate,
+        endAt: endDate,
         status: "pending",
         totalPrice: priceCalculation.total,
         quantity,
         afterHours,
         holiday: priceCalculation.holidayApplied,
         pets: {
-          create: pets.map((pet: any) => ({
-            name: pet.name,
-            species: pet.species,
+          create: pets.map((pet: { name: string; species: string }) => ({
+            name: pet.name.trim() || "Pet",
+            species: pet.species.trim() || "Dog",
           })),
         },
-        notes: specialInstructions || additionalNotes || null,
+        notes: (specialInstructions || additionalNotes) ? (specialInstructions || additionalNotes).trim() : null,
       },
       include: {
         pets: true,

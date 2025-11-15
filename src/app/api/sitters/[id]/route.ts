@@ -35,6 +35,16 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+    
+    // Check if sitter exists
+    const existingSitter = await prisma.sitter.findUnique({
+      where: { id },
+    });
+
+    if (!existingSitter) {
+      return NextResponse.json({ error: "Sitter not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const { firstName, lastName, phone, personalPhone, openphonePhone, phoneType, email, isActive, commissionPercentage } = body;
 
@@ -50,21 +60,58 @@ export async function PATCH(
       primaryPhone = openphonePhone;
     }
 
-    const updateData: any = {};
-    if (firstName) updateData.firstName = firstName;
-    if (lastName) updateData.lastName = lastName;
-    if (email) updateData.email = email;
+    // Validate email if provided
+    if (email !== undefined) {
+      const trimmedEmail = email?.trim();
+      if (trimmedEmail) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+          return NextResponse.json(
+            { error: "Invalid email format" },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
+    // Validate phone number format if provided
+    if (primaryPhone) {
+      const phoneRegex = /^[\d\s\-\(\)+]+$/;
+      if (!phoneRegex.test(primaryPhone.trim())) {
+        return NextResponse.json(
+          { error: "Invalid phone number format" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate commission percentage if provided
+    if (commissionPercentage !== undefined) {
+      const percentage = typeof commissionPercentage === 'number' 
+        ? commissionPercentage 
+        : parseFloat(String(commissionPercentage));
+      if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+        return NextResponse.json(
+          { error: "Commission percentage must be between 0 and 100" },
+          { status: 400 }
+        );
+      }
+    }
+
+    const updateData: Record<string, unknown> = {};
+    if (firstName !== undefined) updateData.firstName = firstName.trim();
+    if (lastName !== undefined) updateData.lastName = lastName.trim();
+    if (email !== undefined) updateData.email = email ? email.trim() : null;
     if (typeof isActive === 'boolean') updateData.active = isActive;
-    if (primaryPhone) updateData.phone = primaryPhone;
-    if (personalPhone !== undefined) updateData.personalPhone = personalPhone || null;
-    if (openphonePhone !== undefined) updateData.openphonePhone = openphonePhone || null;
+    if (primaryPhone) updateData.phone = primaryPhone.trim();
+    if (personalPhone !== undefined) updateData.personalPhone = personalPhone ? personalPhone.trim() : null;
+    if (openphonePhone !== undefined) updateData.openphonePhone = openphonePhone ? openphonePhone.trim() : null;
     if (phoneType !== undefined) updateData.phoneType = phoneType || "personal";
     if (commissionPercentage !== undefined) {
-      // Validate commission percentage (should be between 0 and 100)
-      const percentage = parseFloat(commissionPercentage);
-      if (!isNaN(percentage) && percentage >= 0 && percentage <= 100) {
-        updateData.commissionPercentage = percentage;
-      }
+      const percentage = typeof commissionPercentage === 'number' 
+        ? commissionPercentage 
+        : parseFloat(String(commissionPercentage));
+      updateData.commissionPercentage = percentage;
     }
 
     const sitter = await prisma.sitter.update({
@@ -85,13 +132,49 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    
+    // Check if sitter exists
+    const sitter = await prisma.sitter.findUnique({
+      where: { id },
+    });
+
+    if (!sitter) {
+      return NextResponse.json({ error: "Sitter not found" }, { status: 404 });
+    }
+
+    // Check if sitter has active bookings
+    const activeBookings = await prisma.booking.findMany({
+      where: {
+        sitterId: id,
+        status: {
+          in: ["pending", "confirmed"],
+        },
+      },
+    });
+
+    if (activeBookings.length > 0) {
+      return NextResponse.json(
+        { 
+          error: "Cannot delete sitter with active bookings",
+          activeBookings: activeBookings.length
+        },
+        { status: 400 }
+      );
+    }
+
     await prisma.sitter.delete({
       where: { id },
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Failed to delete sitter:", error);
-    return NextResponse.json({ error: "Failed to delete sitter" }, { status: 500 });
+    return NextResponse.json(
+      { 
+        error: "Failed to delete sitter",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
+      { status: 500 }
+    );
   }
 }

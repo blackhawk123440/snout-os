@@ -10,10 +10,14 @@ export async function GET() {
     });
 
     return NextResponse.json({ sitters: sitters || [] });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Failed to fetch sitters:", error);
-    // Return empty array instead of error to prevent dashboard crash
-    return NextResponse.json({ sitters: [] }, { status: 200 });
+    // Return empty array with proper error status
+    return NextResponse.json({ 
+      sitters: [],
+      error: "Failed to fetch sitters",
+      details: error instanceof Error ? error.message : "Unknown database error"
+    }, { status: 500 });
   }
 }
 
@@ -22,10 +26,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { firstName, lastName, phone, personalPhone, openphonePhone, phoneType, email, isActive, commissionPercentage } = body;
 
-    // Validate required fields
-    if (!firstName || !lastName || !email) {
+    // Validate required fields with trimming
+    const trimmedFirstName = firstName?.trim();
+    const trimmedLastName = lastName?.trim();
+    const trimmedEmail = email?.trim();
+    
+    if (!trimmedFirstName || !trimmedLastName || !trimmedEmail) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing required fields: firstName, lastName, and email are required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return NextResponse.json(
+        { error: "Invalid email format" },
         { status: 400 }
       );
     }
@@ -53,22 +70,38 @@ export async function POST(request: NextRequest) {
     // Validate commission percentage if provided
     let commission = 80.0; // Default
     if (commissionPercentage !== undefined) {
-      const percentage = parseFloat(commissionPercentage);
+      const percentage = typeof commissionPercentage === 'number' 
+        ? commissionPercentage 
+        : parseFloat(String(commissionPercentage));
       if (!isNaN(percentage) && percentage >= 0 && percentage <= 100) {
         commission = percentage;
+      } else {
+        return NextResponse.json(
+          { error: "Commission percentage must be between 0 and 100" },
+          { status: 400 }
+        );
       }
+    }
+
+    // Validate phone number format
+    const phoneRegex = /^[\d\s\-\(\)+]+$/;
+    if (primaryPhone && !phoneRegex.test(primaryPhone.trim())) {
+      return NextResponse.json(
+        { error: "Invalid phone number format" },
+        { status: 400 }
+      );
     }
 
     // Create sitter
     const sitter = await prisma.sitter.create({
       data: {
-        firstName,
-        lastName,
-        phone: primaryPhone,
-        personalPhone: personalPhone || null,
-        openphonePhone: openphonePhone || null,
+        firstName: trimmedFirstName,
+        lastName: trimmedLastName,
+        phone: primaryPhone.trim(),
+        personalPhone: personalPhone ? personalPhone.trim() : null,
+        openphonePhone: openphonePhone ? openphonePhone.trim() : null,
         phoneType: phoneType || "personal",
-        email,
+        email: trimmedEmail,
         active: isActive !== false,
         commissionPercentage: commission,
       },
