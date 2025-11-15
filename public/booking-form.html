@@ -1251,25 +1251,40 @@
     }
 
     .duration-chip {
-      padding: var(--space-xs) var(--space-sm);
+      padding: var(--space-xs);
       border-radius: var(--radius-sm);
       background: var(--secondary);
-      font-size: var(--font-size-xs);
-      font-weight: 600;
       cursor: pointer;
       transition: all var(--transition-base);
-      color: var(--primary);
-      min-width: 28px;
-      text-align: center;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
     }
-
+    
+    .duration-chip::before {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      opacity: 0.3;
+    }
+    
     .duration-chip:hover:not(.active) {
       background: var(--primary-light);
     }
-
+    
     .duration-chip.active {
       background: var(--primary);
-      color: var(--white);
+    }
+    
+    .duration-chip.active::before {
+      opacity: 1;
+      background: var(--white);
     }
 
     .time-modal-actions {
@@ -2347,25 +2362,40 @@
       }
 
       .duration-chip {
-        padding: var(--space-xs) var(--space-sm) !important;
+        padding: var(--space-xs) !important;
         border-radius: var(--radius-sm) !important;
         background: var(--secondary) !important;
-        font-size: var(--font-size-xs) !important;
-        font-weight: 600 !important;
         cursor: pointer !important;
         transition: all var(--transition-base) !important;
-        color: var(--primary) !important;
-        min-width: 28px !important;
-        text-align: center !important;
+        width: 24px !important;
+        height: 24px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: relative !important;
       }
-
+      
+      .duration-chip::before {
+        content: '' !important;
+        position: absolute !important;
+        width: 8px !important;
+        height: 8px !important;
+        border-radius: 50% !important;
+        background: var(--primary) !important;
+        opacity: 0.3 !important;
+      }
+      
       .duration-chip:hover:not(.active) {
         background: var(--primary-light) !important;
       }
-
+      
       .duration-chip.active {
         background: var(--primary) !important;
-        color: var(--white) !important;
+      }
+      
+      .duration-chip.active::before {
+        opacity: 1 !important;
+        background: var(--white) !important;
       }
 
       .confirmation-message {
