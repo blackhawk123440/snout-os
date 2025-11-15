@@ -244,16 +244,6 @@ export function calculatePriceBreakdown(booking: {
       if (addlPetsPerVisit > 0) {
         const visits = count30 + count60;
         const additionalPetsAmount = addlPetsPerVisit * visits;
-        // Debug logging (can be removed later)
-        console.log('[Price Calculation]', {
-          service: booking.service,
-          petCount,
-          addlPets,
-          rateAddlPet: rate.addlPet,
-          addlPetsPerVisit,
-          visits,
-          additionalPetsAmount
-        });
         breakdown.push({
           label: `Additional Pets (${addlPets})`,
           amount: additionalPetsAmount,
