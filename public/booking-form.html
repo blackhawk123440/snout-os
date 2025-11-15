@@ -1251,42 +1251,25 @@
     }
 
     .duration-chip {
-      padding: var(--space-xs);
+      padding: var(--space-xs) var(--space-sm);
       border-radius: var(--radius-sm);
       background: var(--secondary);
+      font-size: var(--font-size-xs);
+      font-weight: 600;
       cursor: pointer;
       transition: all var(--transition-base);
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      font-size: 0;
-      color: transparent;
+      color: var(--primary);
+      min-width: 28px;
+      text-align: center;
     }
-    
-    .duration-chip::before {
-      content: '';
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--primary);
-      opacity: 0.3;
-    }
-    
+
     .duration-chip:hover:not(.active) {
       background: var(--primary-light);
     }
-    
+
     .duration-chip.active {
       background: var(--primary);
-    }
-    
-    .duration-chip.active::before {
-      opacity: 1;
-      background: var(--white);
+      color: var(--white);
     }
 
     .time-modal-actions {
@@ -2364,41 +2347,25 @@
       }
 
       .duration-chip {
-        padding: var(--space-xs) !important;
+        padding: var(--space-xs) var(--space-sm) !important;
         border-radius: var(--radius-sm) !important;
         background: var(--secondary) !important;
+        font-size: var(--font-size-xs) !important;
+        font-weight: 600 !important;
         cursor: pointer !important;
-        width: 24px !important;
-        height: 24px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        position: relative !important;
-        font-size: 0 !important;
-        color: transparent !important;
+        transition: all var(--transition-base) !important;
+        color: var(--primary) !important;
+        min-width: 28px !important;
+        text-align: center !important;
       }
-      
-      .duration-chip::before {
-        content: '' !important;
-        position: absolute !important;
-        width: 8px !important;
-        height: 8px !important;
-        border-radius: 50% !important;
-        background: var(--primary) !important;
-        opacity: 0.3 !important;
-      }
-      
+
       .duration-chip:hover:not(.active) {
         background: var(--primary-light) !important;
       }
-      
+
       .duration-chip.active {
         background: var(--primary) !important;
-      }
-      
-      .duration-chip.active::before {
-        opacity: 1 !important;
-        background: var(--white) !important;
+        color: var(--white) !important;
       }
 
       .confirmation-message {
@@ -4692,8 +4659,8 @@
              const chip30 = document.createElement('span');
              chip30.className = 'duration-chip';
              chip30.setAttribute('data-automation', `duration-chip-30-${time.replace(':', '')}`);
-             chip30.setAttribute('title', '30 minutes');
              chip30.setAttribute('aria-label', '30 minutes duration');
+             chip30.textContent = '30';
              chip30.onclick = (e) => {
                e.stopPropagation();
                this.setDuration(time, dateStr, 30);
@@ -4702,8 +4669,8 @@
              const chip60 = document.createElement('span');
              chip60.className = 'duration-chip';
              chip60.setAttribute('data-automation', `duration-chip-60-${time.replace(':', '')}`);
-             chip60.setAttribute('title', '60 minutes');
              chip60.setAttribute('aria-label', '60 minutes duration');
+             chip60.textContent = '60';
              chip60.onclick = (e) => {
                e.stopPropagation();
                this.setDuration(time, dateStr, 60);
@@ -4779,9 +4746,14 @@
         const slots = container.querySelectorAll('.time-slot');
         slots.forEach(slot => {
           const timeDisplay = slot.querySelector('.time-display');
-          if (timeDisplay && timeDisplay.textContent === time) {
+          if (timeDisplay && timeDisplay.textContent.trim() === time) {
             const isSelected = window.bookingForm.state.dateTimes[dateStr].some(entry => entry.time === time);
             slot.classList.toggle('selected', isSelected);
+
+            // Ensure time display only shows the time, never a range or calculated text
+            if (timeDisplay.textContent !== time) {
+              timeDisplay.textContent = time;
+            }
 
             const chip30 = slot.querySelector('.duration-chip:first-child');
             const chip60 = slot.querySelector('.duration-chip:last-child');
