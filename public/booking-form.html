@@ -1238,6 +1238,13 @@
       box-shadow: var(--shadow-sm);
     }
 
+    /* Ensure unselected state is immediately white */
+    .time-slot:not(.selected) {
+      background: var(--white) !important;
+      border-color: var(--secondary) !important;
+      box-shadow: none !important;
+    }
+
     .time-display {
       flex: 1;
       font-size: var(--font-size-sm);
@@ -4753,8 +4760,16 @@
             const cleanTime = timeMatch ? timeMatch[1] : time;
             
             if (cleanTime === time || currentText === time) {
-              const isSelected = window.bookingForm.state.dateTimes[dateStr].some(entry => entry.time === time);
-              slot.classList.toggle('selected', isSelected);
+              // Check if this time is currently selected
+              const isSelected = window.bookingForm.state.dateTimes[dateStr] && 
+                                 window.bookingForm.state.dateTimes[dateStr].some(entry => entry.time === time);
+              
+              // Immediately update the selected state - remove or add class explicitly
+              if (isSelected) {
+                slot.classList.add('selected');
+              } else {
+                slot.classList.remove('selected');
+              }
 
               // Force time display to show ONLY the time, never a range or calculated text
               timeDisplay.textContent = time;
@@ -4795,7 +4810,7 @@
                     }
                   }
                 } else {
-                  // Reset duration chips when time is unselected
+                  // Reset duration chips when time is unselected - immediately remove active state
                   chip30.classList.remove('active');
                   chip60.classList.remove('active');
                 }
