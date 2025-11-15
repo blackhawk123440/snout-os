@@ -1527,67 +1527,67 @@ function BookingsPageContent() {
             </div>
             <div className="relative w-full">
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-                <Link
-                  href="/"
+              <Link
+                href="/"
                   className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
-                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-                >
+                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+              >
                   <i className="fas fa-home"></i><span>Home</span>
-                </Link>
-                <button
-                  onClick={() => {
-                    fetchBookings();
-                    fetchSitters();
-                  }}
-                  disabled={loading}
+              </Link>
+              <button
+                onClick={() => {
+                  fetchBookings();
+                  fetchSitters();
+                }}
+                disabled={loading}
                   className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 whitespace-nowrap"
-                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-                  title="Refresh data"
-                >
+                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+                title="Refresh data"
+              >
                   <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i><span>Refresh</span>
-                </button>
-                <Link
-                  href="/payments"
+              </button>
+              <Link
+                href="/payments"
                   className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
-                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-                >
+                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+              >
                   <i className="fas fa-credit-card"></i><span>Payments</span>
-                </Link>
-                <Link
-                  href="/calendar"
+              </Link>
+              <Link
+                href="/calendar"
                   className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
                   style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-                >
+              >
                   <i className="fas fa-calendar-alt"></i><span>Calendar</span>
-                </Link>
-                <Link
-                  href="/clients"
+              </Link>
+              <Link
+                href="/clients"
                   className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
-                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-                >
+                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+              >
                   <i className="fas fa-users"></i><span>Clients</span>
-                </Link>
-                <Link
-                  href="/automation"
+              </Link>
+              <Link
+                href="/automation"
                   className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
-                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-                >
+                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+              >
                   <i className="fas fa-robot"></i><span>Automation</span>
-                </Link>
-                <Link
-                  href="/settings"
+              </Link>
+              <Link
+                href="/settings"
                   className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
-                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-                >
+                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+              >
                   <i className="fas fa-cog"></i><span>Settings</span>
-                </Link>
-                <Link
-                  href="/bookings/sitters"
+              </Link>
+              <Link
+                href="/bookings/sitters"
                   className="flex items-center gap-2 px-3 py-2 text-[11px] sm:text-sm font-semibold border-2 rounded-lg hover:opacity-90 transition-all flex-shrink-0 whitespace-nowrap"
-                  style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-                >
+                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+              >
                   <i className="fas fa-user-friends"></i><span>Sitters</span>
-                </Link>
+              </Link>
               </div>
             </div>
           </div>
@@ -1640,12 +1640,12 @@ function BookingsPageContent() {
                   <div className="space-y-1">
                     <p className="text-xs sm:text-sm font-medium text-gray-600">{card.label}</p>
                     <p className="text-xl sm:text-2xl font-bold" style={{ color: COLORS.primary }}>{card.value}</p>
-                  </div>
+                </div>
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: COLORS.primaryLight }}>
                     <i className={`${card.icon} text-sm sm:text-base`} style={{ color: COLORS.primary }}></i>
-                  </div>
                 </div>
               </div>
+            </div>
             ))}
           </div>
         )}
@@ -1846,13 +1846,13 @@ function BookingsPageContent() {
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full">
                       <div className="checkbox-container" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedBookingIds.includes(booking.id)}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            toggleBookingSelection(booking.id);
-                          }}
+                      <input
+                        type="checkbox"
+                        checked={selectedBookingIds.includes(booking.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleBookingSelection(booking.id);
+                        }}
                           onClick={(e) => e.stopPropagation()}
                           className="w-5 h-5 cursor-pointer"
                           style={{
@@ -2081,16 +2081,16 @@ function BookingsPageContent() {
                               </div>
                             </>
                           ) : (
-                            <div className="md:col-span-2 space-y-1">
-                              <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Service Address</label>
-                              <textarea
-                                value={editedBooking.address || ''}
-                                onChange={(e) => setEditedBooking({...editedBooking, address: e.target.value})}
+                          <div className="md:col-span-2 space-y-1">
+                            <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Service Address</label>
+                            <textarea
+                              value={editedBooking.address || ''}
+                              onChange={(e) => setEditedBooking({...editedBooking, address: e.target.value})}
                                 className="w-full px-3 py-2.5 sm:py-2 border rounded-lg text-base sm:text-lg font-semibold touch-manipulation"
-                                style={{ borderColor: COLORS.border }}
-                                rows={3}
-                              />
-                            </div>
+                              style={{ borderColor: COLORS.border }}
+                              rows={3}
+                            />
+                          </div>
                           )}
                         </div>
                       ) : (
@@ -2154,10 +2154,10 @@ function BookingsPageContent() {
                               </div>
                             </>
                           ) : (
-                            <div className="space-y-1">
-                              <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Service Address</label>
-                              <p className="text-lg font-semibold text-gray-900">{selectedBooking.address}</p>
-                            </div>
+                          <div className="space-y-1">
+                            <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Service Address</label>
+                            <p className="text-lg font-semibold text-gray-900">{selectedBooking.address}</p>
+                          </div>
                           )}
                         </div>
                       )}
@@ -3586,7 +3586,7 @@ function BookingsPageContent() {
                             onClick={async () => {
                               const copied = await copyToClipboard(selectedBooking.stripePaymentLinkUrl!);
                               if (copied) {
-                                alert("Payment link copied to clipboard!");
+                              alert("Payment link copied to clipboard!");
                               } else {
                                 setLinkModalContent({
                                   title: 'Payment Link',
@@ -3608,7 +3608,7 @@ function BookingsPageContent() {
                             onClick={async () => {
                               const copied = await copyToClipboard(selectedBooking.tipLinkUrl!);
                               if (copied) {
-                                alert("Tip link copied to clipboard!");
+                              alert("Tip link copied to clipboard!");
                               } else {
                                 setLinkModalContent({
                                   title: 'Tip Link',

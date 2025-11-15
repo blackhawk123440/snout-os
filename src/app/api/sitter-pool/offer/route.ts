@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { formatPetsByQuantity, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, calculatePriceBreakdown } from "@/lib/booking-utils";
+import { formatPetsByQuantity, formatDatesAndTimesForMessage, calculatePriceBreakdown } from "@/lib/booking-utils";
 import { getSitterPhone } from "@/lib/phone-utils";
 import { sendMessage } from "@/lib/message-utils";
-import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,11 +50,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Format booking details for SMS
+    // Format booking details for SMS using shared formatting functions
     const petQuantities = formatPetsByQuantity(booking.pets);
     
     // Format dates and times using the shared function that matches booking details
-    const formattedDatesTimes = formatDatesAndTimesForMessage({
+    const dateTimeInfo = formatDatesAndTimesForMessage({
       service: booking.service,
       startAt: booking.startAt,
       endAt: booking.endAt,
@@ -65,9 +64,6 @@ export async function POST(request: NextRequest) {
     // Calculate price breakdown for accurate total
     const breakdown = calculatePriceBreakdown(booking);
     const calculatedTotal = breakdown.total;
-
-    // Check if automation is enabled
-    const shouldSendToSitters = await shouldSendToRecipient("sitterPoolOffers", "sitter");
 
     // Send SMS to all selected sitters using their phone numbers
     const smsPromises = sitters.map(async (sitter) => {
@@ -82,35 +78,7 @@ export async function POST(request: NextRequest) {
         const commissionPercentage = sitter.commissionPercentage || 80.0;
         const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
 
-        let smsMessage: string;
-        if (shouldSendToSitters) {
-          // Use automation template if available
-          let sitterTemplate = await getMessageTemplate("sitterPoolOffers", "sitter");
-          // If template is null (doesn't exist) or empty string, use default
-          if (!sitterTemplate || sitterTemplate.trim() === "") {
-            sitterTemplate = "🐾 NEW BOOKING OPPORTUNITY\n\n{{service}} for {{firstName}} {{lastName}}\n\nDates & Times:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nReply YES to accept this booking opportunity!";
-          }
-          
-          smsMessage = replaceTemplateVariables(sitterTemplate, {
-            service: booking.service,
-            firstName: booking.firstName,
-            lastName: booking.lastName,
-            datesTimes: formattedDatesTimes,
-            date: formatDateForMessage(booking.startAt),
-            time: formatTimeForMessage(booking.startAt),
-            petQuantities,
-            address: booking.address || 'TBD',
-            earnings: sitterEarnings.toFixed(2),
-            totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
-            total: calculatedTotal,
-          }, {
-            isSitterMessage: true,
-            sitterCommissionPercentage: commissionPercentage,
-          });
-        } else {
-          // Fallback to hardcoded message if automation disabled
-          smsMessage = `🐾 NEW BOOKING OPPORTUNITY\n\n${booking.service} for ${booking.firstName} ${booking.lastName}\n\nDates & Times:\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nAddress: ${booking.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nReply YES to accept this booking opportunity!`;
-        }
+        const smsMessage = `🐾 NEW BOOKING OPPORTUNITY\n\n${booking.service} for ${booking.firstName} ${booking.lastName}\n\nDates & Times:\n${dateTimeInfo}\n\nPets: ${petQuantities}\nAddress: ${booking.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nReply YES to accept this booking opportunity!`;
         
         await sendMessage(sitterPhone, smsMessage, bookingId);
       } catch (error) {
