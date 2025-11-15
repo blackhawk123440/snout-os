@@ -469,13 +469,19 @@ export function formatDatesAndTimesForMessage(booking: {
 
   // For visit-based services with timeSlots, group by date and show all times
   if (hasTimeSlots && !isHouseSittingService) {
-    // Group timeSlots by date
+    // Group timeSlots by date using full month name format
     const slotsByDate: Record<string, Array<{ startAt: Date; endAt: Date; duration: number }>> = {};
     
     booking.timeSlots!.forEach(slot => {
       const slotStart = typeof slot.startAt === 'string' ? new Date(slot.startAt) : slot.startAt;
       const slotEnd = typeof slot.endAt === 'string' ? new Date(slot.endAt) : slot.endAt;
-      const dateKey = formatDateForMessage(slotStart);
+      
+      // Format date with month name: "January 7, 2026"
+      const dateKey = slotStart.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
       
       if (!slotsByDate[dateKey]) {
         slotsByDate[dateKey] = [];
@@ -484,12 +490,21 @@ export function formatDatesAndTimesForMessage(booking: {
     });
 
     // Format each date with its time slots
-    const dateStrings = Object.keys(slotsByDate).sort().map(dateKey => {
+    // Sort dates chronologically by converting to date objects for comparison
+    const sortedDateKeys = Object.keys(slotsByDate).sort((a, b) => {
+      const dateA = new Date(a);
+      const dateB = new Date(b);
+      return dateA.getTime() - dateB.getTime();
+    });
+
+    const dateStrings = sortedDateKeys.map(dateKey => {
       const slots = slotsByDate[dateKey];
       const timeStrings = slots.map(slot => {
         const startTime = formatTimeForMessage(slot.startAt);
         const endTime = formatTimeForMessage(slot.endAt);
-        return `${startTime} - ${endTime} (${slot.duration} min)`;
+        const durationLabel = slot.duration === 60 ? '60 min' : '30 min';
+        // Format as: "9:00 AM–9:30 AM    30 min"
+        return `${startTime}–${endTime}    ${durationLabel}`;
       });
       return `${dateKey}\n${timeStrings.join('\n')}`;
     });
