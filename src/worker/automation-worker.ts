@@ -204,122 +204,25 @@ export async function processDailySummary() {
 }
 
 // Background job processor
-// Stores interval IDs for cleanup
-let reminderIntervalId: NodeJS.Timeout | null = null;
-let dailySummaryIntervalId: NodeJS.Timeout | null = null;
-let lastDailySummaryDate: string | null = null;
-
-/**
- * Starts the automation worker with proper interval management
- * Returns cleanup function for graceful shutdown
- */
-export async function startAutomationWorker(): Promise<() => void> {
-  // Process reminders every hour (at the top of each hour)
-  const scheduleNextReminder = () => {
-    const now = new Date();
-    const nextHour = new Date(now);
-    nextHour.setHours(now.getHours() + 1, 0, 0, 0); // Next hour on the hour
-    const msUntilNextHour = nextHour.getTime() - now.getTime();
-    
-    // Clear existing interval if any
-    if (reminderIntervalId) {
-      clearInterval(reminderIntervalId);
+export async function startAutomationWorker() {
+  // Process reminders every hour
+  setInterval(async () => {
+    try {
+      await processReminders();
+    } catch (error) {
+      console.error("Reminder processing failed:", error);
     }
-    
-    // Set initial timeout to align with the hour
-    setTimeout(async () => {
+  }, 60 * 60 * 1000); // 1 hour
+
+  // Process daily summary at 9 PM
+  setInterval(async () => {
+    const now = new Date();
+    if (now.getHours() === 21) { // 9 PM
       try {
-        await processReminders();
+        await processDailySummary();
       } catch (error) {
-        console.error("Reminder processing failed:", error);
+        console.error("Daily summary processing failed:", error);
       }
-      
-      // Then set interval for every hour after that
-      reminderIntervalId = setInterval(async () => {
-        try {
-          await processReminders();
-        } catch (error) {
-          console.error("Reminder processing failed:", error);
-        }
-      }, 60 * 60 * 1000); // 1 hour
-    }, msUntilNextHour);
-  };
-
-  // Process daily summary at 9 PM (only once per day)
-  const scheduleDailySummary = () => {
-    const now = new Date();
-    const today = now.toDateString();
-    
-    // Clear existing interval if any
-    if (dailySummaryIntervalId) {
-      clearInterval(dailySummaryIntervalId);
     }
-    
-    // Calculate milliseconds until 9 PM today or tomorrow
-    const targetTime = new Date(now);
-    targetTime.setHours(21, 0, 0, 0); // 9 PM
-    
-    if (targetTime <= now) {
-      // If 9 PM has passed today, schedule for tomorrow
-      targetTime.setDate(targetTime.getDate() + 1);
-    }
-    
-    const msUntil9PM = targetTime.getTime() - now.getTime();
-    
-    setTimeout(async () => {
-      const currentDate = new Date().toDateString();
-      // Only process if we haven't processed today
-      if (lastDailySummaryDate !== currentDate) {
-        try {
-          await processDailySummary();
-          lastDailySummaryDate = currentDate;
-        } catch (error) {
-          console.error("Daily summary processing failed:", error);
-        }
-      }
-      
-      // Schedule for next day at 9 PM
-      dailySummaryIntervalId = setInterval(async () => {
-        const checkDate = new Date().toDateString();
-        if (lastDailySummaryDate !== checkDate) {
-          try {
-            await processDailySummary();
-            lastDailySummaryDate = checkDate;
-          } catch (error) {
-            console.error("Daily summary processing failed:", error);
-          }
-        }
-      }, 24 * 60 * 60 * 1000); // 24 hours
-    }, msUntil9PM);
-  };
-
-  // Start both schedulers
-  scheduleNextReminder();
-  scheduleDailySummary();
-
-  // Return cleanup function for graceful shutdown
-  return () => {
-    if (reminderIntervalId) {
-      clearInterval(reminderIntervalId);
-      reminderIntervalId = null;
-    }
-    if (dailySummaryIntervalId) {
-      clearInterval(dailySummaryIntervalId);
-      dailySummaryIntervalId = null;
-    }
-  };
-}
-
-/**
- * Stops the automation worker and cleans up resources
- */
-export function stopAutomationWorker(): void {
-  if (reminderIntervalId) {
-    clearInterval(reminderIntervalId);
-    reminderIntervalId = null;
-  }
-  if (dailySummaryIntervalId) {
-    clearInterval(dailySummaryIntervalId);
-    dailySummaryIntervalId = null;
-  }
+  }, 60 * 60 * 1000); // Check every hour
 }

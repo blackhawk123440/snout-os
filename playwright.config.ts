@@ -1,13 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Type declaration for Node.js process in Playwright config
-declare const process: {
-  env: {
-    CI?: string;
-    NEXT_PUBLIC_APP_URL?: string;
-  };
-};
-
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,

@@ -3,7 +3,6 @@ import { prisma } from "@/lib/db";
 import { formatPetsByQuantity, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, calculatePriceBreakdown } from "@/lib/booking-utils";
 import { getSitterPhone, getOwnerPhone } from "@/lib/phone-utils";
 import { sendMessage } from "@/lib/message-utils";
-import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -122,6 +121,18 @@ export async function POST(request: NextRequest) {
         where: { id: sitterId },
       });
 
+      // Get booking with timeSlots for proper formatting
+      const bookingWithSlots = await prisma.booking.findUnique({
+        where: { id: offer.bookingId },
+        include: {
+          timeSlots: {
+            orderBy: {
+              startAt: "asc",
+            },
+          },
+        },
+      });
+
       // Notify other sitters that offer is no longer available
       const sitterIds = JSON.parse(offer.sitterIds || "[]");
       const otherSitterIds = sitterIds.filter((id: string) => id !== sitterId);
@@ -139,7 +150,6 @@ export async function POST(request: NextRequest) {
               return;
             }
 
-            // Use template for job taken notification (this is a simple notification, can use sitterPoolOffers template or create a default)
             const notificationMessage = `📱 JOB TAKEN\n\nThe booking opportunity for ${offer.booking.firstName} ${offer.booking.lastName} has been accepted by another sitter. Thank you for your interest!`;
             
             await sendMessage(sitterPhone, notificationMessage, offer.bookingId);
@@ -151,34 +161,20 @@ export async function POST(request: NextRequest) {
         await Promise.allSettled(notificationPromises);
       }
 
-      // Get result with timeSlots for proper formatting
-      const resultWithSlots = await prisma.booking.findUnique({
-        where: { id: offer.bookingId },
-        include: {
-          pets: true,
-          sitter: true,
-          timeSlots: {
-            orderBy: {
-              startAt: "asc",
-            },
-          },
-        },
-      });
-
-      // Format dates and times using the shared function that matches booking details
-      const formattedDatesTimes = resultWithSlots ? formatDatesAndTimesForMessage({
-        service: result.service,
-        startAt: result.startAt,
-        endAt: result.endAt,
-        timeSlots: resultWithSlots.timeSlots || [],
-      }) : "";
-
       // Send confirmation to the accepted sitter
-      if (sitter) {
+      if (sitter && bookingWithSlots) {
         try {
           const sitterPhone = await getSitterPhone(sitterId, undefined, "sitterPoolOffers");
           if (sitterPhone) {
             const petQuantities = formatPetsByQuantity(result.pets);
+            
+            // Format dates and times using the shared function
+            const formattedDatesTimes = formatDatesAndTimesForMessage({
+              service: result.service,
+              startAt: result.startAt,
+              endAt: result.endAt,
+              timeSlots: bookingWithSlots.timeSlots || [],
+            });
             
             // Calculate sitter earnings based on their commission percentage
             const breakdown = calculatePriceBreakdown(result);
@@ -186,38 +182,7 @@ export async function POST(request: NextRequest) {
             const commissionPercentage = sitter.commissionPercentage || 80.0;
             const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
             
-            // Check if automation is enabled
-            const shouldSendToSitter = await shouldSendToRecipient("sitterPoolOffers", "sitter");
-            
-            let confirmationMessage: string;
-            if (shouldSendToSitter) {
-              // Use automation template if available
-              let sitterTemplate = await getMessageTemplate("sitterPoolOffers", "sitter");
-              // If template is null (doesn't exist) or empty string, use default
-              if (!sitterTemplate || sitterTemplate.trim() === "") {
-                sitterTemplate = "🎉 CONGRATULATIONS!\n\nYou've been assigned:\n\n{{service}} for {{firstName}} {{lastName}}\n\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
-              }
-              
-              confirmationMessage = replaceTemplateVariables(sitterTemplate, {
-                service: result.service,
-                firstName: result.firstName,
-                lastName: result.lastName,
-                datesTimes: formattedDatesTimes,
-                date: formatDateForMessage(result.startAt),
-                time: formatTimeForMessage(result.startAt),
-                petQuantities,
-                address: result.address || 'TBD',
-                earnings: sitterEarnings.toFixed(2),
-                totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
-                total: calculatedTotal,
-              }, {
-                isSitterMessage: true,
-                sitterCommissionPercentage: commissionPercentage,
-              });
-            } else {
-              // Fallback to hardcoded message if automation disabled
-              confirmationMessage = `🎉 CONGRATULATIONS!\n\nYou've been assigned:\n\n${result.service} for ${result.firstName} ${result.lastName}\n\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nAddress: ${result.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nPlease confirm your availability.`;
-            }
+            const confirmationMessage = `🎉 CONGRATULATIONS!\n\nYou've been assigned:\n\n${result.service} for ${result.firstName} ${result.lastName}\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nAddress: ${result.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nPlease confirm your availability.`;
             
             await sendMessage(sitterPhone, confirmationMessage, offer.bookingId);
           }
@@ -229,38 +194,20 @@ export async function POST(request: NextRequest) {
       // Notify owner that someone accepted the job
       try {
         const ownerPhone = await getOwnerPhone(undefined, "sitterPoolOffers");
-        if (ownerPhone && sitter) {
+        if (ownerPhone && sitter && bookingWithSlots) {
           const petQuantities = formatPetsByQuantity(result.pets);
+          
+          // Format dates and times using the shared function
+          const formattedDatesTimes = formatDatesAndTimesForMessage({
+            service: result.service,
+            startAt: result.startAt,
+            endAt: result.endAt,
+            timeSlots: bookingWithSlots.timeSlots || [],
+          });
+          
           const sitterPhone = await getSitterPhone(sitterId, undefined, "sitterPoolOffers");
           
-          // Check if automation is enabled
-          const shouldSendToOwner = await shouldSendToRecipient("sitterPoolOffers", "owner");
-          
-          let ownerMessage: string;
-          if (shouldSendToOwner) {
-            // Use automation template if available
-            let ownerTemplate = await getMessageTemplate("sitterPoolOffers", "owner");
-            // If template is null (doesn't exist) or empty string, use default
-            if (!ownerTemplate || ownerTemplate.trim() === "") {
-              ownerTemplate = "✅ SITTER ACCEPTED JOB\n\n{{sitterFirstName}} {{sitterLastName}} has accepted the booking:\n\n{{service}} for {{firstName}} {{lastName}}\n\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nSitter: {{sitterFirstName}} {{sitterLastName}}\nPhone: {{sitterPhone}}";
-            }
-            
-            ownerMessage = replaceTemplateVariables(ownerTemplate, {
-              sitterFirstName: sitter.firstName,
-              sitterLastName: sitter.lastName,
-              service: result.service,
-              firstName: result.firstName,
-              lastName: result.lastName,
-              datesTimes: formattedDatesTimes,
-              date: formatDateForMessage(result.startAt),
-              time: formatTimeForMessage(result.startAt),
-              petQuantities,
-              sitterPhone: sitterPhone || sitter.phone,
-            });
-          } else {
-            // Fallback to hardcoded message if automation disabled
-            ownerMessage = `✅ SITTER ACCEPTED JOB\n\n${sitter.firstName} ${sitter.lastName} has accepted the booking:\n\n${result.service} for ${result.firstName} ${result.lastName}\n\n${formattedDatesTimes}\n\nPets: ${petQuantities}\n\nSitter: ${sitter.firstName} ${sitter.lastName}\nPhone: ${sitterPhone || sitter.phone}`;
-          }
+          const ownerMessage = `✅ SITTER ACCEPTED JOB\n\n${sitter.firstName} ${sitter.lastName} has accepted the booking:\n\n${result.service} for ${result.firstName} ${result.lastName}\n${formattedDatesTimes}\n\nPets: ${petQuantities}\n\nSitter: ${sitter.firstName} ${sitter.lastName}\nPhone: ${sitterPhone || sitter.phone}`;
           
           await sendMessage(ownerPhone, ownerMessage, offer.bookingId);
         }
