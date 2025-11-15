@@ -3,7 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { calculateBookingPrice } from "@/lib/rates";
 import { formatPhoneForAPI } from "@/lib/phone-format";
-import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown } from "@/lib/booking-utils";
+import { bookingToCanonical, formatCanonicalBookingForMessage, validateCanonicalBooking } from "@/lib/booking-format";
 import { sendOwnerAlert } from "@/lib/sms-templates";
 import { getOwnerPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
@@ -248,6 +249,36 @@ export async function POST(request: NextRequest) {
       // For other services, quantity is number of time slots
       quantity = timeSlotsData.length > 0 ? timeSlotsData.length : 1;
     }
+
+    // Validate canonical booking format (dates, slots, durations)
+    // Create a temporary canonical payload for validation
+    const tempBooking = {
+      id: "temp",
+      service,
+      firstName,
+      lastName,
+      phone,
+      email: email || null,
+      notes: specialInstructions || additionalNotes || null,
+      createdAt: new Date(),
+      startAt: new Date(bookingStartAt),
+      endAt: new Date(bookingEndAt),
+      pets,
+      timeSlots: timeSlotsData,
+    };
+
+    const tempCanonical = bookingToCanonical(tempBooking);
+    const validation = validateCanonicalBooking(tempCanonical);
+
+    if (!validation.valid) {
+      return NextResponse.json(
+        { 
+          error: "Invalid booking data", 
+          details: validation.errors 
+        },
+        { status: 400, headers: buildCorsHeaders(request) }
+      );
+    }
     
     // Calculate price breakdown BEFORE creating booking using the same method as the booking details page
     const breakdown = calculatePriceBreakdown({
@@ -309,31 +340,40 @@ export async function POST(request: NextRequest) {
     });
 
     // Send SMS confirmation to client (if automation enabled)
-    const petQuantities = formatPetsByQuantity(booking.pets);
     const shouldSendToClient = await shouldSendToRecipient("ownerNewBookingAlert", "client");
     
     if (shouldSendToClient) {
-      // Format dates and times using the shared function that matches booking details
-      const formattedDatesTimes = formatDatesAndTimesForMessage({
+      // Convert booking to canonical format
+      const canonical = bookingToCanonical({
+        id: booking.id,
         service: booking.service,
+        firstName,
+        lastName,
+        phone,
+        email: booking.email,
+        notes: booking.notes,
+        createdAt: booking.createdAt,
         startAt: booking.startAt,
         endAt: booking.endAt,
+        pets: booking.pets,
         timeSlots: booking.timeSlots || [],
       });
+
+      // Format for message template
+      const formatted = formatCanonicalBookingForMessage(canonical);
       
       let clientMessageTemplate = await getMessageTemplate("ownerNewBookingAlert", "client");
       // If template is null (doesn't exist) or empty string, use default
       if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
-        clientMessageTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll confirm your booking shortly. Thank you!";
+        clientMessageTemplate = "Service\n{{service}}\n\nDates and times\n{{datesTimes}}\n\nPets\n{{pets}}\n\nWe'll confirm your booking shortly. Thank you!";
       }
       
       const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
         firstName,
-        service: booking.service, // Use the actual service name from the booking
-        datesTimes: formattedDatesTimes,
-        date: formatDateForMessage(booking.startAt),
-        time: formatTimeForMessage(booking.startAt),
-        petQuantities,
+        service: formatted.service,
+        datesTimes: formatted.datesTimes,
+        pets: formatted.pets,
+        notes: formatted.notes || "",
       });
       
       await sendMessage(phone, clientMessage, booking.id);
@@ -348,29 +388,40 @@ export async function POST(request: NextRequest) {
       if (ownerPhone) {
         const bookingDetailsUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/bookings?booking=${booking.id}`;
         
-        // Format dates and times using the shared function that matches booking details
-        const formattedDatesTimes = formatDatesAndTimesForMessage({
+        // Convert booking to canonical format
+        const canonical = bookingToCanonical({
+          id: booking.id,
           service: booking.service,
+          firstName,
+          lastName,
+          phone,
+          email: booking.email,
+          notes: booking.notes,
+          createdAt: booking.createdAt,
           startAt: booking.startAt,
           endAt: booking.endAt,
+          pets: booking.pets,
           timeSlots: booking.timeSlots || [],
         });
+
+        // Format for message template
+        const formatted = formatCanonicalBookingForMessage(canonical);
+        const petQuantities = formatPetsByQuantity(booking.pets);
         
         let ownerMessageTemplate = await getMessageTemplate("ownerNewBookingAlert", "owner");
         // If template is null (doesn't exist) or empty string, use default
         if (!ownerMessageTemplate || ownerMessageTemplate.trim() === "") {
-          ownerMessageTemplate = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}}\n{{datesTimes}}\n{{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView details: {{bookingUrl}}";
+          ownerMessageTemplate = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\nService\n{{service}}\n\nDates and times\n{{datesTimes}}\n\nPets\n{{pets}}\n\nTotal: ${{totalPrice}}\n\nView details: {{bookingUrl}}";
         }
         
         const ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
           firstName,
           lastName,
           phone,
-          service: booking.service, // Use the actual service name from the booking
-          datesTimes: formattedDatesTimes,
-          date: formatDateForMessage(booking.startAt),
-          time: formatTimeForMessage(booking.startAt),
-          petQuantities,
+          service: formatted.service,
+          datesTimes: formatted.datesTimes,
+          pets: formatted.pets,
+          petQuantities, // Keep for backward compatibility
           totalPrice: breakdown.total.toFixed(2),
           bookingUrl: bookingDetailsUrl,
         });

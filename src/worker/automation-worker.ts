@@ -3,7 +3,8 @@ import { sendClientNightBeforeReminder, sendSitterNightBeforeReminder } from "@/
 import { sendSMS } from "@/lib/openphone";
 import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
-import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown } from "@/lib/booking-utils";
+import { bookingToCanonical, formatCanonicalBookingForMessage } from "@/lib/booking-format";
 import { sendMessage } from "@/lib/message-utils";
 
 export async function processReminders() {
@@ -53,29 +54,39 @@ export async function processReminders() {
         const calculatedTotal = breakdown.total;
         const petQuantities = formatPetsByQuantity(booking.pets);
 
-        // Format dates and times using the shared function that matches booking details
-        const formattedDatesTimes = formatDatesAndTimesForMessage({
+        // Convert booking to canonical format
+        const canonical = bookingToCanonical({
+          id: booking.id,
           service: booking.service,
+          firstName: booking.firstName,
+          lastName: booking.lastName,
+          phone: booking.phone,
+          email: booking.email,
+          notes: booking.notes,
+          createdAt: booking.createdAt,
           startAt: booking.startAt,
           endAt: booking.endAt,
+          pets: booking.pets,
           timeSlots: booking.timeSlots || [],
         });
+
+        // Format for message template
+        const formatted = formatCanonicalBookingForMessage(canonical);
         
         // Send reminder to client
         if (shouldSendToClient) {
           let clientMessageTemplate = await getMessageTemplate("nightBeforeReminder", "client");
           // If template is null (doesn't exist) or empty string, use default
           if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
-            clientMessageTemplate = "🌙 REMINDER!\n\nHi {{firstName}},\n\nJust a friendly reminder about your {{service}} appointment:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe're excited to care for your pets!";
+            clientMessageTemplate = "🌙 REMINDER!\n\nHi {{firstName}},\n\nJust a friendly reminder about your {{service}} appointment:\n\nDates and times\n{{datesTimes}}\n\nPets\n{{pets}}\n\nWe're excited to care for your pets!";
           }
           const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
             firstName: booking.firstName,
             lastName: booking.lastName,
-            service: booking.service,
-            datesTimes: formattedDatesTimes,
-            date: formatDateForMessage(booking.startAt),
-            time: formatTimeForMessage(booking.startAt),
-            petQuantities,
+            service: formatted.service,
+            datesTimes: formatted.datesTimes,
+            pets: formatted.pets,
+            petQuantities, // Keep for backward compatibility
           });
           await sendMessage(booking.phone, clientMessage, booking.id);
         } else {
@@ -109,17 +120,16 @@ export async function processReminders() {
                 let sitterMessageTemplate = await getMessageTemplate("nightBeforeReminder", "sitter");
                 // If template is null (doesn't exist) or empty string, use default
                 if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
-                  sitterMessageTemplate = "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment:\n{{datesTimes}}\n\nClient: {{firstName}} {{lastName}}\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
+                  sitterMessageTemplate = "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment:\n\nDates and times\n{{datesTimes}}\n\nClient: {{firstName}} {{lastName}}\nPets\n{{pets}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
                 }
                 const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
                   sitterFirstName: sitter.firstName,
                   firstName: booking.firstName,
                   lastName: booking.lastName,
-                  service: booking.service,
-                  datesTimes: formattedDatesTimes,
-                  date: formatDateForMessage(booking.startAt),
-                  time: formatTimeForMessage(booking.startAt),
-                  petQuantities,
+                  service: formatted.service,
+                  datesTimes: formatted.datesTimes,
+                  pets: formatted.pets,
+                  petQuantities, // Keep for backward compatibility
                   address: booking.address || 'TBD',
                   earnings: sitterEarnings.toFixed(2),
                   totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated

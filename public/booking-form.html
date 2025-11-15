@@ -3026,13 +3026,10 @@
               const firstDate = this.selectedDates[0];
               return firstDate && this.dateTimes[firstDate] && this.dateTimes[firstDate].length > 0;
             }
-            // For other services, require times on all dates with valid time and duration
-            return this.selectedDates.every(date => {
-              const times = this.dateTimes[date];
-              if (!times || times.length === 0) return false;
-              // Validate that each time slot has both time and duration
-              return times.every(t => t.time && (t.duration === 30 || t.duration === 60));
-            });
+            // For other services, require times on all dates
+            return this.selectedDates.every(date => 
+              this.dateTimes[date] && this.dateTimes[date].length > 0
+            );
           case 5:
             return this.isPetTaxiFormValid();
           case 6:
@@ -3652,41 +3649,18 @@
             dateInfo.className = 'selected-date-info';
             
             // Show date with times for times page
-            // Format date with full month name for confirmation summary
-            const formattedDate = date.toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              month: 'long', 
-              day: 'numeric',
-              year: 'numeric'
-            });
-            
-            // Format times as time ranges with duration
-            let timesDisplay = '';
-            if (times.length > 0) {
-              if (this.state.selectedService === 'pet-sitting' && times.length === 2) {
-                // For house sitting with 2 times, show as range
-                const sortedTimes = times.sort((a, b) => a.time.localeCompare(b.time));
-                const startTime = sortedTimes[0].time;
-                const endTime = sortedTimes[1].time;
-                timesDisplay = `${startTime} - ${endTime}`;
-              } else if (this.state.selectedService === 'pet-sitting' || this.state.selectedService === 'pet-taxi') {
-                // For house sitting and pet taxi, show times without duration
-                timesDisplay = times.map(t => t.time).join(', ');
-              } else {
-                // For other services, show time ranges with duration on separate lines
-                const timeRanges = times.map(t => {
-                  const timeRange = this.formatTimeRangeWithDuration(dateStr, t.time, t.duration || 30);
-                  return timeRange || `${t.time} (${t.duration || 30}min)`;
-                });
-                timesDisplay = timeRanges.join('<br>');
-              }
-            } else {
-              timesDisplay = '<span class="no-times">No times selected</span>';
-            }
-            
             dateInfo.innerHTML = `
-              <div class="date-display">${formattedDate}</div>
-              <div class="times-display">${timesDisplay}</div>
+              <div class="date-display">${date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                month: 'long', 
+                day: 'numeric' 
+              })}</div>
+              <div class="times-display">
+                ${times.length > 0 
+                  ? this.formatTimesForService(times, dateStr)
+                  : '<span class="no-times">No times selected</span>'
+                }
+              </div>
             `;
             
             const removeDateBtn = document.createElement('button');
@@ -3747,56 +3721,6 @@
         this.updateButtonStates();
       }
 
-      /**
-       * Helper function to convert 12-hour time string to minutes since midnight
-       */
-      timeToMinutes(time12h) {
-        if (!time12h) return 0;
-        const [time, modifier] = time12h.split(' ');
-        let [hours, minutes] = time.split(':').map(Number);
-        if (hours === 12) hours = 0;
-        if (modifier === 'PM') hours += 12;
-        return hours * 60 + minutes;
-      }
-
-      /**
-       * Helper function to convert minutes since midnight to 12-hour time string
-       */
-      minutesToTime(minutes) {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        const period = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-        const displayMinutes = String(mins).padStart(2, '0');
-        return `${displayHours}:${displayMinutes} ${period}`;
-      }
-
-      /**
-       * Helper function to calculate end time from start time and duration
-       * Returns formatted time range string: "9:00 AM–9:30 AM    30 min"
-       */
-      formatTimeRangeWithDuration(dateStr, timeStr, durationMinutes) {
-        if (!timeStr || !durationMinutes) {
-          return null;
-        }
-
-        // Convert start time to minutes
-        const startMinutes = this.timeToMinutes(timeStr);
-        
-        // Calculate end time
-        const endMinutes = startMinutes + durationMinutes;
-        
-        // Convert back to time strings
-        const startTimeFormatted = timeStr; // Already in correct format
-        const endTimeFormatted = this.minutesToTime(endMinutes);
-        
-        // Format duration label
-        const durationLabel = durationMinutes === 60 ? '60 min' : '30 min';
-        
-        // Return formatted string: "9:00 AM–9:30 AM    30 min" (using en dash U+2013)
-        return `${startTimeFormatted}–${endTimeFormatted}    ${durationLabel}`;
-      }
-
       formatTimesForService(times, dateStr) {
         if (this.state.selectedService === 'pet-sitting' && times.length === 2) {
           // For house sitting with 2 times, show as range
@@ -3808,11 +3732,8 @@
           // For house sitting and pet taxi, show times without duration
           return times.map(t => t.time).join(', ');
         } else {
-          // For other services, show time ranges with duration
-          return times.map(t => {
-            const timeRange = this.formatTimeRangeWithDuration(dateStr, t.time, t.duration || 30);
-            return timeRange || `${t.time} (${t.duration || 30}min)`;
-          }).join(', ');
+          // For other services, show individual times with duration
+          return times.map(t => `${t.time} (${t.duration}min)`).join(', ');
         }
       }
 
@@ -3981,20 +3902,6 @@
       async submitForm() {
         const isPetTaxi = this.state.selectedService === 'pet-taxi';
         const currentStep = this.state.currentStep;
-        
-        // Validate time slots have both time and duration before submitting
-        if (this.state.selectedService !== 'pet-sitting') {
-          const hasInvalidSlots = this.state.selectedDates.some(date => {
-            const times = this.state.dateTimes[date];
-            if (!times || times.length === 0) return true;
-            return times.some(t => !t.time || (t.duration !== 30 && t.duration !== 60));
-          });
-          
-          if (hasInvalidSlots) {
-            showCustomAlert('Please ensure all time slots have a selected time and duration (30 or 60 minutes).', 'fa-clock');
-            return;
-          }
-        }
         
         // Validate current step (should be 6 for contact info)
         if (!this.state.validateStep(currentStep)) {
@@ -4738,46 +4645,14 @@
           slot.className = 'time-slot';
           slot.setAttribute('data-automation', `time-slot-${time.replace(':', '')}`);
           
-          // Check if this time is already selected
-          const existingEntry = existingTimes.find(entry => entry.time === time);
-          const currentDuration = existingEntry?.duration || 30;
-          const isSelected = !!existingEntry;
-          
-          // Calculate end time and format time range
-          const timeRange = window.bookingForm.formatTimeRangeWithDuration(dateStr, time, currentDuration);
-          
-          // Create time range display (left side)
           const timeDisplay = document.createElement('span');
           timeDisplay.className = 'time-display';
-          if (isSelected && timeRange) {
-            // Extract just the time range part (before duration)
-            const timeRangePart = timeRange.split('    ')[0];
-            timeDisplay.textContent = timeRangePart;
-          } else {
-            timeDisplay.textContent = time;
-          }
+          timeDisplay.textContent = time;
           
           slot.appendChild(timeDisplay);
           
           // Only add duration toggle for services that need it
           if (showDurationToggle) {
-            // Create container for duration controls
-            const durationContainer = document.createElement('div');
-            durationContainer.style.display = 'flex';
-            durationContainer.style.alignItems = 'center';
-            durationContainer.style.gap = 'var(--space-sm)';
-            
-            // Show duration label on right when selected
-            if (isSelected) {
-              const durationLabel = document.createElement('span');
-              durationLabel.className = 'duration-label';
-              durationLabel.style.fontSize = 'var(--font-size-sm)';
-              durationLabel.style.fontWeight = '500';
-              durationLabel.style.color = 'var(--primary)';
-              durationLabel.textContent = currentDuration === 60 ? '60 min' : '30 min';
-              durationContainer.appendChild(durationLabel);
-            }
-            
             const durationToggle = document.createElement('div');
             durationToggle.className = 'duration-toggle';
             
@@ -4801,10 +4676,12 @@
             
             durationToggle.appendChild(chip30);
             durationToggle.appendChild(chip60);
-            durationContainer.appendChild(durationToggle);
-            slot.appendChild(durationContainer);
+            slot.appendChild(durationToggle);
             
-            if (isSelected) {
+            // Check if this time is already selected
+            const existingEntry = existingTimes.find(entry => entry.time === time);
+            
+            if (existingEntry) {
               slot.classList.add('selected');
               if (existingEntry.duration === 60) {
                 chip60.classList.add('active');
@@ -4816,7 +4693,8 @@
             }
           } else {
             // For house sitting and pet taxi, check if time is selected
-            if (isSelected) {
+            const existingEntry = existingTimes.find(entry => entry.time === time);
+            if (existingEntry) {
               slot.classList.add('selected');
             }
           }
@@ -4863,75 +4741,37 @@
         const container = document.getElementById('timeSlotsContainer');
         if (!container) return;
 
-        // Find the slot by matching the automation data attribute
-        const slot = container.querySelector(`[data-automation="time-slot-${time.replace(':', '')}"]`);
-        if (!slot) return;
+        const slots = container.querySelectorAll('.time-slot');
+        slots.forEach(slot => {
+          const timeDisplay = slot.querySelector('.time-display');
+          if (timeDisplay && timeDisplay.textContent === time) {
+            const isSelected = window.bookingForm.state.dateTimes[dateStr].some(entry => entry.time === time);
+            slot.classList.toggle('selected', isSelected);
 
-        const timeDisplay = slot.querySelector('.time-display');
-        if (!timeDisplay) return;
-        
-        // Check if this slot is selected
-        const existingEntry = window.bookingForm.state.dateTimes[dateStr]?.find(entry => entry.time === time);
-        const isSelected = !!existingEntry;
-        const currentDuration = existingEntry?.duration || 30;
-        
-        // Update time display with range if selected
-        if (isSelected) {
-          const timeRange = window.bookingForm.formatTimeRangeWithDuration(dateStr, time, currentDuration);
-          if (timeRange) {
-            const timeRangePart = timeRange.split('    ')[0];
-            timeDisplay.textContent = timeRangePart;
-          } else {
-            timeDisplay.textContent = time;
-          }
-        } else {
-          timeDisplay.textContent = time;
-        }
-        
-        slot.classList.toggle('selected', isSelected);
+            const chip30 = slot.querySelector('.duration-chip:first-child');
+            const chip60 = slot.querySelector('.duration-chip:last-child');
 
-        // Update duration label if it exists (for selected slots)
-        const durationLabel = slot.querySelector('.duration-label');
-        if (durationLabel) {
-          if (isSelected) {
-            durationLabel.textContent = currentDuration === 60 ? '60 min' : '30 min';
-            durationLabel.style.display = 'block';
-          } else {
-            durationLabel.style.display = 'none';
-          }
-        } else if (isSelected) {
-          // Create duration label if it doesn't exist but slot is now selected
-          const durationContainer = slot.querySelector('.duration-toggle')?.parentElement;
-          if (durationContainer) {
-            const newLabel = document.createElement('span');
-            newLabel.className = 'duration-label';
-            newLabel.style.fontSize = 'var(--font-size-sm)';
-            newLabel.style.fontWeight = '500';
-            newLabel.style.color = 'var(--primary)';
-            newLabel.textContent = currentDuration === 60 ? '60 min' : '30 min';
-            durationContainer.insertBefore(newLabel, durationContainer.firstChild);
-          }
-        }
-
-        const chip30 = slot.querySelector('.duration-chip:first-child');
-        const chip60 = slot.querySelector('.duration-chip:last-child');
-
-        // Only update duration chips if they exist (not for house sitting/pet taxi)
-        if (chip30 && chip60) {
-          if (isSelected) {
-            if (currentDuration === 60) {
-              chip60.classList.add('active');
-              chip30.classList.remove('active');
-            } else {
-              chip30.classList.add('active');
-              chip60.classList.remove('active');
+            // Only update duration chips if they exist (not for house sitting/pet taxi)
+            if (chip30 && chip60) {
+              if (isSelected) {
+                const entry = window.bookingForm.state.dateTimes[dateStr].find(e => e.time === time);
+                if (entry) {
+                  if (entry.duration === 60) {
+                    chip60.classList.add('active');
+                    chip30.classList.remove('active');
+                  } else {
+                    chip30.classList.add('active');
+                    chip60.classList.remove('active');
+                  }
+                }
+              } else {
+                // Reset duration chips when time is unselected
+                chip30.classList.remove('active');
+                chip60.classList.remove('active');
+              }
             }
-          } else {
-            // Reset duration chips when time is unselected - default to 30
-            chip30.classList.add('active');
-            chip60.classList.remove('active');
           }
-        }
+        });
       }
 
       setDuration(time, dateStr, duration) {
