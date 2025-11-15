@@ -3722,17 +3722,8 @@
       }
 
       formatTimesForService(times, dateStr) {
-        if (this.state.selectedService === 'pet-sitting' && times.length === 2) {
-          // For house sitting with 2 times, show as range
-          const sortedTimes = times.sort((a, b) => a.time.localeCompare(b.time));
-          const startTime = sortedTimes[0].time;
-          const endTime = sortedTimes[1].time;
-          return `${startTime} - ${endTime}`;
-        } else {
-          // For all services, show times only (no duration, no range)
-          // Duration is handled internally but not displayed to user
-          return times.map(t => t.time).join(', ');
-        }
+        // Show times without range or duration
+        return times.map(t => t.time).join(', ');
       }
 
       showFieldError(fieldId, message) {
