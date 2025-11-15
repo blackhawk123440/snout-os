@@ -3,7 +3,7 @@ import { sendClientNightBeforeReminder, sendSitterNightBeforeReminder } from "@/
 import { sendSMS } from "@/lib/openphone";
 import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
-import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, extractAllBookingVariables } from "@/lib/booking-utils";
 import { sendMessage } from "@/lib/message-utils";
 
 export async function processReminders() {
@@ -63,20 +63,20 @@ export async function processReminders() {
         
         // Send reminder to client
         if (shouldSendToClient) {
+          // Get template - always reads fresh from database with no caching
           let clientMessageTemplate = await getMessageTemplate("nightBeforeReminder", "client");
           // If template is null (doesn't exist) or empty string, use default
           if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
             clientMessageTemplate = "🌙 REMINDER!\n\nHi {{firstName}},\n\nJust a friendly reminder about your {{service}} appointment:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe're excited to care for your pets!";
           }
-          const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
-            firstName: booking.firstName,
-            lastName: booking.lastName,
-            service: booking.service,
-            datesTimes: formattedDatesTimes,
-            date: formatDateForMessage(booking.startAt),
-            time: formatTimeForMessage(booking.startAt),
-            petQuantities,
+          
+          // Extract ALL booking variables directly from booking data
+          const bookingVariables = extractAllBookingVariables({
+            ...booking,
+            totalPrice: calculatedTotal,
           });
+          
+          const clientMessage = replaceTemplateVariables(clientMessageTemplate, bookingVariables);
           await sendMessage(booking.phone, clientMessage, booking.id);
         } else {
           // Fallback to hardcoded function if automation disabled
@@ -106,25 +106,27 @@ export async function processReminders() {
                 const commissionPercentage = sitter.commissionPercentage || 80.0;
                 const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
                 
+                // Get template - always reads fresh from database with no caching
                 let sitterMessageTemplate = await getMessageTemplate("nightBeforeReminder", "sitter");
                 // If template is null (doesn't exist) or empty string, use default
                 if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
                   sitterMessageTemplate = "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment:\n{{datesTimes}}\n\nClient: {{firstName}} {{lastName}}\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
                 }
-                const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
-                  sitterFirstName: sitter.firstName,
-                  firstName: booking.firstName,
-                  lastName: booking.lastName,
-                  service: booking.service,
-                  datesTimes: formattedDatesTimes,
-                  date: formatDateForMessage(booking.startAt),
-                  time: formatTimeForMessage(booking.startAt),
-                  petQuantities,
-                  address: booking.address || 'TBD',
-                  earnings: sitterEarnings.toFixed(2),
-                  totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
-                  total: calculatedTotal,
-                }, {
+                
+                // Extract ALL booking variables directly from booking data
+                const bookingVariables = extractAllBookingVariables({
+                  ...booking,
+                  totalPrice: calculatedTotal,
+                  sitter: {
+                    firstName: sitter.firstName,
+                    lastName: sitter.lastName,
+                  },
+                });
+                
+                // Add earnings to variables (will be calculated in replaceTemplateVariables)
+                bookingVariables.earnings = sitterEarnings.toFixed(2);
+                
+                const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, bookingVariables, {
                   isSitterMessage: true,
                   sitterCommissionPercentage: commissionPercentage,
                 });
