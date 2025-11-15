@@ -4746,35 +4746,59 @@
         const slots = container.querySelectorAll('.time-slot');
         slots.forEach(slot => {
           const timeDisplay = slot.querySelector('.time-display');
-          if (timeDisplay && timeDisplay.textContent.trim() === time) {
-            const isSelected = window.bookingForm.state.dateTimes[dateStr].some(entry => entry.time === time);
-            slot.classList.toggle('selected', isSelected);
+          if (timeDisplay) {
+            // Extract just the time from textContent (in case anything was added)
+            const currentText = timeDisplay.textContent.trim();
+            const timeMatch = currentText.match(/^(\d{1,2}:\d{2}\s*(?:AM|PM))(?:\s*[-–—].*)?$/i);
+            const cleanTime = timeMatch ? timeMatch[1] : time;
+            
+            if (cleanTime === time || currentText === time) {
+              const isSelected = window.bookingForm.state.dateTimes[dateStr].some(entry => entry.time === time);
+              slot.classList.toggle('selected', isSelected);
 
-            // Ensure time display only shows the time, never a range or calculated text
-            if (timeDisplay.textContent !== time) {
+              // Force time display to show ONLY the time, never a range or calculated text
               timeDisplay.textContent = time;
-            }
 
-            const chip30 = slot.querySelector('.duration-chip:first-child');
-            const chip60 = slot.querySelector('.duration-chip:last-child');
-
-            // Only update duration chips if they exist (not for house sitting/pet taxi)
-            if (chip30 && chip60) {
-              if (isSelected) {
-                const entry = window.bookingForm.state.dateTimes[dateStr].find(e => e.time === time);
-                if (entry) {
-                  if (entry.duration === 60) {
-                    chip60.classList.add('active');
-                    chip30.classList.remove('active');
-                  } else {
-                    chip30.classList.add('active');
-                    chip60.classList.remove('active');
-                  }
+              // Remove any other text elements that might have been added (except duration chips)
+              const allChildren = Array.from(slot.children);
+              allChildren.forEach(child => {
+                if (!child.classList.contains('time-display') && 
+                    !child.classList.contains('duration-toggle') &&
+                    !child.classList.contains('duration-chip')) {
+                  // Remove any unexpected elements
+                  child.remove();
                 }
-              } else {
-                // Reset duration chips when time is unselected
-                chip30.classList.remove('active');
-                chip60.classList.remove('active');
+              });
+
+              const chip30 = slot.querySelector('.duration-chip:first-child');
+              const chip60 = slot.querySelector('.duration-chip:last-child');
+
+              // Only update duration chips if they exist (not for house sitting/pet taxi)
+              if (chip30 && chip60) {
+                // Ensure chips only show duration, nothing else
+                if (chip30.textContent.trim() !== '30 min') {
+                  chip30.textContent = '30 min';
+                }
+                if (chip60.textContent.trim() !== '60 min') {
+                  chip60.textContent = '60 min';
+                }
+                
+                if (isSelected) {
+                  const entry = window.bookingForm.state.dateTimes[dateStr].find(e => e.time === time);
+                  if (entry) {
+                    if (entry.duration === 60) {
+                      chip60.classList.add('active');
+                      chip30.classList.remove('active');
+                    } else {
+                      chip30.classList.add('active');
+                      chip60.classList.remove('active');
+                    }
+                  }
+                } else {
+                  // Reset duration chips when time is unselected
+                  chip30.classList.remove('active');
+                  chip60.classList.remove('active');
+                }
               }
             }
           }
