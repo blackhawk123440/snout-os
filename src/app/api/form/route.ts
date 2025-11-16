@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { calculateBookingPrice } from "@/lib/rates";
 import { formatPhoneForAPI } from "@/lib/phone-format";
-import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, extractAllBookingVariables } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
 import { sendOwnerAlert } from "@/lib/sms-templates";
 import { getOwnerPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
@@ -367,20 +367,20 @@ export async function POST(request: NextRequest) {
         timeSlots: booking.timeSlots || [],
       });
       
-      // Get template - always reads fresh from database with no caching
       let clientMessageTemplate = await getMessageTemplate("ownerNewBookingAlert", "client");
       // If template is null (doesn't exist) or empty string, use default
       if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
         clientMessageTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll confirm your booking shortly. Thank you!";
       }
       
-      // Extract ALL booking variables directly from booking data
-      const bookingVariables = extractAllBookingVariables({
-        ...booking,
-        totalPrice: breakdown.total,
+      const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
+        firstName: trimmedFirstName,
+        service: booking.service, // Use the actual service name from the booking
+        datesTimes: formattedDatesTimes,
+        date: formatDateForMessage(booking.startAt),
+        time: formatTimeForMessage(booking.startAt),
+        petQuantities,
       });
-      
-      const clientMessage = replaceTemplateVariables(clientMessageTemplate, bookingVariables);
       
       await sendMessage(trimmedPhone, clientMessage, booking.id);
     }
@@ -402,23 +402,24 @@ export async function POST(request: NextRequest) {
           timeSlots: booking.timeSlots || [],
         });
         
-        // Get template - always reads fresh from database with no caching
         let ownerMessageTemplate = await getMessageTemplate("ownerNewBookingAlert", "owner");
         // If template is null (doesn't exist) or empty string, use default
         if (!ownerMessageTemplate || ownerMessageTemplate.trim() === "") {
-          ownerMessageTemplate = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}}\n{{datesTimes}}\n{{petQuantities}}\nTotal: ${{totalPrice}}\n\nView details: {{bookingUrl}}";
+          ownerMessageTemplate = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}}\n{{datesTimes}}\n{{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView details: {{bookingUrl}}";
         }
         
-        // Extract ALL booking variables directly from booking data
-        const bookingVariables = extractAllBookingVariables({
-          ...booking,
-          totalPrice: breakdown.total,
+        const ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
+          firstName: trimmedFirstName,
+          lastName: trimmedLastName,
+          phone: trimmedPhone,
+          service: booking.service, // Use the actual service name from the booking
+          datesTimes: formattedDatesTimes,
+          date: formatDateForMessage(booking.startAt),
+          time: formatTimeForMessage(booking.startAt),
+          petQuantities,
+          totalPrice: breakdown.total.toFixed(2),
+          bookingUrl: bookingDetailsUrl,
         });
-        
-        // Add booking URL to variables
-        bookingVariables.bookingUrl = bookingDetailsUrl;
-        
-        const ownerMessage = replaceTemplateVariables(ownerMessageTemplate, bookingVariables);
         
         await sendMessage(ownerPhone, ownerMessage, booking.id);
       } else {

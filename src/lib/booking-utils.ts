@@ -445,13 +445,8 @@ export function formatTimeForMessage(date: Date | string): string {
 
 /**
  * Format dates and times for automated messages
- * 
- * RULES:
- * - For Drop-Ins, Walks, and Pet Taxi: include every selected visit date, visit time, and visit duration.
- *   If multiple visits exist, list them all in order.
- * - For House Sitting and 24/7 Care: include the single start date and start time and the single end date and end time.
- * 
- * All data is pulled directly from booking details with no hardcoding.
+ * Matches the exact format used in booking details page
+ * Handles both timeSlots (visit-based services) and date ranges (house sitting)
  */
 export function formatDatesAndTimesForMessage(booking: {
   service: string;
@@ -462,20 +457,12 @@ export function formatDatesAndTimesForMessage(booking: {
   const isHouseSittingService = booking.service === "Housesitting" || booking.service === "24/7 Care";
   const hasTimeSlots = Array.isArray(booking.timeSlots) && booking.timeSlots.length > 0;
 
-  // For Drop-Ins, Walks, and Pet Taxi: include every selected visit date, visit time, and visit duration
-  // If multiple visits exist, list them all in order
+  // For visit-based services with timeSlots, group by date and show all times
   if (hasTimeSlots && !isHouseSittingService) {
-    // Sort timeSlots by startAt to ensure they're in order
-    const sortedSlots = [...booking.timeSlots!].sort((a, b) => {
-      const aStart = typeof a.startAt === 'string' ? new Date(a.startAt) : a.startAt;
-      const bStart = typeof b.startAt === 'string' ? new Date(b.startAt) : b.startAt;
-      return aStart.getTime() - bStart.getTime();
-    });
-    
     // Group timeSlots by date
     const slotsByDate: Record<string, Array<{ startAt: Date; endAt: Date; duration: number }>> = {};
     
-    sortedSlots.forEach(slot => {
+    booking.timeSlots!.forEach(slot => {
       const slotStart = typeof slot.startAt === 'string' ? new Date(slot.startAt) : slot.startAt;
       const slotEnd = typeof slot.endAt === 'string' ? new Date(slot.endAt) : slot.endAt;
       const dateKey = formatDateForMessage(slotStart);
@@ -486,7 +473,7 @@ export function formatDatesAndTimesForMessage(booking: {
       slotsByDate[dateKey].push({ startAt: slotStart, endAt: slotEnd, duration: slot.duration });
     });
 
-    // Format each date with its time slots (all visits listed in order)
+    // Format each date with its time slots
     const dateStrings = Object.keys(slotsByDate).sort().map(dateKey => {
       const slots = slotsByDate[dateKey];
       const timeStrings = slots.map(slot => {
@@ -500,7 +487,7 @@ export function formatDatesAndTimesForMessage(booking: {
     return dateStrings.join('\n\n');
   }
 
-  // For House Sitting and 24/7 Care: include the single start date and start time and the single end date and end time
+  // For house sitting/24-7 care, show date range
   if (isHouseSittingService) {
     const startDate = typeof booking.startAt === 'string' ? new Date(booking.startAt) : booking.startAt;
     const endDate = typeof booking.endAt === 'string' ? new Date(booking.endAt) : booking.endAt;
@@ -513,130 +500,10 @@ export function formatDatesAndTimesForMessage(booking: {
     return `Start: ${startDateStr} at ${startTimeStr}\nEnd: ${endDateStr} at ${endTimeStr}`;
   }
 
-  // Fallback: single date/time (shouldn't normally happen, but handle gracefully)
+  // Fallback: single date/time
   const startDate = typeof booking.startAt === 'string' ? new Date(booking.startAt) : booking.startAt;
   const dateStr = formatDateForMessage(startDate);
   const timeStr = formatTimeForMessage(startDate);
   
   return `${dateStr} at ${timeStr}`;
-}
-
-/**
- * Extract ALL booking variables for template replacement
- * Pulls every date and time value directly from booking details
- * Includes: start date, end date, visit dates, visit times, overnight times, pickup times, drop off times, etc.
- * 
- * This ensures all template variables are bound to actual booking data with no hardcoded values
- */
-export function extractAllBookingVariables(booking: {
-  id: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  email?: string | null;
-  address?: string | null;
-  pickupAddress?: string | null;
-  dropoffAddress?: string | null;
-  service: string;
-  startAt: Date | string;
-  endAt: Date | string;
-  totalPrice?: number;
-  pets: Array<{ name?: string; species: string }>;
-  timeSlots?: Array<{ startAt: Date | string; endAt: Date | string; duration: number }>;
-  sitter?: {
-    firstName: string;
-    lastName: string;
-  } | null;
-}): Record<string, string | number> {
-  const startDate = typeof booking.startAt === 'string' ? new Date(booking.startAt) : booking.startAt;
-  const endDate = typeof booking.endAt === 'string' ? new Date(booking.endAt) : booking.endAt;
-  
-  // Format all dates and times using shared functions
-  const formattedDatesTimes = formatDatesAndTimesForMessage({
-    service: booking.service,
-    startAt: booking.startAt,
-    endAt: booking.endAt,
-    timeSlots: booking.timeSlots || [],
-  });
-  
-  // Extract all individual date/time components
-  const startDateStr = formatDateForMessage(startDate);
-  const startTimeStr = formatTimeForMessage(startDate);
-  const endDateStr = formatDateForMessage(endDate);
-  const endTimeStr = formatTimeForMessage(endDate);
-  
-  // Extract visit dates and times from timeSlots
-  const visitDates: string[] = [];
-  const visitTimes: string[] = [];
-  const visitStartTimes: string[] = [];
-  const visitEndTimes: string[] = [];
-  const visitDurations: string[] = [];
-  
-  if (Array.isArray(booking.timeSlots) && booking.timeSlots.length > 0) {
-    booking.timeSlots.forEach(slot => {
-      const slotStart = typeof slot.startAt === 'string' ? new Date(slot.startAt) : slot.startAt;
-      const slotEnd = typeof slot.endAt === 'string' ? new Date(slot.endAt) : slot.endAt;
-      
-      visitDates.push(formatDateForMessage(slotStart));
-      visitStartTimes.push(formatTimeForMessage(slotStart));
-      visitEndTimes.push(formatTimeForMessage(slotEnd));
-      visitTimes.push(`${formatTimeForMessage(slotStart)} - ${formatTimeForMessage(slotEnd)}`);
-      visitDurations.push(`${slot.duration} min`);
-    });
-  }
-  
-  // Format pets
-  const petQuantities = formatPetsByQuantity(booking.pets);
-  
-  // Build comprehensive variables object
-  const variables: Record<string, string | number> = {
-    // Basic booking info
-    bookingId: booking.id,
-    firstName: booking.firstName,
-    lastName: booking.lastName,
-    phone: booking.phone,
-    email: booking.email || '',
-    service: booking.service,
-    
-    // Addresses
-    address: booking.address || 'TBD',
-    pickupAddress: booking.pickupAddress || 'TBD',
-    dropoffAddress: booking.dropoffAddress || 'TBD',
-    
-    // Combined dates/times (formatted as shown in booking details)
-    datesTimes: formattedDatesTimes,
-    
-    // Start date/time components
-    startDate: startDateStr,
-    startTime: startTimeStr,
-    startDateTime: `${startDateStr} at ${startTimeStr}`,
-    
-    // End date/time components
-    endDate: endDateStr,
-    endTime: endTimeStr,
-    endDateTime: `${endDateStr} at ${endTimeStr}`,
-    
-    // Visit-based variables (for services with timeSlots)
-    visitDates: visitDates.join(', '),
-    visitTimes: visitTimes.join(', '),
-    visitStartTimes: visitStartTimes.join(', '),
-    visitEndTimes: visitEndTimes.join(', '),
-    visitDurations: visitDurations.join(', '),
-    visitCount: booking.timeSlots?.length || 0,
-    
-    // Pet information
-    petQuantities,
-    petCount: booking.pets.length,
-    
-    // Pricing
-    totalPrice: booking.totalPrice || 0,
-    total: booking.totalPrice || 0,
-    
-    // Sitter information
-    sitterFirstName: booking.sitter?.firstName || '',
-    sitterLastName: booking.sitter?.lastName || '',
-    sitterName: booking.sitter ? `${booking.sitter.firstName} ${booking.sitter.lastName}` : '',
-  };
-  
-  return variables;
 }

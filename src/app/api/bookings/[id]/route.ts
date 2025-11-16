@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, extractAllBookingVariables } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
 import { sendMessage } from "@/lib/message-utils";
 import { getSitterPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
@@ -305,20 +305,21 @@ export async function PATCH(
       
       // Send to client
       if (shouldSendToClient) {
-        // Get template - always reads fresh from database with no caching
         let clientMessageTemplate = await getMessageTemplate("bookingConfirmation", "client");
         // If template is null (doesn't exist) or empty string, use default
         if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
           clientMessageTemplate = "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nWe'll see you soon!";
         }
         
-        // Extract ALL booking variables directly from booking data
-        const bookingVariables = extractAllBookingVariables({
-          ...finalBooking,
-          totalPrice: calculatedTotal,
+        const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
+          firstName: finalBooking.firstName,
+          service: finalBooking.service,
+          datesTimes: formattedDatesTimes,
+          date: formatDateForMessage(finalBooking.startAt),
+          time: formatTimeForMessage(finalBooking.startAt),
+          petQuantities,
+          totalPrice: calculatedTotal.toFixed(2),
         });
-        
-        const clientMessage = replaceTemplateVariables(clientMessageTemplate, bookingVariables);
         
         await sendMessage(finalBooking.phone, clientMessage, finalBooking.id);
       } else {
@@ -340,27 +341,26 @@ export async function PATCH(
             const commissionPercentage = sitter.commissionPercentage || 80.0;
             const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
             
-            // Get template - always reads fresh from database with no caching
             let sitterMessageTemplate = await getMessageTemplate("bookingConfirmation", "sitter");
             // If template is null (doesn't exist) or empty string, use default
             if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
               sitterMessageTemplate = "✅ BOOKING CONFIRMED!\n\nHi {{sitterFirstName}},\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nView details in your dashboard.";
             }
             
-            // Extract ALL booking variables directly from booking data
-            const bookingVariables = extractAllBookingVariables({
-              ...finalBooking,
-              totalPrice: calculatedTotal,
-              sitter: {
-                firstName: sitter.firstName,
-                lastName: sitter.lastName,
-              },
-            });
-            
-            // Add earnings to variables (will be calculated in replaceTemplateVariables)
-            bookingVariables.earnings = sitterEarnings.toFixed(2);
-            
-            const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, bookingVariables, {
+            const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
+              sitterFirstName: sitter.firstName,
+              firstName: finalBooking.firstName,
+              lastName: finalBooking.lastName,
+              service: finalBooking.service,
+              datesTimes: formattedDatesTimes,
+              date: formatDateForMessage(finalBooking.startAt),
+              time: formatTimeForMessage(finalBooking.startAt),
+              petQuantities,
+              address: finalBooking.address || 'TBD',
+              earnings: sitterEarnings.toFixed(2),
+              totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
+              total: calculatedTotal,
+            }, {
               isSitterMessage: true,
               sitterCommissionPercentage: commissionPercentage,
             });
@@ -376,20 +376,22 @@ export async function PATCH(
         const ownerPhone = await getOwnerPhone(undefined, "bookingConfirmation");
         
         if (ownerPhone) {
-          // Get template - always reads fresh from database with no caching
           let ownerMessageTemplate = await getMessageTemplate("bookingConfirmation", "owner");
           // If template is null (doesn't exist) or empty string, use default
           if (!ownerMessageTemplate || ownerMessageTemplate.trim() === "") {
             ownerMessageTemplate = "✅ BOOKING CONFIRMED!\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}";
           }
           
-          // Extract ALL booking variables directly from booking data
-          const bookingVariables = extractAllBookingVariables({
-            ...finalBooking,
-            totalPrice: calculatedTotal,
+          const ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
+            firstName: finalBooking.firstName,
+            lastName: finalBooking.lastName,
+            service: finalBooking.service,
+            datesTimes: formattedDatesTimes,
+            date: formatDateForMessage(finalBooking.startAt),
+            time: formatTimeForMessage(finalBooking.startAt),
+            petQuantities,
+            totalPrice: calculatedTotal.toFixed(2),
           });
-          
-          const ownerMessage = replaceTemplateVariables(ownerMessageTemplate, bookingVariables);
           
           await sendMessage(ownerPhone, ownerMessage, finalBooking.id);
         }
@@ -427,27 +429,28 @@ export async function PATCH(
           
           let message: string;
           if (shouldSendToSitter) {
-            // Get template - always reads fresh from database with no caching
+            // Use automation template if available
             let sitterMessageTemplate = await getMessageTemplate("sitterAssignment", "sitter");
             // If template is null (doesn't exist) or empty string, use default
             if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
               sitterMessageTemplate = "👋 SITTER ASSIGNED!\n\nHi {{sitterFirstName}},\n\nYou've been assigned to {{firstName}} {{lastName}}'s {{service}} booking:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
             }
             
-            // Extract ALL booking variables directly from booking data
-            const bookingVariables = extractAllBookingVariables({
-              ...finalBooking,
-              totalPrice: calculatedTotal,
-              sitter: {
-                firstName: sitter.firstName,
-                lastName: sitter.lastName,
-              },
-            });
-            
-            // Add earnings to variables (will be calculated in replaceTemplateVariables)
-            bookingVariables.earnings = sitterEarnings.toFixed(2);
-            
-            message = replaceTemplateVariables(sitterMessageTemplate, bookingVariables, {
+            message = replaceTemplateVariables(sitterMessageTemplate, {
+              sitterFirstName: sitter.firstName,
+              firstName: finalBooking.firstName,
+              lastName: finalBooking.lastName,
+              service: finalBooking.service,
+              datesTimes: formattedDatesTimes,
+              date: formatDateForMessage(finalBooking.startAt),
+              time: formatTimeForMessage(finalBooking.startAt),
+              petQuantities,
+              address: finalBooking.address || 'TBD',
+              earnings: sitterEarnings.toFixed(2),
+              commissionPercentage: commissionPercentage.toFixed(0),
+              totalPrice: calculatedTotal, // Pass the actual total so earnings can be calculated
+              total: calculatedTotal, // Pass the actual total so earnings can be calculated
+            }, {
               isSitterMessage: true,
               sitterCommissionPercentage: commissionPercentage,
             });
