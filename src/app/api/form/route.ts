@@ -373,7 +373,12 @@ export async function POST(request: NextRequest) {
         clientMessageTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll confirm your booking shortly. Thank you!";
       }
       
-      const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
+      // Detect if template includes any date/time placeholders; if not, we'll append the schedule after replacement
+      const hasDateTokens =
+        /\{\{(datesTimes|dateTime|date_time|dateAndTime|date|time)\}\}/i.test(clientMessageTemplate) ||
+        /\[(Date ?& ?Time|Date ?\/ ?Time|Date|Time)\]/i.test(clientMessageTemplate);
+
+      let clientMessage = replaceTemplateVariables(clientMessageTemplate, {
         firstName: trimmedFirstName,
         service: booking.service, // Use the actual service name from the booking
         datesTimes: formattedDatesTimes,
@@ -381,6 +386,9 @@ export async function POST(request: NextRequest) {
         time: formatTimeForMessage(booking.startAt),
         petQuantities,
       });
+      if (!hasDateTokens) {
+        clientMessage += `\n\n${formattedDatesTimes}`;
+      }
       
       await sendMessage(trimmedPhone, clientMessage, booking.id);
     }
