@@ -733,19 +733,17 @@ export default function AutomationPage() {
                                   Client Message Template
                                 </label>
                                 <textarea
-                                  value={"messageTemplateClient" in config ? (config.messageTemplateClient || "") : "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nWe'll see you soon!"}
+                                  value={"messageTemplateClient" in config ? (config.messageTemplateClient || "") : "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nWe'll see you soon!"}
                                   onChange={(e) => updateAutomation("bookingConfirmation", { messageTemplateClient: e.target.value })}
                                   rows={6}
                                   className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 text-sm touch-manipulation min-h-[44px]"
                                   style={{ borderColor: COLORS.primaryLight }}
                                   placeholder="Message template with {{variables}}..."
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Available: {"{{firstName}}"}, {"{{service}}"}, {"{{datesTimes}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}, {"{{totalPrice}}"}
-                                </p>
+                                <p className="text-xs text-gray-500 mt-1">Available: {"{{firstName}}"}, {"{{service}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}, {"{{totalPrice}}"}</p>
                                 <button
                                   onClick={() => {
-                                    const template = "messageTemplateClient" in config ? (config.messageTemplateClient || "") : "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nWe'll see you soon!";
+                                    const template = "messageTemplateClient" in config ? (config.messageTemplateClient || "") : "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nWe'll see you soon!";
                                     handleTestMessage(template, "client");
                                   }}
                                   disabled={testingMessage !== null || !testPhoneNumber.trim()}
@@ -767,20 +765,18 @@ export default function AutomationPage() {
                                   Sitter Message Template
                                 </label>
                                 <textarea
-                                  value={"messageTemplateSitter" in config ? (config.messageTemplateSitter || "") : "✅ BOOKING CONFIRMED!\n\nHi {{sitterFirstName}},\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nView details in your dashboard."}
+                                  value={"messageTemplateSitter" in config ? (config.messageTemplateSitter || "") : "✅ BOOKING ASSIGNED!\n\nHi {{sitterFirstName}},\n\nYou've been assigned to {{firstName}} {{lastName}}'s {{service}} booking on {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nView details in your dashboard."}
                                   onChange={(e) => updateAutomation("bookingConfirmation", { messageTemplateSitter: e.target.value })}
                                   rows={6}
                                   className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 text-sm touch-manipulation min-h-[44px]"
                                   style={{ borderColor: COLORS.primaryLight }}
                                   placeholder="Message template with {{variables}}..."
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Available: {"{{sitterFirstName}}"}, {"{{firstName}}"}, {"{{lastName}}"}, {"{{service}}"}, {"{{datesTimes}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}, {"{{address}}"}, {"{{earnings}}"}, {"{{totalPrice}}"}, {"{{total}}"}
-                                </p>
+                                <p className="text-xs text-gray-500 mt-1">Available: {"{{sitterFirstName}}"}, {"{{firstName}}"}, {"{{lastName}}"}, {"{{service}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}, {"{{address}}"}, {"{{earnings}}"}, {"{{totalPrice}}"}, {"{{total}}"}</p>
                                 <p className="text-xs text-gray-400 mt-1 italic">Note: {"{{totalPrice}}"} and {"{{total}}"} will automatically show earnings for sitters</p>
                                 <button
                                   onClick={() => {
-                                    const defaultTemplate = "✅ BOOKING CONFIRMED!\n\nHi {{sitterFirstName}},\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nView details in your dashboard.";
+                                    const defaultTemplate = "✅ BOOKING ASSIGNED!\n\nHi {{sitterFirstName}},\n\nYou've been assigned to {{firstName}} {{lastName}}'s {{service}} booking on {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nView details in your dashboard.";
                                     const template = "messageTemplateSitter" in config ? (config.messageTemplateSitter || defaultTemplate) : defaultTemplate;
                                     handleTestMessage(template, "sitter");
                                   }}
@@ -803,19 +799,17 @@ export default function AutomationPage() {
                                   Owner Message Template
                                 </label>
                                 <textarea
-                                  value={"messageTemplateOwner" in config ? (config.messageTemplateOwner || "") : "📋 BOOKING CONFIRMED\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView: {{bookingUrl}}"}
+                                  value={"messageTemplateOwner" in config ? (config.messageTemplateOwner || "") : "📋 BOOKING CONFIRMED\n\n{{firstName}} {{lastName}}\n{{service}} — {{date}} at {{time}}\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView: {{bookingUrl}}"}
                                   onChange={(e) => updateAutomation("bookingConfirmation", { messageTemplateOwner: e.target.value })}
                                   rows={6}
                                   className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 text-sm touch-manipulation min-h-[44px]"
                                   style={{ borderColor: COLORS.primaryLight }}
                                   placeholder="Message template with {{variables}}..."
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Available: {"{{firstName}}"}, {"{{lastName}}"}, {"{{service}}"}, {"{{datesTimes}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}, {"{{totalPrice}}"}, {"{{bookingUrl}}"}
-                                </p>
+                                <p className="text-xs text-gray-500 mt-1">Available: {"{{firstName}}"}, {"{{lastName}}"}, {"{{service}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}, {"{{totalPrice}}"}, {"{{bookingUrl}}"}</p>
                                 <button
                                   onClick={() => {
-                                    const defaultTemplate = "📋 BOOKING CONFIRMED\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView: {{bookingUrl}}";
+                                    const defaultTemplate = "📋 BOOKING CONFIRMED\n\n{{firstName}} {{lastName}}\n{{service}} — {{date}} at {{time}}\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView: {{bookingUrl}}";
                                     const template = "messageTemplateOwner" in config ? (config.messageTemplateOwner || defaultTemplate) : defaultTemplate;
                                     handleTestMessage(template, "owner");
                                   }}
@@ -881,19 +875,17 @@ export default function AutomationPage() {
                                   Client Message Template
                                 </label>
                                 <textarea
-                                  value={"messageTemplateClient" in config ? (config.messageTemplateClient || "") : "🌙 REMINDER!\n\nHi {{firstName}},\n\nJust a friendly reminder about your {{service}} appointment:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe're excited to care for your pets!"}
+                                  value={"messageTemplateClient" in config ? (config.messageTemplateClient || "") : "🌙 REMINDER!\n\nHi {{firstName}},\n\nJust a friendly reminder about your {{service}} appointment tomorrow at {{time}}.\n\nPets: {{petQuantities}}\n\nWe're excited to care for your pets!"}
                                   onChange={(e) => updateAutomation("nightBeforeReminder", { messageTemplateClient: e.target.value })}
                                   rows={6}
                                   className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 text-sm touch-manipulation min-h-[44px]"
                                   style={{ borderColor: COLORS.primaryLight }}
                                   placeholder="Message template with {{variables}}..."
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Available: {"{{firstName}}"}, {"{{service}}"}, {"{{datesTimes}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}
-                                </p>
+                                <p className="text-xs text-gray-500 mt-1">Available: {"{{firstName}}"}, {"{{service}}"}, {"{{time}}"}, {"{{petQuantities}}"}</p>
                                 <button
                                   onClick={() => {
-                                    const defaultTemplate = "🌙 REMINDER!\n\nHi {{firstName}},\n\nJust a friendly reminder about your {{service}} appointment:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe're excited to care for your pets!";
+                                    const defaultTemplate = "🌙 REMINDER!\n\nHi {{firstName}},\n\nJust a friendly reminder about your {{service}} appointment tomorrow at {{time}}.\n\nPets: {{petQuantities}}\n\nWe're excited to care for your pets!";
                                     const template = "messageTemplateClient" in config ? (config.messageTemplateClient || defaultTemplate) : defaultTemplate;
                                     handleTestMessage(template, "client");
                                   }}
@@ -916,20 +908,18 @@ export default function AutomationPage() {
                                   Sitter Message Template
                                 </label>
                                 <textarea
-                                  value={"messageTemplateSitter" in config ? (config.messageTemplateSitter || "") : "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment:\n{{datesTimes}}\n\nClient: {{firstName}} {{lastName}}\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability."}
+                                  value={"messageTemplateSitter" in config ? (config.messageTemplateSitter || "") : "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment tomorrow at {{time}}.\n\nClient: {{firstName}} {{lastName}}\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability."}
                                   onChange={(e) => updateAutomation("nightBeforeReminder", { messageTemplateSitter: e.target.value })}
                                   rows={6}
                                   className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 text-sm touch-manipulation min-h-[44px]"
                                   style={{ borderColor: COLORS.primaryLight }}
                                   placeholder="Message template with {{variables}}..."
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Available: {"{{sitterFirstName}}"}, {"{{service}}"}, {"{{datesTimes}}"}, {"{{date}}"}, {"{{time}}"}, {"{{firstName}}"}, {"{{lastName}}"}, {"{{petQuantities}}"}, {"{{address}}"}, {"{{earnings}}"}, {"{{totalPrice}}"}, {"{{total}}"}
-                                </p>
+                                <p className="text-xs text-gray-500 mt-1">Available: {"{{sitterFirstName}}"}, {"{{service}}"}, {"{{time}}"}, {"{{firstName}}"}, {"{{lastName}}"}, {"{{petQuantities}}"}, {"{{address}}"}, {"{{earnings}}"}, {"{{totalPrice}}"}, {"{{total}}"}</p>
                                 <p className="text-xs text-gray-400 mt-1 italic">Note: {"{{totalPrice}}"} and {"{{total}}"} will automatically show earnings for sitters</p>
                                 <button
                                   onClick={() => {
-                                    const defaultTemplate = "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment:\n{{datesTimes}}\n\nClient: {{firstName}} {{lastName}}\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
+                                    const defaultTemplate = "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment tomorrow at {{time}}.\n\nClient: {{firstName}} {{lastName}}\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
                                     const template = "messageTemplateSitter" in config ? (config.messageTemplateSitter || defaultTemplate) : defaultTemplate;
                                     handleTestMessage(template, "sitter");
                                   }}
@@ -1077,19 +1067,17 @@ export default function AutomationPage() {
                                 Client Message Template
                               </label>
                               <textarea
-                                value={"messageTemplateClient" in config ? (config.messageTemplateClient || "") : "💳 PAYMENT REMINDER\n\nHi {{firstName}},\n\nYour {{service}} booking:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nPay now: {{paymentLink}}"}
+                                value={"messageTemplateClient" in config ? (config.messageTemplateClient || "") : "💳 PAYMENT REMINDER\n\nHi {{firstName}},\n\nYour {{service}} booking on {{date}} is ready for payment.\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nPay now: {{paymentLink}}"}
                                 onChange={(e) => updateAutomation("paymentReminder", { messageTemplateClient: e.target.value })}
                                 rows={6}
                                 className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 text-sm touch-manipulation min-h-[44px]"
                                 style={{ borderColor: COLORS.primaryLight }}
                                 placeholder="Message template with {{variables}}..."
                               />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Available variables: {"{{firstName}}"}, {"{{service}}"}, {"{{datesTimes}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}, {"{{totalPrice}}"}, {"{{paymentLink}}"}
-                              </p>
+                              <p className="text-xs text-gray-500 mt-1">Available variables: {"{{firstName}}"}, {"{{service}}"}, {"{{date}}"}, {"{{petQuantities}}"}, {"{{totalPrice}}"}, {"{{paymentLink}}"}</p>
                               <button
                                 onClick={() => {
-                                  const defaultTemplate = "💳 PAYMENT REMINDER\n\nHi {{firstName}},\n\nYour {{service}} booking:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nPay now: {{paymentLink}}";
+                                  const defaultTemplate = "💳 PAYMENT REMINDER\n\nHi {{firstName}},\n\nYour {{service}} booking on {{date}} is ready for payment.\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nPay now: {{paymentLink}}";
                                   const template = "messageTemplateClient" in config ? (config.messageTemplateClient || defaultTemplate) : defaultTemplate;
                                   handleTestMessage(template, "client");
                                 }}
@@ -1399,19 +1387,17 @@ export default function AutomationPage() {
                                 Client Message Template
                               </label>
                               <textarea
-                                value={"messageTemplateClient" in config ? (config.messageTemplateClient || "") : "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nWe'll confirm your booking shortly. Thank you!"}
+                                value={"messageTemplateClient" in config ? (config.messageTemplateClient || "") : "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nWe'll confirm your booking shortly. Thank you!"}
                                 onChange={(e) => updateAutomation("ownerNewBookingAlert", { messageTemplateClient: e.target.value })}
                                 rows={6}
                                 className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 text-sm touch-manipulation min-h-[44px]"
                                 style={{ borderColor: COLORS.primaryLight }}
                                 placeholder="Message template with {{variables}}..."
                               />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Available variables: {"{{firstName}}"}, {"{{service}}"}, {"{{datesTimes}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}, {"{{totalPrice}}"}
-                              </p>
+                              <p className="text-xs text-gray-500 mt-1">Available variables: {"{{firstName}}"}, {"{{service}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}, {"{{totalPrice}}"}</p>
                               <button
                                 onClick={() => {
-                                  const defaultTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nWe'll confirm your booking shortly. Thank you!";
+                                  const defaultTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request for {{date}} at {{time}}.\n\nPets: {{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nWe'll confirm your booking shortly. Thank you!";
                                   const template = "messageTemplateClient" in config ? (config.messageTemplateClient || defaultTemplate) : defaultTemplate;
                                   handleTestMessage(template, "client");
                                 }}
@@ -1434,19 +1420,17 @@ export default function AutomationPage() {
                                 Owner Message Template
                               </label>
                               <textarea
-                                value={"messageTemplateOwner" in config ? (config.messageTemplateOwner || "") : "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}}\n{{datesTimes}}\n{{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView details: {{bookingUrl}}"}
+                                value={"messageTemplateOwner" in config ? (config.messageTemplateOwner || "") : "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}} — {{date}} at {{time}}\n{{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView details: {{bookingUrl}}"}
                                 onChange={(e) => updateAutomation("ownerNewBookingAlert", { messageTemplateOwner: e.target.value })}
                                 rows={6}
                                 className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 text-sm touch-manipulation min-h-[44px]"
                                 style={{ borderColor: COLORS.primaryLight }}
                                 placeholder="Message template with {{variables}}..."
                               />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Available variables: {"{{firstName}}"}, {"{{lastName}}"}, {"{{phone}}"}, {"{{service}}"}, {"{{datesTimes}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}, {"{{totalPrice}}"}, {"{{bookingUrl}}"}
-                              </p>
+                              <p className="text-xs text-gray-500 mt-1">Available variables: {"{{firstName}}"}, {"{{lastName}}"}, {"{{phone}}"}, {"{{service}}"}, {"{{date}}"}, {"{{time}}"}, {"{{petQuantities}}"}, {"{{totalPrice}}"}, {"{{bookingUrl}}"}</p>
                               <button
                                 onClick={() => {
-                                  const defaultTemplate = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}}\n{{datesTimes}}\n{{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView details: {{bookingUrl}}";
+                                  const defaultTemplate = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}} — {{date}} at {{time}}\n{{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView details: {{bookingUrl}}";
                                   const template = "messageTemplateOwner" in config ? (config.messageTemplateOwner || defaultTemplate) : defaultTemplate;
                                   handleTestMessage(template, "owner");
                                 }}
