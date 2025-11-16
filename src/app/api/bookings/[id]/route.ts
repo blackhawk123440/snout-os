@@ -329,13 +329,20 @@ export async function PATCH(
         
         // Always include the full schedule if the template doesn't explicitly include it
         if (!hasDetailedScheduleToken) {
-          // Remove inline date/time patterns: " — <date> at <time>", " on <date> at <time>", " for <date> at <time>"
-          const dateStr = formatDateForMessage(finalBooking.startAt);
+          // Remove inline date/time patterns more flexibly - match any date format followed by "at" and time
           const timeStr = formatTimeForMessage(finalBooking.startAt);
-          const dashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-          const onRegex = new RegExp(`\\son\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-          const forRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-          clientMessage = clientMessage.replace(dashRegex, "").replace(onRegex, "").replace(forRegex, "");
+          // More flexible pattern: match "on/for/—" followed by date-like text, "at", and time
+          const onPattern = /\s+on\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
+          const forPattern = /\s+for\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
+          const dashPattern = /\s+—\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
+          clientMessage = clientMessage.replace(onPattern, "").replace(forPattern, "").replace(dashPattern, "");
+          
+          // Also try to match the exact format we're using (more specific fallback)
+          const dateStr = formatDateForMessage(finalBooking.startAt);
+          const exactOnRegex = new RegExp(`\\s+on\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
+          const exactForRegex = new RegExp(`\\s+for\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
+          const exactDashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
+          clientMessage = clientMessage.replace(exactOnRegex, "").replace(exactForRegex, "").replace(exactDashRegex, "");
           
           // Insert the schedule before "Pets:", "Total:", or before closing message if neither present
           const petsMarker = /\n{1,2}Pets:/i;
@@ -432,13 +439,20 @@ export async function PATCH(
           
           // Always include the full schedule if the template doesn't explicitly include it
           if (!hasDetailedScheduleToken) {
-            // Remove inline date/time patterns: " — <date> at <time>", " on <date> at <time>", " for <date> at <time>"
-            const dateStr = formatDateForMessage(finalBooking.startAt);
+            // Remove inline date/time patterns more flexibly - match any date format followed by "at" and time
             const timeStr = formatTimeForMessage(finalBooking.startAt);
-            const dashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-            const onRegex = new RegExp(`\\son\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-            const forRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-            ownerMessage = ownerMessage.replace(dashRegex, "").replace(onRegex, "").replace(forRegex, "");
+            // More flexible pattern: match "on/for/—" followed by date-like text, "at", and time
+            const onPattern = /\s+on\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
+            const forPattern = /\s+for\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
+            const dashPattern = /\s+—\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
+            ownerMessage = ownerMessage.replace(onPattern, "").replace(forPattern, "").replace(dashPattern, "");
+            
+            // Also try to match the exact format we're using (more specific fallback)
+            const dateStr = formatDateForMessage(finalBooking.startAt);
+            const exactOnRegex = new RegExp(`\\s+on\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
+            const exactForRegex = new RegExp(`\\s+for\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
+            const exactDashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
+            ownerMessage = ownerMessage.replace(exactOnRegex, "").replace(exactForRegex, "").replace(exactDashRegex, "");
             
             // Insert the schedule before "Pets:" or "Total:" if present
             const petsMarker = /\n{1,2}Pets:/i;
@@ -519,13 +533,21 @@ export async function PATCH(
             
             // Always include the full schedule if the template doesn't explicitly include it
             if (!hasDetailedScheduleToken) {
-              // Remove inline date/time patterns: " — <date> at <time>", " on <date> at <time>", " for <date> at <time>"
-              const dateStr = formatDateForMessage(finalBooking.startAt);
+              // Remove inline date/time patterns more flexibly - match any date format followed by "at" and time
+              // Patterns: " — <anything> at <time>", " on <anything> at <time>", " for <anything> at <time>"
               const timeStr = formatTimeForMessage(finalBooking.startAt);
-              const dashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-              const onRegex = new RegExp(`\\son\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-              const forRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-              message = message.replace(dashRegex, "").replace(onRegex, "").replace(forRegex, "");
+              // More flexible pattern: match "on/for/—" followed by date-like text, "at", and time
+              const onPattern = /\s+on\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
+              const forPattern = /\s+for\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
+              const dashPattern = /\s+—\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
+              message = message.replace(onPattern, "").replace(forPattern, "").replace(dashPattern, "");
+              
+              // Also try to match the exact format we're using (more specific fallback)
+              const dateStr = formatDateForMessage(finalBooking.startAt);
+              const exactOnRegex = new RegExp(`\\s+on\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
+              const exactForRegex = new RegExp(`\\s+for\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
+              const exactDashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
+              message = message.replace(exactOnRegex, "").replace(exactForRegex, "").replace(exactDashRegex, "");
               
               // Insert the schedule before "Pets:", "Address:", "Your Earnings:", or before closing message
               const petsMarker = /\n{1,2}Pets:/i;
