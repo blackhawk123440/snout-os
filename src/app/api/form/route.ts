@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { calculateBookingPrice } from "@/lib/rates";
 import { formatPhoneForAPI } from "@/lib/phone-format";
-import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, formatDateShortForMessage } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
 import { sendOwnerAlert } from "@/lib/sms-templates";
 import { getOwnerPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
@@ -382,14 +382,14 @@ export async function POST(request: NextRequest) {
         firstName: trimmedFirstName,
         service: booking.service, // Use the actual service name from the booking
         datesTimes: formattedDatesTimes,
-        date: formatDateShortForMessage(booking.startAt),
+        date: formatDateForMessage(booking.startAt),
         time: formatTimeForMessage(booking.startAt),
         petQuantities,
       });
       // Always include the full schedule if the template doesn't explicitly include it
       if (!hasDetailedScheduleToken) {
         // If the intro contains " for <date> at <time>", remove that clause to avoid redundancy
-        const dateStr = formatDateShortForMessage(booking.startAt);
+        const dateStr = formatDateForMessage(booking.startAt);
         const timeStr = formatTimeForMessage(booking.startAt);
         const forDateTimeRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
         clientMessage = clientMessage.replace(forDateTimeRegex, "");
@@ -440,7 +440,7 @@ export async function POST(request: NextRequest) {
           phone: trimmedPhone,
           service: booking.service, // Use the actual service name from the booking
           datesTimes: formattedDatesTimes,
-          date: formatDateShortForMessage(booking.startAt),
+          date: formatDateForMessage(booking.startAt),
           time: formatTimeForMessage(booking.startAt),
           petQuantities,
           totalPrice: breakdown.total.toFixed(2),
@@ -449,7 +449,7 @@ export async function POST(request: NextRequest) {
 
         if (!hasDetailedScheduleToken) {
           // Remove inline " — <date> at <time>" or " on <date> at <time>" or " for <date> at <time>"
-          const dateStr = formatDateShortForMessage(booking.startAt);
+          const dateStr = formatDateForMessage(booking.startAt);
           const timeStr = formatTimeForMessage(booking.startAt);
           const dashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
           const onRegex = new RegExp(`\\son\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
