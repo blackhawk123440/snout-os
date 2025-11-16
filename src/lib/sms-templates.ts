@@ -1,5 +1,5 @@
 import { sendMessage } from "@/lib/message-utils";
-import { formatPetsByQuantity, formatDatesAndTimesForMessage } from "@/lib/booking-utils";
+import { formatPetsByQuantity, formatDatesAndTimesForMessage, formatDateShortForMessage, formatTimeForMessage } from "@/lib/booking-utils";
 import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
 
 interface Booking {
@@ -157,7 +157,9 @@ export async function sendOwnerAlert(
   pets: Array<{ species: string }>
 ): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(pets);
-  const message = `📱 NEW BOOKING ALERT\n\n${firstName} ${lastName} - ${service}\nDate: ${startAt.toLocaleDateString()} at ${startAt.toLocaleTimeString()}\nPets: ${petQuantities}\nPhone: ${phone}`;
+  const dateStr = formatDateShortForMessage(startAt);
+  const timeStr = formatTimeForMessage(startAt);
+  const message = `📱 NEW BOOKING ALERT\n\n${firstName} ${lastName} - ${service}\nDate: ${dateStr} at ${timeStr}\nPets: ${petQuantities}\nPhone: ${phone}`;
   
   const ownerPhone = await getOwnerPhone(undefined, "ownerNewBookingAlert");
   if (!ownerPhone) {

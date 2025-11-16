@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { formatDateShortForMessage, formatTimeForMessage } from "@/lib/booking-utils";
 import { sendMessage } from "@/lib/message-utils";
 import { replaceTemplateVariables } from "@/lib/automation-utils";
 import { formatPhoneForAPI, formatPhoneForDisplay, isValidPhoneNumber } from "@/lib/phone-format";
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate sample data for testing
+    const now = new Date();
     const sampleData: Record<string, string | number> = {
       firstName: "John",
       lastName: "Doe",
@@ -34,8 +36,8 @@ export async function POST(request: NextRequest) {
       email: "john.doe@example.com",
       address: "123 Main St, City, State 12345",
       service: "Dog Walking",
-      date: new Date().toLocaleDateString(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: formatDateShortForMessage(now),
+      time: formatTimeForMessage(now),
       startAt: new Date().toLocaleString(),
       endAt: new Date(Date.now() + 3600000).toLocaleString(),
       petQuantities: "2 dogs, 1 cat",
