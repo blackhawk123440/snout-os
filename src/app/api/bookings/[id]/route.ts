@@ -513,6 +513,34 @@ export async function PATCH(
               isSitterMessage: true,
               sitterCommissionPercentage: commissionPercentage,
             });
+            
+            // Check if template has detailed schedule token
+            const hasDetailedScheduleToken = /\{\{(datesTimes|schedule|visits|dateTime|date_time|dateAndTime|dates|times)\}\}/i.test(sitterMessageTemplate);
+            
+            // Always include the full schedule if the template doesn't explicitly include it
+            if (!hasDetailedScheduleToken) {
+              // Remove inline date/time patterns: " — <date> at <time>", " on <date> at <time>", " for <date> at <time>"
+              const dateStr = formatDateForMessage(finalBooking.startAt);
+              const timeStr = formatTimeForMessage(finalBooking.startAt);
+              const dashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+              const onRegex = new RegExp(`\\son\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+              const forRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+              message = message.replace(dashRegex, "").replace(onRegex, "").replace(forRegex, "");
+              
+              // Insert the schedule before "Pets:", "Address:", "Your Earnings:", or before closing message
+              const petsMarker = /\n{1,2}Pets:/i;
+              const addressMarker = /\n{1,2}Address:/i;
+              const earningsMarker = /\n{1,2}Your Earnings:/i;
+              if (petsMarker.test(message)) {
+                message = message.replace(petsMarker, `\n\n${formattedDatesTimes}\n\nPets:`);
+              } else if (addressMarker.test(message)) {
+                message = message.replace(addressMarker, `\n\n${formattedDatesTimes}\n\nAddress:`);
+              } else if (earningsMarker.test(message)) {
+                message = message.replace(earningsMarker, `\n\n${formattedDatesTimes}\n\nYour Earnings:`);
+              } else {
+                message += `\n\n${formattedDatesTimes}`;
+              }
+            }
           } else {
             // Use hardcoded message if automation is not enabled
             message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${finalBooking.firstName} ${finalBooking.lastName}'s ${finalBooking.service} booking:\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nAddress: ${finalBooking.address}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nPlease confirm your availability.`;
