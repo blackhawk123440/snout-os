@@ -311,7 +311,9 @@ export async function PATCH(
           clientMessageTemplate = "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nWe'll see you soon!";
         }
         
-        const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
+        const bookingDetailsUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/bookings?booking=${finalBooking.id}`;
+        
+        let clientMessage = replaceTemplateVariables(clientMessageTemplate, {
           firstName: finalBooking.firstName,
           service: finalBooking.service,
           datesTimes: formattedDatesTimes,
@@ -319,7 +321,33 @@ export async function PATCH(
           time: formatTimeForMessage(finalBooking.startAt),
           petQuantities,
           totalPrice: calculatedTotal.toFixed(2),
+          bookingUrl: bookingDetailsUrl,
         });
+        
+        // Check if template has detailed schedule token
+        const hasDetailedScheduleToken = /\{\{(datesTimes|schedule|visits|dateTime|date_time|dateAndTime|dates|times)\}\}/i.test(clientMessageTemplate);
+        
+        // Always include the full schedule if the template doesn't explicitly include it
+        if (!hasDetailedScheduleToken) {
+          // Remove inline date/time patterns: " — <date> at <time>", " on <date> at <time>", " for <date> at <time>"
+          const dateStr = formatDateForMessage(finalBooking.startAt);
+          const timeStr = formatTimeForMessage(finalBooking.startAt);
+          const dashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+          const onRegex = new RegExp(`\\son\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+          const forRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+          clientMessage = clientMessage.replace(dashRegex, "").replace(onRegex, "").replace(forRegex, "");
+          
+          // Insert the schedule before "Pets:" or "Total:" if present
+          const petsMarker = /\n{1,2}Pets:/i;
+          const totalMarker = /\n{1,2}Total:/i;
+          if (petsMarker.test(clientMessage)) {
+            clientMessage = clientMessage.replace(petsMarker, `\n\n${formattedDatesTimes}\n\nPets:`);
+          } else if (totalMarker.test(clientMessage)) {
+            clientMessage = clientMessage.replace(totalMarker, `\n\n${formattedDatesTimes}\n\nTotal:`);
+          } else {
+            clientMessage += `\n\n${formattedDatesTimes}`;
+          }
+        }
         
         await sendMessage(finalBooking.phone, clientMessage, finalBooking.id);
       } else {
@@ -379,10 +407,12 @@ export async function PATCH(
           let ownerMessageTemplate = await getMessageTemplate("bookingConfirmation", "owner");
           // If template is null (doesn't exist) or empty string, use default
           if (!ownerMessageTemplate || ownerMessageTemplate.trim() === "") {
-            ownerMessageTemplate = "✅ BOOKING CONFIRMED!\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}";
+            ownerMessageTemplate = "✅ BOOKING CONFIRMED!\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nView: {{bookingUrl}}";
           }
           
-          const ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
+          const bookingDetailsUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/bookings?booking=${finalBooking.id}`;
+          
+          let ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
             firstName: finalBooking.firstName,
             lastName: finalBooking.lastName,
             service: finalBooking.service,
@@ -391,7 +421,33 @@ export async function PATCH(
             time: formatTimeForMessage(finalBooking.startAt),
             petQuantities,
             totalPrice: calculatedTotal.toFixed(2),
+            bookingUrl: bookingDetailsUrl,
           });
+          
+          // Check if template has detailed schedule token
+          const hasDetailedScheduleToken = /\{\{(datesTimes|schedule|visits|dateTime|date_time|dateAndTime|dates|times)\}\}/i.test(ownerMessageTemplate);
+          
+          // Always include the full schedule if the template doesn't explicitly include it
+          if (!hasDetailedScheduleToken) {
+            // Remove inline date/time patterns: " — <date> at <time>", " on <date> at <time>", " for <date> at <time>"
+            const dateStr = formatDateForMessage(finalBooking.startAt);
+            const timeStr = formatTimeForMessage(finalBooking.startAt);
+            const dashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+            const onRegex = new RegExp(`\\son\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+            const forRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+            ownerMessage = ownerMessage.replace(dashRegex, "").replace(onRegex, "").replace(forRegex, "");
+            
+            // Insert the schedule before "Pets:" or "Total:" if present
+            const petsMarker = /\n{1,2}Pets:/i;
+            const totalMarker = /\n{1,2}Total:/i;
+            if (petsMarker.test(ownerMessage)) {
+              ownerMessage = ownerMessage.replace(petsMarker, `\n\n${formattedDatesTimes}\n\nPets:`);
+            } else if (totalMarker.test(ownerMessage)) {
+              ownerMessage = ownerMessage.replace(totalMarker, `\n\n${formattedDatesTimes}\n\nTotal:`);
+            } else {
+              ownerMessage += `\n\n${formattedDatesTimes}`;
+            }
+          }
           
           await sendMessage(ownerPhone, ownerMessage, finalBooking.id);
         }
