@@ -429,6 +429,19 @@ export function formatDateForMessage(date: Date | string): string {
 }
 
 /**
+ * Format date with full month name for automated messages
+ * Example: "January 5, 2025"
+ */
+export function formatDateLongForMessage(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+/**
  * Format time to match booking details page format
  * Uses UTC methods to get original time components (since dates are stored with local time as UTC)
  * Formats as "H:MM AM/PM"
@@ -465,7 +478,7 @@ export function formatDatesAndTimesForMessage(booking: {
     booking.timeSlots!.forEach(slot => {
       const slotStart = typeof slot.startAt === 'string' ? new Date(slot.startAt) : slot.startAt;
       const slotEnd = typeof slot.endAt === 'string' ? new Date(slot.endAt) : slot.endAt;
-      const dateKey = formatDateForMessage(slotStart);
+      const dateKey = formatDateLongForMessage(slotStart);
       
       if (!slotsByDate[dateKey]) {
         slotsByDate[dateKey] = [];
@@ -492,9 +505,9 @@ export function formatDatesAndTimesForMessage(booking: {
     const startDate = typeof booking.startAt === 'string' ? new Date(booking.startAt) : booking.startAt;
     const endDate = typeof booking.endAt === 'string' ? new Date(booking.endAt) : booking.endAt;
     
-    const startDateStr = formatDateForMessage(startDate);
+    const startDateStr = formatDateLongForMessage(startDate);
     const startTimeStr = formatTimeForMessage(startDate);
-    const endDateStr = formatDateForMessage(endDate);
+    const endDateStr = formatDateLongForMessage(endDate);
     const endTimeStr = formatTimeForMessage(endDate);
     
     return `Start: ${startDateStr} at ${startTimeStr}\nEnd: ${endDateStr} at ${endTimeStr}`;
@@ -502,7 +515,7 @@ export function formatDatesAndTimesForMessage(booking: {
 
   // Fallback: single date/time
   const startDate = typeof booking.startAt === 'string' ? new Date(booking.startAt) : booking.startAt;
-  const dateStr = formatDateForMessage(startDate);
+  const dateStr = formatDateLongForMessage(startDate);
   const timeStr = formatTimeForMessage(startDate);
   
   return `${dateStr} at ${timeStr}`;
