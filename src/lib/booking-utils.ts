@@ -420,12 +420,13 @@ export function getConflictStatus(
 }
 
 /**
- * Format date to match booking details page format
- * Uses toLocaleDateString() default format
+ * Format date with abbreviated month and no year for automated messages
+ * Example: "Jan 5"
+ * Updated to use short format to match unified date/time formatting across all messages
  */
 export function formatDateForMessage(date: Date | string): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return dateObj.toLocaleDateString();
+  return formatDateShortForMessage(dateObj);
 }
 
 /**

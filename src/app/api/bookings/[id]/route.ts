@@ -315,7 +315,7 @@ export async function PATCH(
           firstName: finalBooking.firstName,
           service: finalBooking.service,
           datesTimes: formattedDatesTimes,
-          date: formatDateForMessage(finalBooking.startAt),
+          date: formatDateForMessage(finalBooking.startAt), // Now uses short format (Jan 5)
           time: formatTimeForMessage(finalBooking.startAt),
           petQuantities,
           totalPrice: calculatedTotal.toFixed(2),
@@ -353,7 +353,7 @@ export async function PATCH(
               lastName: finalBooking.lastName,
               service: finalBooking.service,
               datesTimes: formattedDatesTimes,
-              date: formatDateForMessage(finalBooking.startAt),
+              date: formatDateForMessage(finalBooking.startAt), // Now uses short format (Jan 5)
               time: formatTimeForMessage(finalBooking.startAt),
               petQuantities,
               address: finalBooking.address || 'TBD',
@@ -387,7 +387,7 @@ export async function PATCH(
             lastName: finalBooking.lastName,
             service: finalBooking.service,
             datesTimes: formattedDatesTimes,
-            date: formatDateForMessage(finalBooking.startAt),
+            date: formatDateForMessage(finalBooking.startAt), // Now uses short format (Jan 5)
             time: formatTimeForMessage(finalBooking.startAt),
             petQuantities,
             totalPrice: calculatedTotal.toFixed(2),
@@ -442,7 +442,7 @@ export async function PATCH(
               lastName: finalBooking.lastName,
               service: finalBooking.service,
               datesTimes: formattedDatesTimes,
-              date: formatDateForMessage(finalBooking.startAt),
+              date: formatDateForMessage(finalBooking.startAt), // Now uses short format (Jan 5)
               time: formatTimeForMessage(finalBooking.startAt),
               petQuantities,
               address: finalBooking.address || 'TBD',
