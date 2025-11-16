@@ -337,13 +337,16 @@ export async function PATCH(
           const forRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
           clientMessage = clientMessage.replace(dashRegex, "").replace(onRegex, "").replace(forRegex, "");
           
-          // Insert the schedule before "Pets:" or "Total:" if present
+          // Insert the schedule before "Pets:", "Total:", or before closing message if neither present
           const petsMarker = /\n{1,2}Pets:/i;
           const totalMarker = /\n{1,2}Total:/i;
+          const closingMarker = /\n{1,2}(We'll see you soon|We will see you soon|See you soon|Thank you)/i;
           if (petsMarker.test(clientMessage)) {
             clientMessage = clientMessage.replace(petsMarker, `\n\n${formattedDatesTimes}\n\nPets:`);
           } else if (totalMarker.test(clientMessage)) {
             clientMessage = clientMessage.replace(totalMarker, `\n\n${formattedDatesTimes}\n\nTotal:`);
+          } else if (closingMarker.test(clientMessage)) {
+            clientMessage = clientMessage.replace(closingMarker, `\n\n${formattedDatesTimes}\n\n$1`);
           } else {
             clientMessage += `\n\n${formattedDatesTimes}`;
           }
