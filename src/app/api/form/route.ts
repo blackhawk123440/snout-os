@@ -467,7 +467,7 @@ export async function POST(request: NextRequest) {
             ownerMessage += `\n\n${formattedDatesTimes}`;
           }
         }
-
+        
         await sendMessage(ownerPhone, ownerMessage, booking.id);
       } else {
         await sendOwnerAlert(

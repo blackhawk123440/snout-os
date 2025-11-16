@@ -491,8 +491,7 @@ export function formatDatesAndTimesForMessage(booking: {
       const slots = slotsByDate[dateKey];
       const timeStrings = slots.map(slot => {
         const startTime = formatTimeForMessage(slot.startAt);
-        const endTime = formatTimeForMessage(slot.endAt);
-        return `${startTime} - ${endTime} (${slot.duration} min)`;
+        return `${startTime} (${slot.duration} min)`;
       });
       return `${dateKey}\n${timeStrings.join('\n')}`;
     });
