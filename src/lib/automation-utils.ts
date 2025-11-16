@@ -85,6 +85,12 @@ export function replaceTemplateVariables(
     derived["dateAndTime"] = dt;
     derived["dates"] = dt;  // Some templates expect a single token
     derived["times"] = dt;  // Using the combined string is better than leaving blank
+    // Common synonyms
+    derived["schedule"] = dt;
+    derived["appointmentTimes"] = dt;
+    derived["visitTimes"] = dt;
+    derived["visits"] = dt;
+    derived["timeSlots"] = dt;
   }
   if (variables.date !== undefined && variables.time !== undefined) {
     const combined = `${variables.date} at ${variables.time}`;
@@ -125,7 +131,8 @@ export function replaceTemplateVariables(
       return;
     }
     const value = String(allVars[key]);
-    message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+    // Support {{ key }} with optional whitespace around key
+    message = message.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi'), value);
     // Also support old format [VariableName]
     const oldKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
     message = message.replace(new RegExp(`\\[${oldKey}\\]`, 'gi'), value);
@@ -135,6 +142,14 @@ export function replaceTemplateVariables(
       message = message.replace(/\[Date \/ Time\]/gi, value);
       message = message.replace(/\{\{date & time\}\}/gi, value);
       message = message.replace(/\{\{date\/time\}\}/gi, value);
+    }
+    // Legacy/friendly placeholders
+    if (key.toLowerCase() === "datestimes") {
+      message = message.replace(/\[Schedule\]/gi, value);
+      message = message.replace(/\{\{schedule\}\}/gi, value);
+      message = message.replace(/\{\{\s*schedule\s*\}\}/gi, value);
+      message = message.replace(/\{\{visits\}\}/gi, value);
+      message = message.replace(/\{\{\s*visits\s*\}\}/gi, value);
     }
   });
   return message;
