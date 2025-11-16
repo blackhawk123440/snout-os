@@ -4753,7 +4753,8 @@
             const cleanTime = timeMatch ? timeMatch[1] : time;
             
             if (cleanTime === time || currentText === time) {
-              const isSelected = window.bookingForm.state.dateTimes[dateStr].some(entry => entry.time === time);
+              const dateTimes = (window.bookingForm.state.dateTimes && window.bookingForm.state.dateTimes[dateStr]) || [];
+              const isSelected = dateTimes.some(entry => entry.time === time);
               slot.classList.toggle('selected', isSelected);
 
               // Force time display to show ONLY the time, never a range or calculated text
