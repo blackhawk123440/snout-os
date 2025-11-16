@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { calculateBookingPrice } from "@/lib/rates";
 import { formatPhoneForAPI } from "@/lib/phone-format";
-import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, formatDateLongForMessage } from "@/lib/booking-utils";
 import { sendOwnerAlert } from "@/lib/sms-templates";
 import { getOwnerPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
@@ -373,20 +373,21 @@ export async function POST(request: NextRequest) {
         clientMessageTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll confirm your booking shortly. Thank you!";
       }
       
-      // Detect if template includes any date/time placeholders; if not, we'll append the schedule after replacement
-      const hasDateTokens =
-        /\{\{(datesTimes|dateTime|date_time|dateAndTime|date|time)\}\}/i.test(clientMessageTemplate) ||
-        /\[(Date ?& ?Time|Date ?\/ ?Time|Date|Time)\]/i.test(clientMessageTemplate);
+      // Detect if template already includes a detailed schedule placeholder; if not, we'll append the full schedule
+      const hasDetailedScheduleToken =
+        /\{\{(datesTimes|dateTime|date_time|dateAndTime|schedule|visits|timeSlots|appointmentTimes|visitTimes)\}\}/i.test(clientMessageTemplate) ||
+        /\[(Schedule|Date ?& ?Time|Date ?\/ ?Time)\]/i.test(clientMessageTemplate);
 
       let clientMessage = replaceTemplateVariables(clientMessageTemplate, {
         firstName: trimmedFirstName,
         service: booking.service, // Use the actual service name from the booking
         datesTimes: formattedDatesTimes,
-        date: formatDateForMessage(booking.startAt),
+        date: formatDateLongForMessage(booking.startAt),
         time: formatTimeForMessage(booking.startAt),
         petQuantities,
       });
-      if (!hasDateTokens) {
+      // Always include the full schedule if the template doesn't explicitly include it
+      if (!hasDetailedScheduleToken) {
         clientMessage += `\n\n${formattedDatesTimes}`;
       }
       
