@@ -97,8 +97,9 @@ export function replaceTemplateVariables(
     if (totalPrice !== null && !isNaN(totalPrice)) {
       const earnings = (totalPrice * options.sitterCommissionPercentage) / 100;
       // Replace totalPrice and total with earnings for sitter messages
-      message = message.replace(/\{\{totalPrice\}\}/g, earnings.toFixed(2));
-      message = message.replace(/\{\{total\}\}/g, earnings.toFixed(2));
+      // Support both {{totalPrice}} and {{ totalPrice }} (with whitespace)
+      message = message.replace(/\{\{\s*totalPrice\s*\}\}/g, earnings.toFixed(2));
+      message = message.replace(/\{\{\s*total\s*\}\}/g, earnings.toFixed(2));
       // Also support old format
       message = message.replace(/\[TotalPrice\]/gi, earnings.toFixed(2));
       message = message.replace(/\[Total\]/gi, earnings.toFixed(2));
@@ -111,7 +112,8 @@ export function replaceTemplateVariables(
       return;
     }
     const value = String(variables[key]);
-    message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+    // Support both {{key}} and {{ key }} (with whitespace around key)
+    message = message.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), value);
     // Also support old format [VariableName]
     const oldKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
     message = message.replace(new RegExp(`\\[${oldKey}\\]`, 'gi'), value);
