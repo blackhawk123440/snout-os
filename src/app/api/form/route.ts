@@ -388,7 +388,19 @@ export async function POST(request: NextRequest) {
       });
       // Always include the full schedule if the template doesn't explicitly include it
       if (!hasDetailedScheduleToken) {
-        clientMessage += `\n\n${formattedDatesTimes}`;
+        // If the intro contains " for <date> at <time>", remove that clause to avoid redundancy
+        const dateStr = formatDateShortForMessage(booking.startAt);
+        const timeStr = formatTimeForMessage(booking.startAt);
+        const forDateTimeRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+        clientMessage = clientMessage.replace(forDateTimeRegex, "");
+
+        // Prefer inserting the schedule before the Pets section if present; otherwise append at the end
+        const petsMarker = /\n{1,2}Pets:/i;
+        if (petsMarker.test(clientMessage)) {
+          clientMessage = clientMessage.replace(petsMarker, `\n\n${formattedDatesTimes}\n\nPets:`);
+        } else {
+          clientMessage += `\n\n${formattedDatesTimes}`;
+        }
       }
       
       await sendMessage(trimmedPhone, clientMessage, booking.id);
