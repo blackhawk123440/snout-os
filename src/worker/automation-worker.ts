@@ -73,7 +73,7 @@ export async function processReminders() {
             lastName: booking.lastName,
             service: booking.service,
             datesTimes: formattedDatesTimes,
-            date: formatDateForMessage(booking.startAt),
+            date: formatDateForMessage(booking.startAt), // Now uses short format (Jan 5)
             time: formatTimeForMessage(booking.startAt),
             petQuantities,
           });
@@ -117,7 +117,7 @@ export async function processReminders() {
                   lastName: booking.lastName,
                   service: booking.service,
                   datesTimes: formattedDatesTimes,
-                  date: formatDateForMessage(booking.startAt),
+                  date: formatDateForMessage(booking.startAt), // Now uses short format (Jan 5)
                   time: formatTimeForMessage(booking.startAt),
                   petQuantities,
                   address: booking.address || 'TBD',
