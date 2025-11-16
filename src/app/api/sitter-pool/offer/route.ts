@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { formatPetsByQuantity, formatDatesAndTimesForMessage, calculatePriceBreakdown, extractAllBookingVariables } from "@/lib/booking-utils";
+import { formatPetsByQuantity, formatDatesAndTimesForMessage, calculatePriceBreakdown } from "@/lib/booking-utils";
 import { getSitterPhone } from "@/lib/phone-utils";
 import { sendMessage } from "@/lib/message-utils";
 

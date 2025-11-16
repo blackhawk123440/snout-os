@@ -27,25 +27,19 @@ export async function getAutomationSettings(): Promise<Record<string, any>> {
  * Get message template from database for a specific automation type and recipient
  * Prioritizes individual messageTemplate.* settings over automation JSON object
  * to ensure latest saved templates are used
- * 
- * IMPORTANT: Always reads fresh from database - NO CACHING
- * This ensures templates update instantly after being saved
  */
 export async function getMessageTemplate(
   automationType: string,
   recipient: "client" | "sitter" | "owner" = "client"
 ): Promise<string | null> {
-  // CRITICAL: Always read fresh from database - no caching, no memoization
-  // This ensures the newest saved version is used immediately with zero delay
+  // First check individual messageTemplate.* settings (these are updated with versioning)
+  // Always read fresh from database - no caching
   const templateKey = `messageTemplate.${automationType}.${recipient}`;
-  
-  // Direct database query - bypasses any potential caching layers
-  // Prisma always reads fresh from database by default, but we ensure no application-level caching
   const template = await prisma.setting.findUnique({
     where: { key: templateKey },
   });
 
-  // If template exists in database (even if empty string), return it immediately
+  // If template exists in database (even if empty string), return it
   // Empty string means user cleared the template, so we return it (caller should handle default)
   if (template !== null) {
     return template.value || ""; // Return empty string if value is null/undefined
@@ -53,7 +47,6 @@ export async function getMessageTemplate(
   
   // Fallback to automation settings JSON object (for backwards compatibility)
   // This should only be used if individual template doesn't exist
-  // Also read fresh - no caching
   const automationSettings = await getAutomationSettings();
   const automation = automationSettings[automationType];
   
@@ -83,6 +76,24 @@ export function replaceTemplateVariables(
 ): string {
   let message = template;
   
+  // Provide common alias values derived from provided variables to maximize compatibility
+  const derived: Record<string, string> = {};
+  if (variables.datesTimes !== undefined) {
+    const dt = String(variables.datesTimes);
+    derived["dateTime"] = dt;
+    derived["date_time"] = dt;
+    derived["dateAndTime"] = dt;
+    derived["dates"] = dt;  // Some templates expect a single token
+    derived["times"] = dt;  // Using the combined string is better than leaving blank
+  }
+  if (variables.date !== undefined && variables.time !== undefined) {
+    const combined = `${variables.date} at ${variables.time}`;
+    // Only set if not already provided
+    if (derived["dateTime"] === undefined) derived["dateTime"] = combined;
+    if (derived["date_time"] === undefined) derived["date_time"] = combined;
+    if (derived["dateAndTime"] === undefined) derived["dateAndTime"] = combined;
+  }
+
   // If this is a sitter message and commission percentage is provided, calculate earnings for totalPrice/total
   if (options?.isSitterMessage && options?.sitterCommissionPercentage !== undefined) {
     // Get totalPrice from variables (could be number or string)
@@ -105,16 +116,26 @@ export function replaceTemplateVariables(
     }
   }
   
-  Object.keys(variables).forEach(key => {
+  // Merge variables with derived aliases (without overwriting explicit variables)
+  const allVars: Record<string, string | number> = { ...derived, ...variables };
+
+  Object.keys(allVars).forEach(key => {
     // Skip totalPrice and total if we already handled them for sitter messages
     if (options?.isSitterMessage && (key === 'totalPrice' || key === 'total')) {
       return;
     }
-    const value = String(variables[key]);
+    const value = String(allVars[key]);
     message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
     // Also support old format [VariableName]
     const oldKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
     message = message.replace(new RegExp(`\\[${oldKey}\\]`, 'gi'), value);
+    // Additional legacy aliases that include ampersands or slashes
+    if (key.toLowerCase() === "datetime" || key.toLowerCase() === "dateandtime" || key.toLowerCase() === "date_time") {
+      message = message.replace(/\[Date & Time\]/gi, value);
+      message = message.replace(/\[Date \/ Time\]/gi, value);
+      message = message.replace(/\{\{date & time\}\}/gi, value);
+      message = message.replace(/\{\{date\/time\}\}/gi, value);
+    }
   });
   return message;
 }
