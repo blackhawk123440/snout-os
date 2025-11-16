@@ -429,19 +429,45 @@ export async function POST(request: NextRequest) {
           ownerMessageTemplate = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}}\n{{datesTimes}}\n{{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView details: {{bookingUrl}}";
         }
         
-        const ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
+        // Detect if template already includes a detailed schedule placeholder; if not, we'll append the full schedule
+        const hasDetailedScheduleToken =
+          /\{\{(datesTimes|dateTime|date_time|dateAndTime|schedule|visits|timeSlots|appointmentTimes|visitTimes)\}\}/i.test(ownerMessageTemplate) ||
+          /\[(Schedule|Date ?& ?Time|Date ?\/ ?Time)\]/i.test(ownerMessageTemplate);
+
+        let ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
           firstName: trimmedFirstName,
           lastName: trimmedLastName,
           phone: trimmedPhone,
           service: booking.service, // Use the actual service name from the booking
           datesTimes: formattedDatesTimes,
-          date: formatDateForMessage(booking.startAt),
+          date: formatDateShortForMessage(booking.startAt),
           time: formatTimeForMessage(booking.startAt),
           petQuantities,
           totalPrice: breakdown.total.toFixed(2),
           bookingUrl: bookingDetailsUrl,
         });
-        
+
+        if (!hasDetailedScheduleToken) {
+          // Remove inline " — <date> at <time>" or " on <date> at <time>" or " for <date> at <time>"
+          const dateStr = formatDateShortForMessage(booking.startAt);
+          const timeStr = formatTimeForMessage(booking.startAt);
+          const dashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+          const onRegex = new RegExp(`\\son\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+          const forRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
+          ownerMessage = ownerMessage.replace(dashRegex, "").replace(onRegex, "").replace(forRegex, "");
+
+          // Insert schedule before Pets or Total, whichever comes first; else append
+          const petsMarker = /\n{1,2}Pets:/i;
+          const totalMarker = /\n{1,2}Total:/i;
+          if (petsMarker.test(ownerMessage)) {
+            ownerMessage = ownerMessage.replace(petsMarker, `\n\n${formattedDatesTimes}\n\nPets:`);
+          } else if (totalMarker.test(ownerMessage)) {
+            ownerMessage = ownerMessage.replace(totalMarker, `\n\n${formattedDatesTimes}\n\nTotal:`);
+          } else {
+            ownerMessage += `\n\n${formattedDatesTimes}`;
+          }
+        }
+
         await sendMessage(ownerPhone, ownerMessage, booking.id);
       } else {
         await sendOwnerAlert(
