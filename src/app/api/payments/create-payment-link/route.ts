@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/db";
-import { calculatePriceBreakdown } from "@/lib/booking-utils";
+import { calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateShortForMessage, formatTimeForMessage } from "@/lib/booking-utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -288,12 +288,18 @@ export async function POST(request: NextRequest) {
       console.log(`Base product ID: ${baseProductId || 'none'}`);
       
       const petList = booking.pets.map(pet => pet.species).join(', ');
-      const serviceDate = new Date(booking.startAt).toLocaleDateString();
-      const serviceTime = new Date(booking.startAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      const serviceDate = formatDateShortForMessage(booking.startAt);
+      const serviceTime = formatTimeForMessage(booking.startAt);
+      const schedule = formatDatesAndTimesForMessage({
+        service: booking.service,
+        startAt: booking.startAt,
+        endAt: booking.endAt,
+        timeSlots: booking.timeSlots || [],
+      });
       
       const product = await stripe.products.create({
         name: `${booking.service} Service`,
-        description: `${booking.service} for ${booking.pets.length} pet(s): ${petList} on ${serviceDate} at ${serviceTime}. Service includes: ${booking.service.toLowerCase()} care for your pets.`,
+        description: `${booking.service} for ${booking.pets.length} pet(s): ${petList} on ${serviceDate} at ${serviceTime}.\n\nSchedule:\n${schedule}`,
         metadata: {
           bookingId: booking.id,
           service: booking.service,
@@ -301,6 +307,7 @@ export async function POST(request: NextRequest) {
           petCount: booking.pets.length.toString(),
           serviceDate,
           serviceTime,
+          schedule,
         },
       });
 
