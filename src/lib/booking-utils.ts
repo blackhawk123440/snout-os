@@ -610,6 +610,10 @@ export function extractAllBookingVariables(booking: {
     startDate: startDateStr,
     startTime: startTimeStr,
     startDateTime: `${startDateStr} at ${startTimeStr}`,
+    // Legacy aliases used in many templates
+    // {{date}} and {{time}} should always resolve to the booking's start date/time
+    date: startDateStr,
+    time: startTimeStr,
     
     // End date/time components
     endDate: endDateStr,
