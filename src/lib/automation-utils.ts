@@ -76,30 +76,6 @@ export function replaceTemplateVariables(
 ): string {
   let message = template;
   
-  // Provide common alias values derived from provided variables to maximize compatibility
-  const derived: Record<string, string> = {};
-  if (variables.datesTimes !== undefined) {
-    const dt = String(variables.datesTimes);
-    derived["dateTime"] = dt;
-    derived["date_time"] = dt;
-    derived["dateAndTime"] = dt;
-    derived["dates"] = dt;  // Some templates expect a single token
-    derived["times"] = dt;  // Using the combined string is better than leaving blank
-    // Common synonyms
-    derived["schedule"] = dt;
-    derived["appointmentTimes"] = dt;
-    derived["visitTimes"] = dt;
-    derived["visits"] = dt;
-    derived["timeSlots"] = dt;
-  }
-  if (variables.date !== undefined && variables.time !== undefined) {
-    const combined = `${variables.date} at ${variables.time}`;
-    // Only set if not already provided
-    if (derived["dateTime"] === undefined) derived["dateTime"] = combined;
-    if (derived["date_time"] === undefined) derived["date_time"] = combined;
-    if (derived["dateAndTime"] === undefined) derived["dateAndTime"] = combined;
-  }
-
   // If this is a sitter message and commission percentage is provided, calculate earnings for totalPrice/total
   if (options?.isSitterMessage && options?.sitterCommissionPercentage !== undefined) {
     // Get totalPrice from variables (could be number or string)
@@ -122,35 +98,16 @@ export function replaceTemplateVariables(
     }
   }
   
-  // Merge variables with derived aliases (without overwriting explicit variables)
-  const allVars: Record<string, string | number> = { ...derived, ...variables };
-
-  Object.keys(allVars).forEach(key => {
+  Object.keys(variables).forEach(key => {
     // Skip totalPrice and total if we already handled them for sitter messages
     if (options?.isSitterMessage && (key === 'totalPrice' || key === 'total')) {
       return;
     }
-    const value = String(allVars[key]);
-    // Support {{ key }} with optional whitespace around key
-    message = message.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'gi'), value);
+    const value = String(variables[key]);
+    message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
     // Also support old format [VariableName]
     const oldKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
     message = message.replace(new RegExp(`\\[${oldKey}\\]`, 'gi'), value);
-    // Additional legacy aliases that include ampersands or slashes
-    if (key.toLowerCase() === "datetime" || key.toLowerCase() === "dateandtime" || key.toLowerCase() === "date_time") {
-      message = message.replace(/\[Date & Time\]/gi, value);
-      message = message.replace(/\[Date \/ Time\]/gi, value);
-      message = message.replace(/\{\{date & time\}\}/gi, value);
-      message = message.replace(/\{\{date\/time\}\}/gi, value);
-    }
-    // Legacy/friendly placeholders
-    if (key.toLowerCase() === "datestimes") {
-      message = message.replace(/\[Schedule\]/gi, value);
-      message = message.replace(/\{\{schedule\}\}/gi, value);
-      message = message.replace(/\{\{\s*schedule\s*\}\}/gi, value);
-      message = message.replace(/\{\{visits\}\}/gi, value);
-      message = message.replace(/\{\{\s*visits\s*\}\}/gi, value);
-    }
   });
   return message;
 }

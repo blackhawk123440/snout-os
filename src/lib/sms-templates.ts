@@ -1,5 +1,5 @@
 import { sendMessage } from "@/lib/message-utils";
-import { formatPetsByQuantity, formatDatesAndTimesForMessage, formatDateShortForMessage, formatTimeForMessage } from "@/lib/booking-utils";
+import { formatPetsByQuantity } from "@/lib/booking-utils";
 import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
 
 interface Booking {
@@ -14,7 +14,6 @@ interface Booking {
   endAt: Date;
   totalPrice: number;
   pets: Array<{ species: string }>;
-  timeSlots?: Array<{ id?: string; startAt: Date; endAt: Date; duration: number }>;
   sitter?: {
     firstName: string;
     lastName: string;
@@ -23,51 +22,27 @@ interface Booking {
 
 export async function sendInitialBookingConfirmation(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const datesTimes = formatDatesAndTimesForMessage({
-    service: booking.service,
-    startAt: booking.startAt,
-    endAt: booking.endAt,
-    timeSlots: booking.timeSlots || [],
-  });
-  const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for:\n${datesTimes}\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll see you soon!`;
+  const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll see you soon!`;
   
   return await sendMessage(booking.phone, message);
 }
 
 export async function sendBookingConfirmedToClient(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const datesTimes = formatDatesAndTimesForMessage({
-    service: booking.service,
-    startAt: booking.startAt,
-    endAt: booking.endAt,
-    timeSlots: booking.timeSlots || [],
-  });
-  const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for:\n${datesTimes}\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll see you soon!`;
+  const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll see you soon!`;
   
   return await sendMessage(booking.phone, message);
 }
 
 export async function sendClientNightBeforeReminder(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const datesTimes = formatDatesAndTimesForMessage({
-    service: booking.service,
-    startAt: booking.startAt,
-    endAt: booking.endAt,
-    timeSlots: booking.timeSlots || [],
-  });
-  const message = `🌙 REMINDER!\n\nHi ${booking.firstName},\n\nJust a friendly reminder about your ${booking.service} appointment:\n${datesTimes}\n\nPets: ${petQuantities}\n\nWe're excited to care for your pets!`;
+  const message = `🌙 REMINDER!\n\nHi ${booking.firstName},\n\nJust a friendly reminder about your ${booking.service} appointment tomorrow at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\n\nWe're excited to care for your pets!`;
   
   return await sendMessage(booking.phone, message);
 }
 
 export async function sendSitterNightBeforeReminder(booking: Booking, sitterId?: string): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const datesTimes = formatDatesAndTimesForMessage({
-    service: booking.service,
-    startAt: booking.startAt,
-    endAt: booking.endAt,
-    timeSlots: booking.timeSlots || [],
-  });
   
   // Calculate sitter earnings if sitterId is provided
   let earningsText = '';
@@ -82,7 +57,8 @@ export async function sendSitterNightBeforeReminder(booking: Booking, sitterId?:
       earningsText = `\nYour Earnings: $${earnings.toFixed(2)}`;
     }
   }
-  const message = `🌙 REMINDER!\n\nHi,\n\nYou have a ${booking.service} appointment:\n${datesTimes}\n\nClient: ${booking.firstName} ${booking.lastName}\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease confirm your availability.`;
+  
+  const message = `🌙 REMINDER!\n\nHi,\n\nYou have a ${booking.service} appointment tomorrow at ${booking.startAt.toLocaleTimeString()}.\n\nClient: ${booking.firstName} ${booking.lastName}\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease confirm your availability.`;
   
   let sitterPhone: string | null = null;
   if (sitterId) {
@@ -106,12 +82,6 @@ export async function sendPostVisitThankYou(booking: Booking): Promise<boolean> 
 
 export async function sendSitterAssignmentNotification(booking: Booking, sitterId?: string): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const datesTimes = formatDatesAndTimesForMessage({
-    service: booking.service,
-    startAt: booking.startAt,
-    endAt: booking.endAt,
-    timeSlots: booking.timeSlots || [],
-  });
   
   // Calculate sitter earnings if sitterId is provided
   let earningsText = '';
@@ -126,7 +96,8 @@ export async function sendSitterAssignmentNotification(booking: Booking, sitterI
       earningsText = `\nYour Earnings: $${earnings.toFixed(2)}`;
     }
   }
-  const message = `👋 SITTER ASSIGNED!\n\nHi,\n\nYou've been assigned to ${booking.firstName} ${booking.lastName}'s ${booking.service} booking:\n${datesTimes}\n\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease confirm your availability.`;
+  
+  const message = `👋 SITTER ASSIGNED!\n\nHi,\n\nYou've been assigned to ${booking.firstName} ${booking.lastName}'s ${booking.service} booking on ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease confirm your availability.`;
   
   let sitterPhone: string | null = null;
   if (sitterId) {
@@ -157,9 +128,7 @@ export async function sendOwnerAlert(
   pets: Array<{ species: string }>
 ): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(pets);
-  const dateStr = formatDateShortForMessage(startAt);
-  const timeStr = formatTimeForMessage(startAt);
-  const message = `📱 NEW BOOKING ALERT\n\n${firstName} ${lastName} - ${service}\nDate: ${dateStr} at ${timeStr}\nPets: ${petQuantities}\nPhone: ${phone}`;
+  const message = `📱 NEW BOOKING ALERT\n\n${firstName} ${lastName} - ${service}\nDate: ${startAt.toLocaleDateString()} at ${startAt.toLocaleTimeString()}\nPets: ${petQuantities}\nPhone: ${phone}`;
   
   const ownerPhone = await getOwnerPhone(undefined, "ownerNewBookingAlert");
   if (!ownerPhone) {
@@ -172,13 +141,7 @@ export async function sendOwnerAlert(
 
 export async function sendPaymentReminder(booking: Booking, paymentLink: string): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const datesTimes = formatDatesAndTimesForMessage({
-    service: booking.service,
-    startAt: booking.startAt,
-    endAt: booking.endAt,
-    timeSlots: booking.timeSlots || [],
-  });
-  const message = `💳 PAYMENT REMINDER\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is ready for payment:\n${datesTimes}\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nPay now: ${paymentLink}`;
+  const message = `💳 PAYMENT REMINDER\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking on ${booking.startAt.toLocaleDateString()} is ready for payment.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nPay now: ${paymentLink}`;
   
   return await sendMessage(booking.phone, message);
 }
