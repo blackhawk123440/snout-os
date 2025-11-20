@@ -174,9 +174,10 @@ export async function POST(request: NextRequest) {
       const endDate = new Date(booking.endAt);
       const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
       const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      // Count actual calendar days between dates (inclusive of both start and end)
       const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
-      const calendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const diffNights = Math.max(1, calendarDays - 1); // Minimum 1 night
+      const calendarDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+      const diffNights = Math.max(1, calendarDays - 1); // Nights = days - 1
       
       if (booking.service === 'Housesitting') {
         baseProductId = STRIPE_PRODUCTS.HOUSE_SITTING;
@@ -219,9 +220,10 @@ export async function POST(request: NextRequest) {
           const endDate = new Date(booking.endAt);
           const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
           const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+          // Count actual calendar days between dates (inclusive of both start and end)
           const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
-          const calendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          const diffNights = Math.max(1, calendarDays - 1); // Minimum 1 night
+          const calendarDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+          const diffNights = Math.max(1, calendarDays - 1); // Nights = days - 1
           quantity = diffNights || 1; // Default to 1 if calculation fails
           console.log(`House sitting/24-7 care quantity (nights): ${quantity}`);
         } else {
@@ -271,9 +273,10 @@ export async function POST(request: NextRequest) {
           const endDate = new Date(booking.endAt);
           const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
           const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+          // Count actual calendar days between dates (inclusive of both start and end)
           const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
-          const calendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          const diffNights = Math.max(1, calendarDays - 1); // Minimum 1 night
+          const calendarDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+          const diffNights = Math.max(1, calendarDays - 1); // Nights = days - 1
           additionalPetQuantity = additionalPetsCount * diffNights;
         }
         

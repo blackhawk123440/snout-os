@@ -186,9 +186,11 @@ export function calculatePriceBreakdown(booking: {
     // Nights = calendar days difference - 1 (e.g., Nov 19 to Nov 21 = 3 days = 2 nights)
     const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    // Count actual calendar days between dates (inclusive of both start and end)
+    // Nov 19 to Nov 21 = 3 calendar days (Nov 19, Nov 20, Nov 21)
     const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
-    const calendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const diffNights = Math.max(1, calendarDays - 1); // Minimum 1 night
+    const calendarDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+    const diffNights = Math.max(1, calendarDays - 1); // Nights = days - 1
     basePrice = rate.base * diffNights;
     breakdown.push({
       label: `${booking.service} (${diffNights} ${diffNights === 1 ? 'night' : 'nights'})`,
@@ -272,9 +274,10 @@ export function calculatePriceBreakdown(booking: {
       // Calculate nights: calendar days difference - 1 (e.g., Nov 19 to Nov 21 = 3 days = 2 nights)
       const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
       const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      // Count actual calendar days between dates (inclusive of both start and end)
       const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
-      const calendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const diffNights = Math.max(1, calendarDays - 1); // Minimum 1 night
+      const calendarDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+      const diffNights = Math.max(1, calendarDays - 1); // Nights = days - 1
       const quantity = diffNights; // Number of nights
       const addlPets = Math.max(petCount - 1, 0);
       basePrice = rate.base * quantity;
