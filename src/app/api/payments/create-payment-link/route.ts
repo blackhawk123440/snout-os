@@ -168,11 +168,13 @@ export async function POST(request: NextRequest) {
       // Skip the single product logic below since we've already added line items
       baseProductId = null;
     } else if (booking.service === 'Housesitting' || booking.service === '24/7 Care') {
-      // For house sitting and 24/7 care, calculate number of nights
+      // For house sitting and 24/7 care, calculate number of nights based on calendar days
       const startDate = new Date(booking.startAt);
       const endDate = new Date(booking.endAt);
-      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
+      const diffNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))); // Minimum 1 night
       
       if (booking.service === 'Housesitting') {
         baseProductId = STRIPE_PRODUCTS.HOUSE_SITTING;
@@ -181,10 +183,10 @@ export async function POST(request: NextRequest) {
       }
       additionalPetProductId = STRIPE_PRODUCTS.ADDITIONAL_PET_HOUSE_24_7;
       
-      console.log(`House sitting/24-7 care: ${diffDays} nights from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+      console.log(`House sitting/24-7 care: ${diffNights} nights from ${startDate.toISOString()} to ${endDate.toISOString()}`);
       
       // Store the number of nights to use as quantity later
-      (booking as any).nights = diffDays;
+      (booking as any).nights = diffNights;
     } else if (booking.service === 'Pet Taxi') {
       // For Pet Taxi, we'll need to create a custom product or use a default
       // For now, let's create a product (since no product ID was provided)
@@ -209,12 +211,14 @@ export async function POST(request: NextRequest) {
           // For visit-based services, use timeSlots length if available, otherwise use booking.quantity
           quantity = booking.timeSlots?.length || booking.quantity || 1;
         } else if (booking.service === 'Housesitting' || booking.service === '24/7 Care') {
-          // For house sitting/24-7 care, quantity is the number of nights
+          // For house sitting/24-7 care, quantity is the number of nights based on calendar days
           const startDate = new Date(booking.startAt);
           const endDate = new Date(booking.endAt);
-          const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          quantity = diffDays || 1; // Default to 1 if calculation fails
+          const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+          const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+          const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
+          const diffNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))); // Minimum 1 night
+          quantity = diffNights || 1; // Default to 1 if calculation fails
           console.log(`House sitting/24-7 care quantity (nights): ${quantity}`);
         } else {
           quantity = booking.quantity || 1;
@@ -257,12 +261,14 @@ export async function POST(request: NextRequest) {
           const visitCount = booking.timeSlots?.length || booking.quantity || 1;
           additionalPetQuantity = additionalPetsCount * visitCount;
         } else if (booking.service === 'Housesitting' || booking.service === '24/7 Care') {
-          // For house sitting/24-7, multiply by number of nights
+          // For house sitting/24-7, multiply by number of nights based on calendar days
           const startDate = new Date(booking.startAt);
           const endDate = new Date(booking.endAt);
-          const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          additionalPetQuantity = additionalPetsCount * diffDays;
+          const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+          const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+          const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
+          const diffNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))); // Minimum 1 night
+          additionalPetQuantity = additionalPetsCount * diffNights;
         }
         
         console.log(`Using existing additional pet product ${additionalPetProductId} with price ${additionalPetPrice.id} (quantity: ${additionalPetQuantity})`);
