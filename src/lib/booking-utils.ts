@@ -182,25 +182,29 @@ export function calculatePriceBreakdown(booking: {
   let basePrice = 0;
 
   if (booking.service === "Housesitting" || booking.service === "24/7 Care") {
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    basePrice = rate.base * diffDays;
+    // Calculate nights based on calendar days, not hours
+    // For house sitting: nights = number of calendar days between start and end dates
+    const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+    const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
+    const diffNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))); // Minimum 1 night
+    basePrice = rate.base * diffNights;
     breakdown.push({
-      label: `${booking.service} (${diffDays} ${diffDays === 1 ? 'night' : 'nights'})`,
+      label: `${booking.service} (${diffNights} ${diffNights === 1 ? 'night' : 'nights'})`,
       amount: basePrice,
-      description: `$${rate.base} × ${diffDays} nights`
+      description: `$${rate.base} × ${diffNights} nights`
     });
     
     // Add additional pets cost for house sitting and 24/7 care
     const addlPets = Math.max(petCount - 1, 0);
     if (addlPets > 0) {
-      const addlPetTotal = addlPets * rate.addlPet * diffDays;
+      const addlPetTotal = addlPets * rate.addlPet * diffNights;
       basePrice += addlPetTotal;
-      breakdown.push({
-        label: `Additional Pets (${addlPets})`,
-        amount: addlPetTotal,
-        description: `$${rate.addlPet} × ${addlPets} × ${diffDays} nights`
-      });
+        breakdown.push({
+          label: `Additional Pets (${addlPets})`,
+          amount: addlPetTotal,
+          description: `$${rate.addlPet} × ${addlPets} × ${diffNights} nights`
+        });
     }
   } else {
     // Visit-based services: price per time slot, supporting 30/60 minute pricing
@@ -264,9 +268,12 @@ export function calculatePriceBreakdown(booking: {
       // For services without timeSlots (Housesitting, 24/7 Care), calculate based on nights
       const startDate = new Date(booking.startAt);
       const endDate = new Date(booking.endAt);
-      const diffTime = endDate.getTime() - startDate.getTime();
-      const diffDays = Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)), 1);
-      const quantity = diffDays; // Number of nights
+      // Calculate nights based on calendar days, not hours
+      const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+      const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
+      const diffNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))); // Minimum 1 night
+      const quantity = diffNights; // Number of nights
       const addlPets = Math.max(petCount - 1, 0);
       basePrice = rate.base * quantity;
       breakdown.push({
