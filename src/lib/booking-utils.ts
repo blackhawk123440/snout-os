@@ -182,12 +182,13 @@ export function calculatePriceBreakdown(booking: {
   let basePrice = 0;
 
   if (booking.service === "Housesitting" || booking.service === "24/7 Care") {
-    // Calculate nights based on calendar days, not hours
-    // For house sitting: nights = number of calendar days between start and end dates
+    // Calculate nights based on calendar days
+    // Nights = calendar days difference - 1 (e.g., Nov 19 to Nov 21 = 3 days = 2 nights)
     const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
     const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
     const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
-    const diffNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))); // Minimum 1 night
+    const calendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffNights = Math.max(1, calendarDays - 1); // Minimum 1 night
     basePrice = rate.base * diffNights;
     breakdown.push({
       label: `${booking.service} (${diffNights} ${diffNights === 1 ? 'night' : 'nights'})`,
@@ -268,11 +269,12 @@ export function calculatePriceBreakdown(booking: {
       // For services without timeSlots (Housesitting, 24/7 Care), calculate based on nights
       const startDate = new Date(booking.startAt);
       const endDate = new Date(booking.endAt);
-      // Calculate nights based on calendar days, not hours
+      // Calculate nights: calendar days difference - 1 (e.g., Nov 19 to Nov 21 = 3 days = 2 nights)
       const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
       const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
       const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
-      const diffNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))); // Minimum 1 night
+      const calendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffNights = Math.max(1, calendarDays - 1); // Minimum 1 night
       const quantity = diffNights; // Number of nights
       const addlPets = Math.max(petCount - 1, 0);
       basePrice = rate.base * quantity;

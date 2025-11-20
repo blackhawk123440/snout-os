@@ -168,13 +168,15 @@ export async function POST(request: NextRequest) {
       // Skip the single product logic below since we've already added line items
       baseProductId = null;
     } else if (booking.service === 'Housesitting' || booking.service === '24/7 Care') {
-      // For house sitting and 24/7 care, calculate number of nights based on calendar days
+      // For house sitting and 24/7 care, calculate number of nights
+      // Nights = calendar days difference - 1 (e.g., Nov 19 to Nov 21 = 3 days = 2 nights)
       const startDate = new Date(booking.startAt);
       const endDate = new Date(booking.endAt);
       const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
       const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
       const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
-      const diffNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))); // Minimum 1 night
+      const calendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffNights = Math.max(1, calendarDays - 1); // Minimum 1 night
       
       if (booking.service === 'Housesitting') {
         baseProductId = STRIPE_PRODUCTS.HOUSE_SITTING;
@@ -211,13 +213,15 @@ export async function POST(request: NextRequest) {
           // For visit-based services, use timeSlots length if available, otherwise use booking.quantity
           quantity = booking.timeSlots?.length || booking.quantity || 1;
         } else if (booking.service === 'Housesitting' || booking.service === '24/7 Care') {
-          // For house sitting/24-7 care, quantity is the number of nights based on calendar days
+          // For house sitting/24-7 care, quantity is the number of nights
+          // Nights = calendar days difference - 1 (e.g., Nov 19 to Nov 21 = 3 days = 2 nights)
           const startDate = new Date(booking.startAt);
           const endDate = new Date(booking.endAt);
           const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
           const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
           const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
-          const diffNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))); // Minimum 1 night
+          const calendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          const diffNights = Math.max(1, calendarDays - 1); // Minimum 1 night
           quantity = diffNights || 1; // Default to 1 if calculation fails
           console.log(`House sitting/24-7 care quantity (nights): ${quantity}`);
         } else {
@@ -261,13 +265,15 @@ export async function POST(request: NextRequest) {
           const visitCount = booking.timeSlots?.length || booking.quantity || 1;
           additionalPetQuantity = additionalPetsCount * visitCount;
         } else if (booking.service === 'Housesitting' || booking.service === '24/7 Care') {
-          // For house sitting/24-7, multiply by number of nights based on calendar days
+          // For house sitting/24-7, multiply by number of nights
+          // Nights = calendar days difference - 1 (e.g., Nov 19 to Nov 21 = 3 days = 2 nights)
           const startDate = new Date(booking.startAt);
           const endDate = new Date(booking.endAt);
           const startCalendarDay = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
           const endCalendarDay = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
           const diffTime = endCalendarDay.getTime() - startCalendarDay.getTime();
-          const diffNights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24))); // Minimum 1 night
+          const calendarDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          const diffNights = Math.max(1, calendarDays - 1); // Minimum 1 night
           additionalPetQuantity = additionalPetsCount * diffNights;
         }
         
