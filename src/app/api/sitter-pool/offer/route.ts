@@ -38,6 +38,16 @@ export async function POST(request: NextRequest) {
       where: { id: { in: sitterIds } },
     });
 
+    if (sitters.length === 0) {
+      console.error(`No sitters found for IDs: ${sitterIds.join(', ')}`);
+      return NextResponse.json(
+        { error: `No sitters found for the provided IDs` },
+        { status: 404 }
+      );
+    }
+
+    console.log(`Found ${sitters.length} sitters to send offers to`);
+
     // Create sitter pool offer
     const offer = await prisma.sitterPoolOffer.create({
       data: {
@@ -66,13 +76,18 @@ export async function POST(request: NextRequest) {
     const calculatedTotal = breakdown.total;
 
     // Send SMS to all selected sitters using their phone numbers
+    const smsResults: Array<{ sitterId: string; success: boolean; error?: string }> = [];
     const smsPromises = sitters.map(async (sitter) => {
       try {
         const sitterPhone = await getSitterPhone(sitter.id, undefined, "sitterPoolOffers");
         if (!sitterPhone) {
-          console.error(`No phone number found for sitter ${sitter.id}`);
+          const errorMsg = `No phone number found for sitter ${sitter.id} (${sitter.firstName} ${sitter.lastName})`;
+          console.error(errorMsg);
+          smsResults.push({ sitterId: sitter.id, success: false, error: errorMsg });
           return;
         }
+
+        console.log(`Sending SMS to sitter ${sitter.id} at ${sitterPhone}`);
 
         // Calculate sitter earnings based on their commission percentage
         const commissionPercentage = sitter.commissionPercentage || 80.0;
@@ -80,16 +95,42 @@ export async function POST(request: NextRequest) {
 
         const smsMessage = `🐾 NEW BOOKING OPPORTUNITY\n\n${booking.service} for ${booking.firstName} ${booking.lastName}\n\nDates & Times:\n${dateTimeInfo}\n\nPets: ${petQuantities}\nAddress: ${booking.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nReply YES to accept, NO to decline.`;
         
-        await sendMessage(sitterPhone, smsMessage, bookingId);
+        const messageResult = await sendMessage(sitterPhone, smsMessage, bookingId);
+        if (messageResult) {
+          console.log(`Successfully sent SMS to sitter ${sitter.id}`);
+          smsResults.push({ sitterId: sitter.id, success: true });
+        } else {
+          const errorMsg = `Failed to send SMS to sitter ${sitter.id}`;
+          console.error(errorMsg);
+          smsResults.push({ sitterId: sitter.id, success: false, error: errorMsg });
+        }
       } catch (error) {
-        console.error(`Failed to send SMS to sitter ${sitter.id}:`, error);
+        const errorMsg = `Failed to send SMS to sitter ${sitter.id}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        console.error(errorMsg, error);
+        smsResults.push({ sitterId: sitter.id, success: false, error: errorMsg });
       }
     });
 
     // Wait for all SMS to be sent (don't fail the request if SMS fails)
     await Promise.allSettled(smsPromises);
 
-    return NextResponse.json({ offer });
+    const successCount = smsResults.filter(r => r.success).length;
+    const failureCount = smsResults.filter(r => !r.success).length;
+    console.log(`SMS sending complete: ${successCount} successful, ${failureCount} failed`);
+
+    if (failureCount > 0) {
+      console.error('Failed SMS results:', smsResults.filter(r => !r.success));
+    }
+
+    return NextResponse.json({ 
+      offer,
+      smsResults: {
+        total: smsResults.length,
+        successful: successCount,
+        failed: failureCount,
+        details: smsResults
+      }
+    });
   } catch (error) {
     console.error("Failed to create sitter pool offer:", error);
     return NextResponse.json(
