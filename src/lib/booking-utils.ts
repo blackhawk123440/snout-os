@@ -432,6 +432,17 @@ export function getConflictStatus(
 }
 
 /**
+ * Format client name for sitter messages: "FirstName LastInitial"
+ * Example: "John Doe" -> "John D"
+ */
+export function formatClientNameForSitter(firstName: string, lastName: string): string {
+  if (!firstName) return lastName || '';
+  if (!lastName) return firstName;
+  const lastInitial = lastName.charAt(0).toUpperCase();
+  return `${firstName} ${lastInitial}`;
+}
+
+/**
  * Format date with abbreviated month and no year for automated messages
  * Example: "Jan 5"
  * Updated to use short format to match unified date/time formatting across all messages

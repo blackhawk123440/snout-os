@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, formatClientNameForSitter } from "@/lib/booking-utils";
 import { sendMessage } from "@/lib/message-utils";
 import { getSitterPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
@@ -385,10 +385,12 @@ export async function PATCH(
               sitterMessageTemplate = "✅ BOOKING CONFIRMED!\n\nHi {{sitterFirstName}},\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nView details in your dashboard.";
             }
             
+            const clientName = formatClientNameForSitter(finalBooking.firstName, finalBooking.lastName);
             const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
               sitterFirstName: sitter.firstName,
               firstName: finalBooking.firstName,
               lastName: finalBooking.lastName,
+              clientName: clientName,
               service: finalBooking.service,
               datesTimes: formattedDatesTimes,
               date: formatDateForMessage(finalBooking.startAt), // Now uses short format (Jan 5)
@@ -509,10 +511,12 @@ export async function PATCH(
               sitterMessageTemplate = "👋 SITTER ASSIGNED!\n\nHi {{sitterFirstName}},\n\nYou've been assigned to {{firstName}} {{lastName}}'s {{service}} booking:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
             }
             
+            const clientName = formatClientNameForSitter(finalBooking.firstName, finalBooking.lastName);
             message = replaceTemplateVariables(sitterMessageTemplate, {
               sitterFirstName: sitter.firstName,
               firstName: finalBooking.firstName,
               lastName: finalBooking.lastName,
+              clientName: clientName,
               service: finalBooking.service,
               datesTimes: formattedDatesTimes,
               date: formatDateForMessage(finalBooking.startAt), // Now uses short format (Jan 5)

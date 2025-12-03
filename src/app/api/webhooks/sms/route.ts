@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { formatPhoneForAPI } from "@/lib/phone-format";
-import { formatPetsByQuantity, formatDatesAndTimesForMessage, calculatePriceBreakdown } from "@/lib/booking-utils";
+import { formatPetsByQuantity, formatDatesAndTimesForMessage, calculatePriceBreakdown, formatClientNameForSitter } from "@/lib/booking-utils";
 import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
 import { sendMessage } from "@/lib/message-utils";
 import { verifyOpenPhoneSignatureFromEnv } from "@/lib/openphone-verify";
@@ -186,7 +186,8 @@ export async function POST(request: NextRequest) {
                     return;
                   }
 
-                  const notificationMessage = `📱 JOB TAKEN\n\nThe booking opportunity for ${offer.booking.firstName} ${offer.booking.lastName} has been accepted by another sitter. Thank you for your interest!`;
+                  const clientName = formatClientNameForSitter(offer.booking.firstName, offer.booking.lastName);
+                  const notificationMessage = `📱 JOB TAKEN\n\nThe booking opportunity for ${clientName} has been accepted by another sitter. Thank you for your interest!`;
                   
                   await sendMessage(sitterPhone, notificationMessage, offer.bookingId);
                 } catch (error) {
@@ -229,7 +230,8 @@ export async function POST(request: NextRequest) {
                 const commissionPercentage = sitter.commissionPercentage || 80.0;
                 const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
                 
-                const confirmationMessage = `🎉 CONGRATULATIONS!\n\nYou've been assigned:\n\n${result.service} for ${result.firstName} ${result.lastName}\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nAddress: ${result.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nPlease confirm your availability.`;
+                const clientName = formatClientNameForSitter(result.firstName, result.lastName);
+                const confirmationMessage = `🎉 CONGRATULATIONS!\n\nYou've been assigned:\n\n${result.service} for ${clientName}\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nAddress: ${result.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nPlease confirm your availability.`;
                 
                 await sendMessage(sitterPhone, confirmationMessage, offer.bookingId);
               }

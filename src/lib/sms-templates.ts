@@ -1,5 +1,5 @@
 import { sendMessage } from "@/lib/message-utils";
-import { formatPetsByQuantity } from "@/lib/booking-utils";
+import { formatPetsByQuantity, formatClientNameForSitter } from "@/lib/booking-utils";
 import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
 
 interface Booking {
@@ -58,7 +58,8 @@ export async function sendSitterNightBeforeReminder(booking: Booking, sitterId?:
     }
   }
   
-  const message = `🌙 REMINDER!\n\nHi,\n\nYou have a ${booking.service} appointment tomorrow at ${booking.startAt.toLocaleTimeString()}.\n\nClient: ${booking.firstName} ${booking.lastName}\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease confirm your availability.`;
+  const clientName = formatClientNameForSitter(booking.firstName, booking.lastName);
+  const message = `🌙 REMINDER!\n\nHi,\n\nYou have a ${booking.service} appointment tomorrow at ${booking.startAt.toLocaleTimeString()}.\n\nClient: ${clientName}\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease confirm your availability.`;
   
   let sitterPhone: string | null = null;
   if (sitterId) {
@@ -97,7 +98,8 @@ export async function sendSitterAssignmentNotification(booking: Booking, sitterI
     }
   }
   
-  const message = `👋 SITTER ASSIGNED!\n\nHi,\n\nYou've been assigned to ${booking.firstName} ${booking.lastName}'s ${booking.service} booking on ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease confirm your availability.`;
+  const clientName = formatClientNameForSitter(booking.firstName, booking.lastName);
+  const message = `👋 SITTER ASSIGNED!\n\nHi,\n\nYou've been assigned to ${clientName}'s ${booking.service} booking on ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease confirm your availability.`;
   
   let sitterPhone: string | null = null;
   if (sitterId) {
