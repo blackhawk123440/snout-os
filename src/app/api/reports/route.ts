@@ -128,7 +128,9 @@ export async function POST(request: NextRequest) {
 
     // Send report to client
     const petQuantities = formatPetsByQuantity(booking.pets);
-    const clientMessage = `🐾 VISIT REPORT\n\nHi ${booking.firstName},\n\nYour ${booking.service} visit has been completed!\n\nPets: ${petQuantities}\nSitter: ${booking.sitter?.firstName || 'Assigned sitter'}\n\nReport: ${trimmedContent}\n\nThank you for choosing Snout Services!`;
+    // Include tip link if available
+    const tipLinkText = booking.tipLinkUrl ? `\n\n💝 Show your appreciation: ${booking.tipLinkUrl}` : '';
+    const clientMessage = `🐾 VISIT REPORT\n\nHi ${booking.firstName},\n\nYour ${booking.service} visit has been completed!\n\nPets: ${petQuantities}\nSitter: ${booking.sitter?.firstName || 'Assigned sitter'}\n\nReport: ${trimmedContent}${tipLinkText}\n\nThank you for choosing Snout Services!`;
     
     await sendMessage(booking.phone, clientMessage, trimmedBookingId);
 

@@ -4256,7 +4256,10 @@
                          this.currentMonth === today.getMonth() && 
                          this.currentYear === today.getFullYear();
           const isSelected = window.bookingForm.state.selectedDates.includes(dateStr);
-          const isPast = new Date(dateStr) < new Date().setHours(0, 0, 0, 0);
+          // Allow today to be selected - only disable past dates (before today)
+          const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const dateMidnight = new Date(this.currentYear, this.currentMonth, day);
+          const isPast = dateMidnight < todayMidnight;
 
           if (isToday) dayElement.classList.add('today');
           if (isSelected) dayElement.classList.add('selected');
