@@ -68,6 +68,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Handle decline responses
+    if (response.toLowerCase() === "no" || response.toLowerCase() === "decline" || response.toLowerCase() === "n" || response.toLowerCase() === "nooo" || response.toLowerCase() === "noooo") {
+      // Just record the decline - don't close the offer
+      return NextResponse.json({ offer: updatedOffer, message: "Your decline has been recorded." });
+    }
+
     // If accepted, assign sitter and close offer (first-response-wins)
     if (response.toLowerCase() === "yes" || response.toLowerCase() === "accept" || response.toLowerCase() === "y") {
       // Check if offer is still active (atomic check)
