@@ -3,7 +3,7 @@ import { sendClientNightBeforeReminder, sendSitterNightBeforeReminder } from "@/
 import { sendSMS } from "@/lib/openphone";
 import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
-import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
+import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, formatClientNameForSitter } from "@/lib/booking-utils";
 import { sendMessage } from "@/lib/message-utils";
 
 export async function processReminders() {
@@ -111,10 +111,12 @@ export async function processReminders() {
                 if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
                   sitterMessageTemplate = "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment:\n{{datesTimes}}\n\nClient: {{firstName}} {{lastName}}\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
                 }
+                const clientName = formatClientNameForSitter(booking.firstName, booking.lastName);
                 const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
                   sitterFirstName: sitter.firstName,
                   firstName: booking.firstName,
                   lastName: booking.lastName,
+                  clientName: clientName,
                   service: booking.service,
                   datesTimes: formattedDatesTimes,
                   date: formatDateForMessage(booking.startAt), // Now uses short format (Jan 5)

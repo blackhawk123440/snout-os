@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { formatPetsByQuantity, formatDatesAndTimesForMessage, calculatePriceBreakdown } from "@/lib/booking-utils";
+import { formatPetsByQuantity, formatDatesAndTimesForMessage, calculatePriceBreakdown, formatClientNameForSitter } from "@/lib/booking-utils";
 import { getSitterPhone } from "@/lib/phone-utils";
 import { sendMessage } from "@/lib/message-utils";
 
@@ -93,7 +93,8 @@ export async function POST(request: NextRequest) {
         const commissionPercentage = sitter.commissionPercentage || 80.0;
         const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
 
-        const smsMessage = `🐾 NEW BOOKING OPPORTUNITY\n\n${booking.service} for ${booking.firstName} ${booking.lastName}\n\nDates & Times:\n${dateTimeInfo}\n\nPets: ${petQuantities}\nAddress: ${booking.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nReply YES to accept, NO to decline.`;
+        const clientName = formatClientNameForSitter(booking.firstName, booking.lastName);
+        const smsMessage = `🐾 NEW BOOKING OPPORTUNITY\n\n${booking.service} for ${clientName}\n\nDates & Times:\n${dateTimeInfo}\n\nPets: ${petQuantities}\nAddress: ${booking.address || 'TBD'}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nReply YES to accept, NO to decline.`;
         
         const messageResult = await sendMessage(sitterPhone, smsMessage, bookingId);
         if (messageResult) {

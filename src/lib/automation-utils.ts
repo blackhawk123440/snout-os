@@ -3,6 +3,7 @@
  */
 
 import { prisma } from "@/lib/db";
+import { formatClientNameForSitter } from "@/lib/booking-utils";
 
 /**
  * Get automation settings from database
@@ -65,6 +66,7 @@ export async function getMessageTemplate(
  * Replace template variables in a message
  * For sitter messages, if totalPrice or total is present and sitterCommissionPercentage is provided,
  * it will be replaced with earnings instead of the full total
+ * For sitter messages, client names are automatically formatted as "FirstName LastInitial"
  */
 export function replaceTemplateVariables(
   template: string,
@@ -75,6 +77,27 @@ export function replaceTemplateVariables(
   }
 ): string {
   let message = template;
+  
+  // For sitter messages, format client names as "FirstName LastInitial"
+  if (options?.isSitterMessage) {
+    const firstName = variables.firstName ? String(variables.firstName) : '';
+    const lastName = variables.lastName ? String(variables.lastName) : '';
+    
+    if (firstName && lastName) {
+      const clientName = formatClientNameForSitter(firstName, lastName);
+      // Replace {{clientName}} if present
+      message = message.replace(/\{\{clientName\}\}/g, clientName);
+      // Replace patterns like "{{firstName}} {{lastName}}" with formatted name
+      message = message.replace(/\{\{firstName\}\}\s+\{\{lastName\}\}/g, clientName);
+      message = message.replace(/\{\{firstName\}\}\s+{{lastName}}/g, clientName);
+      // Also handle patterns like "John Doe" or "John's" - replace full name with formatted
+      const fullNamePattern = new RegExp(`\\b${firstName}\\s+${lastName}\\b`, 'g');
+      message = message.replace(fullNamePattern, clientName);
+      // Handle possessive forms like "John Doe's" -> "John D's"
+      const possessivePattern = new RegExp(`\\b${firstName}\\s+${lastName}'s\\b`, 'g');
+      message = message.replace(possessivePattern, `${clientName}'s`);
+    }
+  }
   
   // If this is a sitter message and commission percentage is provided, calculate earnings for totalPrice/total
   if (options?.isSitterMessage && options?.sitterCommissionPercentage !== undefined) {
