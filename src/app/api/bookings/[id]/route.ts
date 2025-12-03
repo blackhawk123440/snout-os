@@ -284,9 +284,6 @@ export async function PATCH(
     }
 
     // Send confirmation SMS if booking is confirmed (using automation templates if enabled)
-    // Note: If sitter is being assigned in this same request, skip booking confirmation to sitter
-    // (they'll get the sitter assignment message instead)
-    const isSitterBeingAssigned = sitterId !== undefined && booking.sitterId !== sitterId;
     if (status === "confirmed") {
       const petQuantities = formatPetsByQuantity(finalBooking.pets);
       // Calculate the true total
@@ -295,8 +292,7 @@ export async function PATCH(
       
       // Check if bookingConfirmation automation is enabled
       const shouldSendToClient = await shouldSendToRecipient("bookingConfirmation", "client");
-      // Don't send booking confirmation to sitter if they're being assigned in this same request
-      const shouldSendToSitter = finalBooking.sitterId && !isSitterBeingAssigned ? await shouldSendToRecipient("bookingConfirmation", "sitter") : false;
+      const shouldSendToSitter = finalBooking.sitterId ? await shouldSendToRecipient("bookingConfirmation", "sitter") : false;
       const shouldSendToOwner = await shouldSendToRecipient("bookingConfirmation", "owner");
       
       // Format dates and times using the shared function that matches booking details
@@ -477,26 +473,6 @@ export async function PATCH(
 
     // Send sitter assignment notification
     if (sitterId !== undefined && booking.sitterId !== sitterId) {
-      // Check if booking already has a sitter assigned
-      if (booking.sitterId && booking.sitterId !== sitterId) {
-        // Notify the new sitter that booking was already accepted
-        const newSitter = await prisma.sitter.findUnique({
-          where: { id: sitterId },
-        });
-        if (newSitter) {
-          const newSitterPhone = await getSitterPhone(sitterId, undefined, "sitterAssignment");
-          if (newSitterPhone) {
-            const alreadyAcceptedMessage = `📱 BOOKING ALREADY ACCEPTED\n\nThe booking for ${booking.firstName} ${booking.lastName} has already been accepted by another sitter. Thank you for your interest!`;
-            await sendMessage(newSitterPhone, alreadyAcceptedMessage, booking.id);
-          }
-        }
-        // Don't proceed with assignment if already assigned
-        return NextResponse.json({ 
-          error: "Booking already has a sitter assigned",
-          booking: finalBooking 
-        }, { status: 400 });
-      }
-
       const sitter = await prisma.sitter.findUnique({
         where: { id: sitterId },
       });
