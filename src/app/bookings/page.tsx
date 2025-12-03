@@ -539,7 +539,23 @@ function BookingsPageContent() {
       });
 
       if (response.ok) {
-        alert(`Sitter pool offer sent to ${selectedSittersForPool.length} sitters!`);
+        const data = await response.json();
+        const smsResults = data.smsResults;
+        
+        if (smsResults) {
+          if (smsResults.failed > 0) {
+            const failedDetails = smsResults.details
+              .filter((r: any) => !r.success)
+              .map((r: any) => r.error || 'Unknown error')
+              .join('\n');
+            alert(`Sitter pool offer created, but some messages failed:\n\nSuccessful: ${smsResults.successful}/${smsResults.total}\nFailed: ${smsResults.failed}/${smsResults.total}\n\nErrors:\n${failedDetails}`);
+          } else {
+            alert(`Sitter pool offer sent successfully to ${smsResults.successful} sitter(s)!`);
+          }
+        } else {
+          alert(`Sitter pool offer sent to ${selectedSittersForPool.length} sitters!`);
+        }
+        
         setShowSitterPoolModal(false);
         setSelectedSittersForPool([]);
         setPoolBookingId(null);
