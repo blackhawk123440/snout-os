@@ -36,6 +36,7 @@ interface Booking {
   quantity: number;
   afterHours: boolean;
   holiday: boolean;
+  notes?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -3394,6 +3395,21 @@ function BookingsPageContent() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Additional Notes */}
+                    {selectedBooking.notes && (
+                      <div className="bg-white border-2 rounded-xl p-6 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                            <i className="fas fa-sticky-note text-sm" style={{ color: COLORS.primary }}></i>
+                          </div>
+                          <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Additional Notes</h3>
+                        </div>
+                        <div className="p-4 bg-gray-50 rounded-lg border" style={{ borderColor: COLORS.border }}>
+                          <p className="text-base text-gray-900 whitespace-pre-wrap">{selectedBooking.notes}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Right Column - Sitter & Actions */}
