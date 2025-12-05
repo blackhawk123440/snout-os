@@ -3634,11 +3634,20 @@ function BookingsPageContent() {
                                 <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm bg-green-100">
                                   <i className="fas fa-user-check text-green-600 text-lg"></i>
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                   <p className="font-bold text-green-800">{selectedBooking.sitter.firstName} {selectedBooking.sitter.lastName}</p>
                                   <p className="text-sm text-green-600">Assigned Sitter</p>
                                 </div>
                               </div>
+                              <button
+                                onClick={() => getSitterRecommendations(selectedBooking.id)}
+                                disabled={loadingRecommendations}
+                                className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all mb-2"
+                                style={{ background: "#8b5cf6", color: "white" }}
+                              >
+                                <i className={`fas fa-lightbulb mr-2 ${loadingRecommendations ? 'fa-spin' : ''}`}></i>
+                                {loadingRecommendations ? "Loading..." : "Get Better Recommendations"}
+                              </button>
                               <button
                                 onClick={() => handleSitterAssign(selectedBooking.id, "")}
                                 className="w-full px-4 py-3 text-sm font-semibold border-2 rounded-lg hover:bg-gray-50 transition-colors"
@@ -3649,68 +3658,46 @@ function BookingsPageContent() {
                             </div>
                           ) : (
                             <div className="space-y-4">
-                              {selectedBooking.sitter ? (
-                                <>
-                                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                                    <div className="flex items-center gap-2 mb-3">
-                                      <i className="fas fa-user-check text-green-600"></i>
-                                      <p className="font-semibold text-green-800">Sitter Assigned: {selectedBooking.sitter.firstName} {selectedBooking.sitter.lastName}</p>
-                                    </div>
-                                    <button
-                                      onClick={() => getSitterRecommendations(selectedBooking.id)}
-                                      disabled={loadingRecommendations}
-                                      className="w-full px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all mb-2"
-                                      style={{ background: "#8b5cf6", color: "white" }}
-                                    >
-                                      <i className={`fas fa-lightbulb mr-2 ${loadingRecommendations ? 'fa-spin' : ''}`}></i>
-                                      {loadingRecommendations ? "Loading..." : "Get Better Recommendations"}
-                                    </button>
-                                  </div>
-                                </>
-                              ) : (
-                                <>
-                                  <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                                    <div className="flex items-center gap-2">
-                                      <i className="fas fa-exclamation-triangle text-yellow-600"></i>
-                                      <p className="font-semibold text-yellow-800">No sitter assigned</p>
-                                    </div>
-                                  </div>
-                                  <select
-                                    value=""
-                                    onChange={(e) => {
-                                      if (e.target.value) {
-                                        handleSitterAssign(selectedBooking.id, e.target.value);
-                                      }
-                                    }}
-                                    className="w-full px-4 py-3 border-2 rounded-lg font-semibold"
-                                    style={{ borderColor: COLORS.border }}
-                                  >
-                                    <option value="">Select a sitter...</option>
-                                    {sitters.map(sitter => (
-                                      <option key={sitter.id} value={sitter.id}>
-                                        {sitter.firstName} {sitter.lastName}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  
-                                  <button
-                                    onClick={() => openSitterPoolModal(selectedBooking.id)}
-                                    className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all mb-2"
-                                    style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-                                  >
-                                    <i className="fas fa-users mr-2"></i>Create Sitter Pool Offer
-                                  </button>
-                                  <button
-                                    onClick={() => getSitterRecommendations(selectedBooking.id)}
-                                    disabled={loadingRecommendations}
-                                    className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
-                                    style={{ background: "#8b5cf6", color: "white" }}
-                                  >
-                                    <i className={`fas fa-lightbulb mr-2 ${loadingRecommendations ? 'fa-spin' : ''}`}></i>
-                                    {loadingRecommendations ? "Loading..." : "Get Recommendations"}
-                                  </button>
-                                </>
-                              )}
+                              <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                                <div className="flex items-center gap-2">
+                                  <i className="fas fa-exclamation-triangle text-yellow-600"></i>
+                                  <p className="font-semibold text-yellow-800">No sitter assigned</p>
+                                </div>
+                              </div>
+                              <select
+                                value=""
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    handleSitterAssign(selectedBooking.id, e.target.value);
+                                  }
+                                }}
+                                className="w-full px-4 py-3 border-2 rounded-lg font-semibold"
+                                style={{ borderColor: COLORS.border }}
+                              >
+                                <option value="">Select a sitter...</option>
+                                {sitters.map(sitter => (
+                                  <option key={sitter.id} value={sitter.id}>
+                                    {sitter.firstName} {sitter.lastName}
+                                  </option>
+                                ))}
+                              </select>
+                              
+                              <button
+                                onClick={() => openSitterPoolModal(selectedBooking.id)}
+                                className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all mb-2"
+                                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
+                              >
+                                <i className="fas fa-users mr-2"></i>Create Sitter Pool Offer
+                              </button>
+                              <button
+                                onClick={() => getSitterRecommendations(selectedBooking.id)}
+                                disabled={loadingRecommendations}
+                                className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                                style={{ background: "#8b5cf6", color: "white" }}
+                              >
+                                <i className={`fas fa-lightbulb mr-2 ${loadingRecommendations ? 'fa-spin' : ''}`}></i>
+                                {loadingRecommendations ? "Loading..." : "Get Recommendations"}
+                              </button>
                             </div>
                           )}
                         </>
