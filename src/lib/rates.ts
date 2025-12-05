@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { calculatePriceWithRules } from "./pricing-engine";
 
 export interface Rate {
   base: number;
@@ -200,8 +201,10 @@ export async function calculateBookingPrice(
   endAt: Date,
   petCount: number,
   quantity: number = 1,
-  afterHours: boolean = false
-): Promise<{ total: number; notes: string; holidayApplied: boolean }> {
+  afterHours: boolean = false,
+  address?: string,
+  clientTags?: string[]
+): Promise<{ total: number; notes: string; holidayApplied: boolean; pricingDetails?: any }> {
   try {
     const rate = getRateForService(service);
     if (!rate) {
@@ -222,7 +225,41 @@ export async function calculateBookingPrice(
       rate,
     };
 
-    return computeQuote(quoteInput);
+    const baseResult = computeQuote(quoteInput);
+    
+    // Apply pricing rules from Pricing Engine
+    try {
+      const pricingContext = {
+        service,
+        startAt: startDate,
+        endAt: endDate,
+        petCount,
+        quantity,
+        afterHours,
+        holiday: baseResult.holidayApplied,
+        address: address || "",
+        clientTags: clientTags || [],
+      };
+
+      const pricingResult = await calculatePriceWithRules(baseResult.total, pricingContext);
+      
+      return {
+        total: pricingResult.total,
+        notes: baseResult.notes + (pricingResult.fees.length > 0 ? ` +${pricingResult.fees.length} fee(s)` : "") + (pricingResult.discounts.length > 0 ? ` -${pricingResult.discounts.length} discount(s)` : ""),
+        holidayApplied: baseResult.holidayApplied,
+        pricingDetails: {
+          basePrice: pricingResult.basePrice,
+          fees: pricingResult.fees,
+          discounts: pricingResult.discounts,
+          multipliers: pricingResult.multipliers,
+          subtotal: pricingResult.subtotal,
+        },
+      };
+    } catch (pricingError) {
+      // If pricing engine fails, return base result
+      console.error("Pricing engine error (using base price):", pricingError);
+      return baseResult;
+    }
   } catch (error) {
     console.error("Failed to calculate booking price:", error);
     return { total: 0, notes: "Error calculating price", holidayApplied: false };
