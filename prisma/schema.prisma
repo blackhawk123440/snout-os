@@ -19,7 +19,7 @@ model Rate {
 }
 
 model Booking {
-  id                   String            @id @default(uuid())
+  id                   String                 @id @default(uuid())
   firstName            String
   lastName             String
   phone                String
@@ -31,38 +31,44 @@ model Booking {
   startAt              DateTime
   endAt                DateTime
   totalPrice           Float
-  status               String            @default("pending")
+  status               String                 @default("pending")
   notes                String?
   stripePaymentLinkUrl String?
   tipLinkUrl           String?
-  paymentStatus        String            @default("unpaid")
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-  afterHours           Boolean           @default(false)
-  holiday              Boolean           @default(false)
-  quantity             Int               @default(1)
+  paymentStatus        String                 @default("unpaid")
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  afterHours           Boolean                @default(false)
+  holiday              Boolean                @default(false)
+  quantity             Int                    @default(1)
   pets                 Pet[]
-  sitter               Sitter?           @relation(fields: [sitterId], references: [id])
+  sitter               Sitter?                @relation(fields: [sitterId], references: [id])
   sitterId             String?
   timeSlots            TimeSlot[]
   messages             Message[]
   reports              Report[]
   sitterPoolOffers     SitterPoolOffer[]
+  client               Client?                @relation(fields: [clientId], references: [id])
+  clientId             String?
+  tags                 BookingTagAssignment[]
+  discountUsage        DiscountUsage?
 
   @@index([sitterId])
   @@index([status])
   @@index([createdAt])
+  @@index([clientId])
 }
 
 model Pet {
-  id        String  @id @default(uuid())
-  name      String
-  species   String
-  breed     String?
-  age       Int?
-  notes     String?
-  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  bookingId String
+  id           String             @id @default(uuid())
+  name         String
+  species      String
+  breed        String?
+  age          Int?
+  notes        String?
+  booking      Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId    String
+  customFields CustomFieldValue[]
 
   @@index([bookingId])
 }
@@ -80,23 +86,28 @@ model TimeSlot {
 }
 
 model Sitter {
-  id                   String            @id @default(uuid())
+  id                   String              @id @default(uuid())
   firstName            String
   lastName             String
   phone                String
   email                String
-  active               Boolean           @default(true)
-  commissionPercentage Float             @default(80.0) // Percentage of booking totalPrice (70-80%)
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  active               Boolean             @default(true)
+  commissionPercentage Float               @default(80.0) // Percentage of booking totalPrice (70-80%)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
   bookings             Booking[]
   personalPhone        String?
   openphonePhone       String?
   phoneType            String?
   stripeAccountId      String?
   sitterPoolOffers     SitterPoolOffer[]
+  tierHistory          SitterTierHistory[]
+  currentTierId        String?
+  currentTier          SitterTier?         @relation(fields: [currentTierId], references: [id])
+  customFields         CustomFieldValue[]
 
   @@index([active])
+  @@index([currentTierId])
 }
 
 model SitterPoolOffer {
@@ -172,4 +183,434 @@ model GoogleCalendarAccount {
   updatedAt    DateTime  @updatedAt
 
   @@index([email])
+}
+
+// ============================================
+// AUTOMATION CENTER MODELS
+// ============================================
+
+model Automation {
+  id          String                @id @default(uuid())
+  name        String
+  description String?
+  trigger     String // e.g., "booking.created", "sitter.assigned"
+  enabled     Boolean               @default(true)
+  priority    Int                   @default(0) // Higher priority runs first
+  conditions  AutomationCondition[]
+  actions     AutomationAction[]
+  logs        AutomationLog[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([trigger])
+  @@index([enabled])
+}
+
+model AutomationCondition {
+  id           String     @id @default(uuid())
+  automationId String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  field        String // e.g., "service", "bookingTotal", "dayOfWeek"
+  operator     String // e.g., "equals", "greaterThan", "contains"
+  value        String // JSON string for complex values
+  logic        String? // "AND" or "OR" - how to combine with next condition
+  order        Int        @default(0)
+
+  @@index([automationId])
+}
+
+model AutomationAction {
+  id           String     @id @default(uuid())
+  automationId String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  type         String // e.g., "sendSMS", "sendEmail", "updateStatus", "assignSitter"
+  config       String // JSON string with action-specific configuration
+  order        Int        @default(0)
+  delayMinutes Int?       @default(0) // Delay before executing
+
+  @@index([automationId])
+}
+
+model AutomationLog {
+  id           String     @id @default(uuid())
+  automationId String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  trigger      String
+  context      String // JSON string with event context
+  conditions   String // JSON string with condition results
+  actions      String // JSON string with action results
+  success      Boolean
+  error        String?
+  executedAt   DateTime   @default(now())
+
+  @@index([automationId])
+  @@index([executedAt])
+  @@index([success])
+}
+
+// ============================================
+// CUSTOM FIELD SYSTEM
+// ============================================
+
+model CustomField {
+  id               String             @id @default(uuid())
+  entityType       String // "client", "pet", "sitter", "booking"
+  label            String
+  fieldType        String // "string", "number", "boolean", "date", "list"
+  required         Boolean            @default(false)
+  visibleToOwner   Boolean            @default(true)
+  visibleToSitter  Boolean            @default(false)
+  visibleToClient  Boolean            @default(false)
+  editableBySitter Boolean            @default(false)
+  editableByClient Boolean            @default(false)
+  showInTemplates  Boolean            @default(false)
+  options          String? // JSON array for list type fields
+  defaultValue     String?
+  order            Int                @default(0)
+  values           CustomFieldValue[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([entityType])
+}
+
+model CustomFieldValue {
+  id            String      @id @default(uuid())
+  customFieldId String
+  customField   CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+  entityId      String // ID of the client, pet, sitter, or booking
+  value         String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  Pet           Pet?        @relation(fields: [petId], references: [id])
+  petId         String?
+  Sitter        Sitter?     @relation(fields: [sitterId], references: [id])
+  sitterId      String?
+  Client        Client?     @relation(fields: [clientId], references: [id])
+  clientId      String?
+
+  @@unique([customFieldId, entityId])
+  @@index([entityId])
+}
+
+// ============================================
+// SERVICE CONFIGURATION
+// ============================================
+
+model ServiceConfig {
+  id                 String   @id @default(uuid())
+  serviceName        String   @unique
+  basePrice          Float?
+  defaultDuration    Int? // minutes
+  category           String? // e.g., "walking", "sitting", "care"
+  minBookingNotice   Int? // hours
+  gpsCheckInRequired Boolean  @default(false)
+  photosRequired     Boolean  @default(false)
+  allowedSitterTiers String? // JSON array of tier IDs
+  allowedSitterTypes String? // JSON array
+  weekendMultiplier  Float?   @default(1.0)
+  holidayMultiplier  Float?   @default(1.0)
+  timeOfDayRules     String? // JSON object with rules
+  holidayBehavior    String? // JSON object
+  enabled            Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([serviceName])
+  @@index([category])
+}
+
+// ============================================
+// PRICING ENGINE
+// ============================================
+
+model PricingRule {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  type        String // "fee", "discount", "multiplier"
+  conditions  String // JSON object with conditions
+  calculation String // JSON object with calculation logic
+  priority    Int      @default(0)
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([enabled])
+  @@index([type])
+}
+
+// ============================================
+// DISCOUNT ENGINE
+// ============================================
+
+model Discount {
+  id              String          @id @default(uuid())
+  code            String?         @unique // For discount codes
+  name            String
+  type            String // "code", "firstTime", "loyalty", "referral", "automatic"
+  value           Float // Percentage or fixed amount
+  valueType       String // "percentage" or "fixed"
+  minBookingTotal Float?
+  maxDiscount     Float?
+  validFrom       DateTime?
+  validUntil      DateTime?
+  usageLimit      Int?
+  usageCount      Int             @default(0)
+  conditions      String? // JSON object with conditions
+  enabled         Boolean         @default(true)
+  bookings        DiscountUsage[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([code])
+  @@index([type])
+  @@index([enabled])
+}
+
+model DiscountUsage {
+  id         String   @id @default(uuid())
+  discountId String
+  discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount     Float
+  usedAt     DateTime @default(now())
+
+  @@unique([bookingId]) // One discount per booking
+  @@index([discountId])
+  @@index([bookingId])
+}
+
+// ============================================
+// BOOKING FORM BUILDER
+// ============================================
+
+model FormField {
+  id              String   @id @default(uuid())
+  serviceType     String? // null = applies to all services
+  label           String
+  fieldType       String // "text", "email", "phone", "date", "select", "textarea", "checkbox"
+  required        Boolean  @default(false)
+  order           Int      @default(0)
+  options         String? // JSON array for select fields
+  placeholder     String?
+  helpText        String?
+  visibleToSitter Boolean  @default(false)
+  visibleToClient Boolean  @default(true)
+  includeInReport Boolean  @default(false)
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([serviceType])
+}
+
+// ============================================
+// TEMPLATE ENGINE
+// ============================================
+
+model MessageTemplate {
+  id          String            @id @default(uuid())
+  name        String
+  type        String // "sms", "email"
+  category    String // "client", "sitter", "owner", "report", "invoice", "onboarding"
+  templateKey String            @unique // e.g., "booking.confirmed.client.sms"
+  subject     String? // For emails
+  body        String
+  variables   String? // JSON array of available variables
+  version     Int               @default(1)
+  isActive    Boolean           @default(true)
+  history     TemplateHistory[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([category])
+  @@index([type])
+  @@index([templateKey])
+}
+
+model TemplateHistory {
+  id         String          @id @default(uuid())
+  templateId String
+  template   MessageTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  subject    String?
+  body       String
+  version    Int
+  changedBy  String? // User ID or system
+  changedAt  DateTime        @default(now())
+
+  @@index([templateId])
+}
+
+// ============================================
+// PERMISSION & ROLE SYSTEM
+// ============================================
+
+model Role {
+  id          String           @id @default(uuid())
+  name        String           @unique // "owner", "admin", "manager", "leadSitter", "sitter", "accountant"
+  displayName String
+  permissions RolePermission[]
+  users       UserRole[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model RolePermission {
+  id       String  @id @default(uuid())
+  roleId   String
+  role     Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  resource String // e.g., "client.phone", "booking.edit", "sitter.payout"
+  action   String // "read", "write", "delete", "manage"
+  granted  Boolean @default(true)
+
+  @@unique([roleId, resource, action])
+  @@index([roleId])
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String // References Sitter.id or a future User model
+  userType  String // "sitter" or "admin"
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, userType, roleId])
+  @@index([userId, userType])
+}
+
+// ============================================
+// SITTER TIER & PERFORMANCE ENGINE
+// ============================================
+
+model SitterTier {
+  id                        String              @id @default(uuid())
+  name                      String              @unique
+  pointTarget               Int
+  minCompletionRate         Float? // 0-100
+  minResponseRate           Float? // 0-100
+  benefits                  String? // JSON object
+  priorityLevel             Int                 @default(0) // Higher = more priority in routing
+  canTakeHouseSits          Boolean             @default(false)
+  canTakeTwentyFourHourCare Boolean             @default(false)
+  isDefault                 Boolean             @default(false)
+  sitters                   SitterTierHistory[]
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
+  Sitter                    Sitter[]
+
+  @@index([priorityLevel])
+}
+
+model SitterTierHistory {
+  id             String     @id @default(uuid())
+  sitterId       String
+  sitter         Sitter     @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+  tierId         String
+  tier           SitterTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  points         Int
+  completionRate Float?
+  responseRate   Float?
+  periodStart    DateTime
+  periodEnd      DateTime?
+  createdAt      DateTime   @default(now())
+
+  @@index([sitterId])
+  @@index([tierId])
+  @@index([periodStart])
+}
+
+model ServicePointWeight {
+  id        String   @id @default(uuid())
+  service   String
+  duration  Int? // null = applies to all durations
+  points    Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([service, duration])
+  @@index([service])
+}
+
+// ============================================
+// CLIENT MANAGEMENT
+// ============================================
+
+model Client {
+  id            String             @id @default(uuid())
+  firstName     String
+  lastName      String
+  phone         String
+  email         String?
+  address       String?
+  tags          String? // JSON array
+  lifetimeValue Float              @default(0)
+  lastBookingAt DateTime?
+  notes         String?
+  customFields  CustomFieldValue[]
+  bookings      Booking[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([phone])
+  @@index([email])
+}
+
+// ============================================
+// BOOKING EXTENSIONS
+// ============================================
+
+model BookingTag {
+  id        String                 @id @default(uuid())
+  name      String                 @unique
+  color     String? // Hex color
+  bookings  BookingTagAssignment[]
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+}
+
+model BookingTagAssignment {
+  id        String     @id @default(uuid())
+  bookingId String
+  tagId     String
+  tag       BookingTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  Booking   Booking    @relation(fields: [bookingId], references: [id])
+
+  @@unique([bookingId, tagId])
+  @@index([bookingId])
+  @@index([tagId])
+}
+
+model BookingPipeline {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  order       Int      @default(0)
+  isDefault   Boolean  @default(false)
+  transitions String? // JSON array of allowed next statuses
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([order])
+}
+
+// ============================================
+// BUSINESS SETTINGS
+// ============================================
+
+model BusinessSettings {
+  id              String   @id @default(uuid())
+  businessName    String
+  businessPhone   String?
+  businessEmail   String?
+  businessAddress String?
+  timeZone        String   @default("America/New_York")
+  operatingHours  String? // JSON object
+  holidays        String? // JSON array
+  taxSettings     String? // JSON object
+  contentBlocks   String? // JSON object with policies, terms, etc.
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

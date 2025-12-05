@@ -8,6 +8,7 @@ import { sendOwnerAlert } from "@/lib/sms-templates";
 import { getOwnerPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
 import { sendMessage } from "@/lib/message-utils";
+import { emitBookingCreated } from "@/lib/event-emitter";
 
 const parseOrigins = (value?: string | null) => {
   if (!value) return [];
@@ -353,6 +354,9 @@ export async function POST(request: NextRequest) {
         timeSlots: true,
       },
     });
+
+    // Emit booking.created event for Automation Center
+    await emitBookingCreated(booking);
 
     // Send SMS confirmation to client (if automation enabled)
     const petQuantities = formatPetsByQuantity(booking.pets);

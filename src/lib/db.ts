@@ -28,3 +28,13 @@ try {
 }
 
 export const prisma = prismaClient;
+
+// Initialize automation engine
+if (typeof window === "undefined") {
+  try {
+    require("./automation-init");
+  } catch (error) {
+    // Silently fail if automation engine can't be initialized
+    // This allows the app to work even if automation features aren't fully set up
+  }
+}
