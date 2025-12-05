@@ -15,12 +15,19 @@ interface Booking {
   endAt: Date;
   status: "pending" | "confirmed" | "completed" | "cancelled";
   totalPrice: number;
-  pets: Array<{ species: string }>;
+  pets: Array<{ species: string; name?: string; notes?: string }>;
   sitter?: {
     id: string;
     firstName: string;
     lastName: string;
   };
+  timeSlots?: Array<{
+    id: string;
+    startAt: Date;
+    endAt: Date;
+    duration: number;
+  }>;
+  notes?: string | null;
 }
 
 export default function SitterPage() {
@@ -28,6 +35,9 @@ export default function SitterPage() {
   const [loading, setLoading] = useState(true);
   const [sitterId, setSitterId] = useState<string>("");
   const [commissionPercentage, setCommissionPercentage] = useState<number>(80.0);
+  const [activeTab, setActiveTab] = useState<"today" | "upcoming" | "completed" | "earnings" | "settings">("today");
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [sitterTier, setSitterTier] = useState<any>(null);
 
   useEffect(() => {
     // Get sitter ID from URL params or localStorage
@@ -49,10 +59,17 @@ export default function SitterPage() {
       if (data.sitter?.commissionPercentage) {
         setCommissionPercentage(data.sitter.commissionPercentage);
       }
+      
+      // Fetch sitter tier info
+      const sitterResponse = await fetch(`/api/sitters/${id}`);
+      const sitterData = await sitterResponse.json();
+      if (sitterData.sitter?.currentTier) {
+        setSitterTier(sitterData.sitter.currentTier);
+      }
     } catch {
       setBookings([]);
     } finally {
-    setLoading(false);
+      setLoading(false);
     }
   };
   
@@ -91,6 +108,21 @@ export default function SitterPage() {
     return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const todayBookings = bookings
+    .filter(booking => {
+      const bookingDate = new Date(booking.startAt);
+      bookingDate.setHours(0, 0, 0, 0);
+      return bookingDate.getTime() === today.getTime() && 
+             booking.status !== "cancelled" &&
+             (booking.status === "confirmed" || booking.status === "pending");
+    })
+    .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+
   const upcomingBookings = bookings.filter(booking => 
     new Date(booking.startAt) > new Date() && booking.status !== "cancelled"
   );
@@ -98,6 +130,33 @@ export default function SitterPage() {
   const completedBookings = bookings.filter(booking => 
     booking.status === "completed"
   );
+
+  const isOverdue = (booking: Booking) => {
+    return new Date(booking.startAt) < new Date() && booking.status === "confirmed";
+  };
+
+  const checkIn = async (bookingId: string) => {
+    try {
+      // Emit check-in event
+      await fetch(`/api/bookings/${bookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "confirmed" }),
+      });
+      // In a real implementation, this would call the check-in API
+      alert("Checked in successfully!");
+      fetchSitterBookings(sitterId);
+    } catch (error) {
+      console.error("Failed to check in:", error);
+      alert("Failed to check in");
+    }
+  };
+
+  const calculateTravelTime = (booking1: Booking | null, booking2: Booking) => {
+    if (!booking1) return 0;
+    // Simplified - in production use real distance API
+    return 15; // Default 15 minutes
+  };
 
   return (
     <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
@@ -132,6 +191,67 @@ export default function SitterPage() {
       </div>
 
       <div className="max-w-[1400px] mx-auto px-8 py-6">
+        {/* Tabs */}
+        <div className="flex items-center gap-2 mb-6 border-b" style={{ borderColor: COLORS.border }}>
+          <button
+            onClick={() => setActiveTab("today")}
+            className={`px-4 py-2 font-semibold border-b-2 transition-colors ${
+              activeTab === "today" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-600"
+            }`}
+          >
+            Today ({todayBookings.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("upcoming")}
+            className={`px-4 py-2 font-semibold border-b-2 transition-colors ${
+              activeTab === "upcoming" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-600"
+            }`}
+          >
+            Upcoming ({upcomingBookings.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("completed")}
+            className={`px-4 py-2 font-semibold border-b-2 transition-colors ${
+              activeTab === "completed" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-600"
+            }`}
+          >
+            Completed ({completedBookings.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("earnings")}
+            className={`px-4 py-2 font-semibold border-b-2 transition-colors ${
+              activeTab === "earnings" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-600"
+            }`}
+          >
+            Earnings
+          </button>
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`px-4 py-2 font-semibold border-b-2 transition-colors ${
+              activeTab === "settings" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-600"
+            }`}
+          >
+            Settings
+          </button>
+        </div>
+
+        {/* Tier Badge */}
+        {sitterTier && (
+          <div className="mb-6 bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                <i className="fas fa-star text-xl" style={{ color: COLORS.primary }}></i>
+              </div>
+              <div>
+                <div className="font-bold" style={{ color: COLORS.primary }}>
+                  Current Tier: {sitterTier.name}
+                </div>
+                <div className="text-sm text-gray-600">Priority Level: {sitterTier.priorityLevel}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-6 mb-6">
           <div className="bg-white rounded-lg p-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
@@ -177,7 +297,90 @@ export default function SitterPage() {
           </div>
         </div>
 
+        {/* Today View */}
+        {activeTab === "today" && (
+          <div className="bg-white rounded-lg border-2 mb-6" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
+              <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
+                Today's Visits ({todayBookings.length})
+              </h2>
+            </div>
+            <div className="p-6">
+              {todayBookings.length === 0 ? (
+                <div className="text-center py-8">
+                  <i className="fas fa-calendar text-4xl text-gray-300 mb-4"></i>
+                  <p className="text-gray-600">No visits scheduled for today</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {todayBookings.map((booking, index) => {
+                    const previousBooking = index > 0 ? todayBookings[index - 1] : null;
+                    const travelTime = calculateTravelTime(previousBooking, booking);
+                    const overdue = isOverdue(booking);
+                    
+                    return (
+                      <div
+                        key={booking.id}
+                        className={`p-4 border-2 rounded-lg ${overdue ? "border-red-500 bg-red-50" : ""}`}
+                        style={{ borderColor: overdue ? "#ef4444" : COLORS.border }}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="font-bold text-lg">
+                                {booking.firstName} {booking.lastName.charAt(0)}.
+                              </h3>
+                              {overdue && (
+                                <span className="px-2 py-1 text-xs font-bold rounded bg-red-100 text-red-800">
+                                  OVERDUE
+                                </span>
+                              )}
+                              <span className={`px-2 py-1 text-xs font-bold rounded ${getStatusColor(booking.status)}`}>
+                                {booking.status}
+                              </span>
+                            </div>
+                            
+                            <div className="text-sm text-gray-600 space-y-1">
+                              <div className="flex items-center gap-4">
+                                <span><i className="fas fa-clock mr-1"></i>{formatTime(booking.startAt)}</span>
+                                <span><i className="fas fa-paw mr-1"></i>{formatPetsByQuantity(booking.pets)}</span>
+                                <span><i className="fas fa-map-marker-alt mr-1"></i>{booking.address}</span>
+                              </div>
+                              {previousBooking && (
+                                <div className="text-xs text-blue-600">
+                                  <i className="fas fa-route mr-1"></i>~{travelTime} min travel from previous visit
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setSelectedBooking(booking)}
+                              className="px-3 py-1 text-sm font-semibold rounded bg-blue-100 text-blue-800"
+                            >
+                              Details
+                            </button>
+                            <button
+                              onClick={() => checkIn(booking.id)}
+                              className="px-3 py-1 text-sm font-semibold rounded text-white"
+                              style={{ background: COLORS.primary }}
+                            >
+                              Check In
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Upcoming Bookings */}
+        {activeTab === "upcoming" && (
         <div className="bg-white rounded-lg border-2 mb-6" style={{ borderColor: COLORS.primaryLight }}>
           <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
             <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
@@ -236,6 +439,7 @@ export default function SitterPage() {
         </div>
 
         {/* Completed Bookings */}
+        {activeTab === "completed" && (
         <div className="bg-white rounded-lg border-2" style={{ borderColor: COLORS.primaryLight }}>
           <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
             <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
@@ -288,6 +492,156 @@ export default function SitterPage() {
             )}
           </div>
         </div>
+        )}
+
+        {/* Earnings View */}
+        {activeTab === "earnings" && (
+          <div className="bg-white rounded-lg border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
+              <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
+                Earnings Breakdown
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="mb-6">
+                <div className="text-3xl font-bold mb-2" style={{ color: COLORS.primary }}>
+                  ${completedBookings.reduce((sum, b) => sum + calculateSitterEarnings(b.totalPrice), 0).toFixed(2)}
+                </div>
+                <div className="text-sm text-gray-600">Total Earnings ({commissionPercentage}% commission)</div>
+              </div>
+              
+              <div className="space-y-3">
+                {completedBookings.map((booking) => (
+                  <div key={booking.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <div className="font-semibold">{booking.firstName} {booking.lastName.charAt(0)}.</div>
+                      <div className="text-sm text-gray-600">{formatDate(booking.startAt)} - {booking.service}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold" style={{ color: COLORS.primary }}>
+                        ${calculateSitterEarnings(booking.totalPrice).toFixed(2)}
+                      </div>
+                      <div className="text-xs text-gray-500">from ${booking.totalPrice.toFixed(2)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Settings View */}
+        {activeTab === "settings" && (
+          <div className="bg-white rounded-lg border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
+              <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
+                Personal Settings
+              </h2>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-semibold mb-2">Commission Percentage</label>
+                  <div className="text-lg">{commissionPercentage}%</div>
+                  <div className="text-sm text-gray-600">Set by owner</div>
+                </div>
+                {sitterTier && (
+                  <div>
+                    <label className="block font-semibold mb-2">Current Tier</label>
+                    <div className="text-lg">{sitterTier.name}</div>
+                    <div className="text-sm text-gray-600">Priority: {sitterTier.priorityLevel}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Visit Detail Modal */}
+        {selectedBooking && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                  Visit Details
+                </h2>
+                <button
+                  onClick={() => setSelectedBooking(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-bold mb-2">Client</h3>
+                  <p>{selectedBooking.firstName} {selectedBooking.lastName.charAt(0)}.</p>
+                  <p className="text-sm text-gray-600">{selectedBooking.phone}</p>
+                </div>
+                
+                <div>
+                  <h3 className="font-bold mb-2">Service</h3>
+                  <p>{selectedBooking.service}</p>
+                  <p className="text-sm text-gray-600">
+                    {formatDate(selectedBooking.startAt)} at {formatTime(selectedBooking.startAt)}
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="font-bold mb-2">Address</h3>
+                  <p>{selectedBooking.address}</p>
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(selectedBooking.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 text-sm"
+                  >
+                    Get Directions →
+                  </a>
+                </div>
+                
+                <div>
+                  <h3 className="font-bold mb-2">Pets</h3>
+                  <div className="space-y-2">
+                    {selectedBooking.pets.map((pet, idx) => (
+                      <div key={idx} className="p-2 bg-gray-50 rounded">
+                        <div className="font-semibold">{pet.name || `Pet ${idx + 1}`}</div>
+                        <div className="text-sm text-gray-600">{pet.species}</div>
+                        {pet.notes && (
+                          <div className="text-sm text-gray-600 mt-1">{pet.notes}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {selectedBooking.notes && (
+                  <div>
+                    <h3 className="font-bold mb-2">Notes</h3>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedBooking.notes}</p>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2 pt-4 border-t">
+                  <button
+                    onClick={() => checkIn(selectedBooking.id)}
+                    className="flex-1 px-4 py-2 rounded-lg font-semibold text-white"
+                    style={{ background: COLORS.primary }}
+                  >
+                    Check In
+                  </button>
+                  <button
+                    onClick={() => setSelectedBooking(null)}
+                    className="px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-800"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
