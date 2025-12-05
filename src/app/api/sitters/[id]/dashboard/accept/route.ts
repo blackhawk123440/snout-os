@@ -38,8 +38,8 @@ export async function POST(
     }
 
     // Verify this sitter is in the pool
-    const sitterIds = JSON.parse(offer.sitterIds || "[]");
-    if (!sitterIds.includes(sitterId) && offer.sitterId !== sitterId) {
+    const poolSitterIds = JSON.parse(offer.sitterIds || "[]");
+    if (!poolSitterIds.includes(sitterId) && offer.sitterId !== sitterId) {
       return NextResponse.json(
         { error: "You are not part of this pool offer" },
         { status: 403 }
