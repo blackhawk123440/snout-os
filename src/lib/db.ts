@@ -29,12 +29,20 @@ try {
 
 export const prisma = prismaClient;
 
-// Initialize automation engine
+// Initialize automation engine early
 if (typeof window === "undefined") {
   try {
-    require("./automation-init");
+    // Import and initialize automation engine
+    import("./automation-init").then(() => {
+      // Engine will auto-initialize
+    }).catch((error) => {
+      // Silently fail if automation engine can't be initialized
+      // This allows the app to work even if automation features aren't fully set up
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Could not initialize automation engine:", error);
+      }
+    });
   } catch (error) {
-    // Silently fail if automation engine can't be initialized
-    // This allows the app to work even if automation features aren't fully set up
+    // Silently fail
   }
 }
