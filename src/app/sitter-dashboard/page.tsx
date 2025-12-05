@@ -397,7 +397,7 @@ export default function SitterDashboardPage() {
                           <div className="ml-4 flex flex-col gap-2">
                             <button
                               onClick={() => acceptJob(job)}
-                              disabled={acceptingJobId === job.id || (job.expiresAt && new Date(job.expiresAt) < new Date())}
+                              disabled={acceptingJobId === job.id || !!(job.expiresAt && new Date(job.expiresAt) < new Date())}
                               className="px-4 py-2 rounded-lg font-semibold text-white disabled:opacity-50"
                               style={{ background: COLORS.primary }}
                             >
