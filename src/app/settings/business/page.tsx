@@ -83,7 +83,7 @@ export default function BusinessSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.background }}>
+    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold mb-8" style={{ color: COLORS.primary }}>
           Business Settings

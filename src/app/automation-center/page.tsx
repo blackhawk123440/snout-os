@@ -125,7 +125,7 @@ export default function AutomationCenterPage() {
   }
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.background }}>
+    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

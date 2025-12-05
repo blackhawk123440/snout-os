@@ -65,7 +65,7 @@ export default function TemplatesPage() {
   }
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.background }}>
+    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
