@@ -52,6 +52,7 @@ model Booking {
   clientId             String?
   tags                 BookingTagAssignment[]
   discountUsage        DiscountUsage?
+  customFields         CustomFieldValue[]
 
   @@index([sitterId])
   @@index([status])
@@ -282,15 +283,21 @@ model CustomFieldValue {
   value         String
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-  Pet           Pet?        @relation(fields: [petId], references: [id])
+  Pet           Pet?        @relation(fields: [petId], references: [id], onDelete: SetNull)
   petId         String?
-  Sitter        Sitter?     @relation(fields: [sitterId], references: [id])
+  Sitter        Sitter?     @relation(fields: [sitterId], references: [id], onDelete: SetNull)
   sitterId      String?
-  Client        Client?     @relation(fields: [clientId], references: [id])
+  Client        Client?     @relation(fields: [clientId], references: [id], onDelete: SetNull)
   clientId      String?
+  Booking       Booking?    @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  bookingId     String?
 
   @@unique([customFieldId, entityId])
   @@index([entityId])
+  @@index([petId])
+  @@index([sitterId])
+  @@index([clientId])
+  @@index([bookingId])
 }
 
 // ============================================
@@ -576,8 +583,8 @@ model BookingTagAssignment {
   bookingId String
   tagId     String
   tag       BookingTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  booking   Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   createdAt DateTime   @default(now())
-  Booking   Booking    @relation(fields: [bookingId], references: [id])
 
   @@unique([bookingId, tagId])
   @@index([bookingId])

@@ -4,6 +4,7 @@ import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMe
 import { sendMessage } from "@/lib/message-utils";
 import { getSitterPhone } from "@/lib/phone-utils";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
+import { emitBookingUpdated, emitSitterAssigned, emitSitterUnassigned } from "@/lib/event-emitter";
 
 export async function GET(
   request: NextRequest,
@@ -281,6 +282,27 @@ export async function PATCH(
 
     if (!finalBooking) {
       return NextResponse.json({ error: "Failed to fetch updated booking" }, { status: 500 });
+    }
+
+    // Emit events for Automation Center
+    const previousStatus = booking.status;
+    const previousSitterId = booking.sitterId;
+    
+    // Emit booking.updated event
+    await emitBookingUpdated(finalBooking, previousStatus);
+    
+    // Emit sitter assignment/unassignment events
+    if (sitterId !== undefined) {
+      if (sitterId && sitterId !== previousSitterId) {
+        // Sitter was assigned
+        const sitter = await prisma.sitter.findUnique({ where: { id: sitterId } });
+        if (sitter) {
+          await emitSitterAssigned(finalBooking, sitter);
+        }
+      } else if (!sitterId && previousSitterId) {
+        // Sitter was unassigned
+        await emitSitterUnassigned(finalBooking, previousSitterId);
+      }
     }
 
     // Send confirmation SMS if booking is confirmed (using automation templates if enabled)

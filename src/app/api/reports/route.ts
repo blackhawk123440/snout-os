@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { formatPetsByQuantity } from "@/lib/booking-utils";
 import { sendMessage } from "@/lib/message-utils";
+import { emitVisitCompleted } from "@/lib/event-emitter";
 
 export async function POST(request: NextRequest) {
   try {
@@ -125,6 +126,9 @@ export async function POST(request: NextRequest) {
         visitCompleted: visitCompleted ? new Date(visitCompleted) : null,
       },
     });
+
+    // Emit visit.completed event for Automation Center
+    await emitVisitCompleted(booking, report);
 
     // Send report to client
     const petQuantities = formatPetsByQuantity(booking.pets);

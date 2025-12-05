@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/db";
 import { sendSMS } from "@/lib/openphone";
+import { emitPaymentSuccess, emitPaymentFailed } from "@/lib/event-emitter";
 
 export async function POST(request: NextRequest) {
   try {
