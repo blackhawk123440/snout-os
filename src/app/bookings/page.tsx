@@ -3628,37 +3628,40 @@ function BookingsPageContent() {
                         </div>
                       ) : (
                         <>
-                          {selectedBooking.sitter ? (
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                                <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm bg-green-100">
-                                  <i className="fas fa-user-check text-green-600 text-lg"></i>
+                          {selectedBooking.sitter ? (() => {
+                            const assignedSitter = selectedBooking.sitter!;
+                            return (
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm bg-green-100">
+                                    <i className="fas fa-user-check text-green-600 text-lg"></i>
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-bold text-green-800">
+                                      {assignedSitter.firstName} {assignedSitter.lastName}
+                                    </p>
+                                    <p className="text-sm text-green-600">Assigned Sitter</p>
+                                  </div>
                                 </div>
-                                <div className="flex-1">
-                                  <p className="font-bold text-green-800">
-                                    {selectedBooking.sitter ? `${selectedBooking.sitter.firstName} ${selectedBooking.sitter.lastName}` : ""}
-                                  </p>
-                                  <p className="text-sm text-green-600">Assigned Sitter</p>
-                                </div>
+                                <button
+                                  onClick={() => getSitterRecommendations(selectedBooking.id)}
+                                  disabled={loadingRecommendations}
+                                  className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all mb-2"
+                                  style={{ background: "#8b5cf6", color: "white" }}
+                                >
+                                  <i className={`fas fa-lightbulb mr-2 ${loadingRecommendations ? 'fa-spin' : ''}`}></i>
+                                  {loadingRecommendations ? "Loading..." : "Get Better Recommendations"}
+                                </button>
+                                <button
+                                  onClick={() => handleSitterAssign(selectedBooking.id, "")}
+                                  className="w-full px-4 py-3 text-sm font-semibold border-2 rounded-lg hover:bg-gray-50 transition-colors"
+                                  style={{ color: COLORS.primary, borderColor: COLORS.border }}
+                                >
+                                  <i className="fas fa-times mr-2"></i>Remove Sitter
+                                </button>
                               </div>
-                              <button
-                                onClick={() => getSitterRecommendations(selectedBooking.id)}
-                                disabled={loadingRecommendations}
-                                className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all mb-2"
-                                style={{ background: "#8b5cf6", color: "white" }}
-                              >
-                                <i className={`fas fa-lightbulb mr-2 ${loadingRecommendations ? 'fa-spin' : ''}`}></i>
-                                {loadingRecommendations ? "Loading..." : "Get Better Recommendations"}
-                              </button>
-                              <button
-                                onClick={() => handleSitterAssign(selectedBooking.id, "")}
-                                className="w-full px-4 py-3 text-sm font-semibold border-2 rounded-lg hover:bg-gray-50 transition-colors"
-                                style={{ color: COLORS.primary, borderColor: COLORS.border }}
-                              >
-                                <i className="fas fa-times mr-2"></i>Remove Sitter
-                              </button>
-                            </div>
-                          ) : null}
+                            );
+                          })() : null}
                           {!selectedBooking.sitter && (
                             <div className="space-y-4">
                               <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
