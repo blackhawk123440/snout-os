@@ -32,6 +32,7 @@ model Booking {
   endAt                DateTime
   totalPrice           Float
   status               String                 @default("pending")
+  assignmentType       String?                // "direct" or "pool" - null means not yet assigned
   notes                String?
   stripePaymentLinkUrl String?
   tipLinkUrl           String?

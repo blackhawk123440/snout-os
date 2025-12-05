@@ -152,7 +152,10 @@ export async function PATCH(
       where: { id },
       data: {
         ...(status && { status }),
-        ...(sitterId !== undefined && { sitterId: sitterId === "" || sitterId === null ? null : sitterId }),
+        ...(sitterId !== undefined && { 
+          sitterId: sitterId === "" || sitterId === null ? null : sitterId,
+          assignmentType: sitterId && sitterId !== "" ? "direct" : null,
+        }),
         ...(firstName && { firstName: firstName.trim() }),
         ...(lastName && { lastName: lastName.trim() }),
         ...(phone && { phone: phone.trim() }),
