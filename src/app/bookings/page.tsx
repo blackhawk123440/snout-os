@@ -98,6 +98,13 @@ function BookingsPageContent() {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkModalContent, setLinkModalContent] = useState<{ title: string; link: string; details?: string } | null>(null);
 
+  // New features states
+  const [sitterRecommendations, setSitterRecommendations] = useState<any[]>([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  const [bookingTags, setBookingTags] = useState<any[]>([]);
+  const [allTags, setAllTags] = useState<any[]>([]);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+
   // Conflict checking state
   const [conflictModal, setConflictModal] = useState<{
     bookingId: string;
@@ -257,6 +264,93 @@ function BookingsPageContent() {
       setSitters([]);
     }
   };
+
+  const fetchBookingTags = async (bookingId: string) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/tags`);
+      if (response.ok) {
+        const data = await response.json();
+        setBookingTags(data.tags || []);
+      }
+    } catch {
+      setBookingTags([]);
+    }
+  };
+
+  const fetchAllTags = async () => {
+    try {
+      const response = await fetch("/api/booking-tags");
+      if (response.ok) {
+        const data = await response.json();
+        setAllTags(data.tags || []);
+      }
+    } catch {
+      setAllTags([]);
+    }
+  };
+
+  const getSitterRecommendations = async (bookingId: string) => {
+    if (!selectedBooking) return;
+    
+    setLoadingRecommendations(true);
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/recommend-sitters`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          timeSlots: selectedBooking.timeSlots || [],
+          address: selectedBooking.address,
+          service: selectedBooking.service,
+          petCount: selectedBooking.pets.length,
+        }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSitterRecommendations(data.recommendations || []);
+        setShowRecommendations(true);
+      }
+    } catch (error) {
+      console.error("Failed to get recommendations:", error);
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  };
+
+  const addTagToBooking = async (bookingId: string, tagId: string) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/tags`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tagIds: [tagId] }),
+      });
+      if (response.ok) {
+        fetchBookingTags(bookingId);
+      }
+    } catch (error) {
+      console.error("Failed to add tag:", error);
+    }
+  };
+
+  const removeTagFromBooking = async (bookingId: string, tagId: string) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/tags?tagId=${tagId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        fetchBookingTags(bookingId);
+      }
+    } catch (error) {
+      console.error("Failed to remove tag:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedBooking) {
+      fetchBookingTags(selectedBooking.id);
+      fetchAllTags();
+    }
+  }, [selectedBooking?.id]);
 
   const activeBookings = useMemo(() => {
     return bookings.filter(booking => booking.status !== "cancelled");
@@ -1702,6 +1796,80 @@ function BookingsPageContent() {
                   }, 0).toFixed(2)}
                 </div>
                 <div className="text-sm text-gray-600">Today's Revenue</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Overview Dashboard */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Today's Visits</p>
+                <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                  {bookings.filter(b => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const bookingDate = new Date(b.startAt);
+                    bookingDate.setHours(0, 0, 0, 0);
+                    return bookingDate.getTime() === today.getTime() && b.status !== "cancelled";
+                  }).length}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                <i className="fas fa-calendar-day text-xl" style={{ color: COLORS.primary }}></i>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Unassigned</p>
+                <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                  {bookings.filter(b => !b.sitter && b.status !== "cancelled" && new Date(b.startAt) >= new Date()).length}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "#fef3c2" }}>
+                <i className="fas fa-exclamation-triangle text-xl text-yellow-600"></i>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                  {bookings.filter(b => b.status === "pending").length}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "#dbeafe" }}>
+                <i className="fas fa-clock text-xl text-blue-600"></i>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Revenue (This Month)</p>
+                <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                  ${bookings
+                    .filter(b => {
+                      const now = new Date();
+                      const bookingDate = new Date(b.startAt);
+                      return bookingDate.getMonth() === now.getMonth() &&
+                             bookingDate.getFullYear() === now.getFullYear() &&
+                             b.status === "completed";
+                    })
+                    .reduce((sum, b) => sum + b.totalPrice, 0)
+                    .toFixed(0)}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "#d1fae5" }}>
+                <i className="fas fa-dollar-sign text-xl text-green-600"></i>
               </div>
             </div>
           </div>
@@ -3505,15 +3673,126 @@ function BookingsPageContent() {
                               
                               <button
                                 onClick={() => openSitterPoolModal(selectedBooking.id)}
-                                className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                                className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all mb-2"
                                 style={{ background: COLORS.primary, color: COLORS.primaryLight }}
                               >
                                 <i className="fas fa-users mr-2"></i>Create Sitter Pool Offer
+                              </button>
+                              <button
+                                onClick={() => getSitterRecommendations(selectedBooking.id)}
+                                disabled={loadingRecommendations}
+                                className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                                style={{ background: "#8b5cf6", color: "white" }}
+                              >
+                                <i className={`fas fa-lightbulb mr-2 ${loadingRecommendations ? 'fa-spin' : ''}`}></i>
+                                {loadingRecommendations ? "Loading..." : "Get Recommendations"}
                               </button>
                             </div>
                           )}
                         </>
                       )}
+                    </div>
+
+                    {/* Sitter Recommendations */}
+                    {showRecommendations && sitterRecommendations.length > 0 && (
+                      <div className="bg-white border-2 rounded-xl p-6 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                              <i className="fas fa-lightbulb text-sm" style={{ color: COLORS.primary }}></i>
+                            </div>
+                            <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Recommended Sitters</h3>
+                          </div>
+                          <button
+                            onClick={() => setShowRecommendations(false)}
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div className="space-y-3">
+                          {sitterRecommendations.slice(0, 5).map((rec) => (
+                            <div
+                              key={rec.sitterId}
+                              className="p-4 border rounded-lg hover:shadow-md transition-all"
+                              style={{ borderColor: COLORS.border }}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="font-bold">
+                                  {rec.sitter.firstName} {rec.sitter.lastName}
+                                </div>
+                                <div className="text-sm font-semibold" style={{ color: COLORS.primary }}>
+                                  Score: {rec.score}
+                                </div>
+                              </div>
+                              <div className="text-sm text-gray-600 mb-2">
+                                {rec.reasons.join(", ")}
+                              </div>
+                              {rec.conflicts.length > 0 && (
+                                <div className="text-xs text-red-600 mb-2">
+                                  Conflicts: {rec.conflicts.length}
+                                </div>
+                              )}
+                              <button
+                                onClick={() => handleSitterAssign(selectedBooking.id, rec.sitterId)}
+                                className="w-full px-3 py-2 text-sm font-semibold rounded text-white"
+                                style={{ background: COLORS.primary }}
+                              >
+                                Assign
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Booking Tags */}
+                    <div className="bg-white border-2 rounded-xl p-6 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                          <i className="fas fa-tags text-sm" style={{ color: COLORS.primary }}></i>
+                        </div>
+                        <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Tags</h3>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap gap-2">
+                          {bookingTags.map((tag) => (
+                            <span
+                              key={tag.id}
+                              className="px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2"
+                              style={{ background: tag.color || COLORS.primaryLight, color: COLORS.primary }}
+                            >
+                              {tag.name}
+                              <button
+                                onClick={() => removeTagFromBooking(selectedBooking.id, tag.id)}
+                                className="hover:text-red-600"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              addTagToBooking(selectedBooking.id, e.target.value);
+                              e.target.value = "";
+                            }
+                          }}
+                          className="w-full px-4 py-2 border-2 rounded-lg"
+                          style={{ borderColor: COLORS.border }}
+                        >
+                          <option value="">Add a tag...</option>
+                          {allTags
+                            .filter(tag => !bookingTags.find(bt => bt.id === tag.id))
+                            .map(tag => (
+                              <option key={tag.id} value={tag.id}>
+                                {tag.name}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
                     </div>
 
                     {/* Quick Actions */}
