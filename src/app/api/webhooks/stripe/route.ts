@@ -28,18 +28,66 @@ export async function POST(request: NextRequest) {
 
     // Handle successful payment
     if (event.type === "payment_intent.succeeded") {
-      const paymentIntent = event.data.object;
+      const paymentIntent = event.data.object as any;
+      const bookingId = paymentIntent.metadata?.bookingId;
       
-      // Update booking status to paid
-      // Match the payment intent to a booking via metadata
+      if (bookingId) {
+        const booking = await prisma.booking.findUnique({
+          where: { id: bookingId },
+        });
+
+        if (booking) {
+          await prisma.booking.update({
+            where: { id: bookingId },
+            data: {
+              paymentStatus: "paid",
+            },
+          });
+
+          const amount = paymentIntent.amount / 100; // Convert from cents
+          await emitPaymentSuccess(booking, amount);
+        }
+      }
     }
 
     // Handle invoice payment
     if (event.type === "invoice.payment_succeeded") {
-      const invoice = event.data.object;
+      const invoice = event.data.object as any;
+      const bookingId = invoice.metadata?.bookingId;
       
-      // Update booking status to paid
-      // Match the invoice to a booking via metadata
+      if (bookingId) {
+        const booking = await prisma.booking.findUnique({
+          where: { id: bookingId },
+        });
+
+        if (booking) {
+          await prisma.booking.update({
+            where: { id: bookingId },
+            data: {
+              paymentStatus: "paid",
+            },
+          });
+
+          const amount = invoice.amount_paid / 100; // Convert from cents
+          await emitPaymentSuccess(booking, amount);
+        }
+      }
+    }
+
+    // Handle failed payment
+    if (event.type === "payment_intent.payment_failed") {
+      const paymentIntent = event.data.object as any;
+      const bookingId = paymentIntent.metadata?.bookingId;
+      
+      if (bookingId) {
+        const booking = await prisma.booking.findUnique({
+          where: { id: bookingId },
+        });
+
+        if (booking) {
+          await emitPaymentFailed(booking, paymentIntent.last_payment_error?.message || "Payment failed");
+        }
+      }
     }
 
     return NextResponse.json({ received: true });
