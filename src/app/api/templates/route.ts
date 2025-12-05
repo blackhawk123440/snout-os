@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const requestBody = await request.json();
     const {
       name,
       type,
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       body,
       variables,
       isActive = true,
-    } = body;
+    } = requestBody;
 
     if (!name || !type || !category || !templateKey || !body) {
       return NextResponse.json(

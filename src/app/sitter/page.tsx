@@ -437,6 +437,7 @@ export default function SitterPage() {
             )}
           </div>
         </div>
+        )}
 
         {/* Completed Bookings */}
         {activeTab === "completed" && (

@@ -203,11 +203,11 @@ export function calculatePriceBreakdown(booking: {
     if (addlPets > 0) {
       const addlPetTotal = addlPets * rate.addlPet * diffNights;
       basePrice += addlPetTotal;
-        breakdown.push({
-          label: `Additional Pets (${addlPets})`,
-          amount: addlPetTotal,
+      breakdown.push({
+        label: `Additional Pets (${addlPets})`,
+        amount: addlPetTotal,
           description: `$${rate.addlPet} × ${addlPets} × ${diffNights} nights`
-        });
+      });
     }
   } else {
     // Visit-based services: price per time slot, supporting 30/60 minute pricing
