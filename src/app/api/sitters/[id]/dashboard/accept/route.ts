@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { emitSitterAssigned } from "@/lib/event-emitter";
+import { formatClientNameForSitter, formatPetsByQuantity, formatDatesAndTimesForMessage, calculatePriceBreakdown } from "@/lib/booking-utils";
+import { getSitterPhone, getOwnerPhone } from "@/lib/phone-utils";
+import { sendMessage } from "@/lib/message-utils";
 
 /**
  * POST /api/sitters/[id]/dashboard/accept
@@ -101,8 +104,64 @@ export async function POST(
       return updatedBooking;
     });
 
+    // Get sitter details
+    const sitter = await prisma.sitter.findUnique({
+      where: { id: sitterId },
+    });
+
+    if (!sitter) {
+      return NextResponse.json({ error: "Sitter not found" }, { status: 404 });
+    }
+
     // Emit event
-    await emitSitterAssigned(result, { id: sitterId, firstName: "", lastName: "" });
+    await emitSitterAssigned(result, sitter);
+
+    // Notify other sitters in the pool
+    const sitterIds = JSON.parse(offer.sitterIds || "[]");
+    const otherSitterIds = sitterIds.filter((id: string) => id !== sitterId);
+    
+    if (otherSitterIds.length > 0) {
+      const otherSitters = await prisma.sitter.findMany({
+        where: { id: { in: otherSitterIds } },
+      });
+
+      const notificationPromises = otherSitters.map(async (otherSitter) => {
+        try {
+          const sitterPhone = await getSitterPhone(otherSitter.id, undefined, "sitterPoolOffers");
+          if (!sitterPhone) return;
+
+          const clientName = formatClientNameForSitter(result.firstName || "", result.lastName || "");
+          const notificationMessage = `📱 JOB TAKEN\n\nThe booking opportunity for ${clientName} has been accepted by another sitter. Thank you for your interest!`;
+          
+          await sendMessage(sitterPhone, notificationMessage, result.id);
+        } catch (error) {
+          console.error(`Failed to notify sitter ${otherSitter.id}:`, error);
+        }
+      });
+
+      await Promise.allSettled(notificationPromises);
+    }
+
+    // Notify owner
+    try {
+      const ownerPhone = await getOwnerPhone(undefined, "sitterPoolOffers");
+      if (ownerPhone && result.timeSlots) {
+        const petQuantities = formatPetsByQuantity(result.pets);
+        const formattedDatesTimes = formatDatesAndTimesForMessage({
+          service: result.service,
+          startAt: result.startAt,
+          endAt: result.endAt,
+          timeSlots: result.timeSlots || [],
+        });
+        
+        const sitterPhone = await getSitterPhone(sitterId, undefined, "sitterPoolOffers");
+        const ownerMessage = `✅ SITTER ACCEPTED JOB\n\n${sitter.firstName} ${sitter.lastName} has accepted the booking:\n\n${result.service} for ${result.firstName} ${result.lastName}\n${formattedDatesTimes}\n\nPets: ${petQuantities}\n\nSitter: ${sitter.firstName} ${sitter.lastName}\nPhone: ${sitterPhone || sitter.phone}`;
+        
+        await sendMessage(ownerPhone, ownerMessage, result.id);
+      }
+    } catch (error) {
+      console.error(`Failed to notify owner:`, error);
+    }
 
     return NextResponse.json({
       success: true,
