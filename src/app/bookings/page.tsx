@@ -3635,7 +3635,7 @@ function BookingsPageContent() {
                                   <i className="fas fa-user-check text-green-600 text-lg"></i>
                                 </div>
                                 <div className="flex-1">
-                                  <p className="font-bold text-green-800">{selectedBooking.sitter.firstName} {selectedBooking.sitter.lastName}</p>
+                                  <p className="font-bold text-green-800">{selectedBooking.sitter?.firstName} {selectedBooking.sitter?.lastName}</p>
                                   <p className="text-sm text-green-600">Assigned Sitter</p>
                                 </div>
                               </div>
