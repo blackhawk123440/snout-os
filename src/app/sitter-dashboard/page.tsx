@@ -531,3 +531,14 @@ function SitterDashboardContent() {
   );
 }
 
+export default function SitterDashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
+        <div className="text-center py-20">Loading dashboard...</div>
+      </div>
+    }>
+      <SitterDashboardContent />
+    </Suspense>
+  );
+}
