@@ -322,7 +322,7 @@ export default function NewAutomationPage() {
           ) : (
             <div className="space-y-4">
               {actions.map((action, index) => {
-                let config = {};
+                let config: any = {};
                 try {
                   config = JSON.parse(action.config || "{}");
                 } catch {}
