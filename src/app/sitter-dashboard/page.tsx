@@ -282,90 +282,96 @@ function SitterDashboardContent() {
 
         {/* Tab Content */}
         {activeTab === "pending" && (
-          <div className="bg-white rounded-xl p-6 border-2 shadow-sm mb-6" style={{ borderColor: COLORS.primaryLight }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                Calendar
-              </h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    if (selectedMonth === 0) {
-                      setSelectedMonth(11);
-                      setSelectedYear(selectedYear - 1);
-                    } else {
-                      setSelectedMonth(selectedMonth - 1);
-                    }
-                  }}
-                  className="px-3 py-1 rounded border"
-                >
-                  ←
-                </button>
-                <span className="font-semibold">
-                  {new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </span>
-                <button
-                  onClick={() => {
-                    if (selectedMonth === 11) {
-                      setSelectedMonth(0);
-                      setSelectedYear(selectedYear + 1);
-                    } else {
-                      setSelectedMonth(selectedMonth + 1);
-                    }
-                  }}
-                  className="px-3 py-1 rounded border"
-                >
-                  →
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-7 gap-2">
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                <div key={day} className="text-center font-semibold text-sm p-2" style={{ color: COLORS.primary }}>
-                  {day}
-                </div>
-              ))}
-              
-              {Array.from({ length: firstDay }).map((_, i) => (
-                <div key={`empty-${i}`} className="p-2"></div>
-              ))}
-              
-              {days.map((day) => {
-                const jobsForDay = getJobsForDate(day, selectedMonth, selectedYear);
-                const isToday = day === new Date().getDate() && 
-                               selectedMonth === new Date().getMonth() && 
-                               selectedYear === new Date().getFullYear();
-                
-                return (
-                  <div
-                    key={day}
-                    className={`min-h-[100px] p-2 border rounded ${
-                      isToday ? "border-2 border-blue-500 bg-blue-50" : "border-gray-200"
-                    }`}
-                  >
-                    <div className={`font-semibold mb-1 ${isToday ? "text-blue-600" : ""}`}>
-                      {day}
-                    </div>
-                    <div className="space-y-1">
-                      {jobsForDay.map((job) => (
-                        <div
-                          key={job.id}
-                          className="text-xs p-1 rounded"
-                          style={{ background: COLORS.primaryLight, color: COLORS.primary }}
-                        >
-                          <div className="font-semibold">{job.clientName}</div>
-                          <div>{job.service}</div>
-                          {job.timeSlots.length > 0 && (
-                            <div>{formatTime(job.timeSlots[0].startAt)}</div>
-                          )}
+          <div className="space-y-6">
+            {dashboardData.jobs.needsResponse.length > 0 ? (
+              <div className="bg-white rounded-xl p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
+                <h2 className="text-2xl font-bold mb-4" style={{ color: COLORS.primary }}>
+                  Pending Requests ({dashboardData.jobs.needsResponse.length})
+                </h2>
+                <div className="space-y-4">
+                  {dashboardData.jobs.needsResponse.map((job) => (
+                    <div
+                      key={job.id}
+                      className="p-4 border-2 rounded-lg"
+                      style={{ borderColor: COLORS.border }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-bold">{job.clientName}</h3>
+                            <span className="px-2 py-1 rounded text-xs bg-yellow-100 text-yellow-800">
+                              Pool Request
+                            </span>
+                            {job.expiresAt && new Date(job.expiresAt) > new Date() && (
+                              <span className="text-xs text-gray-600">
+                                Expires: {formatDate(job.expiresAt)} {formatTime(job.expiresAt)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <div><span className="font-semibold">Service:</span> {job.service}</div>
+                            <div><span className="font-semibold">Date:</span> {formatDate(job.startAt)}</div>
+                            {job.timeSlots.length > 0 && (
+                              <div>
+                                <span className="font-semibold">Times:</span>{" "}
+                                {job.timeSlots.map((ts, idx) => (
+                                  <span key={ts.id}>
+                                    {formatTime(ts.startAt)} ({ts.duration} min)
+                                    {idx < job.timeSlots.length - 1 ? ", " : ""}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <div><span className="font-semibold">Address:</span> {job.address}</div>
+                            <div>
+                              <span className="font-semibold">Pets:</span>{" "}
+                              {job.pets.map((p, idx) => (
+                                <span key={idx}>
+                                  {p.name || p.species} ({p.species})
+                                  {idx < job.pets.length - 1 ? ", " : ""}
+                                </span>
+                              ))}
+                            </div>
+                            <div><span className="font-semibold">Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                            {job.message && (
+                              <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                                {job.message}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ))}
+                        {!isAdminView && (
+                          <div className="ml-4 flex flex-col gap-2">
+                            <button
+                              onClick={() => acceptJob(job)}
+                              disabled={acceptingJobId === job.id || !!(job.expiresAt && new Date(job.expiresAt) < new Date())}
+                              className="px-4 py-2 rounded-lg font-semibold text-white disabled:opacity-50"
+                              style={{ background: COLORS.primary }}
+                            >
+                              {acceptingJobId === job.id ? "Accepting..." : "Accept"}
+                            </button>
+                            <button
+                              className="px-4 py-2 rounded-lg font-semibold bg-gray-200 text-gray-800"
+                              disabled
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl p-12 text-center border-2" style={{ borderColor: COLORS.primaryLight }}>
+                <div className="text-6xl mb-4">📬</div>
+                <h3 className="text-2xl font-bold mb-2" style={{ color: COLORS.primary }}>
+                  No Pending Requests
+                </h3>
+                <p className="text-gray-600">You don't have any pending job requests</p>
+              </div>
+            )}
           </div>
         )}
 
