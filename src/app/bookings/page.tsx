@@ -3628,17 +3628,21 @@ function BookingsPageContent() {
                         </div>
                       ) : (
                         <>
-                          {selectedBooking.sitter ? (
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                                <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm bg-green-100">
-                                  <i className="fas fa-user-check text-green-600 text-lg"></i>
+                          {selectedBooking.sitter && (() => {
+                            const sitter = selectedBooking.sitter;
+                            return (
+                              <div className="space-y-4">
+                                <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm bg-green-100">
+                                    <i className="fas fa-user-check text-green-600 text-lg"></i>
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-bold text-green-800">
+                                      {sitter.firstName} {sitter.lastName}
+                                    </p>
+                                    <p className="text-sm text-green-600">Assigned Sitter</p>
+                                  </div>
                                 </div>
-                                <div className="flex-1">
-                                  <p className="font-bold text-green-800">{selectedBooking.sitter?.firstName} {selectedBooking.sitter?.lastName}</p>
-                                  <p className="text-sm text-green-600">Assigned Sitter</p>
-                                </div>
-                              </div>
                               <button
                                 onClick={() => getSitterRecommendations(selectedBooking.id)}
                                 disabled={loadingRecommendations}
@@ -3656,7 +3660,9 @@ function BookingsPageContent() {
                                 <i className="fas fa-times mr-2"></i>Remove Sitter
                               </button>
                             </div>
-                          ) : (
+                            );
+                          })()}
+                          {!selectedBooking.sitter && (
                             <div className="space-y-4">
                               <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                                 <div className="flex items-center gap-2">
