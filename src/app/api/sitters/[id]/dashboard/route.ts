@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { formatClientNameForSitter } from "@/lib/booking-utils";
+import { calculateSitterPoints, calculateCompletionRate, calculateResponseRate } from "@/lib/tier-engine";
 
 /**
  * GET /api/sitters/[id]/dashboard
@@ -25,11 +26,10 @@ export async function GET(
       return NextResponse.json({ error: "Sitter not found" }, { status: 404 });
     }
 
-    // Get all bookings assigned to this sitter (direct assignments)
-    const directBookings = await prisma.booking.findMany({
+    // Get all bookings assigned to this sitter
+    const allDirectBookings = await prisma.booking.findMany({
       where: {
         sitterId: id,
-        status: { not: "cancelled" },
       },
       include: {
         pets: true,
@@ -38,8 +38,12 @@ export async function GET(
         },
         client: true,
       },
-      orderBy: { startAt: "asc" },
+      orderBy: { startAt: "desc" },
     });
+
+    // Separate active and archived bookings
+    const directBookings = allDirectBookings.filter(b => b.status !== "cancelled" && b.status !== "completed");
+    const archivedBookings = allDirectBookings.filter(b => b.status === "completed" || b.status === "cancelled");
 
     // Get all active sitter pool offers for this sitter
     // Parse sitterIds JSON to check if this sitter is in the pool
@@ -236,6 +240,105 @@ export async function GET(
     // Combine all accepted jobs
     const allAcceptedJobs = [...acceptedJobs, ...acceptedPoolJobs];
 
+    // Get archived jobs
+    const archivedJobs = archivedBookings.map((booking) => ({
+      id: booking.id,
+      bookingId: booking.id,
+      type: "direct" as const,
+      status: booking.status === "completed" ? "completed" : "cancelled" as const,
+      clientName: formatClientNameForSitter(
+        booking.firstName || booking.client?.firstName || "",
+        booking.lastName || booking.client?.lastName || ""
+      ),
+      service: booking.service,
+      startAt: booking.startAt,
+      endAt: booking.endAt,
+      timeSlots: booking.timeSlots,
+      address: booking.address,
+      pets: booking.pets,
+      totalPrice: booking.totalPrice,
+      notes: booking.notes,
+      createdAt: booking.createdAt,
+    }));
+
+    // Get tier information
+    const currentTier = sitter.currentTierId
+      ? await prisma.sitterTier.findUnique({
+          where: { id: sitter.currentTierId },
+        })
+      : null;
+
+    // Get all tiers for comparison
+    const allTiers = await prisma.sitterTier.findMany({
+      orderBy: { priorityLevel: "desc" },
+    });
+
+    // Calculate performance metrics (last 30 days)
+    const periodEnd = new Date();
+    const periodStart = new Date();
+    periodStart.setDate(periodStart.getDate() - 30);
+
+    const [points, completionRate, responseRate] = await Promise.all([
+      calculateSitterPoints(id, periodStart, periodEnd),
+      calculateCompletionRate(id, periodStart, periodEnd),
+      calculateResponseRate(id, periodStart, periodEnd),
+    ]);
+
+    // Get all pool offers for this sitter (for stats)
+    const allPoolOffersForStats = await prisma.sitterPoolOffer.findMany({
+      where: {
+        OR: [
+          { sitterId: id },
+          {
+            sitterIds: {
+              contains: id,
+            },
+          },
+        ],
+        createdAt: {
+          gte: periodStart,
+        },
+      },
+    });
+
+    // Calculate jobs received vs declined
+    const jobsReceived = allPoolOffersForStats.length;
+    const jobsDeclined = allPoolOffersForStats.filter((offer) => {
+      const responses = JSON.parse(offer.responses || "[]");
+      return responses.some(
+        (r: any) => r.sitterId === id && (r.response?.toLowerCase() === "no" || r.response?.toLowerCase() === "decline")
+      );
+    }).length;
+    const jobsAccepted = allPoolOffersForStats.filter((offer) => offer.acceptedSitterId === id).length;
+    const acceptanceRate = jobsReceived > 0 ? (jobsAccepted / jobsReceived) * 100 : 0;
+
+    // Determine what they need to improve
+    const nextTier = allTiers.find((tier) => {
+      if (!currentTier) return tier.isDefault;
+      return tier.priorityLevel > currentTier.priorityLevel;
+    });
+
+    const improvementAreas: string[] = [];
+    if (nextTier) {
+      if (points < nextTier.pointTarget) {
+        improvementAreas.push(`Earn ${nextTier.pointTarget - points} more points (need ${nextTier.pointTarget} total)`);
+      }
+      if (nextTier.minCompletionRate && completionRate < nextTier.minCompletionRate) {
+        improvementAreas.push(`Improve completion rate to ${nextTier.minCompletionRate}% (currently ${completionRate.toFixed(1)}%)`);
+      }
+      if (nextTier.minResponseRate && responseRate < nextTier.minResponseRate) {
+        improvementAreas.push(`Improve response rate to ${nextTier.minResponseRate}% (currently ${responseRate.toFixed(1)}%)`);
+      }
+    }
+
+    // Get tier history
+    const tierHistory = await prisma.sitterTierHistory.findMany({
+      where: { sitterId: id },
+      include: { tier: true },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+
     return NextResponse.json({
       sitter: {
         id: sitter.id,
@@ -249,7 +352,50 @@ export async function GET(
         needsResponse: needsResponseJobs,
         accepted: allAcceptedJobs,
         tooLate: tooLateJobs,
+        archived: archivedJobs,
       },
+      tier: currentTier
+        ? {
+            id: currentTier.id,
+            name: currentTier.name,
+            priorityLevel: currentTier.priorityLevel,
+            pointTarget: currentTier.pointTarget,
+            minCompletionRate: currentTier.minCompletionRate,
+            minResponseRate: currentTier.minResponseRate,
+            benefits: currentTier.benefits ? JSON.parse(currentTier.benefits) : {},
+          }
+        : null,
+      performance: {
+        points,
+        completionRate,
+        responseRate,
+        jobsReceived,
+        jobsDeclined,
+        jobsAccepted,
+        acceptanceRate,
+        periodStart,
+        periodEnd,
+      },
+      nextTier: nextTier
+        ? {
+            id: nextTier.id,
+            name: nextTier.name,
+            pointTarget: nextTier.pointTarget,
+            minCompletionRate: nextTier.minCompletionRate,
+            minResponseRate: nextTier.minResponseRate,
+          }
+        : null,
+      improvementAreas,
+      tierHistory: tierHistory.map((h) => ({
+        id: h.id,
+        tierName: h.tier.name,
+        points: h.points,
+        completionRate: h.completionRate,
+        responseRate: h.responseRate,
+        periodStart: h.periodStart,
+        periodEnd: h.periodEnd,
+        createdAt: h.createdAt,
+      })),
       isAdminView,
     });
   } catch (error: any) {
