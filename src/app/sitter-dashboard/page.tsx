@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { COLORS, formatClientNameForSitter } from "@/lib/booking-utils";
 
@@ -46,7 +46,7 @@ interface DashboardData {
   isAdminView: boolean;
 }
 
-export default function SitterDashboardPage() {
+function SitterDashboardContent() {
   const searchParams = useSearchParams();
   const sitterId = searchParams?.get("id") || "";
   const isAdminView = searchParams?.get("admin") === "true";
