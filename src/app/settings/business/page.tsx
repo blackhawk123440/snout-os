@@ -76,7 +76,7 @@ export default function BusinessSettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.background }}>
+      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
         <div className="text-center py-20">Loading...</div>
       </div>
     );
