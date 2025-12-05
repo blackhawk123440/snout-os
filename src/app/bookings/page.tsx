@@ -1801,7 +1801,8 @@ function BookingsPageContent() {
           </div>
         </div>
 
-        {/* Overview Dashboard */}
+        {/* Overview Dashboard - Always Visible */}
+        {bookings.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
             <div className="flex items-center justify-between">
@@ -1874,6 +1875,7 @@ function BookingsPageContent() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Filters and Search */}
         <div className="bg-white rounded-lg p-3 sm:p-4 border-2 mb-4 sm:mb-6" style={{ borderColor: COLORS.primaryLight }}>
@@ -3647,46 +3649,68 @@ function BookingsPageContent() {
                             </div>
                           ) : (
                             <div className="space-y-4">
-                              <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                                <div className="flex items-center gap-2">
-                                  <i className="fas fa-exclamation-triangle text-yellow-600"></i>
-                                  <p className="font-semibold text-yellow-800">No sitter assigned</p>
-                                </div>
-                              </div>
-                              <select
-                                value=""
-                                onChange={(e) => {
-                                  if (e.target.value) {
-                                    handleSitterAssign(selectedBooking.id, e.target.value);
-                                  }
-                                }}
-                                className="w-full px-4 py-3 border-2 rounded-lg font-semibold"
-                                style={{ borderColor: COLORS.border }}
-                              >
-                                <option value="">Select a sitter...</option>
-                                {sitters.map(sitter => (
-                                  <option key={sitter.id} value={sitter.id}>
-                                    {sitter.firstName} {sitter.lastName}
-                                  </option>
-                                ))}
-                              </select>
-                              
-                              <button
-                                onClick={() => openSitterPoolModal(selectedBooking.id)}
-                                className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all mb-2"
-                                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-                              >
-                                <i className="fas fa-users mr-2"></i>Create Sitter Pool Offer
-                              </button>
-                              <button
-                                onClick={() => getSitterRecommendations(selectedBooking.id)}
-                                disabled={loadingRecommendations}
-                                className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
-                                style={{ background: "#8b5cf6", color: "white" }}
-                              >
-                                <i className={`fas fa-lightbulb mr-2 ${loadingRecommendations ? 'fa-spin' : ''}`}></i>
-                                {loadingRecommendations ? "Loading..." : "Get Recommendations"}
-                              </button>
+                              {selectedBooking.sitter ? (
+                                <>
+                                  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <i className="fas fa-user-check text-green-600"></i>
+                                      <p className="font-semibold text-green-800">Sitter Assigned: {selectedBooking.sitter.firstName} {selectedBooking.sitter.lastName}</p>
+                                    </div>
+                                    <button
+                                      onClick={() => getSitterRecommendations(selectedBooking.id)}
+                                      disabled={loadingRecommendations}
+                                      className="w-full px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all mb-2"
+                                      style={{ background: "#8b5cf6", color: "white" }}
+                                    >
+                                      <i className={`fas fa-lightbulb mr-2 ${loadingRecommendations ? 'fa-spin' : ''}`}></i>
+                                      {loadingRecommendations ? "Loading..." : "Get Better Recommendations"}
+                                    </button>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                                    <div className="flex items-center gap-2">
+                                      <i className="fas fa-exclamation-triangle text-yellow-600"></i>
+                                      <p className="font-semibold text-yellow-800">No sitter assigned</p>
+                                    </div>
+                                  </div>
+                                  <select
+                                    value=""
+                                    onChange={(e) => {
+                                      if (e.target.value) {
+                                        handleSitterAssign(selectedBooking.id, e.target.value);
+                                      }
+                                    }}
+                                    className="w-full px-4 py-3 border-2 rounded-lg font-semibold"
+                                    style={{ borderColor: COLORS.border }}
+                                  >
+                                    <option value="">Select a sitter...</option>
+                                    {sitters.map(sitter => (
+                                      <option key={sitter.id} value={sitter.id}>
+                                        {sitter.firstName} {sitter.lastName}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  
+                                  <button
+                                    onClick={() => openSitterPoolModal(selectedBooking.id)}
+                                    className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all mb-2"
+                                    style={{ background: COLORS.primary, color: COLORS.primaryLight }}
+                                  >
+                                    <i className="fas fa-users mr-2"></i>Create Sitter Pool Offer
+                                  </button>
+                                  <button
+                                    onClick={() => getSitterRecommendations(selectedBooking.id)}
+                                    disabled={loadingRecommendations}
+                                    className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
+                                    style={{ background: "#8b5cf6", color: "white" }}
+                                  >
+                                    <i className={`fas fa-lightbulb mr-2 ${loadingRecommendations ? 'fa-spin' : ''}`}></i>
+                                    {loadingRecommendations ? "Loading..." : "Get Recommendations"}
+                                  </button>
+                                </>
+                              )}
                             </div>
                           )}
                         </>
