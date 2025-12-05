@@ -176,6 +176,13 @@ export default function SitterPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <a
+                href={`/sitter-dashboard?id=${sitterId}`}
+                className="px-4 py-2 text-sm font-semibold rounded-lg text-white"
+                style={{ background: COLORS.primary }}
+              >
+                <i className="fas fa-calendar-alt mr-2"></i>Full Dashboard
+              </a>
               <button
                 onClick={() => fetchSitterBookings(sitterId)}
                 disabled={loading}
