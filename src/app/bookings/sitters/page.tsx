@@ -273,6 +273,13 @@ export default function SittersPage() {
                   
                   <div className="flex items-center gap-2 ml-6">
                     <button
+                      onClick={() => window.open(`/sitter-dashboard?id=${sitter.id}&admin=true`, '_blank')}
+                      className="px-4 py-2 text-sm font-bold border rounded-lg hover:opacity-90 transition-all"
+                      style={{ background: COLORS.primary, color: COLORS.primaryLight, borderColor: COLORS.primary }}
+                    >
+                      <i className="fas fa-calendar-alt mr-2"></i>View Dashboard
+                    </button>
+                    <button
                       onClick={() => startEdit(sitter)}
                       className="px-4 py-2 text-sm font-bold border rounded-lg hover:opacity-90 transition-all"
                       style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
