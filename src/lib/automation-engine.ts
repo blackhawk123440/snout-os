@@ -399,6 +399,31 @@ function buildTemplateVariables(context: EventContext, isSitterMessage: boolean)
     ? formatClientNameForSitter(booking.firstName, booking.lastName)
     : `${booking.firstName || ""} ${booking.lastName || ""}`.trim();
 
+  // Calculate the true total price instead of using stored value
+  let calculatedTotal = 0;
+  try {
+    if (booking.service && booking.startAt && booking.endAt && booking.pets) {
+      const { calculatePriceBreakdown } = require("./booking-utils");
+      const breakdown = calculatePriceBreakdown({
+        service: booking.service,
+        startAt: booking.startAt,
+        endAt: booking.endAt,
+        pets: booking.pets || [],
+        quantity: booking.quantity || 1,
+        afterHours: booking.afterHours || false,
+        holiday: booking.holiday || false,
+        timeSlots: booking.timeSlots || [],
+      });
+      calculatedTotal = breakdown.total;
+    } else if (booking.totalPrice) {
+      // Fallback to stored if we can't calculate
+      calculatedTotal = booking.totalPrice;
+    }
+  } catch (error) {
+    // If calculation fails, use stored value as fallback
+    calculatedTotal = booking.totalPrice || context.totalPrice || 0;
+  }
+
   const variables: Record<string, string | number> = {
     clientName,
     firstName: booking.firstName || "",
@@ -407,8 +432,8 @@ function buildTemplateVariables(context: EventContext, isSitterMessage: boolean)
       : booking.lastName || "",
     sitterName: `${sitter.firstName || ""} ${sitter.lastName || ""}`.trim(),
     service: booking.service || context.service || "",
-    totalPrice: booking.totalPrice || context.totalPrice || 0,
-    total: booking.totalPrice || context.totalPrice || 0,
+    totalPrice: calculatedTotal,
+    total: calculatedTotal,
     status: booking.status || context.status || "",
     address: booking.address || "",
     phone: booking.phone || context.clientPhone || "",

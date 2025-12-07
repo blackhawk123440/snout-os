@@ -1865,7 +1865,10 @@ function BookingsPageContent() {
                              bookingDate.getFullYear() === now.getFullYear() &&
                              b.status === "completed";
                     })
-                    .reduce((sum, b) => sum + b.totalPrice, 0)
+                    .reduce((sum, b) => {
+                      const breakdown = calculatePriceBreakdown(b);
+                      return sum + breakdown.total;
+                    }, 0)
                     .toFixed(0)}
                 </p>
               </div>
@@ -2159,10 +2162,10 @@ function BookingsPageContent() {
 
         {/* Booking Detail Modal */}
         {selectedBooking && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="bg-white rounded-xl max-w-5xl w-full max-h-[98vh] sm:max-h-[95vh] overflow-hidden shadow-2xl">
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-0 sm:p-2 md:p-4" style={{ alignItems: 'flex-start', paddingTop: '0' }}>
+            <div className="bg-white rounded-none sm:rounded-xl max-w-5xl w-full h-screen sm:h-auto max-h-screen sm:max-h-[98vh] md:max-h-[95vh] overflow-hidden shadow-2xl flex flex-col">
               {/* Header */}
-              <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b" style={{ borderColor: COLORS.border, background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, ${COLORS.primaryLighter} 100%)` }}>
+              <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b flex-shrink-0" style={{ borderColor: COLORS.border, background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, ${COLORS.primaryLighter} 100%)` }}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0" style={{ background: COLORS.primary }}>
@@ -2189,7 +2192,7 @@ function BookingsPageContent() {
               </div>
 
               {/* Content */}
-              <div className="p-4 sm:p-6 lg:p-8 overflow-y-auto max-h-[calc(98vh-100px)] sm:max-h-[calc(95vh-120px)]">
+              <div className="p-4 sm:p-6 lg:p-8 overflow-y-auto flex-1 min-h-0">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                   {/* Left Column - Client & Service Info */}
                   <div className="lg:col-span-2 space-y-6">
@@ -3446,11 +3449,6 @@ function BookingsPageContent() {
                                         <p className="text-lg font-bold" style={{ color: COLORS.primary }}>Total</p>
                                         <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>${breakdown.total.toFixed(2)}</p>
                                       </div>
-                                      {!isEditMode && Math.abs(breakdown.total - (selectedBooking.totalPrice || 0)) > 0.01 && (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          *Stored total: ${(selectedBooking.totalPrice || 0).toFixed(2)} (difference: ${((selectedBooking.totalPrice || 0) - breakdown.total).toFixed(2)})
-                                        </p>
-                                      )}
                                     </div>
                                 </div>
                               );
@@ -3893,7 +3891,7 @@ function BookingsPageContent() {
                         
                         <button
                           onClick={() => handleGeneratePaymentLink(selectedBooking)}
-                          disabled={generatingPaymentLink || !selectedBooking.totalPrice}
+                          disabled={generatingPaymentLink}
                           className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
                           style={{ background: COLORS.primary, color: COLORS.primaryLight }}
                         >
@@ -3903,7 +3901,7 @@ function BookingsPageContent() {
                         
                         <button
                           onClick={() => handleGenerateTipLink(selectedBooking)}
-                          disabled={generatingTipLink || !selectedBooking.totalPrice}
+                          disabled={generatingTipLink}
                           className="w-full px-4 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
                           style={{ background: COLORS.primaryLight, color: COLORS.primary }}
                         >
@@ -4006,36 +4004,37 @@ function BookingsPageContent() {
 
         {/* Sitter Pool Selection Modal */}
         {showSitterPoolModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" style={{ alignItems: 'flex-start', paddingTop: '0' }}>
+            <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl max-w-2xl w-full h-screen sm:h-auto max-h-screen sm:max-h-[90vh] overflow-hidden flex flex-col">
               {/* Header */}
-              <div className="px-8 py-6 border-b" style={{ borderColor: COLORS.border, background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, ${COLORS.primaryLighter} 100%)` }}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ background: COLORS.primary }}>
-                      <i className="fas fa-users text-lg" style={{ color: COLORS.primaryLight }}></i>
+              <div className="px-4 sm:px-8 py-4 sm:py-6 border-b flex-shrink-0" style={{ borderColor: COLORS.border, background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, ${COLORS.primaryLighter} 100%)` }}>
+                <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-4">
+                  <div className="flex items-start sm:items-center gap-2 sm:gap-4 min-w-0 flex-1">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0" style={{ background: COLORS.primary }}>
+                      <i className="fas fa-users text-base sm:text-lg" style={{ color: COLORS.primaryLight }}></i>
                     </div>
-                    <div>
-                      <h2 className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="text-lg sm:text-2xl font-bold" style={{ color: COLORS.primary }}>
                         Create Sitter Pool Offer
                       </h2>
-                      <p className="font-medium" style={{ color: COLORS.primary }}>
+                      <p className="text-sm sm:text-base font-medium" style={{ color: COLORS.primary }}>
                         Select sitters to send this booking opportunity to
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowSitterPoolModal(false)}
-                    className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all duration-200"
+                    className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all duration-200 flex-shrink-0 touch-manipulation"
                     style={{ color: COLORS.primary }}
+                    aria-label="Close"
                   >
-                    <i className="fas fa-times text-lg"></i>
+                    <i className="fas fa-times text-base sm:text-lg"></i>
                   </button>
                 </div>
               </div>
 
               {/* Content */}
-              <div className="p-8">
+              <div className="p-4 sm:p-8 overflow-y-auto flex-1 min-h-0">
                 <div className="space-y-6">
                   {/* Booking Summary */}
                   {poolBookingId && (() => {
@@ -4066,8 +4065,8 @@ function BookingsPageContent() {
 
                   {/* Sitter Selection */}
                   <div>
-                    <h3 className="text-lg font-bold mb-4" style={{ color: COLORS.primary }}>Select Sitters</h3>
-                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                    <h3 className="text-base sm:text-lg font-bold mb-4" style={{ color: COLORS.primary }}>Select Sitters</h3>
+                    <div className="space-y-3 max-h-60 sm:max-h-60 overflow-y-auto">
                       {sitters.filter(sitter => sitter.active).map(sitter => (
                         <label key={sitter.id} className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors" style={{ borderColor: COLORS.border }}>
                           <input
@@ -4093,11 +4092,11 @@ function BookingsPageContent() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 pb-2 sm:pb-0">
                     <button
                       onClick={handleSitterPoolOffer}
                       disabled={selectedSittersForPool.length === 0}
-                      className="flex-1 px-6 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
+                      className="flex-1 px-6 py-3 text-sm font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50 touch-manipulation min-h-[44px]"
                       style={{ background: COLORS.primary, color: COLORS.primaryLight }}
                     >
                       <i className="fas fa-paper-plane mr-2"></i>
@@ -4105,7 +4104,7 @@ function BookingsPageContent() {
                     </button>
                     <button
                       onClick={() => setShowSitterPoolModal(false)}
-                      className="px-6 py-3 text-sm font-bold border-2 rounded-lg hover:bg-gray-50 transition-all"
+                      className="px-6 py-3 text-sm font-bold border-2 rounded-lg hover:bg-gray-50 transition-all touch-manipulation min-h-[44px]"
                       style={{ borderColor: COLORS.border, color: COLORS.primary }}
                     >
                       Cancel

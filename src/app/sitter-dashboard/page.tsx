@@ -212,34 +212,34 @@ function SitterDashboardContent() {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
+    <div className="min-h-screen p-4 sm:p-8" style={{ background: COLORS.primaryLighter }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-4 sm:mb-8">
           <div className="mb-4">
-            <h1 className="text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
               {isAdminView ? `Sitter Dashboard: ${dashboardData.sitter.firstName} ${dashboardData.sitter.lastName}` : "My Dashboard"}
             </h1>
             {isAdminView && (
-              <p className="text-sm text-gray-600">Read-only admin view</p>
+              <p className="text-xs sm:text-sm text-gray-600">Read-only admin view</p>
             )}
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-2 border-b-2" style={{ borderColor: COLORS.border }}>
+          <div className="flex items-center gap-1 sm:gap-2 border-b-2 overflow-x-auto" style={{ borderColor: COLORS.border }}>
             <button
               onClick={() => setActiveTab("pending")}
-              className={`px-4 py-3 font-semibold border-b-2 transition-colors ${
+              className={`px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === "pending"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-600 hover:text-gray-800"
               }`}
             >
-              Pending Requests ({dashboardData.jobs.needsResponse.length})
+              Pending ({dashboardData.jobs.needsResponse.length})
             </button>
             <button
               onClick={() => setActiveTab("accepted")}
-              className={`px-4 py-3 font-semibold border-b-2 transition-colors ${
+              className={`px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === "accepted"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-600 hover:text-gray-800"
@@ -249,7 +249,7 @@ function SitterDashboardContent() {
             </button>
             <button
               onClick={() => setActiveTab("archived")}
-              className={`px-4 py-3 font-semibold border-b-2 transition-colors ${
+              className={`px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === "archived"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-600 hover:text-gray-800"
@@ -259,23 +259,23 @@ function SitterDashboardContent() {
             </button>
             <button
               onClick={() => setActiveTab("tooLate")}
-              className={`px-4 py-3 font-semibold border-b-2 transition-colors ${
+              className={`px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === "tooLate"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-600 hover:text-gray-800"
               }`}
             >
-              Too Late / Expired ({dashboardData.jobs.tooLate.length})
+              Too Late ({dashboardData.jobs.tooLate.length})
             </button>
             <button
               onClick={() => setActiveTab("tier")}
-              className={`px-4 py-3 font-semibold border-b-2 transition-colors ${
+              className={`px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
                 activeTab === "tier"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-600 hover:text-gray-800"
               }`}
             >
-              Tier & Insights
+              Tier
             </button>
           </div>
         </div>
