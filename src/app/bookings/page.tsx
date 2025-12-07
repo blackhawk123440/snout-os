@@ -2162,8 +2162,8 @@ function BookingsPageContent() {
 
         {/* Booking Detail Modal */}
         {selectedBooking && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-0 sm:p-2 md:p-4" style={{ alignItems: 'flex-start', paddingTop: '0' }}>
-            <div className="bg-white rounded-none sm:rounded-xl max-w-5xl w-full h-screen sm:h-auto max-h-screen sm:max-h-[98vh] md:max-h-[95vh] overflow-hidden shadow-2xl flex flex-col">
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[9999] p-0 sm:p-2 md:p-4" style={{ alignItems: 'flex-start', paddingTop: '0', top: 0, left: 0, right: 0, bottom: 0 }}>
+            <div className="bg-white rounded-none sm:rounded-xl max-w-5xl w-full h-screen sm:h-auto max-h-screen sm:max-h-[98vh] md:max-h-[95vh] overflow-hidden shadow-2xl flex flex-col relative z-[10000]">
               {/* Header */}
               <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b flex-shrink-0" style={{ borderColor: COLORS.border, background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, ${COLORS.primaryLighter} 100%)` }}>
                 <div className="flex items-center justify-between gap-3">
