@@ -162,7 +162,7 @@ export default function SitterPage() {
     <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
       {/* Header */}
       <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
-        <div className="max-w-[1400px] mx-auto px-8 py-4">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: COLORS.primary }}>
@@ -197,12 +197,12 @@ export default function SitterPage() {
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-8 py-6">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-4 sm:py-6">
         {/* Tabs */}
-        <div className="flex items-center gap-2 mb-6 border-b" style={{ borderColor: COLORS.border }}>
+        <div className="flex items-center gap-1 sm:gap-2 mb-4 sm:mb-6 border-b overflow-x-auto" style={{ borderColor: COLORS.border }}>
           <button
             onClick={() => setActiveTab("today")}
-            className={`px-4 py-2 font-semibold border-b-2 transition-colors ${
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === "today" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-600"
             }`}
           >
@@ -210,7 +210,7 @@ export default function SitterPage() {
           </button>
           <button
             onClick={() => setActiveTab("upcoming")}
-            className={`px-4 py-2 font-semibold border-b-2 transition-colors ${
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === "upcoming" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-600"
             }`}
           >
@@ -218,7 +218,7 @@ export default function SitterPage() {
           </button>
           <button
             onClick={() => setActiveTab("completed")}
-            className={`px-4 py-2 font-semibold border-b-2 transition-colors ${
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === "completed" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-600"
             }`}
           >
@@ -226,7 +226,7 @@ export default function SitterPage() {
           </button>
           <button
             onClick={() => setActiveTab("earnings")}
-            className={`px-4 py-2 font-semibold border-b-2 transition-colors ${
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === "earnings" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-600"
             }`}
           >
@@ -234,7 +234,7 @@ export default function SitterPage() {
           </button>
           <button
             onClick={() => setActiveTab("settings")}
-            className={`px-4 py-2 font-semibold border-b-2 transition-colors ${
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
               activeTab === "settings" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-600"
             }`}
           >

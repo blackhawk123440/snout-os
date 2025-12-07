@@ -1,5 +1,5 @@
 import { sendMessage } from "@/lib/message-utils";
-import { formatPetsByQuantity, formatClientNameForSitter } from "@/lib/booking-utils";
+import { formatPetsByQuantity, formatClientNameForSitter, calculatePriceBreakdown } from "@/lib/booking-utils";
 import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
 
 interface Booking {
@@ -22,14 +22,16 @@ interface Booking {
 
 export async function sendInitialBookingConfirmation(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll see you soon!`;
+  const breakdown = calculatePriceBreakdown(booking as any);
+  const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${breakdown.total.toFixed(2)}\n\nWe'll see you soon!`;
   
   return await sendMessage(booking.phone, message);
 }
 
 export async function sendBookingConfirmedToClient(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll see you soon!`;
+  const breakdown = calculatePriceBreakdown(booking as any);
+  const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${breakdown.total.toFixed(2)}\n\nWe'll see you soon!`;
   
   return await sendMessage(booking.phone, message);
 }
@@ -46,14 +48,15 @@ export async function sendSitterNightBeforeReminder(booking: Booking, sitterId?:
   
   // Calculate sitter earnings if sitterId is provided
   let earningsText = '';
-  if (sitterId && booking.totalPrice) {
+  if (sitterId) {
     const { prisma } = await import("@/lib/db");
     const sitter = await prisma.sitter.findUnique({
       where: { id: sitterId },
     });
     if (sitter) {
+      const breakdown = calculatePriceBreakdown(booking as any);
       const commissionPercentage = sitter.commissionPercentage || 80.0;
-      const earnings = (booking.totalPrice * commissionPercentage) / 100;
+      const earnings = (breakdown.total * commissionPercentage) / 100;
       earningsText = `\nYour Earnings: $${earnings.toFixed(2)}`;
     }
   }
@@ -86,14 +89,15 @@ export async function sendSitterAssignmentNotification(booking: Booking, sitterI
   
   // Calculate sitter earnings if sitterId is provided
   let earningsText = '';
-  if (sitterId && booking.totalPrice) {
+  if (sitterId) {
     const { prisma } = await import("@/lib/db");
     const sitter = await prisma.sitter.findUnique({
       where: { id: sitterId },
     });
     if (sitter) {
+      const breakdown = calculatePriceBreakdown(booking as any);
       const commissionPercentage = sitter.commissionPercentage || 80.0;
-      const earnings = (booking.totalPrice * commissionPercentage) / 100;
+      const earnings = (breakdown.total * commissionPercentage) / 100;
       earningsText = `\nYour Earnings: $${earnings.toFixed(2)}`;
     }
   }
