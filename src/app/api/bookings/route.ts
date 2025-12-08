@@ -13,9 +13,39 @@ export async function GET() {
     }
     
     const bookings = await prisma.booking.findMany({
-      include: {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        email: true,
+        address: true,
+        pickupAddress: true,
+        dropoffAddress: true,
+        service: true,
+        startAt: true,
+        endAt: true,
+        totalPrice: true,
+        status: true,
+        notes: true,
+        stripePaymentLinkUrl: true,
+        tipLinkUrl: true,
+        paymentStatus: true,
+        createdAt: true,
+        updatedAt: true,
+        quantity: true,
+        afterHours: true,
+        holiday: true,
+        assignmentType: true,
+        sitterId: true,
         pets: true,
-        sitter: true,
+        sitter: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
         timeSlots: {
           orderBy: {
             startAt: "asc",
