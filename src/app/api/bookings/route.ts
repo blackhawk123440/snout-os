@@ -12,32 +12,10 @@ export async function GET() {
       console.warn("Database connection warning:", connectError);
     }
     
+    // Use include instead of select to ensure all fields are returned
+    // This is more reliable and ensures notes field is always included
     const bookings = await prisma.booking.findMany({
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        email: true,
-        address: true,
-        pickupAddress: true,
-        dropoffAddress: true,
-        service: true,
-        startAt: true,
-        endAt: true,
-        totalPrice: true,
-        status: true,
-        notes: true,
-        stripePaymentLinkUrl: true,
-        tipLinkUrl: true,
-        paymentStatus: true,
-        createdAt: true,
-        updatedAt: true,
-        quantity: true,
-        afterHours: true,
-        holiday: true,
-        assignmentType: true,
-        sitterId: true,
+      include: {
         pets: true,
         sitter: {
           select: {
