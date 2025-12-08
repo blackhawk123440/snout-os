@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       petSpecies,
       specialInstructions,
       additionalNotes,
+      notes, // Also check for direct 'notes' field from form
       selectedDates,
       dateTimes,
     } = body;
@@ -335,8 +336,9 @@ export async function POST(request: NextRequest) {
           species: (pet.species || "Dog").trim(),
         })),
       },
-      notes: (specialInstructions || additionalNotes) 
-        ? String(specialInstructions || additionalNotes).trim() 
+      // Accept notes from multiple field names: notes, specialInstructions, or additionalNotes
+      notes: (notes || specialInstructions || additionalNotes) 
+        ? String(notes || specialInstructions || additionalNotes).trim() 
         : null,
       timeSlots: timeSlotsData.length > 0
         ? {
