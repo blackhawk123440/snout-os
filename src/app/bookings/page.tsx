@@ -2162,8 +2162,30 @@ function BookingsPageContent() {
 
         {/* Booking Detail Modal */}
         {selectedBooking && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[9999] p-0 sm:p-2 md:p-4" style={{ alignItems: 'flex-start', paddingTop: '0', top: 0, left: 0, right: 0, bottom: 0 }}>
-            <div className="bg-white rounded-none sm:rounded-xl max-w-5xl w-full h-screen sm:h-auto max-h-screen sm:max-h-[98vh] md:max-h-[95vh] overflow-hidden shadow-2xl flex flex-col relative z-[10000]">
+          <div 
+            className="fixed inset-0 bg-black flex items-center justify-center z-[9999] p-0 sm:p-2 md:p-4" 
+            style={{ 
+              alignItems: 'flex-start', 
+              paddingTop: '0', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.75)',
+              pointerEvents: 'auto'
+            }}
+            onClick={(e) => {
+              // Only close if clicking the backdrop, not the modal content
+              if (e.target === e.currentTarget) {
+                setSelectedBooking(null);
+              }
+            }}
+          >
+            <div 
+              className="bg-white rounded-none sm:rounded-xl max-w-5xl w-full h-screen sm:h-auto max-h-screen sm:max-h-[98vh] md:max-h-[95vh] overflow-hidden shadow-2xl flex flex-col relative z-[10000]"
+              onClick={(e) => e.stopPropagation()}
+              style={{ pointerEvents: 'auto' }}
+            >
               {/* Header */}
               <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-6 border-b flex-shrink-0" style={{ borderColor: COLORS.border, background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, ${COLORS.primaryLighter} 100%)` }}>
                 <div className="flex items-center justify-between gap-3">
@@ -4006,8 +4028,27 @@ function BookingsPageContent() {
 
         {/* Sitter Pool Selection Modal */}
         {showSitterPoolModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" style={{ alignItems: 'flex-start', paddingTop: '0' }}>
-            <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl max-w-2xl w-full h-screen sm:h-auto max-h-screen sm:max-h-[90vh] overflow-hidden flex flex-col">
+          <div 
+            className="fixed inset-0 bg-black flex items-center justify-center p-0 sm:p-4" 
+            style={{ 
+              alignItems: 'flex-start', 
+              paddingTop: '0',
+              zIndex: 10001,
+              backgroundColor: 'rgba(0, 0, 0, 0.85)',
+              pointerEvents: 'auto'
+            }}
+            onClick={(e) => {
+              // Only close if clicking the backdrop, not the modal content
+              if (e.target === e.currentTarget) {
+                setShowSitterPoolModal(false);
+              }
+            }}
+          >
+            <div 
+              className="bg-white rounded-none sm:rounded-2xl shadow-2xl max-w-2xl w-full h-screen sm:h-auto max-h-screen sm:max-h-[90vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+              style={{ pointerEvents: 'auto', zIndex: 10002 }}
+            >
               {/* Header */}
               <div className="px-4 sm:px-8 py-4 sm:py-6 border-b flex-shrink-0" style={{ borderColor: COLORS.border, background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, ${COLORS.primaryLighter} 100%)` }}>
                 <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-4">
