@@ -3595,13 +3595,17 @@ function BookingsPageContent() {
                         <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Additional Notes</h3>
                       </div>
                       <div className="p-4 bg-gray-50 rounded-lg border" style={{ borderColor: COLORS.border }}>
-                        {selectedBooking.notes && String(selectedBooking.notes).trim() ? (
-                          <div>
-                            <p className="text-base text-gray-900 whitespace-pre-wrap">{String(selectedBooking.notes)}</p>
-                          </div>
-                        ) : (
-                          <p className="text-base text-gray-500 italic">No additional notes provided</p>
-                        )}
+                        {(() => {
+                          const notesValue = selectedBooking.notes;
+                          const hasNotes = notesValue && String(notesValue).trim().length > 0;
+                          return hasNotes ? (
+                            <div>
+                              <p className="text-base text-gray-900 whitespace-pre-wrap">{String(notesValue)}</p>
+                            </div>
+                          ) : (
+                            <p className="text-base text-gray-500 italic">No additional notes provided</p>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
