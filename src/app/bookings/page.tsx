@@ -3608,8 +3608,15 @@ function BookingsPageContent() {
                         {(() => {
                           // Check both selectedBooking.notes and also check the original booking from the array
                           const bookingFromArray = bookings.find(b => b.id === selectedBooking.id);
-                          const notesValue = selectedBooking.notes || bookingFromArray?.notes || null;
-                          const notesString = notesValue ? String(notesValue).trim() : '';
+                          let notesValue = selectedBooking.notes;
+                          
+                          // If notes not in selectedBooking, try getting from array
+                          if (!notesValue && bookingFromArray) {
+                            notesValue = bookingFromArray.notes;
+                          }
+                          
+                          // Convert to string and check if it has content
+                          const notesString = notesValue != null ? String(notesValue).trim() : '';
                           const hasNotes = notesString.length > 0;
                           
                           if (hasNotes) {

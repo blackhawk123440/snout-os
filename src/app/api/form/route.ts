@@ -335,7 +335,9 @@ export async function POST(request: NextRequest) {
           species: (pet.species || "Dog").trim(),
         })),
       },
-      notes: (specialInstructions || additionalNotes) ? (specialInstructions || additionalNotes).trim() : null,
+      notes: (specialInstructions || additionalNotes) 
+        ? String(specialInstructions || additionalNotes).trim() 
+        : null,
       timeSlots: timeSlotsData.length > 0
         ? {
             create: timeSlotsData.map(slot => ({
