@@ -35,6 +35,19 @@ export async function GET() {
       },
     });
 
+    // Debug: Log a sample booking to verify notes are included
+    if (bookings.length > 0) {
+      const sampleBooking = bookings[0];
+      console.log('Sample booking from API:', {
+        id: sampleBooking.id,
+        firstName: sampleBooking.firstName,
+        lastName: sampleBooking.lastName,
+        notes: sampleBooking.notes,
+        notesType: typeof sampleBooking.notes,
+        hasNotes: !!sampleBooking.notes,
+      });
+    }
+
     return NextResponse.json({ bookings: bookings || [] });
   } catch (error: unknown) {
     console.error("Failed to fetch bookings:", error);
