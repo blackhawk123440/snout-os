@@ -461,8 +461,13 @@ function BookingsPageContent() {
   }, [activeBookings]);
 
   const handleBookingSelect = (booking: Booking) => {
-    setSelectedBooking(booking);
-    setEditedBooking(booking);
+    // Ensure all fields including notes are preserved
+    const fullBooking = {
+      ...booking,
+      notes: booking.notes || null,
+    };
+    setSelectedBooking(fullBooking);
+    setEditedBooking(fullBooking);
     
     // For house sitting/24/7 care, create a time slot from startAt/endAt if timeSlots are empty
     if (isHouseSittingService(booking.service) && booking.startAt && booking.endAt) {
