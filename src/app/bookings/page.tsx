@@ -225,7 +225,12 @@ function BookingsPageContent() {
     
     const booking = bookings.find(b => b.id === bookingId);
     if (booking && (!selectedBooking || booking.id !== selectedBooking.id)) {
-      setSelectedBooking(booking);
+      // Ensure all fields including notes are preserved
+      const fullBooking = {
+        ...booking,
+        notes: booking.notes || null,
+      };
+      setSelectedBooking(fullBooking);
       // Clear URL parameter after selecting
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
