@@ -349,18 +349,25 @@ export async function POST(request: NextRequest) {
         })),
       },
       // Accept notes from multiple field names: notes, specialInstructions, or additionalNotes
+      // Handle all possible cases: undefined, null, empty string, or actual content
       notes: (() => {
-        const notesValue = notes || specialInstructions || additionalNotes;
-        if (notesValue) {
+        // Check all possible field names
+        const notesValue = notes ?? specialInstructions ?? additionalNotes;
+        
+        // If we have a value (not null/undefined), process it
+        if (notesValue != null && notesValue !== undefined) {
           const trimmed = String(notesValue).trim();
           console.log('Saving notes to database:', {
             originalValue: notesValue,
             trimmedValue: trimmed,
             length: trimmed.length,
+            isEmpty: trimmed.length === 0,
           });
+          // Only save if there's actual content after trimming
           return trimmed.length > 0 ? trimmed : null;
         }
-        console.log('No notes provided in form submission');
+        
+        console.log('No notes provided in form submission (all fields were null/undefined)');
         return null;
       })(),
       timeSlots: timeSlotsData.length > 0
