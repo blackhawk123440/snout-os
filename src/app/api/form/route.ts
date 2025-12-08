@@ -83,6 +83,8 @@ export async function POST(request: NextRequest) {
       notesType: typeof notes,
       hasNotes: !!notes,
       notesValue: notes,
+      bodyKeys: Object.keys(body),
+      fullBody: JSON.stringify(body, null, 2),
     });
 
     // Validate required fields with proper trimming
