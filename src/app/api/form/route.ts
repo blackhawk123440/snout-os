@@ -75,6 +75,16 @@ export async function POST(request: NextRequest) {
       dateTimes,
     } = body;
 
+    // Debug: Log notes fields to see what's being received
+    console.log('Form submission notes fields:', {
+      notes,
+      specialInstructions,
+      additionalNotes,
+      notesType: typeof notes,
+      hasNotes: !!notes,
+      notesValue: notes,
+    });
+
     // Validate required fields with proper trimming
     const trimmedFirstName = firstName?.trim();
     const trimmedLastName = lastName?.trim();
@@ -337,9 +347,20 @@ export async function POST(request: NextRequest) {
         })),
       },
       // Accept notes from multiple field names: notes, specialInstructions, or additionalNotes
-      notes: (notes || specialInstructions || additionalNotes) 
-        ? String(notes || specialInstructions || additionalNotes).trim() 
-        : null,
+      notes: (() => {
+        const notesValue = notes || specialInstructions || additionalNotes;
+        if (notesValue) {
+          const trimmed = String(notesValue).trim();
+          console.log('Saving notes to database:', {
+            originalValue: notesValue,
+            trimmedValue: trimmed,
+            length: trimmed.length,
+          });
+          return trimmed.length > 0 ? trimmed : null;
+        }
+        console.log('No notes provided in form submission');
+        return null;
+      })(),
       timeSlots: timeSlotsData.length > 0
         ? {
             create: timeSlotsData.map(slot => ({
@@ -351,12 +372,31 @@ export async function POST(request: NextRequest) {
         : undefined,
     };
 
+    // Debug: Log what we're about to save
+    console.log('Creating booking with notes:', {
+      firstName: bookingData.firstName,
+      lastName: bookingData.lastName,
+      notes: bookingData.notes,
+      notesType: typeof bookingData.notes,
+      hasNotes: !!bookingData.notes,
+    });
+
     const booking = await prisma.booking.create({
       data: bookingData as Prisma.BookingCreateInput,
       include: {
         pets: true,
         timeSlots: true,
       },
+    });
+
+    // Debug: Verify what was actually saved
+    console.log('Booking created with notes:', {
+      id: booking.id,
+      firstName: booking.firstName,
+      lastName: booking.lastName,
+      notes: booking.notes,
+      notesType: typeof booking.notes,
+      hasNotes: !!booking.notes,
     });
 
     // Emit booking.created event for Automation Center
