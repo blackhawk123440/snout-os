@@ -169,7 +169,24 @@ function BookingsPageContent() {
           try {
             if (bookingsResponse.value.ok) {
               const data = await bookingsResponse.value.json();
-              setBookings(data.bookings || []);
+              const bookingsData = data.bookings || [];
+              
+              // Debug: Log a sample booking to verify notes are in the response
+              if (bookingsData.length > 0) {
+                const sample = bookingsData.find((b: any) => b.firstName?.toLowerCase().includes('mike') || b.firstName?.toLowerCase().includes('carson'));
+                if (sample) {
+                  console.log('Sample booking from API response:', {
+                    id: sample.id,
+                    firstName: sample.firstName,
+                    lastName: sample.lastName,
+                    notes: sample.notes,
+                    notesType: typeof sample.notes,
+                    allKeys: Object.keys(sample),
+                  });
+                }
+              }
+              
+              setBookings(bookingsData);
             } else {
               setBookings([]);
             }
