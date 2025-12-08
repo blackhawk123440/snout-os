@@ -3596,15 +3596,23 @@ function BookingsPageContent() {
                       </div>
                       <div className="p-4 bg-gray-50 rounded-lg border" style={{ borderColor: COLORS.border }}>
                         {(() => {
-                          const notesValue = selectedBooking.notes;
-                          const hasNotes = notesValue && String(notesValue).trim().length > 0;
-                          return hasNotes ? (
-                            <div>
-                              <p className="text-base text-gray-900 whitespace-pre-wrap">{String(notesValue)}</p>
-                            </div>
-                          ) : (
-                            <p className="text-base text-gray-500 italic">No additional notes provided</p>
-                          );
+                          // Check both selectedBooking.notes and also check the original booking from the array
+                          const bookingFromArray = bookings.find(b => b.id === selectedBooking.id);
+                          const notesValue = selectedBooking.notes || bookingFromArray?.notes || null;
+                          const notesString = notesValue ? String(notesValue).trim() : '';
+                          const hasNotes = notesString.length > 0;
+                          
+                          if (hasNotes) {
+                            return (
+                              <div>
+                                <p className="text-base text-gray-900 whitespace-pre-wrap">{notesString}</p>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <p className="text-base text-gray-500 italic">No additional notes provided</p>
+                            );
+                          }
                         })()}
                       </div>
                     </div>
