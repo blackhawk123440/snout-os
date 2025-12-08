@@ -406,6 +406,7 @@ export async function POST(request: NextRequest) {
       notes: booking.notes,
       notesType: typeof booking.notes,
       hasNotes: !!booking.notes,
+      notesLength: booking.notes ? booking.notes.length : 0,
     });
 
     // Emit booking.created event for Automation Center
@@ -544,6 +545,7 @@ export async function POST(request: NextRequest) {
         id: booking.id,
         totalPrice: breakdown.total,
         status: booking.status,
+        notes: booking.notes || null, // Explicitly include notes in response
       },
     }, {
       headers: buildCorsHeaders(request),
