@@ -466,11 +466,28 @@ function BookingsPageContent() {
   }, [activeBookings]);
 
   const handleBookingSelect = (booking: Booking) => {
+    // Debug: Log the booking object to see what fields are present
+    console.log('Selected booking:', {
+      id: booking.id,
+      firstName: booking.firstName,
+      lastName: booking.lastName,
+      notes: booking.notes,
+      notesType: typeof booking.notes,
+      allKeys: Object.keys(booking),
+    });
+    
     // Ensure all fields including notes are preserved
     const fullBooking = {
       ...booking,
-      notes: booking.notes || null,
+      notes: booking.notes !== undefined ? booking.notes : null,
     };
+    
+    console.log('Full booking with notes:', {
+      id: fullBooking.id,
+      notes: fullBooking.notes,
+      notesType: typeof fullBooking.notes,
+    });
+    
     setSelectedBooking(fullBooking);
     setEditedBooking(fullBooking);
     
@@ -3608,16 +3625,42 @@ function BookingsPageContent() {
                         {(() => {
                           // Check both selectedBooking.notes and also check the original booking from the array
                           const bookingFromArray = bookings.find(b => b.id === selectedBooking.id);
-                          let notesValue = selectedBooking.notes;
                           
-                          // If notes not in selectedBooking, try getting from array
-                          if (!notesValue && bookingFromArray) {
+                          // Debug logging
+                          console.log('Notes display check:', {
+                            selectedBookingId: selectedBooking.id,
+                            selectedBookingNotes: selectedBooking.notes,
+                            selectedBookingNotesType: typeof selectedBooking.notes,
+                            bookingFromArrayExists: !!bookingFromArray,
+                            bookingFromArrayNotes: bookingFromArray?.notes,
+                            bookingFromArrayNotesType: typeof bookingFromArray?.notes,
+                            allBookingsLength: bookings.length,
+                          });
+                          
+                          // Try multiple sources for notes
+                          let notesValue = selectedBooking.notes;
+                          if ((!notesValue || notesValue === null || notesValue === '') && bookingFromArray) {
                             notesValue = bookingFromArray.notes;
                           }
                           
-                          // Convert to string and check if it has content
-                          const notesString = notesValue != null ? String(notesValue).trim() : '';
+                          // Also check if notes might be stored in editedBooking
+                          if ((!notesValue || notesValue === null || notesValue === '') && editedBooking.notes) {
+                            notesValue = editedBooking.notes;
+                          }
+                          
+                          // Convert to string and check
+                          let notesString = '';
+                          if (notesValue != null && notesValue !== undefined && notesValue !== '') {
+                            notesString = String(notesValue).trim();
+                          }
+                          
                           const hasNotes = notesString.length > 0;
+                          
+                          console.log('Final notes check:', {
+                            notesValue,
+                            notesString,
+                            hasNotes,
+                          });
                           
                           if (hasNotes) {
                             return (
