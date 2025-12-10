@@ -4111,6 +4111,14 @@
             }
           }
           
+          // Debug: Log the payload to see if notes are included
+          console.log('Submitting booking with payload:', {
+            ...payload,
+            notes: payload.notes,
+            notesType: typeof payload.notes,
+            notesLength: payload.notes ? payload.notes.length : 0,
+          });
+
           const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
