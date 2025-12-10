@@ -351,11 +351,11 @@ export async function POST(request: NextRequest) {
       // Accept notes from multiple field names: notes, specialInstructions, or additionalNotes
       // Handle all possible cases: undefined, null, empty string, or actual content
       notes: (() => {
-        // Check all possible field names
-        const notesValue = notes ?? specialInstructions ?? additionalNotes;
+        // Check all possible field names - use nullish coalescing to properly handle empty strings
+        const notesValue = notes !== undefined ? notes : (specialInstructions !== undefined ? specialInstructions : additionalNotes);
         
-        // If we have a value (not null/undefined), process it
-        if (notesValue != null && notesValue !== undefined) {
+        // If we have a value that's not null/undefined, process it
+        if (notesValue != null && notesValue !== undefined && notesValue !== '') {
           const trimmed = String(notesValue).trim();
           console.log('Saving notes to database:', {
             originalValue: notesValue,
@@ -367,7 +367,12 @@ export async function POST(request: NextRequest) {
           return trimmed.length > 0 ? trimmed : null;
         }
         
-        console.log('No notes provided in form submission (all fields were null/undefined)');
+        console.log('No notes provided in form submission:', {
+          notes: notes,
+          specialInstructions: specialInstructions,
+          additionalNotes: additionalNotes,
+          allNull: notes == null && specialInstructions == null && additionalNotes == null,
+        });
         return null;
       })(),
       timeSlots: timeSlotsData.length > 0

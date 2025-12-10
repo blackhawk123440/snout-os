@@ -4067,7 +4067,14 @@
           pets: pets.length > 0 ? pets : [{ name: 'Pet', species: 'Dog' }],
           selectedDates: this.state.selectedDates,
           dateTimes: this.state.dateTimes,
-          notes: this.state.contactInfo.notes || undefined,
+          // Get notes from multiple sources to ensure we capture it
+          // Always read directly from DOM to ensure we have the latest value
+          notes: (() => {
+            const notesInput = document.getElementById('notes');
+            const notesValue = notesInput?.value || this.state.contactInfo.notes || null;
+            // Return the value if it exists, otherwise null (not undefined)
+            return notesValue && notesValue.trim() ? notesValue.trim() : null;
+          })(),
           afterHours: false,
           holiday: false,
           createdFrom: 'Webflow'
