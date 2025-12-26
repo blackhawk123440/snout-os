@@ -3087,6 +3087,8 @@
         this.initializeEventListeners();
         this.restoreVisualState();
         this.setupStep(this.state.currentStep || 1);
+        // Track if Meta Pixel Lead event has been fired to prevent double-firing
+        this.metaPixelLeadFired = false;
       }
       
       restoreVisualState() {
@@ -3899,6 +3901,37 @@
         this.state.saveState(); // Auto-save
       }
 
+      /**
+       * Fire Meta Pixel Lead event on successful booking submission
+       * Tries to call fbq directly, falls back to postMessage if in iframe
+       */
+      fireMetaPixelLead() {
+        // Prevent double-firing
+        if (this.metaPixelLeadFired) {
+          return;
+        }
+        this.metaPixelLeadFired = true;
+
+        try {
+          // Try to fire fbq directly if available in iframe
+          if (typeof window.fbq === 'function') {
+            window.fbq('track', 'Lead');
+            console.log('Meta Pixel Lead event fired directly');
+            return;
+          }
+
+          // Fallback: Use postMessage to notify parent page
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'SNOOT_LEAD' }, '*');
+            console.log('Meta Pixel Lead event sent via postMessage to parent');
+          } else {
+            console.warn('Meta Pixel Lead: fbq not available and not in iframe');
+          }
+        } catch (error) {
+          console.error('Error firing Meta Pixel Lead event:', error);
+        }
+      }
+
       async submitForm() {
         const isPetTaxi = this.state.selectedService === 'pet-taxi';
         const currentStep = this.state.currentStep;
@@ -4135,6 +4168,9 @@
           }
 
           if (response.ok) {
+            // Fire Meta Pixel Lead event on successful submission
+            this.fireMetaPixelLead();
+            
             // Clear auto-save after successful submission
             this.state.clearState();
             this.setupStep(7); // Step 7 is confirmation
