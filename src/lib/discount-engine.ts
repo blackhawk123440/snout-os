@@ -228,3 +228,4 @@ export async function getBookingDiscount(bookingId: string): Promise<DiscountRes
   };
 }
 
+
