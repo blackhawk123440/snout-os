@@ -71,7 +71,7 @@ export async function captureBaselineSnapshot(
     }
 
     // Create snapshot
-    const snapshot = await prisma.baselineSnapshot.create({
+    const snapshot = await (prisma as any).baselineSnapshot.create({
       data: {
         bookingId,
         bookingFormTotal: options.bookingFormTotal ?? null,
@@ -111,7 +111,7 @@ export async function captureBaselineSnapshot(
  */
 export async function getBaselineSnapshots(bookingId: string): Promise<BaselineSnapshot[]> {
   try {
-    const snapshots = await prisma.baselineSnapshot.findMany({
+    const snapshots = await (prisma as any).baselineSnapshot.findMany({
       where: { bookingId },
       orderBy: { timestamp: "desc" },
     });
@@ -142,7 +142,7 @@ export async function getBaselineSnapshots(bookingId: string): Promise<BaselineS
  */
 export async function getAllBaselineSnapshots(): Promise<BaselineSnapshot[]> {
   try {
-    const snapshots = await prisma.baselineSnapshot.findMany({
+    const snapshots = await (prisma as any).baselineSnapshot.findMany({
       orderBy: { timestamp: "desc" },
       take: 1000, // Limit to recent snapshots
     });
