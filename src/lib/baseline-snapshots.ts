@@ -116,7 +116,7 @@ export async function getBaselineSnapshots(bookingId: string): Promise<BaselineS
       orderBy: { timestamp: "desc" },
     });
 
-    return snapshots.map((snapshot) => ({
+    return snapshots.map((snapshot: any) => ({
       id: snapshot.id,
       bookingId: snapshot.bookingId,
       timestamp: snapshot.timestamp,
@@ -147,7 +147,7 @@ export async function getAllBaselineSnapshots(): Promise<BaselineSnapshot[]> {
       take: 1000, // Limit to recent snapshots
     });
 
-    return snapshots.map((snapshot) => ({
+    return snapshots.map((snapshot: any) => ({
       id: snapshot.id,
       bookingId: snapshot.bookingId,
       timestamp: snapshot.timestamp,
