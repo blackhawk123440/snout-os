@@ -168,7 +168,7 @@ export async function getFeatureFlags(keys: string[]): Promise<Record<string, bo
     const result: Record<string, boolean> = {};
 
     for (const key of keys) {
-      result[key] = flagMap.get(key) ?? (DEFAULT_FLAGS.find((f) => f.key === key)?.enabled ?? false);
+      result[key] = (flagMap.get(key) as boolean | undefined) ?? (DEFAULT_FLAGS.find((f) => f.key === key)?.enabled ?? false);
     }
 
     return result;
