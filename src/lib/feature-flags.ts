@@ -42,12 +42,12 @@ const DEFAULT_FLAGS: Array<{ key: string; enabled: boolean; description: string 
  */
 export async function getFeatureFlag(key: string): Promise<boolean> {
   try {
-    const flag = await prisma.featureFlag.findUnique({
+    const flag = await (prisma as any).featureFlag.findUnique({
       where: { key },
     });
 
-    if (flag) {
-      return flag.enabled;
+    if (flag && typeof flag === 'object' && 'enabled' in flag) {
+      return (flag as any).enabled;
     }
 
     // Return default if flag doesn't exist
@@ -66,12 +66,12 @@ export async function getFeatureFlag(key: string): Promise<boolean> {
  */
 export async function getAllFeatureFlags(): Promise<FeatureFlag[]> {
   try {
-    const flags = await prisma.featureFlag.findMany({
+    const flags = await (prisma as any).featureFlag.findMany({
       orderBy: { key: "asc" },
     });
 
     // Merge with defaults to ensure all flags exist
-    const flagMap = new Map(flags.map((f) => [f.key, f]));
+    const flagMap = new Map(flags.map((f: any) => [f.key, f]));
     const result: FeatureFlag[] = [];
 
     for (const defaultFlag of DEFAULT_FLAGS) {
@@ -86,7 +86,7 @@ export async function getAllFeatureFlags(): Promise<FeatureFlag[]> {
         });
       } else {
         // Create missing flag with default value
-        const created = await prisma.featureFlag.create({
+        const created = await (prisma as any).featureFlag.create({
           data: {
             key: defaultFlag.key,
             enabled: defaultFlag.enabled,
@@ -125,7 +125,7 @@ export async function setFeatureFlag(
   metadata?: Record<string, any>
 ): Promise<FeatureFlag> {
   try {
-    const flag = await prisma.featureFlag.upsert({
+    const flag = await (prisma as any).featureFlag.upsert({
       where: { key },
       update: {
         enabled,
@@ -158,13 +158,13 @@ export async function setFeatureFlag(
  */
 export async function getFeatureFlags(keys: string[]): Promise<Record<string, boolean>> {
   try {
-    const flags = await prisma.featureFlag.findMany({
+    const flags = await (prisma as any).featureFlag.findMany({
       where: {
         key: { in: keys },
       },
     });
 
-    const flagMap = new Map(flags.map((f) => [f.key, f.enabled]));
+    const flagMap = new Map(flags.map((f: any) => [f.key, f.enabled]));
     const result: Record<string, boolean> = {};
 
     for (const key of keys) {
