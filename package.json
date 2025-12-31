@@ -15,7 +15,8 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate --schema=prisma/schema.prisma"
+    "postinstall": "prisma generate --schema=prisma/schema.prisma",
+    "proof:phaseA": "tsx scripts/proof-phaseA.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",
