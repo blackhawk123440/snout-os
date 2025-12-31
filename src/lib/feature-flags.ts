@@ -75,7 +75,7 @@ export async function getAllFeatureFlags(): Promise<FeatureFlag[]> {
     const result: FeatureFlag[] = [];
 
     for (const defaultFlag of DEFAULT_FLAGS) {
-      const existing = flagMap.get(defaultFlag.key);
+      const existing = flagMap.get(defaultFlag.key) as any;
       if (existing) {
         result.push({
           id: existing.id,
