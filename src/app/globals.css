@@ -246,3 +246,10 @@ input[type="checkbox"]:checked {
   border-color: #432f21;
 }
 
+/* Booking Detail Page - Responsive Grid */
+@media (min-width: 1024px) {
+  .booking-detail-grid {
+    grid-template-columns: 1fr 400px !important;
+  }
+}
+

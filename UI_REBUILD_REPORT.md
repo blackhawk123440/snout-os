@@ -262,6 +262,27 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
    - Legacy version backed up to `page-legacy.tsx`
    - File size: 14.7KB (vs 31KB legacy - removed tabs/analytics complexity)
 
+8. **Booking Detail** (`src/app/bookings/[id]/page.tsx`)
+   - **Status**: ✅ Rebuilt as enterprise operations command center
+   - Uses AppShell
+   - Uses PageHeader, Card, SectionHeader, StatCard, Table, Badge, Button, Modal, Select, EmptyState, Skeleton
+   - Two-column layout: Main content left, control panel right (responsive single column on mobile)
+   - KPI strip: Total, Payment Status, Balance, Service, Pets
+   - Left column cards:
+     - Schedule and Visit Details (dates, time slots, addresses)
+     - Pets and Care Instructions (pets list with notes)
+     - Pricing Breakdown (line items table, totals, payment links)
+     - Status History (status change timeline)
+   - Right column cards:
+     - Status Control (current status, status change button)
+     - Assignment Control (sitter assignment, reassign, unassign)
+     - Client Information (name, phone, email)
+   - Modals for status changes and sitter unassignment
+   - Loading, empty, error states implemented
+   - All business logic preserved (status transitions, sitter assignment, API calls)
+   - Uses pricing display helpers for snapshot rendering
+   - File size: ~38KB (new file, proper route structure)
+
 6. **Calendar** (`src/app/calendar/page.tsx`)
    - **Status**: ✅ Swapped from `page-enterprise.tsx`
    - Uses AppShell
@@ -344,15 +365,16 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
 - [x] Global CSS updates
 - [x] TypeScript types
 
-### Pages: 🚧 In Progress (7/17 Complete)
+### Pages: 🚧 In Progress (8/17 Complete)
 - [x] Dashboard home - ✅ Swapped
 - [x] Bookings list - ✅ Swapped (legacy backed up)
+- [x] Booking detail - ✅ Rebuilt (new route `/bookings/[id]`)
 - [x] Clients list - ✅ Swapped (legacy backed up)
 - [x] Settings - ✅ Swapped (legacy backed up)
 - [x] Automations - ✅ Swapped (legacy backed up)
 - [x] Calendar - ✅ Swapped (legacy backed up)
 - [x] Payments - ✅ Rebuilt (legacy backed up)
-- [ ] Remaining pages (10+ pages)
+- [ ] Remaining pages (9+ pages)
 
 ### Testing: ⏳ Pending
 - [ ] Visual regression testing
@@ -417,9 +439,10 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
 ## Metrics
 
 - **Components Created**: 15
-- **Pages Converted and Swapped**: 7 (dashboard, bookings, clients, settings, automations, calendar, payments)
+- **Pages Converted and Swapped**: 8 (dashboard, bookings list, booking detail, clients, settings, automations, calendar, payments)
 - **Legacy Files Backed Up**: 7 (`page-legacy.tsx` files)
-- **Pages Remaining**: ~10-12
+- **New Routes Created**: 1 (`/bookings/[id]` detail page)
+- **Pages Remaining**: ~9-11
 
 ## Cutover Status
 

@@ -87,15 +87,21 @@
 - [x] Loading skeleton implemented
 - [x] No legacy styling
 
-### ⏳ Booking Detail (if exists)
-- [ ] Uses AppShell
-- [ ] Two-column layout
-- [ ] Sticky header with status
-- [ ] Primary actions in header
-- [ ] Uses Badge for status
-- [ ] Uses Card for sections
-- [ ] Uses Button for actions
-- [ ] No legacy styling
+### ✅ Booking Detail (`/bookings/[id]`)
+- [x] Uses AppShell
+- [x] Two-column layout (desktop) / Single column (mobile)
+- [x] PageHeader with title, description, and actions
+- [x] Primary actions in header
+- [x] Uses Badge for status indicators
+- [x] Uses Card for sections
+- [x] Uses Button for actions
+- [x] KPI strip with StatCards (Total, Payment Status, Balance, Service, Pets)
+- [x] Left column: Schedule, Pets, Pricing, Status History
+- [x] Right column: Status Control, Assignment Control, Client Information
+- [x] Uses Modal for status changes and unassign confirmation
+- [x] Loading, empty, error states implemented
+- [x] No legacy styling
+- [ ] ⚠️ **PENDING MANUAL VISUAL VERIFICATION**
 
 ### ✅ Calendar (`/calendar`)
 - [x] Uses AppShell
