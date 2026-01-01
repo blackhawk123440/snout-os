@@ -174,6 +174,52 @@
 ### ✅ Payments (`/payments`)
 - [x] Uses AppShell
 - [x] Uses PageHeader
+- [x] Uses StatCard for KPIs
+- [x] Uses Table component
+- [x] Uses Select for filters
+- [x] Uses Input for search
+- [x] Uses Badge for status
+- [x] Uses Card for sections
+- [x] Empty state implemented
+- [x] Loading skeleton implemented
+- [x] No legacy styling
+
+### ✅ Sitter Dashboard (`/sitter`)
+- [x] Uses AppShell
+- [x] Uses PageHeader
+- [x] Uses Tabs component
+- [x] Uses Card for sections
+- [x] Uses StatCard for metrics
+- [x] Uses Badge for status indicators
+- [x] Uses Button for actions
+- [x] Uses Modal for booking details
+- [x] Uses EmptyState for empty tabs
+- [x] Uses Skeleton for loading
+- [x] All tabs functional (today, upcoming, completed, earnings, tier, settings)
+- [x] Visit detail modal works
+- [x] No legacy styling
+
+### ✅ Sitter Dashboard - Job Management (`/sitter-dashboard`)
+- [x] Uses AppShell
+- [x] Uses PageHeader
+- [x] Uses Tabs component
+- [x] Uses Card for sections
+- [x] Uses StatCard for metrics
+- [x] Uses Badge for status indicators
+- [x] Uses Button for actions
+- [x] Calendar view with grid layout (design tokens)
+- [x] List view toggle works
+- [x] Month navigation works
+- [x] Job acceptance works (non-admin)
+- [x] Admin view supported (read-only)
+- [x] All tabs functional (pending, accepted, archived, tooLate, tier)
+- [x] Uses EmptyState for empty tabs
+- [x] Uses Skeleton for loading
+- [x] No legacy styling
+
+### ⏳ Pending Pages
+- [x] Uses AppShell
+- [x] Uses PageHeader
 - [x] Uses Table component
 - [x] Uses StatCard for metrics (Total Collected, Pending, Failed, Upcoming Payouts)
 - [x] Uses Card components

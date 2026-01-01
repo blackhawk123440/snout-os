@@ -299,10 +299,41 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
    - No legacy styling
    - Legacy version backed up to `page-legacy.tsx`
 
+7. **Sitter Dashboard** (`src/app/sitter/page.tsx`)
+   - **Status**: ✅ Swapped from `page-enterprise.tsx`
+   - Uses AppShell
+   - Uses PageHeader, Tabs, TabPanel, Card, StatCard, Badge, Button, Modal, EmptyState, Skeleton, SectionHeader
+   - Tabs: today, upcoming, completed, earnings, tier, settings
+   - Today tab: Shows today's bookings with overdue indicators, travel time calculations
+   - Upcoming tab: List of upcoming bookings
+   - Completed tab: List of completed bookings (limited to 20, shows count)
+   - Earnings tab: Earnings breakdown with summary cards, earnings by service type, earnings by booking
+   - Tier tab: Current tier display, performance metrics, next tier info, improvement areas
+   - Settings tab: Commission percentage and tier info
+   - Visit detail modal for booking details
+   - Loading, empty, error states implemented
+   - All business logic preserved (check-in, booking fetching)
+   - Legacy version backed up to `page-legacy.tsx`
+
+8. **Sitter Dashboard (Job Management)** (`src/app/sitter-dashboard/page.tsx`)
+   - **Status**: ✅ Swapped from `page-enterprise.tsx`
+   - Uses AppShell
+   - Uses PageHeader, Tabs, TabPanel, Card, StatCard, Badge, Button, EmptyState, Skeleton, SectionHeader
+   - Tabs: pending, accepted, archived, tooLate, tier
+   - Pending tab: Pool requests with accept/decline actions (admin view supported)
+   - Accepted tab: Calendar view and list view toggle, shows accepted jobs with calendar grid
+   - Archived tab: Completed and cancelled jobs
+   - Too Late tab: Expired and too late jobs
+   - Tier tab: Current tier, performance metrics, job statistics, improvement areas, tier history
+   - Calendar view with month navigation, job cards in calendar grid
+   - Admin view support (read-only)
+   - Loading, empty, error states implemented
+   - All business logic preserved (job acceptance, dashboard data fetching)
+   - Legacy version backed up to `page-legacy.tsx`
+
 ### ⏳ Pending Conversion
 - Automation (`/automation`)
-- Sitter Dashboard (`/sitter`)
-- Sitters List (`/bookings/sitters`)
+- Sitters List (`/bookings/sitters`) - Admin view, not a sitter dashboard
 - Templates (`/templates`)
 - Messages (`/messages`)
 - Integrations (`/integrations`)
