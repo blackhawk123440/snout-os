@@ -331,11 +331,25 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
    - All business logic preserved (job acceptance, dashboard data fetching)
    - Legacy version backed up to `page-legacy.tsx`
 
+9. **Messages** (`src/app/messages/page.tsx`)
+   - **Status**: ✅ Swapped from `page-enterprise.tsx`
+   - Uses AppShell
+   - Uses PageHeader, Card, Button, Input, Select, Textarea, Badge, Modal, EmptyState, Skeleton, FormRow
+   - Message Templates management interface
+   - Template list with type badges and field detection
+   - Add/Edit template modal with form validation
+   - Field extraction and preview ({{fieldName}} syntax)
+   - Template types: booking_confirmation, visit_started, visit_completed, payment_reminder, sitter_assignment, owner_notification
+   - Loading, empty, error states implemented
+   - All business logic preserved (template CRUD operations)
+   - Uses `/api/message-templates` API (same as legacy)
+   - Legacy version backed up to `page-legacy.tsx`
+   - **Note**: This page manages Message Templates, not conversation threads
+
 ### ⏳ Pending Conversion
 - Automation (`/automation`)
 - Sitters List (`/bookings/sitters`) - Admin view, not a sitter dashboard
 - Templates (`/templates`)
-- Messages (`/messages`)
 - Integrations (`/integrations`)
 - Exceptions (`/exceptions`)
 - Settings sub-pages:
