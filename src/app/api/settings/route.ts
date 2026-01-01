@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { saveMessageTemplateWithVersion } from "@/lib/message-templates";
+// Phase 3: Automation settings persistence helpers
+import { 
+  calculateAutomationSettingsChecksum, 
+  validateAutomationSettings,
+  normalizeAutomationSettings 
+} from "@/lib/automation-settings-helpers";
 
 export async function GET() {
   try {
@@ -54,21 +60,52 @@ export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Update automation settings if provided
+    // Phase 3: Update automation settings with persistence validation
+    let savedAutomationSettings: any = null;
     if (body.automation) {
+      // Normalize the input settings
+      const normalizedAutomation = normalizeAutomationSettings(body.automation);
+      
+      // Save automation settings
       await prisma.setting.upsert({
         where: { key: "automation" },
         update: { 
-          value: JSON.stringify(body.automation),
+          value: JSON.stringify(normalizedAutomation),
           updatedAt: new Date(),
         },
         create: {
           key: "automation",
-          value: JSON.stringify(body.automation),
+          value: JSON.stringify(normalizedAutomation),
           category: "automation",
           label: "Automation Settings",
         },
       });
+      
+      // Phase 3: Re-read from database to confirm persistence (hard requirement per master spec line 255)
+      const savedSetting = await prisma.setting.findUnique({
+        where: { key: "automation" },
+      });
+      
+      if (!savedSetting) {
+        throw new Error("Failed to save automation settings - setting not found after save");
+      }
+      
+      // Parse the saved value
+      try {
+        savedAutomationSettings = JSON.parse(savedSetting.value);
+      } catch (error) {
+        throw new Error("Failed to parse saved automation settings");
+      }
+      
+      // Phase 3: Validate checksum to ensure data integrity (hard requirement per master spec line 255)
+      const checksumMatches = validateAutomationSettings(savedAutomationSettings, normalizedAutomation);
+      if (!checksumMatches) {
+        console.error("[Automation Settings] Checksum validation failed after save");
+        throw new Error("Automation settings checksum validation failed - data may be corrupted");
+      }
+      
+      const savedChecksum = calculateAutomationSettingsChecksum(savedAutomationSettings);
+      console.log(`[Automation Settings] Saved and validated with checksum: ${savedChecksum}`);
       
       // Store message templates separately for easier retrieval
       const automation = body.automation;
@@ -146,7 +183,32 @@ export async function PATCH(request: NextRequest) {
 
     await Promise.all(updatePromises);
 
-    return NextResponse.json({ success: true, message: "Settings saved successfully" });
+    // Phase 3: Return canonical value (re-read from DB) per master spec line 255
+    // Load the canonical automation settings from database
+    let canonicalAutomation: any = null;
+    if (savedAutomationSettings) {
+      // Use the saved settings we already re-read and validated
+      canonicalAutomation = savedAutomationSettings;
+    } else {
+      // Re-read if we didn't save automation settings this time
+      const automationSetting = await prisma.setting.findUnique({
+        where: { key: "automation" },
+      });
+      if (automationSetting) {
+        try {
+          canonicalAutomation = JSON.parse(automationSetting.value);
+        } catch {
+          canonicalAutomation = {};
+        }
+      }
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: "Settings saved successfully",
+      // Phase 3: Return canonical automation settings (hard requirement per master spec line 255)
+      automation: canonicalAutomation,
+    });
   } catch (error) {
     console.error("Failed to update settings:", error);
     return NextResponse.json({ error: "Failed to update settings" }, { status: 500 });

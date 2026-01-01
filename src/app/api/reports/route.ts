@@ -1,8 +1,17 @@
+/**
+ * Reports API (Phase 5.1)
+ * 
+ * Allows sitters to submit visit reports for their assigned bookings.
+ * Per Master Spec 7.1.3: Sitter messaging is allowed only in contexts tied to assignments.
+ */
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { formatPetsByQuantity } from "@/lib/booking-utils";
 import { sendMessage } from "@/lib/message-utils";
 import { emitVisitCompleted } from "@/lib/event-emitter";
+import { getCurrentSitterId, verifySitterBookingAccess } from "@/lib/sitter-helpers";
+import { env } from "@/lib/env";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +45,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Phase 5.1: If sitter auth is enabled, verify authenticated sitter matches
+    const enableSitterAuth = env.ENABLE_SITTER_AUTH === true;
+    if (enableSitterAuth) {
+      const currentSitterId = await getCurrentSitterId(request);
+      if (!currentSitterId || currentSitterId !== trimmedSitterId) {
+        return NextResponse.json(
+          { error: "Unauthorized: You can only submit reports for your assigned bookings" },
+          { status: 403 }
+        );
+      }
+    }
+
     // Get booking details
     const booking = await prisma.booking.findUnique({
       where: { id: trimmedBookingId },
@@ -49,12 +70,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
-    // Verify sitter matches booking
+    // Phase 5.1: Verify sitter matches booking (Master Spec 7.1.3: messaging only for assigned bookings)
     if (booking.sitterId !== trimmedSitterId) {
       return NextResponse.json(
         { error: "Sitter ID does not match booking's assigned sitter" },
         { status: 403 }
       );
+    }
+
+    // Phase 5.1: Additional verification if auth is enabled
+    if (enableSitterAuth) {
+      const hasAccess = await verifySitterBookingAccess(trimmedSitterId, trimmedBookingId);
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: "Unauthorized: You do not have access to this booking" },
+          { status: 403 }
+        );
+      }
     }
 
     // Validate date formats if provided

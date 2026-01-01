@@ -1,0 +1,302 @@
+# UI Rebuild Acceptance Checklist
+
+**Purpose**: Verify enterprise dashboard rebuild meets all requirements  
+**Date**: 2024-12-30  
+**Branch**: `ui-rebuild-enterprise`
+
+---
+
+## Enterprise Requirements
+
+### A. Zero Layout Variance
+- [ ] All pages share same layout grid
+- [ ] All pages use AppShell
+- [ ] Consistent spacing rules (all from tokens)
+- [ ] Content max-width consistent (1400px)
+- [ ] Content padding consistent (24px)
+
+### B. Zero Style Variance
+- [ ] Design tokens created and used everywhere
+- [ ] All components use tokens only
+- [ ] No raw hex values in pages
+- [ ] No raw px values in pages
+- [ ] All pages use shared components only
+- [ ] No page-level styling overrides
+
+### C. Navigation Coherence
+- [ ] Single navigation structure (AppShell sidebar)
+- [ ] No duplicate nav links
+- [ ] Clear primary sections:
+  - [ ] Dashboard
+  - [ ] Bookings
+  - [ ] Calendar
+  - [ ] Clients
+  - [ ] Sitters
+  - [ ] Automations
+  - [ ] Payments
+  - [ ] Settings
+- [ ] Active route highlighting works
+- [ ] Mobile navigation works
+
+### D. Table Quality
+- [ ] Sticky header implemented
+- [ ] Row hover states work
+- [ ] Status badges consistent
+- [ ] Empty states implemented
+- [ ] Loading skeletons implemented
+- [ ] Consistent column alignment
+- [ ] Sortable columns (where applicable)
+
+### E. Detail Page Quality
+- [ ] Two-column enterprise layout
+- [ ] Main content left, actions right
+- [ ] Sticky header with status
+- [ ] Primary action visible
+
+### F. Accessibility Baseline
+- [ ] Keyboard navigable (Tab order logical)
+- [ ] Focus states visible on all interactive elements
+- [ ] Labels for all inputs
+- [ ] No color-only meaning (status has text + color)
+- [ ] ARIA labels where needed
+
+---
+
+## Page-by-Page Checklist
+
+### ✅ Dashboard Home (`/`)
+- [ ] Uses AppShell
+- [ ] Uses PageHeader
+- [ ] Uses StatCard for metrics
+- [ ] Uses Card for sections
+- [ ] Uses Button for actions
+- [ ] No legacy styling
+- [ ] Loading states with Skeleton
+- [ ] Responsive grid layout
+
+### ✅ Bookings List (`/bookings`)
+- [x] Uses AppShell
+- [x] Uses PageHeader
+- [x] Uses Table component
+- [x] Uses Input for search
+- [x] Uses Select for filters
+- [x] Uses Badge for status
+- [x] Uses Card for filters section
+- [x] Row click navigation works
+- [x] Empty state implemented
+- [x] Loading skeleton implemented
+- [x] No legacy styling
+
+### ⏳ Booking Detail (if exists)
+- [ ] Uses AppShell
+- [ ] Two-column layout
+- [ ] Sticky header with status
+- [ ] Primary actions in header
+- [ ] Uses Badge for status
+- [ ] Uses Card for sections
+- [ ] Uses Button for actions
+- [ ] No legacy styling
+
+### ✅ Calendar (`/calendar`)
+- [x] Uses AppShell
+- [x] Uses PageHeader
+- [x] Uses Card for sections
+- [x] Uses Button for navigation and actions
+- [x] Uses Select for filters
+- [x] Uses Badge for status indicators
+- [x] Uses Modal for selected date details
+- [x] Uses Skeleton for loading state
+- [x] Uses EmptyState for empty states
+- [x] Calendar grid uses design tokens
+- [x] Event cards use design tokens
+- [x] No legacy styling
+- [ ] ⚠️ **PENDING MANUAL VISUAL VERIFICATION**
+
+### ✅ Clients List (`/clients`)
+- [x] Uses AppShell
+- [x] Uses PageHeader
+- [x] Uses Table component
+- [x] Uses Card components
+- [x] No legacy styling
+
+### ⏳ Client Detail (if exists)
+- [ ] Uses AppShell
+- [ ] Two-column layout
+- [ ] Uses Card for sections
+- [ ] No legacy styling
+
+### ⏳ Sitters List (`/bookings/sitters`)
+- [ ] Uses AppShell
+- [ ] Uses PageHeader
+- [ ] Uses Table component
+- [ ] Uses Card components
+- [ ] No legacy styling
+
+### ⏳ Sitter Detail (`/sitter`)
+- [ ] Uses AppShell
+- [ ] Uses PageHeader
+- [ ] Uses Tabs for sections
+- [ ] Uses Card components
+- [ ] No legacy styling
+
+### ✅ Settings (`/settings`)
+- [x] Uses AppShell
+- [x] Uses PageHeader
+- [x] Uses Tabs for sections
+- [x] Uses Input components
+- [x] Uses Select components
+- [x] Uses Button components
+- [x] Uses Card components
+- [x] Uses FormRow for form fields
+- [x] No legacy styling
+
+### ⏳ Automations (`/automation`)
+- [x] Uses AppShell
+- [x] Uses PageHeader
+- [x] Uses Card components
+- [x] Uses Tabs for category filtering
+- [x] Uses FormRow, Input, Select, Textarea for forms
+- [x] Uses Badge for status indicators
+- [x] Uses Button for actions
+- [x] Loading state implemented (Skeleton)
+- [x] Empty state implemented (EmptyState)
+- [x] Error state implemented
+- [x] Success state implemented
+- [x] No legacy styling
+- [ ] ⚠️ **PENDING MANUAL VISUAL VERIFICATION**
+
+### ⏳ Payments (`/payments`)
+- [ ] Uses AppShell
+- [ ] Uses PageHeader
+- [ ] Uses Table component
+- [ ] Uses StatCard for metrics
+- [ ] Uses Card components
+- [ ] No legacy styling
+
+### ⏳ Templates (`/templates`)
+- [ ] Uses AppShell
+- [ ] Uses PageHeader
+- [ ] Uses Table component
+- [ ] Uses Card components
+- [ ] No legacy styling
+
+### ⏳ Messages (`/messages`)
+- [ ] Uses AppShell
+- [ ] Uses PageHeader
+- [ ] Uses Table component
+- [ ] Uses Card components
+- [ ] No legacy styling
+
+### ⏳ Integrations (`/integrations`)
+- [ ] Uses AppShell
+- [ ] Uses PageHeader
+- [ ] Uses Card components
+- [ ] No legacy styling
+
+### ⏳ Exceptions (`/exceptions`)
+- [ ] Uses AppShell
+- [ ] Uses PageHeader
+- [ ] Uses Table component
+- [ ] Uses Badge for severity
+- [ ] Uses Card components
+- [ ] No legacy styling
+
+---
+
+## Component Quality Checks
+
+### Button
+- [ ] All variants work (primary, secondary, tertiary, danger, ghost)
+- [ ] All sizes work (sm, md, lg)
+- [ ] Loading state works
+- [ ] Disabled state works
+- [ ] Focus state visible
+- [ ] Icons work (left, right)
+
+### Input
+- [ ] Label displays correctly
+- [ ] Error state works
+- [ ] Helper text displays
+- [ ] Focus state visible
+- [ ] Disabled state works
+- [ ] Icons work (left, right)
+
+### Select
+- [ ] Options render correctly
+- [ ] Selected value displays
+- [ ] Placeholder works
+- [ ] Error state works
+- [ ] Focus state visible
+
+### Table
+- [ ] Sticky header works
+- [ ] Row hover works
+- [ ] Empty state displays
+- [ ] Loading skeleton displays
+- [ ] Row click handler works
+- [ ] Column alignment works
+
+### Card
+- [ ] Header section works
+- [ ] Footer section works
+- [ ] Padding consistent
+- [ ] Border and shadow correct
+
+### Badge
+- [ ] All variants render
+- [ ] Colors match design tokens
+
+### Modal
+- [ ] Opens/closes correctly
+- [ ] Backdrop click closes (when enabled)
+- [ ] Escape key closes (when enabled)
+- [ ] Body scroll locked when open
+- [ ] Focus trap works
+
+---
+
+## Responsive Checks
+
+- [ ] Desktop layout works (1024px+)
+- [ ] Tablet layout works (768px-1023px)
+- [ ] Mobile layout works (<768px)
+- [ ] Sidebar collapses on mobile
+- [ ] Tables scroll horizontally on mobile
+- [ ] Cards stack correctly on mobile
+- [ ] Touch targets minimum 44px
+
+---
+
+## Browser Compatibility
+
+- [ ] Chrome (latest)
+- [ ] Safari (latest)
+- [ ] Firefox (latest)
+- [ ] Edge (latest)
+
+---
+
+## Performance
+
+- [ ] No layout shift on load
+- [ ] Images lazy load
+- [ ] Tables virtualize for large datasets (if needed)
+- [ ] Components render quickly
+
+---
+
+## Final Sign-off
+
+**Overall Status**: ⏳ In Progress
+
+**Blockers**: None
+
+**Notes**: 
+- Foundation complete (tokens, components, AppShell)
+- Starting page conversions
+- Dashboard home page converted as template
+
+---
+
+**Last Updated**: 2024-12-30
+
