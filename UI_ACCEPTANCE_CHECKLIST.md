@@ -236,23 +236,35 @@
 
 ### ✅ Templates (`/templates`)
 - [x] Uses AppShell
-- [x] Uses PageHeader with title, description, and actions
-- [x] Uses Card for template items and filters
-- [x] Uses Input for search
-- [x] Uses Select for category and type filters
-- [x] Uses Badge for type, category, and status indicators
-- [x] Uses Button for actions (Create, Edit, Delete, Refresh)
-- [x] Uses Modal for delete confirmation
+- [x] Uses PageHeader with title "Templates", description, and "New Template" action
+- [x] Uses Tabs for category filtering (All, Booking, Reminder, Payment, Review, Internal)
+- [x] Tab badges show template counts per category
+- [x] Uses Table component with columns: Name, Category, Channel, Status, Last Updated, Actions
+- [x] Uses Card for filters and table container
+- [x] Uses Input for search (name/content/key)
+- [x] Uses Select for status filter (All/Active/Disabled)
+- [x] Uses Select for channel filter (All/SMS/Email)
+- [x] Uses Badge for category, channel, and status indicators
+- [x] Uses Button for actions (New Template, Edit, Duplicate, Enable/Disable)
+- [x] Uses Modal for template editor (Create and Edit)
+- [x] Modal editor includes: Name, Category, Channel, Subject (email), Body, Active checkbox
+- [x] Variables preview panel shows available template tokens with descriptions
+- [x] SMS character count warning (140+ chars warning, 160+ error badge)
+- [x] Edit action opens modal (not separate page)
+- [x] Duplicate action opens modal with copied template data
+- [x] Enable/Disable toggle updates template status and persists
 - [x] Uses EmptyState for no templates
 - [x] Uses Skeleton for loading states
-- [x] Success banner after delete
+- [x] Success banner after save/update/toggle
 - [x] Error banner with retry
-- [x] Template cards display all information
 - [x] Search functionality works
-- [x] Filters work (category, type)
-- [x] Delete confirmation modal works
-- [x] Edit links to separate edit page
+- [x] Status and channel filters work
+- [x] Category tabs filter templates correctly
+- [x] Save creates new template (POST /api/templates)
+- [x] Save updates existing template (PATCH /api/templates/[id])
+- [x] Toggle active updates template (PATCH /api/templates/[id])
 - [x] No legacy styling
+- [ ] ⚠️ **PENDING MANUAL VISUAL VERIFICATION**
 
 ### ⏳ Pending Pages
 - [x] Uses AppShell
