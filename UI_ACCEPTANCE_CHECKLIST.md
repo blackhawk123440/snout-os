@@ -217,6 +217,23 @@
 - [x] Uses Skeleton for loading
 - [x] No legacy styling
 
+### ✅ Messages (`/messages`)
+- [x] Uses AppShell
+- [x] Uses PageHeader with title, description, and actions
+- [x] Uses Card for template items
+- [x] Uses Badge for template types
+- [x] Uses Button for actions (New Template, Edit, Refresh)
+- [x] Uses Modal for Add/Edit form
+- [x] Uses Input, Select, Textarea for form fields
+- [x] Uses FormRow for form layout
+- [x] Uses EmptyState for no templates
+- [x] Uses Skeleton for loading states
+- [x] Error state with retry functionality
+- [x] Field extraction and display ({{fieldName}} syntax)
+- [x] Template content display with monospace font
+- [x] No legacy styling
+- [ ] **Note**: This page manages Message Templates (not conversation threads)
+
 ### ⏳ Pending Pages
 - [x] Uses AppShell
 - [x] Uses PageHeader

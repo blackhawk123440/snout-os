@@ -1,8 +1,31 @@
-"use client";
+/**
+ * Messages Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ * 
+ * Note: This page manages Message Templates, not conversations.
+ */
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Input,
+  Select,
+  Textarea,
+  Badge,
+  EmptyState,
+  Skeleton,
+  Modal,
+  FormRow,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 interface MessageTemplate {
   id: string;
@@ -28,25 +51,33 @@ export default function MessagesPage() {
     content: "",
   });
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchTemplates();
   }, []);
 
   const fetchTemplates = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/message-templates");
+      if (!response.ok) {
+        throw new Error('Failed to fetch templates');
+      }
       const data = await response.json();
       setTemplates(data.templates || []);
-    } catch {
+    } catch (err) {
+      setError('Failed to load message templates');
       setTemplates([]);
     } finally {
-    setLoading(false);
+      setLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     try {
       const url = editingTemplate ? `/api/message-templates/${editingTemplate.id}` : "/api/message-templates";
@@ -59,12 +90,13 @@ export default function MessagesPage() {
       });
 
       if (response.ok) {
-        alert(editingTemplate ? "Template updated!" : "Template added!");
         resetForm();
         fetchTemplates();
+      } else {
+        setError("Failed to save template");
       }
     } catch {
-      alert("Failed to save template");
+      setError("Failed to save template");
     }
   };
 
@@ -73,6 +105,7 @@ export default function MessagesPage() {
     setShowAddForm(false);
     setEditingTemplate(null);
     setPreviewData({});
+    setError(null);
   };
 
   const startEdit = (template: MessageTemplate) => {
@@ -97,14 +130,6 @@ export default function MessagesPage() {
     return fields;
   };
 
-  const renderPreview = (content: string, data: Record<string, string>): string => {
-    let rendered = content;
-    Object.entries(data).forEach(([key, value]) => {
-      rendered = rendered.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value || `{{${key}}}`);
-    });
-    return rendered;
-  };
-
   const templateTypes = [
     { value: "booking_confirmation", label: "Booking Confirmation" },
     { value: "visit_started", label: "Visit Started" },
@@ -114,226 +139,250 @@ export default function MessagesPage() {
     { value: "owner_notification", label: "Owner Notification" },
   ];
 
+  const getTypeBadge = (type: string) => {
+    const typeConfig = templateTypes.find(t => t.value === type);
+    if (!typeConfig) return <Badge>{type}</Badge>;
+    
+    const variantMap: Record<string, 'default' | 'info' | 'success' | 'warning'> = {
+      'booking_confirmation': 'info',
+      'visit_started': 'success',
+      'visit_completed': 'success',
+      'payment_reminder': 'warning',
+      'sitter_assignment': 'info',
+      'owner_notification': 'default',
+    };
+    
+    return <Badge variant={variantMap[type] || 'default'}>{typeConfig.label}</Badge>;
+  };
+
   return (
-    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
-        <div className="max-w-[1400px] mx-auto px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: COLORS.primary }}>
-                <i className="fas fa-envelope" style={{ color: COLORS.primaryLight }}></i>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                  Message Templates
-                </h1>
-                <p className="text-xs text-gray-500">Manage automated messages and notifications</p>
-              </div>
+    <AppShell>
+      <PageHeader
+        title="Message Templates"
+        description="Manage automated messages and notifications"
+        actions={
+          <>
+            <Button
+              variant="primary"
+              onClick={() => {
+                resetForm();
+                setShowAddForm(true);
+              }}
+              leftIcon={<i className="fas fa-plus" />}
+            >
+              New Template
+            </Button>
+            <Button
+              variant="tertiary"
+              onClick={fetchTemplates}
+              disabled={loading}
+              leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
+            >
+              Refresh
+            </Button>
+          </>
+        }
+      />
+
+      <div style={{ padding: tokens.spacing[6] }}>
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
+              <Button
+                variant="tertiary"
+                size="sm"
+                onClick={fetchTemplates}
+                style={{ marginLeft: tokens.spacing[3] }}
+              >
+                Retry
+              </Button>
             </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
+          </Card>
+        )}
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <Skeleton height={200} />
+            <Skeleton height={200} />
+            <Skeleton height={200} />
+          </div>
+        ) : templates.length === 0 ? (
+          <>
+            <EmptyState
+              title="No message templates"
+              description="Create your first message template to get started"
+              icon={<i className="fas fa-envelope" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+              action={{
+                label: "Create Template",
+                onClick: () => {
                   resetForm();
                   setShowAddForm(true);
-                }}
-                className="px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
-                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-              >
-                <i className="fas fa-plus mr-2"></i>Add Template
-              </button>
-              <Link
-                href="/bookings"
-                className="px-4 py-2 text-sm font-medium border rounded-lg hover:bg-gray-50 transition-colors"
-                style={{ color: COLORS.primary, borderColor: COLORS.border }}
-              >
-                <i className="fas fa-arrow-left mr-2"></i>Back to Bookings
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-[1400px] mx-auto px-8 py-6">
-        {/* Template List */}
-        <div className="grid gap-4">
-          {loading ? (
-            <div className="text-center py-8">
-              <i className="fas fa-spinner fa-spin text-2xl" style={{ color: COLORS.primary }}></i>
-              <p className="mt-2 text-gray-600">Loading templates...</p>
-            </div>
-          ) : templates.length === 0 ? (
-            <div className="text-center py-8">
-              <i className="fas fa-envelope text-4xl text-gray-300 mb-4"></i>
-              <p className="text-gray-600">No templates found</p>
-            </div>
-          ) : (
-            templates.map((template) => {
+                },
+              }}
+            />
+          </>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            {templates.map((template) => {
               const fields = extractFields(template.content);
               return (
-                <div
-                  key={template.id}
-                  className="bg-white rounded-lg p-4 border-2 hover:shadow-md transition-all"
-                  style={{ borderColor: COLORS.primaryLight }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-bold text-lg" style={{ color: COLORS.primary }}>
+                <Card key={template.id}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.text.primary }}>
                           {template.name}
-                        </h3>
-                        <span className="px-2 py-1 text-xs font-bold rounded"
-                              style={{ background: COLORS.primaryLight, color: COLORS.primary }}>
-                          {templateTypes.find(t => t.value === template.type)?.label || template.type}
-                        </span>
+                        </div>
+                        {getTypeBadge(template.type)}
                       </div>
                       
-                      <div className="text-sm text-gray-600 mb-3">
-                        <div className="font-semibold mb-1">Template Content:</div>
-                        <div className="bg-gray-50 p-3 rounded border" style={{ borderColor: COLORS.border }}>
-                          {template.content}
+                      <div style={{ marginBottom: tokens.spacing[3] }}>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          Template Content:
                         </div>
+                        <Card style={{ backgroundColor: tokens.colors.neutral[50], padding: tokens.spacing[3] }}>
+                          <div style={{ whiteSpace: 'pre-wrap', fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>
+                            {template.content}
+                          </div>
+                        </Card>
                       </div>
                       
                       {fields.length > 0 && (
-                        <div className="text-sm text-gray-600">
-                          <div className="font-semibold mb-1">Available Fields:</div>
-                          <div className="flex flex-wrap gap-1">
+                        <div>
+                          <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            Available Fields:
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
                             {fields.map((field) => (
-                              <span key={field} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+                              <Badge key={field} variant="info">
                                 {`{{${field}}}`}
-                              </span>
+                              </Badge>
                             ))}
                           </div>
                         </div>
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-2 ml-4">
-                      <button
+                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                      <Button
+                        variant="tertiary"
+                        size="sm"
                         onClick={() => startEdit(template)}
-                        className="px-3 py-1 text-xs font-bold border rounded-lg hover:opacity-90 transition-all"
-                        style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
                       >
                         Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          setPreviewData({});
-                          // Show preview modal
-                        }}
-                        className="px-3 py-1 text-xs font-bold rounded-lg hover:opacity-90 transition-all"
-                        style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-                      >
-                        Preview
-                      </button>
+                      </Button>
                     </div>
                   </div>
-                </div>
+                </Card>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
 
       {/* Add/Edit Form Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4" style={{ color: COLORS.primary }}>
-              {editingTemplate ? "Edit Template" : "Add Template"}
-            </h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    Template Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    Template Type *
-                  </label>
-                  <select
-                    required
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
-                  >
-                    {templateTypes.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                  Message Content *
-                </label>
-                <textarea
+      <Modal
+        isOpen={showAddForm}
+        onClose={resetForm}
+        title={editingTemplate ? "Edit Template" : "Add Template"}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4] }}>
+              <FormRow
+                label="Template Name"
+                required
+                error={error && formData.name === "" ? "Template name is required" : undefined}
+              >
+                <Input
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter template name"
                   required
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  rows={8}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: COLORS.primaryLight }}
-                  placeholder="Use {{fieldName}} for dynamic fields. Available fields: {{clientName}}, {{service}}, {{date}}, {{time}}, {{sitterName}}, {{totalPrice}}, etc."
                 />
-              </div>
+              </FormRow>
               
-              {/* Field Preview */}
-              {formData.content && extractFields(formData.content).length > 0 && (
-                <div>
-                  <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    Field Preview
-                  </label>
-                  <div className="bg-gray-50 p-3 rounded border" style={{ borderColor: COLORS.border }}>
-                    <div className="text-sm text-gray-600 mb-2">Available fields:</div>
-                    <div className="flex flex-wrap gap-1">
-                      {extractFields(formData.content).map((field) => (
-                        <span key={field} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
-                          {`{{${field}}}`}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+              <FormRow
+                label="Template Type"
+                required
+              >
+                <Select
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  options={templateTypes}
+                  required
+                />
+              </FormRow>
+            </div>
+            
+            <FormRow
+              label="Message Content"
+              required
+              helperText="Use {{fieldName}} for dynamic fields. Available fields: {{clientName}}, {{service}}, {{date}}, {{time}}, {{sitterName}}, {{totalPrice}}, etc."
+              error={error && formData.content === "" ? "Message content is required" : undefined}
+            >
+              <Textarea
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                rows={8}
+                placeholder="Enter your message template content here..."
+                required
+              />
+            </FormRow>
+            
+            {/* Field Preview */}
+            {formData.content && extractFields(formData.content).length > 0 && (
+              <Card style={{ backgroundColor: tokens.colors.neutral[50] }}>
+                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                  Detected Fields:
                 </div>
-              )}
-              
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
-                  style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-                >
-                  {editingTemplate ? "Update" : "Add"} Template
-                </button>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="flex-1 px-4 py-2 text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all"
-                  style={{ color: COLORS.gray, borderColor: COLORS.border }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
+                  {extractFields(formData.content).map((field) => (
+                    <Badge key={field} variant="info">
+                      {`{{${field}}}`}
+                    </Badge>
+                  ))}
+                </div>
+              </Card>
+            )}
+            
+            {error && (
+              <Card style={{ backgroundColor: tokens.colors.error[50], borderColor: tokens.colors.error[200] }}>
+                <div style={{ padding: tokens.spacing[2], color: tokens.colors.error[700], fontSize: tokens.typography.fontSize.sm[0] }}>
+                  {error}
+                </div>
+              </Card>
+            )}
+            
+            <div style={{ display: 'flex', gap: tokens.spacing[3], paddingTop: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}` }}>
+              <Button
+                type="submit"
+                variant="primary"
+                style={{ flex: 1 }}
+              >
+                {editingTemplate ? "Update" : "Create"} Template
+              </Button>
+              <Button
+                type="button"
+                variant="tertiary"
+                onClick={resetForm}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        </form>
+      </Modal>
+    </AppShell>
   );
 }
+
