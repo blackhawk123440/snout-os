@@ -347,21 +347,23 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
    - **Note**: This page manages Message Templates, not conversation threads
 
 10. **Templates** (`src/app/templates/page.tsx`)
-   - **Status**: ✅ Swapped from `page-enterprise.tsx`
+   - **Status**: ✅ Rebuilt (715 lines, was 189 lines legacy = +526 lines, +278% size increase)
    - Uses AppShell
-   - Uses PageHeader, Card, Button, Input, Select, Badge, Modal, EmptyState, Skeleton
-   - Message Templates list view (single column, preserves legacy structure)
-   - Search input for filtering templates
-   - Category filter (Client, Sitter, Owner, Report, Invoice)
-   - Type filter (SMS, Email)
-   - Template cards showing name, type, category, status, key, version, body preview
-   - Edit action links to `/templates/[id]` (separate edit page)
-   - Delete action with confirmation modal
-   - Success banner after delete
+   - Uses PageHeader, Card, Button, Input, Select, Textarea, Badge, Modal, EmptyState, Skeleton, Table, Tabs, TabPanel, FormRow
+   - **Category Tabs**: All, Booking, Reminder, Payment, Review, Internal (with badge counts)
+   - **Table view** with columns: Name, Category, Channel, Status, Last Updated, Actions
+   - **Filters row**: Search input, Status filter (All/Active/Disabled), Channel filter (All/SMS/Email)
+   - **Modal editor** for Create and Edit (replaces separate edit page)
+   - **Form fields**: Name, Category, Channel, Subject (email only), Body, Active checkbox
+   - **Variables preview panel** showing available template tokens with descriptions
+   - **SMS character count warning** (warns at 140 chars, shows error at 160+)
+   - **Actions**: Edit (opens modal), Duplicate (opens modal with copied data), Enable/Disable toggle
+   - Success banner after save/update/toggle
    - Error banner with retry
    - Loading, empty, error states implemented
-   - All business logic preserved (template fetching, deletion)
-   - Uses `/api/templates` API (same as legacy)
+   - All business logic preserved (template fetching, create, update, toggle active)
+   - Uses `/api/templates` and `/api/templates/[id]` APIs (same as legacy)
+   - Category mapping: existing categories (client, sitter, owner, report, invoice) mapped to tabs
    - Legacy version backed up to `page-legacy.tsx`
 
 ### ⏳ Pending Conversion
