@@ -165,13 +165,20 @@
 - [x] No legacy styling
 - [ ] ⚠️ **PENDING MANUAL VISUAL VERIFICATION**
 
-### ⏳ Payments (`/payments`)
-- [ ] Uses AppShell
-- [ ] Uses PageHeader
-- [ ] Uses Table component
-- [ ] Uses StatCard for metrics
-- [ ] Uses Card components
-- [ ] No legacy styling
+### ✅ Payments (`/payments`)
+- [x] Uses AppShell
+- [x] Uses PageHeader
+- [x] Uses Table component
+- [x] Uses StatCard for metrics (Total Collected, Pending, Failed, Upcoming Payouts)
+- [x] Uses Card components
+- [x] Uses Input for client search
+- [x] Uses Select for status filter and time range
+- [x] Uses Badge for payment status
+- [x] Uses Skeleton for loading state
+- [x] Uses EmptyState for empty state
+- [x] Error state implemented
+- [x] No legacy styling
+- [ ] ⚠️ **PENDING MANUAL VISUAL VERIFICATION**
 
 ### ⏳ Templates (`/templates`)
 - [ ] Uses AppShell
