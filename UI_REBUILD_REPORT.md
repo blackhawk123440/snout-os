@@ -346,10 +346,27 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
    - Legacy version backed up to `page-legacy.tsx`
    - **Note**: This page manages Message Templates, not conversation threads
 
+10. **Templates** (`src/app/templates/page.tsx`)
+   - **Status**: ✅ Swapped from `page-enterprise.tsx`
+   - Uses AppShell
+   - Uses PageHeader, Card, Button, Input, Select, Badge, Modal, EmptyState, Skeleton
+   - Message Templates list view (single column, preserves legacy structure)
+   - Search input for filtering templates
+   - Category filter (Client, Sitter, Owner, Report, Invoice)
+   - Type filter (SMS, Email)
+   - Template cards showing name, type, category, status, key, version, body preview
+   - Edit action links to `/templates/[id]` (separate edit page)
+   - Delete action with confirmation modal
+   - Success banner after delete
+   - Error banner with retry
+   - Loading, empty, error states implemented
+   - All business logic preserved (template fetching, deletion)
+   - Uses `/api/templates` API (same as legacy)
+   - Legacy version backed up to `page-legacy.tsx`
+
 ### ⏳ Pending Conversion
 - Automation (`/automation`)
 - Sitters List (`/bookings/sitters`) - Admin view, not a sitter dashboard
-- Templates (`/templates`)
 - Integrations (`/integrations`)
 - Exceptions (`/exceptions`)
 - Settings sub-pages:

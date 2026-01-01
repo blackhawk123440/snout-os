@@ -1,8 +1,31 @@
-"use client";
+/**
+ * Templates Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Input,
+  Select,
+  Badge,
+  EmptyState,
+  Skeleton,
+  Modal,
+  Table,
+  SectionHeader,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
+import { TableColumn } from '@/components/ui/Table';
 
 interface Template {
   id: string;
@@ -17,173 +40,341 @@ interface Template {
 }
 
 export default function TemplatesPage() {
+  const router = useRouter();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ category: "", type: "" });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchTemplates();
   }, [filter]);
 
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
   const fetchTemplates = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (filter.category) params.append("category", filter.category);
       if (filter.type) params.append("type", filter.type);
 
       const response = await fetch(`/api/templates?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch templates');
+      }
       const data = await response.json();
       setTemplates(data.templates || []);
-    } catch (error) {
-      console.error("Failed to fetch templates:", error);
+    } catch (err) {
+      setError('Failed to load templates');
+      setTemplates([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteTemplate = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this template?")) return;
+  const handleDeleteClick = (template: Template) => {
+    setTemplateToDelete(template);
+    setDeleteModalOpen(true);
+  };
 
+  const deleteTemplate = async () => {
+    if (!templateToDelete) return;
+
+    setDeleting(true);
     try {
-      const response = await fetch(`/api/templates/${id}`, {
+      const response = await fetch(`/api/templates/${templateToDelete.id}`, {
         method: "DELETE",
       });
       if (response.ok) {
+        setSuccessMessage(`Template "${templateToDelete.name}" deleted successfully`);
+        setDeleteModalOpen(false);
+        setTemplateToDelete(null);
         fetchTemplates();
+      } else {
+        setError("Failed to delete template");
       }
-    } catch (error) {
-      console.error("Failed to delete template:", error);
+    } catch (err) {
+      setError("Failed to delete template");
+    } finally {
+      setDeleting(false);
     }
   };
 
-  if (loading) {
+  const filteredTemplates = templates.filter((template) => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
     return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-        <div className="text-center py-20">Loading templates...</div>
-      </div>
+      template.name.toLowerCase().includes(searchLower) ||
+      template.templateKey.toLowerCase().includes(searchLower) ||
+      template.body.toLowerCase().includes(searchLower) ||
+      template.category.toLowerCase().includes(searchLower)
     );
-  }
+  });
+
+  const getTypeBadge = (type: string) => {
+    return <Badge variant={type === 'email' ? 'info' : 'default'}>{type.toUpperCase()}</Badge>;
+  };
+
+  const getCategoryBadge = (category: string) => {
+    const variantMap: Record<string, 'default' | 'info' | 'success' | 'warning'> = {
+      'client': 'info',
+      'sitter': 'success',
+      'owner': 'warning',
+      'report': 'default',
+      'invoice': 'default',
+    };
+    return <Badge variant={variantMap[category] || 'default'}>{category}</Badge>;
+  };
+
+  const categoryOptions = [
+    { value: "", label: "All Categories" },
+    { value: "client", label: "Client" },
+    { value: "sitter", label: "Sitter" },
+    { value: "owner", label: "Owner" },
+    { value: "report", label: "Report" },
+    { value: "invoice", label: "Invoice" },
+  ];
+
+  const typeOptions = [
+    { value: "", label: "All Types" },
+    { value: "sms", label: "SMS" },
+    { value: "email", label: "Email" },
+  ];
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                Message Templates
-              </h1>
-              <p className="text-gray-600">Manage all message templates</p>
-            </div>
-            <Link
-              href="/templates/new"
-              className="px-6 py-3 rounded-lg font-semibold text-white"
-              style={{ background: COLORS.primary }}
-            >
-              + Create Template
+    <AppShell>
+      <PageHeader
+        title="Message Templates"
+        description="Manage all message templates for automated communications"
+        actions={
+          <>
+            <Link href="/templates/new">
+              <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+                Create Template
+              </Button>
             </Link>
-          </div>
+            <Button
+              variant="tertiary"
+              onClick={fetchTemplates}
+              disabled={loading}
+              leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
+            >
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
-          <div className="flex items-center gap-4 mb-6">
-            <select
+      <div style={{ padding: tokens.spacing[6] }}>
+        {/* Success Banner */}
+        {successMessage && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.success[50],
+              borderColor: tokens.colors.success[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.success[700] }}>
+              {successMessage}
+            </div>
+          </Card>
+        )}
+
+        {/* Error Banner */}
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
+              <Button
+                variant="tertiary"
+                size="sm"
+                onClick={fetchTemplates}
+                style={{ marginLeft: tokens.spacing[3] }}
+              >
+                Retry
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Filters */}
+        <Card style={{ marginBottom: tokens.spacing[6] }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: tokens.spacing[4],
+              padding: tokens.spacing[6],
+            }}
+          >
+            <Input
+              placeholder="Search templates..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              leftIcon={<i className="fas fa-search" />}
+            />
+            <Select
               value={filter.category}
               onChange={(e) => setFilter({ ...filter, category: e.target.value })}
-              className="px-4 py-2 border rounded-lg"
-            >
-              <option value="">All Categories</option>
-              <option value="client">Client</option>
-              <option value="sitter">Sitter</option>
-              <option value="owner">Owner</option>
-              <option value="report">Report</option>
-              <option value="invoice">Invoice</option>
-            </select>
-            <select
+              options={categoryOptions}
+            />
+            <Select
               value={filter.type}
               onChange={(e) => setFilter({ ...filter, type: e.target.value })}
-              className="px-4 py-2 border rounded-lg"
-            >
-              <option value="">All Types</option>
-              <option value="sms">SMS</option>
-              <option value="email">Email</option>
-            </select>
+              options={typeOptions}
+            />
           </div>
-        </div>
+        </Card>
 
-        <div className="space-y-4">
-          {templates.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 text-center border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="text-6xl mb-4">📝</div>
-              <h3 className="text-2xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                No Templates Yet
-              </h3>
-              <p className="text-gray-600 mb-6">Create your first message template</p>
-              <Link
-                href="/templates/new"
-                className="inline-block px-6 py-3 rounded-lg font-semibold text-white"
-                style={{ background: COLORS.primary }}
-              >
-                Create Template
-              </Link>
-            </div>
-          ) : (
-            templates.map((template) => (
-              <div
-                key={template.id}
-                className="bg-white rounded-xl p-6 border-2 shadow-sm"
-                style={{ borderColor: COLORS.primaryLight }}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold" style={{ color: COLORS.primary }}>
+        {/* Templates List */}
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <Skeleton height={200} />
+            <Skeleton height={200} />
+            <Skeleton height={200} />
+          </div>
+        ) : filteredTemplates.length === 0 ? (
+          <EmptyState
+            title={searchTerm || filter.category || filter.type ? "No templates match your filters" : "No templates yet"}
+            description={searchTerm || filter.category || filter.type ? "Try adjusting your search or filters" : "Create your first message template to get started"}
+            icon={<i className="fas fa-file-alt" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            action={
+              searchTerm || filter.category || filter.type
+                ? undefined
+                : {
+                    label: "Create Template",
+                    onClick: () => router.push("/templates/new"),
+                  }
+            }
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            {filteredTemplates.map((template) => (
+              <Card key={template.id}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3], flexWrap: 'wrap' }}>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.text.primary }}>
                         {template.name}
-                      </h3>
-                      <span className="px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-                        {template.type.toUpperCase()}
-                      </span>
-                      <span className="px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800">
-                        {template.category}
-                      </span>
+                      </div>
+                      {getTypeBadge(template.type)}
+                      {getCategoryBadge(template.category)}
                       {template.isActive ? (
-                        <span className="px-3 py-1 rounded-full text-sm bg-green-100 text-green-800">
-                          Active
-                        </span>
+                        <Badge variant="success">Active</Badge>
                       ) : (
-                        <span className="px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800">
-                          Inactive
-                        </span>
+                        <Badge variant="neutral">Inactive</Badge>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">Key: {template.templateKey}</p>
-                    <p className="text-sm text-gray-600 mb-2">Version: {template.version}</p>
-                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-3">
-                        {template.body}
-                      </p>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginBottom: tokens.spacing[3] }}>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                        <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Key:</span> {template.templateKey}
+                      </div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                        <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Version:</span> {template.version}
+                      </div>
                     </div>
+
+                    <Card style={{ backgroundColor: tokens.colors.neutral[50], padding: tokens.spacing[3] }}>
+                      <div
+                        style={{
+                          fontSize: tokens.typography.fontSize.sm[0],
+                          color: tokens.colors.text.primary,
+                          whiteSpace: 'pre-wrap',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          lineHeight: '1.5',
+                        }}
+                      >
+                        {template.body}
+                      </div>
+                    </Card>
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <Link
-                      href={`/templates/${template.id}`}
-                      className="px-4 py-2 rounded-lg font-semibold text-white"
-                      style={{ background: COLORS.primary }}
-                    >
-                      Edit
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                    <Link href={`/templates/${template.id}`}>
+                      <Button variant="primary" size="sm">
+                        Edit
+                      </Button>
                     </Link>
-                    <button
-                      onClick={() => deleteTemplate(template.id)}
-                      className="px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-800"
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleDeleteClick(template)}
                     >
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setTemplateToDelete(null);
+        }}
+        title="Delete Template"
+        size="md"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.primary }}>
+            Are you sure you want to delete the template <strong>{templateToDelete?.name}</strong>?
+          </div>
+          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+            This action cannot be undone.
+          </div>
+          <div style={{ display: 'flex', gap: tokens.spacing[3], paddingTop: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}` }}>
+            <Button
+              variant="danger"
+              onClick={deleteTemplate}
+              disabled={deleting}
+              style={{ flex: 1 }}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+            <Button
+              variant="tertiary"
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setTemplateToDelete(null);
+              }}
+              disabled={deleting}
+              style={{ flex: 1 }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </AppShell>
   );
 }
 
