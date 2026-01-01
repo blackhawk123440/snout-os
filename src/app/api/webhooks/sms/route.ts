@@ -5,10 +5,51 @@ import { formatPetsByQuantity, formatDatesAndTimesForMessage, calculatePriceBrea
 import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
 import { sendMessage } from "@/lib/message-utils";
 import { verifyOpenPhoneSignatureFromEnv } from "@/lib/openphone-verify";
+import { env } from "@/lib/env";
+import { logEvent } from "@/lib/event-logger";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Phase 7.1: Webhook validation gated behind feature flag
+    // Per Master Spec Section 4.3.3: "Webhook validation must be enabled in production"
+    // Epic 12.2.4: "Validate webhooks and lock down secrets"
+    const enableWebhookValidation = env.ENABLE_WEBHOOK_VALIDATION === true;
+
+    // Get raw body for signature verification (must be done before JSON parsing)
+    const rawBody = await request.text();
+    
+    // Verify signature if validation is enabled
+    if (enableWebhookValidation) {
+      const signature = request.headers.get("x-openphone-signature") || 
+                       request.headers.get("openphone-signature") ||
+                       request.headers.get("x-signature");
+      
+      if (!signature) {
+        await logEvent("webhook.validation.failed", "failed", {
+          error: "Missing OpenPhone webhook signature",
+          metadata: { webhookType: "sms", path: "/api/webhooks/sms" },
+        });
+        return NextResponse.json({ error: "No signature" }, { status: 401 });
+      }
+
+      const isValid = verifyOpenPhoneSignatureFromEnv(rawBody, signature);
+      if (!isValid) {
+        await logEvent("webhook.validation.failed", "failed", {
+          error: "Invalid OpenPhone webhook signature",
+          metadata: { webhookType: "sms", path: "/api/webhooks/sms" },
+        });
+        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+      }
+    }
+
+    // Parse JSON body after signature verification
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+    } catch (parseError) {
+      // If JSON parsing fails, return error
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     
     // OpenPhone webhook format may vary, adjust based on actual webhook payload
     // Typical format: { from: "+1234567890", to: "+1234567890", text: "YES", ... }

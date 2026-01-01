@@ -35,9 +35,11 @@ export default function SitterPage() {
   const [loading, setLoading] = useState(true);
   const [sitterId, setSitterId] = useState<string>("");
   const [commissionPercentage, setCommissionPercentage] = useState<number>(80.0);
-  const [activeTab, setActiveTab] = useState<"today" | "upcoming" | "completed" | "earnings" | "settings">("today");
+  const [activeTab, setActiveTab] = useState<"today" | "upcoming" | "completed" | "earnings" | "settings" | "tier">("today");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [sitterTier, setSitterTier] = useState<any>(null);
+  const [tierProgress, setTierProgress] = useState<any>(null);
+  const [earningsData, setEarningsData] = useState<any>(null);
 
   useEffect(() => {
     // Get sitter ID from URL params or localStorage
@@ -65,6 +67,33 @@ export default function SitterPage() {
       const sitterData = await sitterResponse.json();
       if (sitterData.sitter?.currentTier) {
         setSitterTier(sitterData.sitter.currentTier);
+      }
+
+      // Phase 5.3: Fetch tier progress data from dashboard API
+      try {
+        const dashboardResponse = await fetch(`/api/sitters/${id}/dashboard`);
+        const dashboardData = await dashboardResponse.json();
+        if (dashboardData.tier || dashboardData.performance || dashboardData.nextTier) {
+          setTierProgress({
+            tier: dashboardData.tier,
+            performance: dashboardData.performance,
+            nextTier: dashboardData.nextTier,
+            improvementAreas: dashboardData.improvementAreas || [],
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch tier progress:", error);
+      }
+
+      // Phase 5.3: Fetch earnings data
+      try {
+        const earningsResponse = await fetch(`/api/sitter/${id}/earnings`);
+        const earningsDataResponse = await earningsResponse.json();
+        if (earningsDataResponse.summary) {
+          setEarningsData(earningsDataResponse);
+        }
+      } catch (error) {
+        console.error("Failed to fetch earnings data:", error);
       }
     } catch {
       setBookings([]);
@@ -231,6 +260,14 @@ export default function SitterPage() {
             }`}
           >
             Earnings
+          </button>
+          <button
+            onClick={() => setActiveTab("tier")}
+            className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap flex-shrink-0 ${
+              activeTab === "tier" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-600"
+            }`}
+          >
+            Tier Progress
           </button>
           <button
             onClick={() => setActiveTab("settings")}
@@ -502,7 +539,7 @@ export default function SitterPage() {
         </div>
         )}
 
-        {/* Earnings View */}
+        {/* Earnings View - Phase 5.3 Enhanced */}
         {activeTab === "earnings" && (
           <div className="bg-white rounded-lg border-2" style={{ borderColor: COLORS.primaryLight }}>
             <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
@@ -511,29 +548,184 @@ export default function SitterPage() {
               </h2>
             </div>
             <div className="p-6">
-              <div className="mb-6">
-                <div className="text-3xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                  ${completedBookings.reduce((sum, b) => sum + calculateSitterEarnings(b.totalPrice), 0).toFixed(2)}
-                </div>
-                <div className="text-sm text-gray-600">Total Earnings ({commissionPercentage}% commission)</div>
-              </div>
-              
-              <div className="space-y-3">
-                {completedBookings.map((booking) => (
-                  <div key={booking.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <div className="font-semibold">{booking.firstName} {booking.lastName.charAt(0)}.</div>
-                      <div className="text-sm text-gray-600">{formatDate(booking.startAt)} - {booking.service}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold" style={{ color: COLORS.primary }}>
-                        ${calculateSitterEarnings(booking.totalPrice).toFixed(2)}
+              {earningsData ? (
+                <>
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-gray-50 rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+                      <div className="text-sm text-gray-600 mb-1">Total Earnings</div>
+                      <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                        ${earningsData.summary.totalEarnings.toFixed(2)}
                       </div>
-                      <div className="text-xs text-gray-500">from ${booking.totalPrice.toFixed(2)}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {earningsData.summary.totalBookings} bookings ({earningsData.summary.commissionPercentage}% commission)
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+                      <div className="text-sm text-gray-600 mb-1">Last 30 Days</div>
+                      <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                        ${earningsData.summary.earningsLast30Days.toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+                      <div className="text-sm text-gray-600 mb-1">Last 90 Days</div>
+                      <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                        ${earningsData.summary.earningsLast90Days.toFixed(2)}
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  {/* Earnings by Service Type */}
+                  {earningsData.earningsByService && earningsData.earningsByService.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-bold mb-3" style={{ color: COLORS.primary }}>Earnings by Service Type</h3>
+                      <div className="space-y-2">
+                        {earningsData.earningsByService.map((service: any, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <div className="font-semibold">{service.service}</div>
+                              <div className="text-sm text-gray-600">{service.bookingCount} booking{service.bookingCount !== 1 ? 's' : ''}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold" style={{ color: COLORS.primary }}>
+                                ${service.totalEarnings.toFixed(2)}
+                              </div>
+                              <div className="text-xs text-gray-500">from ${service.totalRevenue.toFixed(2)}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Earnings by Booking */}
+                  <div>
+                    <h3 className="text-lg font-bold mb-3" style={{ color: COLORS.primary }}>Earnings by Booking</h3>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {earningsData.earningsByBooking.map((item: any) => (
+                        <div key={item.bookingId} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <div className="font-semibold">{item.clientName}</div>
+                            <div className="text-sm text-gray-600">{formatDate(item.date)} - {item.service}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold" style={{ color: COLORS.primary }}>
+                              ${item.earnings.toFixed(2)}
+                            </div>
+                            <div className="text-xs text-gray-500">from ${item.totalPrice.toFixed(2)}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-600">Loading earnings data...</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tier Progress View - Phase 5.3 */}
+        {activeTab === "tier" && (
+          <div className="bg-white rounded-lg border-2" style={{ borderColor: COLORS.primaryLight }}>
+            <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
+              <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
+                Tier Progress
+              </h2>
+            </div>
+            <div className="p-6">
+              {tierProgress ? (
+                <>
+                  {/* Current Tier */}
+                  {tierProgress.tier && (
+                    <div className="mb-6 bg-gray-50 rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
+                          <i className="fas fa-star text-xl" style={{ color: COLORS.primary }}></i>
+                        </div>
+                        <div>
+                          <div className="font-bold text-lg" style={{ color: COLORS.primary }}>
+                            Current Tier: {tierProgress.tier.name}
+                          </div>
+                          <div className="text-sm text-gray-600">Priority Level: {tierProgress.tier.priorityLevel}</div>
+                        </div>
+                      </div>
+                      {tierProgress.tier.benefits && (
+                        <div className="text-sm text-gray-700 mt-2">
+                          Benefits: {typeof tierProgress.tier.benefits === 'string' ? tierProgress.tier.benefits : JSON.stringify(tierProgress.tier.benefits)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Performance Metrics */}
+                  {tierProgress.performance && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-bold mb-3" style={{ color: COLORS.primary }}>Performance Metrics</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-gray-50 rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+                          <div className="text-sm text-gray-600 mb-1">Points</div>
+                          <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                            {tierProgress.performance.points || 0}
+                          </div>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+                          <div className="text-sm text-gray-600 mb-1">Completion Rate</div>
+                          <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                            {tierProgress.performance.completionRate?.toFixed(1) || '0.0'}%
+                          </div>
+                        </div>
+                        <div className="bg-gray-50 rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
+                          <div className="text-sm text-gray-600 mb-1">Response Rate</div>
+                          <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
+                            {tierProgress.performance.responseRate?.toFixed(1) || '0.0'}%
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Next Tier */}
+                  {tierProgress.nextTier && (
+                    <div className="mb-6 bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                      <h3 className="text-lg font-bold mb-2" style={{ color: COLORS.primary }}>Next Tier: {tierProgress.nextTier.name}</h3>
+                      <div className="text-sm text-gray-700 space-y-1">
+                        {tierProgress.nextTier.pointTarget && (
+                          <div>Point Target: {tierProgress.nextTier.pointTarget}</div>
+                        )}
+                        {tierProgress.nextTier.minCompletionRate && (
+                          <div>Min Completion Rate: {tierProgress.nextTier.minCompletionRate}%</div>
+                        )}
+                        {tierProgress.nextTier.minResponseRate && (
+                          <div>Min Response Rate: {tierProgress.nextTier.minResponseRate}%</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Improvement Areas */}
+                  {tierProgress.improvementAreas && tierProgress.improvementAreas.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-bold mb-3" style={{ color: COLORS.primary }}>Areas to Improve</h3>
+                      <ul className="space-y-2">
+                        {tierProgress.improvementAreas.map((area: string, idx: number) => (
+                          <li key={idx} className="flex items-start gap-2 p-2 bg-yellow-50 rounded border border-yellow-200">
+                            <i className="fas fa-info-circle text-yellow-600 mt-1"></i>
+                            <span className="text-sm text-gray-700">{area}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-600">Loading tier progress...</div>
+                </div>
+              )}
             </div>
           </div>
         )}

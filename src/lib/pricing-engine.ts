@@ -109,6 +109,77 @@ function getNestedValue(obj: any, path: string): any {
 }
 
 /**
+ * Safe arithmetic expression evaluator (Edge Runtime compatible)
+ * Only supports basic operations: +, -, *, /, parentheses, numbers
+ * This replaces eval() to avoid Edge Runtime dynamic code evaluation errors
+ */
+function evaluateArithmetic(expression: string): number {
+  // Remove whitespace
+  expression = expression.replace(/\s/g, '');
+  
+  // Handle parentheses recursively
+  while (expression.includes('(')) {
+    const start = expression.lastIndexOf('(');
+    const end = expression.indexOf(')', start);
+    if (end === -1) throw new Error('Mismatched parentheses');
+    
+    const subExpr = expression.substring(start + 1, end);
+    const subResult = evaluateArithmetic(subExpr);
+    expression = expression.substring(0, start) + subResult + expression.substring(end + 1);
+  }
+  
+  // Tokenize: split into numbers and operators
+  const tokens: (number | string)[] = [];
+  let currentNum = '';
+  
+  for (let i = 0; i < expression.length; i++) {
+    const char = expression[i];
+    if (/[\d.]/.test(char)) {
+      currentNum += char;
+    } else {
+      if (currentNum) {
+        tokens.push(parseFloat(currentNum));
+        currentNum = '';
+      }
+      if (/[+\-*/]/.test(char)) {
+        tokens.push(char);
+      }
+    }
+  }
+  if (currentNum) {
+    tokens.push(parseFloat(currentNum));
+  }
+  
+  if (tokens.length === 0) return 0;
+  if (tokens.length === 1) return typeof tokens[0] === 'number' ? tokens[0] : 0;
+  
+  // Evaluate multiplication and division first (left to right)
+  for (let i = 0; i < tokens.length - 1; i++) {
+    if (tokens[i] === '*' || tokens[i] === '/') {
+      const leftValue = typeof tokens[i - 1] === 'number' ? tokens[i - 1] as number : 0;
+      const rightValue = typeof tokens[i + 1] === 'number' ? tokens[i + 1] as number : 0;
+      const result = tokens[i] === '*' ? leftValue * rightValue : (rightValue !== 0 ? leftValue / rightValue : 0);
+      tokens.splice(i - 1, 3, result);
+      i -= 2; // Adjust index after removal
+    }
+  }
+  
+  // Evaluate addition and subtraction (left to right)
+  let result: number = typeof tokens[0] === 'number' ? tokens[0] as number : 0;
+  for (let i = 1; i < tokens.length; i += 2) {
+    const op = tokens[i];
+    const rightValue = typeof tokens[i + 1] === 'number' ? tokens[i + 1] as number : 0;
+    if (op === '+') {
+      result += rightValue;
+    } else if (op === '-') {
+      result -= rightValue;
+    }
+  }
+  
+  return result;
+}
+
+/**
  * Apply a pricing rule calculation
  */
 function applyCalculation(
@@ -139,13 +210,20 @@ function applyCalculation(
       break;
     
     case "formula":
-      // Simple formula evaluation (can be extended)
+      // Simple formula evaluation without dynamic code execution (Edge Runtime compatible)
+      // Only supports basic arithmetic: addition, subtraction, multiplication, division
       try {
-        const formula = String(value)
+        let formula = String(value)
           .replace(/\{\{total\}\}/g, String(currentTotal))
           .replace(/\{\{petCount\}\}/g, String(context.petCount || 0))
           .replace(/\{\{quantity\}\}/g, String(context.quantity || 1));
-        result = eval(formula); // In production, use a safer formula evaluator
+        
+        // Remove all non-numeric and non-operator characters for safety
+        formula = formula.replace(/[^0-9+\-*/().\s]/g, '');
+        
+        // Manual evaluation of simple arithmetic expressions (no eval/Function)
+        // This is a basic parser that handles: numbers, +, -, *, /, parentheses
+        result = evaluateArithmetic(formula);
       } catch {
         result = 0;
       }

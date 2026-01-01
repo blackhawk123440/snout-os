@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "Snout OS - Pet Care Management System",
@@ -53,9 +54,11 @@ export default function RootLayout({
         `}} />
       </head>
       <body className="overflow-x-hidden w-full" style={{ WebkitTextSizeAdjust: '100%', textSizeAdjust: '100%' }}>
-        <div className="w-full min-h-screen">
-        {children}
-        </div>
+        <Providers>
+          <div className="w-full min-h-screen">
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   );

@@ -33,9 +33,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
-    // Get sitter details for SMS
+    // Phase 5.2: Filter sitters by tier eligibility for service type
+    const { getEligibleSittersForService } = await import("@/lib/tier-rules");
+    const eligibleSitterIds = await getEligibleSittersForService(booking.service);
+    
+    // Filter provided sitterIds to only include eligible ones
+    const eligibleProvidedSitterIds = sitterIds.filter((id: string) => 
+      eligibleSitterIds.includes(id)
+    );
+
+    if (eligibleProvidedSitterIds.length === 0) {
+      return NextResponse.json(
+        { error: "None of the provided sitters are eligible for this service type" },
+        { status: 400 }
+      );
+    }
+
+    // Get sitter details for SMS (only eligible sitters)
     const sitters = await prisma.sitter.findMany({
-      where: { id: { in: sitterIds } },
+      where: { id: { in: eligibleProvidedSitterIds } },
     });
 
     if (sitters.length === 0) {
@@ -48,11 +64,11 @@ export async function POST(request: NextRequest) {
 
     console.log(`Found ${sitters.length} sitters to send offers to`);
 
-    // Create sitter pool offer
+    // Create sitter pool offer (with eligible sitter IDs only)
     const offer = await prisma.sitterPoolOffer.create({
       data: {
         bookingId,
-        sitterIds: JSON.stringify(sitterIds),
+        sitterIds: JSON.stringify(eligibleProvidedSitterIds),
         message: message || `New ${booking.service} opportunity available!`,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         status: "active",
@@ -89,8 +105,9 @@ export async function POST(request: NextRequest) {
 
         console.log(`Sending SMS to sitter ${sitter.id} at ${sitterPhone}`);
 
-        // Calculate sitter earnings based on their commission percentage
-        const commissionPercentage = sitter.commissionPercentage || 80.0;
+        // Phase 5.2: Calculate sitter earnings using tier-based commission
+        const { getSitterCommissionPercentage } = await import("@/lib/tier-rules");
+        const commissionPercentage = await getSitterCommissionPercentage(sitter.id);
         const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
 
         const clientName = formatClientNameForSitter(booking.firstName, booking.lastName);

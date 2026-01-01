@@ -31,6 +31,26 @@ interface Automation {
   };
 }
 
+interface AutomationTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: "booking" | "payment" | "reminder" | "notification" | "review";
+  trigger: string;
+  conditions: Array<{
+    field: string;
+    operator: string;
+    value: string;
+    logic?: "AND" | "OR";
+  }>;
+  actions: Array<{
+    type: string;
+    config: Record<string, any>;
+    delayMinutes?: number;
+  }>;
+  defaultEnabled: boolean;
+}
+
 export default function AutomationCenterPage() {
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,10 +58,61 @@ export default function AutomationCenterPage() {
   const [selectedAutomation, setSelectedAutomation] = useState<Automation | null>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [showLogs, setShowLogs] = useState(false);
+  const [showTemplateGallery, setShowTemplateGallery] = useState(false);
+  const [templates, setTemplates] = useState<AutomationTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAutomations();
   }, []);
+
+  const fetchTemplates = async (category?: string) => {
+    setTemplatesLoading(true);
+    try {
+      const url = category 
+        ? `/api/automations/templates?category=${category}`
+        : "/api/automations/templates";
+      const response = await fetch(url);
+      const data = await response.json();
+      setTemplates(data.templates || []);
+    } catch (error) {
+      console.error("Failed to fetch templates:", error);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  const instantiateTemplate = async (templateId: string) => {
+    try {
+      const response = await fetch("/api/automations/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId,
+          enabled: true,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Automation "${data.automation.name}" created successfully!`);
+        setShowTemplateGallery(false);
+        fetchAutomations();
+      } else {
+        const error = await response.json();
+        alert(`Failed to create automation: ${error.error}`);
+      }
+    } catch (error) {
+      console.error("Failed to instantiate template:", error);
+      alert("Failed to create automation");
+    }
+  };
+
+  const openTemplateGallery = () => {
+    setShowTemplateGallery(true);
+    fetchTemplates();
+  };
 
   const fetchAutomations = async () => {
     try {
@@ -138,13 +209,26 @@ export default function AutomationCenterPage() {
                 Manage all automated workflows and triggers
               </p>
             </div>
-            <Link
-              href="/automation-center/new"
-              className="px-6 py-3 rounded-lg font-semibold text-white"
-              style={{ background: COLORS.primary }}
-            >
-              + Create Automation
-            </Link>
+            <div className="flex gap-3">
+              <button
+                onClick={openTemplateGallery}
+                className="px-6 py-3 rounded-lg font-semibold border-2"
+                style={{ 
+                  color: COLORS.primary,
+                  borderColor: COLORS.primary,
+                  background: "white"
+                }}
+              >
+                📚 Use Template
+              </button>
+              <Link
+                href="/automation-center/new"
+                className="px-6 py-3 rounded-lg font-semibold text-white"
+                style={{ background: COLORS.primary }}
+              >
+                + Create Automation
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -255,6 +339,121 @@ export default function AutomationCenterPage() {
             ))
           )}
         </div>
+
+        {/* Template Gallery Modal */}
+        {showTemplateGallery && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2" style={{ color: COLORS.primary }}>
+                    Automation Templates
+                  </h2>
+                  <p className="text-gray-600">
+                    Choose a pre-built template to get started quickly
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowTemplateGallery(false);
+                    setSelectedCategory(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Category Filter */}
+              <div className="flex gap-2 mb-6 flex-wrap">
+                <button
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    fetchTemplates();
+                  }}
+                  className={`px-4 py-2 rounded-lg font-semibold ${
+                    selectedCategory === null
+                      ? "text-white"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                  style={selectedCategory === null ? { background: COLORS.primary } : {}}
+                >
+                  All
+                </button>
+                {(["booking", "payment", "reminder", "notification", "review"] as const).map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      fetchTemplates(cat);
+                    }}
+                    className={`px-4 py-2 rounded-lg font-semibold capitalize ${
+                      selectedCategory === cat
+                        ? "text-white"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
+                    style={selectedCategory === cat ? { background: COLORS.primary } : {}}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Templates Grid */}
+              {templatesLoading ? (
+                <div className="text-center py-12">
+                  <div className="text-xl text-gray-600">Loading templates...</div>
+                </div>
+              ) : templates.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-xl text-gray-600">No templates found</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {templates.map((template) => (
+                    <div
+                      key={template.id}
+                      className="bg-white border-2 rounded-xl p-5 hover:shadow-lg transition-shadow"
+                      style={{ borderColor: COLORS.primaryLight }}
+                    >
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>
+                            {template.name}
+                          </h3>
+                          <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 capitalize">
+                            {template.category}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+                      </div>
+
+                      <div className="space-y-2 mb-4 text-sm text-gray-600">
+                        <div>
+                          <span className="font-semibold">Trigger:</span> {template.trigger}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Conditions:</span> {template.conditions.length}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Actions:</span> {template.actions.length}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => instantiateTemplate(template.id)}
+                        className="w-full px-4 py-2 rounded-lg font-semibold text-white hover:opacity-90 transition-opacity"
+                        style={{ background: COLORS.primary }}
+                      >
+                        Use This Template
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Logs Modal */}
         {showLogs && (

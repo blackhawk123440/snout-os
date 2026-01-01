@@ -116,7 +116,24 @@ export async function POST(
     // Emit event
     await emitSitterAssigned(result, sitter);
 
-    // Notify other sitters in the pool
+    // Phase 3.4: Enqueue sitter assignment automation jobs
+    const { enqueueAutomation } = await import("@/lib/automation-queue");
+    
+    await enqueueAutomation(
+      "sitterAssignment",
+      "sitter",
+      { bookingId: result.id, sitterId },
+      `sitterAssignment:sitter:${result.id}:${sitterId}`
+    );
+
+    await enqueueAutomation(
+      "sitterAssignment",
+      "client",
+      { bookingId: result.id, sitterId },
+      `sitterAssignment:client:${result.id}:${sitterId}`
+    );
+
+    // Notify other sitters in the pool (this is separate from automation - immediate notifications)
     const sitterIds = JSON.parse(offer.sitterIds || "[]");
     const otherSitterIds = sitterIds.filter((id: string) => id !== sitterId);
     

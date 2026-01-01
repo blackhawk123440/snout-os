@@ -31,6 +31,7 @@ model Booking {
   startAt              DateTime
   endAt                DateTime
   totalPrice           Float
+  pricingSnapshot      String?                @db.Text // JSON string of CanonicalPricingBreakdown (Phase 2)
   status               String                 @default("pending")
   assignmentType       String?                // "direct" or "pool" - null means not yet assigned
   notes                String?
@@ -54,6 +55,8 @@ model Booking {
   tags                 BookingTagAssignment[]
   discountUsage        DiscountUsage?
   customFields         CustomFieldValue[]
+  eventLogs            EventLog[] // Phase 3: Event log entries for this booking
+  statusHistory        BookingStatusHistory[] // Phase 7.3: Booking status change history
 
   @@index([sitterId])
   @@index([status])
@@ -107,6 +110,8 @@ model Sitter {
   currentTierId        String?
   currentTier          SitterTier?         @relation(fields: [currentTierId], references: [id])
   customFields         CustomFieldValue[]
+  // Link to User if this sitter has auth access (Gate B Phase 1)
+  user                 User?
 
   @@index([active])
   @@index([currentTierId])
@@ -621,4 +626,142 @@ model BusinessSettings {
   contentBlocks   String? // JSON object with policies, terms, etc.
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// ============================================
+// AUTHENTICATION MODELS (Gate B Phase 1)
+// ============================================
+
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?   // For credentials provider
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  // Link to Sitter if this user is a sitter (one-to-one relation)
+  sitterId      String?   @unique
+  sitter        Sitter?   @relation(fields: [sitterId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([sitterId])
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionToken])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// EXISTING UTILITY MODELS (referenced by code)
+// ============================================
+
+model BaselineSnapshot {
+  id                   String   @id @default(uuid())
+  bookingId            String
+  timestamp            DateTime @default(now())
+  bookingFormTotal     Float?
+  calendarViewTotal    Float?
+  sitterDashboardTotal Float?
+  ownerDashboardTotal  Float?
+  stripePaymentTotal   Float?
+  storedTotalPrice     Float?
+  calculatedBreakdown  String?  @db.Text // JSON string
+  notes                String?  @db.Text
+
+  @@index([bookingId])
+  @@index([timestamp])
+}
+
+model FeatureFlag {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  enabled     Boolean  @default(false)
+  description String?
+  metadata    String?  @db.Text // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+  @@index([enabled])
+}
+
+// ============================================
+// EVENT LOG (Phase 3: Audit Backbone)
+// ============================================
+
+model EventLog {
+  id             String   @id @default(uuid())
+  eventType      String   // e.g., "automation.run", "booking.created", "payment.success"
+  automationType String?  // Automation type if eventType is "automation.run" (e.g., "bookingConfirmation", "nightBeforeReminder")
+  status         String   // "success", "failed", "skipped", "pending"
+  error          String?  @db.Text // Error message if status is "failed"
+  metadata       String?  @db.Text // JSON string for additional context (inputs, outputs, etc.)
+  bookingId      String?
+  booking        Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+
+  @@index([eventType])
+  @@index([automationType])
+  @@index([status])
+  @@index([bookingId])
+  @@index([createdAt])
+}
+
+// ============================================
+// BOOKING STATUS HISTORY (Phase 7.3)
+// ============================================
+
+model BookingStatusHistory {
+  id        String   @id @default(uuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  fromStatus String? // Previous status (null for initial status)
+  toStatus   String  // New status
+  changedBy  String? // User ID who made the change (null if system/automation)
+  reason     String? @db.Text // Optional reason for status change
+  metadata   String? @db.Text // JSON string for additional context
+  createdAt  DateTime @default(now())
+
+  @@index([bookingId])
+  @@index([toStatus])
+  @@index([createdAt])
+  @@index([changedBy])
 }
