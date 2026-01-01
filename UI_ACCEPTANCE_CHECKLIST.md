@@ -234,6 +234,26 @@
 - [x] No legacy styling
 - [ ] **Note**: This page manages Message Templates (not conversation threads)
 
+### ✅ Templates (`/templates`)
+- [x] Uses AppShell
+- [x] Uses PageHeader with title, description, and actions
+- [x] Uses Card for template items and filters
+- [x] Uses Input for search
+- [x] Uses Select for category and type filters
+- [x] Uses Badge for type, category, and status indicators
+- [x] Uses Button for actions (Create, Edit, Delete, Refresh)
+- [x] Uses Modal for delete confirmation
+- [x] Uses EmptyState for no templates
+- [x] Uses Skeleton for loading states
+- [x] Success banner after delete
+- [x] Error banner with retry
+- [x] Template cards display all information
+- [x] Search functionality works
+- [x] Filters work (category, type)
+- [x] Delete confirmation modal works
+- [x] Edit links to separate edit page
+- [x] No legacy styling
+
 ### ⏳ Pending Pages
 - [x] Uses AppShell
 - [x] Uses PageHeader
