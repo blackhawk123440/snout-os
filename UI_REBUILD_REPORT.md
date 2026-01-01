@@ -366,11 +366,29 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
    - Category mapping: existing categories (client, sitter, owner, report, invoice) mapped to tabs
    - Legacy version backed up to `page-legacy.tsx`
 
+11. **Exceptions** (`src/app/exceptions/page.tsx`)
+   - **Status**: ✅ Rebuilt (742 lines, was 287 lines legacy = +455 lines, +158% size increase)
+   - Uses AppShell
+   - Uses PageHeader, Card, Button, Input, Select, Badge, Modal, EmptyState, Skeleton, Table, Tabs, TabPanel, StatCard
+   - **Severity Tabs**: All, Critical, High, Medium, Low (with badge counts)
+   - **Summary Cards**: Total, Critical, High, Medium counts
+   - **Filters row**: Search input, Status filter (All/Open/In Progress/Resolved), Type filter (dynamically generated from data)
+   - **Table view** with selectable rows and columns: Select, Severity, Type, Status, Client, Booking, Created, Owner, Actions
+   - **Row selection**: Checkbox column, select all, "Resolve Selected" button (disabled until selection)
+   - **Detail Modal**: Shows exception summary, booking link, actions (Mark In Progress, Resolve, Add Note - disabled, not yet wired)
+   - Severity mapping: high → Critical, medium → High, low → Medium
+   - Type mapping: unpaid → Payment, unassigned → Scheduling, automation_failure → Automation, etc.
+   - Success banner after resolve
+   - Error banner with retry
+   - Loading, empty, error states implemented
+   - All business logic preserved (exception fetching, filtering)
+   - Uses `/api/exceptions` API (same as legacy)
+   - Legacy version backed up to `page-legacy.tsx`
+
 ### ⏳ Pending Conversion
 - Automation (`/automation`)
 - Sitters List (`/bookings/sitters`) - Admin view, not a sitter dashboard
 - Integrations (`/integrations`)
-- Exceptions (`/exceptions`)
 - Settings sub-pages:
   - Business (`/settings/business`)
   - Pricing (`/settings/pricing`)

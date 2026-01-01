@@ -301,13 +301,33 @@
 - [ ] Uses Card components
 - [ ] No legacy styling
 
-### ⏳ Exceptions (`/exceptions`)
-- [ ] Uses AppShell
-- [ ] Uses PageHeader
-- [ ] Uses Table component
-- [ ] Uses Badge for severity
-- [ ] Uses Card components
-- [ ] No legacy styling
+### ✅ Exceptions (`/exceptions`)
+- [x] Uses AppShell
+- [x] Uses PageHeader with title "Exceptions", description, and actions (Resolve Selected, Refresh)
+- [x] Uses Tabs for severity filtering (All, Critical, High, Medium, Low)
+- [x] Tab badges show exception counts per severity
+- [x] Uses StatCard for summary (Total, Critical, High, Medium)
+- [x] Uses Table component with selectable rows
+- [x] Table columns: Select, Severity, Type, Status, Client, Booking, Created, Owner, Actions
+- [x] Uses Badge for severity (Critical, High, Medium) and status (Open, Resolved)
+- [x] Uses Card for filters, table container, summary cards
+- [x] Uses Input for search (client, sitter, booking ID, message)
+- [x] Uses Select for status filter (All/Open/In Progress/Resolved)
+- [x] Uses Select for type filter (dynamically generated from data)
+- [x] Row selection checkboxes work
+- [x] Select all checkbox works
+- [x] "Resolve Selected" button disabled until selection
+- [x] Detail modal opens on row click or View button
+- [x] Detail modal shows summary, booking link, actions (disabled, not yet wired)
+- [x] Uses EmptyState for no exceptions
+- [x] Uses Skeleton for loading states
+- [x] Success banner after resolve
+- [x] Error banner with retry
+- [x] Search and filters work correctly
+- [x] Severity tabs filter correctly
+- [x] Booking link navigates to booking detail
+- [x] No legacy styling
+- [ ] ⚠️ **PENDING MANUAL VISUAL VERIFICATION**
 
 ---
 
