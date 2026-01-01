@@ -240,6 +240,32 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
    - **Status**: ✅ Swapped from `page-enterprise.tsx`
    - Uses AppShell
    - Uses PageHeader, Card, Button, Select, Badge, Modal components
+   - Month view with calendar grid using design tokens
+   - Agenda view with grouped bookings
+   - Month navigation, sitter filter, view mode toggle
+   - Selected date modal with booking details
+   - Loading, empty, error states implemented
+   - Legacy version backed up to `page-legacy.tsx`
+   - File size: 40KB (vs 48KB legacy)
+
+7. **Payments** (`src/app/payments/page.tsx`)
+   - **Status**: ✅ Rebuilt as finance-grade control surface
+   - Uses AppShell
+   - Uses PageHeader, Card, Table, StatCard, Input, Select, Badge, Skeleton, EmptyState
+   - KPI row: Total Collected, Pending Payments, Failed Payments, Upcoming Payouts
+   - Payments table with Client, Invoice, Amount, Status, Method, Date columns
+   - Status filter (All, Paid, Pending, Failed, Refunded)
+   - Client search filter
+   - Time range selector (7d, 30d, 90d, 1y)
+   - Loading, empty, error states implemented
+   - Finance-grade design: calm, authoritative, legible
+   - Legacy version backed up to `page-legacy.tsx`
+   - File size: 14.7KB (vs 31KB legacy - removed tabs/analytics complexity)
+
+6. **Calendar** (`src/app/calendar/page.tsx`)
+   - **Status**: ✅ Swapped from `page-enterprise.tsx`
+   - Uses AppShell
+   - Uses PageHeader, Card, Button, Select, Badge, Modal components
    - Month view with calendar grid (design tokens only)
    - Agenda view with grouped bookings
    - Month navigation controls
@@ -253,10 +279,6 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
    - Legacy version backed up to `page-legacy.tsx`
 
 ### ⏳ Pending Conversion
-
-- Calendar (`/calendar`)
-- Payments (`/payments`)
-- Automation Center (`/automation-center`)
 - Automation (`/automation`)
 - Sitter Dashboard (`/sitter`)
 - Sitters List (`/bookings/sitters`)
@@ -322,14 +344,15 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
 - [x] Global CSS updates
 - [x] TypeScript types
 
-### Pages: 🚧 In Progress (6/17 Complete)
+### Pages: 🚧 In Progress (7/17 Complete)
 - [x] Dashboard home - ✅ Swapped
 - [x] Bookings list - ✅ Swapped (legacy backed up)
 - [x] Clients list - ✅ Swapped (legacy backed up)
 - [x] Settings - ✅ Swapped (legacy backed up)
 - [x] Automations - ✅ Swapped (legacy backed up)
 - [x] Calendar - ✅ Swapped (legacy backed up)
-- [ ] Remaining pages (11+ pages)
+- [x] Payments - ✅ Rebuilt (legacy backed up)
+- [ ] Remaining pages (10+ pages)
 
 ### Testing: ⏳ Pending
 - [ ] Visual regression testing
@@ -394,9 +417,9 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
 ## Metrics
 
 - **Components Created**: 15
-- **Pages Converted and Swapped**: 5 (dashboard, bookings, clients, settings, automations)
-- **Legacy Files Backed Up**: 5 (`page-legacy.tsx` files)
-- **Pages Remaining**: ~11-13
+- **Pages Converted and Swapped**: 7 (dashboard, bookings, clients, settings, automations, calendar, payments)
+- **Legacy Files Backed Up**: 7 (`page-legacy.tsx` files)
+- **Pages Remaining**: ~10-12
 
 ## Cutover Status
 
@@ -414,7 +437,8 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
 **Step 3: Next Conversions** - 🚧 IN PROGRESS (2024-12-30)
 - ✅ Automations: `page.tsx` ← `page-enterprise.tsx`, `page-legacy.tsx` created
 - ✅ Calendar: `page.tsx` ← `page-enterprise.tsx`, `page-legacy.tsx` created
-- Next priority: Payments, Booking detail, Sitter dashboards
+- ✅ Payments: `page.tsx` rebuilt as finance-grade control surface, `page-legacy.tsx` created
+- Next priority: Booking detail, Sitter dashboards
 
 ---
 
