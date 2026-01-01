@@ -82,12 +82,12 @@ function BookingsPageContent() {
 
       if (sittersRes?.ok) {
         const data = await sittersRes.json();
-        setSitters(data.sitters || []);
+              setSitters(data.sitters || []);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
-    } finally {
-      setLoading(false);
+      } finally {
+          setLoading(false);
     }
   };
 
@@ -125,7 +125,7 @@ function BookingsPageContent() {
       if (sortBy === 'date') {
         return new Date(b.startAt).getTime() - new Date(a.startAt).getTime();
       } else if (sortBy === 'name') {
-        return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+          return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
       } else {
         return b.totalPrice - a.totalPrice;
       }
@@ -172,10 +172,10 @@ function BookingsPageContent() {
       key: 'client',
       header: 'Client',
       render: (row) => (
-        <div>
+                <div>
           <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
             {row.firstName} {row.lastName}
-          </div>
+                </div>
           <div
             style={{
               fontSize: tokens.typography.fontSize.sm[0],
@@ -183,8 +183,8 @@ function BookingsPageContent() {
             }}
           >
             {row.phone}
-          </div>
-        </div>
+              </div>
+            </div>
       ),
     },
     {
@@ -194,14 +194,14 @@ function BookingsPageContent() {
         <div>
           <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{row.service}</div>
           <div
-            style={{
+                          style={{
               fontSize: tokens.typography.fontSize.sm[0],
               color: tokens.colors.text.secondary,
             }}
           >
             {formatPets(row.pets)}
-          </div>
-        </div>
+                    </div>
+                  </div>
       ),
     },
     {
@@ -211,7 +211,7 @@ function BookingsPageContent() {
         <div>
           <div>{formatDate(row.startAt)}</div>
           <div
-            style={{
+                                style={{ 
               fontSize: tokens.typography.fontSize.sm[0],
               color: tokens.colors.text.secondary,
             }}
@@ -219,9 +219,9 @@ function BookingsPageContent() {
             {new Date(row.startAt).toLocaleTimeString('en-US', {
               hour: 'numeric',
               minute: '2-digit',
-            })}
-          </div>
-        </div>
+                                          })}
+                                        </div>
+                                      </div>
       ),
     },
     {
@@ -229,10 +229,10 @@ function BookingsPageContent() {
       header: 'Sitter',
       render: (row) =>
         row.sitter ? (
-          <div>
+                                          <div>
             {row.sitter.firstName} {row.sitter.lastName}
-          </div>
-        ) : (
+                                </div>
+                              ) : (
           <span style={{ color: tokens.colors.text.tertiary }}>Unassigned</span>
         ),
     },
@@ -248,13 +248,13 @@ function BookingsPageContent() {
       render: (row) => (
         <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
           ${row.totalPrice.toFixed(2)}
-        </div>
+                                </div>
       ),
       align: 'right',
     },
   ];
-
-  return (
+                                      
+                                      return (
     <AppShell>
       <PageHeader
         title="Bookings"
@@ -268,12 +268,12 @@ function BookingsPageContent() {
 
       {/* Filters and Search */}
       <Card
-        style={{
+                              style={{ 
           marginBottom: tokens.spacing[6],
         }}
       >
         <div
-          style={{
+                                        style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: tokens.spacing[4],
@@ -307,7 +307,7 @@ function BookingsPageContent() {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
           />
-        </div>
+                                          </div>
       </Card>
 
       {/* Bookings Table */}
