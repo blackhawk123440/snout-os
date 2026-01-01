@@ -1,14 +1,35 @@
-"use client";
+/**
+ * Payments Page - Enterprise Control Surface
+ * 
+ * Finance-grade payments dashboard. Calm, authoritative, legible.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Select,
+  Input,
+  Badge,
+  StatCard,
+  Table,
+  TableColumn,
+  Skeleton,
+  EmptyState,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 interface Payment {
   id: string;
   amount: number;
   status: string;
-  created: Date;
+  created: Date | string;
   customerEmail: string;
   customerName?: string;
   description?: string;
@@ -57,18 +78,20 @@ export default function PaymentsPage() {
     churnRate: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>({
-    label: "Last 30 Days",
-    value: "30d",
-    days: 30
+    label: 'Last 30 Days',
+    value: '30d',
+    days: 30,
   });
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'analytics' | 'customers' | 'reports'>('overview');
 
   const timeRanges: TimeRange[] = [
-    { label: "Last 7 Days", value: "7d", days: 7 },
-    { label: "Last 30 Days", value: "30d", days: 30 },
-    { label: "Last 90 Days", value: "90d", days: 90 },
-    { label: "Last Year", value: "1y", days: 365 },
+    { label: 'Last 7 Days', value: '7d', days: 7 },
+    { label: 'Last 30 Days', value: '30d', days: 30 },
+    { label: 'Last 90 Days', value: '90d', days: 90 },
+    { label: 'Last Year', value: '1y', days: 365 },
   ];
 
   useEffect(() => {
@@ -77,558 +100,414 @@ export default function PaymentsPage() {
 
   const fetchAnalytics = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/stripe/analytics?timeRange=${selectedTimeRange.value}`);
       if (!response.ok) {
-        return;
+        throw new Error('Failed to fetch payment data');
       }
       const data = await response.json();
-      setAnalytics(data.analytics || analytics);
-    } catch {
-      // Silently handle errors
+      const analyticsData = data.analytics || analytics;
+      
+      // Convert date strings to Date objects
+      analyticsData.recentPayments = (analyticsData.recentPayments || []).map((p: any) => ({
+        ...p,
+        created: new Date(p.created),
+      }));
+      
+      setAnalytics(analyticsData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load payment data');
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "paid": return "bg-green-100 text-green-800 border-green-200";
-      case "pending": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "failed": return "bg-red-100 text-red-800 border-red-200";
-      case "refunded": return "bg-purple-100 text-purple-800 border-purple-200";
-      default: return "bg-gray-100 text-gray-800 border-gray-200";
+  // Calculate KPIs
+  const kpis = useMemo(() => {
+    const payments = analytics.recentPayments || [];
+    const totalCollected = payments
+      .filter((p) => p.status === 'paid' || p.status === 'succeeded')
+      .reduce((sum, p) => sum + p.amount, 0);
+    
+    const pendingCount = payments.filter(
+      (p) => p.status === 'pending' || p.status === 'processing'
+    ).length;
+    
+    const pendingAmount = payments
+      .filter((p) => p.status === 'pending' || p.status === 'processing')
+      .reduce((sum, p) => sum + p.amount, 0);
+    
+    const failedCount = payments.filter(
+      (p) => p.status === 'failed' || p.status === 'canceled' || p.status === 'requires_payment_method'
+    ).length;
+    
+    const failedAmount = payments
+      .filter((p) => p.status === 'failed' || p.status === 'canceled' || p.status === 'requires_payment_method')
+      .reduce((sum, p) => sum + p.amount, 0);
+    
+    // Upcoming payouts: For now, use pending amount as proxy
+    // In a real implementation, this would come from payout schedule
+    const upcomingPayouts = pendingAmount;
+
+    return {
+      totalCollected,
+      pendingCount,
+      pendingAmount,
+      failedCount,
+      failedAmount,
+      upcomingPayouts,
+    };
+  }, [analytics.recentPayments]);
+
+  const filteredPayments = useMemo(() => {
+    let filtered = analytics.recentPayments || [];
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((p) => {
+        const normalizedStatus = p.status.toLowerCase();
+        if (statusFilter === 'paid') {
+          return normalizedStatus === 'paid' || normalizedStatus === 'succeeded';
+        }
+        if (statusFilter === 'pending') {
+          return normalizedStatus === 'pending' || normalizedStatus === 'processing';
+        }
+        if (statusFilter === 'failed') {
+          return (
+            normalizedStatus === 'failed' ||
+            normalizedStatus === 'canceled' ||
+            normalizedStatus === 'requires_payment_method'
+          );
+        }
+        if (statusFilter === 'refunded') {
+          return normalizedStatus === 'refunded';
+        }
+        return true;
+      });
     }
-  };
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+    // Apply search
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.customerEmail.toLowerCase().includes(term) ||
+          (p.customerName && p.customerName.toLowerCase().includes(term)) ||
+          p.id.toLowerCase().includes(term) ||
+          (p.description && p.description.toLowerCase().includes(term))
+      );
+    }
 
-  const formatDateTime = (date: Date) => {
-    return new Date(date).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    // Sort by date (newest first)
+    filtered = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.created).getTime();
+      const dateB = new Date(b.created).getTime();
+      return dateB - dateA;
     });
-  };
+
+    return filtered;
+  }, [analytics.recentPayments, statusFilter, searchTerm]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
     }).format(amount);
   };
 
-  const getRevenueGrowth = (current: number, previous: number) => {
-    if (previous === 0) return 0;
-    return ((current - previous) / previous) * 100;
+  const formatDate = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
   };
 
-  const getPaymentMethodIcon = (method: string) => {
-    switch (method?.toLowerCase()) {
-      case 'card': return 'fas fa-credit-card';
-      case 'bank_transfer': return 'fas fa-university';
-      case 'paypal': return 'fab fa-paypal';
-      case 'apple_pay': return 'fab fa-apple-pay';
-      case 'google_pay': return 'fab fa-google-pay';
-      default: return 'fas fa-credit-card';
-    }
+  const formatDateTime = (date: Date | string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
+
+  const getStatusBadgeVariant = (status: string): 'default' | 'success' | 'warning' | 'error' => {
+    const normalized = status.toLowerCase();
+    if (normalized === 'paid' || normalized === 'succeeded') return 'success';
+    if (normalized === 'pending' || normalized === 'processing') return 'warning';
+    if (
+      normalized === 'failed' ||
+      normalized === 'canceled' ||
+      normalized === 'requires_payment_method'
+    )
+      return 'error';
+    if (normalized === 'refunded') return 'default';
+    return 'default';
+  };
+
+  const getStatusLabel = (status: string) => {
+    const normalized = status.toLowerCase();
+    if (normalized === 'succeeded') return 'Paid';
+    if (normalized === 'requires_payment_method') return 'Failed';
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  const getPaymentMethodLabel = (method?: string) => {
+    if (!method) return 'Card';
+    return method
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const paymentColumns: TableColumn<Payment>[] = [
+    {
+      key: 'client',
+      header: 'Client',
+      render: (payment) => (
+        <div>
+          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+            {payment.customerName || payment.customerEmail}
+          </div>
+          {payment.customerName && (
+            <div
+              style={{
+                fontSize: tokens.typography.fontSize.sm[0],
+                color: tokens.colors.text.secondary,
+              }}
+            >
+              {payment.customerEmail}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'reference',
+      header: 'Invoice',
+      render: (payment) => (
+        <div
+          style={{
+            fontSize: tokens.typography.fontSize.sm[0],
+            color: tokens.colors.text.secondary,
+            fontFamily: tokens.typography.fontFamily.mono.join(', '),
+          }}
+        >
+          #{payment.id.slice(-8).toUpperCase()}
+        </div>
+      ),
+    },
+    {
+      key: 'amount',
+      header: 'Amount',
+      align: 'right',
+      render: (payment) => (
+        <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+          {formatCurrency(payment.amount)}
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (payment) => (
+        <Badge variant={getStatusBadgeVariant(payment.status)}>
+          {getStatusLabel(payment.status)}
+        </Badge>
+      ),
+      align: 'center',
+    },
+    {
+      key: 'method',
+      header: 'Method',
+      render: (payment) => (
+        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+          {getPaymentMethodLabel(payment.paymentMethod)}
+        </div>
+      ),
+    },
+    {
+      key: 'date',
+      header: 'Date',
+      render: (payment) => (
+        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+          {formatDateTime(payment.created)}
+        </div>
+      ),
+    },
+  ];
+
+  if (loading && analytics.recentPayments.length === 0) {
+    return (
+      <AppShell>
+        <PageHeader
+          title="Payments"
+          description="Payment transactions and revenue overview"
+        />
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: tokens.spacing[6],
+            marginBottom: tokens.spacing[6],
+          }}
+        >
+          <Skeleton height="120px" />
+          <Skeleton height="120px" />
+          <Skeleton height="120px" />
+          <Skeleton height="120px" />
+        </div>
+        <Card>
+          <Skeleton height="400px" />
+        </Card>
+      </AppShell>
+    );
+  }
 
   return (
-    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ background: COLORS.primary }}>
-                <i className="fas fa-chart-line text-xl" style={{ color: COLORS.primaryLight }}></i>
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold leading-tight" style={{ color: COLORS.primary }}>
-                  Payment Analytics Dashboard
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-600">Comprehensive financial insights and payment analytics</p>
-              </div>
+    <AppShell>
+      <PageHeader
+        title="Payments"
+        description="Payment transactions and revenue overview"
+        actions={
+          <Select
+            options={timeRanges.map((r) => ({ value: r.value, label: r.label }))}
+            value={selectedTimeRange.value}
+            onChange={(e) => {
+              const range = timeRanges.find((r) => r.value === e.target.value);
+              if (range) setSelectedTimeRange(range);
+            }}
+            style={{ minWidth: '150px' }}
+          />
+        }
+      />
+
+      {error && (
+        <Card
+          style={{
+            marginBottom: tokens.spacing[6],
+            borderColor: tokens.colors.error.DEFAULT,
+            backgroundColor: tokens.colors.error[50],
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: tokens.spacing[3],
+                color: tokens.colors.error.DEFAULT,
+              }}
+            >
+              <i className="fas fa-exclamation-circle" />
+              <span>{error}</span>
             </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
-              {/* Time Range Selector */}
-              <select
-                value={selectedTimeRange.value}
-                onChange={(e) => {
-                  const range = timeRanges.find(r => r.value === e.target.value);
-                  if (range) setSelectedTimeRange(range);
-                }}
-                className="flex-1 sm:flex-none min-w-[150px] px-3 py-2 text-sm font-semibold border-2 rounded-lg"
-                style={{ borderColor: COLORS.border }}
-              >
-                {timeRanges.map(range => (
-                  <option key={range.value} value={range.value}>{range.label}</option>
-                ))}
-              </select>
-              <button
-                onClick={fetchAnalytics}
-                disabled={loading}
-                className="px-3 py-2 text-sm font-bold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-                title="Refresh analytics"
-              >
-                <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i><span className="hidden sm:inline">Refresh</span>
-              </button>
-              <Link
-                href="/bookings"
-                className="px-3 py-2 text-sm font-semibold border rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                style={{ color: COLORS.primary, borderColor: COLORS.border }}
-              >
-                <i className="fas fa-arrow-left"></i><span>Back</span>
-              </Link>
-            </div>
+            <Button variant="secondary" size="sm" onClick={fetchAnalytics}>
+              Retry
+            </Button>
           </div>
-        </div>
+        </Card>
+      )}
+
+      {/* KPI Summary Row */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: tokens.spacing[6],
+          marginBottom: tokens.spacing[6],
+        }}
+      >
+        <StatCard
+          label="Total Collected"
+          value={formatCurrency(kpis.totalCollected)}
+          icon={<i className="fas fa-dollar-sign" />}
+        />
+        <StatCard
+          label="Pending Payments"
+          value={`${kpis.pendingCount} (${formatCurrency(kpis.pendingAmount)})`}
+          icon={<i className="fas fa-clock" />}
+        />
+        <StatCard
+          label="Failed Payments"
+          value={`${kpis.failedCount} (${formatCurrency(kpis.failedAmount)})`}
+          icon={<i className="fas fa-exclamation-triangle" />}
+        />
+        <StatCard
+          label="Upcoming Payouts"
+          value={formatCurrency(kpis.upcomingPayouts)}
+          icon={<i className="fas fa-arrow-up" />}
+        />
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
-        {/* Tab Navigation */}
-        <div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            {[
-              { id: 'overview', label: 'Overview', icon: 'fas fa-chart-pie' },
-              { id: 'analytics', label: 'Advanced Analytics', icon: 'fas fa-chart-area' },
-              { id: 'customers', label: 'Customers', icon: 'fas fa-users' },
-              { id: 'reports', label: 'Reports', icon: 'fas fa-file-alt' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                className={`px-3 py-2 text-sm font-semibold rounded-lg transition-all touch-manipulation min-h-[44px] flex items-center gap-2 ${
-                  selectedTab === tab.id
-                    ? 'shadow-lg border-2'
-                    : 'border'
-                }`}
-                style={selectedTab === tab.id ? { background: COLORS.primary, color: COLORS.primaryLight, borderColor: COLORS.primaryLight } : { borderColor: COLORS.border, color: COLORS.primary }}
-                onClick={() => setSelectedTab(tab.id as typeof selectedTab)}
-              >
-                <i className={tab.icon}></i>
-                {tab.label}
-              </button>
-            ))}
-          </div>
+      {/* Filters */}
+      <Card
+        style={{
+          marginBottom: tokens.spacing[6],
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: tokens.spacing[4],
+          }}
+        >
+          <Input
+            placeholder="Search by client, email, or invoice..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            leftIcon={<i className="fas fa-search" />}
+          />
+          <Select
+            options={[
+              { value: 'all', label: 'All Statuses' },
+              { value: 'paid', label: 'Paid' },
+              { value: 'pending', label: 'Pending' },
+              { value: 'failed', label: 'Failed' },
+              { value: 'refunded', label: 'Refunded' },
+            ]}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          />
         </div>
+      </Card>
 
-        {/* Overview Tab */}
-        {selectedTab === 'overview' && (
-          <div className="space-y-8">
-            {/* Key Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white rounded-xl p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Revenue</p>
-                    <p className="text-3xl font-bold mt-2" style={{ color: COLORS.primary }}>
-                      {formatCurrency(analytics.totalRevenue)}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">All time</p>
-                  </div>
-                  <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-sm" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-dollar-sign text-2xl" style={{ color: COLORS.primary }}></i>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">Monthly Revenue</p>
-                    <p className="text-3xl font-bold mt-2" style={{ color: COLORS.primary }}>
-                      {formatCurrency(analytics.monthlyRevenue)}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">This month</p>
-                  </div>
-                  <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-sm" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-calendar-alt text-2xl" style={{ color: COLORS.primary }}></i>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Customers</p>
-                    <p className="text-3xl font-bold mt-2" style={{ color: COLORS.primary }}>
-                      {analytics.totalCustomers}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">Active customers</p>
-                  </div>
-                  <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-sm" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-users text-2xl" style={{ color: COLORS.primary }}></i>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">Average Payment</p>
-                    <p className="text-3xl font-bold mt-2" style={{ color: COLORS.primary }}>
-                      {formatCurrency(analytics.averagePayment)}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">Per transaction</p>
-                  </div>
-                  <div className="w-14 h-14 rounded-xl flex items-center justify-center shadow-sm" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-chart-bar text-2xl" style={{ color: COLORS.primary }}></i>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Revenue Trends */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="bg-white rounded-xl p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-chart-line text-sm" style={{ color: COLORS.primary }}></i>
-                  </div>
-                  <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Weekly Revenue</h3>
-                </div>
-                <div className="text-center">
-                  <p className="text-4xl font-bold" style={{ color: COLORS.primary }}>
-                    {formatCurrency(analytics.weeklyRevenue)}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-2">Last 7 days</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-calendar-day text-sm" style={{ color: COLORS.primary }}></i>
-                  </div>
-                  <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Daily Revenue</h3>
-                </div>
-                <div className="text-center">
-                  <p className="text-4xl font-bold" style={{ color: COLORS.primary }}>
-                    {formatCurrency(analytics.dailyRevenue)}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-2">Today</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-file-invoice text-sm" style={{ color: COLORS.primary }}></i>
-                  </div>
-                  <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Total Invoices</h3>
-                </div>
-                <div className="text-center">
-                  <p className="text-4xl font-bold" style={{ color: COLORS.primary }}>
-                    {analytics.totalInvoices}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-2">All time</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Payments */}
-            <div className="bg-white rounded-xl border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="p-6 border-b" style={{ borderColor: COLORS.border }}>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6">
-                  <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>Recent Payments</h2>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      className="px-3 py-2 text-sm font-semibold border rounded-lg hover:bg-gray-50 transition-colors"
-                      style={{ borderColor: COLORS.border, color: COLORS.primary }}
-                      onClick={fetchAnalytics}
-                      disabled={loading}
-                      title="Refresh payments"
-                    >
-                      <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''}`}></i>
-                    </button>
-                    <span className="text-sm text-gray-500">{analytics.recentPayments.length} payments</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6">
-                {loading ? (
-                  <div className="text-center py-12">
-                    <i className="fas fa-spinner fa-spin text-3xl" style={{ color: COLORS.primary }}></i>
-                    <p className="mt-4 text-gray-600">Loading payments...</p>
-                  </div>
-                ) : analytics.recentPayments.length === 0 ? (
-                  <div className="text-center py-12">
-                    <i className="fas fa-credit-card text-5xl text-gray-300 mb-4"></i>
-                    <p className="text-gray-600 text-lg">No payments found</p>
-                    <p className="text-gray-500 text-sm mt-2">Payments will appear here once customers make transactions</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {analytics.recentPayments.slice(0, 10).map((payment) => (
-                      <div
-                        key={payment.id}
-                        className="p-6 border-2 rounded-xl hover:shadow-md transition-all"
-                        style={{ borderColor: COLORS.border }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-4 mb-3">
-                              <h3 className="font-bold text-lg">
-                                Payment #{payment.id.slice(-8).toUpperCase()}
-                              </h3>
-                              <span className={`px-3 py-1 text-sm font-bold rounded-full border ${getStatusColor(payment.status)}`}>
-                                {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
-                              </span>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                              <div className="flex items-center gap-2">
-                                <i className="fas fa-calendar text-gray-400"></i>
-                                <span className="text-gray-600">{formatDateTime(payment.created)}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <i className="fas fa-envelope text-gray-400"></i>
-                                <span className="text-gray-600">{payment.customerEmail}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <i className="fas fa-dollar-sign text-gray-400"></i>
-                                <span className="font-semibold text-lg" style={{ color: COLORS.primary }}>
-                                  {formatCurrency(payment.amount)}
-                                </span>
-                              </div>
-                              {payment.paymentMethod && (
-                                <div className="flex items-center gap-2">
-                                  <i className={`${getPaymentMethodIcon(payment.paymentMethod)} text-gray-400`}></i>
-                                  <span className="text-gray-600 capitalize">{payment.paymentMethod.replace('_', ' ')}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+      {/* Payments Table */}
+      <Card padding={!loading}>
+        {loading ? (
+          <Skeleton height="400px" />
+        ) : filteredPayments.length === 0 ? (
+          <EmptyState
+            icon="💳"
+            title="No payments found"
+            description={
+              searchTerm || statusFilter !== 'all'
+                ? 'No payments match your filters. Try adjusting your search or filters.'
+                : 'Payment transactions will appear here once customers make payments.'
+            }
+          />
+        ) : (
+          <Table
+            columns={paymentColumns}
+            data={filteredPayments}
+            emptyMessage="No payments found"
+            keyExtractor={(payment) => payment.id}
+          />
         )}
-
-        {/* Analytics Tab */}
-        {selectedTab === 'analytics' && (
-          <div className="space-y-8">
-            {/* Payment Methods Breakdown */}
-            <div className="bg-white rounded-xl border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="p-6 border-b" style={{ borderColor: COLORS.border }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-chart-pie text-sm" style={{ color: COLORS.primary }}></i>
-                  </div>
-                  <h2 className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                    Payment Methods Breakdown
-                  </h2>
-                </div>
-              </div>
-              <div className="p-6">
-                {Object.keys(analytics.paymentMethods).length === 0 ? (
-                  <div className="text-center py-8">
-                    <i className="fas fa-chart-pie text-4xl text-gray-300 mb-4"></i>
-                    <p className="text-gray-600">No payment method data available</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {Object.entries(analytics.paymentMethods).map(([method, count]) => (
-                      <div key={method} className="p-4 border-2 rounded-lg" style={{ borderColor: COLORS.border }}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                            <i className={`${getPaymentMethodIcon(method)} text-lg`} style={{ color: COLORS.primary }}></i>
-                          </div>
-                          <div>
-                            <p className="font-semibold capitalize">{method.replace('_', ' ')}</p>
-                            <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>{count}</p>
-                            <p className="text-sm text-gray-600">transactions</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Revenue by Month */}
-            <div className="bg-white rounded-xl border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="p-6 border-b" style={{ borderColor: COLORS.border }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-chart-bar text-sm" style={{ color: COLORS.primary }}></i>
-                  </div>
-                  <h2 className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                    Revenue by Month
-                  </h2>
-                </div>
-              </div>
-              <div className="p-6">
-                {Object.keys(analytics.revenueByMonth).length === 0 ? (
-                  <div className="text-center py-8">
-                    <i className="fas fa-chart-bar text-4xl text-gray-300 mb-4"></i>
-                    <p className="text-gray-600">No monthly revenue data available</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {Object.entries(analytics.revenueByMonth).map(([month, revenue]) => (
-                      <div key={month} className="flex items-center justify-between p-4 border-2 rounded-lg" style={{ borderColor: COLORS.border }}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                            <i className="fas fa-calendar text-lg" style={{ color: COLORS.primary }}></i>
-                          </div>
-                          <div>
-                            <p className="font-semibold">{month}</p>
-                            <p className="text-sm text-gray-600">Monthly revenue</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                            {formatCurrency(revenue)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Performance Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white rounded-xl p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-percentage text-sm" style={{ color: COLORS.primary }}></i>
-                  </div>
-                  <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Conversion Rate</h3>
-                </div>
-                <div className="text-center">
-                  <p className="text-4xl font-bold" style={{ color: COLORS.primary }}>
-                    {analytics.conversionRate.toFixed(1)}%
-                  </p>
-                  <p className="text-sm text-gray-600 mt-2">Payment success rate</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-undo text-sm" style={{ color: COLORS.primary }}></i>
-                  </div>
-                  <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Refund Rate</h3>
-                </div>
-                <div className="text-center">
-                  <p className="text-4xl font-bold" style={{ color: COLORS.primary }}>
-                    {analytics.refundRate.toFixed(1)}%
-                  </p>
-                  <p className="text-sm text-gray-600 mt-2">Refund percentage</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-user-times text-sm" style={{ color: COLORS.primary }}></i>
-                  </div>
-                  <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>Churn Rate</h3>
-                </div>
-                <div className="text-center">
-                  <p className="text-4xl font-bold" style={{ color: COLORS.primary }}>
-                    {analytics.churnRate.toFixed(1)}%
-                  </p>
-                  <p className="text-sm text-gray-600 mt-2">Customer churn</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Customers Tab */}
-        {selectedTab === 'customers' && (
-          <div className="space-y-8">
-            {/* Top Customers */}
-            <div className="bg-white rounded-xl border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="p-6 border-b" style={{ borderColor: COLORS.border }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-trophy text-sm" style={{ color: COLORS.primary }}></i>
-                  </div>
-                  <h2 className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                    Top Customers
-                  </h2>
-                </div>
-              </div>
-              <div className="p-6">
-                {analytics.topCustomers.length === 0 ? (
-                  <div className="text-center py-8">
-                    <i className="fas fa-users text-4xl text-gray-300 mb-4"></i>
-                    <p className="text-gray-600">No customer data available</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {analytics.topCustomers.map((customer, index) => (
-                      <div key={customer.email} className="flex items-center justify-between p-4 border-2 rounded-lg" style={{ borderColor: COLORS.border }}>
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm" style={{ background: COLORS.primaryLight }}>
-                            <span className="text-lg font-bold" style={{ color: COLORS.primary }}>#{index + 1}</span>
-                          </div>
-                          <div>
-                            <p className="font-semibold">{customer.email}</p>
-                            <p className="text-sm text-gray-600">{customer.paymentCount} payments</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                            {formatCurrency(customer.totalSpent)}
-                          </p>
-                          <p className="text-sm text-gray-600">Total spent</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Reports Tab */}
-        {selectedTab === 'reports' && (
-          <div className="space-y-8">
-            <div className="bg-white rounded-xl border-2 shadow-sm" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="p-6 border-b" style={{ borderColor: COLORS.border }}>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                    <i className="fas fa-file-alt text-sm" style={{ color: COLORS.primary }}></i>
-                  </div>
-                  <h2 className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                    Financial Reports
-                  </h2>
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="text-center py-12">
-                  <i className="fas fa-file-alt text-5xl text-gray-300 mb-4"></i>
-                  <p className="text-gray-600 text-lg">Financial reports coming soon</p>
-                  <p className="text-gray-500 text-sm mt-2">Export detailed financial reports and analytics</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      </Card>
+    </AppShell>
   );
 }
+
