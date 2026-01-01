@@ -219,6 +219,15 @@ export async function getSitterRecommendations(
   const recommendations: SitterRecommendation[] = [];
 
   for (const sitter of sitters) {
+    // Phase 5.2: Check tier eligibility for service type
+    const { isSitterEligibleForService } = await import("./tier-rules");
+    const eligibility = await isSitterEligibleForService(sitter.id, service);
+    
+    if (!eligibility.eligible) {
+      // Skip sitters who are not eligible for this service type
+      continue;
+    }
+
     // Check conflicts
     const conflicts = await detectBookingConflicts(
       bookingId,

@@ -6,9 +6,15 @@ import { formatPhoneForAPI } from "@/lib/phone-format";
 import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
 import { sendOwnerAlert } from "@/lib/sms-templates";
 import { getOwnerPhone } from "@/lib/phone-utils";
-import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
-import { sendMessage } from "@/lib/message-utils";
+// Phase 3.3: Removed direct automation execution imports - automations now go through queue
 import { emitBookingCreated } from "@/lib/event-emitter";
+import { env } from "@/lib/env";
+import { validateAndMapFormPayload } from "@/lib/form-to-booking-mapper";
+import { extractRequestMetadata, redactMappingReport } from "@/lib/form-mapper-helpers";
+// Phase 2: Pricing engine v1
+import { calculateCanonicalPricing, type PricingEngineInput } from "@/lib/pricing-engine-v1";
+import { compareAndLogPricing } from "@/lib/pricing-parity-harness";
+import { serializePricingSnapshot } from "@/lib/pricing-snapshot-helpers";
 
 const parseOrigins = (value?: string | null) => {
   if (!value) return [];
@@ -55,6 +61,193 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    
+    // Phase 1: Check feature flag for mapper
+    const useMapper = env.ENABLE_FORM_MAPPER_V1 === true;
+
+    if (useMapper) {
+      // Phase 1: Use new mapper path
+      const metadata = extractRequestMetadata(request);
+      const mappingResult = validateAndMapFormPayload(body, metadata);
+
+      if (!mappingResult.success) {
+        // Return structured validation errors
+        return NextResponse.json(
+          {
+            error: "Validation failed",
+            errors: mappingResult.errors.map((e) => ({
+              field: e.field,
+              message: e.message,
+            })),
+          },
+          { status: 400, headers: buildCorsHeaders(request) }
+        );
+      }
+
+      const { input: mappedInput, report } = mappingResult;
+
+      // Log redacted mapping report (no PII)
+      const redactedReport = redactMappingReport(report);
+      console.log("[Form Mapper V1] Mapping report:", JSON.stringify(redactedReport, null, 2));
+
+      // Extract values from mapped input for pricing calculation (unchanged logic)
+      const trimmedService = mappedInput.service;
+      const startDate = mappedInput.startAt as Date;
+      const endDate = mappedInput.endAt as Date;
+      
+      // Extract pets array from Prisma nested create structure
+      const petsArray = Array.isArray(mappedInput.pets?.create) 
+        ? mappedInput.pets.create 
+        : mappedInput.pets?.create 
+          ? [mappedInput.pets.create]
+          : [];
+      const petsCount = petsArray.length || 0;
+      const quantity = mappedInput.quantity || 1;
+      const afterHours = mappedInput.afterHours || false;
+
+      // Calculate price using existing pricing logic (unchanged)
+      const priceCalculation = await calculateBookingPrice(
+        trimmedService,
+        startDate,
+        endDate,
+        petsCount,
+        quantity,
+        afterHours
+      );
+
+      // Build time slots array from mapped input if present
+      const timeSlotsArray = Array.isArray(mappedInput.timeSlots?.create)
+        ? mappedInput.timeSlots.create
+        : mappedInput.timeSlots?.create
+          ? [mappedInput.timeSlots.create]
+          : [];
+      const timeSlotsData = timeSlotsArray.map(slot => ({
+        startAt: slot.startAt as Date,
+        endAt: slot.endAt as Date,
+        duration: slot.duration,
+      }));
+
+      // Phase 2: Check feature flag for pricing engine
+      const usePricingEngine = env.USE_PRICING_ENGINE_V1 === true;
+      
+      let totalPrice: number;
+      let pricingSnapshot: string | undefined;
+      
+      if (usePricingEngine) {
+        // Phase 2: Use new canonical pricing engine
+        const pricingInput: PricingEngineInput = {
+          service: trimmedService,
+          startAt: startDate,
+          endAt: endDate,
+          pets: petsArray.map(pet => ({ species: pet.species })),
+          quantity,
+          afterHours,
+          holiday: priceCalculation.holidayApplied,
+          timeSlots: timeSlotsData,
+        };
+        
+        const canonicalBreakdown = calculateCanonicalPricing(pricingInput);
+        totalPrice = canonicalBreakdown.total;
+        pricingSnapshot = serializePricingSnapshot(canonicalBreakdown);
+        
+        // Phase 2: Run parity comparison (logs differences, does not change charges)
+        compareAndLogPricing(pricingInput);
+      } else {
+        // Existing logic (unchanged when flag is false)
+        const breakdown = calculatePriceBreakdown({
+          service: trimmedService,
+          startAt: startDate,
+          endAt: endDate,
+          pets: petsArray.map(pet => ({ species: pet.species })),
+          quantity,
+          afterHours,
+          holiday: priceCalculation.holidayApplied,
+          timeSlots: timeSlotsData,
+        });
+        totalPrice = breakdown.total;
+        
+        // Phase 2: Enable parity logging even when flag is false
+        // Per Sprint A Step 1: Collect comparison data without changing behavior
+        const pricingInput: PricingEngineInput = {
+          service: trimmedService,
+          startAt: startDate,
+          endAt: endDate,
+          pets: petsArray.map(pet => ({ species: pet.species })),
+          quantity,
+          afterHours,
+          holiday: priceCalculation.holidayApplied,
+          timeSlots: timeSlotsData,
+        };
+        // Run parity comparison (logs differences, does not change charges)
+        compareAndLogPricing(pricingInput);
+      }
+
+      // Merge mapped input with calculated price (mapper sets totalPrice to 0, we override it)
+      const bookingData = {
+        ...mappedInput,
+        totalPrice, // Use calculated price (from new engine or old logic)
+        ...(pricingSnapshot && { pricingSnapshot }), // Store snapshot if using new engine
+      };
+
+      // Create booking using mapped input (unchanged persistence logic)
+      const booking = await prisma.booking.create({
+        data: bookingData as Prisma.BookingCreateInput,
+        include: {
+          pets: true,
+          timeSlots: true,
+        },
+      });
+
+      // Rest of the flow is unchanged (automation, messaging, etc.)
+      await emitBookingCreated(booking);
+
+      // Phase 3.3: Move automation execution to worker queue
+      // Per Master Spec Line 259: "Move every automation execution to the worker queue"
+      // Enqueue automation jobs instead of executing directly
+      const { enqueueAutomation } = await import("@/lib/automation-queue");
+      
+      // Enqueue client notification job
+      await enqueueAutomation(
+        "ownerNewBookingAlert",
+        "client",
+        {
+          bookingId: booking.id,
+          firstName: booking.firstName,
+          lastName: booking.lastName,
+          phone: mappedInput.phone,
+          service: booking.service,
+        },
+        `ownerNewBookingAlert:client:${booking.id}` // Idempotency key
+      );
+
+      // Enqueue owner notification job
+      await enqueueAutomation(
+        "ownerNewBookingAlert",
+        "owner",
+        {
+          bookingId: booking.id,
+          firstName: booking.firstName,
+          lastName: booking.lastName,
+          phone: mappedInput.phone,
+          service: booking.service,
+        },
+        `ownerNewBookingAlert:owner:${booking.id}` // Idempotency key
+      );
+
+      return NextResponse.json({
+        success: true,
+        booking: {
+          id: booking.id,
+          totalPrice: totalPrice,
+          status: booking.status,
+          notes: booking.notes || null,
+        },
+      }, {
+        headers: buildCorsHeaders(request),
+      });
+    }
+
+    // Existing path when flag is false (unchanged behavior)
     const {
       firstName,
       lastName,
@@ -309,21 +502,72 @@ export async function POST(request: NextRequest) {
       quantity = timeSlotsData.length > 0 ? timeSlotsData.length : 1;
     }
     
-    // Calculate price breakdown BEFORE creating booking using the same method as the booking details page
-    const breakdown = calculatePriceBreakdown({
-      service: trimmedService,
-      startAt: new Date(bookingStartAt),
-      endAt: new Date(bookingEndAt),
-      pets: pets.map(pet => ({ species: pet.species.trim() })),
-      quantity,
-      afterHours: false,
-      holiday: priceCalculation.holidayApplied,
-      timeSlots: timeSlotsData.map(slot => ({
-        startAt: slot.startAt,
-        endAt: slot.endAt,
-        duration: slot.duration,
-      })),
-    });
+    // Phase 2: Check feature flag for pricing engine
+    const usePricingEngine = env.USE_PRICING_ENGINE_V1 === true;
+    
+    let totalPrice: number;
+    let pricingSnapshot: string | undefined;
+    
+    if (usePricingEngine) {
+      // Phase 2: Use new canonical pricing engine
+      const pricingInput: PricingEngineInput = {
+        service: trimmedService,
+        startAt: new Date(bookingStartAt),
+        endAt: new Date(bookingEndAt),
+        pets: pets.map(pet => ({ species: pet.species.trim() })),
+        quantity,
+        afterHours: false,
+        holiday: priceCalculation.holidayApplied,
+        timeSlots: timeSlotsData.map(slot => ({
+          startAt: slot.startAt,
+          endAt: slot.endAt,
+          duration: slot.duration,
+        })),
+      };
+      
+      const canonicalBreakdown = calculateCanonicalPricing(pricingInput);
+      totalPrice = canonicalBreakdown.total;
+      pricingSnapshot = serializePricingSnapshot(canonicalBreakdown);
+      
+      // Phase 2: Run parity comparison (logs differences, does not change charges)
+      compareAndLogPricing(pricingInput);
+    } else {
+      // Existing logic (unchanged when flag is false)
+      const breakdown = calculatePriceBreakdown({
+        service: trimmedService,
+        startAt: new Date(bookingStartAt),
+        endAt: new Date(bookingEndAt),
+        pets: pets.map(pet => ({ species: pet.species.trim() })),
+        quantity,
+        afterHours: false,
+        holiday: priceCalculation.holidayApplied,
+        timeSlots: timeSlotsData.map(slot => ({
+          startAt: slot.startAt,
+          endAt: slot.endAt,
+          duration: slot.duration,
+        })),
+      });
+      totalPrice = breakdown.total;
+      
+      // Phase 2: Enable parity logging even when flag is false
+      // Per Sprint A Step 1: Collect comparison data without changing behavior
+      const pricingInput: PricingEngineInput = {
+        service: trimmedService,
+        startAt: new Date(bookingStartAt),
+        endAt: new Date(bookingEndAt),
+        pets: pets.map(pet => ({ species: pet.species.trim() })),
+        quantity,
+        afterHours: false,
+        holiday: priceCalculation.holidayApplied,
+        timeSlots: timeSlotsData.map(slot => ({
+          startAt: slot.startAt,
+          endAt: slot.endAt,
+          duration: slot.duration,
+        })),
+      };
+      // Run parity comparison (logs differences, does not change charges)
+      compareAndLogPricing(pricingInput);
+    }
 
     // Create booking with timeSlots
     const bookingData = {
@@ -338,7 +582,8 @@ export async function POST(request: NextRequest) {
       startAt: new Date(bookingStartAt),
       endAt: new Date(bookingEndAt),
       status: "pending",
-      totalPrice: breakdown.total, // Use calculated breakdown total
+      totalPrice, // Use calculated price (from new engine or old logic)
+      ...(pricingSnapshot && { pricingSnapshot }), // Store snapshot if using new engine
       quantity,
       afterHours: false,
       holiday: priceCalculation.holidayApplied,
@@ -417,138 +662,44 @@ export async function POST(request: NextRequest) {
     // Emit booking.created event for Automation Center
     await emitBookingCreated(booking);
 
-    // Send SMS confirmation to client (if automation enabled)
-    const petQuantities = formatPetsByQuantity(booking.pets);
-    const shouldSendToClient = await shouldSendToRecipient("ownerNewBookingAlert", "client");
+    // Phase 3.3: Move automation execution to worker queue
+    // Per Master Spec Line 259: "Move every automation execution to the worker queue"
+    // Enqueue automation jobs instead of executing directly
+    const { enqueueAutomation } = await import("@/lib/automation-queue");
     
-    if (shouldSendToClient) {
-      // Format dates and times using the shared function that matches booking details
-      const formattedDatesTimes = formatDatesAndTimesForMessage({
-        service: booking.service,
-        startAt: booking.startAt,
-        endAt: booking.endAt,
-        timeSlots: booking.timeSlots || [],
-      });
-      
-      let clientMessageTemplate = await getMessageTemplate("ownerNewBookingAlert", "client");
-      // If template is null (doesn't exist) or empty string, use default
-      if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
-        clientMessageTemplate = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll confirm your booking shortly. Thank you!";
-      }
-      
-      // Detect if template already includes a detailed schedule placeholder; if not, we'll append the full schedule
-      const hasDetailedScheduleToken =
-        /\{\{(datesTimes|dateTime|date_time|dateAndTime|schedule|visits|timeSlots|appointmentTimes|visitTimes)\}\}/i.test(clientMessageTemplate) ||
-        /\[(Schedule|Date ?& ?Time|Date ?\/ ?Time)\]/i.test(clientMessageTemplate);
-
-      let clientMessage = replaceTemplateVariables(clientMessageTemplate, {
+    // Enqueue client notification job
+    await enqueueAutomation(
+      "ownerNewBookingAlert",
+      "client",
+      {
+        bookingId: booking.id,
         firstName: trimmedFirstName,
-        service: booking.service, // Use the actual service name from the booking
-        datesTimes: formattedDatesTimes,
-        date: formatDateForMessage(booking.startAt),
-        time: formatTimeForMessage(booking.startAt),
-        petQuantities,
-      });
-      // Always include the full schedule if the template doesn't explicitly include it
-      if (!hasDetailedScheduleToken) {
-        // If the intro contains " for <date> at <time>", remove that clause to avoid redundancy
-        const dateStr = formatDateForMessage(booking.startAt);
-        const timeStr = formatTimeForMessage(booking.startAt);
-        const forDateTimeRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-        clientMessage = clientMessage.replace(forDateTimeRegex, "");
+        lastName: trimmedLastName,
+        phone: trimmedPhone,
+        service: booking.service,
+      },
+      `ownerNewBookingAlert:client:${booking.id}` // Idempotency key
+    );
 
-        // Prefer inserting the schedule before the Pets section if present; otherwise append at the end
-        const petsMarker = /\n{1,2}Pets:/i;
-        if (petsMarker.test(clientMessage)) {
-          clientMessage = clientMessage.replace(petsMarker, `\n\n${formattedDatesTimes}\n\nPets:`);
-        } else {
-          clientMessage += `\n\n${formattedDatesTimes}`;
-        }
-      }
-      
-      await sendMessage(trimmedPhone, clientMessage, booking.id);
-    }
-
-    // Send alert to owner (if automation enabled)
-    const shouldSendToOwner = await shouldSendToRecipient("ownerNewBookingAlert", "owner");
-    
-    if (shouldSendToOwner) {
-      const ownerPhone = await getOwnerPhone(undefined, "ownerNewBookingAlert");
-      
-      if (ownerPhone) {
-        const bookingDetailsUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/bookings?booking=${booking.id}`;
-        
-        // Format dates and times using the shared function that matches booking details
-        const formattedDatesTimes = formatDatesAndTimesForMessage({
-          service: booking.service,
-          startAt: booking.startAt,
-          endAt: booking.endAt,
-          timeSlots: booking.timeSlots || [],
-        });
-        
-        let ownerMessageTemplate = await getMessageTemplate("ownerNewBookingAlert", "owner");
-        // If template is null (doesn't exist) or empty string, use default
-        if (!ownerMessageTemplate || ownerMessageTemplate.trim() === "") {
-          ownerMessageTemplate = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}}\n{{datesTimes}}\n{{petQuantities}}\nTotal: $" + "{{totalPrice}}" + "\n\nView details: {{bookingUrl}}";
-        }
-        
-        // Detect if template already includes a detailed schedule placeholder; if not, we'll append the full schedule
-        const hasDetailedScheduleToken =
-          /\{\{(datesTimes|dateTime|date_time|dateAndTime|schedule|visits|timeSlots|appointmentTimes|visitTimes)\}\}/i.test(ownerMessageTemplate) ||
-          /\[(Schedule|Date ?& ?Time|Date ?\/ ?Time)\]/i.test(ownerMessageTemplate);
-
-        let ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
-          firstName: trimmedFirstName,
-          lastName: trimmedLastName,
-          phone: trimmedPhone,
-          service: booking.service, // Use the actual service name from the booking
-          datesTimes: formattedDatesTimes,
-          date: formatDateForMessage(booking.startAt),
-          time: formatTimeForMessage(booking.startAt),
-          petQuantities,
-          totalPrice: breakdown.total.toFixed(2),
-          bookingUrl: bookingDetailsUrl,
-        });
-
-        if (!hasDetailedScheduleToken) {
-          // Remove inline " — <date> at <time>" or " on <date> at <time>" or " for <date> at <time>"
-          const dateStr = formatDateForMessage(booking.startAt);
-          const timeStr = formatTimeForMessage(booking.startAt);
-          const dashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-          const onRegex = new RegExp(`\\son\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-          const forRegex = new RegExp(`\\sfor\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'i');
-          ownerMessage = ownerMessage.replace(dashRegex, "").replace(onRegex, "").replace(forRegex, "");
-
-          // Insert schedule before Pets or Total, whichever comes first; else append
-          const petsMarker = /\n{1,2}Pets:/i;
-          const totalMarker = /\n{1,2}Total:/i;
-          if (petsMarker.test(ownerMessage)) {
-            ownerMessage = ownerMessage.replace(petsMarker, `\n\n${formattedDatesTimes}\n\nPets:`);
-          } else if (totalMarker.test(ownerMessage)) {
-            ownerMessage = ownerMessage.replace(totalMarker, `\n\n${formattedDatesTimes}\n\nTotal:`);
-          } else {
-            ownerMessage += `\n\n${formattedDatesTimes}`;
-          }
-        }
-        
-        await sendMessage(ownerPhone, ownerMessage, booking.id);
-      } else {
-        await sendOwnerAlert(
-          trimmedFirstName,
-          trimmedLastName,
-          trimmedPhone,
-          booking.service, // Use the actual service name from the booking
-          new Date(bookingStartAt),
-          pets
-        );
-      }
-    }
+    // Enqueue owner notification job
+    await enqueueAutomation(
+      "ownerNewBookingAlert",
+      "owner",
+      {
+        bookingId: booking.id,
+        firstName: trimmedFirstName,
+        lastName: trimmedLastName,
+        phone: trimmedPhone,
+        service: booking.service,
+      },
+      `ownerNewBookingAlert:owner:${booking.id}` // Idempotency key
+    );
 
     return NextResponse.json({
       success: true,
       booking: {
         id: booking.id,
-        totalPrice: breakdown.total,
+        totalPrice: totalPrice,
         status: booking.status,
         notes: booking.notes || null, // Explicitly include notes in response
       },

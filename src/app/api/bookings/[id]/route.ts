@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, formatClientNameForSitter } from "@/lib/booking-utils";
-import { sendMessage } from "@/lib/message-utils";
-import { getSitterPhone } from "@/lib/phone-utils";
-import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
+import { logBookingStatusChange } from "@/lib/booking-status-history";
+import { getCurrentUserSafe } from "@/lib/auth-helpers";
+// Phase 3.4: Removed unused booking utility imports - no longer needed after moving to automation queue
 import { emitBookingUpdated, emitSitterAssigned, emitSitterUnassigned } from "@/lib/event-emitter";
 
 export async function GET(
@@ -139,6 +138,9 @@ export async function PATCH(
     if (sitterId !== undefined && sitterId !== null && sitterId !== "") {
       const sitterExists = await prisma.sitter.findUnique({
         where: { id: sitterId },
+        include: {
+          currentTier: true,
+        },
       });
       if (!sitterExists) {
         return NextResponse.json(
@@ -146,7 +148,32 @@ export async function PATCH(
           { status: 404 }
         );
       }
+
+      // Phase 5.2: Check tier eligibility for service type
+      // Get current booking service to check eligibility
+      const currentBooking = await prisma.booking.findUnique({
+        where: { id },
+        select: { service: true },
+      });
+
+      if (currentBooking?.service) {
+        const { isSitterEligibleForService } = await import("@/lib/tier-rules");
+        const eligibility = await isSitterEligibleForService(sitterId, currentBooking.service);
+        
+        if (!eligibility.eligible) {
+          return NextResponse.json(
+            { error: eligibility.reason || "Sitter is not eligible for this service type" },
+            { status: 400 }
+          );
+        }
+      }
     }
+
+    // Phase 7.3: Capture previous status for status history logging
+    const previousStatusForHistory = booking.status;
+    
+    // Phase 7.3: Get current user for status history logging (will be used after update)
+    const currentUserForHistory = await getCurrentUserSafe(request);
 
     const updatedBooking = await prisma.booking.update({
       where: { id },
@@ -288,11 +315,10 @@ export async function PATCH(
     }
 
     // Emit events for Automation Center
-    const previousStatus = booking.status;
     const previousSitterId = booking.sitterId;
     
     // Emit booking.updated event
-    await emitBookingUpdated(finalBooking, previousStatus);
+    await emitBookingUpdated(finalBooking, previousStatusForHistory);
     
     // Emit sitter assignment/unassignment events
     if (sitterId !== undefined) {
@@ -301,6 +327,23 @@ export async function PATCH(
         const sitter = await prisma.sitter.findUnique({ where: { id: sitterId } });
         if (sitter) {
           await emitSitterAssigned(finalBooking, sitter);
+          
+          // Phase 3.4: Enqueue sitter assignment automation jobs
+          const { enqueueAutomation } = await import("@/lib/automation-queue");
+          
+          await enqueueAutomation(
+            "sitterAssignment",
+            "sitter",
+            { bookingId: finalBooking.id, sitterId },
+            `sitterAssignment:sitter:${finalBooking.id}:${sitterId}`
+          );
+
+          await enqueueAutomation(
+            "sitterAssignment",
+            "client",
+            { bookingId: finalBooking.id, sitterId },
+            `sitterAssignment:client:${finalBooking.id}:${sitterId}`
+          );
         }
       } else if (!sitterId && previousSitterId) {
         // Sitter was unassigned
@@ -308,299 +351,52 @@ export async function PATCH(
       }
     }
 
-    // Send confirmation SMS if booking is confirmed (using automation templates if enabled)
-    if (status === "confirmed") {
-      const petQuantities = formatPetsByQuantity(finalBooking.pets);
-      // Calculate the true total
-      const breakdown = calculatePriceBreakdown(finalBooking);
-      const calculatedTotal = breakdown.total;
-      
-      // Check if bookingConfirmation automation is enabled
-      const shouldSendToClient = await shouldSendToRecipient("bookingConfirmation", "client");
-      const shouldSendToSitter = finalBooking.sitterId ? await shouldSendToRecipient("bookingConfirmation", "sitter") : false;
-      const shouldSendToOwner = await shouldSendToRecipient("bookingConfirmation", "owner");
-      
-      // Format dates and times using the shared function that matches booking details
-      const formattedDatesTimes = formatDatesAndTimesForMessage({
-        service: finalBooking.service,
-        startAt: finalBooking.startAt,
-        endAt: finalBooking.endAt,
-        timeSlots: finalBooking.timeSlots || [],
+    // Phase 7.3: Log status change to status history if status changed
+    // Per Master Spec 3.3.3: "Booking status history is immutable and stored."
+    if (status && status !== previousStatusForHistory) {
+      const changedByUserId = currentUserForHistory?.id || null;
+      await logBookingStatusChange(finalBooking.id, status, {
+        fromStatus: previousStatusForHistory,
+        changedBy: changedByUserId,
+        reason: null, // Can be enhanced later to accept reason from request
+        metadata: {
+          sitterIdChanged: sitterId !== undefined,
+          paymentStatusChanged: body.paymentStatus !== undefined,
+        },
       });
-      
-      // Send to client
-      if (shouldSendToClient) {
-        let clientMessageTemplate = await getMessageTemplate("bookingConfirmation", "client");
-        // If template is null (doesn't exist) or empty string, use default
-        if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
-          clientMessageTemplate = "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nWe'll see you soon!";
-        }
-        
-        const bookingDetailsUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/bookings?booking=${finalBooking.id}`;
-        
-        let clientMessage = replaceTemplateVariables(clientMessageTemplate, {
-          firstName: finalBooking.firstName,
-          service: finalBooking.service,
-          datesTimes: formattedDatesTimes,
-          date: formatDateForMessage(finalBooking.startAt), // Now uses short format (Jan 5)
-          time: formatTimeForMessage(finalBooking.startAt),
-          petQuantities,
-          totalPrice: calculatedTotal.toFixed(2),
-          bookingUrl: bookingDetailsUrl,
-        });
-        
-        // Check if template has detailed schedule token
-        const hasDetailedScheduleToken = /\{\{(datesTimes|schedule|visits|dateTime|date_time|dateAndTime|dates|times)\}\}/i.test(clientMessageTemplate);
-        
-        // Always include the full schedule if the template doesn't explicitly include it
-        if (!hasDetailedScheduleToken) {
-          // Remove inline date/time patterns more flexibly - match any date format followed by "at" and time
-          const timeStr = formatTimeForMessage(finalBooking.startAt);
-          // More flexible pattern: match "on/for/—" followed by date-like text, "at", and time
-          const onPattern = /\s+on\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
-          const forPattern = /\s+for\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
-          const dashPattern = /\s+—\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
-          clientMessage = clientMessage.replace(onPattern, "").replace(forPattern, "").replace(dashPattern, "");
-          
-          // Also try to match the exact format we're using (more specific fallback)
-          const dateStr = formatDateForMessage(finalBooking.startAt);
-          const exactOnRegex = new RegExp(`\\s+on\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
-          const exactForRegex = new RegExp(`\\s+for\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
-          const exactDashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
-          clientMessage = clientMessage.replace(exactOnRegex, "").replace(exactForRegex, "").replace(exactDashRegex, "");
-          
-          // Insert the schedule before "Pets:", "Total:", or before closing message if neither present
-          const petsMarker = /\n{1,2}Pets:/i;
-          const totalMarker = /\n{1,2}Total:/i;
-          const closingMarker = /\n{1,2}(We'll see you soon|We will see you soon|See you soon|Thank you)/i;
-          if (petsMarker.test(clientMessage)) {
-            clientMessage = clientMessage.replace(petsMarker, `\n\n${formattedDatesTimes}\n\nPets:`);
-          } else if (totalMarker.test(clientMessage)) {
-            clientMessage = clientMessage.replace(totalMarker, `\n\n${formattedDatesTimes}\n\nTotal:`);
-          } else if (closingMarker.test(clientMessage)) {
-            clientMessage = clientMessage.replace(closingMarker, `\n\n${formattedDatesTimes}\n\n$1`);
-          } else {
-            clientMessage += `\n\n${formattedDatesTimes}`;
-          }
-        }
-        
-        await sendMessage(finalBooking.phone, clientMessage, finalBooking.id);
-      } else {
-        // Fallback to hardcoded message if automation is disabled
-        const message = `🐾 BOOKING CONFIRMED!\n\nHi ${finalBooking.firstName},\n\nYour ${finalBooking.service} booking is confirmed:\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nTotal: $${calculatedTotal.toFixed(2)}\n\nWe'll see you soon!`;
-        await sendMessage(finalBooking.phone, message, finalBooking.id);
-      }
-      
-      // Send to sitter if assigned
-      if (shouldSendToSitter && finalBooking.sitterId) {
-        const sitter = await prisma.sitter.findUnique({
-          where: { id: finalBooking.sitterId },
-        });
-        
-        if (sitter) {
-          const sitterPhone = await getSitterPhone(finalBooking.sitterId, undefined, "bookingConfirmation");
-          
-          if (sitterPhone) {
-            const commissionPercentage = sitter.commissionPercentage || 80.0;
-            const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
-            
-            let sitterMessageTemplate = await getMessageTemplate("bookingConfirmation", "sitter");
-            // If template is null (doesn't exist) or empty string, use default
-            if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
-              sitterMessageTemplate = "✅ BOOKING CONFIRMED!\n\nHi {{sitterFirstName}},\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nView details in your dashboard.";
-            }
-            
-            const clientName = formatClientNameForSitter(finalBooking.firstName, finalBooking.lastName);
-            const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
-              sitterFirstName: sitter.firstName,
-              firstName: finalBooking.firstName,
-              lastName: finalBooking.lastName,
-              clientName: clientName,
-              service: finalBooking.service,
-              datesTimes: formattedDatesTimes,
-              date: formatDateForMessage(finalBooking.startAt), // Now uses short format (Jan 5)
-              time: formatTimeForMessage(finalBooking.startAt),
-              petQuantities,
-              address: finalBooking.address || 'TBD',
-              earnings: sitterEarnings.toFixed(2),
-              totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
-              total: calculatedTotal,
-            }, {
-              isSitterMessage: true,
-              sitterCommissionPercentage: commissionPercentage,
-            });
-            
-            await sendMessage(sitterPhone, sitterMessage, finalBooking.id);
-          }
-        }
-      }
-      
-      // Send to owner if enabled
-      if (shouldSendToOwner) {
-        const { getOwnerPhone } = await import("@/lib/phone-utils");
-        const ownerPhone = await getOwnerPhone(undefined, "bookingConfirmation");
-        
-        if (ownerPhone) {
-          let ownerMessageTemplate = await getMessageTemplate("bookingConfirmation", "owner");
-          // If template is null (doesn't exist) or empty string, use default
-          if (!ownerMessageTemplate || ownerMessageTemplate.trim() === "") {
-            ownerMessageTemplate = "✅ BOOKING CONFIRMED!\n\n{{firstName}} {{lastName}}'s {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nView: {{bookingUrl}}";
-          }
-          
-          const bookingDetailsUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/bookings?booking=${finalBooking.id}`;
-          
-          let ownerMessage = replaceTemplateVariables(ownerMessageTemplate, {
-            firstName: finalBooking.firstName,
-            lastName: finalBooking.lastName,
-            service: finalBooking.service,
-            datesTimes: formattedDatesTimes,
-            date: formatDateForMessage(finalBooking.startAt), // Now uses short format (Jan 5)
-            time: formatTimeForMessage(finalBooking.startAt),
-            petQuantities,
-            totalPrice: calculatedTotal.toFixed(2),
-            bookingUrl: bookingDetailsUrl,
-          });
-          
-          // Check if template has detailed schedule token
-          const hasDetailedScheduleToken = /\{\{(datesTimes|schedule|visits|dateTime|date_time|dateAndTime|dates|times)\}\}/i.test(ownerMessageTemplate);
-          
-          // Always include the full schedule if the template doesn't explicitly include it
-          if (!hasDetailedScheduleToken) {
-            // Remove inline date/time patterns more flexibly - match any date format followed by "at" and time
-            const timeStr = formatTimeForMessage(finalBooking.startAt);
-            // More flexible pattern: match "on/for/—" followed by date-like text, "at", and time
-            const onPattern = /\s+on\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
-            const forPattern = /\s+for\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
-            const dashPattern = /\s+—\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
-            ownerMessage = ownerMessage.replace(onPattern, "").replace(forPattern, "").replace(dashPattern, "");
-            
-            // Also try to match the exact format we're using (more specific fallback)
-            const dateStr = formatDateForMessage(finalBooking.startAt);
-            const exactOnRegex = new RegExp(`\\s+on\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
-            const exactForRegex = new RegExp(`\\s+for\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
-            const exactDashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
-            ownerMessage = ownerMessage.replace(exactOnRegex, "").replace(exactForRegex, "").replace(exactDashRegex, "");
-            
-            // Insert the schedule before "Pets:" or "Total:" if present
-            const petsMarker = /\n{1,2}Pets:/i;
-            const totalMarker = /\n{1,2}Total:/i;
-            if (petsMarker.test(ownerMessage)) {
-              ownerMessage = ownerMessage.replace(petsMarker, `\n\n${formattedDatesTimes}\n\nPets:`);
-            } else if (totalMarker.test(ownerMessage)) {
-              ownerMessage = ownerMessage.replace(totalMarker, `\n\n${formattedDatesTimes}\n\nTotal:`);
-            } else {
-              ownerMessage += `\n\n${formattedDatesTimes}`;
-            }
-          }
-          
-          await sendMessage(ownerPhone, ownerMessage, finalBooking.id);
-        }
-      }
     }
 
-    // Send sitter assignment notification
-    if (sitterId !== undefined && booking.sitterId !== sitterId) {
-      const sitter = await prisma.sitter.findUnique({
-        where: { id: sitterId },
-      });
+    // Phase 3.4: Enqueue booking confirmation automations instead of executing directly
+    if (status === "confirmed" && previousStatusForHistory !== "confirmed") {
+      const { enqueueAutomation } = await import("@/lib/automation-queue");
+      
+      // Enqueue booking confirmation jobs
+      await enqueueAutomation(
+        "bookingConfirmation",
+        "client",
+        { bookingId: finalBooking.id },
+        `bookingConfirmation:client:${finalBooking.id}`
+      );
 
-      if (sitter) {
-        const sitterPhone = await getSitterPhone(sitterId, undefined, "sitterAssignment");
-        
-        if (sitterPhone) {
-          const petQuantities = formatPetsByQuantity(finalBooking.pets);
-          // Calculate the true total
-          const breakdown = calculatePriceBreakdown(finalBooking);
-          const calculatedTotal = breakdown.total;
-          // Calculate sitter earnings based on their commission percentage
-          const commissionPercentage = sitter.commissionPercentage || 80.0;
-          const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
-          
-          // Format dates and times using the shared function that matches booking details
-          const formattedDatesTimes = formatDatesAndTimesForMessage({
-            service: finalBooking.service,
-            startAt: finalBooking.startAt,
-            endAt: finalBooking.endAt,
-            timeSlots: finalBooking.timeSlots || [],
-          });
-          
-          // Check if automation is enabled and should send to sitter
-          const shouldSendToSitter = await shouldSendToRecipient("sitterAssignment", "sitter");
-          
-          let message: string;
-          if (shouldSendToSitter) {
-            // Use automation template if available
-            let sitterMessageTemplate = await getMessageTemplate("sitterAssignment", "sitter");
-            // If template is null (doesn't exist) or empty string, use default
-            if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
-              sitterMessageTemplate = "👋 SITTER ASSIGNED!\n\nHi {{sitterFirstName}},\n\nYou've been assigned to {{firstName}} {{lastName}}'s {{service}} booking:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
-            }
-            
-            const clientName = formatClientNameForSitter(finalBooking.firstName, finalBooking.lastName);
-            message = replaceTemplateVariables(sitterMessageTemplate, {
-              sitterFirstName: sitter.firstName,
-              firstName: finalBooking.firstName,
-              lastName: finalBooking.lastName,
-              clientName: clientName,
-              service: finalBooking.service,
-              datesTimes: formattedDatesTimes,
-              date: formatDateForMessage(finalBooking.startAt), // Now uses short format (Jan 5)
-              time: formatTimeForMessage(finalBooking.startAt),
-              petQuantities,
-              address: finalBooking.address || 'TBD',
-              earnings: sitterEarnings.toFixed(2),
-              commissionPercentage: commissionPercentage.toFixed(0),
-              totalPrice: calculatedTotal, // Pass the actual total so earnings can be calculated
-              total: calculatedTotal, // Pass the actual total so earnings can be calculated
-            }, {
-              isSitterMessage: true,
-              sitterCommissionPercentage: commissionPercentage,
-            });
-            
-            // Check if template has detailed schedule token
-            const hasDetailedScheduleToken = /\{\{(datesTimes|schedule|visits|dateTime|date_time|dateAndTime|dates|times)\}\}/i.test(sitterMessageTemplate);
-            
-            // Always include the full schedule if the template doesn't explicitly include it
-            if (!hasDetailedScheduleToken) {
-              // Remove inline date/time patterns more flexibly - match any date format followed by "at" and time
-              // Patterns: " — <anything> at <time>", " on <anything> at <time>", " for <anything> at <time>"
-              const timeStr = formatTimeForMessage(finalBooking.startAt);
-              // More flexible pattern: match "on/for/—" followed by date-like text, "at", and time
-              const onPattern = /\s+on\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
-              const forPattern = /\s+for\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
-              const dashPattern = /\s+—\s+[A-Za-z]{3}\s+\d{1,2}\s+at\s+\d{1,2}:\d{2}\s+[AP]M/gi;
-              message = message.replace(onPattern, "").replace(forPattern, "").replace(dashPattern, "");
-              
-              // Also try to match the exact format we're using (more specific fallback)
-              const dateStr = formatDateForMessage(finalBooking.startAt);
-              const exactOnRegex = new RegExp(`\\s+on\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
-              const exactForRegex = new RegExp(`\\s+for\\s+${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
-              const exactDashRegex = new RegExp(`\\s—\\s${dateStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\s+at\\s+${timeStr.replace(/[-/\\^$*+?.()|[\\]{}]/g, "\\$&")}\\.?`, 'gi');
-              message = message.replace(exactOnRegex, "").replace(exactForRegex, "").replace(exactDashRegex, "");
-              
-              // Insert the schedule before "Pets:", "Address:", "Your Earnings:", or before closing message
-              const petsMarker = /\n{1,2}Pets:/i;
-              const addressMarker = /\n{1,2}Address:/i;
-              const earningsMarker = /\n{1,2}Your Earnings:/i;
-              if (petsMarker.test(message)) {
-                message = message.replace(petsMarker, `\n\n${formattedDatesTimes}\n\nPets:`);
-              } else if (addressMarker.test(message)) {
-                message = message.replace(addressMarker, `\n\n${formattedDatesTimes}\n\nAddress:`);
-              } else if (earningsMarker.test(message)) {
-                message = message.replace(earningsMarker, `\n\n${formattedDatesTimes}\n\nYour Earnings:`);
-              } else {
-                message += `\n\n${formattedDatesTimes}`;
-              }
-            }
-          } else {
-            // Use hardcoded message if automation is not enabled
-            message = `👋 SITTER ASSIGNED!\n\nHi ${sitter.firstName},\n\nYou've been assigned to ${finalBooking.firstName} ${finalBooking.lastName}'s ${finalBooking.service} booking:\n${formattedDatesTimes}\n\nPets: ${petQuantities}\nAddress: ${finalBooking.address}\nYour Earnings: $${sitterEarnings.toFixed(2)}\n\nPlease confirm your availability.`;
-          }
-          
-          await sendMessage(sitterPhone, message, finalBooking.id);
-        }
+      if (finalBooking.sitterId) {
+        await enqueueAutomation(
+          "bookingConfirmation",
+          "sitter",
+          { bookingId: finalBooking.id, sitterId: finalBooking.sitterId },
+          `bookingConfirmation:sitter:${finalBooking.id}`
+        );
       }
+
+      await enqueueAutomation(
+        "bookingConfirmation",
+        "owner",
+        { bookingId: finalBooking.id },
+        `bookingConfirmation:owner:${finalBooking.id}`
+      );
     }
+
+    // Phase 3.4: Legacy direct execution code removed - now handled by automation queue
+    // All booking confirmation and sitter assignment automations are enqueued above
 
     return NextResponse.json({ booking: finalBooking });
   } catch (error) {

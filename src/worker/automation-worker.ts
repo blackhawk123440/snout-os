@@ -1,10 +1,6 @@
 import { prisma } from "@/lib/db";
-import { sendClientNightBeforeReminder, sendSitterNightBeforeReminder } from "@/lib/sms-templates";
 import { sendSMS } from "@/lib/openphone";
-import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
-import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "@/lib/automation-utils";
-import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage, formatClientNameForSitter } from "@/lib/booking-utils";
-import { sendMessage } from "@/lib/message-utils";
+import { getOwnerPhone } from "@/lib/phone-utils";
 
 export async function processReminders() {
   try {
@@ -35,121 +31,32 @@ export async function processReminders() {
       },
     });
 
-    // Check if automation is enabled
-    const shouldSendToClient = await shouldSendToRecipient("nightBeforeReminder", "client");
-    const shouldSendToSitter = await shouldSendToRecipient("nightBeforeReminder", "sitter");
+    // Phase 3.5: Enqueue automation jobs instead of executing directly
+    // Per Master Spec Line 259: "Move every automation execution to the worker queue"
+    const { enqueueAutomation } = await import("../lib/automation-queue");
 
-    // Send reminders
+    // Enqueue reminder automation jobs for each booking
     for (const booking of tomorrowBookings) {
       try {
-        // Skip if email is required but missing
-        if (!booking.email) {
-          console.warn(`Skipping reminder for booking ${booking.id} - no email`);
-          continue;
-        }
+        // Enqueue client reminder job
+        await enqueueAutomation(
+          "nightBeforeReminder",
+          "client",
+          { bookingId: booking.id },
+          `nightBeforeReminder:client:${booking.id}:${booking.startAt.toISOString()}`
+        );
 
-        // Calculate accurate total
-        const breakdown = calculatePriceBreakdown(booking);
-        const calculatedTotal = breakdown.total;
-        const petQuantities = formatPetsByQuantity(booking.pets);
-
-        // Format dates and times using the shared function that matches booking details
-        const formattedDatesTimes = formatDatesAndTimesForMessage({
-          service: booking.service,
-          startAt: booking.startAt,
-          endAt: booking.endAt,
-          timeSlots: booking.timeSlots || [],
-        });
-        
-        // Send reminder to client
-        if (shouldSendToClient) {
-          let clientMessageTemplate = await getMessageTemplate("nightBeforeReminder", "client");
-          // If template is null (doesn't exist) or empty string, use default
-          if (!clientMessageTemplate || clientMessageTemplate.trim() === "") {
-            clientMessageTemplate = "🌙 REMINDER!\n\nHi {{firstName}},\n\nJust a friendly reminder about your {{service}} appointment:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe're excited to care for your pets!";
-          }
-          const clientMessage = replaceTemplateVariables(clientMessageTemplate, {
-            firstName: booking.firstName,
-            lastName: booking.lastName,
-            service: booking.service,
-            datesTimes: formattedDatesTimes,
-            date: formatDateForMessage(booking.startAt), // Now uses short format (Jan 5)
-            time: formatTimeForMessage(booking.startAt),
-            petQuantities,
-          });
-          await sendMessage(booking.phone, clientMessage, booking.id);
-        } else {
-          // Fallback to hardcoded function if automation disabled
-          const bookingForReminder = {
-            ...booking,
-            email: booking.email,
-            totalPrice: calculatedTotal,
-            sitter: booking.sitter ? {
-              firstName: booking.sitter.firstName,
-              lastName: booking.sitter.lastName,
-            } : undefined,
-          };
-          await sendClientNightBeforeReminder(bookingForReminder);
-        }
-        
-        // Send reminder to sitter if assigned
-        if (booking.sitter && booking.sitterId) {
-          if (shouldSendToSitter) {
-            const sitter = await prisma.sitter.findUnique({
-              where: { id: booking.sitterId },
-            });
-            
-            if (sitter) {
-              const sitterPhone = await getSitterPhone(booking.sitterId, undefined, "nightBeforeReminder");
-              
-              if (sitterPhone) {
-                const commissionPercentage = sitter.commissionPercentage || 80.0;
-                const sitterEarnings = (calculatedTotal * commissionPercentage) / 100;
-                
-                let sitterMessageTemplate = await getMessageTemplate("nightBeforeReminder", "sitter");
-                // If template is null (doesn't exist) or empty string, use default
-                if (!sitterMessageTemplate || sitterMessageTemplate.trim() === "") {
-                  sitterMessageTemplate = "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment:\n{{datesTimes}}\n\nClient: {{firstName}} {{lastName}}\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
-                }
-                const clientName = formatClientNameForSitter(booking.firstName, booking.lastName);
-                const sitterMessage = replaceTemplateVariables(sitterMessageTemplate, {
-                  sitterFirstName: sitter.firstName,
-                  firstName: booking.firstName,
-                  lastName: booking.lastName,
-                  clientName: clientName,
-                  service: booking.service,
-                  datesTimes: formattedDatesTimes,
-                  date: formatDateForMessage(booking.startAt), // Now uses short format (Jan 5)
-                  time: formatTimeForMessage(booking.startAt),
-                  petQuantities,
-                  address: booking.address || 'TBD',
-                  earnings: sitterEarnings.toFixed(2),
-                  totalPrice: calculatedTotal, // Pass actual total so earnings can be calculated
-                  total: calculatedTotal,
-                }, {
-                  isSitterMessage: true,
-                  sitterCommissionPercentage: commissionPercentage,
-                });
-                
-                await sendMessage(sitterPhone, sitterMessage, booking.id);
-              }
-            }
-          } else {
-            // Fallback to hardcoded function if automation disabled
-            const bookingForReminder = {
-              ...booking,
-              email: booking.email,
-              totalPrice: calculatedTotal,
-              sitter: booking.sitter ? {
-                firstName: booking.sitter.firstName,
-                lastName: booking.sitter.lastName,
-              } : undefined,
-            };
-            await sendSitterNightBeforeReminder(bookingForReminder, booking.sitterId);
-          }
+        // Enqueue sitter reminder job if sitter is assigned
+        if (booking.sitterId) {
+          await enqueueAutomation(
+            "nightBeforeReminder",
+            "sitter",
+            { bookingId: booking.id, sitterId: booking.sitterId },
+            `nightBeforeReminder:sitter:${booking.id}:${booking.sitterId}:${booking.startAt.toISOString()}`
+          );
         }
       } catch (error) {
-        console.error(`Failed to send reminders for booking ${booking.id}:`, error);
+        console.error(`Failed to enqueue reminder automation for booking ${booking.id}:`, error);
       }
     }
 
