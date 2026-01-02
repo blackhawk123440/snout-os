@@ -148,37 +148,38 @@ Silence keeps everything else powerful. Contrast increases everywhere else witho
 ### Order of Implementation
 
 Suggested order:
-1. **State Silence** (3) - Establishes baseline, easiest to implement
-2. **Progressive Density** (2) - Structural improvement, affects layout patterns
-3. **Attention Decay** (1) - Behavioral enhancement, requires timer/state management
+1. **State Silence (4C)** - Establishes baseline, most important, easiest to implement
+2. **Progressive Density (4B)** - Structural improvement, affects layout patterns
+3. **Attention Decay (4A)** - Behavioral enhancement, requires timer/state management
 
 ### Principles
 
-- All upgrades are structural, not visual additions
+- **Phase 4 is behavioral refinement, not visual work**
+- All upgrades are system-enforced behaviors, not visual additions
+- No page logic decides these behaviors. The system does.
 - All use existing tokens and patterns where possible
 - All enhance system intelligence without adding noise
 - All should feel automatic and invisible to end users
-- All should be tokenized and enforced at component level
+- All should be tokenized and enforced at component/system level
 
 ### Integration with Existing System
 
-- **Attention Decay:** Works with existing `ENERGY_OPACITY` and `MOTION_DURATIONS` tokens
-- **Progressive Density:** Extends existing `spacing` tokens with tier system
-- **State Silence:** Uses existing `ENERGY_OPACITY.idle` and enforces it systematically
+- **Attention Decay (4A):** Works with existing `ENERGY_OPACITY` and `MOTION_DURATIONS` tokens. System-enforced.
+- **Progressive Density (4B):** Extends existing `spacing` tokens with tier system. Depth determines density.
+- **State Silence (4C):** Uses existing `ENERGY_OPACITY.idle` and enforces it systematically as first-class state.
 
 ---
 
-## Strategic Context
+## When to Implement
 
-These upgrades are part of making the system feel "alive" without animation. They are behavioral and structural improvements that enhance the feeling of intelligence and intentionality.
+**Before Phase 4:** Let the system sit for a day. Use it. Click around. Do real work in it.
 
-The system already scores 9.2/10. These upgrades address the 0.8 points where things are "implicit rather than enforced at the system level" - which is normal at this stage and easy to fix.
+**If after real use you still feel:**
+- Calm
+- Oriented
+- In control
 
----
+Then Phase 3 did its job, and you're ready for Phase 4 behavioral refinement.
 
-## Related Work
-
-- Phase 4C (Density and scanning controls) - overlaps with Upgrade 2
-- Phase 4B (Analytics surfaces and chart system) - may benefit from Upgrade 3 for chart state management
-- System DNA rules - all upgrades should align with existing System DNA principles
+**When you resume:** Pick one phase (4A, 4B, or 4C) deliberately and implement it completely before moving to the next.
 
