@@ -336,7 +336,7 @@ export default function BookingDetailPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title="Loading..." description="Fetching booking details" />
         <div
           style={{
@@ -351,7 +351,7 @@ export default function BookingDetailPage() {
           <Skeleton height="120px" />
           <Skeleton height="120px" />
         </div>
-        <Card>
+        <Card depth="elevated">
           <Skeleton height="400px" />
         </Card>
       </AppShell>
@@ -360,9 +360,9 @@ export default function BookingDetailPage() {
 
   if (error || !booking) {
     return (
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title="Booking Not Found" description={error || 'The booking you are looking for does not exist'} />
-        <Card>
+        <Card depth="elevated">
           <EmptyState
             icon="⚠️"
             title={error || 'Booking Not Found'}
@@ -389,8 +389,8 @@ export default function BookingDetailPage() {
   const statusTransitions = getAvailableStatusTransitions(booking.status);
 
   return (
-    <AppShell>
-      {/* Page Header */}
+    <AppShell physiology="operational">
+      {/* Page Header - Operational: clear action zones, readiness signaling */}
       <PageHeader
         title={`Booking - ${booking.firstName} ${booking.lastName}`}
         description={`${formatDate(booking.startAt)} - ${formatDate(booking.endAt)} • ${booking.status}${booking.sitter ? ` • Assigned: ${booking.sitter.firstName} ${booking.sitter.lastName}` : ''} • Updated ${formatDateTime(booking.updatedAt)}`}
@@ -410,6 +410,7 @@ export default function BookingDetailPage() {
             {statusTransitions.length > 0 && (
               <Button
                 variant="primary"
+                energy="active"
                 onClick={() => {
                   setNewStatus(statusTransitions[0]);
                   setShowStatusModal(true);
@@ -652,8 +653,8 @@ export default function BookingDetailPage() {
             </div>
           </Card>
 
-          {/* Pets and Care Instructions */}
-          <Card>
+          {/* Pets and Care Instructions - Operational: clear action zones */}
+          <Card depth="elevated">
             <SectionHeader title="Pets and Care Instructions" />
             {booking.pets.length === 0 ? (
               <EmptyState
@@ -746,8 +747,8 @@ export default function BookingDetailPage() {
             )}
           </Card>
 
-          {/* Line Items and Pricing */}
-          <Card>
+          {/* Line Items and Pricing - Operational: clear action zones */}
+          <Card depth="elevated">
             <SectionHeader title="Pricing Breakdown" />
             <div
               style={{
@@ -809,8 +810,8 @@ export default function BookingDetailPage() {
             </div>
           </Card>
 
-          {/* Activity and History */}
-          <Card>
+          {/* Activity and History - Operational: clear action zones */}
+          <Card depth="elevated">
             <SectionHeader title="Status History" />
             {statusHistory.length === 0 ? (
               <EmptyState
