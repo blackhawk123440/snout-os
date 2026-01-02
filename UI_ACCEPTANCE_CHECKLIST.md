@@ -295,11 +295,18 @@
 - [ ] Uses Card components
 - [ ] No legacy styling
 
-### ⏳ Integrations (`/integrations`)
-- [ ] Uses AppShell
-- [ ] Uses PageHeader
-- [ ] Uses Card components
-- [ ] No legacy styling
+### ✅ Integrations (`/integrations`)
+- [x] Uses AppShell
+- [x] Uses PageHeader
+- [x] Uses Card for integration sections
+- [x] Uses Button for test connection and actions
+- [x] Uses Badge for status indicators
+- [x] Uses Input for credential editing
+- [x] Uses EmptyState when no integrations
+- [x] Uses Skeleton for loading
+- [x] Success/error banners implemented
+- [x] No legacy styling
+- [ ] ⚠️ **PENDING MANUAL VISUAL VERIFICATION**
 
 ### ✅ Exceptions (`/exceptions`)
 - [x] Uses AppShell
