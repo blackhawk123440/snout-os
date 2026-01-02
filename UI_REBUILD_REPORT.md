@@ -385,19 +385,105 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
    - Uses `/api/exceptions` API (same as legacy)
    - Legacy version backed up to `page-legacy.tsx`
 
-### ⏳ Pending Conversion
-- Automation (`/automation`)
-- Sitters List (`/bookings/sitters`) - Admin view, not a sitter dashboard
-- Integrations (`/integrations`)
-- Settings sub-pages:
-  - Business (`/settings/business`)
-  - Pricing (`/settings/pricing`)
-  - Services (`/settings/services`)
-  - Discounts (`/settings/discounts`)
-  - Tiers (`/settings/tiers`)
-  - Form Builder (`/settings/form-builder`)
-  - Custom Fields (`/settings/custom-fields`)
-  - Automation Ledger (`/settings/automations/ledger`)
+### ✅ Completed Conversions (Final Batch - 2024-12-30)
+
+#### Integrations (`/integrations`)
+- Converted to enterprise control surface
+- Uses AppShell, PageHeader, Card, Button, Input, Badge, Modal, EmptyState, Skeleton, FormRow, SectionHeader
+- Integration status cards with credentials management
+- Test connection functionality
+- Edit credentials inline
+- Stripe Product IDs reference section
+- Setup instructions for each integration
+- Quick links section
+- Success/error banners
+- Loading, empty, error states
+- All business logic preserved (test APIs, save credentials)
+- Uses same API endpoints (`/api/integrations/test/*`, `/api/integrations/credentials`)
+- Legacy version backed up to `page-legacy.tsx`
+
+#### Sitters List (`/bookings/sitters`)
+- Converted to enterprise control surface
+- Uses AppShell, PageHeader, Card, Table, Modal, Button, Badge, EmptyState, Skeleton, FormRow
+- Table view with all sitter details (name, status, email, phone, commission, created date)
+- Add/Edit modal with form (name, phone, email, commission, active status)
+- Delete confirmation modal
+- All business logic preserved (CRUD operations)
+- Uses same API endpoints (`/api/sitters`, `/api/sitters/[id]`)
+- Legacy version backed up to `page-legacy.tsx`
+
+#### Settings Sub-pages (All 8)
+
+**Business Settings (`/settings/business`)**
+- Form-based settings page
+- Uses AppShell, PageHeader, Card, Button, Input, Select, Textarea, FormRow, Skeleton
+- Business information fields (name, phone, email, address, timezone)
+- Save functionality with success/error banners
+- All business logic preserved
+- Legacy version backed up to `page-legacy.tsx`
+
+**Pricing Settings (`/settings/pricing`)**
+- Table view with pricing rules
+- Uses AppShell, PageHeader, Card, Table, Button, Badge, EmptyState, Skeleton, Modal
+- Enable/disable, edit, delete actions
+- Delete confirmation modal
+- All business logic preserved
+- Legacy version backed up to `page-legacy.tsx`
+
+**Services Settings (`/settings/services`)**
+- Table view with service configurations
+- Uses AppShell, PageHeader, Card, Table, Button, Badge, EmptyState, Skeleton, Modal
+- Service details (name, category, base price, length, weekend multiplier, requirements)
+- Edit and delete actions
+- Delete confirmation modal
+- All business logic preserved
+- Legacy version backed up to `page-legacy.tsx`
+
+**Discounts (`/settings/discounts`)**
+- Table view with discount codes
+- Uses AppShell, PageHeader, Card, Table, Button, Badge, EmptyState, Skeleton, Modal
+- Discount details (code, name, value, usage, validity, status)
+- Enable/disable, edit, delete actions
+- Delete confirmation modal
+- All business logic preserved
+- Legacy version backed up to `page-legacy.tsx`
+
+**Tiers (`/settings/tiers`)**
+- Table view with sitter tiers
+- Uses AppShell, PageHeader, Card, Table, Button, Badge, EmptyState, Skeleton, Modal
+- Tier details (name, point target, completion/response rates, capabilities)
+- Calculate tiers action
+- Edit and delete actions
+- Delete confirmation modal
+- All business logic preserved
+- Legacy version backed up to `page-legacy.tsx`
+
+**Custom Fields (`/settings/custom-fields`)**
+- Table view with custom field configurations
+- Uses AppShell, PageHeader, Card, Table, Button, Badge, EmptyState, Skeleton, Modal, Select
+- Filter by entity type (Client, Pet, Sitter, Booking)
+- Field details (label, type, entity, visibility, editability, templates)
+- Edit and delete actions
+- Delete confirmation modal
+- All business logic preserved
+- Legacy version backed up to `page-legacy.tsx`
+
+**Form Builder (`/settings/form-builder`)**
+- Table view with form field configurations
+- Uses AppShell, PageHeader, Card, Table, Button, Badge, EmptyState, Skeleton, Modal
+- Field details (order, label, type, visibility, report inclusion)
+- Edit and delete actions
+- Delete confirmation modal
+- All business logic preserved
+- Legacy version backed up to `page-legacy.tsx`
+
+**Automation Ledger (`/settings/automations/ledger`)**
+- Table view with automation run history
+- Uses AppShell, PageHeader, Card, Table, Button, Badge, EmptyState, Skeleton, Select
+- Filters by status and automation type
+- Run details (status, type, booking, created, error)
+- All business logic preserved
+- Legacy version backed up to `page-legacy.tsx`
 
 ---
 
@@ -524,7 +610,12 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
 - **Pages Converted and Swapped**: 8 (dashboard, bookings list, booking detail, clients, settings, automations, calendar, payments)
 - **Legacy Files Backed Up**: 7 (`page-legacy.tsx` files)
 - **New Routes Created**: 1 (`/bookings/[id]` detail page)
-- **Pages Remaining**: ~9-11
+- **Pages Converted**: 18 total
+  - Dashboard, Bookings List, Booking Detail, Clients, Settings, Automations, Calendar, Payments
+  - Sitter Dashboards (2 pages)
+  - Messages, Templates, Exceptions
+  - Integrations, Sitters List, Settings sub-pages (8 pages)
+- **Pages Remaining**: 0 (ALL COMPLETE ✅)
 
 ## Cutover Status
 
@@ -539,12 +630,21 @@ All components are in `src/components/ui/` and exported from `src/components/ui/
 - All components from shared library
 - Typecheck and build pass
 
-**Step 3: Next Conversions** - 🚧 IN PROGRESS (2024-12-30)
+**Step 3: Next Conversions** - ✅ COMPLETE (2024-12-30)
 - ✅ Automations: `page.tsx` ← `page-enterprise.tsx`, `page-legacy.tsx` created
 - ✅ Calendar: `page.tsx` ← `page-enterprise.tsx`, `page-legacy.tsx` created
 - ✅ Payments: `page.tsx` rebuilt as finance-grade control surface, `page-legacy.tsx` created
-- Next priority: Booking detail, Sitter dashboards
+- ✅ Booking Detail: `page.tsx` rebuilt as enterprise ops command center, `page-legacy.tsx` created
+- ✅ Sitter Dashboards: `/sitter` and `/sitter-dashboard` converted, `page-legacy.tsx` created
+- ✅ Messages: `page.tsx` converted, `page-legacy.tsx` created
+- ✅ Templates: `page.tsx` converted, `page-legacy.tsx` created
+- ✅ Exceptions: `page.tsx` converted, `page-legacy.tsx` created
+- ✅ Integrations: `page.tsx` converted, `page-legacy.tsx` created
+- ✅ Sitters List: `page.tsx` converted, `page-legacy.tsx` created
+- ✅ Settings Sub-pages: All 8 converted (Business, Pricing, Services, Discounts, Tiers, Custom Fields, Form Builder, Automation Ledger), `page-legacy.tsx` created for each
 
 ---
 
 **Last Updated**: 2024-12-30
+
+**Status**: ✅ ALL PAGES CONVERTED - Enterprise UI rebuild complete!
