@@ -485,7 +485,7 @@ export default function PaymentsPage() {
         </div>
       </Card>
 
-      {/* Payments Table - Analytical: elastic, responsive */}
+      {/* Payments Table - Analytical: responsive */}
       <Card depth="elevated" padding={!loading}>
         {loading ? (
           <Skeleton height="400px" />

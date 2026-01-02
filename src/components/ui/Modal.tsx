@@ -7,7 +7,7 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { tokens } from '@/lib/design-tokens';
 import { spatial } from '@/lib/spatial-hierarchy';
 import { motion } from '@/lib/motion-system';
@@ -45,6 +45,10 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnBackdropClick = true,
   closeOnEscape = true,
 }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousActiveElement = useRef<HTMLElement | null>(null);
+
+  // Escape key handler
   useEffect(() => {
     if (!isOpen || !closeOnEscape) return;
 
@@ -58,6 +62,7 @@ export const Modal: React.FC<ModalProps> = ({
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, closeOnEscape, onClose]);
 
+  // Body scroll lock
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -66,6 +71,69 @@ export const Modal: React.FC<ModalProps> = ({
     }
     return () => {
       document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  // Focus trap: Store previous active element, focus first focusable element on open, return focus on close
+  useEffect(() => {
+    if (!isOpen) {
+      // Return focus to previous active element on close
+      if (previousActiveElement.current) {
+        previousActiveElement.current.focus();
+        previousActiveElement.current = null;
+      }
+      return;
+    }
+
+    // Store current active element
+    previousActiveElement.current = document.activeElement as HTMLElement;
+
+    // Focus trap: Focus first focusable element in modal
+    const modal = modalRef.current;
+    if (!modal) return;
+
+    const focusableElements = modal.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstFocusable = focusableElements[0];
+    if (firstFocusable) {
+      // Delay focus slightly to ensure modal is rendered
+      setTimeout(() => firstFocusable.focus(), 0);
+    }
+
+    // Focus trap: Keep focus within modal
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      const focusableElements = Array.from(
+        modal.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      );
+
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        // Shift + Tab: Focus previous element
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        // Tab: Focus next element
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    modal.addEventListener('keydown', handleTabKey);
+    return () => {
+      modal.removeEventListener('keydown', handleTabKey);
     };
   }, [isOpen]);
 
@@ -98,6 +166,10 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Modal Content - Overlay layer */}
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? 'modal-title' : undefined}
         onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative',
