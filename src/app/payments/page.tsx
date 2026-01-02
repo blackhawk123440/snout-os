@@ -53,7 +53,7 @@ interface TimeRange {
   days: number;
 }
 
-export default function PaymentsPageControlSurface() {
+function PaymentsPageContent() {
   const { config } = usePosture();
   const [analytics, setAnalytics] = useState<Analytics>({
     totalRevenue: 0,
