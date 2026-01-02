@@ -1,23 +1,72 @@
-"use client";
+/**
+ * Template Edit Page - System DNA Implementation
+ * 
+ * Operational posture: Editing and actions focused, reduced ambient motion, clear action zones.
+ */
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Input,
+  Select,
+  Textarea,
+  FormRow,
+  Skeleton,
+  EmptyState,
+  Badge,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
+
+interface Template {
+  id: string;
+  name: string;
+  type: string;
+  category: string;
+  templateKey: string;
+  subject: string | null;
+  body: string;
+  isActive: boolean;
+}
+
+const categoryOptions = [
+  { value: 'client', label: 'Client' },
+  { value: 'sitter', label: 'Sitter' },
+  { value: 'owner', label: 'Owner' },
+  { value: 'report', label: 'Report' },
+  { value: 'invoice', label: 'Invoice' },
+];
+
+const typeOptions = [
+  { value: 'sms', label: 'SMS' },
+  { value: 'email', label: 'Email' },
+];
 
 export default function EditTemplatePage() {
   const router = useRouter();
   const params = useParams();
   const templateId = params?.id as string;
 
-  const [name, setName] = useState("");
-  const [type, setType] = useState("");
-  const [category, setCategory] = useState("");
-  const [templateKey, setTemplateKey] = useState("");
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
-  const [isActive, setIsActive] = useState(true);
+  const [template, setTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    type: '',
+    category: '',
+    templateKey: '',
+    subject: '',
+    body: '',
+    isActive: true,
+  });
 
   useEffect(() => {
     if (templateId) {
@@ -26,194 +75,274 @@ export default function EditTemplatePage() {
   }, [templateId]);
 
   const fetchTemplate = async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
       const response = await fetch(`/api/templates/${templateId}`);
       const data = await response.json();
       if (data.template) {
         const tpl = data.template;
-        setName(tpl.name || "");
-        setType(tpl.type || "");
-        setCategory(tpl.category || "");
-        setTemplateKey(tpl.templateKey || "");
-        setSubject(tpl.subject || "");
-        setBody(tpl.body || "");
-        setIsActive(tpl.isActive !== false);
+        setTemplate(tpl);
+        setFormData({
+          name: tpl.name || '',
+          type: tpl.type || '',
+          category: tpl.category || '',
+          templateKey: tpl.templateKey || '',
+          subject: tpl.subject || '',
+          body: tpl.body || '',
+          isActive: tpl.isActive !== false,
+        });
+      } else {
+        setLoadError('Template not found');
       }
-    } catch (error) {
-      console.error("Failed to fetch template:", error);
+    } catch (err) {
+      console.error('Failed to fetch template:', err);
+      setLoadError('Failed to load template');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
-    if (!name || !type || !category || !templateKey || !body) {
-      alert("Name, type, category, templateKey, and body are required");
+    if (!formData.name || !formData.type || !formData.category || !formData.templateKey || !formData.body) {
+      setError('Name, type, category, templateKey, and body are required');
       return;
     }
 
     setSaving(true);
+    setError(null);
     try {
       const response = await fetch(`/api/templates/${templateId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name,
-          type,
-          category,
-          templateKey,
-          subject,
-          body,
-          isActive,
+          name: formData.name,
+          type: formData.type,
+          category: formData.category,
+          templateKey: formData.templateKey,
+          subject: formData.type === 'email' ? formData.subject : null,
+          body: formData.body,
+          isActive: formData.isActive,
         }),
       });
 
       if (response.ok) {
-        router.push("/templates");
+        router.push('/templates');
       } else {
-        const error = await response.json();
-        alert(`Failed to update template: ${error.error}`);
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to update template');
       }
-    } catch (error) {
-      console.error("Failed to update template:", error);
-      alert("Failed to update template");
+    } catch (err) {
+      console.error('Failed to update template:', err);
+      setError('Failed to update template');
     } finally {
       setSaving(false);
     }
   };
 
+  // SMS character count warning (160 chars is standard SMS limit, warn at 140)
+  const smsCharacterCount = formData.type === 'sms' ? formData.body.length : 0;
+  const smsWarning = smsCharacterCount > 140 && smsCharacterCount <= 160;
+
   if (loading) {
     return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-        <div className="text-center py-20">Loading template...</div>
-      </div>
+      <AppShell physiology="operational">
+        <PageHeader title="Edit Template" description="Loading template..." />
+        <Card depth="elevated">
+          <Skeleton height="600px" />
+        </Card>
+      </AppShell>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <AppShell physiology="operational">
+        <PageHeader title="Edit Template" description="Failed to load template" />
+        <Card depth="critical">
+          <EmptyState
+            icon="⚠️"
+            title="Failed to Load Template"
+            description={loadError}
+            action={{
+              label: 'Back to Templates',
+              onClick: () => router.push('/templates'),
+              variant: 'primary',
+            }}
+          />
+        </Card>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
-            Edit Template
-          </h1>
-          <p className="text-gray-600">Update your message template</p>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 border-2 shadow-sm mb-6" style={{ borderColor: COLORS.primaryLight }}>
-          <h2 className="text-2xl font-bold mb-4" style={{ color: COLORS.primary }}>
-            Template Information
-          </h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block font-semibold mb-2">Name *</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block font-semibold mb-2">Type *</label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
-                >
-                  <option value="">Select type</option>
-                  <option value="sms">SMS</option>
-                  <option value="email">Email</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold mb-2">Category *</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
-                >
-                  <option value="">Select category</option>
-                  <option value="client">Client</option>
-                  <option value="sitter">Sitter</option>
-                  <option value="owner">Owner</option>
-                  <option value="report">Report</option>
-                  <option value="invoice">Invoice</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-2">Template Key *</label>
-              <input
-                type="text"
-                value={templateKey}
-                onChange={(e) => setTemplateKey(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-                placeholder="e.g., booking.confirmation"
-              />
-            </div>
-
-            {type === "email" && (
-              <div>
-                <label className="block font-semibold mb-2">Subject</label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="block font-semibold mb-2">Body *</label>
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-                rows={10}
-                placeholder="Message body with {{variables}}"
-              />
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                />
-                <span>Active</span>
-              </label>
-            </div>
+    <AppShell physiology="operational">
+      <PageHeader
+        title="Edit Template"
+        description="Update your message template"
+        actions={
+          <div
+            style={{
+              display: 'flex',
+              gap: tokens.spacing[3],
+            }}
+          >
+            <Button variant="tertiary" onClick={() => router.back()}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              energy="active"
+              onClick={handleSave}
+              disabled={saving || !formData.name.trim() || !formData.type || !formData.category || !formData.templateKey.trim() || !formData.body.trim()}
+              isLoading={saving}
+            >
+              Save Changes
+            </Button>
           </div>
-        </div>
+        }
+      />
 
-        <div className="flex items-center justify-end gap-4">
-          <button
-            onClick={() => router.back()}
-            className="px-6 py-3 rounded-lg font-semibold bg-gray-200 text-gray-800"
+      {/* Error Banner */}
+      {error && (
+        <Card
+          depth="critical"
+          style={{
+            marginBottom: tokens.spacing[6],
+            backgroundColor: tokens.colors.error[50],
+            borderColor: tokens.colors.error[200],
+          }}
+        >
+          <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+            {error}
+          </div>
+        </Card>
+      )}
+
+      {/* Form Card */}
+      <Card depth="elevated">
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: tokens.spacing[6],
+          }}
+        >
+          <FormRow label="Name" required>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Template name"
+            />
+          </FormRow>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: tokens.spacing[4],
+            }}
           >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !name || !type || !category || !templateKey || !body}
-            className="px-6 py-3 rounded-lg font-semibold text-white disabled:opacity-50"
-            style={{ background: COLORS.primary }}
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
+            <FormRow label="Type" required>
+              <Select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                options={[
+                  { value: '', label: 'Select type' },
+                  ...typeOptions,
+                ]}
+              />
+            </FormRow>
+
+            <FormRow label="Category" required>
+              <Select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                options={[
+                  { value: '', label: 'Select category' },
+                  ...categoryOptions,
+                ]}
+              />
+            </FormRow>
+          </div>
+
+          <FormRow label="Template Key" required>
+            <Input
+              value={formData.templateKey}
+              onChange={(e) => setFormData({ ...formData, templateKey: e.target.value })}
+              placeholder="e.g., booking.confirmation"
+            />
+          </FormRow>
+
+          {formData.type === 'email' && (
+            <FormRow label="Subject">
+              <Input
+                value={formData.subject}
+                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                placeholder="Email subject"
+              />
+            </FormRow>
+          )}
+
+          <FormRow label="Body" required>
+            <div>
+              <Textarea
+                value={formData.body}
+                onChange={(e) => setFormData({ ...formData, body: e.target.value })}
+                placeholder="Message body with {{variables}}"
+                rows={10}
+              />
+              {formData.type === 'sms' && (
+                <div
+                  style={{
+                    marginTop: tokens.spacing[2],
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: tokens.spacing[2],
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: tokens.typography.fontSize.sm[0],
+                      color: tokens.colors.text.secondary,
+                    }}
+                  >
+                    {smsCharacterCount} characters
+                  </div>
+                  {smsWarning && (
+                    <Badge variant="warning">
+                      Approaching SMS limit (160 chars)
+                    </Badge>
+                  )}
+                  {smsCharacterCount > 160 && (
+                    <Badge variant="error">
+                      Exceeds SMS limit
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </div>
+          </FormRow>
+
+          <FormRow>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: tokens.spacing[2],
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              />
+              <span style={{ fontSize: tokens.typography.fontSize.sm[0] }}>Active</span>
+            </label>
+          </FormRow>
         </div>
-      </div>
-    </div>
+      </Card>
+    </AppShell>
   );
 }
-
-
-
