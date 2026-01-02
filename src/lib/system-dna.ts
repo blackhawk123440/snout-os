@@ -187,5 +187,12 @@ export const SYSTEM_DNA_RULES = {
    * Pink must feel composed, controlled, and intelligent. Never playful. Never decorative.
    */
   PINK_AUTHORITY: true,
+  
+  /**
+   * Tabbed subviews may vary layout density and components, but they must not introduce posture switching behavior.
+   * AppShell physiology remains the single source of truth for motion cadence, energy semantics, and spatial discipline across the page.
+   * Tabs are content organization, not posture changes.
+   */
+  TABS_ARE_CONTENT_ORGANIZATION: true,
 } as const;
 

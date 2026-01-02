@@ -156,7 +156,7 @@ export default function MessagesPage() {
   };
 
   return (
-    <AppShell physiology="analytical">
+    <AppShell physiology="operational">
       <PageHeader
         title="Message Templates"
         description="Manage automated messages and notifications"
@@ -169,6 +169,7 @@ export default function MessagesPage() {
                 setShowAddForm(true);
               }}
               leftIcon={<i className="fas fa-plus" />}
+              energy="active"
             >
               New Template
             </Button>
@@ -187,6 +188,7 @@ export default function MessagesPage() {
       <div style={{ padding: tokens.spacing[6] }}>
         {error && (
           <Card
+            depth="elevated"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -233,7 +235,7 @@ export default function MessagesPage() {
             {templates.map((template) => {
               const fields = extractFields(template.content);
               return (
-                <Card key={template.id}>
+                <Card key={template.id} depth="elevated">
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
@@ -340,7 +342,7 @@ export default function MessagesPage() {
             
             {/* Field Preview */}
             {formData.content && extractFields(formData.content).length > 0 && (
-              <Card style={{ backgroundColor: tokens.colors.neutral[50] }}>
+              <Card depth="elevated" style={{ backgroundColor: tokens.colors.neutral[50] }}>
                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                   Detected Fields:
                 </div>
@@ -355,7 +357,7 @@ export default function MessagesPage() {
             )}
             
             {error && (
-              <Card style={{ backgroundColor: tokens.colors.error[50], borderColor: tokens.colors.error[200] }}>
+              <Card depth="elevated" style={{ backgroundColor: tokens.colors.error[50], borderColor: tokens.colors.error[200] }}>
                 <div style={{ padding: tokens.spacing[2], color: tokens.colors.error[700], fontSize: tokens.typography.fontSize.sm[0] }}>
                   {error}
                 </div>
@@ -366,6 +368,7 @@ export default function MessagesPage() {
               <Button
                 type="submit"
                 variant="primary"
+                energy="active"
                 style={{ flex: 1 }}
               >
                 {editingTemplate ? "Update" : "Create"} Template
