@@ -1,8 +1,10 @@
 /**
- * Sitter Dashboard Page - Enterprise Rebuild
+ * Sitter Dashboard Page - System DNA Implementation
  * 
- * Complete rebuild using design system and components.
- * Zero legacy styling - all through components and tokens.
+ * Operational posture: Execution-focused, clear action zones, reduced ambient motion, readiness signaling.
+ * Dominant posture is Operational for job management tabs (today, upcoming, completed).
+ * Earnings and tier tabs are Analytical but subordinate via TabPanel composition.
+ * Settings tab is Configuration but subordinate via TabPanel composition.
  */
 
 'use client';
@@ -237,7 +239,7 @@ function SitterPageContent() {
 
   if (loading && !sitterId) {
     return (
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title="Sitter Dashboard" />
         <div style={{ padding: tokens.spacing[6] }}>
           <Skeleton height={200} />
@@ -248,7 +250,7 @@ function SitterPageContent() {
 
   if (!sitterId) {
     return (
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title="Sitter Dashboard" />
         <div style={{ padding: tokens.spacing[6] }}>
           <EmptyState
@@ -261,7 +263,7 @@ function SitterPageContent() {
   }
 
   return (
-    <AppShell>
+    <AppShell physiology="operational">
       <PageHeader
         title="Sitter Dashboard"
         description="Your pet care assignments and earnings"
@@ -355,7 +357,7 @@ function SitterPageContent() {
         >
           {/* Today Tab */}
           <TabPanel id="today">
-            <Card>
+            <Card depth="elevated">
               <SectionHeader title={`Today's Visits (${todayBookings.length})`} />
               <div style={{ padding: tokens.spacing[6] }}>
                 {todayBookings.length === 0 ? (
@@ -374,6 +376,7 @@ function SitterPageContent() {
                       return (
                         <Card
                           key={booking.id}
+                          depth="elevated"
                           style={{
                             borderColor: overdue ? tokens.colors.error.DEFAULT : tokens.colors.border.default,
                             backgroundColor: overdue ? tokens.colors.error[50] : undefined,
@@ -428,6 +431,7 @@ function SitterPageContent() {
                                 variant="primary"
                                 size="sm"
                                 onClick={() => checkIn(booking.id)}
+                                energy="active"
                               >
                                 Check In
                               </Button>
@@ -444,7 +448,7 @@ function SitterPageContent() {
 
           {/* Upcoming Tab */}
           <TabPanel id="upcoming">
-            <Card>
+            <Card depth="elevated">
               <SectionHeader title={`Upcoming Bookings (${upcomingBookings.length})`} />
               <div style={{ padding: tokens.spacing[6] }}>
                 {loading ? (
@@ -462,7 +466,7 @@ function SitterPageContent() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
                     {upcomingBookings.map((booking) => (
-                      <Card key={booking.id} style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
+                      <Card key={booking.id} depth="elevated" style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
@@ -500,7 +504,7 @@ function SitterPageContent() {
 
           {/* Completed Tab */}
           <TabPanel id="completed">
-            <Card>
+            <Card depth="elevated">
               <SectionHeader title={`Completed Bookings (${completedBookings.length})`} />
               <div style={{ padding: tokens.spacing[6] }}>
                 {completedBookings.length === 0 ? (
@@ -512,7 +516,7 @@ function SitterPageContent() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
                     {completedBookings.slice(0, 20).map((booking) => (
-                      <Card key={booking.id} style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
+                      <Card key={booking.id} depth="elevated" style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
@@ -545,9 +549,9 @@ function SitterPageContent() {
             </Card>
           </TabPanel>
 
-          {/* Earnings Tab */}
+          {/* Earnings Tab - Analytical but subordinate via TabPanel */}
           <TabPanel id="earnings">
-            <Card>
+            <Card depth="elevated">
               <SectionHeader title="Earnings Breakdown" />
               <div style={{ padding: tokens.spacing[6] }}>
                 {earningsData ? (
@@ -561,7 +565,7 @@ function SitterPageContent() {
                         marginBottom: tokens.spacing[6],
                       }}
                     >
-                      <Card style={{ padding: tokens.spacing[6] }}>
+                      <Card depth="elevated" style={{ padding: tokens.spacing[6] }}>
                         <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase' }}>
                           Total Earnings
                         </div>
@@ -588,7 +592,7 @@ function SitterPageContent() {
                         <SectionHeader title="Earnings by Service Type" />
                         <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4] }}>
                           {earningsData.earningsByService.map((service: any, idx: number) => (
-                            <Card key={idx}>
+                            <Card key={idx} depth="elevated">
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div>
                                   <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
@@ -618,7 +622,7 @@ function SitterPageContent() {
                       <SectionHeader title="Earnings by Booking" />
                       <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4], maxHeight: '24rem', overflowY: 'auto' }}>
                         {earningsData.earningsByBooking.map((item: any) => (
-                          <Card key={item.bookingId}>
+                          <Card key={item.bookingId} depth="elevated">
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div>
                                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
@@ -652,9 +656,9 @@ function SitterPageContent() {
             </Card>
           </TabPanel>
 
-          {/* Tier Progress Tab */}
+          {/* Tier Progress Tab - Analytical but subordinate via TabPanel */}
           <TabPanel id="tier">
-            <Card>
+            <Card depth="elevated">
               <SectionHeader title="Tier Progress" />
               <div style={{ padding: tokens.spacing[6] }}>
                 {tierProgress ? (
@@ -662,6 +666,7 @@ function SitterPageContent() {
                     {/* Current Tier */}
                     {tierProgress.tier && (
                       <Card
+                        depth="elevated"
                         style={{
                           marginBottom: tokens.spacing[6],
                           backgroundColor: tokens.colors.primary[50],
@@ -731,6 +736,7 @@ function SitterPageContent() {
                     {/* Next Tier */}
                     {tierProgress.nextTier && (
                       <Card
+                        depth="elevated"
                         style={{
                           marginBottom: tokens.spacing[6],
                           backgroundColor: tokens.colors.info[50],
@@ -762,6 +768,7 @@ function SitterPageContent() {
                           {tierProgress.improvementAreas.map((area: string, idx: number) => (
                             <Card
                               key={idx}
+                              depth="elevated"
                               style={{
                                 backgroundColor: tokens.colors.warning[50],
                                 borderColor: tokens.colors.warning[200],
@@ -805,9 +812,9 @@ function SitterPageContent() {
             </Card>
           </TabPanel>
 
-          {/* Settings Tab */}
+          {/* Settings Tab - Configuration but subordinate via TabPanel */}
           <TabPanel id="settings">
-            <Card>
+            <Card depth="elevated">
               <SectionHeader title="Personal Settings" />
               <div style={{ padding: tokens.spacing[6] }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
@@ -882,7 +889,7 @@ function SitterPageContent() {
               <div style={{ fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>Pets</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
                 {selectedBooking.pets.map((pet, idx) => (
-                  <Card key={idx} style={{ backgroundColor: tokens.colors.neutral[50] }}>
+                  <Card key={idx} depth="elevated" style={{ backgroundColor: tokens.colors.neutral[50] }}>
                     <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
                       {pet.name || `Pet ${idx + 1}`}
                     </div>
@@ -912,6 +919,7 @@ function SitterPageContent() {
               <Button
                 variant="primary"
                 onClick={() => checkIn(selectedBooking.id)}
+                energy="active"
                 style={{ flex: 1 }}
               >
                 Check In
@@ -936,7 +944,7 @@ function SitterPageContent() {
 export default function SitterPage() {
   return (
     <Suspense fallback={
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title="Sitter Dashboard" />
         <div style={{ padding: tokens.spacing[6] }}>
           <Skeleton height={200} />
