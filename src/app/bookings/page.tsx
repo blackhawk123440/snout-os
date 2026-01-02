@@ -269,7 +269,7 @@ function BookingsPageContent() {
       {/* Filters and Search - Operational: clear action zones */}
       <Card
         depth="elevated"
-        style={{ 
+                              style={{ 
           marginBottom: tokens.spacing[6],
         }}
       >

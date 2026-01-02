@@ -1,7 +1,8 @@
 /**
- * Settings Page - Enterprise Rebuild
+ * Settings Page - System DNA Implementation
  * 
- * Complete rebuild using design system and components.
+ * Configuration posture: Maximum stability, minimal motion, strong spatial separation.
+ * Most stable surface in the system.
  */
 
 'use client';
@@ -17,6 +18,7 @@ import {
   Button,
   FormRow,
   Skeleton,
+  SectionHeader,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -164,7 +166,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Settings"
         description="Configure business settings, integrations, and automations"
@@ -176,23 +178,14 @@ export default function SettingsPage() {
       />
 
       {loading ? (
-        <Card>
+        <Card depth="elevated">
           <Skeleton height="400px" />
         </Card>
       ) : (
         <Tabs tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as SettingsTab)}>
           <TabPanel id="general">
-            <Card>
-              <h3
-                style={{
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginBottom: tokens.spacing[6],
-                  color: tokens.colors.text.primary,
-                }}
-              >
-                Business Information
-              </h3>
+            <Card depth="elevated">
+              <SectionHeader title="Business Information" />
               <FormRow label="Business Name" required>
                 <Input
                   value={settings.businessName}
@@ -223,17 +216,8 @@ export default function SettingsPage() {
           </TabPanel>
 
           <TabPanel id="integrations">
-            <Card>
-              <h3
-                style={{
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginBottom: tokens.spacing[6],
-                  color: tokens.colors.text.primary,
-                }}
-              >
-                Payment Integration (Stripe)
-              </h3>
+            <Card depth="elevated">
+              <SectionHeader title="Payment Integration (Stripe)" />
               <FormRow label="Stripe Secret Key">
                 <Input
                   type="password"
@@ -248,17 +232,7 @@ export default function SettingsPage() {
                 />
               </FormRow>
 
-              <h3
-                style={{
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginTop: tokens.spacing[8],
-                  marginBottom: tokens.spacing[6],
-                  color: tokens.colors.text.primary,
-                }}
-              >
-                Messaging Integration (OpenPhone)
-              </h3>
+              <SectionHeader title="Messaging Integration (OpenPhone)" />
               <FormRow label="OpenPhone API Key">
                 <Input
                   type="password"
@@ -276,17 +250,8 @@ export default function SettingsPage() {
           </TabPanel>
 
           <TabPanel id="automations">
-            <Card>
-              <h3
-                style={{
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginBottom: tokens.spacing[6],
-                  color: tokens.colors.text.primary,
-                }}
-              >
-                Automation Settings
-              </h3>
+            <Card depth="elevated">
+              <SectionHeader title="Automation Settings" />
               <FormRow>
                 <label
                   style={{
@@ -354,17 +319,8 @@ export default function SettingsPage() {
           </TabPanel>
 
           <TabPanel id="advanced">
-            <Card>
-              <h3
-                style={{
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginBottom: tokens.spacing[6],
-                  color: tokens.colors.text.primary,
-                }}
-              >
-                Advanced Settings
-              </h3>
+            <Card depth="elevated">
+              <SectionHeader title="Advanced Settings" />
               <FormRow label="Owner Personal Phone">
                 <Input
                   type="tel"
