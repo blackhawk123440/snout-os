@@ -91,19 +91,19 @@ export const Panel: React.FC<PanelProps> = ({
     wide: controlSurface.spacing[8],
   };
 
-  // Combine styles properly
-  const combinedStyle: React.CSSProperties = {
-    ...depthStyles[depth],
-    borderRadius: controlSurface.spatial.radius.medium,
-    padding: spacingMap[spacing],
-    transition: `all ${controlSurface.motion.duration.base} ${controlSurface.motion.easing.ambient}`,
-    ...(border !== 'none' ? borderStyles[border] : {}),
-    ...(voltage !== 'none' ? voltageStyles[voltage] : {}),
-    ...style,
-  };
-
   return (
-    <div style={combinedStyle} {...props}>
+    <div
+      style={{
+        ...depthStyles[depth],
+        ...(voltage !== 'none' ? voltageStyles[voltage] : {}),
+        ...(border !== 'none' ? borderStyles[border] : {}),
+        borderRadius: controlSurface.spatial.radius.medium,
+        padding: spacingMap[spacing],
+        transition: `all ${controlSurface.motion.duration.base} ${controlSurface.motion.easing.ambient}`,
+        ...style,
+      }}
+      {...props}
+    >
       {children}
     </div>
   );

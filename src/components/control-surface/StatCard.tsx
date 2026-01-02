@@ -15,7 +15,7 @@ export interface StatCardProps {
   icon?: React.ReactNode;
   trend?: 'up' | 'down' | 'neutral';
   subtitle?: string;
-  voltage?: 'none' | 'ambient' | 'edge' | 'focus';
+  voltage?: 'none' | 'ambient' | 'edge';
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
