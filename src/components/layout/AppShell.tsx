@@ -76,23 +76,22 @@ export const AppShell: React.FC<AppShellProps> = ({
           ...physiologyMotion,
         }}
       >
-        {/* Sidebar - Surface layer */}
+        {/* Sidebar - Glass panel (Phase 5B) */}
         <aside
-          className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:flex`}
+          className={`glass-panel ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:flex`}
           style={{
             position: 'fixed',
             left: 0,
             top: 0,
             bottom: 0,
             width: tokens.layout.appShell.sidebarWidth,
-            backgroundColor: tokens.colors.white.material,
-            borderRight: spatial.border('surface', 'subtle'),
-            ...spatial.getLayerStyles('surface'),
             display: 'flex',
             flexDirection: 'column',
+            ...spatial.getLayerStyles('surface'),
             ...motion.styles('transition', ['transform']),
           }}
         >
+          <div className="glass-panel-sheen" />
           {/* Logo/Brand */}
           <div
             style={{

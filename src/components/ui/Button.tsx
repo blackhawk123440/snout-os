@@ -241,12 +241,16 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       onClick?.(e);
     };
 
+    // Phase 5B: Show refraction ring for focused/active energy states
+    const showRefractionRing = !isDisabled && (effectiveEnergy === 'focused' || effectiveEnergy === 'active');
+    
     return (
       <button
         ref={ref}
         disabled={isDisabled}
         className={className}
         style={{
+          position: 'relative',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -269,6 +273,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         onClick={handleClick}
         {...props}
       >
+        {/* Phase 5B: Refraction ring for focused/active states */}
+        {showRefractionRing && (
+          <div
+            className="button-refraction-ring active"
+            style={{
+              position: 'absolute',
+              inset: '-2px',
+              borderRadius: tokens.borderRadius.md,
+            }}
+          />
+        )}
         {isLoading && (
           <span
             style={{
@@ -283,9 +298,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             aria-hidden="true"
           />
         )}
-        {!isLoading && leftIcon && <span>{leftIcon}</span>}
-        <span>{children}</span>
-        {!isLoading && rightIcon && <span>{rightIcon}</span>}
+        {!isLoading && leftIcon && <span style={{ position: 'relative', zIndex: 1 }}>{leftIcon}</span>}
+        <span style={{ position: 'relative', zIndex: 1 }}>{children}</span>
+        {!isLoading && rightIcon && <span style={{ position: 'relative', zIndex: 1 }}>{rightIcon}</span>}
       </button>
     );
   }

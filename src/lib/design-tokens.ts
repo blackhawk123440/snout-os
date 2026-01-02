@@ -291,6 +291,39 @@ export const tokens = {
     none: 'none',
   },
   
+  // ===== GLASS MATERIAL (Phase 5B) =====
+  /**
+   * Frosted glass material system for futuristic opaque surfaces.
+   * Creates milky glass panels that feel like frosted glass on a white lab surface.
+   * Enterprise restrained - opaque but alive, not transparent.
+   */
+  glass: {
+    // Background: rgba white with opacity for milky glass effect
+    background: 'rgba(255, 255, 255, 0.80)', // 0.72 to 0.88 range, using 0.80
+    
+    // Border: 1px rgba with pink tint at very low opacity
+    border: '1px solid rgba(252, 225, 239, 0.15)',
+    
+    // Shadow: tuned pink shadow for glass panels
+    shadow: '0 4px 6px -1px rgba(252, 225, 239, 0.10), 0 2px 4px -2px rgba(252, 225, 239, 0.06)',
+    
+    // Inner highlight: inset shadow for depth
+    innerHighlight: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.60)',
+    
+    // Edge lighting: top and left edge highlights with pink tint at extremely low opacity
+    edgeTop: 'inset 0 1px 0 0 rgba(252, 225, 239, 0.20)',
+    edgeLeft: 'inset 1px 0 0 0 rgba(252, 225, 239, 0.15)',
+    
+    // Backdrop blur: 12 to 18px range, using 15px
+    blur: '15px',
+    
+    // Saturate: 120 to 140% range, using 130% for crisp optical feel
+    saturate: '130%',
+    
+    // Noise opacity: 0.03 to 0.06 range, using 0.04
+    noiseOpacity: 0.04,
+  },
+  
   // ===== LAYOUT =====
   layout: {
     appShell: {

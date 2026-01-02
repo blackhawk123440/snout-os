@@ -77,13 +77,17 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         </div>
         {actions && (
           <div
+            className="glass-panel"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: tokens.spacing[2],
               flexWrap: 'wrap',
+              padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+              borderRadius: tokens.borderRadius.md,
             }}
           >
+            <div className="glass-panel-sheen" />
             {actions}
           </div>
         )}

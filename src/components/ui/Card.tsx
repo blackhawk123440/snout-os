@@ -19,6 +19,8 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   padding?: boolean;
   /** Depth layer - determines elevation and shadow */
   depth?: DepthLayer;
+  /** Phase 5B: Apply glass material styling (for key modules/KPI cards only) */
+  glass?: boolean;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -27,24 +29,37 @@ export const Card: React.FC<CardProps> = ({
   footer,
   padding = true,
   depth = 'elevated',
+  glass = false,
   className = '',
   ...props
 }) => {
   const layerStyles = spatial.getLayerStyles(depth);
+  const cardClassName = glass ? `glass-panel ${className}` : className;
   
-  return (
-    <div
-      {...props}
-      className={className}
-      style={{
+  // Glass styling overrides standard styling
+  const cardStyle = glass
+    ? {
+        // Glass panel CSS class handles most styling
+        borderRadius: tokens.borderRadius.lg,
+        ...motion.styles('transition', ['box-shadow', 'transform']),
+        ...props.style,
+      }
+    : {
         backgroundColor: tokens.colors.white.material,
         border: spatial.border(depth, 'subtle'),
         ...layerStyles,
         overflow: 'hidden',
         ...motion.styles('transition', ['box-shadow', 'transform']),
         ...props.style,
-      }}
+      };
+  
+  return (
+    <div
+      {...props}
+      className={cardClassName}
+      style={cardStyle}
     >
+      {glass && <div className="glass-panel-sheen" />}
       {header && (
         <div
           style={{
