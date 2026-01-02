@@ -255,20 +255,21 @@ function BookingsPageContent() {
   ];
                                       
                                       return (
-    <AppShell>
+    <AppShell physiology="operational">
       <PageHeader
         title="Bookings"
         description="Manage all bookings and assignments"
         actions={
-          <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+          <Button variant="primary" energy="active" leftIcon={<i className="fas fa-plus" />}>
             New Booking
           </Button>
         }
       />
 
-      {/* Filters and Search */}
+      {/* Filters and Search - Operational: clear action zones */}
       <Card
-                              style={{ 
+        depth="elevated"
+        style={{ 
           marginBottom: tokens.spacing[6],
         }}
       >
@@ -310,8 +311,8 @@ function BookingsPageContent() {
                                           </div>
       </Card>
 
-      {/* Bookings Table */}
-      <Card padding={!loading}>
+      {/* Bookings Table - Operational: execution-focused, table clarity */}
+      <Card depth="elevated" padding={!loading}>
         {loading ? (
           <Skeleton height="400px" />
         ) : (
