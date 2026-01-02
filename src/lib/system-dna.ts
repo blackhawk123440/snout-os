@@ -206,5 +206,15 @@ export const SYSTEM_DNA_RULES = {
    * This prevents fatigue and keeps active states powerful.
    */
   IDLE_IS_FIRST_CLASS_STATE: true,
+  
+  /**
+   * Phase 4A: Attention decay - energy states (active, focused) decay back to idle after inactivity.
+   * System-driven self-regulation, not animation or UX flourish.
+   * Decay is gradual (via CSS transitions), not abrupt.
+   * User interaction (mouse enter, focus, click) resets decay naturally.
+   * Enforced at component level, not page level.
+   * This makes the UI feel self-regulating, not just responsive.
+   */
+  ATTENTION_DECAY: true,
 } as const;
 
