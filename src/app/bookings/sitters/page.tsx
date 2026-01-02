@@ -1,9 +1,8 @@
 /**
- * Sitters List Page - Enterprise Rebuild
- * Admin view for managing sitters
+ * Sitters List Page - System DNA Implementation
  * 
- * Complete rebuild using design system and components.
- * Zero legacy styling - all through components and tokens.
+ * Configuration posture: Maximum stability, minimal motion, strong spatial separation.
+ * Admin view for managing sitters (configuration, onboarding, permissions).
  */
 
 'use client';
@@ -280,7 +279,7 @@ export default function SittersPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Sitters Management"
         description="Manage your pet care team"
@@ -332,7 +331,7 @@ export default function SittersPage() {
 
         {/* Sitters Table */}
         {loading ? (
-          <Card>
+          <Card depth="elevated">
             <div style={{ padding: tokens.spacing[6] }}>
               <Skeleton height={400} />
             </div>
@@ -351,7 +350,7 @@ export default function SittersPage() {
             }}
           />
         ) : (
-          <Card>
+          <Card depth="elevated">
             <Table columns={tableColumns} data={sitters} keyExtractor={(sitter) => sitter.id} />
           </Card>
         )}
