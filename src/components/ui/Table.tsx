@@ -1,11 +1,15 @@
 /**
- * Table Component
+ * Table Component - System DNA Implementation
  * 
- * Enterprise data table with sticky header, row hover, empty states, and loading skeletons.
+ * Enterprise data table with temporal transitions and spatial depth.
+ * Tables feel elastic without flashy animation.
+ * Motion is subtle and communicates state changes.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { tokens } from '@/lib/design-tokens';
+import { spatial } from '@/lib/spatial-hierarchy';
+import { motion } from '@/lib/motion-system';
 
 export interface TableColumn<T = any> {
   key: string;
@@ -33,6 +37,8 @@ export function Table<T extends Record<string, any>>({
   keyExtractor,
   ...props
 }: TableProps<T>) {
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+  
   const getKey = (row: T, index: number): string => {
     if (keyExtractor) return keyExtractor(row, index);
     return row.id || row.key || `row-${index}`;
@@ -41,10 +47,11 @@ export function Table<T extends Record<string, any>>({
   return (
     <div
       style={{
-        border: `1px solid ${tokens.colors.border.default}`,
+        border: spatial.border('surface', 'subtle'),
         borderRadius: tokens.borderRadius.lg,
         overflow: 'hidden',
-        backgroundColor: tokens.colors.background.primary,
+        backgroundColor: tokens.colors.white.material,
+        ...spatial.getLayerStyles('surface'),
       }}
     >
       <div
@@ -67,8 +74,8 @@ export function Table<T extends Record<string, any>>({
               position: 'sticky',
               top: 0,
               zIndex: tokens.zIndex.sticky,
-              backgroundColor: tokens.colors.background.secondary,
-              borderBottom: `2px solid ${tokens.colors.border.default}`,
+              backgroundColor: tokens.colors.white.material,
+              borderBottom: spatial.border('surface', 'normal'),
             }}
           >
             <tr>
@@ -86,6 +93,7 @@ export function Table<T extends Record<string, any>>({
                     width: column.width,
                     minWidth: column.width,
                     whiteSpace: 'nowrap',
+                    backgroundColor: tokens.colors.white.material,
                   }}
                 >
                   {column.header}
@@ -148,7 +156,7 @@ export function Table<T extends Record<string, any>>({
                     <p
                       style={{
                         fontSize: tokens.typography.fontSize.base[0],
-                        margin: 0,
+                        fontWeight: tokens.typography.fontWeight.medium,
                       }}
                     >
                       {emptyMessage}
@@ -157,28 +165,19 @@ export function Table<T extends Record<string, any>>({
                 </td>
               </tr>
             ) : (
-              // Data rows
               data.map((row, index) => (
                 <tr
                   key={getKey(row, index)}
                   onClick={() => onRowClick?.(row, index)}
+                  onMouseEnter={() => setHoveredRow(index)}
+                  onMouseLeave={() => setHoveredRow(null)}
                   style={{
                     cursor: onRowClick ? 'pointer' : 'default',
-                    borderBottom: `1px solid ${tokens.colors.border.muted}`,
-                    transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
-                    ...(onRowClick && {
-                      ':hover': {
-                        backgroundColor: tokens.colors.background.secondary,
-                      },
-                    }),
-                  }}
-                  onMouseEnter={(e) => {
-                    if (onRowClick) {
-                      e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
+                    backgroundColor: hoveredRow === index 
+                      ? tokens.colors.primary.opacity[5] 
+                      : 'transparent',
+                    ...motion.styles('transition', ['background-color']),
+                    borderBottom: index < data.length - 1 ? spatial.border('surface', 'subtle') : 'none',
                   }}
                 >
                   {columns.map((column) => (
@@ -200,17 +199,6 @@ export function Table<T extends Record<string, any>>({
           </tbody>
         </table>
       </div>
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-        }
-      `}</style>
     </div>
   );
 }
-

@@ -1,17 +1,24 @@
 /**
- * Card Component
+ * Card Component - System DNA Implementation
  * 
- * Content container with consistent styling and optional header/footer.
+ * Content container with spatial depth and hierarchy.
+ * Cards exist in depth - elevation and shadows create spatial separation.
+ * Motion is subtle and continuous.
  */
 
 import React from 'react';
 import { tokens } from '@/lib/design-tokens';
+import { DepthLayer } from '@/lib/system-dna';
+import { spatial } from '@/lib/spatial-hierarchy';
+import { motion } from '@/lib/motion-system';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   header?: React.ReactNode;
   footer?: React.ReactNode;
   padding?: boolean;
+  /** Depth layer - determines elevation and shadow */
+  depth?: DepthLayer;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -19,19 +26,22 @@ export const Card: React.FC<CardProps> = ({
   header,
   footer,
   padding = true,
+  depth = 'elevated',
   className = '',
   ...props
 }) => {
+  const layerStyles = spatial.getLayerStyles(depth);
+  
   return (
     <div
       {...props}
       className={className}
       style={{
-        backgroundColor: tokens.colors.background.primary,
-        border: `1px solid ${tokens.colors.border.default}`,
-        borderRadius: tokens.borderRadius.lg,
-        boxShadow: tokens.shadows.sm,
+        backgroundColor: tokens.colors.white.material,
+        border: spatial.border(depth, 'subtle'),
+        ...layerStyles,
         overflow: 'hidden',
+        ...motion.styles('transition', ['box-shadow', 'transform']),
         ...props.style,
       }}
     >
@@ -39,7 +49,7 @@ export const Card: React.FC<CardProps> = ({
         <div
           style={{
             padding: padding ? `${tokens.spacing[4]} ${tokens.spacing[4]} ${tokens.spacing[3]}` : 0,
-            borderBottom: header ? `1px solid ${tokens.colors.border.default}` : 'none',
+            borderBottom: header ? spatial.border(depth, 'subtle') : 'none',
           }}
         >
           {header}
@@ -56,7 +66,7 @@ export const Card: React.FC<CardProps> = ({
         <div
           style={{
             padding: padding ? `${tokens.spacing[3]} ${tokens.spacing[4]} ${tokens.spacing[4]}` : 0,
-            borderTop: footer ? `1px solid ${tokens.colors.border.default}` : 'none',
+            borderTop: footer ? spatial.border(depth, 'subtle') : 'none',
             backgroundColor: tokens.colors.background.secondary,
           }}
         >
@@ -66,4 +76,3 @@ export const Card: React.FC<CardProps> = ({
     </div>
   );
 };
-

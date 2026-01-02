@@ -1,11 +1,14 @@
 /**
- * Input Component
+ * Input Component - System DNA Implementation
  * 
- * Enterprise input field component with variants and states.
+ * Enterprise input with temporal transitions and spatial hierarchy.
+ * Focus states use pink energy, not harsh borders.
+ * Transitions are smooth and continuous.
  */
 
 import React from 'react';
 import { tokens } from '@/lib/design-tokens';
+import { motion } from '@/lib/motion-system';
 
 export type InputSize = 'sm' | 'md' | 'lg';
 
@@ -125,11 +128,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               paddingRight: rightIcon ? '2.5rem' : sizeStyle.padding.split(' ')[1],
               fontFamily: tokens.typography.fontFamily.sans.join(', '),
               color: tokens.colors.text.primary,
-              backgroundColor: tokens.colors.background.primary,
+              backgroundColor: tokens.colors.white.material,
               border: `1px solid ${error ? tokens.colors.error.DEFAULT : tokens.colors.border.default}`,
               borderRadius: tokens.borderRadius.md,
               outline: 'none',
-              transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
+              ...motion.styles('transition', ['border-color', 'box-shadow', 'background-color']),
               ...(props.disabled && {
                 backgroundColor: tokens.colors.background.tertiary,
                 color: tokens.colors.text.disabled,
@@ -139,8 +142,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             onFocus={(e) => {
               props.onFocus?.(e);
               if (!error) {
-                e.target.style.borderColor = tokens.colors.border.focus;
-                e.target.style.boxShadow = `0 0 0 3px ${tokens.colors.primary[100]}`;
+                e.target.style.borderColor = tokens.colors.primary.focused;
+                e.target.style.boxShadow = `0 0 0 3px ${tokens.colors.primary.opacity[10]}`;
               }
             }}
             onBlur={(e) => {
@@ -200,4 +203,3 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = 'Input';
-

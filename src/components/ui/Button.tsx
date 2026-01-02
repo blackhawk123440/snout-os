@@ -1,12 +1,16 @@
 /**
- * Button Component
+ * Button Component - System DNA Implementation
  * 
- * Enterprise button component with variants and sizes.
- * All buttons in the dashboard must use this component.
+ * Enterprise button with energy levels and temporal intelligence.
+ * Color behaves as energy - pink intensity increases for focus/readiness.
+ * Motion communicates readiness, not decoration.
  */
 
 import React from 'react';
 import { tokens } from '@/lib/design-tokens';
+import { EnergyLevel } from '@/lib/system-dna';
+import { motion } from '@/lib/motion-system';
+import { spatial } from '@/lib/spatial-hierarchy';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'danger' | 'ghost';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -18,19 +22,21 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   children: React.ReactNode;
+  /** Energy level - affects pink intensity (primary variant only) */
+  energy?: EnergyLevel;
 }
 
-const getVariantStyles = (variant: ButtonVariant) => {
+const getVariantStyles = (variant: ButtonVariant, energy: EnergyLevel = 'focused') => {
   const styles: Record<ButtonVariant, React.CSSProperties> = {
     primary: {
-      backgroundColor: tokens.colors.primary.DEFAULT,
-      color: tokens.colors.text.inverse,
-      border: `1px solid ${tokens.colors.primary.DEFAULT}`,
+      backgroundColor: tokens.colors.primary[energy],
+      color: tokens.colors.white.material,
+      border: `1px solid ${tokens.colors.primary[energy]}`,
     },
     secondary: {
-      backgroundColor: tokens.colors.background.primary,
+      backgroundColor: tokens.colors.white.material,
       color: tokens.colors.text.primary,
-      border: `1px solid ${tokens.colors.border.default}`,
+      border: spatial.border('surface', 'normal'),
     },
     tertiary: {
       backgroundColor: 'transparent',
@@ -39,13 +45,37 @@ const getVariantStyles = (variant: ButtonVariant) => {
     },
     danger: {
       backgroundColor: tokens.colors.error.DEFAULT,
-      color: tokens.colors.text.inverse,
+      color: tokens.colors.white.material,
       border: `1px solid ${tokens.colors.error.DEFAULT}`,
     },
     ghost: {
       backgroundColor: 'transparent',
       color: tokens.colors.text.secondary,
       border: '1px solid transparent',
+    },
+  };
+  return styles[variant];
+};
+
+const getHoverStyles = (variant: ButtonVariant, energy: EnergyLevel = 'focused') => {
+  const styles: Record<ButtonVariant, { backgroundColor?: string; color?: string; borderColor?: string }> = {
+    primary: {
+      backgroundColor: tokens.colors.primary.active, // Increase energy on hover
+      borderColor: tokens.colors.primary.active,
+    },
+    secondary: {
+      backgroundColor: tokens.colors.primary.opacity[5],
+    },
+    tertiary: {
+      backgroundColor: tokens.colors.primary.opacity[5],
+    },
+    danger: {
+      backgroundColor: tokens.colors.error[600],
+      borderColor: tokens.colors.error[600],
+    },
+    ghost: {
+      backgroundColor: tokens.colors.primary.opacity[5],
+      color: tokens.colors.text.primary,
     },
   };
   return styles[variant];
@@ -82,6 +112,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       rightIcon,
       children,
       disabled,
+      energy = 'focused',
       className = '',
       onMouseEnter,
       onMouseLeave,
@@ -90,21 +121,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const sizeStyle = getSizeStyles(size);
-    const variantStyle = getVariantStyles(variant);
+    const variantStyle = getVariantStyles(variant, energy);
+    const hoverStyle = getHoverStyles(variant, energy);
     const isDisabled = disabled || isLoading;
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (!isDisabled && variant === 'primary') {
-        e.currentTarget.style.backgroundColor = tokens.colors.primary[700];
-      } else if (!isDisabled && variant === 'secondary') {
-        e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-      } else if (!isDisabled && variant === 'tertiary') {
-        e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-      } else if (!isDisabled && variant === 'danger') {
-        e.currentTarget.style.backgroundColor = tokens.colors.error[600];
-      } else if (!isDisabled && variant === 'ghost') {
-        e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-        e.currentTarget.style.color = tokens.colors.text.primary;
+      if (!isDisabled && hoverStyle.backgroundColor) {
+        e.currentTarget.style.backgroundColor = hoverStyle.backgroundColor;
+        if (hoverStyle.borderColor) {
+          e.currentTarget.style.borderColor = hoverStyle.borderColor;
+        }
+        if (hoverStyle.color) {
+          e.currentTarget.style.color = hoverStyle.color;
+        }
       }
       onMouseEnter?.(e);
     };
@@ -112,6 +141,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const handleMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!isDisabled) {
         e.currentTarget.style.backgroundColor = variantStyle.backgroundColor as string;
+        e.currentTarget.style.borderColor = variantStyle.border as string;
         e.currentTarget.style.color = variantStyle.color as string;
       }
       onMouseLeave?.(e);
@@ -137,7 +167,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           ...variantStyle,
           cursor: isDisabled ? 'not-allowed' : 'pointer',
           opacity: isDisabled ? 0.5 : 1,
-          transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
+          ...motion.styles('readiness', ['background-color', 'border-color', 'color']),
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

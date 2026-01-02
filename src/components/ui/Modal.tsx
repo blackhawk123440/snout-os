@@ -1,13 +1,16 @@
 /**
- * Modal Component
+ * Modal Component - System DNA Implementation
  * 
- * Enterprise dialog/modal component with backdrop and close handling.
+ * Enterprise dialog/modal with overlay depth and temporal transitions.
+ * Modals exist at the overlay layer with appropriate depth and motion.
  */
 
 'use client';
 
 import React, { useEffect } from 'react';
 import { tokens } from '@/lib/design-tokens';
+import { spatial } from '@/lib/spatial-hierarchy';
+import { motion } from '@/lib/motion-system';
 import { Button } from './Button';
 
 export interface ModalProps {
@@ -21,12 +24,15 @@ export interface ModalProps {
   closeOnEscape?: boolean;
 }
 
-const sizeStyles = {
-  sm: 'max-w-md',
-  md: 'max-w-lg',
-  lg: 'max-w-2xl',
-  xl: 'max-w-4xl',
-  full: 'max-w-full mx-4',
+const getSizeMaxWidth = (size: string): string => {
+  const sizes: Record<string, string> = {
+    sm: '28rem', // 448px
+    md: '32rem', // 512px
+    lg: '42rem', // 672px
+    xl: '56rem', // 896px
+    full: 'calc(100% - 2rem)',
+  };
+  return sizes[size] || sizes.md;
 };
 
 export const Modal: React.FC<ModalProps> = ({
@@ -70,7 +76,7 @@ export const Modal: React.FC<ModalProps> = ({
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: tokens.zIndex.modal,
+        zIndex: tokens.zIndex.overlay,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -83,106 +89,76 @@ export const Modal: React.FC<ModalProps> = ({
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
           cursor: closeOnBackdropClick ? 'pointer' : 'default',
+          ...motion.styles('transition', ['opacity']),
         }}
         aria-hidden="true"
       />
 
-      {/* Modal Content */}
+      {/* Modal Content - Overlay layer */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className={sizeStyles[size]}
         style={{
           position: 'relative',
           width: '100%',
+          maxWidth: getSizeMaxWidth(size),
           maxHeight: '90vh',
-          backgroundColor: tokens.colors.background.primary,
+          backgroundColor: tokens.colors.white.material,
+          ...spatial.getLayerStyles('overlay'),
           borderRadius: tokens.borderRadius.xl,
-          boxShadow: tokens.shadows.xl,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
+          ...motion.styles('transition', ['transform', 'opacity']),
         }}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={title ? 'modal-title' : undefined}
       >
-        {/* Header */}
-        {(title || closeOnBackdropClick) && (
+        {title && (
           <div
             style={{
+              padding: tokens.spacing[6],
+              borderBottom: spatial.border('overlay', 'subtle'),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: tokens.spacing[6],
-              borderBottom: `1px solid ${tokens.colors.border.default}`,
             }}
           >
-            {title && (
-              <h2
-                id="modal-title"
-                style={{
-                  fontSize: tokens.typography.fontSize.xl[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  color: tokens.colors.text.primary,
-                  margin: 0,
-                }}
-              >
-                {title}
-              </h2>
-            )}
-            {closeOnBackdropClick && (
-              <button
-                onClick={onClose}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '2rem',
-                  height: '2rem',
-                  borderRadius: tokens.borderRadius.md,
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  color: tokens.colors.text.secondary,
-                  cursor: 'pointer',
-                  transition: `all ${tokens.transitions.duration.DEFAULT}`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                  e.currentTarget.style.color = tokens.colors.text.primary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = tokens.colors.text.secondary;
-                }}
-                aria-label="Close modal"
-              >
-                <i className="fas fa-times" />
-              </button>
-            )}
+            <h2
+              style={{
+                fontSize: tokens.typography.fontSize.xl[0],
+                fontWeight: tokens.typography.fontWeight.bold,
+                color: tokens.colors.text.primary,
+                margin: 0,
+              }}
+            >
+              {title}
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              aria-label="Close modal"
+            >
+              <i className="fas fa-times" />
+            </Button>
           </div>
         )}
-
-        {/* Body */}
         <div
           style={{
             flex: 1,
-            padding: tokens.spacing[6],
             overflowY: 'auto',
+            padding: tokens.spacing[6],
           }}
         >
           {children}
         </div>
-
-        {/* Footer */}
         {footer && (
           <div
             style={{
               padding: tokens.spacing[6],
-              borderTop: `1px solid ${tokens.colors.border.default}`,
+              borderTop: spatial.border('overlay', 'subtle'),
               backgroundColor: tokens.colors.background.secondary,
               display: 'flex',
+              alignItems: 'center',
               justifyContent: 'flex-end',
               gap: tokens.spacing[3],
             }}
@@ -194,4 +170,3 @@ export const Modal: React.FC<ModalProps> = ({
     </div>
   );
 };
-
