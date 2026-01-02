@@ -230,7 +230,6 @@ export const AppShell: React.FC<AppShellProps> = ({
           className="lg:ml-64"
           style={{
             flex: 1,
-            marginLeft: tokens.layout.appShell.sidebarWidth,
             display: 'flex',
             flexDirection: 'column',
             minHeight: '100vh',
