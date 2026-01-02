@@ -179,7 +179,7 @@ export default function TiersPage() {
   ];
 
   return (
-    <AppShell physiology="configuration">
+    <AppShell>
       <PageHeader
         title="Sitter Tiers"
         description="Manage sitter performance tiers and requirements"

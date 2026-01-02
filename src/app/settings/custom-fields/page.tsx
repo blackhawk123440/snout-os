@@ -174,7 +174,7 @@ export default function CustomFieldsPage() {
   ];
 
   return (
-    <AppShell physiology="configuration">
+    <AppShell>
       <PageHeader
         title="Custom Fields"
         description="Manage custom fields for clients, pets, sitters, and bookings"

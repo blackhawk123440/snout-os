@@ -336,7 +336,7 @@ export default function BookingDetailPage() {
 
   if (loading) {
     return (
-      <AppShell physiology="operational">
+      <AppShell>
         <PageHeader title="Loading..." description="Fetching booking details" />
         <div
           style={{
@@ -360,7 +360,7 @@ export default function BookingDetailPage() {
 
   if (error || !booking) {
     return (
-      <AppShell physiology="operational">
+      <AppShell>
         <PageHeader title="Booking Not Found" description={error || 'The booking you are looking for does not exist'} />
         <Card>
           <EmptyState
@@ -389,7 +389,7 @@ export default function BookingDetailPage() {
   const statusTransitions = getAvailableStatusTransitions(booking.status);
 
   return (
-    <AppShell physiology="operational">
+    <AppShell>
       {/* Page Header */}
       <PageHeader
         title={`Booking - ${booking.firstName} ${booking.lastName}`}

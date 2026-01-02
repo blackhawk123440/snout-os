@@ -162,7 +162,7 @@ export default function ServiceSettingsPage() {
   ];
 
   return (
-    <AppShell physiology="configuration">
+    <AppShell>
       <PageHeader
         title="Service Settings"
         description="Configure all service types and rules"

@@ -171,7 +171,7 @@ export default function ClientsPage() {
   ];
 
   return (
-    <AppShell physiology="analytical">
+    <AppShell>
       <PageHeader
         title="Clients"
         description="Manage client information and contact details"

@@ -190,7 +190,7 @@ export default function DiscountsPage() {
   ];
 
   return (
-    <AppShell physiology="configuration">
+    <AppShell>
       <PageHeader
         title="Discounts"
         description="Manage discount codes and automatic discounts"

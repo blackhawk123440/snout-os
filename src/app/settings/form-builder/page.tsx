@@ -149,7 +149,7 @@ export default function FormBuilderPage() {
   ];
 
   return (
-    <AppShell physiology="configuration">
+    <AppShell>
       <PageHeader
         title="Form Builder"
         description="Customize your booking form fields"

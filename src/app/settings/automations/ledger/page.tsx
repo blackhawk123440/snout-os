@@ -184,7 +184,7 @@ export default function AutomationLedgerPage() {
   ];
 
   return (
-    <AppShell physiology="configuration">
+    <AppShell>
       <PageHeader
         title="Automation Run Ledger"
         description="View automation execution history and failures"

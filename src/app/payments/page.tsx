@@ -344,7 +344,7 @@ export default function PaymentsPage() {
 
   if (loading && analytics.recentPayments.length === 0) {
     return (
-      <AppShell physiology="analytical">
+      <AppShell>
         <PageHeader
           title="Payments"
           description="Payment transactions and revenue overview"
@@ -370,7 +370,7 @@ export default function PaymentsPage() {
   }
 
   return (
-    <AppShell physiology="analytical">
+    <AppShell>
       <PageHeader
         title="Payments"
         description="Payment transactions and revenue overview"

@@ -66,7 +66,7 @@ export default function DashboardHomePage() {
   };
 
   return (
-    <AppShell physiology="observational">
+    <AppShell>
       <PageHeader
         title="Dashboard"
         description="Overview of your pet care business operations"

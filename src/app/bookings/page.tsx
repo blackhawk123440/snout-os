@@ -255,7 +255,7 @@ function BookingsPageContent() {
   ];
                                       
                                       return (
-    <AppShell physiology="analytical">
+    <AppShell>
       <PageHeader
         title="Bookings"
         description="Manage all bookings and assignments"

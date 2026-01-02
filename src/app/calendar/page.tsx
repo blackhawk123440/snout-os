@@ -322,7 +322,7 @@ export default function CalendarPage() {
 
   if (loading) {
     return (
-      <AppShell physiology="observational">
+      <AppShell>
         <PageHeader title="Calendar" description="View bookings in calendar format" />
         <Card>
           <Skeleton height="600px" />
@@ -333,7 +333,7 @@ export default function CalendarPage() {
 
   if (error && bookings.length === 0) {
     return (
-      <AppShell physiology="observational">
+      <AppShell>
         <PageHeader title="Calendar" description="View bookings in calendar format" />
         <Card>
           <EmptyState
@@ -352,7 +352,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <AppShell physiology="observational">
+    <AppShell>
       <PageHeader
         title="Calendar"
         description="View bookings in calendar format"

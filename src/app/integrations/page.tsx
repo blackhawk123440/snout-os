@@ -403,7 +403,7 @@ export default function IntegrationsPage() {
   ];
 
   return (
-    <AppShell physiology="analytical">
+    <AppShell>
       <PageHeader
         title="Integrations"
         description="Manage and test all your third-party integrations"
