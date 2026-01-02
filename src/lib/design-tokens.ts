@@ -188,6 +188,8 @@ export const tokens = {
       secondary: '#525252',
       tertiary: '#737373',
       disabled: '#a3a3a3',
+      inverse: '#ffffff', // Legacy support
+      brand: MATERIAL_PINK, // Legacy support
     },
     
     border: {
@@ -231,6 +233,7 @@ export const tokens = {
       '2xl': ['1.5rem', { lineHeight: '2rem' }],    // 24px
       '3xl': ['1.875rem', { lineHeight: '2.25rem' }], // 30px
       '4xl': ['2.25rem', { lineHeight: '2.5rem' }], // 36px
+      '5xl': ['3rem', { lineHeight: '1' }],         // 48px (legacy support)
     },
     
     fontWeight: {
@@ -283,6 +286,8 @@ export const tokens = {
     DEFAULT: '0 4px 6px -1px rgba(252, 225, 239, 0.08), 0 2px 4px -2px rgba(252, 225, 239, 0.04)',
     md: '0 10px 15px -3px rgba(252, 225, 239, 0.10), 0 4px 6px -4px rgba(252, 225, 239, 0.05)',
     lg: '0 20px 25px -5px rgba(252, 225, 239, 0.12), 0 8px 10px -6px rgba(252, 225, 239, 0.06)',
+    xl: '0 25px 50px -12px rgba(252, 225, 239, 0.15)', // Legacy support
+    inner: 'inset 0 2px 4px 0 rgba(252, 225, 239, 0.05)', // Legacy support
     none: 'none',
   },
   
