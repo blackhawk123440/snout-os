@@ -1,8 +1,9 @@
 /**
- * Sitter Dashboard Page - Enterprise Rebuild
+ * Sitter Job Management Dashboard - System DNA Implementation
  * 
- * Complete rebuild using design system and components.
- * Zero legacy styling - all through components and tokens.
+ * Operational posture: Execution-focused, clear action zones, reduced ambient motion, readiness signaling.
+ * Dominant posture is Operational for job management (pending, accepted, archived, tooLate tabs).
+ * Tier tab is Analytical but subordinate via TabPanel composition.
  */
 
 'use client';
@@ -215,7 +216,7 @@ function SitterDashboardContent() {
 
   if (loading) {
     return (
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title={isAdminView ? "Sitter Dashboard" : "My Dashboard"} />
         <div style={{ padding: tokens.spacing[6] }}>
           <Skeleton height={200} />
@@ -226,7 +227,7 @@ function SitterDashboardContent() {
 
   if (!dashboardData) {
     return (
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title={isAdminView ? "Sitter Dashboard" : "My Dashboard"} />
         <div style={{ padding: tokens.spacing[6] }}>
           <EmptyState
@@ -251,7 +252,7 @@ function SitterDashboardContent() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="operational">
       <PageHeader
         title={isAdminView ? `Sitter Dashboard: ${dashboardData.sitter.firstName} ${dashboardData.sitter.lastName}` : "My Dashboard"}
         description={isAdminView ? "Read-only admin view" : undefined}
@@ -265,13 +266,13 @@ function SitterDashboardContent() {
         >
           {/* Pending Tab */}
           <TabPanel id="pending">
-            <Card>
+            <Card depth="elevated">
               <SectionHeader title={`Pending Requests (${dashboardData.jobs.needsResponse.length})`} />
               <div style={{ padding: tokens.spacing[6] }}>
                 {dashboardData.jobs.needsResponse.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
                     {dashboardData.jobs.needsResponse.map((job) => (
-                      <Card key={job.id}>
+                      <Card key={job.id} depth="elevated">
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
@@ -311,7 +312,7 @@ function SitterDashboardContent() {
                               </div>
                               <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
                               {job.message && (
-                                <Card style={{ marginTop: tokens.spacing[2], padding: tokens.spacing[2], backgroundColor: tokens.colors.neutral[50] }}>
+                                <Card depth="elevated" style={{ marginTop: tokens.spacing[2], padding: tokens.spacing[2], backgroundColor: tokens.colors.neutral[50] }}>
                                   <div style={{ fontSize: tokens.typography.fontSize.xs[0] }}>{job.message}</div>
                                 </Card>
                               )}
@@ -323,6 +324,7 @@ function SitterDashboardContent() {
                                 variant="primary"
                                 onClick={() => acceptJob(job)}
                                 disabled={acceptingJobId === job.id || !!(job.expiresAt && new Date(job.expiresAt) < new Date())}
+                                energy="active"
                               >
                                 {acceptingJobId === job.id ? "Accepting..." : "Accept"}
                               </Button>
@@ -360,7 +362,7 @@ function SitterDashboardContent() {
 
             {/* Calendar View */}
             {viewMode === "calendar" && (
-              <Card>
+              <Card depth="elevated">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
                   <SectionHeader title="Calendar" />
                   <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
@@ -435,6 +437,7 @@ function SitterDashboardContent() {
                             {jobsForDay.map((job) => (
                               <Card
                                 key={job.id}
+                                depth="elevated"
                                 style={{
                                   padding: tokens.spacing[1],
                                   backgroundColor: tokens.colors.primary[100],
@@ -465,13 +468,13 @@ function SitterDashboardContent() {
 
             {/* List View */}
             {viewMode === "list" && (
-              <Card>
+              <Card depth="elevated">
                 <SectionHeader title={`Accepted Jobs (${dashboardData.jobs.accepted.length})`} />
                 <div style={{ padding: tokens.spacing[6] }}>
                   {dashboardData.jobs.accepted.length > 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
                       {dashboardData.jobs.accepted.map((job) => (
-                        <Card key={job.id}>
+                        <Card key={job.id} depth="elevated">
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                             <div style={{ flex: 1 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
@@ -527,13 +530,13 @@ function SitterDashboardContent() {
 
           {/* Archived Tab */}
           <TabPanel id="archived">
-            <Card>
+            <Card depth="elevated">
               <SectionHeader title={`Archived Jobs (${dashboardData.jobs.archived.length})`} />
               <div style={{ padding: tokens.spacing[6] }}>
                 {dashboardData.jobs.archived.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
                     {dashboardData.jobs.archived.map((job) => (
-                      <Card key={job.id} style={{ opacity: 0.75 }}>
+                      <Card key={job.id} depth="elevated" style={{ opacity: 0.75 }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
@@ -578,13 +581,13 @@ function SitterDashboardContent() {
 
           {/* Too Late Tab */}
           <TabPanel id="tooLate">
-            <Card>
+            <Card depth="elevated">
               <SectionHeader title={`Too Late / Expired (${dashboardData.jobs.tooLate.length})`} />
               <div style={{ padding: tokens.spacing[6] }}>
                 {dashboardData.jobs.tooLate.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
                     {dashboardData.jobs.tooLate.map((job) => (
-                      <Card key={job.id} style={{ opacity: 0.6 }}>
+                      <Card key={job.id} depth="elevated" style={{ opacity: 0.6 }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
@@ -625,11 +628,11 @@ function SitterDashboardContent() {
             </Card>
           </TabPanel>
 
-          {/* Tier Tab */}
+          {/* Tier Tab - Analytical but subordinate via TabPanel */}
           <TabPanel id="tier">
             {/* Current Tier */}
             {dashboardData.tier && (
-              <Card style={{ marginBottom: tokens.spacing[6] }}>
+              <Card depth="elevated" style={{ marginBottom: tokens.spacing[6] }}>
                 <SectionHeader title="Current Tier & Badge" />
                 <div style={{ padding: tokens.spacing[6] }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[6] }}>
@@ -675,7 +678,7 @@ function SitterDashboardContent() {
             )}
 
             {/* Performance Metrics */}
-            <Card style={{ marginBottom: tokens.spacing[6] }}>
+            <Card depth="elevated" style={{ marginBottom: tokens.spacing[6] }}>
               <SectionHeader title="Performance Metrics (Last 30 Days)" />
               <div style={{ padding: tokens.spacing[6] }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[6] }}>
@@ -717,7 +720,7 @@ function SitterDashboardContent() {
             </Card>
 
             {/* Job Statistics */}
-            <Card style={{ marginBottom: tokens.spacing[6] }}>
+            <Card depth="elevated" style={{ marginBottom: tokens.spacing[6] }}>
               <SectionHeader title="Job Statistics" />
               <div style={{ padding: tokens.spacing[6] }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: tokens.spacing[4] }}>
@@ -731,11 +734,11 @@ function SitterDashboardContent() {
 
             {/* Improvement Areas */}
             {dashboardData.improvementAreas.length > 0 && (
-              <Card style={{ marginBottom: tokens.spacing[6] }}>
+              <Card depth="elevated" style={{ marginBottom: tokens.spacing[6] }}>
                 <SectionHeader title="How to Rank Higher" />
                 <div style={{ padding: tokens.spacing[6] }}>
                   {dashboardData.nextTier && (
-                    <Card style={{ marginBottom: tokens.spacing[4], padding: tokens.spacing[4], backgroundColor: tokens.colors.primary[50] }}>
+                    <Card depth="elevated" style={{ marginBottom: tokens.spacing[4], padding: tokens.spacing[4], backgroundColor: tokens.colors.primary[50] }}>
                       <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
                         Next Tier: {dashboardData.nextTier.name}
                       </div>
@@ -743,7 +746,7 @@ function SitterDashboardContent() {
                   )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
                     {dashboardData.improvementAreas.map((area, idx) => (
-                      <Card key={idx}>
+                      <Card key={idx} depth="elevated">
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[3] }}>
                           <div
                             style={{
@@ -775,12 +778,12 @@ function SitterDashboardContent() {
 
             {/* Tier History */}
             {dashboardData.tierHistory.length > 0 && (
-              <Card>
+              <Card depth="elevated">
                 <SectionHeader title="Tier History" />
                 <div style={{ padding: tokens.spacing[6] }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
                     {dashboardData.tierHistory.map((history) => (
-                      <Card key={history.id}>
+                      <Card key={history.id} depth="elevated">
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[2] }}>
                           <span style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
                             {history.tierName}
@@ -814,7 +817,7 @@ function SitterDashboardContent() {
 export default function SitterDashboardPage() {
   return (
     <Suspense fallback={
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title="Sitter Dashboard" />
         <div style={{ padding: tokens.spacing[6] }}>
           <Skeleton height={200} />
