@@ -111,7 +111,7 @@ export default function BusinessSettingsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Business Settings"
         description="Configure your business information and preferences"

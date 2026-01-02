@@ -303,7 +303,7 @@ export default function AutomationPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <AppShell physiology="analytical">
         <PageHeader title="Automations" description="Configure automated messages and notifications" />
         <Card>
           <Skeleton height="400px" />
@@ -314,7 +314,7 @@ export default function AutomationPage() {
 
   if (error && !settings) {
     return (
-      <AppShell>
+      <AppShell physiology="analytical">
         <PageHeader title="Automations" description="Configure automated messages and notifications" />
         <Card>
           <EmptyState
@@ -333,7 +333,7 @@ export default function AutomationPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell physiology="analytical">
       <PageHeader
         title="Automations"
         description="Configure automated messages and notifications"

@@ -280,7 +280,7 @@ export default function SittersPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="analytical">
       <PageHeader
         title="Sitters Management"
         description="Manage your pet care team"

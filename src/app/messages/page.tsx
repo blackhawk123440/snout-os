@@ -156,7 +156,7 @@ export default function MessagesPage() {
   };
 
   return (
-    <AppShell>
+    <AppShell physiology="analytical">
       <PageHeader
         title="Message Templates"
         description="Manage automated messages and notifications"

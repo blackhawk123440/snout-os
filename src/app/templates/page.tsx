@@ -390,7 +390,7 @@ export default function TemplatesPage() {
   const smsWarning = smsCharacterCount > 140 && smsCharacterCount <= 160;
 
   return (
-    <AppShell>
+    <AppShell physiology="analytical">
       <PageHeader
         title="Templates"
         description="Message templates used by automations"

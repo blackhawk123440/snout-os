@@ -171,7 +171,7 @@ export default function PricingRulesPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Pricing Rules"
         description="Manage dynamic pricing rules and fees"
