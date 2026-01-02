@@ -190,13 +190,13 @@ export default function DiscountsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Discounts"
         description="Manage discount codes and automatic discounts"
         actions={
           <Link href="/settings/discounts/new">
-            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+            <Button variant="primary" energy="active" leftIcon={<i className="fas fa-plus" />}>
               Create Discount
             </Button>
           </Link>
@@ -207,6 +207,7 @@ export default function DiscountsPage() {
         {/* Error Banner */}
         {error && (
           <Card
+            depth="critical"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -218,7 +219,7 @@ export default function DiscountsPage() {
         )}
 
         {loading ? (
-          <Card>
+          <Card depth="elevated">
             <div style={{ padding: tokens.spacing[6] }}>
               <Skeleton height={400} />
             </div>
@@ -236,7 +237,7 @@ export default function DiscountsPage() {
             }}
           />
         ) : (
-          <Card>
+          <Card depth="elevated">
             <Table columns={tableColumns} data={discounts} keyExtractor={(discount) => discount.id} />
           </Card>
         )}

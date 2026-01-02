@@ -184,7 +184,7 @@ export default function AutomationLedgerPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="analytical">
       <PageHeader
         title="Automation Run Ledger"
         description="View automation execution history and failures"
@@ -201,6 +201,7 @@ export default function AutomationLedgerPage() {
         {/* Error Banner */}
         {error && (
           <Card
+            depth="critical"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -212,7 +213,7 @@ export default function AutomationLedgerPage() {
         )}
 
         {/* Filters */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
+        <Card depth="elevated" style={{ marginBottom: tokens.spacing[6] }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4], marginBottom: tokens.spacing[4] }}>
             <div>
               <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[2], color: tokens.colors.text.primary }}>
@@ -241,7 +242,7 @@ export default function AutomationLedgerPage() {
         </Card>
 
         {loading ? (
-          <Card>
+          <Card depth="elevated">
             <div style={{ padding: tokens.spacing[6] }}>
               <Skeleton height={400} />
             </div>
@@ -253,7 +254,7 @@ export default function AutomationLedgerPage() {
             icon={<i className="fas fa-history" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
           />
         ) : (
-          <Card>
+          <Card depth="elevated">
             <Table columns={tableColumns} data={runs} keyExtractor={(run) => run.id} />
           </Card>
         )}

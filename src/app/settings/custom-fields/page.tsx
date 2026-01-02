@@ -174,13 +174,13 @@ export default function CustomFieldsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Custom Fields"
         description="Manage custom fields for clients, pets, sitters, and bookings"
         actions={
           <Link href="/settings/custom-fields/new">
-            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+            <Button variant="primary" energy="active" leftIcon={<i className="fas fa-plus" />}>
               Create Field
             </Button>
           </Link>
@@ -191,6 +191,7 @@ export default function CustomFieldsPage() {
         {/* Error Banner */}
         {error && (
           <Card
+            depth="critical"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -202,7 +203,7 @@ export default function CustomFieldsPage() {
         )}
 
         {/* Filters */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
+        <Card depth="elevated" style={{ marginBottom: tokens.spacing[6] }}>
           <div style={{ display: 'flex', gap: tokens.spacing[4], alignItems: 'center' }}>
             <div style={{ minWidth: '200px' }}>
               <Select
@@ -215,7 +216,7 @@ export default function CustomFieldsPage() {
         </Card>
 
         {loading ? (
-          <Card>
+          <Card depth="elevated">
             <div style={{ padding: tokens.spacing[6] }}>
               <Skeleton height={400} />
             </div>
@@ -233,7 +234,7 @@ export default function CustomFieldsPage() {
             }}
           />
         ) : (
-          <Card>
+          <Card depth="elevated">
             <Table columns={tableColumns} data={fields} keyExtractor={(field) => field.id} />
           </Card>
         )}

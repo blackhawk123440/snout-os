@@ -179,7 +179,7 @@ export default function TiersPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Sitter Tiers"
         description="Manage sitter performance tiers and requirements"
@@ -189,7 +189,7 @@ export default function TiersPage() {
               Calculate Tiers
             </Button>
             <Link href="/settings/tiers/new">
-              <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+              <Button variant="primary" energy="active" leftIcon={<i className="fas fa-plus" />}>
                 Create Tier
               </Button>
             </Link>
@@ -201,6 +201,7 @@ export default function TiersPage() {
         {/* Success Banner */}
         {successMessage && (
           <Card
+            depth="elevated"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.success[50],
@@ -216,6 +217,7 @@ export default function TiersPage() {
         {/* Error Banner */}
         {error && (
           <Card
+            depth="critical"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -227,7 +229,7 @@ export default function TiersPage() {
         )}
 
         {loading ? (
-          <Card>
+          <Card depth="elevated">
             <div style={{ padding: tokens.spacing[6] }}>
               <Skeleton height={400} />
             </div>
@@ -245,7 +247,7 @@ export default function TiersPage() {
             }}
           />
         ) : (
-          <Card>
+          <Card depth="elevated">
             <Table columns={tableColumns} data={tiers} keyExtractor={(tier) => tier.id} />
           </Card>
         )}

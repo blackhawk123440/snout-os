@@ -162,12 +162,12 @@ export default function ServiceSettingsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Service Settings"
         description="Configure all service types and rules"
         actions={
-          <Button variant="primary" onClick={() => setShowCreateModal(true)} leftIcon={<i className="fas fa-plus" />}>
+          <Button variant="primary" energy="active" onClick={() => setShowCreateModal(true)} leftIcon={<i className="fas fa-plus" />}>
             Add Service
           </Button>
         }
@@ -177,6 +177,7 @@ export default function ServiceSettingsPage() {
         {/* Error Banner */}
         {error && (
           <Card
+            depth="critical"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -188,7 +189,7 @@ export default function ServiceSettingsPage() {
         )}
 
         {loading ? (
-          <Card>
+          <Card depth="elevated">
             <div style={{ padding: tokens.spacing[6] }}>
               <Skeleton height={400} />
             </div>
@@ -204,7 +205,7 @@ export default function ServiceSettingsPage() {
             }}
           />
         ) : (
-          <Card>
+          <Card depth="elevated">
             <Table columns={tableColumns} data={services} keyExtractor={(service) => service.id} />
           </Card>
         )}

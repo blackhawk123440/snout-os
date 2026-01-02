@@ -149,13 +149,13 @@ export default function FormBuilderPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Form Builder"
         description="Customize your booking form fields"
         actions={
           <Link href="/settings/form-builder/new">
-            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+            <Button variant="primary" energy="active" leftIcon={<i className="fas fa-plus" />}>
               Add Field
             </Button>
           </Link>
@@ -166,6 +166,7 @@ export default function FormBuilderPage() {
         {/* Error Banner */}
         {error && (
           <Card
+            depth="critical"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -177,7 +178,7 @@ export default function FormBuilderPage() {
         )}
 
         {loading ? (
-          <Card>
+          <Card depth="elevated">
             <div style={{ padding: tokens.spacing[6] }}>
               <Skeleton height={400} />
             </div>
@@ -195,7 +196,7 @@ export default function FormBuilderPage() {
             }}
           />
         ) : (
-          <Card>
+          <Card depth="elevated">
             <Table columns={tableColumns} data={fields} keyExtractor={(field) => field.id} />
           </Card>
         )}

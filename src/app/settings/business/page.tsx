@@ -111,16 +111,22 @@ export default function BusinessSettingsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Business Settings"
         description="Configure your business information and preferences"
+        actions={
+          <Button variant="primary" energy="active" onClick={handleSave} disabled={saving} isLoading={saving}>
+            Save Settings
+          </Button>
+        }
       />
 
       <div style={{ padding: tokens.spacing[6] }}>
         {/* Success Banner */}
         {successMessage && (
           <Card
+            depth="elevated"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.success[50],
@@ -136,6 +142,7 @@ export default function BusinessSettingsPage() {
         {/* Error Banner */}
         {error && (
           <Card
+            depth="critical"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -147,14 +154,14 @@ export default function BusinessSettingsPage() {
         )}
 
         {loading ? (
-          <Card>
+          <Card depth="elevated">
             <div style={{ padding: tokens.spacing[6] }}>
               <Skeleton height={400} />
             </div>
           </Card>
         ) : (
           <>
-            <Card style={{ marginBottom: tokens.spacing[6] }}>
+            <Card depth="elevated" style={{ marginBottom: tokens.spacing[6] }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
                 <FormRow label="Business Name" required>
                   <Input
@@ -197,12 +204,6 @@ export default function BusinessSettingsPage() {
                 </FormRow>
               </div>
             </Card>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Button variant="primary" onClick={handleSave} disabled={saving} isLoading={saving}>
-                Save Settings
-              </Button>
-            </div>
           </>
         )}
       </div>
