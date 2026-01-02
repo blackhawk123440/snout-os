@@ -142,6 +142,9 @@ export const SYSTEM_CONSTANTS = {
     active: 0.6,    // Higher energy
     critical: 0.7,  // Maximum but controlled
   },
+  
+  /** Phase 4A: Attention decay duration (ms) - energy states return to idle after inactivity */
+  ATTENTION_DECAY_DURATION: 4000, // 4 seconds - gradual return to silence
 } as const;
 
 /**

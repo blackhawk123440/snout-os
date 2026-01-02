@@ -6,9 +6,9 @@
  * Motion communicates readiness, not decoration.
  */
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { tokens } from '@/lib/design-tokens';
-import { EnergyLevel } from '@/lib/system-dna';
+import { EnergyLevel, SYSTEM_CONSTANTS } from '@/lib/system-dna';
 import { motion } from '@/lib/motion-system';
 import { spatial } from '@/lib/spatial-hierarchy';
 
@@ -128,27 +128,93 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       className = '',
       onMouseEnter,
       onMouseLeave,
+      onFocus,
+      onClick,
       ...props
     },
     ref
   ) => {
     // Phase 4C: Idle is default for non-primary buttons (silence state)
     // Primary buttons default to focused. System enforces this, not page logic.
-    const effectiveEnergy = energy ?? getDefaultEnergy(variant);
+    const initialEnergy = energy ?? getDefaultEnergy(variant);
+    const isDisabled = disabled || isLoading;
+    
+    // Phase 4A: Attention Decay - energy states (active, focused) decay back to idle after inactivity
+    // Only applies to primary variant buttons with active/focused energy
+    const shouldDecay = variant === 'primary' && (initialEnergy === 'active' || initialEnergy === 'focused');
+    const [decayedEnergy, setDecayedEnergy] = useState<EnergyLevel>(initialEnergy);
+    const lastInteractionRef = useRef<number>(Date.now());
+    const decayTimerRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Phase 4A: Reset decay timer on interaction (mouse enter, focus, click)
+    const resetDecay = () => {
+      lastInteractionRef.current = Date.now();
+      setDecayedEnergy(initialEnergy);
+      if (decayTimerRef.current) {
+        clearTimeout(decayTimerRef.current);
+        decayTimerRef.current = null;
+      }
+    };
+    
+    // Phase 4A: Reset decay state when initialEnergy changes
+    useEffect(() => {
+      setDecayedEnergy(initialEnergy);
+      lastInteractionRef.current = Date.now();
+      if (decayTimerRef.current) {
+        clearTimeout(decayTimerRef.current);
+        decayTimerRef.current = null;
+      }
+    }, [initialEnergy]);
+    
+    // Phase 4A: Set up decay timer
+    useEffect(() => {
+      if (!shouldDecay || isDisabled || isLoading) {
+        // If decay shouldn't apply, reset to initial energy
+        if (decayedEnergy !== initialEnergy) {
+          setDecayedEnergy(initialEnergy);
+        }
+        return;
+      }
+      
+      const checkDecay = () => {
+        const timeSinceInteraction = Date.now() - lastInteractionRef.current;
+        if (timeSinceInteraction >= SYSTEM_CONSTANTS.ATTENTION_DECAY_DURATION) {
+          setDecayedEnergy('idle');
+        } else {
+          decayTimerRef.current = setTimeout(checkDecay, 100); // Check every 100ms
+        }
+      };
+      
+      // Initial timer setup
+      decayTimerRef.current = setTimeout(checkDecay, SYSTEM_CONSTANTS.ATTENTION_DECAY_DURATION);
+      
+      return () => {
+        if (decayTimerRef.current) {
+          clearTimeout(decayTimerRef.current);
+        }
+      };
+    }, [shouldDecay, isDisabled, isLoading, initialEnergy, decayedEnergy]);
+    
+    // Use decayed energy for display (only for primary buttons with active/focused)
+    const effectiveEnergy = shouldDecay ? decayedEnergy : initialEnergy;
     
     const sizeStyle = getSizeStyles(size);
     const variantStyle = getVariantStyles(variant, effectiveEnergy);
     const hoverStyle = getHoverStyles(variant, effectiveEnergy);
-    const isDisabled = disabled || isLoading;
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (!isDisabled && hoverStyle.backgroundColor) {
-        e.currentTarget.style.backgroundColor = hoverStyle.backgroundColor;
-        if (hoverStyle.borderColor) {
-          e.currentTarget.style.borderColor = hoverStyle.borderColor;
-        }
-        if (hoverStyle.color) {
-          e.currentTarget.style.color = hoverStyle.color;
+      if (!isDisabled) {
+        // Phase 4A: Reset decay on interaction
+        resetDecay();
+        
+        if (hoverStyle.backgroundColor) {
+          e.currentTarget.style.backgroundColor = hoverStyle.backgroundColor;
+          if (hoverStyle.borderColor) {
+            e.currentTarget.style.borderColor = hoverStyle.borderColor;
+          }
+          if (hoverStyle.color) {
+            e.currentTarget.style.color = hoverStyle.color;
+          }
         }
       }
       onMouseEnter?.(e);
@@ -161,6 +227,22 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         e.currentTarget.style.color = variantStyle.color as string;
       }
       onMouseLeave?.(e);
+    };
+    
+    const handleFocus = (e: React.FocusEvent<HTMLButtonElement>) => {
+      // Phase 4A: Reset decay on interaction
+      if (!isDisabled) {
+        resetDecay();
+      }
+      onFocus?.(e);
+    };
+    
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      // Phase 4A: Reset decay on interaction
+      if (!isDisabled) {
+        resetDecay();
+      }
+      onClick?.(e);
     };
 
     return (
@@ -187,6 +269,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onFocus={handleFocus}
+        onClick={handleClick}
         {...props}
       >
         {isLoading && (
