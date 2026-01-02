@@ -1,66 +1,125 @@
 /**
- * Design Tokens - Living Interface System
+ * Design Tokens - System DNA Implementation
  * 
- * Enterprise design system tokens for a living, time-aware interface.
- * All colors, spacing, typography, shadows, motion, depth, and opacity
- * must come from these tokens.
+ * Canonical design tokens for the enterprise control surface.
+ * Built on white + soft pink #fce1ef as primary materials.
  * 
- * System DNA:
- * - White and Pink #fce1ef as primary materials
- * - Time-aware, continuous, ambient motion
- * - Depth and opacity for spatial hierarchy
- * - Posture-aware design (observational, analytical, configuration, operational, critical)
- * 
+ * All colors, spacing, typography, shadows, and radii must come from these tokens.
  * No raw hex values or px values allowed in components.
+ * 
+ * The system uses white as the dominant surface and pink #fce1ef for system identity and focus.
+ * Contrast is achieved through depth, opacity, spacing, and motion - not dark backgrounds.
  */
+
+/**
+ * Primary Materials
+ * White is the dominant surface. Pink #fce1ef defines system identity.
+ */
+const MATERIAL_WHITE = '#ffffff';
+const MATERIAL_PINK = '#fce1ef';
+
+/**
+ * Pink Energy Scale
+ * Pink intensity increases subtly for focus, readiness, or importance.
+ * Energy is communicated through opacity shifts, edges, and restrained glow.
+ * No harsh saturation. No aggressive color blocks.
+ */
+const pinkEnergyScale = {
+  idle: '#fce1ef',      // Base soft pink (RGB: 252, 225, 239)
+  aware: '#fbd8ea',     // Slightly more present
+  focused: '#facfe5',   // Moderate focus
+  active: '#f9c6e0',    // Higher energy
+  critical: '#f8bddb',  // Maximum but controlled
+};
 
 export const tokens = {
   // ===== COLORS =====
   colors: {
-    // Primary System Color: Pink #fce1ef
-    // Used with restraint as controlled voltage, not branding paint
-    // Pink intensifies subtly to indicate focus, readiness, or importance
+    /**
+     * Primary: Pink #fce1ef system
+     * Color behaves as energy, not decoration.
+     * 
+     * New system uses: idle, aware, focused, active, critical
+     * Legacy numeric scale maintained for backward compatibility during migration
+     */
     primary: {
-      50: '#fef7fb',   // Lightest - ambient presence
-      100: '#fef2f8',  // Very light - subtle emphasis
-      200: '#fce1ef',  // BASE - Primary system color (the pink)
-      300: '#f9d0e5',  // Slightly intensified - focus areas
-      400: '#f5bfdb',  // Moderate intensity - active states
-      500: '#f2aed1',  // Higher intensity - important actions
-      600: '#e89fc4',  // Strong - critical focus
-      700: '#dc8fb5',  // Stronger - elevated importance
-      800: '#ce7fa4',  // Very strong - reserved use
-      900: '#be6f91',  // Maximum - critical states only
-      DEFAULT: '#fce1ef', // The primary pink
+      // Base pink material
+      material: MATERIAL_PINK,
+      
+      // Energy-based intensity scale (new system)
+      idle: pinkEnergyScale.idle,
+      aware: pinkEnergyScale.aware,
+      focused: pinkEnergyScale.focused,
+      active: pinkEnergyScale.active,
+      critical: pinkEnergyScale.critical,
+      
+      // Default uses focused level
+      DEFAULT: pinkEnergyScale.focused,
+      
+      // Legacy numeric scale (backward compatibility - will be removed after migration)
+      50: pinkEnergyScale.idle,
+      100: pinkEnergyScale.aware,
+      200: MATERIAL_PINK, // Base material
+      300: pinkEnergyScale.focused,
+      400: pinkEnergyScale.active,
+      500: pinkEnergyScale.critical,
+      600: '#432f21', // Legacy dark color for contrast
+      700: '#351f16',
+      800: '#27100c',
+      900: '#1a0802',
+      
+      // Opacity variants for layering
+      opacity: {
+        5: 'rgba(252, 225, 239, 0.05)',
+        10: 'rgba(252, 225, 239, 0.10)',
+        20: 'rgba(252, 225, 239, 0.20)',
+        30: 'rgba(252, 225, 239, 0.30)',
+        40: 'rgba(252, 225, 239, 0.40)',
+        50: 'rgba(252, 225, 239, 0.50)',
+        60: 'rgba(252, 225, 239, 0.60)',
+        70: 'rgba(252, 225, 239, 0.70)',
+        80: 'rgba(252, 225, 239, 0.80)',
+        90: 'rgba(252, 225, 239, 0.90)',
+      },
     },
     
-    // Surface: White as dominant material
-    // Establishes clarity, calm, and space
-    surface: {
-      base: '#ffffff',        // Primary surface - white
-      elevated: '#ffffff',    // Elevated panels (same white, depth through shadow)
-      inset: '#fef7fb',       // Subtle inset areas (very light pink tint)
-      overlay: 'rgba(255, 255, 255, 0.95)', // Overlay surfaces
+    /**
+     * White Material
+     * Dominant surface. Establishes clarity and calm.
+     */
+    white: {
+      material: MATERIAL_WHITE,
+      DEFAULT: MATERIAL_WHITE,
+      
+      // Subtle variations for depth
+      pure: '#ffffff',
+      soft: '#fefefe',
+      warm: '#fdfdfd',
     },
     
-    // Neutrals - refined for white-dominant system
-    // Contrast achieved through depth, opacity, shadow, not dark backgrounds
+    /**
+     * Neutrals
+     * Achieve contrast through depth, opacity, spacing - not dark backgrounds.
+     */
     neutral: {
-      0: '#ffffff',   // Pure white
-      50: '#fafafa',  // Very light gray - subtle separation
-      100: '#f5f5f5', // Light gray - gentle distinction
-      200: '#e5e5e5', // Border gray - soft edges
-      300: '#d4d4d4', // Medium-light - muted emphasis
-      400: '#a3a3a3', // Medium - secondary text
-      500: '#737373', // Medium-dark - tertiary text
-      600: '#525252', // Dark - secondary text
-      700: '#404040', // Darker - primary text
-      800: '#262626', // Very dark - strong text
-      900: '#171717', // Near black - maximum contrast text
+      0: '#ffffff',
+      50: '#fafafa',
+      100: '#f5f5f5',
+      200: '#e5e5e5',
+      300: '#d4d4d4',
+      400: '#a3a3a3',
+      500: '#737373',
+      600: '#525252',
+      700: '#404040',
+      800: '#262626',
+      900: '#171717',
       DEFAULT: '#525252',
     },
     
-    // Status colors - preserved but refined for white system
+    /**
+     * Status Colors
+     * Restrained, authoritative. Never aggressive.
+     */
     success: {
       50: '#ecfdf5',
       100: '#d1fae5',
@@ -69,7 +128,7 @@ export const tokens = {
       400: '#34d399',
       500: '#10b981',
       600: '#059669',
-      700: '#047857',
+      700: '#047857', // Legacy support
       800: '#065f46',
       900: '#064e3b',
       DEFAULT: '#10b981',
@@ -83,7 +142,7 @@ export const tokens = {
       400: '#fbbf24',
       500: '#f59e0b',
       600: '#d97706',
-      700: '#b45309',
+      700: '#b45309', // Legacy support
       800: '#92400e',
       900: '#78350f',
       DEFAULT: '#f59e0b',
@@ -97,7 +156,7 @@ export const tokens = {
       400: '#f87171',
       500: '#ef4444',
       600: '#dc2626',
-      700: '#b91c1c',
+      700: '#b91c1c', // Legacy support
       800: '#991b1b',
       900: '#7f1d1d',
       DEFAULT: '#ef4444',
@@ -111,192 +170,35 @@ export const tokens = {
       400: '#60a5fa',
       500: '#3b82f6',
       600: '#2563eb',
-      700: '#1d4ed8',
+      700: '#1d4ed8', // Legacy support
       800: '#1e40af',
       900: '#1e3a8a',
       DEFAULT: '#3b82f6',
     },
     
-    // Semantic aliases - evolved for white + pink system
+    // Semantic aliases
     background: {
-      primary: '#ffffff',        // White dominant
-      secondary: '#fef7fb',      // Subtle pink tint (very light)
-      tertiary: '#f5f5f5',       // Light neutral
-      inverse: '#171717',        // Dark - rarely used
+      primary: MATERIAL_WHITE,
+      secondary: '#fafafa',
+      tertiary: '#f5f5f5',
     },
     
     text: {
-      primary: '#171717',        // Near black on white
-      secondary: '#525252',      // Medium gray
-      tertiary: '#737373',       // Lighter gray
-      disabled: '#a3a3a3',       // Muted
-      inverse: '#ffffff',        // White on dark (rare)
-      brand: '#fce1ef',          // The pink (for accents only)
+      primary: '#171717',
+      secondary: '#525252',
+      tertiary: '#737373',
+      disabled: '#a3a3a3',
     },
     
     border: {
-      default: '#e5e5e5',        // Soft gray borders
-      muted: '#f5f5f5',          // Very light borders
-      strong: '#d4d4d4',         // Visible borders
-      focus: '#fce1ef',          // Pink focus ring
-    },
-  },
-  
-  // ===== MOTION =====
-  // Time-aware, continuous, ambient motion
-  // Motion communicates intelligence and readiness, not animation
-  motion: {
-    // Duration - posture-aware timing
-    duration: {
-      instant: '0ms',            // Immediate (no visible transition)
-      fast: '150ms',             // Quick state changes
-      DEFAULT: '300ms',          // Standard transitions
-      ambient: '600ms',          // Ambient, breathing-like motion
-      slow: '800ms',             // Deliberate, calming transitions
-      idle: '2000ms',            // Idle breathing animation
-    },
-    
-    // Timing functions - feel like breathing, not triggering
-    easing: {
-      // Standard - smooth and controlled
-      DEFAULT: 'cubic-bezier(0.4, 0, 0.2, 1)',
-      
-      // Ambient - breathing-like, continuous
-      ambient: 'cubic-bezier(0.4, 0, 0.6, 1)',
-      breathe: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)', // Gentle sine-like
-      
-      // Active - tighter, more responsive
-      active: 'cubic-bezier(0.2, 0, 0, 1)',
-      
-      // Entrance - gentle arrival
-      enter: 'cubic-bezier(0, 0, 0.2, 1)',
-      
-      // Exit - smooth departure
-      exit: 'cubic-bezier(0.4, 0, 1, 1)',
-    },
-    
-    // Posture-specific motion characteristics
-    posture: {
-      // Observational (dashboards, overviews)
-      observational: {
-        duration: '600ms',
-        easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-        intensity: 'subtle',
-      },
-      
-      // Analytical (payments, analytics, charts)
-      analytical: {
-        duration: '400ms',
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-        intensity: 'moderate',
-      },
-      
-      // Configuration (settings, forms)
-      configuration: {
-        duration: '200ms',
-        easing: 'cubic-bezier(0.4, 0, 1, 1)',
-        intensity: 'minimal',
-      },
-      
-      // Operational (bookings, workflows)
-      operational: {
-        duration: '250ms',
-        easing: 'cubic-bezier(0.2, 0, 0, 1)',
-        intensity: 'focused',
-      },
-      
-      // Critical (errors, confirmations)
-      critical: {
-        duration: '150ms',
-        easing: 'cubic-bezier(0.4, 0, 1, 1)',
-        intensity: 'precise',
-      },
-    },
-  },
-  
-  // ===== DEPTH =====
-  // Spatial hierarchy through depth, not flat layers
-  // Panels feel anchored in space
-  depth: {
-    // Elevation levels - how "far" from surface
-    elevation: {
-      base: 0,              // On surface
-      raised: 1,            // Slightly elevated (cards, inputs)
-      floating: 2,          // Floating (dropdowns, popovers)
-      overlay: 3,           // Overlay (modals, sidebars)
-      critical: 4,          // Maximum (critical modals)
-    },
-    
-    // Shadow system - creates depth, not decoration
-    shadows: {
-      // Subtle - ambient presence
-      subtle: '0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 1px 0 rgba(0, 0, 0, 0.02)',
-      
-      // Soft - gentle elevation
-      soft: '0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-      
-      // Default - standard elevation
-      DEFAULT: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03)',
-      
-      // Medium - noticeable elevation
-      md: '0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04)',
-      
-      // Large - strong elevation
-      lg: '0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
-      
-      // Focus glow - pink energy indication
-      focusGlow: '0 0 0 3px rgba(252, 225, 239, 0.3)', // Pink glow
-      focusGlowStrong: '0 0 0 3px rgba(252, 225, 239, 0.5)',
-      
-      // Inner - inset depth
-      inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.03)',
-      
-      none: 'none',
-    },
-    
-    // Z-index scale (preserved from original)
-    zIndex: {
-      base: 0,
-      dropdown: 1000,
-      sticky: 1020,
-      fixed: 1030,
-      modalBackdrop: 1040,
-      modal: 1050,
-      popover: 1060,
-      tooltip: 1070,
-    },
-  },
-  
-  // ===== OPACITY =====
-  // Visual energy through opacity shifts
-  // Pink intensity changes through opacity, not saturation
-  opacity: {
-    // Standard opacity scale
-    transparent: 0,
-    invisible: 0.05,    // Barely perceptible
-    subtle: 0.1,        // Very subtle
-    light: 0.2,         // Light overlay
-    soft: 0.3,          // Soft emphasis
-    muted: 0.4,         // Muted state
-    DEFAULT: 0.5,       // Standard overlay
-    visible: 0.6,       // More visible
-    strong: 0.7,        // Strong overlay
-    prominent: 0.8,     // Prominent
-    opaque: 0.9,        // Nearly opaque
-    solid: 1,           // Fully opaque
-    
-    // State-specific opacity
-    states: {
-      disabled: 0.4,        // Disabled elements
-      hover: 0.8,           // Hover overlay
-      active: 0.9,          // Active state
-      focus: 1,             // Focus state (full)
-      idle: 0.7,            // Idle/resting state
+      default: '#e5e5e5',
+      muted: '#f5f5f5',
+      strong: '#d4d4d4',
+      focus: MATERIAL_PINK,
     },
   },
   
   // ===== SPACING =====
-  // Preserved - spacing rhythm remains consistent
   spacing: {
     0: '0',
     1: '0.25rem',   // 4px
@@ -314,7 +216,6 @@ export const tokens = {
   },
   
   // ===== TYPOGRAPHY =====
-  // Preserved - typography scale remains consistent
   typography: {
     fontFamily: {
       sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
@@ -330,7 +231,6 @@ export const tokens = {
       '2xl': ['1.5rem', { lineHeight: '2rem' }],    // 24px
       '3xl': ['1.875rem', { lineHeight: '2.25rem' }], // 30px
       '4xl': ['2.25rem', { lineHeight: '2.5rem' }], // 36px
-      '5xl': ['3rem', { lineHeight: '1' }],         // 48px
     },
     
     fontWeight: {
@@ -348,7 +248,6 @@ export const tokens = {
   },
   
   // ===== BORDER RADIUS =====
-  // Preserved - corner rounding remains consistent
   borderRadius: {
     none: '0',
     sm: '0.125rem',   // 2px
@@ -360,8 +259,34 @@ export const tokens = {
     full: '9999px',
   },
   
+  // ===== SHADOWS =====
+  /**
+   * Shadows create depth and spatial hierarchy.
+   * Restrained, subtle. Never aggressive.
+   */
+  shadows: {
+    // Subtle depth for surfaces
+    surface: '0 1px 2px 0 rgba(252, 225, 239, 0.05)',
+    
+    // Elevated panels
+    elevated: '0 4px 6px -1px rgba(252, 225, 239, 0.08), 0 2px 4px -2px rgba(252, 225, 239, 0.04)',
+    
+    // Overlays and modals
+    overlay: '0 10px 15px -3px rgba(252, 225, 239, 0.10), 0 4px 6px -4px rgba(252, 225, 239, 0.05)',
+    
+    // Critical overlays
+    critical: '0 20px 25px -5px rgba(252, 225, 239, 0.12), 0 8px 10px -6px rgba(252, 225, 239, 0.06)',
+    
+    // Legacy aliases (for gradual migration)
+    xs: '0 1px 2px 0 rgba(252, 225, 239, 0.05)',
+    sm: '0 1px 3px 0 rgba(252, 225, 239, 0.06), 0 1px 2px -1px rgba(252, 225, 239, 0.04)',
+    DEFAULT: '0 4px 6px -1px rgba(252, 225, 239, 0.08), 0 2px 4px -2px rgba(252, 225, 239, 0.04)',
+    md: '0 10px 15px -3px rgba(252, 225, 239, 0.10), 0 4px 6px -4px rgba(252, 225, 239, 0.05)',
+    lg: '0 20px 25px -5px rgba(252, 225, 239, 0.12), 0 8px 10px -6px rgba(252, 225, 239, 0.06)',
+    none: 'none',
+  },
+  
   // ===== LAYOUT =====
-  // Preserved - layout structure remains consistent
   layout: {
     appShell: {
       sidebarWidth: '16rem',    // 256px
@@ -380,48 +305,58 @@ export const tokens = {
     },
   },
   
-  // ===== LEGACY SHADOWS (deprecated, use depth.shadows) =====
-  // Kept for backwards compatibility during transition
-  // Components should migrate to depth.shadows
-  shadows: {
-    xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-    sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
-    DEFAULT: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
-    md: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-    lg: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-    xl: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
-    none: 'none',
+  // ===== Z-INDEX =====
+  /**
+   * Spatial depth layers
+   * The interface exists in depth, not flat layers.
+   */
+  zIndex: {
+    base: 0,
+    surface: 1,
+    elevated: 10,
+    overlay: 100,
+    critical: 200,
+    
+    // Legacy aliases (for gradual migration)
+    dropdown: 100,
+    sticky: 10,
+    fixed: 20,
+    modalBackdrop: 100,
+    modal: 200,
+    popover: 150,
+    tooltip: 150,
   },
   
-  // ===== LEGACY TRANSITIONS (deprecated, use motion) =====
-  // Kept for backwards compatibility during transition
-  // Components should migrate to motion.duration and motion.easing
+  // ===== TRANSITIONS =====
+  /**
+   * Temporal intelligence: continuous, time-aware transitions
+   * Motion communicates intelligence and readiness only.
+   */
   transitions: {
     duration: {
+      ambient: '2000ms',      // Slow, continuous breathing
+      transition: '300ms',    // Smooth state change
+      readiness: '150ms',     // Quick but not abrupt
+      critical: '200ms',      // Controlled urgency
+      
+      // Legacy aliases
       fast: '150ms',
-      DEFAULT: '200ms',
+      DEFAULT: '300ms',
       slow: '300ms',
     },
+    
     timingFunction: {
+      ambient: 'cubic-bezier(0.4, 0, 0.2, 1)',      // Smooth, natural
+      transition: 'cubic-bezier(0.4, 0, 0.2, 1)',   // Continuous
+      readiness: 'cubic-bezier(0.25, 0.1, 0.25, 1)', // Slightly tighter
+      critical: 'cubic-bezier(0.2, 0, 0, 1)',       // Precise, controlled
+      
+      // Legacy aliases
       DEFAULT: 'cubic-bezier(0.4, 0, 0.2, 1)',
       in: 'cubic-bezier(0.4, 0, 1, 1)',
       out: 'cubic-bezier(0, 0, 0.2, 1)',
       inOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
     },
-  },
-  
-  // ===== LEGACY Z-INDEX (deprecated, use depth.zIndex) =====
-  // Kept for backwards compatibility during transition
-  zIndex: {
-    base: 0,
-    dropdown: 1000,
-    sticky: 1020,
-    fixed: 1030,
-    modalBackdrop: 1040,
-    modal: 1050,
-    popover: 1060,
-    tooltip: 1070,
   },
 } as const;
 
@@ -430,4 +365,3 @@ export type ColorToken = keyof typeof tokens.colors;
 export type SpacingToken = keyof typeof tokens.spacing;
 export type FontSizeToken = keyof typeof tokens.typography.fontSize;
 export type FontWeightToken = keyof typeof tokens.typography.fontWeight;
-export type PostureType = keyof typeof tokens.motion.posture;
