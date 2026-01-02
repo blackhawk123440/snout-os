@@ -303,9 +303,9 @@ export default function AutomationPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <AppShell physiology="configuration">
         <PageHeader title="Automations" description="Configure automated messages and notifications" />
-        <Card>
+        <Card depth="elevated">
           <Skeleton height="400px" />
         </Card>
       </AppShell>
@@ -314,9 +314,9 @@ export default function AutomationPage() {
 
   if (error && !settings) {
     return (
-      <AppShell>
+      <AppShell physiology="configuration">
         <PageHeader title="Automations" description="Configure automated messages and notifications" />
-        <Card>
+        <Card depth="critical">
           <EmptyState
             icon="⚠️"
             title="Failed to Load Automations"
@@ -333,7 +333,7 @@ export default function AutomationPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Automations"
         description="Configure automated messages and notifications"
@@ -346,6 +346,7 @@ export default function AutomationPage() {
             </Link>
             <Button
               variant="primary"
+              energy="active"
               onClick={handleSave}
               isLoading={saving}
               leftIcon={<i className="fas fa-save" />}
@@ -358,6 +359,7 @@ export default function AutomationPage() {
 
       {error && (
         <Card
+          depth="critical"
           style={{
             marginBottom: tokens.spacing[6],
             borderColor: tokens.colors.error.DEFAULT,
@@ -380,6 +382,7 @@ export default function AutomationPage() {
 
       {success && (
         <Card
+          depth="elevated"
           style={{
             marginBottom: tokens.spacing[6],
             borderColor: tokens.colors.success.DEFAULT,
@@ -402,6 +405,7 @@ export default function AutomationPage() {
 
       {/* Test Message Panel */}
       <Card
+        depth="elevated"
         style={{
           marginBottom: tokens.spacing[6],
         }}
@@ -428,6 +432,7 @@ export default function AutomationPage() {
 
       {/* Category Filter */}
       <Card
+        depth="elevated"
         style={{
           marginBottom: tokens.spacing[6],
         }}
@@ -447,7 +452,7 @@ export default function AutomationPage() {
 
       {/* Automation Cards */}
       {filteredAutomations.length === 0 ? (
-        <Card>
+        <Card depth="elevated">
           <EmptyState
             icon="🤖"
             title="No Automations Found"
@@ -467,7 +472,7 @@ export default function AutomationPage() {
             const isExpanded = expandedAutomation === automation.id;
 
             return (
-              <Card key={automation.id}>
+              <Card key={automation.id} depth="elevated">
                 <div
                   style={{
                     display: 'flex',
