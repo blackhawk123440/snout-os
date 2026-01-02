@@ -344,7 +344,7 @@ export default function PaymentsPage() {
 
   if (loading && analytics.recentPayments.length === 0) {
     return (
-      <AppShell>
+      <AppShell physiology="analytical">
         <PageHeader
           title="Payments"
           description="Payment transactions and revenue overview"
@@ -353,7 +353,7 @@ export default function PaymentsPage() {
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: tokens.spacing[6],
+            gap: tokens.spacing[5], // Tighter spacing for analytical
             marginBottom: tokens.spacing[6],
           }}
         >
@@ -362,7 +362,7 @@ export default function PaymentsPage() {
           <Skeleton height="120px" />
           <Skeleton height="120px" />
         </div>
-        <Card>
+        <Card depth="elevated">
           <Skeleton height="400px" />
         </Card>
       </AppShell>
@@ -370,7 +370,7 @@ export default function PaymentsPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell physiology="analytical">
       <PageHeader
         title="Payments"
         description="Payment transactions and revenue overview"
@@ -420,12 +420,12 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* KPI Summary Row */}
+      {/* KPI Summary Row - Analytical: tighter spacing, sharper posture */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: tokens.spacing[6],
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: tokens.spacing[5], // Tighter spacing for analytical
           marginBottom: tokens.spacing[6],
         }}
       >
@@ -451,8 +451,9 @@ export default function PaymentsPage() {
         />
       </div>
 
-      {/* Filters */}
+      {/* Filters - Analytical: tighter spacing */}
       <Card
+        depth="elevated"
         style={{
           marginBottom: tokens.spacing[6],
         }}
@@ -461,7 +462,7 @@ export default function PaymentsPage() {
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: tokens.spacing[4],
+            gap: tokens.spacing[3], // Tighter spacing for analytical
           }}
         >
           <Input
@@ -484,8 +485,8 @@ export default function PaymentsPage() {
         </div>
       </Card>
 
-      {/* Payments Table */}
-      <Card padding={!loading}>
+      {/* Payments Table - Analytical: elastic, responsive */}
+      <Card depth="elevated" padding={!loading}>
         {loading ? (
           <Skeleton height="400px" />
         ) : filteredPayments.length === 0 ? (
