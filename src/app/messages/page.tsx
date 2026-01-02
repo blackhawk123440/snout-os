@@ -188,7 +188,7 @@ export default function MessagesPage() {
       <div style={{ padding: tokens.spacing[6] }}>
         {error && (
           <Card
-            depth="elevated"
+            depth="critical"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -357,7 +357,7 @@ export default function MessagesPage() {
             )}
             
             {error && (
-              <Card depth="elevated" style={{ backgroundColor: tokens.colors.error[50], borderColor: tokens.colors.error[200] }}>
+              <Card depth="critical" style={{ backgroundColor: tokens.colors.error[50], borderColor: tokens.colors.error[200] }}>
                 <div style={{ padding: tokens.spacing[2], color: tokens.colors.error[700], fontSize: tokens.typography.fontSize.sm[0] }}>
                   {error}
                 </div>

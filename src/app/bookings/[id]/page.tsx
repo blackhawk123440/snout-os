@@ -362,7 +362,7 @@ export default function BookingDetailPage() {
     return (
       <AppShell physiology="operational">
         <PageHeader title="Booking Not Found" description={error || 'The booking you are looking for does not exist'} />
-        <Card depth="elevated">
+        <Card depth="critical">
           <EmptyState
             icon="⚠️"
             title={error || 'Booking Not Found'}
