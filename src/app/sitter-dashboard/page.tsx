@@ -215,7 +215,7 @@ function SitterDashboardContent() {
 
   if (loading) {
     return (
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title={isAdminView ? "Sitter Dashboard" : "My Dashboard"} />
         <div style={{ padding: tokens.spacing[6] }}>
           <Skeleton height={200} />
@@ -226,7 +226,7 @@ function SitterDashboardContent() {
 
   if (!dashboardData) {
     return (
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title={isAdminView ? "Sitter Dashboard" : "My Dashboard"} />
         <div style={{ padding: tokens.spacing[6] }}>
           <EmptyState
@@ -251,7 +251,7 @@ function SitterDashboardContent() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="operational">
       <PageHeader
         title={isAdminView ? `Sitter Dashboard: ${dashboardData.sitter.firstName} ${dashboardData.sitter.lastName}` : "My Dashboard"}
         description={isAdminView ? "Read-only admin view" : undefined}
@@ -814,7 +814,7 @@ function SitterDashboardContent() {
 export default function SitterDashboardPage() {
   return (
     <Suspense fallback={
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title="Sitter Dashboard" />
         <div style={{ padding: tokens.spacing[6] }}>
           <Skeleton height={200} />

@@ -237,7 +237,7 @@ function SitterPageContent() {
 
   if (loading && !sitterId) {
     return (
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title="Sitter Dashboard" />
         <div style={{ padding: tokens.spacing[6] }}>
           <Skeleton height={200} />
@@ -248,7 +248,7 @@ function SitterPageContent() {
 
   if (!sitterId) {
     return (
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title="Sitter Dashboard" />
         <div style={{ padding: tokens.spacing[6] }}>
           <EmptyState
@@ -261,7 +261,7 @@ function SitterPageContent() {
   }
 
   return (
-    <AppShell>
+    <AppShell physiology="operational">
       <PageHeader
         title="Sitter Dashboard"
         description="Your pet care assignments and earnings"
@@ -936,7 +936,7 @@ function SitterPageContent() {
 export default function SitterPage() {
   return (
     <Suspense fallback={
-      <AppShell>
+      <AppShell physiology="operational">
         <PageHeader title="Sitter Dashboard" />
         <div style={{ padding: tokens.spacing[6] }}>
           <Skeleton height={200} />

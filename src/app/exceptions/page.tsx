@@ -385,7 +385,7 @@ export default function ExceptionsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="critical">
       <PageHeader
         title="Exceptions"
         description="Operational exceptions and issues that require attention"

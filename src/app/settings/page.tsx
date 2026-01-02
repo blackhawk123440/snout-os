@@ -164,7 +164,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Settings"
         description="Configure business settings, integrations, and automations"
