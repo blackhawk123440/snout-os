@@ -147,10 +147,10 @@ Silence keeps everything else powerful. Contrast increases everywhere else witho
 
 ### Order of Implementation
 
-Suggested order:
+**Implementation Order:**
 1. **State Silence (4C)** - Establishes baseline, most important, easiest to implement
-2. **Progressive Density (4B)** - Structural improvement, affects layout patterns
-3. **Attention Decay (4A)** - Behavioral enhancement, requires timer/state management
+2. **Attention Decay (4A)** - Behavioral enhancement, requires timer/state management
+3. **Progressive Density (4B)** - Structural improvement, affects layout patterns
 
 ### Principles
 

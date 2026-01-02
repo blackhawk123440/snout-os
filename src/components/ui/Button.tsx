@@ -26,7 +26,19 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   energy?: EnergyLevel;
 }
 
-const getVariantStyles = (variant: ButtonVariant, energy: EnergyLevel = 'focused') => {
+/**
+ * Get default energy level for a button variant
+ * Phase 4C: Idle is the default for non-primary buttons (silence state)
+ * Primary buttons default to focused (they are the primary action)
+ */
+const getDefaultEnergy = (variant: ButtonVariant): EnergyLevel => {
+  if (variant === 'primary' || variant === 'danger') {
+    return 'focused'; // Primary actions use focused by default
+  }
+  return 'idle'; // Secondary, tertiary, ghost use idle (silence state)
+};
+
+const getVariantStyles = (variant: ButtonVariant, energy: EnergyLevel) => {
   const styles: Record<ButtonVariant, React.CSSProperties> = {
     primary: {
       backgroundColor: tokens.colors.primary[energy],
@@ -112,7 +124,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       rightIcon,
       children,
       disabled,
-      energy = 'focused',
+      energy, // Explicitly passed or undefined (will use default)
       className = '',
       onMouseEnter,
       onMouseLeave,
@@ -120,9 +132,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
+    // Phase 4C: Idle is default for non-primary buttons (silence state)
+    // Primary buttons default to focused. System enforces this, not page logic.
+    const effectiveEnergy = energy ?? getDefaultEnergy(variant);
+    
     const sizeStyle = getSizeStyles(size);
-    const variantStyle = getVariantStyles(variant, energy);
-    const hoverStyle = getHoverStyles(variant, energy);
+    const variantStyle = getVariantStyles(variant, effectiveEnergy);
+    const hoverStyle = getHoverStyles(variant, effectiveEnergy);
     const isDisabled = disabled || isLoading;
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {

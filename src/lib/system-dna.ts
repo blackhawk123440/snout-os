@@ -194,5 +194,14 @@ export const SYSTEM_DNA_RULES = {
    * Tabs are content organization, not posture changes.
    */
   TABS_ARE_CONTENT_ORGANIZATION: true,
+  
+  /**
+   * Phase 4C: Idle is a first-class state, not default styling.
+   * Silence is intentional absence of signal: no glow, no emphasis, no motion beyond baseline.
+   * Secondary, tertiary, and ghost buttons default to idle energy.
+   * Primary buttons default to focused energy (they are the primary action).
+   * This prevents fatigue and keeps active states powerful.
+   */
+  IDLE_IS_FIRST_CLASS_STATE: true,
 } as const;
 
