@@ -123,6 +123,7 @@ export const Modal: React.FC<ModalProps> = ({
             }}
           >
             <h2
+              id="modal-title"
               style={{
                 fontSize: tokens.typography.fontSize.xl[0],
                 fontWeight: tokens.typography.fontWeight.bold,
