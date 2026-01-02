@@ -144,7 +144,7 @@ export const SYSTEM_CONSTANTS = {
   },
   
   /** Phase 4A: Attention decay duration (ms) - energy states return to idle after inactivity */
-  ATTENTION_DECAY_DURATION: 4000, // 4 seconds - gradual return to silence
+  ATTENTION_DECAY_DURATION: 8000, // 8 seconds - calibrated to avoid feeling like system powers down while reading
 } as const;
 
 /**
