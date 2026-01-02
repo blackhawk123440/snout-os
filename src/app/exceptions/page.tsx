@@ -385,7 +385,7 @@ export default function ExceptionsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="operational">
       <PageHeader
         title="Exceptions"
         description="Operational exceptions and issues that require attention"
@@ -393,6 +393,7 @@ export default function ExceptionsPage() {
           <>
             <Button
               variant="primary"
+              energy="active"
               onClick={handleResolveSelected}
               disabled={selectedIds.size === 0}
               leftIcon={<i className="fas fa-check" />}
@@ -415,6 +416,7 @@ export default function ExceptionsPage() {
         {/* Success Banner */}
         {successMessage && (
           <Card
+            depth="elevated"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.success[50],
@@ -430,6 +432,7 @@ export default function ExceptionsPage() {
         {/* Error Banner */}
         {error && (
           <Card
+            depth="critical"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -478,7 +481,7 @@ export default function ExceptionsPage() {
         <Tabs tabs={tabs} activeTab={activeTab} onTabChange={(tabId) => setActiveTab(tabId as SeverityTab)}>
           <TabPanel id="all">
             {/* Filters */}
-            <Card style={{ marginBottom: tokens.spacing[6] }}>
+            <Card depth="elevated" style={{ marginBottom: tokens.spacing[6] }}>
               <div
                 style={{
                   display: 'grid',
@@ -508,7 +511,7 @@ export default function ExceptionsPage() {
 
             {/* Exceptions Table */}
             {loading ? (
-              <Card>
+              <Card depth="elevated">
                 <div style={{ padding: tokens.spacing[6] }}>
                   <Skeleton height={400} />
                 </div>
@@ -522,7 +525,7 @@ export default function ExceptionsPage() {
             ) : (
               <>
                 {/* Select All Checkbox */}
-                <Card style={{ marginBottom: tokens.spacing[4] }}>
+                <Card depth="elevated" style={{ marginBottom: tokens.spacing[4] }}>
                   <div style={{ padding: tokens.spacing[4], display: 'flex', alignItems: 'center', gap: tokens.spacing[3] }}>
                     <input
                       type="checkbox"
@@ -540,7 +543,7 @@ export default function ExceptionsPage() {
                   </div>
                 </Card>
 
-                <Card>
+                <Card depth="elevated">
                   <Table
                     columns={tableColumns}
                     data={filteredExceptions}
@@ -554,7 +557,7 @@ export default function ExceptionsPage() {
           {tabs.filter((t) => t.id !== 'all').map((tab) => (
             <TabPanel key={tab.id} id={tab.id}>
               {/* Same content as "all" tab */}
-              <Card style={{ marginBottom: tokens.spacing[6] }}>
+              <Card depth="elevated" style={{ marginBottom: tokens.spacing[6] }}>
                 <div
                   style={{
                     display: 'grid',
@@ -583,7 +586,7 @@ export default function ExceptionsPage() {
               </Card>
 
               {loading ? (
-                <Card>
+                <Card depth="elevated">
                   <div style={{ padding: tokens.spacing[6] }}>
                     <Skeleton height={400} />
                   </div>
@@ -596,7 +599,7 @@ export default function ExceptionsPage() {
                 />
               ) : (
                 <>
-                  <Card style={{ marginBottom: tokens.spacing[4] }}>
+                  <Card depth="elevated" style={{ marginBottom: tokens.spacing[4] }}>
                     <div style={{ padding: tokens.spacing[4], display: 'flex', alignItems: 'center', gap: tokens.spacing[3] }}>
                       <input
                         type="checkbox"
@@ -614,7 +617,7 @@ export default function ExceptionsPage() {
                     </div>
                   </Card>
 
-                  <Card>
+                  <Card depth="elevated">
                     <Table
                       columns={tableColumns}
                       data={filteredExceptions}
@@ -642,7 +645,7 @@ export default function ExceptionsPage() {
         {selectedException && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}>
             {/* Summary Card */}
-            <Card>
+            <Card depth="elevated">
               <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
                 <div>
                   <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
@@ -683,7 +686,7 @@ export default function ExceptionsPage() {
 
             {/* Booking Link */}
             {selectedException.bookingId && (
-              <Card>
+              <Card depth="elevated">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
                   <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary }}>
                     Related Booking

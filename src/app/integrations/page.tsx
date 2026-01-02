@@ -403,7 +403,7 @@ export default function IntegrationsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="configuration">
       <PageHeader
         title="Integrations"
         description="Manage and test all your third-party integrations"
@@ -420,6 +420,7 @@ export default function IntegrationsPage() {
         {/* Success Banner */}
         {successMessage && (
           <Card
+            depth="elevated"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.success[50],
@@ -435,6 +436,7 @@ export default function IntegrationsPage() {
         {/* Error Banner */}
         {error && (
           <Card
+            depth="critical"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -446,7 +448,7 @@ export default function IntegrationsPage() {
         )}
 
         {/* Stripe Product IDs Reference */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
+        <Card depth="elevated" style={{ marginBottom: tokens.spacing[6] }}>
           <SectionHeader title="Stripe Product IDs Reference" />
           <div
             style={{
@@ -503,7 +505,7 @@ export default function IntegrationsPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}>
             {integrations.map((integration) => (
-              <Card key={integration.name}>
+              <Card key={integration.name} depth="elevated">
                 {/* Integration Header */}
                 <div
                   style={{
@@ -544,6 +546,7 @@ export default function IntegrationsPage() {
                     {getStatusBadge(integration.status)}
                     <Button
                       variant="primary"
+                      energy="active"
                       onClick={() => testIntegration(integration.name)}
                       disabled={testing[integration.name]}
                       isLoading={testing[integration.name]}
@@ -564,7 +567,7 @@ export default function IntegrationsPage() {
                     const isSet = cred.value.includes('✅') || cred.value.includes('⚠️');
 
                     return (
-                      <Card key={cred.key} style={{ borderColor: cred.required ? tokens.colors.primary[200] : tokens.colors.border.default }}>
+                      <Card key={cred.key} depth="elevated" style={{ borderColor: cred.required ? tokens.colors.primary[200] : tokens.colors.border.default }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
                             <code
@@ -631,7 +634,7 @@ export default function IntegrationsPage() {
 
                 {/* Webhook URL */}
                 {integration.webhookUrl && (
-                  <Card style={{ backgroundColor: tokens.colors.primary[50], marginBottom: tokens.spacing[4] }}>
+                  <Card depth="elevated" style={{ backgroundColor: tokens.colors.primary[50], marginBottom: tokens.spacing[4] }}>
                     <SectionHeader title="Webhook URL" />
                     <code
                       style={{
@@ -668,7 +671,7 @@ export default function IntegrationsPage() {
         )}
 
         {/* Quick Links */}
-        <Card style={{ marginTop: tokens.spacing[8] }}>
+        <Card depth="elevated" style={{ marginTop: tokens.spacing[8] }}>
           <SectionHeader title="Quick Links" />
           <div
             style={{
