@@ -169,10 +169,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     // Phase 4A: Set up decay timer
     useEffect(() => {
       if (!shouldDecay || isDisabled || isLoading) {
-        // If decay shouldn't apply, reset to initial energy
-        if (decayedEnergy !== initialEnergy) {
-          setDecayedEnergy(initialEnergy);
-        }
         return;
       }
       
@@ -193,7 +189,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           clearTimeout(decayTimerRef.current);
         }
       };
-    }, [shouldDecay, isDisabled, isLoading, initialEnergy, decayedEnergy]);
+    }, [shouldDecay, isDisabled, isLoading, initialEnergy]);
     
     // Use decayed energy for display (only for primary buttons with active/focused)
     const effectiveEnergy = shouldDecay ? decayedEnergy : initialEnergy;
