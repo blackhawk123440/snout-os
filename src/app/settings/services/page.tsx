@@ -1,7 +1,26 @@
-"use client";
+/**
+ * Services Settings Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Badge,
+  EmptyState,
+  Skeleton,
+  Modal,
+  Table,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
+import { TableColumn } from '@/components/ui/Table';
 
 interface ServiceConfig {
   id: string;
@@ -21,145 +40,233 @@ export default function ServiceSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingService, setEditingService] = useState<ServiceConfig | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState<ServiceConfig | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchServices();
   }, []);
 
   const fetchServices = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch("/api/service-configs");
+      const response = await fetch('/api/service-configs');
       const data = await response.json();
       setServices(data.configs || []);
-    } catch (error) {
-      console.error("Failed to fetch services:", error);
+    } catch (err) {
+      setError('Failed to load services');
+      setServices([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteService = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this service?")) return;
-    
+  const handleDeleteClick = (service: ServiceConfig) => {
+    setServiceToDelete(service);
+    setDeleteModalOpen(true);
+  };
+
+  const deleteService = async () => {
+    if (!serviceToDelete) return;
+
+    setDeleting(true);
     try {
-      const response = await fetch(`/api/service-configs/${id}`, {
-        method: "DELETE",
+      const response = await fetch(`/api/service-configs/${serviceToDelete.id}`, {
+        method: 'DELETE',
       });
       if (response.ok) {
+        setDeleteModalOpen(false);
+        setServiceToDelete(null);
         fetchServices();
+      } else {
+        setError('Failed to delete service');
       }
-    } catch (error) {
-      console.error("Failed to delete service:", error);
+    } catch (err) {
+      setError('Failed to delete service');
+    } finally {
+      setDeleting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-        <div className="text-center py-20">Loading services...</div>
-      </div>
-    );
-  }
+  const tableColumns: TableColumn<ServiceConfig>[] = [
+    {
+      key: 'name',
+      header: 'Service Name',
+      render: (service) => (
+        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+          {service.serviceName}
+        </div>
+      ),
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      render: (service) => <Badge variant="info">{service.category}</Badge>,
+    },
+    {
+      key: 'basePrice',
+      header: 'Base Price',
+      render: (service) => (
+        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+          ${service.basePrice.toFixed(2)}
+        </div>
+      ),
+      align: 'right',
+    },
+    {
+      key: 'length',
+      header: 'Default Length',
+      render: (service) => (
+        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+          {service.defaultVisitLength} min
+        </div>
+      ),
+    },
+    {
+      key: 'multiplier',
+      header: 'Weekend',
+      render: (service) => (
+        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+          {service.weekendMultiplier}x
+        </div>
+      ),
+    },
+    {
+      key: 'requirements',
+      header: 'Requirements',
+      render: (service) => (
+        <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+          {service.gpsCheckInRequired && <Badge variant="info">GPS Required</Badge>}
+          {service.photosRequired && <Badge variant="success">Photos Required</Badge>}
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (service) => (
+        <div style={{ display: 'flex', gap: tokens.spacing[2], justifyContent: 'flex-end' }}>
+          <Button variant="tertiary" size="sm" onClick={() => setEditingService(service)}>
+            Edit
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => handleDeleteClick(service)}>
+            Delete
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                Service Settings
-              </h1>
-              <p className="text-gray-600">Configure all service types and rules</p>
+    <AppShell>
+      <PageHeader
+        title="Service Settings"
+        description="Configure all service types and rules"
+        actions={
+          <Button variant="primary" onClick={() => setShowCreateModal(true)} leftIcon={<i className="fas fa-plus" />}>
+            Add Service
+          </Button>
+        }
+      />
+
+      <div style={{ padding: tokens.spacing[6] }}>
+        {/* Error Banner */}
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>{error}</div>
+          </Card>
+        )}
+
+        {loading ? (
+          <Card>
+            <div style={{ padding: tokens.spacing[6] }}>
+              <Skeleton height={400} />
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 rounded-lg font-semibold text-white"
-              style={{ background: COLORS.primary }}
+          </Card>
+        ) : services.length === 0 ? (
+          <EmptyState
+            title="No Services Configured"
+            description="Create your first service configuration to get started"
+            icon={<i className="fas fa-cog" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            action={{
+              label: 'Add Service',
+              onClick: () => setShowCreateModal(true),
+            }}
+          />
+        ) : (
+          <Card>
+            <Table columns={tableColumns} data={services} keyExtractor={(service) => service.id} />
+          </Card>
+        )}
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setServiceToDelete(null);
+        }}
+        title="Delete Service"
+        size="md"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.primary }}>
+            Are you sure you want to delete <strong>{serviceToDelete?.serviceName}</strong>?
+          </div>
+          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+            This action cannot be undone.
+          </div>
+          <div style={{ display: 'flex', gap: tokens.spacing[3], paddingTop: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}`, justifyContent: 'flex-end' }}>
+            <Button
+              variant="danger"
+              onClick={deleteService}
+              disabled={deleting}
+              style={{ flex: 1 }}
             >
-              + Add Service
-            </button>
+              {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
+            <Button
+              variant="tertiary"
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setServiceToDelete(null);
+              }}
+              disabled={deleting}
+              style={{ flex: 1 }}
+            >
+              Cancel
+            </Button>
           </div>
         </div>
+      </Modal>
 
-        <div className="space-y-4">
-          {services.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 text-center border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="text-6xl mb-4">⚙️</div>
-              <h3 className="text-2xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                No Services Configured
-              </h3>
-              <p className="text-gray-600 mb-6">Create your first service configuration</p>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="inline-block px-6 py-3 rounded-lg font-semibold text-white"
-                style={{ background: COLORS.primary }}
-              >
-                Add Service
-              </button>
-            </div>
-          ) : (
-            services.map((service) => {
-              const config = service.config ? JSON.parse(service.config) : {};
-              return (
-                <div
-                  key={service.id}
-                  className="bg-white rounded-xl p-6 border-2 shadow-sm"
-                  style={{ borderColor: COLORS.primaryLight }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                        {service.serviceName}
-                      </h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="font-semibold">Base Price:</span> ${service.basePrice}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Default Length:</span> {service.defaultVisitLength} min
-                        </div>
-                        <div>
-                          <span className="font-semibold">Category:</span> {service.category}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Weekend Multiplier:</span> {service.weekendMultiplier}x
-                        </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {service.gpsCheckInRequired && (
-                          <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">GPS Required</span>
-                        )}
-                        {service.photosRequired && (
-                          <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">Photos Required</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      <button
-                        onClick={() => setEditingService(service)}
-                        className="px-4 py-2 rounded-lg font-semibold text-white"
-                        style={{ background: COLORS.primary }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => deleteService(service.id)}
-                        className="px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-800"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    </div>
+      {/* Create/Edit Modal - Placeholder (not implemented in legacy) */}
+      {showCreateModal && (
+        <Modal
+          isOpen={showCreateModal}
+          onClose={() => {
+            setShowCreateModal(false);
+            setEditingService(null);
+          }}
+          title={editingService ? 'Edit Service' : 'Add Service'}
+          size="lg"
+        >
+          <div style={{ padding: tokens.spacing[4], textAlign: 'center', color: tokens.colors.text.secondary }}>
+            Service create/edit form not yet implemented. Navigate to detail page.
+          </div>
+        </Modal>
+      )}
+    </AppShell>
   );
 }
-
-
-

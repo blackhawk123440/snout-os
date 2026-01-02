@@ -320,7 +320,7 @@ function BookingsPageContent() {
             data={filteredAndSortedBookings}
             emptyMessage="No bookings found. Create your first booking to get started."
             onRowClick={(row) => {
-              window.location.href = `/bookings?booking=${row.id}`;
+              window.location.href = `/bookings/${row.id}`;
             }}
             keyExtractor={(row) => row.id}
           />

@@ -1,8 +1,30 @@
-"use client";
+/**
+ * Sitters List Page - Enterprise Rebuild
+ * Admin view for managing sitters
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Input,
+  Badge,
+  EmptyState,
+  Skeleton,
+  Modal,
+  FormRow,
+  Table,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
+import { TableColumn } from '@/components/ui/Table';
 
 interface Sitter {
   id: string;
@@ -11,7 +33,7 @@ interface Sitter {
   phone: string;
   personalPhone?: string | null;
   openphonePhone?: string | null;
-  phoneType?: "personal" | "openphone";
+  phoneType?: 'personal' | 'openphone';
   email: string;
   isActive: boolean;
   commissionPercentage?: number;
@@ -19,20 +41,37 @@ interface Sitter {
   updatedAt: Date;
 }
 
+const formatPhoneNumber = (phone: string | null | undefined) => {
+  if (!phone) return '';
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+  }
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `(${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+  }
+  return phone;
+};
+
 export default function SittersPage() {
   const [sitters, setSitters] = useState<Sitter[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSitter, setEditingSitter] = useState<Sitter | null>(null);
-  
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [sitterToDelete, setSitterToDelete] = useState<Sitter | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    phone: "",
-    personalPhone: "",
-    openphonePhone: "",
-    phoneType: "personal" as "personal" | "openphone",
-    email: "",
+    firstName: '',
+    lastName: '',
+    phone: '',
+    personalPhone: '',
+    openphonePhone: '',
+    phoneType: 'personal' as 'personal' | 'openphone',
+    email: '',
     isActive: true,
     commissionPercentage: 80.0,
   });
@@ -41,13 +80,22 @@ export default function SittersPage() {
     fetchSitters();
   }, []);
 
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
   const fetchSitters = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const response = await fetch("/api/sitters");
+      const response = await fetch('/api/sitters');
       const data = await response.json();
       setSitters(data.sitters || []);
-    } catch {
+    } catch (err) {
+      setError('Failed to load sitters');
       setSitters([]);
     } finally {
       setLoading(false);
@@ -56,16 +104,16 @@ export default function SittersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     try {
-      const url = editingSitter ? `/api/sitters/${editingSitter.id}` : "/api/sitters";
-      const method = editingSitter ? "PATCH" : "POST";
+      const url = editingSitter ? `/api/sitters/${editingSitter.id}` : '/api/sitters';
+      const method = editingSitter ? 'PATCH' : 'POST';
 
-      // Determine primary phone based on phoneType
       let primaryPhone = formData.phone;
-      if (formData.phoneType === "personal" && formData.personalPhone) {
+      if (formData.phoneType === 'personal' && formData.personalPhone) {
         primaryPhone = formData.personalPhone;
-      } else if (formData.phoneType === "openphone" && formData.openphonePhone) {
+      } else if (formData.phoneType === 'openphone' && formData.openphonePhone) {
         primaryPhone = formData.openphonePhone;
       } else if (formData.personalPhone) {
         primaryPhone = formData.personalPhone;
@@ -80,34 +128,38 @@ export default function SittersPage() {
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData),
       });
 
       if (response.ok) {
-        alert(editingSitter ? "Sitter updated!" : "Sitter added!");
+        setSuccessMessage(editingSitter ? 'Sitter updated!' : 'Sitter added!');
         resetForm();
         fetchSitters();
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to save sitter');
       }
-    } catch {
-      alert("Failed to save sitter");
+    } catch (err) {
+      setError('Failed to save sitter');
     }
   };
 
   const resetForm = () => {
-    setFormData({ 
-      firstName: "", 
-      lastName: "", 
-      phone: "", 
-      personalPhone: "",
+    setFormData({
+      firstName: '',
+      lastName: '',
+      phone: '',
+      personalPhone: '',
       commissionPercentage: 80.0,
-      openphonePhone: "",
-      phoneType: "personal",
-      email: "", 
-      isActive: true 
+      openphonePhone: '',
+      phoneType: 'personal',
+      email: '',
+      isActive: true,
     });
     setShowAddForm(false);
     setEditingSitter(null);
+    setError(null);
   };
 
   const startEdit = (sitter: Sitter) => {
@@ -115,9 +167,9 @@ export default function SittersPage() {
       firstName: sitter.firstName,
       lastName: sitter.lastName,
       phone: sitter.phone,
-      personalPhone: sitter.personalPhone || "",
-      openphonePhone: sitter.openphonePhone || "",
-      phoneType: sitter.phoneType || "personal",
+      personalPhone: sitter.personalPhone || '',
+      openphonePhone: sitter.openphonePhone || '',
+      phoneType: sitter.phoneType || 'personal',
       email: sitter.email,
       isActive: sitter.isActive,
       commissionPercentage: sitter.commissionPercentage || 80.0,
@@ -126,349 +178,351 @@ export default function SittersPage() {
     setShowAddForm(true);
   };
 
-  const handleDelete = async (sitterId: string) => {
-    if (!confirm("Are you sure you want to delete this sitter?")) return;
+  const handleDeleteClick = (sitter: Sitter) => {
+    setSitterToDelete(sitter);
+    setDeleteModalOpen(true);
+  };
 
+  const handleDelete = async () => {
+    if (!sitterToDelete) return;
+
+    setDeleting(true);
     try {
-      const response = await fetch(`/api/sitters/${sitterId}`, {
-        method: "DELETE",
+      const response = await fetch(`/api/sitters/${sitterToDelete.id}`, {
+        method: 'DELETE',
       });
 
       if (response.ok) {
-        alert("Sitter deleted!");
+        setSuccessMessage('Sitter deleted!');
+        setDeleteModalOpen(false);
+        setSitterToDelete(null);
         fetchSitters();
+      } else {
+        setError('Failed to delete sitter');
       }
-    } catch {
-      alert("Failed to delete sitter");
+    } catch (err) {
+      setError('Failed to delete sitter');
+    } finally {
+      setDeleting(false);
     }
   };
 
-  // Import phone formatting utility
-  const formatPhoneNumber = (phone: string | null | undefined) => {
-    if (!phone) return "";
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 10) {
-      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-    }
-    if (cleaned.length === 11 && cleaned.startsWith('1')) {
-      return `(${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
-    }
-    return phone;
-  };
-
-  return (
-    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: COLORS.primary }}>
-                <i className="fas fa-user-friends" style={{ color: COLORS.primaryLight }}></i>
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold" style={{ color: COLORS.primary }}>
-                  Sitters Management
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-500">Manage your pet care team</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
-              <button
-                onClick={() => {
-                  resetForm();
-                  setShowAddForm(true);
-                }}
-                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
-                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-              >
-                <i className="fas fa-plus"></i><span>Add Sitter</span>
-              </button>
-              <Link
-                href="/bookings"
-                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold border rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto"
-                style={{ color: COLORS.primary, borderColor: COLORS.border }}
-              >
-                <i className="fas fa-arrow-left"></i><span>Back to Bookings</span>
-              </Link>
-            </div>
-          </div>
+  const tableColumns: TableColumn<Sitter>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      render: (sitter) => (
+        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+          {sitter.firstName} {sitter.lastName}
         </div>
-      </div>
-
-      <div className="max-w-[1400px] mx-auto px-8 py-6">
-        {/* Sitters List */}
-        <div className="grid gap-4">
-          {loading ? (
-            <div className="text-center py-8">
-              <i className="fas fa-spinner fa-spin text-2xl" style={{ color: COLORS.primary }}></i>
-              <p className="mt-2 text-gray-600">Loading sitters...</p>
-            </div>
-          ) : sitters.length === 0 ? (
-            <div className="text-center py-8">
-              <i className="fas fa-user-friends text-4xl text-gray-300 mb-4"></i>
-              <p className="text-gray-600">No sitters found</p>
-            </div>
-          ) : (
-            sitters.map((sitter) => (
-              <div
-                key={sitter.id}
-                className="bg-white rounded-lg p-6 border-2 hover:shadow-md transition-all"
-                style={{ borderColor: COLORS.primaryLight }}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                        <i className="fas fa-user text-xl" style={{ color: COLORS.primary }}></i>
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-lg" style={{ color: COLORS.primary }}>
-                          {sitter.firstName} {sitter.lastName}
-                        </h3>
-                        <span className={`px-2 py-1 text-xs font-bold rounded ${
-                          sitter.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                        }`}>
-                          {sitter.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <i className="fas fa-phone w-4"></i>
-                        <span>{formatPhoneNumber(sitter.phone)}</span>
-                        {sitter.phoneType && (
-                          <span className="text-xs px-2 py-0.5 rounded" style={{ background: COLORS.primaryLight, color: COLORS.primary }}>
-                            {sitter.phoneType === "personal" ? "Personal" : "OpenPhone"}
-                          </span>
-                        )}
-                      </div>
-                      {sitter.personalPhone && (
-                        <div className="flex items-center gap-2">
-                          <i className="fas fa-mobile-alt w-4"></i>
-                          <span>Personal: {formatPhoneNumber(sitter.personalPhone)}</span>
-                        </div>
-                      )}
-                      {sitter.openphonePhone && (
-                        <div className="flex items-center gap-2">
-                          <i className="fas fa-phone-alt w-4"></i>
-                          <span>OpenPhone: {formatPhoneNumber(sitter.openphonePhone)}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <i className="fas fa-envelope w-4"></i>
-                        <span>{sitter.email}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <i className="fas fa-calendar w-4"></i>
-                        <span>Added {new Date(sitter.createdAt).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <i className="fas fa-percentage w-4"></i>
-                        <span>Commission: {sitter.commissionPercentage || 80}%</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 ml-6">
-                    <button
-                      onClick={() => window.open(`/sitter-dashboard?id=${sitter.id}&admin=true`, '_blank')}
-                      className="px-4 py-2 text-sm font-bold border rounded-lg hover:opacity-90 transition-all"
-                      style={{ background: COLORS.primary, color: COLORS.primaryLight, borderColor: COLORS.primary }}
-                    >
-                      <i className="fas fa-calendar-alt mr-2"></i>View Dashboard
-                    </button>
-                    <button
-                      onClick={() => startEdit(sitter)}
-                      className="px-4 py-2 text-sm font-bold border rounded-lg hover:opacity-90 transition-all"
-                      style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-                    >
-                      <i className="fas fa-edit mr-2"></i>Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(sitter.id)}
-                      className="px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all bg-red-500"
-                    >
-                      <i className="fas fa-trash mr-2"></i>Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (sitter) => <Badge variant={sitter.isActive ? 'success' : 'neutral'}>{sitter.isActive ? 'Active' : 'Inactive'}</Badge>,
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      render: (sitter) => <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>{sitter.email}</div>,
+    },
+    {
+      key: 'phone',
+      header: 'Phone',
+      render: (sitter) => (
+        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+          {formatPhoneNumber(sitter.phone)}
+          {sitter.phoneType && (
+            <Badge variant="info" style={{ marginLeft: tokens.spacing[2] }}>
+              {sitter.phoneType === 'personal' ? 'Personal' : 'OpenPhone'}
+            </Badge>
           )}
         </div>
+      ),
+    },
+    {
+      key: 'commission',
+      header: 'Commission',
+      render: (sitter) => <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>{sitter.commissionPercentage || 80}%</div>,
+    },
+    {
+      key: 'created',
+      header: 'Added',
+      render: (sitter) => (
+        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+          {new Date(sitter.createdAt).toLocaleDateString()}
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (sitter) => (
+        <div style={{ display: 'flex', gap: tokens.spacing[2], justifyContent: 'flex-end' }}>
+          <Button
+            variant="tertiary"
+            size="sm"
+            onClick={() => window.open(`/sitter-dashboard?id=${sitter.id}&admin=true`, '_blank')}
+          >
+            Dashboard
+          </Button>
+          <Button variant="tertiary" size="sm" onClick={() => startEdit(sitter)}>
+            Edit
+          </Button>
+          <Button variant="danger" size="sm" onClick={() => handleDeleteClick(sitter)}>
+            Delete
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <AppShell>
+      <PageHeader
+        title="Sitters Management"
+        description="Manage your pet care team"
+        actions={
+          <>
+            <Button variant="primary" onClick={() => {
+              resetForm();
+              setShowAddForm(true);
+            }} leftIcon={<i className="fas fa-plus" />}>
+              Add Sitter
+            </Button>
+            <Link href="/bookings">
+              <Button variant="tertiary" leftIcon={<i className="fas fa-arrow-left" />}>
+                Back to Bookings
+              </Button>
+            </Link>
+          </>
+        }
+      />
+
+      <div style={{ padding: tokens.spacing[6] }}>
+        {/* Success Banner */}
+        {successMessage && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.success[50],
+              borderColor: tokens.colors.success[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.success[700] }}>
+              {successMessage}
+            </div>
+          </Card>
+        )}
+
+        {/* Error Banner */}
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>{error}</div>
+          </Card>
+        )}
+
+        {/* Sitters Table */}
+        {loading ? (
+          <Card>
+            <div style={{ padding: tokens.spacing[6] }}>
+              <Skeleton height={400} />
+            </div>
+          </Card>
+        ) : sitters.length === 0 ? (
+          <EmptyState
+            title="No sitters found"
+            description="Add your first sitter to get started"
+            icon={<i className="fas fa-user-friends" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            action={{
+              label: 'Add Sitter',
+              onClick: () => {
+                resetForm();
+                setShowAddForm(true);
+              },
+            }}
+          />
+        ) : (
+          <Card>
+            <Table columns={tableColumns} data={sitters} keyExtractor={(sitter) => sitter.id} />
+          </Card>
+        )}
       </div>
 
       {/* Add/Edit Form Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4" style={{ color: COLORS.primary }}>
-              {editingSitter ? "Edit Sitter" : "Add Sitter"}
-            </h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    Personal Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.personalPhone}
-                    onChange={(e) => setFormData({ ...formData, personalPhone: e.target.value })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    OpenPhone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.openphonePhone}
-                    onChange={(e) => setFormData({ ...formData, openphonePhone: e.target.value })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: COLORS.primary }}>
-                  Use Phone Number Type for Messages
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="phoneType"
-                      value="personal"
-                      checked={formData.phoneType === "personal"}
-                      onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as "personal" | "openphone" })}
-                      className="w-4 h-4"
-                      style={{ accentColor: COLORS.primary }}
-                    />
-                    <span className="text-sm font-medium" style={{ color: COLORS.primary }}>Personal Phone</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="phoneType"
-                      value="openphone"
-                      checked={formData.phoneType === "openphone"}
-                      onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as "personal" | "openphone" })}
-                      className="w-4 h-4"
-                      style={{ accentColor: COLORS.primary }}
-                    />
-                    <span className="text-sm font-medium" style={{ color: COLORS.primary }}>OpenPhone</span>
-                  </label>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Choose which phone number to use for sitter notifications</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                  Email *
-                </label>
-                <input
-                  type="email"
+      <Modal
+        isOpen={showAddForm}
+        onClose={resetForm}
+        title={editingSitter ? 'Edit Sitter' : 'Add Sitter'}
+        size="lg"
+      >
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4] }}>
+              <FormRow label="First Name" required>
+                <Input
+                  type="text"
                   required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: COLORS.primaryLight }}
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 />
-              </div>
+              </FormRow>
+              <FormRow label="Last Name" required>
+                <Input
+                  type="text"
+                  required
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                />
+              </FormRow>
+            </div>
 
-              <div>
-                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                  Commission Percentage *
-                </label>
-                <div className="flex items-center gap-2">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4] }}>
+              <FormRow label="Personal Phone Number">
+                <Input
+                  type="tel"
+                  value={formData.personalPhone}
+                  onChange={(e) => setFormData({ ...formData, personalPhone: e.target.value })}
+                  placeholder="(555) 123-4567"
+                />
+              </FormRow>
+              <FormRow label="OpenPhone Number">
+                <Input
+                  type="tel"
+                  value={formData.openphonePhone}
+                  onChange={(e) => setFormData({ ...formData, openphonePhone: e.target.value })}
+                  placeholder="(555) 123-4567"
+                />
+              </FormRow>
+            </div>
+
+            <FormRow label="Use Phone Number Type for Messages">
+              <div style={{ display: 'flex', gap: tokens.spacing[4] }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
                   <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    required
-                    value={formData.commissionPercentage}
-                    onChange={(e) => setFormData({ ...formData, commissionPercentage: parseFloat(e.target.value) || 80.0 })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
+                    type="radio"
+                    name="phoneType"
+                    value="personal"
+                    checked={formData.phoneType === 'personal'}
+                    onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as 'personal' | 'openphone' })}
                   />
-                  <span className="text-sm font-medium" style={{ color: COLORS.primary }}>%</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Percentage of booking total the sitter receives (typically 70% or 80%)</p>
+                  <span style={{ fontSize: tokens.typography.fontSize.sm[0] }}>Personal Phone</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="phoneType"
+                    value="openphone"
+                    checked={formData.phoneType === 'openphone'}
+                    onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as 'personal' | 'openphone' })}
+                  />
+                  <span style={{ fontSize: tokens.typography.fontSize.sm[0] }}>OpenPhone</span>
+                </label>
               </div>
+              <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                Choose which phone number to use for sitter notifications
+              </div>
+            </FormRow>
 
-              <div className="flex items-center gap-3">
+            <FormRow label="Email" required>
+              <Input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </FormRow>
+
+            <FormRow label="Commission Percentage" required>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  required
+                  value={formData.commissionPercentage}
+                  onChange={(e) => setFormData({ ...formData, commissionPercentage: parseFloat(e.target.value) || 80.0 })}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>%</span>
+              </div>
+              <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                Percentage of booking total the sitter receives (typically 70% or 80%)
+              </div>
+            </FormRow>
+
+            <FormRow>
+              <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
                 <input
                   type="checkbox"
-                  id="isActive"
                   checked={formData.isActive}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-4 h-4"
                 />
-                <label htmlFor="isActive" className="text-sm font-medium" style={{ color: COLORS.primary }}>
-                  Active Sitter
-                </label>
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
-                  style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-                >
-                  {editingSitter ? "Update" : "Add"} Sitter
-                </button>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="flex-1 px-4 py-2 text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all"
-                  style={{ color: COLORS.gray, borderColor: COLORS.border }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+                <span style={{ fontSize: tokens.typography.fontSize.sm[0] }}>Active Sitter</span>
+              </label>
+            </FormRow>
+
+            <div style={{ display: 'flex', gap: tokens.spacing[3], paddingTop: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}`, justifyContent: 'flex-end' }}>
+              <Button variant="tertiary" type="button" onClick={resetForm}>
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit">
+                {editingSitter ? 'Update' : 'Add'} Sitter
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setSitterToDelete(null);
+        }}
+        title="Delete Sitter"
+        size="md"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.primary }}>
+            Are you sure you want to delete <strong>{sitterToDelete?.firstName} {sitterToDelete?.lastName}</strong>?
+          </div>
+          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+            This action cannot be undone.
+          </div>
+          <div style={{ display: 'flex', gap: tokens.spacing[3], paddingTop: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}`, justifyContent: 'flex-end' }}>
+            <Button
+              variant="danger"
+              onClick={handleDelete}
+              disabled={deleting}
+              style={{ flex: 1 }}
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
+            <Button
+              variant="tertiary"
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setSitterToDelete(null);
+              }}
+              disabled={deleting}
+              style={{ flex: 1 }}
+            >
+              Cancel
+            </Button>
           </div>
         </div>
-      )}
-    </div>
+      </Modal>
+    </AppShell>
   );
 }

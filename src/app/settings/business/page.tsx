@@ -1,15 +1,33 @@
-"use client";
+/**
+ * Business Settings Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Input,
+  Select,
+  Textarea,
+  FormRow,
+  Skeleton,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 export default function BusinessSettingsPage() {
   const [settings, setSettings] = useState({
-    businessName: "",
-    businessPhone: "",
-    businessEmail: "",
-    businessAddress: "",
-    timeZone: "America/New_York",
+    businessName: '',
+    businessPhone: '',
+    businessEmail: '',
+    businessAddress: '',
+    timeZone: 'America/New_York',
     operatingHours: {},
     holidays: [] as string[],
     taxSettings: {},
@@ -17,22 +35,33 @@ export default function BusinessSettingsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSettings();
   }, []);
 
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
   const fetchSettings = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch("/api/business-settings");
+      const response = await fetch('/api/business-settings');
       const data = await response.json();
       if (data.settings) {
         setSettings({
-          businessName: data.settings.businessName || "",
-          businessPhone: data.settings.businessPhone || "",
-          businessEmail: data.settings.businessEmail || "",
-          businessAddress: data.settings.businessAddress || "",
-          timeZone: data.settings.timeZone || "America/New_York",
+          businessName: data.settings.businessName || '',
+          businessPhone: data.settings.businessPhone || '',
+          businessEmail: data.settings.businessEmail || '',
+          businessAddress: data.settings.businessAddress || '',
+          timeZone: data.settings.timeZone || 'America/New_York',
           operatingHours: data.settings.operatingHours ? JSON.parse(data.settings.operatingHours) : {},
           holidays: data.settings.holidays ? JSON.parse(data.settings.holidays) : [],
           taxSettings: data.settings.taxSettings ? JSON.parse(data.settings.taxSettings) : {},
@@ -40,7 +69,7 @@ export default function BusinessSettingsPage() {
         });
       }
     } catch (error) {
-      console.error("Failed to fetch settings:", error);
+      setError('Failed to load settings');
     } finally {
       setLoading(false);
     }
@@ -48,10 +77,11 @@ export default function BusinessSettingsPage() {
 
   const handleSave = async () => {
     setSaving(true);
+    setError(null);
     try {
-      const response = await fetch("/api/business-settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/business-settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...settings,
           operatingHours: JSON.stringify(settings.operatingHours),
@@ -62,107 +92,120 @@ export default function BusinessSettingsPage() {
       });
 
       if (response.ok) {
-        alert("Settings saved successfully!");
+        setSuccessMessage('Settings saved successfully!');
       } else {
-        alert("Failed to save settings");
+        setError('Failed to save settings');
       }
     } catch (error) {
-      console.error("Failed to save settings:", error);
-      alert("Failed to save settings");
+      setError('Failed to save settings');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-        <div className="text-center py-20">Loading...</div>
-      </div>
-    );
-  }
+  const timeZoneOptions = [
+    { value: 'America/New_York', label: 'Eastern Time' },
+    { value: 'America/Chicago', label: 'Central Time' },
+    { value: 'America/Denver', label: 'Mountain Time' },
+    { value: 'America/Los_Angeles', label: 'Pacific Time' },
+  ];
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8" style={{ color: COLORS.primary }}>
-          Business Settings
-        </h1>
+    <AppShell>
+      <PageHeader
+        title="Business Settings"
+        description="Configure your business information and preferences"
+      />
 
-        <div className="bg-white rounded-xl p-6 border-2 shadow-sm mb-6" style={{ borderColor: COLORS.primaryLight }}>
-          <h2 className="text-2xl font-bold mb-4" style={{ color: COLORS.primary }}>
-            Business Information
-          </h2>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block font-semibold mb-2">Business Name *</label>
-              <input
-                type="text"
-                value={settings.businessName}
-                onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-2">Business Phone</label>
-              <input
-                type="tel"
-                value={settings.businessPhone}
-                onChange={(e) => setSettings({ ...settings, businessPhone: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-2">Business Email</label>
-              <input
-                type="email"
-                value={settings.businessEmail}
-                onChange={(e) => setSettings({ ...settings, businessEmail: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-2">Business Address</label>
-              <textarea
-                value={settings.businessAddress}
-                onChange={(e) => setSettings({ ...settings, businessAddress: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-                rows={3}
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-2">Time Zone</label>
-              <select
-                value={settings.timeZone}
-                onChange={(e) => setSettings({ ...settings, timeZone: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="America/New_York">Eastern Time</option>
-                <option value="America/Chicago">Central Time</option>
-                <option value="America/Denver">Mountain Time</option>
-                <option value="America/Los_Angeles">Pacific Time</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-4">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-3 rounded-lg font-semibold text-white disabled:opacity-50"
-            style={{ background: COLORS.primary }}
+      <div style={{ padding: tokens.spacing[6] }}>
+        {/* Success Banner */}
+        {successMessage && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.success[50],
+              borderColor: tokens.colors.success[200],
+            }}
           >
-            {saving ? "Saving..." : "Save Settings"}
-          </button>
-        </div>
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.success[700] }}>
+              {successMessage}
+            </div>
+          </Card>
+        )}
+
+        {/* Error Banner */}
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>{error}</div>
+          </Card>
+        )}
+
+        {loading ? (
+          <Card>
+            <div style={{ padding: tokens.spacing[6] }}>
+              <Skeleton height={400} />
+            </div>
+          </Card>
+        ) : (
+          <>
+            <Card style={{ marginBottom: tokens.spacing[6] }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                <FormRow label="Business Name" required>
+                  <Input
+                    type="text"
+                    value={settings.businessName}
+                    onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
+                  />
+                </FormRow>
+
+                <FormRow label="Business Phone">
+                  <Input
+                    type="tel"
+                    value={settings.businessPhone}
+                    onChange={(e) => setSettings({ ...settings, businessPhone: e.target.value })}
+                  />
+                </FormRow>
+
+                <FormRow label="Business Email">
+                  <Input
+                    type="email"
+                    value={settings.businessEmail}
+                    onChange={(e) => setSettings({ ...settings, businessEmail: e.target.value })}
+                  />
+                </FormRow>
+
+                <FormRow label="Business Address">
+                  <Textarea
+                    value={settings.businessAddress}
+                    onChange={(e) => setSettings({ ...settings, businessAddress: e.target.value })}
+                    rows={3}
+                  />
+                </FormRow>
+
+                <FormRow label="Time Zone">
+                  <Select
+                    value={settings.timeZone}
+                    onChange={(e) => setSettings({ ...settings, timeZone: e.target.value })}
+                    options={timeZoneOptions}
+                  />
+                </FormRow>
+              </div>
+            </Card>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button variant="primary" onClick={handleSave} disabled={saving} isLoading={saving}>
+                Save Settings
+              </Button>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </AppShell>
   );
 }
-
