@@ -296,18 +296,35 @@ AppShell is single layout primitive. No duplicates found.
 
 ## Compliance Status
 
-**Current Status:** ⚠️ **MOSTLY COMPLIANT** (2 critical issues, 2 cleanup items)
+**Status:** ✅ **FULLY COMPLIANT**
 
-**After Fixes:** ✅ **FULLY COMPLIANT**
+**Actions Completed:**
+1. ✅ Removed dark theme CSS from `globals.css`
+2. ✅ Verified public booking form uses its own CSS variables (not legacy ones)
+3. ⚠️ Legacy files remain but are not imported (dead code - cleanup optional)
 
-**Blocks:** Dark theme CSS must be removed before system can be considered compliant.
+**Blocks:** None. System is compliant.
 
 ---
 
-## Next Steps
+## Verification Complete
 
-1. Remove dark theme CSS from `globals.css`
-2. Verify public booking form CSS variable usage
-3. Remove legacy files (dead code cleanup)
-4. Re-run verification after fixes
+All checklist items pass. System DNA is fully enforced across the application.
+
+**Key Achievements:**
+- All pages use AppShell with explicit physiology
+- State model enforced (idle, focused, active, decay)
+- Color discipline enforced (white dominant, pink restrained, no dark theme)
+- Motion discipline enforced (posture-appropriate timing)
+- Depth hierarchy consistent (elevated/critical)
+- Silence enforcement working (idle is first-class state)
+- No page-level overrides (system-enforced behavior)
+
+**Canonical Rule Established:** AppShell + System DNA is the sole supported layout system. Any deviation is a bug, not a design alternative.
+
+---
+
+## Optional Cleanup
+
+Legacy files (`*-legacy.tsx`, `*-enterprise.tsx`, `*-backup.tsx`) can be removed for cleanliness, but they are not blocking compliance as they are not imported anywhere.
 
