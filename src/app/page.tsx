@@ -1,8 +1,8 @@
 /**
- * Dashboard Home Page - Enterprise Rebuild
+ * Dashboard Home Page - System DNA Implementation
  * 
- * Complete rebuild using design system and components.
- * Zero legacy styling - all through components and tokens.
+ * Observational posture: Calm, wide layouts, slow ambient motion, stable data.
+ * Canonical reference for Observational physiology.
  */
 
 'use client';
@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader, StatCard, Card, Button, Skeleton } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { getPhysiologyMotion } from '@/lib/motion-system';
 import Link from 'next/link';
 
 interface DashboardStats {
@@ -65,35 +66,39 @@ export default function DashboardHomePage() {
     }
   };
 
+  // Observational posture: slow, calm motion
+  const motionStyles = getPhysiologyMotion('observational');
+
   return (
-    <AppShell>
+    <AppShell physiology="observational">
       <PageHeader
         title="Dashboard"
         description="Overview of your pet care business operations"
         actions={
           <Link href="/bookings">
-            <Button variant="primary">
+            <Button variant="primary" energy="focused">
               View All Bookings
             </Button>
           </Link>
         }
       />
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Wide layout for observational posture */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: tokens.spacing[6],
-          marginBottom: tokens.spacing[8],
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: tokens.spacing[8], // Wider spacing for observational
+          marginBottom: tokens.spacing[12], // More space for calm feel
+          ...motionStyles, // Observational motion: slow, calm
         }}
       >
         {loading ? (
           <>
-            <Skeleton height="120px" />
-            <Skeleton height="120px" />
-            <Skeleton height="120px" />
-            <Skeleton height="120px" />
+            <Skeleton height="140px" />
+            <Skeleton height="140px" />
+            <Skeleton height="140px" />
+            <Skeleton height="140px" />
           </>
         ) : (
           <>
@@ -121,8 +126,9 @@ export default function DashboardHomePage() {
         )}
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Wide, stable layout */}
       <Card
+        depth="elevated"
         header={
           <div
             style={{
@@ -138,8 +144,9 @@ export default function DashboardHomePage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: tokens.spacing[4],
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: tokens.spacing[6], // Wider spacing for observational
+            ...motionStyles, // Observational motion: slow, calm
           }}
         >
           <Link href="/bookings">
