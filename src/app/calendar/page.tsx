@@ -322,9 +322,9 @@ export default function CalendarPage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <AppShell physiology="observational">
         <PageHeader title="Calendar" description="View bookings in calendar format" />
-        <Card>
+        <Card depth="elevated">
           <Skeleton height="600px" />
         </Card>
       </AppShell>
@@ -333,9 +333,9 @@ export default function CalendarPage() {
 
   if (error && bookings.length === 0) {
     return (
-      <AppShell>
+      <AppShell physiology="observational">
         <PageHeader title="Calendar" description="View bookings in calendar format" />
-        <Card>
+        <Card depth="critical">
           <EmptyState
             icon="⚠️"
             title="Failed to Load Calendar"
@@ -352,7 +352,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell physiology="observational">
       <PageHeader
         title="Calendar"
         description="View bookings in calendar format"
@@ -374,6 +374,7 @@ export default function CalendarPage() {
 
       {/* Filters and Navigation */}
       <Card
+        depth="elevated"
         style={{
           marginBottom: tokens.spacing[6],
         }}
@@ -487,6 +488,7 @@ export default function CalendarPage() {
       {/* Calendar View */}
       {viewMode === 'month' ? (
         <Card
+          depth="elevated"
           padding={false}
           style={{
             overflow: 'hidden',
@@ -707,7 +709,7 @@ export default function CalendarPage() {
         </Card>
       ) : (
         /* Agenda View */
-        <Card>
+        <Card depth="elevated">
           {agendaGrouped.length === 0 ? (
             <EmptyState
               icon="📅"
@@ -725,7 +727,7 @@ export default function CalendarPage() {
               {agendaGrouped.map((group) => {
                 const dateObj = new Date(group.date);
                 return (
-                  <Card key={group.date} padding={false}>
+                  <Card key={group.date} depth="elevated" padding={false}>
                     <div
                       style={{
                         padding: tokens.spacing[4],
@@ -892,7 +894,7 @@ export default function CalendarPage() {
                     : [];
 
                 return (
-                  <Card key={booking.id}>
+                  <Card key={booking.id} depth="elevated">
                     <div
                       style={{
                         display: 'flex',

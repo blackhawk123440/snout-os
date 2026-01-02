@@ -171,13 +171,13 @@ export default function ClientsPage() {
   ];
 
   return (
-    <AppShell>
+    <AppShell physiology="operational">
       <PageHeader
         title="Clients"
         description="Manage client information and contact details"
         actions={
           <Link href="/clients/new">
-            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+            <Button variant="primary" energy="active" leftIcon={<i className="fas fa-plus" />}>
               New Client
             </Button>
           </Link>
@@ -186,6 +186,7 @@ export default function ClientsPage() {
 
       {/* Filters and Search */}
       <Card
+        depth="elevated"
         style={{
           marginBottom: tokens.spacing[6],
         }}
@@ -217,7 +218,7 @@ export default function ClientsPage() {
       </Card>
 
       {/* Clients Table */}
-      <Card padding={!loading}>
+      <Card depth="elevated" padding={!loading}>
         {loading ? (
           <Skeleton height="400px" />
         ) : (

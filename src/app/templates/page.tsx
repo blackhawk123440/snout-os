@@ -390,12 +390,12 @@ export default function TemplatesPage() {
   const smsWarning = smsCharacterCount > 140 && smsCharacterCount <= 160;
 
   return (
-    <AppShell>
+    <AppShell physiology="operational">
       <PageHeader
         title="Templates"
         description="Message templates used by automations"
         actions={
-          <Button variant="primary" onClick={handleNewTemplate} leftIcon={<i className="fas fa-plus" />}>
+          <Button variant="primary" energy="active" onClick={handleNewTemplate} leftIcon={<i className="fas fa-plus" />}>
             New Template
           </Button>
         }
@@ -420,6 +420,7 @@ export default function TemplatesPage() {
         {/* Error Banner */}
         {error && (
           <Card
+            depth="critical"
             style={{
               marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
@@ -474,7 +475,7 @@ export default function TemplatesPage() {
 
             {/* Templates Table */}
             {loading ? (
-              <Card>
+              <Card depth="elevated">
                 <div style={{ padding: tokens.spacing[6] }}>
                   <Skeleton height={400} />
                 </div>
@@ -494,7 +495,7 @@ export default function TemplatesPage() {
                 }
               />
             ) : (
-              <Card>
+              <Card depth="elevated">
                 <Table
                   columns={tableColumns}
                   data={filteredTemplates}
@@ -506,7 +507,7 @@ export default function TemplatesPage() {
           {tabs.filter(t => t.id !== 'all').map(tab => (
             <TabPanel key={tab.id} id={tab.id}>
               {/* Same content as "all" tab */}
-              <Card style={{ marginBottom: tokens.spacing[6] }}>
+              <Card depth="elevated" style={{ marginBottom: tokens.spacing[6] }}>
                 <div
                   style={{
                     display: 'grid',
@@ -538,7 +539,7 @@ export default function TemplatesPage() {
               </Card>
 
               {loading ? (
-                <Card>
+                <Card depth="elevated">
                   <div style={{ padding: tokens.spacing[6] }}>
                     <Skeleton height={400} />
                   </div>
@@ -550,7 +551,7 @@ export default function TemplatesPage() {
                   icon={<i className="fas fa-file-alt" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                 />
               ) : (
-                <Card>
+                <Card depth="elevated">
                   <Table
                     columns={tableColumns}
                     data={filteredTemplates}
@@ -655,7 +656,7 @@ export default function TemplatesPage() {
             </div>
 
             {/* Variables Preview */}
-            <Card style={{ backgroundColor: tokens.colors.neutral[50] }}>
+            <Card depth="elevated" style={{ backgroundColor: tokens.colors.neutral[50] }}>
               <div style={{ padding: tokens.spacing[4] }}>
                 <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[3] }}>
                   Available Variables (Examples)
