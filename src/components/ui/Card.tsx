@@ -53,10 +53,15 @@ export const Card: React.FC<CardProps> = ({
         ...props.style,
       };
   
+  // Phase 5C: Use glass-panel-card class for cards (more opaque than sidebar)
+  const finalClassName = glass 
+    ? `glass-panel glass-panel-card ${className}`.trim()
+    : cardClassName;
+  
   return (
     <div
       {...props}
-      className={cardClassName}
+      className={finalClassName}
       style={cardStyle}
     >
       {glass && <div className="glass-panel-sheen" />}

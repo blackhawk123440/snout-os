@@ -68,11 +68,40 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   return (
     <PostureContext.Provider value={physiology}>
+      {/* Phase 5C: Global depth environment layer */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 0,
+          background: `
+            radial-gradient(ellipse at 20% 30%, rgba(252, 225, 239, 0.045) 0%, transparent 60%),
+            radial-gradient(ellipse at 80% 70%, rgba(252, 225, 239, 0.040) 0%, transparent 60%),
+            radial-gradient(ellipse at center, rgba(0, 0, 0, 0.025) 0%, transparent 70%)
+          `,
+          opacity: 1,
+        }}
+      />
+      {/* Micro texture field for glass refraction */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 0,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          opacity: 0.02,
+          mixBlendMode: 'overlay',
+        }}
+      />
       <div
         style={{
           display: 'flex',
           minHeight: '100vh',
           backgroundColor: tokens.colors.white.material,
+          position: 'relative',
+          zIndex: 1,
           ...physiologyMotion,
         }}
       >

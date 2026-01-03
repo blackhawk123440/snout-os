@@ -126,9 +126,10 @@ export default function DashboardHomePage() {
         )}
       </div>
 
-      {/* Quick Actions - Wide, stable layout */}
+      {/* Quick Actions - Wide, stable layout (Phase 5C: Glass panel) */}
       <Card
         depth="elevated"
+        glass={true}
         header={
           <div
             style={{

@@ -35,31 +35,22 @@ export const StatCard: React.FC<StatCardProps> = ({
   return (
     <div
       onClick={onClick}
+      className="glass-panel glass-panel-card"
       style={{
-        backgroundColor: tokens.colors.background.primary,
-        border: `1px solid ${tokens.colors.border.default}`,
         borderRadius: tokens.borderRadius.lg,
         padding: tokens.spacing[6],
         cursor: onClick ? 'pointer' : 'default',
         transition: `all ${tokens.transitions.duration.DEFAULT}`,
-        ...(onClick && {
-          ':hover': {
-            borderColor: tokens.colors.border.focus,
-            boxShadow: tokens.shadows.md,
-          },
-        }),
+        position: 'relative',
       }}
       onMouseEnter={(e) => {
-        if (onClick) {
-          e.currentTarget.style.borderColor = tokens.colors.border.focus;
-          e.currentTarget.style.boxShadow = tokens.shadows.md;
-        }
+        // Glass styling handles hover via CSS
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = tokens.colors.border.default;
-        e.currentTarget.style.boxShadow = tokens.shadows.sm;
+        // Glass styling handles hover via CSS
       }}
     >
+      <div className="glass-panel-sheen" />
       <div
         style={{
           display: 'flex',
