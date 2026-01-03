@@ -159,9 +159,37 @@ img, video, iframe {
   }
 }
 
-/* Glass panel variant for cards (slightly more opaque) */
+/* Glass panel variant for cards (slightly more opaque, enhanced depth) */
 .glass-panel-card {
   background: rgba(255, 255, 255, 0.62); /* White base - never pink */
+  transform: translateZ(0); /* Enable GPU acceleration for smooth animations */
+}
+
+/* Enhanced depth for stat cards with staggered z-index */
+.stat-card-depth {
+  transform: translateZ(0);
+  will-change: transform, box-shadow;
+}
+
+/* Subtle glow on stat card hover (micro-interaction) */
+.stat-card-depth:hover {
+  box-shadow: 
+    0 12px 24px -4px rgba(0, 0, 0, 0.16),
+    0 6px 12px -2px rgba(0, 0, 0, 0.08),
+    0 0 30px rgba(252, 225, 239, 0.12),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.70),
+    inset 0 2px 12px 0 rgba(255, 255, 255, 0.50),
+    inset 0 6px 16px 0 rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 0 rgba(252, 225, 239, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-card-depth {
+    will-change: auto;
+  }
+  .stat-card-depth:hover {
+    box-shadow: inherit;
+  }
 }
 
 /* Noise texture overlay for glass panels */
@@ -276,9 +304,21 @@ h1, h2, h3, h4, h5, h6 {
   outline-offset: 2px;
 }
 
-/* Smooth Transitions */
+/* Smooth Transitions with Elastic Micro-Interactions */
 button, a, input, select, textarea {
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Elastic feedback for buttons on click */
+button:active {
+  transform: scale(0.98);
+  transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:active {
+    transform: none;
+  }
 }
 
 /* ===== MOBILE OPTIMIZATION ===== */

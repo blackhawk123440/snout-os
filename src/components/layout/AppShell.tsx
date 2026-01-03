@@ -17,6 +17,7 @@ import { PagePhysiology, SYSTEM_CONSTANTS } from '@/lib/system-dna';
 import { spatial } from '@/lib/spatial-hierarchy';
 import { motion } from '@/lib/motion-system';
 import { FuturisticBackground } from '@/components/ui/FuturisticBackground';
+import { CursorGlow } from '@/components/ui/CursorGlow';
 
 export interface NavItem {
   label: string;
@@ -87,6 +88,9 @@ export const AppShell: React.FC<AppShellProps> = ({
           filter: 'saturate(0.10)',
         }}
       />
+      
+      {/* Cursor glow effect - subtle pink glow that follows cursor */}
+      <CursorGlow />
       <div
         style={{
           display: 'flex',

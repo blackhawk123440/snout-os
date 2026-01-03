@@ -35,13 +35,14 @@ export const StatCard: React.FC<StatCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className="glass-panel glass-panel-card"
+      className="glass-panel glass-panel-card stat-card-depth"
       style={{
         borderRadius: tokens.borderRadius.lg,
         padding: tokens.spacing[6],
         cursor: onClick ? 'pointer' : 'default',
-        transition: `all ${tokens.transitions.duration.DEFAULT}`,
+        transition: `all ${tokens.transitions.duration.DEFAULT} cubic-bezier(0.4, 0, 0.2, 1)`,
         position: 'relative',
+        transform: 'translateZ(0)', // Enable GPU acceleration
       }}
       onMouseEnter={(e) => {
         // Glass styling handles hover via CSS

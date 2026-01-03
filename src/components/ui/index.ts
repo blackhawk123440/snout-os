@@ -20,4 +20,5 @@ export { Skeleton, type SkeletonProps } from './Skeleton';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
 export { FormRow, type FormRowProps } from './FormRow';
 export { FuturisticBackground } from './FuturisticBackground';
+export { CursorGlow } from './CursorGlow';
 
