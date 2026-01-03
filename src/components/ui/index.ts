@@ -19,7 +19,5 @@ export { Modal, type ModalProps } from './Modal';
 export { Skeleton, type SkeletonProps } from './Skeleton';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
 export { FormRow, type FormRowProps } from './FormRow';
-export { FuturisticBackground } from './FuturisticBackground';
-export { CryptoBackground } from './CryptoBackground';
-export { CursorGlow } from './CursorGlow';
+export { ElegantBackground } from './ElegantBackground';
 

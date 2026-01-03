@@ -56,8 +56,8 @@
 }
 
 body {
-  background: #0a0e27; /* Dark crypto background */
-  color: rgba(255, 255, 255, 0.9);
+  background: #ffffff; /* Clean white background */
+  color: #432f21; /* Brown text for elegance */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-feature-settings: "kern" 1;
   -webkit-font-smoothing: antialiased;
@@ -120,34 +120,31 @@ img, video, iframe {
   border-radius: inherit;
 }
 
-/* Crypto-platform glassmorphism - Neon edges, strong blur, dark glass */
+/* Elegant transparent glassmorphism - Professional and refined */
 .glass-panel {
   position: relative;
-  background: rgba(10, 14, 39, 0.65); /* Dark glass base */
-  backdrop-filter: blur(30px) saturate(180%); /* Strong blur for crypto HUD */
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  border: 1px solid rgba(0, 255, 255, 0.3); /* Neon cyan edge */
+  background: rgba(255, 255, 255, 0.70); /* Light, transparent glass */
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(252, 225, 239, 0.4); /* Soft pink border */
   box-shadow: 
-    0 8px 32px -8px rgba(0, 0, 0, 0.5), /* Strong shadow */
-    0 0 0 1px rgba(0, 255, 255, 0.1),
-    0 0 20px rgba(0, 255, 255, 0.15), /* Cyan glow */
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.10), /* Inner highlight */
-    inset 0 0 40px rgba(138, 43, 226, 0.1); /* Purple inner glow */
+    0 8px 32px -4px rgba(67, 47, 33, 0.08), /* Subtle shadow */
+    0 2px 8px -2px rgba(67, 47, 33, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8), /* Soft inner highlight */
+    inset 0 -1px 0 0 rgba(252, 225, 239, 0.2); /* Subtle bottom tint */
   overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
 }
 
-/* Floating effect on hover with enhanced neon glow */
+/* Subtle elevation on hover - Professional and refined */
 .glass-panel:hover {
-  transform: translateY(-4px) scale(1.01);
-  border-color: rgba(0, 255, 255, 0.6);
+  transform: translateY(-2px);
+  border-color: rgba(252, 225, 239, 0.6);
   box-shadow: 
-    0 16px 48px -8px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(0, 255, 255, 0.3),
-    0 0 40px rgba(0, 255, 255, 0.3), /* Stronger cyan glow */
-    0 0 60px rgba(138, 43, 226, 0.2), /* Purple glow */
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.20),
-    inset 0 0 60px rgba(0, 191, 255, 0.15);
+    0 12px 40px -4px rgba(67, 47, 33, 0.12),
+    0 4px 12px -2px rgba(67, 47, 33, 0.06),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 0 rgba(252, 225, 239, 0.3);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -159,36 +156,34 @@ img, video, iframe {
   }
 }
 
-/* Crypto glass panel variant for cards */
+/* Elegant glass panel variant for cards */
 .glass-panel-card {
-  background: rgba(10, 14, 39, 0.70); /* Dark glass, slightly more opaque */
-  border: 1px solid rgba(0, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.75); /* Slightly more opaque for cards */
+  border: 1px solid rgba(252, 225, 239, 0.35);
   transform: translateZ(0);
   box-shadow: 
-    0 8px 32px -8px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(0, 255, 255, 0.1),
-    0 0 25px rgba(0, 255, 255, 0.2),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.10),
-    inset 0 0 50px rgba(138, 43, 226, 0.12);
+    0 8px 32px -4px rgba(67, 47, 33, 0.08),
+    0 2px 8px -2px rgba(67, 47, 33, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 0 rgba(252, 225, 239, 0.25);
 }
 
-/* Crypto stat card depth with neon glow */
+/* Elegant stat card depth */
 .stat-card-depth {
   transform: translateZ(0);
-  will-change: transform, box-shadow, border-color;
+  will-change: transform, box-shadow;
 }
 
-/* Dramatic neon glow on stat card hover */
+/* Refined hover effect on stat cards */
 .stat-card-depth:hover {
-  transform: translateY(-6px) scale(1.02);
-  border-color: rgba(0, 255, 255, 0.8);
+  transform: translateY(-3px);
+  border-color: rgba(252, 225, 239, 0.7);
   box-shadow: 
-    0 20px 60px -8px rgba(0, 0, 0, 0.7),
-    0 0 0 2px rgba(0, 255, 255, 0.4),
-    0 0 50px rgba(0, 255, 255, 0.4), /* Strong cyan glow */
-    0 0 80px rgba(138, 43, 226, 0.3), /* Purple glow */
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.25),
-    inset 0 0 80px rgba(0, 191, 255, 0.2);
+    0 16px 48px -4px rgba(67, 47, 33, 0.12),
+    0 4px 16px -2px rgba(67, 47, 33, 0.06),
+    0 0 0 1px rgba(252, 225, 239, 0.5),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 0 rgba(252, 225, 239, 0.35);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -298,24 +293,19 @@ table {
   word-wrap: break-word;
 }
 
-/* Crypto typography - Neon glow effects */
+/* Professional typography - Clean and elegant */
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 700;
-  line-height: 1.2;
-  color: #ffffff;
-  text-shadow: 
-    0 0 10px rgba(0, 255, 255, 0.5),
-    0 0 20px rgba(0, 255, 255, 0.3),
-    0 0 40px rgba(138, 43, 226, 0.2),
-    0 2px 4px rgba(0, 0, 0, 0.5);
-  /* Strong neon glow for crypto platform feel */
+  font-weight: 600;
+  line-height: 1.3;
+  color: #432f21; /* Brown for elegance */
+  letter-spacing: -0.01em;
+  /* Clean, professional typography */
 }
 
-/* Improved Focus States - Neon cyan for crypto theme */
+/* Professional Focus States - Brand pink */
 *:focus-visible {
-  outline: 2px solid rgba(0, 255, 255, 0.6); /* Neon cyan for crypto theme */
+  outline: 2px solid rgba(252, 225, 239, 0.8); /* Soft pink focus ring */
   outline-offset: 2px;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
 }
 
 /* Crypto button styles - Neon effects */
@@ -425,15 +415,14 @@ html {
   }
 }
 
-/* Improve focus states for accessibility - Neon cyan for crypto */
+/* Professional focus states - Brand pink */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid rgba(0, 255, 255, 0.6); /* Neon cyan for crypto */
+  outline: 2px solid rgba(252, 225, 239, 0.8); /* Soft pink focus ring */
   outline-offset: 2px;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
 }
 
 /* Prevent layout shift from images */

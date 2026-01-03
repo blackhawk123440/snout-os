@@ -64,10 +64,10 @@ export const StatCard: React.FC<StatCardProps> = ({
           style={{
             fontSize: tokens.typography.fontSize.sm[0],
             fontWeight: tokens.typography.fontWeight.medium,
-            color: 'rgba(0, 255, 255, 0.7)',
+            color: '#432f21',
             textTransform: 'uppercase',
             letterSpacing: tokens.typography.letterSpacing.wide,
-            textShadow: '0 0 10px rgba(0, 255, 255, 0.3)',
+            opacity: 0.7,
           }}
         >
           {label}
@@ -75,8 +75,8 @@ export const StatCard: React.FC<StatCardProps> = ({
         {icon && (
           <div
             style={{
-              color: 'rgba(0, 255, 255, 0.8)',
-              filter: 'drop-shadow(0 0 8px rgba(0, 255, 255, 0.5))',
+              color: '#432f21',
+              opacity: 0.6,
             }}
           >
             {icon}
@@ -87,11 +87,9 @@ export const StatCard: React.FC<StatCardProps> = ({
         style={{
           fontSize: tokens.typography.fontSize['3xl'][0],
           fontWeight: tokens.typography.fontWeight.bold,
-          color: '#ffffff',
+          color: '#432f21',
           lineHeight: '1',
           marginBottom: change ? tokens.spacing[2] : 0,
-          textShadow: 
-            '0 0 10px rgba(0, 255, 255, 0.5), 0 0 20px rgba(138, 43, 226, 0.3), 0 2px 4px rgba(0, 0, 0, 0.5)',
         }}
       >
         {value}

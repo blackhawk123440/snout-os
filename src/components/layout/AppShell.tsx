@@ -16,8 +16,7 @@ import { tokens } from '@/lib/design-tokens';
 import { PagePhysiology, SYSTEM_CONSTANTS } from '@/lib/system-dna';
 import { spatial } from '@/lib/spatial-hierarchy';
 import { motion } from '@/lib/motion-system';
-import { CryptoBackground } from '@/components/ui/CryptoBackground';
-import { CursorGlow } from '@/components/ui/CursorGlow';
+import { ElegantBackground } from '@/components/ui/ElegantBackground';
 
 export interface NavItem {
   label: string;
@@ -70,16 +69,13 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   return (
     <PostureContext.Provider value={physiology}>
-      {/* Crypto-platform animated background */}
-      <CryptoBackground />
-      
-      {/* Cursor glow effect - neon cyan glow */}
-      <CursorGlow />
+      {/* Elegant professional background */}
+      <ElegantBackground />
       <div
         style={{
           display: 'flex',
           minHeight: '100vh',
-          backgroundColor: 'transparent', /* Transparent for crypto background */
+          backgroundColor: 'transparent',
           position: 'relative',
           zIndex: 2,
           ...physiologyMotion,

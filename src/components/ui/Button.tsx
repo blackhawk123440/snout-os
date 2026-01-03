@@ -41,16 +41,16 @@ const getDefaultEnergy = (variant: ButtonVariant): EnergyLevel => {
 const getVariantStyles = (variant: ButtonVariant, energy: EnergyLevel) => {
   const styles: Record<ButtonVariant, React.CSSProperties> = {
     primary: {
-      background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.9) 0%, rgba(138, 43, 226, 0.9) 100%)',
+      backgroundColor: tokens.colors.primary[energy],
       color: '#ffffff',
-      border: '1px solid rgba(0, 255, 255, 0.5)',
-      boxShadow: '0 0 20px rgba(0, 255, 255, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3)',
-      fontWeight: 600,
+      border: `1px solid ${tokens.colors.primary[energy]}`,
+      boxShadow: '0 2px 8px -2px rgba(252, 225, 239, 0.4), 0 1px 3px -1px rgba(67, 47, 33, 0.1)',
+      fontWeight: 500,
     },
     secondary: {
-      backgroundColor: 'rgba(10, 14, 39, 0.6)',
-      color: 'rgba(0, 255, 255, 0.9)',
-      border: '1px solid rgba(0, 255, 255, 0.3)',
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      color: '#432f21',
+      border: '1px solid rgba(252, 225, 239, 0.5)',
       backdropFilter: 'blur(10px)',
     },
     tertiary: {
@@ -75,14 +75,14 @@ const getVariantStyles = (variant: ButtonVariant, energy: EnergyLevel) => {
 const getHoverStyles = (variant: ButtonVariant, energy: EnergyLevel = 'focused') => {
   const styles: Record<ButtonVariant, { backgroundColor?: string; background?: string; color?: string; borderColor?: string; boxShadow?: string }> = {
     primary: {
-      background: 'linear-gradient(135deg, rgba(0, 255, 255, 1) 0%, rgba(138, 43, 226, 1) 100%)',
-      borderColor: 'rgba(0, 255, 255, 0.8)',
-      boxShadow: '0 0 30px rgba(0, 255, 255, 0.6), 0 0 50px rgba(138, 43, 226, 0.4), 0 6px 12px rgba(0, 0, 0, 0.4)',
+      backgroundColor: tokens.colors.primary.active,
+      borderColor: tokens.colors.primary.active,
+      boxShadow: '0 4px 12px -2px rgba(252, 225, 239, 0.5), 0 2px 4px -1px rgba(67, 47, 33, 0.12)',
     },
     secondary: {
-      backgroundColor: 'rgba(10, 14, 39, 0.8)',
-      borderColor: 'rgba(0, 255, 255, 0.6)',
-      boxShadow: '0 0 20px rgba(0, 255, 255, 0.3)',
+      backgroundColor: 'rgba(255, 255, 255, 1)',
+      borderColor: 'rgba(252, 225, 239, 0.7)',
+      boxShadow: '0 2px 8px -2px rgba(252, 225, 239, 0.3)',
     },
     tertiary: {
       backgroundColor: tokens.colors.primary.opacity[5],
