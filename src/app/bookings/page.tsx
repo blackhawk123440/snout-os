@@ -260,9 +260,11 @@ function BookingsPageContent() {
         title="Bookings"
         description="Manage all bookings and assignments"
         actions={
-          <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
-            New Booking
-          </Button>
+          <a href="https://snout-form.onrender.com" target="_blank" rel="noopener noreferrer">
+            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+              New Booking
+            </Button>
+          </a>
         }
       />
 
