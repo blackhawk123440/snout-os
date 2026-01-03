@@ -68,7 +68,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   return (
     <PostureContext.Provider value={physiology}>
-      {/* Phase 5C: Global depth environment layer */}
+      {/* Phase 6: Cinematic environment layer - Dark-to-neutral atmospheric gradient */}
       <div
         style={{
           position: 'fixed',
@@ -76,22 +76,37 @@ export const AppShell: React.FC<AppShellProps> = ({
           pointerEvents: 'none',
           zIndex: 0,
           background: `
-            radial-gradient(ellipse at 20% 30%, rgba(252, 225, 239, 0.045) 0%, transparent 60%),
-            radial-gradient(ellipse at 80% 70%, rgba(252, 225, 239, 0.040) 0%, transparent 60%),
-            radial-gradient(ellipse at center, rgba(0, 0, 0, 0.025) 0%, transparent 70%)
+            radial-gradient(ellipse 120% 140% at 30% 40%, rgba(40, 35, 50, 0.16) 0%, transparent 70%),
+            radial-gradient(ellipse 140% 120% at 70% 80%, rgba(35, 30, 45, 0.14) 0%, transparent 70%),
+            linear-gradient(180deg, rgba(45, 40, 55, 0.12) 0%, rgba(50, 45, 60, 0.10) 50%, rgba(45, 40, 55, 0.12) 100%)
           `,
           opacity: 1,
         }}
       />
-      {/* Micro texture field for glass refraction */}
+      {/* Phase 6: Volumetric light fields - Two large, soft radial light sources */}
       <div
         style={{
           position: 'fixed',
           inset: 0,
           pointerEvents: 'none',
           zIndex: 0,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='2.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          opacity: 0.02,
+          background: `
+            radial-gradient(ellipse 80% 100% at 25% 45%, rgba(252, 225, 239, 0.08) 0%, transparent 60%),
+            radial-gradient(ellipse 100% 80% at 75% 85%, rgba(252, 225, 239, 0.06) 0%, transparent 65%)
+          `,
+          opacity: 1,
+          filter: 'blur(60px)',
+        }}
+      />
+      {/* Phase 6: Global micro-noise layer */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 0,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='3.0' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          opacity: 0.035,
           mixBlendMode: 'overlay',
         }}
       />

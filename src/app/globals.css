@@ -115,26 +115,26 @@ img, video, iframe {
   border-radius: inherit;
 }
 
-/* Glass panel base class (Phase 5C: Calibrated for optical depth) */
+/* Glass panel base class (Phase 6: Cinematic physical glass) */
 .glass-panel {
   position: relative;
-  background: rgba(255, 255, 255, 0.70); /* Phase 5C: Reduced from 0.80 to show refraction */
-  backdrop-filter: blur(15px) saturate(130%);
-  -webkit-backdrop-filter: blur(15px) saturate(130%);
-  border: 1px solid rgba(252, 225, 239, 0.10); /* Phase 5C: Reduced from 0.15 to avoid outline */
+  background: rgba(255, 255, 255, 0.64); /* Phase 6: 0.55-0.72 range for physical glass */
+  backdrop-filter: blur(24px) saturate(135%); /* Phase 6: 18-30px blur for thick glass */
+  -webkit-backdrop-filter: blur(24px) saturate(135%);
+  border: 1px solid rgba(252, 225, 239, 0.08);
   box-shadow: 
-    0 4px 6px -1px rgba(252, 225, 239, 0.10),
-    0 2px 4px -2px rgba(252, 225, 239, 0.06),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.70), /* Phase 5C: Enhanced top highlight */
-    inset 0 2px 4px 0 rgba(0, 0, 0, 0.02), /* Phase 5C: Added inner shadow for depth */
-    inset 0 1px 0 0 rgba(252, 225, 239, 0.18), /* Phase 5C: Top edge lighting */
-    inset 1px 0 0 0 rgba(252, 225, 239, 0.12); /* Phase 5C: Left edge lighting */
+    0 6px 12px -2px rgba(0, 0, 0, 0.08), /* Shadow below glass */
+    0 2px 4px -1px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.50), /* Inner glow at top edge */
+    inset 0 2px 8px 0 rgba(255, 255, 255, 0.30), /* Light falloff inside */
+    inset 0 4px 12px 0 rgba(0, 0, 0, 0.06), /* Inner shadow for depth */
+    inset 0 1px 0 0 rgba(252, 225, 239, 0.12); /* Top edge with pink tint */
   overflow: hidden;
 }
 
 /* Glass panel variant for cards (slightly more opaque) */
 .glass-panel-card {
-  background: rgba(255, 255, 255, 0.76); /* Phase 5C: Cards at 0.74-0.78 range */
+  background: rgba(255, 255, 255, 0.68); /* Phase 6: Cards at higher end of range */
 }
 
 /* Noise texture overlay for glass panels */

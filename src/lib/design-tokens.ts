@@ -291,44 +291,43 @@ export const tokens = {
     none: 'none',
   },
   
-  // ===== GLASS MATERIAL (Phase 5B/5C) =====
+  // ===== GLASS MATERIAL (Phase 6: Cinematic) =====
   /**
-   * Frosted glass material system for futuristic opaque surfaces.
-   * Creates milky glass panels that feel like frosted glass on a white lab surface.
-   * Enterprise restrained - opaque but alive, not transparent.
-   * 
-   * Phase 5C: Calibrated to show optical depth with depth environment.
+   * Cinematic glass material system for physical, milky glass panels.
+   * Creates thick, physical glass that refracts volumetric light.
+   * Enterprise restrained - cinematic but mission-critical.
    */
   glass: {
     // Background: rgba white with opacity for milky glass effect
-    // Phase 5C: Reduced opacity to show refraction (0.68-0.74 for sidebar, 0.74-0.78 for cards)
-    background: 'rgba(255, 255, 255, 0.70)', // Sidebar/base glass
-    backgroundCard: 'rgba(255, 255, 255, 0.76)', // Cards (slightly more opaque)
+    // Phase 6: Reduced opacity 0.55-0.72 for physical glass appearance
+    background: 'rgba(255, 255, 255, 0.64)', // Sidebar/base glass
+    backgroundCard: 'rgba(255, 255, 255, 0.68)', // Cards (slightly more opaque)
     
     // Border: 1px rgba with pink tint at very low opacity
-    // Phase 5C: Reduced to under 0.12 to avoid outline look
-    border: '1px solid rgba(252, 225, 239, 0.10)',
+    border: '1px solid rgba(252, 225, 239, 0.08)',
     
-    // Shadow: tuned pink shadow for glass panels
-    shadow: '0 4px 6px -1px rgba(252, 225, 239, 0.10), 0 2px 4px -2px rgba(252, 225, 239, 0.06)',
+    // Shadow: subtle shadow below glass for physical depth
+    shadow: '0 6px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04)',
     
-    // Inner highlight: inset shadow for depth (Phase 5C: enhanced for optical separation)
-    innerHighlight: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.70)',
+    // Inner glow: top edge inner glow for light emission
+    innerGlow: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.50)',
     
-    // Inner shadow: Phase 5C: Added for depth shaping
-    innerShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
+    // Inner highlight: light falloff inside glass
+    innerHighlight: 'inset 0 2px 8px 0 rgba(255, 255, 255, 0.30)',
     
-    // Edge lighting: top and left edge highlights with pink tint at extremely low opacity
-    edgeTop: 'inset 0 1px 0 0 rgba(252, 225, 239, 0.18)',
-    edgeLeft: 'inset 1px 0 0 0 rgba(252, 225, 239, 0.12)',
+    // Inner shadow: depth shaping inside glass
+    innerShadow: 'inset 0 4px 12px 0 rgba(0, 0, 0, 0.06)',
     
-    // Backdrop blur: 12 to 18px range, using 15px
-    blur: '15px',
+    // Edge lighting: top edge with pink tint (very subtle)
+    edgeTop: 'inset 0 1px 0 0 rgba(252, 225, 239, 0.12)',
     
-    // Saturate: 120 to 140% range, using 130% for crisp optical feel
-    saturate: '130%',
+    // Backdrop blur: Phase 6: Increased to 18-30px for thick glass
+    blur: '24px',
     
-    // Noise opacity: 0.03 to 0.06 range, using 0.04
+    // Saturate: 120 to 140% range, using 135% for cinematic refraction
+    saturate: '135%',
+    
+    // Noise opacity: 0.02-0.05 range, using 0.04
     noiseOpacity: 0.04,
   },
   
