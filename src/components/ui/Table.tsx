@@ -45,20 +45,28 @@ export function Table<T extends Record<string, any>>({
         borderRadius: tokens.borderRadius.lg,
         overflow: 'hidden',
         backgroundColor: tokens.colors.background.primary,
+        width: '100%',
+        maxWidth: '100%',
       }}
     >
       <div
+        className="table-wrapper"
         style={{
           overflowX: 'auto',
           overflowY: 'auto',
           maxHeight: 'calc(100vh - 300px)',
+          width: '100%',
+          maxWidth: '100%',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         <table
           {...props}
           style={{
             width: '100%',
+            minWidth: '100%',
             borderCollapse: 'collapse',
+            tableLayout: 'auto',
             ...props.style,
           }}
         >
