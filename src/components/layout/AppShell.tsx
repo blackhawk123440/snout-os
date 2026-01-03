@@ -16,7 +16,7 @@ import { tokens } from '@/lib/design-tokens';
 import { PagePhysiology, SYSTEM_CONSTANTS } from '@/lib/system-dna';
 import { spatial } from '@/lib/spatial-hierarchy';
 import { motion } from '@/lib/motion-system';
-import { FuturisticBackground } from '@/components/ui/FuturisticBackground';
+import { CryptoBackground } from '@/components/ui/CryptoBackground';
 import { CursorGlow } from '@/components/ui/CursorGlow';
 
 export interface NavItem {
@@ -70,32 +70,16 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   return (
     <PostureContext.Provider value={physiology}>
-      {/* Futuristic animated background with particles */}
-      <FuturisticBackground />
+      {/* Crypto-platform animated background */}
+      <CryptoBackground />
       
-      {/* Pink ambient light field (brand color as atmospheric light) */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          pointerEvents: 'none',
-          zIndex: 1,
-          background: `
-            radial-gradient(ellipse 1500px 1500px at 30% 40%, rgba(252, 225, 239, 0.045) 0%, transparent 75%),
-            radial-gradient(ellipse 1500px 1500px at 70% 70%, rgba(252, 225, 239, 0.035) 0%, transparent 75%)
-          `,
-          opacity: 1,
-          filter: 'saturate(0.10)',
-        }}
-      />
-      
-      {/* Cursor glow effect - subtle pink glow that follows cursor */}
+      {/* Cursor glow effect - neon cyan glow */}
       <CursorGlow />
       <div
         style={{
           display: 'flex',
           minHeight: '100vh',
-          backgroundColor: tokens.colors.white.material,
+          backgroundColor: 'transparent', /* Transparent for crypto background */
           position: 'relative',
           zIndex: 2,
           ...physiologyMotion,

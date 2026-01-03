@@ -36,21 +36,24 @@ export function CursorGlow() {
 
   if (!isVisible) return null;
 
+  if (!isVisible) return null;
+
   return (
     <div
       style={{
         position: 'fixed',
         left: position.x,
         top: position.y,
-        width: '200px',
-        height: '200px',
+        width: '300px',
+        height: '300px',
         borderRadius: '50%',
-        background: `radial-gradient(circle, rgba(252, 225, 239, 0.08) 0%, transparent 70%)`,
+        background: `radial-gradient(circle, rgba(0, 255, 255, 0.15) 0%, rgba(138, 43, 226, 0.08) 40%, transparent 70%)`,
         pointerEvents: 'none',
         transform: 'translate(-50%, -50%)',
         zIndex: 9999,
-        transition: 'opacity 0.3s ease',
-        mixBlendMode: 'normal',
+        transition: 'opacity 0.2s ease',
+        mixBlendMode: 'screen',
+        filter: 'blur(20px)',
       }}
     />
   );
