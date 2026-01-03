@@ -198,10 +198,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const variantStyle = getVariantStyles(variant, effectiveEnergy);
     const hoverStyle = getHoverStyles(variant, effectiveEnergy);
     
-    // Phase 6: Add static light emission to primary buttons (focused/active states)
+    // Brand colors as light behavior: Pink glow (0.06-0.08 opacity max), brown focus ring
     const lightEmission = variant === 'primary' && (effectiveEnergy === 'focused' || effectiveEnergy === 'active')
       ? {
-          boxShadow: `0 0 16px 0 rgba(252, 225, 239, 0.25), 0 0 8px 0 rgba(252, 225, 239, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.30)`,
+          boxShadow: `0 0 16px 0 rgba(252, 225, 239, 0.07), 0 0 8px 0 rgba(252, 225, 239, 0.05), inset 0 1px 0 0 rgba(255, 255, 255, 0.30)`,
+          outline: `2px solid rgba(67, 47, 33, 0.40)`, /* Brown focus ring for authority */
+          outlineOffset: '2px',
         }
       : {};
 
