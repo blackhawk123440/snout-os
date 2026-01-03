@@ -49,6 +49,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
 body {
   background: var(--background);
   color: var(--gray-text);
@@ -94,11 +100,10 @@ img, video, iframe {
   height: auto;
 }
 
-/* ===== PHASE 5B: GLASS MATERIAL SYSTEM ===== */
+/* ===== FUTURISTIC GLASS MATERIAL SYSTEM ===== */
 /**
- * Frosted glass material utilities for futuristic opaque surfaces.
- * Creates milky glass panels that feel like frosted glass on a white lab surface.
- * Enterprise restrained - opaque but alive, not transparent.
+ * Enhanced glassmorphism for futuristic HUD-like panels
+ * Stronger blur, more transparency, deeper shadows
  */
 
 /* SVG noise texture for glass surfaces */
@@ -115,26 +120,48 @@ img, video, iframe {
   border-radius: inherit;
 }
 
-/* Glass panel base class - Pink-tinted refraction only (not pink background) */
+/* Glass panel base class - Enhanced glassmorphism with stronger blur and transparency */
 .glass-panel {
   position: relative;
-  background: rgba(255, 255, 255, 0.64); /* White base - never pink */
-  backdrop-filter: blur(16px) saturate(110%); /* Pink refraction comes from ambient light, not saturation */
-  -webkit-backdrop-filter: blur(16px) saturate(110%);
-  border: 1px solid rgba(252, 225, 239, 0.06); /* Pink-tinted edge only, 0.08 max */
+  background: rgba(255, 255, 255, 0.58); /* More transparent for futuristic feel */
+  backdrop-filter: blur(24px) saturate(140%); /* Stronger blur for HUD-like effect */
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(252, 225, 239, 0.08); /* Slightly more visible edge */
   box-shadow: 
-    0 6px 12px -2px rgba(0, 0, 0, 0.08), /* Shadow below glass */
-    0 2px 4px -1px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.50), /* Inner glow at top edge */
-    inset 0 2px 8px 0 rgba(255, 255, 255, 0.30), /* Light falloff inside */
-    inset 0 4px 12px 0 rgba(0, 0, 0, 0.06), /* Inner shadow for depth */
-    inset 0 1px 0 0 rgba(252, 225, 239, 0.05); /* Top edge pink tint (refraction only, 0.04-0.07 range) */
+    0 8px 16px -4px rgba(0, 0, 0, 0.12), /* Stronger shadow for depth */
+    0 4px 8px -2px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.60), /* Brighter inner glow */
+    inset 0 2px 12px 0 rgba(255, 255, 255, 0.40), /* Stronger light falloff */
+    inset 0 6px 16px 0 rgba(0, 0, 0, 0.08), /* Deeper inner shadow */
+    inset 0 1px 0 0 rgba(252, 225, 239, 0.06); /* Top edge pink tint */
   overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+
+/* Floating effect on hover */
+.glass-panel:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 24px -4px rgba(0, 0, 0, 0.16),
+    0 6px 12px -2px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.70),
+    inset 0 2px 12px 0 rgba(255, 255, 255, 0.50),
+    inset 0 6px 16px 0 rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 0 rgba(252, 225, 239, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-panel {
+    transition: none;
+  }
+  .glass-panel:hover {
+    transform: none;
+  }
 }
 
 /* Glass panel variant for cards (slightly more opaque) */
 .glass-panel-card {
-  background: rgba(255, 255, 255, 0.68); /* White base - never pink */
+  background: rgba(255, 255, 255, 0.62); /* White base - never pink */
 }
 
 /* Noise texture overlay for glass panels */
@@ -166,7 +193,7 @@ img, video, iframe {
     opacity: 0;
   }
   50% {
-    opacity: 0.15;
+    opacity: 0.20;
   }
   100% {
     transform: translateX(100%) translateY(100%);
@@ -183,8 +210,8 @@ img, video, iframe {
   background: linear-gradient(
     135deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.3) 45%,
-    rgba(255, 255, 255, 0.3) 55%,
+    rgba(255, 255, 255, 0.4) 45%,
+    rgba(255, 255, 255, 0.4) 55%,
     transparent 100%
   );
   pointer-events: none;
@@ -195,7 +222,7 @@ img, video, iframe {
 
 .glass-panel:hover .glass-panel-sheen:not(.glass-sheen-played),
 .glass-panel:focus-within .glass-panel-sheen:not(.glass-sheen-played) {
-  animation: glass-sheen 1500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: glass-sheen 1800ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .glass-panel:hover .glass-panel-sheen:not(.glass-sheen-played),
@@ -210,7 +237,7 @@ img, video, iframe {
   }
 }
 
-/* Button refraction ring for focused/active states (Phase 5B) */
+/* Button refraction ring for focused/active states */
 .button-refraction-ring {
   position: absolute;
   inset: -3px;
@@ -235,16 +262,17 @@ table {
   word-wrap: break-word;
 }
 
-/* Typography Improvements */
+/* Typography Improvements - Futuristic subtle glow */
 h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   line-height: 1.2;
-  /* Color is set by utility classes for flexibility */
+  text-shadow: 0 0 20px rgba(252, 225, 239, 0.15), 0 0 40px rgba(252, 225, 239, 0.08);
+  /* Subtle glow for futuristic feel, respects brand colors */
 }
 
-/* Improved Focus States */
+/* Improved Focus States - Brown for authority (not pink) */
 *:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid rgba(67, 47, 33, 0.50); /* Warm dark brown for authority */
   outline-offset: 2px;
 }
 
@@ -252,6 +280,7 @@ h1, h2, h3, h4, h5, h6 {
 button, a, input, select, textarea {
   transition: all 0.2s ease;
 }
+
 /* ===== MOBILE OPTIMIZATION ===== */
 
 /* Ensure minimum touch target size (44x44px) for interactive elements */
@@ -379,4 +408,3 @@ input[type="checkbox"]:checked {
     grid-template-columns: 1fr 400px !important;
   }
 }
-

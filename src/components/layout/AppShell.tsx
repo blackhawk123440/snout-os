@@ -16,6 +16,7 @@ import { tokens } from '@/lib/design-tokens';
 import { PagePhysiology, SYSTEM_CONSTANTS } from '@/lib/system-dna';
 import { spatial } from '@/lib/spatial-hierarchy';
 import { motion } from '@/lib/motion-system';
+import { FuturisticBackground } from '@/components/ui/FuturisticBackground';
 
 export interface NavItem {
   label: string;
@@ -68,46 +69,22 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   return (
     <PostureContext.Provider value={physiology}>
-      {/* Phase 6: Cinematic environment layer - Dark-to-neutral atmospheric gradient */}
+      {/* Futuristic animated background with particles */}
+      <FuturisticBackground />
+      
+      {/* Pink ambient light field (brand color as atmospheric light) */}
       <div
         style={{
           position: 'fixed',
           inset: 0,
           pointerEvents: 'none',
-          zIndex: 0,
+          zIndex: 1,
           background: `
-            radial-gradient(ellipse 120% 140% at 30% 40%, rgba(40, 35, 50, 0.16) 0%, transparent 70%),
-            radial-gradient(ellipse 140% 120% at 70% 80%, rgba(35, 30, 45, 0.14) 0%, transparent 70%),
-            linear-gradient(180deg, rgba(45, 40, 55, 0.12) 0%, rgba(50, 45, 60, 0.10) 50%, rgba(45, 40, 55, 0.12) 100%)
+            radial-gradient(ellipse 1500px 1500px at 30% 40%, rgba(252, 225, 239, 0.045) 0%, transparent 75%),
+            radial-gradient(ellipse 1500px 1500px at 70% 70%, rgba(252, 225, 239, 0.035) 0%, transparent 75%)
           `,
           opacity: 1,
-        }}
-      />
-      {/* Phase 6: Volumetric light fields - Two large, soft radial light sources */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          pointerEvents: 'none',
-          zIndex: 0,
-          background: `
-            radial-gradient(ellipse 80% 100% at 25% 45%, rgba(252, 225, 239, 0.08) 0%, transparent 60%),
-            radial-gradient(ellipse 100% 80% at 75% 85%, rgba(252, 225, 239, 0.06) 0%, transparent 65%)
-          `,
-          opacity: 1,
-          filter: 'blur(60px)',
-        }}
-      />
-      {/* Phase 6: Global micro-noise layer */}
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          pointerEvents: 'none',
-          zIndex: 0,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='3.0' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          opacity: 0.035,
-          mixBlendMode: 'overlay',
+          filter: 'saturate(0.10)',
         }}
       />
       <div
@@ -116,7 +93,7 @@ export const AppShell: React.FC<AppShellProps> = ({
           minHeight: '100vh',
           backgroundColor: tokens.colors.white.material,
           position: 'relative',
-          zIndex: 1,
+          zIndex: 2,
           ...physiologyMotion,
         }}
       >
