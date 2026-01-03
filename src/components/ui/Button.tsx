@@ -197,6 +197,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const sizeStyle = getSizeStyles(size);
     const variantStyle = getVariantStyles(variant, effectiveEnergy);
     const hoverStyle = getHoverStyles(variant, effectiveEnergy);
+    
+    // Phase 6: Add static light emission to primary buttons (focused/active states)
+    const lightEmission = variant === 'primary' && (effectiveEnergy === 'focused' || effectiveEnergy === 'active')
+      ? {
+          boxShadow: `0 0 16px 0 rgba(252, 225, 239, 0.25), 0 0 8px 0 rgba(252, 225, 239, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.30)`,
+        }
+      : {};
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!isDisabled) {
@@ -263,6 +270,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           fontSize: sizeStyle.fontSize,
           lineHeight: '1',
           ...variantStyle,
+          ...lightEmission,
           cursor: isDisabled ? 'not-allowed' : 'pointer',
           opacity: isDisabled ? 0.5 : 1,
           ...motion.styles('readiness', ['background-color', 'border-color', 'color']),
