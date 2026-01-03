@@ -1,8 +1,27 @@
-"use client";
+/**
+ * Sitters Management Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Input,
+  Modal,
+  Badge,
+  EmptyState,
+  Skeleton,
+  FormRow,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 interface Sitter {
   id: string;
@@ -24,6 +43,7 @@ export default function SittersPage() {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSitter, setEditingSitter] = useState<Sitter | null>(null);
+  const [error, setError] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -43,11 +63,16 @@ export default function SittersPage() {
 
   const fetchSitters = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/sitters");
+      if (!response.ok) {
+        throw new Error('Failed to fetch sitters');
+      }
       const data = await response.json();
       setSitters(data.sitters || []);
-    } catch {
+    } catch (err) {
+      setError('Failed to load sitters');
       setSitters([]);
     } finally {
       setLoading(false);
@@ -56,6 +81,7 @@ export default function SittersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     try {
       const url = editingSitter ? `/api/sitters/${editingSitter.id}` : "/api/sitters";
@@ -88,9 +114,11 @@ export default function SittersPage() {
         alert(editingSitter ? "Sitter updated!" : "Sitter added!");
         resetForm();
         fetchSitters();
+      } else {
+        setError('Failed to save sitter');
       }
-    } catch {
-      alert("Failed to save sitter");
+    } catch (err) {
+      setError('Failed to save sitter');
     }
   };
 
@@ -108,6 +136,7 @@ export default function SittersPage() {
     });
     setShowAddForm(false);
     setEditingSitter(null);
+    setError(null);
   };
 
   const startEdit = (sitter: Sitter) => {
@@ -137,13 +166,14 @@ export default function SittersPage() {
       if (response.ok) {
         alert("Sitter deleted!");
         fetchSitters();
+      } else {
+        setError('Failed to delete sitter');
       }
-    } catch {
-      alert("Failed to delete sitter");
+    } catch (err) {
+      setError('Failed to delete sitter');
     }
   };
 
-  // Import phone formatting utility
   const formatPhoneNumber = (phone: string | null | undefined) => {
     if (!phone) return "";
     const cleaned = phone.replace(/\D/g, '');
@@ -157,318 +187,355 @@ export default function SittersPage() {
   };
 
   return (
-    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: COLORS.primary }}>
-                <i className="fas fa-user-friends" style={{ color: COLORS.primaryLight }}></i>
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold" style={{ color: COLORS.primary }}>
-                  Sitters Management
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-500">Manage your pet care team</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
-              <button
-                onClick={() => {
-                  resetForm();
-                  setShowAddForm(true);
-                }}
-                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
-                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-              >
-                <i className="fas fa-plus"></i><span>Add Sitter</span>
-              </button>
-              <Link
-                href="/bookings"
-                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold border rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto"
-                style={{ color: COLORS.primary, borderColor: COLORS.border }}
-              >
-                <i className="fas fa-arrow-left"></i><span>Back to Bookings</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+    <AppShell>
+      <PageHeader
+        title="Sitters Management"
+        description="Manage your pet care team"
+        actions={
+          <>
+            <Button
+              variant="primary"
+              onClick={() => {
+                resetForm();
+                setShowAddForm(true);
+              }}
+              leftIcon={<i className="fas fa-plus" />}
+            >
+              Add Sitter
+            </Button>
+            <Link href="/bookings">
+              <Button variant="tertiary" leftIcon={<i className="fas fa-arrow-left" />}>
+                Back to Bookings
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
-      <div className="max-w-[1400px] mx-auto px-8 py-6">
-        {/* Sitters List */}
-        <div className="grid gap-4">
-          {loading ? (
-            <div className="text-center py-8">
-              <i className="fas fa-spinner fa-spin text-2xl" style={{ color: COLORS.primary }}></i>
-              <p className="mt-2 text-gray-600">Loading sitters...</p>
-            </div>
-          ) : sitters.length === 0 ? (
-            <div className="text-center py-8">
-              <i className="fas fa-user-friends text-4xl text-gray-300 mb-4"></i>
-              <p className="text-gray-600">No sitters found</p>
-            </div>
-          ) : (
-            sitters.map((sitter) => (
-              <div
-                key={sitter.id}
-                className="bg-white rounded-lg p-6 border-2 hover:shadow-md transition-all"
-                style={{ borderColor: COLORS.primaryLight }}
+      <div style={{ padding: tokens.spacing[6] }}>
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
+              <Button
+                variant="tertiary"
+                size="sm"
+                onClick={fetchSitters}
+                style={{ marginLeft: tokens.spacing[3] }}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                        <i className="fas fa-user text-xl" style={{ color: COLORS.primary }}></i>
+                Retry
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+          </div>
+        ) : sitters.length === 0 ? (
+          <EmptyState
+            title="No sitters found"
+            description="Add your first sitter to get started"
+            icon={<i className="fas fa-user-friends" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            action={{
+              label: "Add Sitter",
+              onClick: () => {
+                resetForm();
+                setShowAddForm(true);
+              },
+            }}
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            {sitters.map((sitter) => (
+              <Card key={sitter.id}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: tokens.spacing[4],
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
+                      <div
+                        style={{
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: '50%',
+                          backgroundColor: tokens.colors.primary[100],
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: tokens.colors.primary.DEFAULT,
+                          fontSize: tokens.typography.fontSize.xl[0],
+                        }}
+                      >
+                        <i className="fas fa-user" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg" style={{ color: COLORS.primary }}>
+                        <div
+                          style={{
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            fontSize: tokens.typography.fontSize.lg[0],
+                            color: tokens.colors.text.primary,
+                            marginBottom: tokens.spacing[1],
+                          }}
+                        >
                           {sitter.firstName} {sitter.lastName}
-                        </h3>
-                        <span className={`px-2 py-1 text-xs font-bold rounded ${
-                          sitter.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                        }`}>
+                        </div>
+                        <Badge variant={sitter.isActive ? "success" : "error"}>
                           {sitter.isActive ? "Active" : "Inactive"}
-                        </span>
+                        </Badge>
                       </div>
                     </div>
                     
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <i className="fas fa-phone w-4"></i>
+                    <div
+                      style={{
+                        fontSize: tokens.typography.fontSize.sm[0],
+                        color: tokens.colors.text.secondary,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: tokens.spacing[1],
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                        <i className="fas fa-phone" style={{ width: '16px' }} />
                         <span>{formatPhoneNumber(sitter.phone)}</span>
                         {sitter.phoneType && (
-                          <span className="text-xs px-2 py-0.5 rounded" style={{ background: COLORS.primaryLight, color: COLORS.primary }}>
+                          <Badge variant="neutral" style={{ marginLeft: tokens.spacing[1] }}>
                             {sitter.phoneType === "personal" ? "Personal" : "OpenPhone"}
-                          </span>
+                          </Badge>
                         )}
                       </div>
                       {sitter.personalPhone && (
-                        <div className="flex items-center gap-2">
-                          <i className="fas fa-mobile-alt w-4"></i>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                          <i className="fas fa-mobile-alt" style={{ width: '16px' }} />
                           <span>Personal: {formatPhoneNumber(sitter.personalPhone)}</span>
                         </div>
                       )}
                       {sitter.openphonePhone && (
-                        <div className="flex items-center gap-2">
-                          <i className="fas fa-phone-alt w-4"></i>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                          <i className="fas fa-phone-alt" style={{ width: '16px' }} />
                           <span>OpenPhone: {formatPhoneNumber(sitter.openphonePhone)}</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-2">
-                        <i className="fas fa-envelope w-4"></i>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                        <i className="fas fa-envelope" style={{ width: '16px' }} />
                         <span>{sitter.email}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <i className="fas fa-calendar w-4"></i>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                        <i className="fas fa-calendar" style={{ width: '16px' }} />
                         <span>Added {new Date(sitter.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <i className="fas fa-percentage w-4"></i>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                        <i className="fas fa-percentage" style={{ width: '16px' }} />
                         <span>Commission: {sitter.commissionPercentage || 80}%</span>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 ml-6">
-                    <button
+                  <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => window.open(`/sitter-dashboard?id=${sitter.id}&admin=true`, '_blank')}
-                      className="px-4 py-2 text-sm font-bold border rounded-lg hover:opacity-90 transition-all"
-                      style={{ background: COLORS.primary, color: COLORS.primaryLight, borderColor: COLORS.primary }}
+                      leftIcon={<i className="fas fa-calendar-alt" />}
                     >
-                      <i className="fas fa-calendar-alt mr-2"></i>View Dashboard
-                    </button>
-                    <button
+                      View Dashboard
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => startEdit(sitter)}
-                      className="px-4 py-2 text-sm font-bold border rounded-lg hover:opacity-90 transition-all"
-                      style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
+                      leftIcon={<i className="fas fa-edit" />}
                     >
-                      <i className="fas fa-edit mr-2"></i>Edit
-                    </button>
-                    <button
+                      Edit
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
                       onClick={() => handleDelete(sitter.id)}
-                      className="px-4 py-2 text-sm font-bold text-white rounded-lg hover:opacity-90 transition-all bg-red-500"
+                      leftIcon={<i className="fas fa-trash" />}
                     >
-                      <i className="fas fa-trash mr-2"></i>Delete
-                    </button>
+                      Delete
+                    </Button>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Add/Edit Form Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4" style={{ color: COLORS.primary }}>
-              {editingSitter ? "Edit Sitter" : "Add Sitter"}
-            </h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    First Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    Last Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    Personal Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.personalPhone}
-                    onChange={(e) => setFormData({ ...formData, personalPhone: e.target.value })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                    OpenPhone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.openphonePhone}
-                    onChange={(e) => setFormData({ ...formData, openphonePhone: e.target.value })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-2" style={{ color: COLORS.primary }}>
-                  Use Phone Number Type for Messages
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="phoneType"
-                      value="personal"
-                      checked={formData.phoneType === "personal"}
-                      onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as "personal" | "openphone" })}
-                      className="w-4 h-4"
-                      style={{ accentColor: COLORS.primary }}
-                    />
-                    <span className="text-sm font-medium" style={{ color: COLORS.primary }}>Personal Phone</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="phoneType"
-                      value="openphone"
-                      checked={formData.phoneType === "openphone"}
-                      onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as "personal" | "openphone" })}
-                      className="w-4 h-4"
-                      style={{ accentColor: COLORS.primary }}
-                    />
-                    <span className="text-sm font-medium" style={{ color: COLORS.primary }}>OpenPhone</span>
-                  </label>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Choose which phone number to use for sitter notifications</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: COLORS.primaryLight }}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                  Commission Percentage *
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    required
-                    value={formData.commissionPercentage}
-                    onChange={(e) => setFormData({ ...formData, commissionPercentage: parseFloat(e.target.value) || 80.0 })}
-                    className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                    style={{ borderColor: COLORS.primaryLight }}
-                  />
-                  <span className="text-sm font-medium" style={{ color: COLORS.primary }}>%</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Percentage of booking total the sitter receives (typically 70% or 80%)</p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-4 h-4"
-                />
-                <label htmlFor="isActive" className="text-sm font-medium" style={{ color: COLORS.primary }}>
-                  Active Sitter
-                </label>
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
-                  style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-                >
-                  {editingSitter ? "Update" : "Add"} Sitter
-                </button>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="flex-1 px-4 py-2 text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all"
-                  style={{ color: COLORS.gray, borderColor: COLORS.border }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={showAddForm}
+        onClose={resetForm}
+        title={editingSitter ? "Edit Sitter" : "Add Sitter"}
+      >
+        {error && (
+          <div
+            style={{
+              padding: tokens.spacing[3],
+              marginBottom: tokens.spacing[4],
+              backgroundColor: tokens.colors.error[50],
+              borderRadius: tokens.borderRadius.md,
+              color: tokens.colors.error[700],
+              fontSize: tokens.typography.fontSize.sm[0],
+            }}
+          >
+            {error}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4] }}>
+              <FormRow label="First Name *">
+                <Input
+                  type="text"
+                  required
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                />
+              </FormRow>
+              <FormRow label="Last Name *">
+                <Input
+                  type="text"
+                  required
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                />
+              </FormRow>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4] }}>
+              <FormRow label="Personal Phone Number">
+                <Input
+                  type="tel"
+                  value={formData.personalPhone}
+                  onChange={(e) => setFormData({ ...formData, personalPhone: e.target.value })}
+                  placeholder="(555) 123-4567"
+                />
+              </FormRow>
+              <FormRow label="OpenPhone Number">
+                <Input
+                  type="tel"
+                  value={formData.openphonePhone}
+                  onChange={(e) => setFormData({ ...formData, openphonePhone: e.target.value })}
+                  placeholder="(555) 123-4567"
+                />
+              </FormRow>
+            </div>
+
+            <FormRow label="Use Phone Number Type for Messages">
+              <div style={{ display: 'flex', gap: tokens.spacing[4] }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="phoneType"
+                    value="personal"
+                    checked={formData.phoneType === "personal"}
+                    onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as "personal" | "openphone" })}
+                    style={{ accentColor: tokens.colors.primary.DEFAULT }}
+                  />
+                  <span style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.primary }}>
+                    Personal Phone
+                  </span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="phoneType"
+                    value="openphone"
+                    checked={formData.phoneType === "openphone"}
+                    onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as "personal" | "openphone" })}
+                    style={{ accentColor: tokens.colors.primary.DEFAULT }}
+                  />
+                  <span style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.primary }}>
+                    OpenPhone
+                  </span>
+                </label>
+              </div>
+              <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginTop: tokens.spacing[1] }}>
+                Choose which phone number to use for sitter notifications
+              </div>
+            </FormRow>
+
+            <FormRow label="Email *">
+              <Input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </FormRow>
+
+            <FormRow label="Commission Percentage *">
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  required
+                  value={formData.commissionPercentage}
+                  onChange={(e) => setFormData({ ...formData, commissionPercentage: parseFloat(e.target.value) || 80.0 })}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.primary }}>
+                  %
+                </span>
+              </div>
+              <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginTop: tokens.spacing[1] }}>
+                Percentage of booking total the sitter receives (typically 70% or 80%)
+              </div>
+            </FormRow>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3] }}>
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                style={{ accentColor: tokens.colors.primary.DEFAULT }}
+              />
+              <label htmlFor="isActive" style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.primary, cursor: 'pointer' }}>
+                Active Sitter
+              </label>
+            </div>
+            
+            <div style={{ display: 'flex', gap: tokens.spacing[3], paddingTop: tokens.spacing[4] }}>
+              <Button
+                type="submit"
+                variant="primary"
+                style={{ flex: 1 }}
+              >
+                {editingSitter ? "Update" : "Add"} Sitter
+              </Button>
+              <Button
+                type="button"
+                onClick={resetForm}
+                variant="tertiary"
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Modal>
+    </AppShell>
   );
 }

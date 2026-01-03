@@ -1,8 +1,27 @@
-"use client";
+/**
+ * Edit Automation Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Input,
+  Select,
+  Textarea,
+  FormRow,
+  Skeleton,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 const TRIGGERS = [
   "booking.created",
@@ -53,6 +72,7 @@ export default function EditAutomationPage() {
   const [actions, setActions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (automationId) {
@@ -61,8 +81,13 @@ export default function EditAutomationPage() {
   }, [automationId]);
 
   const fetchAutomation = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/automations/${automationId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch automation');
+      }
       const data = await response.json();
       if (data.automation) {
         const auto = data.automation;
@@ -74,8 +99,8 @@ export default function EditAutomationPage() {
         setConditions(auto.conditions || []);
         setActions(auto.actions || []);
       }
-    } catch (error) {
-      console.error("Failed to fetch automation:", error);
+    } catch (err) {
+      setError('Failed to load automation');
     } finally {
       setLoading(false);
     }
@@ -142,6 +167,7 @@ export default function EditAutomationPage() {
     }
 
     setSaving(true);
+    setError(null);
     try {
       const response = await fetch(`/api/automations/${automationId}`, {
         method: "PATCH",
@@ -161,205 +187,246 @@ export default function EditAutomationPage() {
         router.push("/automation-center");
       } else {
         const error = await response.json();
-        alert(`Failed to update automation: ${error.error}`);
+        setError(error.error || "Failed to update automation");
       }
-    } catch (error) {
-      console.error("Failed to update automation:", error);
-      alert("Failed to update automation");
+    } catch (err) {
+      setError("Failed to update automation");
     } finally {
       setSaving(false);
     }
   };
 
+  const triggerOptions = [
+    { value: "", label: "Select a trigger" },
+    ...TRIGGERS.map(t => ({ value: t, label: t })),
+  ];
+
+  const operatorOptions = OPERATORS;
+
+  const actionTypeOptions = ACTION_TYPES;
+
   if (loading) {
     return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-        <div className="text-center py-20">Loading automation...</div>
-      </div>
+      <AppShell>
+        <PageHeader title="Loading..." description="Fetching automation details" />
+        <div style={{ padding: tokens.spacing[6] }}>
+          <Skeleton height={400} />
+        </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
-            Edit Automation
-          </h1>
-          <p className="text-gray-600">Update your automated workflow</p>
-        </div>
+    <AppShell>
+      <PageHeader
+        title="Edit Automation"
+        description="Update your automated workflow"
+        actions={
+          <Link href="/automation-center">
+            <Button variant="tertiary" leftIcon={<i className="fas fa-arrow-left" />}>
+              Back
+            </Button>
+          </Link>
+        }
+      />
 
-        <div className="bg-white rounded-xl p-6 border-2 shadow-sm mb-6" style={{ borderColor: COLORS.primaryLight }}>
-          <h2 className="text-2xl font-bold mb-4" style={{ color: COLORS.primary }}>
+      <div style={{ padding: tokens.spacing[6] }}>
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
+            </div>
+          </Card>
+        )}
+
+        {/* Basic Information */}
+        <Card style={{ marginBottom: tokens.spacing[6] }}>
+          <div
+            style={{
+              fontWeight: tokens.typography.fontWeight.bold,
+              fontSize: tokens.typography.fontSize.lg[0],
+              color: tokens.colors.text.primary,
+              marginBottom: tokens.spacing[4],
+            }}
+          >
             Basic Information
-          </h2>
+          </div>
           
-          <div className="space-y-4">
-            <div>
-              <label className="block font-semibold mb-2">Name *</label>
-              <input
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <FormRow label="Name *">
+              <Input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
                 placeholder="e.g., Send confirmation when booking is created"
+                required
               />
-            </div>
+            </FormRow>
 
-            <div>
-              <label className="block font-semibold mb-2">Description</label>
-              <textarea
+            <FormRow label="Description">
+              <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
                 rows={3}
                 placeholder="Describe what this automation does"
               />
-            </div>
+            </FormRow>
 
-            <div>
-              <label className="block font-semibold mb-2">Trigger *</label>
-              <select
+            <FormRow label="Trigger *">
+              <Select
                 value={trigger}
                 onChange={(e) => setTrigger(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-              >
-                <option value="">Select a trigger</option>
-                {TRIGGERS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
+                options={triggerOptions}
+                required
+              />
+            </FormRow>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block font-semibold mb-2">Priority</label>
-                <input
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4] }}>
+              <FormRow label="Priority">
+                <Input
                   type="number"
                   value={priority}
                   onChange={(e) => setPriority(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2 border rounded-lg"
                 />
-              </div>
+              </FormRow>
 
-              <div>
-                <label className="block font-semibold mb-2">Status</label>
-                <label className="flex items-center gap-2">
+              <FormRow label="Status">
+                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
                   <input
                     type="checkbox"
+                    id="enabled"
                     checked={enabled}
                     onChange={(e) => setEnabled(e.target.checked)}
+                    style={{ accentColor: tokens.colors.primary.DEFAULT }}
                   />
-                  <span>Enabled</span>
-                </label>
-              </div>
+                  <label htmlFor="enabled" style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary, cursor: 'pointer' }}>
+                    Enabled
+                  </label>
+                </div>
+              </FormRow>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Conditions */}
-        <div className="bg-white rounded-xl p-6 border-2 shadow-sm mb-6" style={{ borderColor: COLORS.primaryLight }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-              Conditions
-            </h2>
-            <button
-              onClick={addCondition}
-              className="px-4 py-2 rounded-lg font-semibold text-white"
-              style={{ background: COLORS.primary }}
+        <Card style={{ marginBottom: tokens.spacing[6] }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
+            <div
+              style={{
+                fontWeight: tokens.typography.fontWeight.bold,
+                fontSize: tokens.typography.fontSize.lg[0],
+                color: tokens.colors.text.primary,
+              }}
             >
-              + Add Condition
-            </button>
+              Conditions
+            </div>
+            <Button variant="primary" onClick={addCondition} leftIcon={<i className="fas fa-plus" />}>
+              Add Condition
+            </Button>
           </div>
 
           {conditions.length === 0 ? (
-            <p className="text-gray-600 italic">No conditions (automation will always run)</p>
+            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, fontStyle: 'italic' }}>
+              No conditions (automation will always run)
+            </div>
           ) : (
-            <div className="space-y-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               {conditions.map((condition, index) => (
-                <div key={index} className="p-4 border rounded-lg">
-                  <div className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-3">
-                      <label className="block text-sm font-semibold mb-1">Field</label>
-                      <input
-                        type="text"
-                        value={condition.field}
-                        onChange={(e) => updateCondition(index, "field", e.target.value)}
-                        className="w-full px-3 py-2 border rounded"
-                        placeholder="e.g., service"
-                      />
+                <Card key={index} style={{ backgroundColor: tokens.colors.neutral[50] }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(12, 1fr)',
+                      gap: tokens.spacing[2],
+                      alignItems: 'end',
+                    }}
+                  >
+                    <div style={{ gridColumn: 'span 3' }}>
+                      <FormRow label="Field">
+                        <Input
+                          type="text"
+                          value={condition.field}
+                          onChange={(e) => updateCondition(index, "field", e.target.value)}
+                          placeholder="e.g., service"
+                        />
+                      </FormRow>
                     </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-semibold mb-1">Operator</label>
-                      <select
-                        value={condition.operator}
-                        onChange={(e) => updateCondition(index, "operator", e.target.value)}
-                        className="w-full px-3 py-2 border rounded"
-                      >
-                        {OPERATORS.map((op) => (
-                          <option key={op.value} value={op.value}>
-                            {op.label}
-                          </option>
-                        ))}
-                      </select>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <FormRow label="Operator">
+                        <Select
+                          value={condition.operator}
+                          onChange={(e) => updateCondition(index, "operator", e.target.value)}
+                          options={operatorOptions}
+                        />
+                      </FormRow>
                     </div>
-                    <div className="col-span-4">
-                      <label className="block text-sm font-semibold mb-1">Value</label>
-                      <input
-                        type="text"
-                        value={condition.value}
-                        onChange={(e) => updateCondition(index, "value", e.target.value)}
-                        className="w-full px-3 py-2 border rounded"
-                        placeholder="Value to compare"
-                      />
+                    <div style={{ gridColumn: 'span 4' }}>
+                      <FormRow label="Value">
+                        <Input
+                          type="text"
+                          value={condition.value}
+                          onChange={(e) => updateCondition(index, "value", e.target.value)}
+                          placeholder="Value to compare"
+                        />
+                      </FormRow>
                     </div>
-                    <div className="col-span-2">
-                      <label className="block text-sm font-semibold mb-1">Logic</label>
-                      <select
-                        value={condition.logic || "AND"}
-                        onChange={(e) => updateCondition(index, "logic", e.target.value)}
-                        className="w-full px-3 py-2 border rounded"
-                      >
-                        <option value="AND">AND</option>
-                        <option value="OR">OR</option>
-                      </select>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <FormRow label="Logic">
+                        <Select
+                          value={condition.logic || "AND"}
+                          onChange={(e) => updateCondition(index, "logic", e.target.value)}
+                          options={[
+                            { value: "AND", label: "AND" },
+                            { value: "OR", label: "OR" },
+                          ]}
+                        />
+                      </FormRow>
                     </div>
-                    <div className="col-span-1">
-                      <button
+                    <div style={{ gridColumn: 'span 1' }}>
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() => removeCondition(index)}
-                        className="w-full px-3 py-2 bg-red-100 text-red-800 rounded font-semibold"
                       >
                         ×
-                      </button>
+                      </Button>
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Actions */}
-        <div className="bg-white rounded-xl p-6 border-2 shadow-sm mb-6" style={{ borderColor: COLORS.primaryLight }}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-              Actions
-            </h2>
-            <button
-              onClick={addAction}
-              className="px-4 py-2 rounded-lg font-semibold text-white"
-              style={{ background: COLORS.primary }}
+        <Card style={{ marginBottom: tokens.spacing[6] }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
+            <div
+              style={{
+                fontWeight: tokens.typography.fontWeight.bold,
+                fontSize: tokens.typography.fontSize.lg[0],
+                color: tokens.colors.text.primary,
+              }}
             >
-              + Add Action
-            </button>
+              Actions
+            </div>
+            <Button variant="primary" onClick={addAction} leftIcon={<i className="fas fa-plus" />}>
+              Add Action
+            </Button>
           </div>
 
           {actions.length === 0 ? (
-            <p className="text-gray-600 italic">No actions (add at least one action)</p>
+            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, fontStyle: 'italic' }}>
+              No actions (add at least one action)
+            </div>
           ) : (
-            <div className="space-y-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               {actions.map((action, index) => {
                 let config: any = {};
                 try {
@@ -367,117 +434,113 @@ export default function EditAutomationPage() {
                 } catch {}
 
                 return (
-                  <div key={index} className="p-4 border rounded-lg">
-                    <div className="grid grid-cols-12 gap-2 items-end mb-2">
-                      <div className="col-span-4">
-                        <label className="block text-sm font-semibold mb-1">Action Type</label>
-                        <select
-                          value={action.type}
-                          onChange={(e) => updateAction(index, "type", e.target.value)}
-                          className="w-full px-3 py-2 border rounded"
-                        >
-                          {ACTION_TYPES.map((at) => (
-                            <option key={at.value} value={at.value}>
-                              {at.label}
-                            </option>
-                          ))}
-                        </select>
+                  <Card key={index} style={{ backgroundColor: tokens.colors.neutral[50] }}>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(12, 1fr)',
+                        gap: tokens.spacing[2],
+                        alignItems: 'end',
+                        marginBottom: tokens.spacing[2],
+                      }}
+                    >
+                      <div style={{ gridColumn: 'span 4' }}>
+                        <FormRow label="Action Type">
+                          <Select
+                            value={action.type}
+                            onChange={(e) => updateAction(index, "type", e.target.value)}
+                            options={actionTypeOptions}
+                          />
+                        </FormRow>
                       </div>
-                      <div className="col-span-3">
-                        <label className="block text-sm font-semibold mb-1">Delay (minutes)</label>
-                        <input
-                          type="number"
-                          value={action.delayMinutes || 0}
-                          onChange={(e) => updateAction(index, "delayMinutes", parseInt(e.target.value) || 0)}
-                          className="w-full px-3 py-2 border rounded"
-                        />
+                      <div style={{ gridColumn: 'span 3' }}>
+                        <FormRow label="Delay (minutes)">
+                          <Input
+                            type="number"
+                            value={action.delayMinutes || 0}
+                            onChange={(e) => updateAction(index, "delayMinutes", parseInt(e.target.value) || 0)}
+                          />
+                        </FormRow>
                       </div>
-                      <div className="col-span-4">
-                        <button
+                      <div style={{ gridColumn: 'span 4' }}>
+                        <Button
+                          variant="danger"
+                          size="sm"
                           onClick={() => removeAction(index)}
-                          className="w-full px-3 py-2 bg-red-100 text-red-800 rounded font-semibold"
+                          style={{ width: '100%' }}
                         >
                           Remove Action
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
                     {action.type === "sendSMS" && (
-                      <div className="mt-2 space-y-2">
-                        <div>
-                          <label className="block text-sm font-semibold mb-1">Recipient</label>
-                          <select
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[2] }}>
+                        <FormRow label="Recipient">
+                          <Select
                             value={config.recipient || "client"}
                             onChange={(e) => {
                               const newConfig = { ...config, recipient: e.target.value };
                               updateAction(index, "config", JSON.stringify(newConfig));
                             }}
-                            className="w-full px-3 py-2 border rounded"
-                          >
-                            <option value="client">Client</option>
-                            <option value="sitter">Sitter</option>
-                            <option value="owner">Owner</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-semibold mb-1">Message Template</label>
-                          <textarea
+                            options={[
+                              { value: "client", label: "Client" },
+                              { value: "sitter", label: "Sitter" },
+                              { value: "owner", label: "Owner" },
+                            ]}
+                          />
+                        </FormRow>
+                        <FormRow label="Message Template">
+                          <Textarea
                             value={config.template || ""}
                             onChange={(e) => {
                               const newConfig = { ...config, template: e.target.value };
                               updateAction(index, "config", JSON.stringify(newConfig));
                             }}
-                            className="w-full px-3 py-2 border rounded"
                             rows={3}
                             placeholder="Message template with {{variables}}"
                           />
-                        </div>
+                        </FormRow>
                       </div>
                     )}
 
                     {action.type === "updateBookingStatus" && (
-                      <div className="mt-2">
-                        <label className="block text-sm font-semibold mb-1">New Status</label>
-                        <input
-                          type="text"
-                          value={config.status || ""}
-                          onChange={(e) => {
-                            const newConfig = { ...config, status: e.target.value };
-                            updateAction(index, "config", JSON.stringify(newConfig));
-                          }}
-                          className="w-full px-3 py-2 border rounded"
-                          placeholder="e.g., confirmed"
-                        />
+                      <div style={{ marginTop: tokens.spacing[2] }}>
+                        <FormRow label="New Status">
+                          <Input
+                            type="text"
+                            value={config.status || ""}
+                            onChange={(e) => {
+                              const newConfig = { ...config, status: e.target.value };
+                              updateAction(index, "config", JSON.stringify(newConfig));
+                            }}
+                            placeholder="e.g., confirmed"
+                          />
+                        </FormRow>
                       </div>
                     )}
-                  </div>
+                  </Card>
                 );
               })}
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Save Button */}
-        <div className="flex items-center justify-end gap-4">
-          <button
-            onClick={() => router.back()}
-            className="px-6 py-3 rounded-lg font-semibold bg-gray-200 text-gray-800"
-          >
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[4] }}>
+          <Button variant="tertiary" onClick={() => router.back()}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             onClick={handleSave}
             disabled={saving || !name || !trigger}
-            className="px-6 py-3 rounded-lg font-semibold text-white disabled:opacity-50"
-            style={{ background: COLORS.primary }}
+            leftIcon={saving ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-save" />}
           >
             {saving ? "Saving..." : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }
-
-
-

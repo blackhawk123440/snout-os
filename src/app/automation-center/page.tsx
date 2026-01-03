@@ -1,8 +1,25 @@
-"use client";
+/**
+ * Automation Center Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Badge,
+  EmptyState,
+  Skeleton,
+  Modal,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 interface Automation {
   id: string;
@@ -62,6 +79,7 @@ export default function AutomationCenterPage() {
   const [templates, setTemplates] = useState<AutomationTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAutomations();
@@ -74,10 +92,13 @@ export default function AutomationCenterPage() {
         ? `/api/automations/templates?category=${category}`
         : "/api/automations/templates";
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch templates');
+      }
       const data = await response.json();
       setTemplates(data.templates || []);
-    } catch (error) {
-      console.error("Failed to fetch templates:", error);
+    } catch (err) {
+      setError('Failed to load templates');
     } finally {
       setTemplatesLoading(false);
     }
@@ -103,8 +124,7 @@ export default function AutomationCenterPage() {
         const error = await response.json();
         alert(`Failed to create automation: ${error.error}`);
       }
-    } catch (error) {
-      console.error("Failed to instantiate template:", error);
+    } catch (err) {
       alert("Failed to create automation");
     }
   };
@@ -115,12 +135,18 @@ export default function AutomationCenterPage() {
   };
 
   const fetchAutomations = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/automations");
+      if (!response.ok) {
+        throw new Error('Failed to fetch automations');
+      }
       const data = await response.json();
       setAutomations(data.automations || []);
-    } catch (error) {
-      console.error("Failed to fetch automations:", error);
+    } catch (err) {
+      setError('Failed to load automations');
+      setAutomations([]);
     } finally {
       setLoading(false);
     }
@@ -129,11 +155,14 @@ export default function AutomationCenterPage() {
   const fetchLogs = async (automationId: string) => {
     try {
       const response = await fetch(`/api/automations/logs?automationId=${automationId}&limit=50`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch logs');
+      }
       const data = await response.json();
       setLogs(data.logs || []);
       setShowLogs(true);
-    } catch (error) {
-      console.error("Failed to fetch logs:", error);
+    } catch (err) {
+      setError('Failed to load logs');
     }
   };
 
@@ -146,9 +175,11 @@ export default function AutomationCenterPage() {
       });
       if (response.ok) {
         fetchAutomations();
+      } else {
+        setError('Failed to toggle automation');
       }
-    } catch (error) {
-      console.error("Failed to toggle automation:", error);
+    } catch (err) {
+      setError('Failed to toggle automation');
     }
   };
 
@@ -161,9 +192,11 @@ export default function AutomationCenterPage() {
       });
       if (response.ok) {
         fetchAutomations();
+      } else {
+        setError('Failed to delete automation');
       }
-    } catch (error) {
-      console.error("Failed to delete automation:", error);
+    } catch (err) {
+      setError('Failed to delete automation');
     }
   };
 
@@ -177,330 +210,340 @@ export default function AutomationCenterPage() {
       if (response.ok) {
         alert("Automation triggered successfully");
         fetchAutomations();
+      } else {
+        setError('Failed to run automation');
       }
-    } catch (error) {
-      console.error("Failed to run automation:", error);
+    } catch (err) {
+      setError('Failed to run automation');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-20">
-            <div className="text-xl">Loading automations...</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const categories = ["booking", "payment", "reminder", "notification", "review"] as const;
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                Automation Center
-              </h1>
-              <p className="text-gray-600">
-                Manage all automated workflows and triggers
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={openTemplateGallery}
-                className="px-6 py-3 rounded-lg font-semibold border-2"
-                style={{ 
-                  color: COLORS.primary,
-                  borderColor: COLORS.primary,
-                  background: "white"
-                }}
-              >
-                📚 Use Template
-              </button>
-              <Link
-                href="/automation-center/new"
-                className="px-6 py-3 rounded-lg font-semibold text-white"
-                style={{ background: COLORS.primary }}
-              >
-                + Create Automation
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Automation List */}
-        <div className="space-y-4">
-          {automations.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 text-center border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="text-6xl mb-4">🤖</div>
-              <h3 className="text-2xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                No Automations Yet
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Create your first automation to automate workflows
-              </p>
-              <Link
-                href="/automation-center/new"
-                className="inline-block px-6 py-3 rounded-lg font-semibold text-white"
-                style={{ background: COLORS.primary }}
-              >
+    <AppShell>
+      <PageHeader
+        title="Automation Center"
+        description="Manage all automated workflows and triggers"
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              onClick={openTemplateGallery}
+              leftIcon={<i className="fas fa-book" />}
+            >
+              Use Template
+            </Button>
+            <Link href="/automation-center/new">
+              <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
                 Create Automation
-              </Link>
+              </Button>
+            </Link>
+          </>
+        }
+      />
+
+      <div style={{ padding: tokens.spacing[6] }}>
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
             </div>
-          ) : (
-            automations.map((automation) => (
-              <div
-                key={automation.id}
-                className="bg-white rounded-xl p-6 border-2 shadow-sm"
-                style={{ borderColor: COLORS.primaryLight }}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                        {automation.name}
-                      </h3>
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                          automation.enabled
-                            ? "bg-green-100 text-green-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
+          </Card>
+        )}
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+          </div>
+        ) : automations.length === 0 ? (
+          <EmptyState
+            title="No Automations Yet"
+            description="Create your first automation to automate workflows"
+            icon={<i className="fas fa-robot" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            action={{
+              label: "Create Automation",
+              onClick: () => window.location.href = "/automation-center/new",
+            }}
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            {automations.map((automation) => (
+              <Card key={automation.id}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[2], flexWrap: 'wrap' }}>
+                      <div
+                        style={{
+                          fontWeight: tokens.typography.fontWeight.bold,
+                          fontSize: tokens.typography.fontSize.lg[0],
+                          color: tokens.colors.text.primary,
+                        }}
                       >
+                        {automation.name}
+                      </div>
+                      <Badge variant={automation.enabled ? "success" : "neutral"}>
                         {automation.enabled ? "Active" : "Inactive"}
-                      </span>
-                      <span className="px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-                        Priority: {automation.priority}
-                      </span>
+                      </Badge>
+                      <Badge variant="info">Priority: {automation.priority}</Badge>
                     </div>
                     {automation.description && (
-                      <p className="text-gray-600 mb-3">{automation.description}</p>
+                      <div
+                        style={{
+                          fontSize: tokens.typography.fontSize.sm[0],
+                          color: tokens.colors.text.secondary,
+                          marginBottom: tokens.spacing[3],
+                        }}
+                      >
+                        {automation.description}
+                      </div>
                     )}
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: tokens.spacing[4],
+                        fontSize: tokens.typography.fontSize.sm[0],
+                        color: tokens.colors.text.secondary,
+                      }}
+                    >
                       <div>
-                        <span className="font-semibold">Trigger:</span> {automation.trigger}
+                        <strong>Trigger:</strong> {automation.trigger}
                       </div>
                       <div>
-                        <span className="font-semibold">Conditions:</span> {automation.conditions.length}
+                        <strong>Conditions:</strong> {automation.conditions.length}
                       </div>
                       <div>
-                        <span className="font-semibold">Actions:</span> {automation.actions.length}
+                        <strong>Actions:</strong> {automation.actions.length}
                       </div>
                       {automation._count && (
                         <div>
-                          <span className="font-semibold">Executions:</span> {automation._count.logs}
+                          <strong>Executions:</strong> {automation._count.logs}
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <button
+                  <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => toggleAutomation(automation.id, automation.enabled)}
-                      className={`px-4 py-2 rounded-lg font-semibold ${
-                        automation.enabled
-                          ? "bg-gray-200 text-gray-800"
-                          : "bg-green-200 text-green-800"
-                      }`}
                     >
                       {automation.enabled ? "Disable" : "Enable"}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => fetchLogs(automation.id)}
-                      className="px-4 py-2 rounded-lg font-semibold bg-blue-100 text-blue-800"
                     >
                       Logs
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => runAutomation(automation.id)}
-                      className="px-4 py-2 rounded-lg font-semibold bg-purple-100 text-purple-800"
                     >
                       Run
-                    </button>
-                    <Link
-                      href={`/automation-center/${automation.id}`}
-                      className="px-4 py-2 rounded-lg font-semibold text-white"
-                      style={{ background: COLORS.primary }}
-                    >
-                      Edit
+                    </Button>
+                    <Link href={`/automation-center/${automation.id}`}>
+                      <Button variant="secondary" size="sm">
+                        Edit
+                      </Button>
                     </Link>
-                    <button
+                    <Button
+                      variant="danger"
+                      size="sm"
                       onClick={() => deleteAutomation(automation.id)}
-                      className="px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-800"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Template Gallery Modal */}
-        {showTemplateGallery && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-3xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                    Automation Templates
-                  </h2>
-                  <p className="text-gray-600">
-                    Choose a pre-built template to get started quickly
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowTemplateGallery(false);
-                    setSelectedCategory(null);
-                  }}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Category Filter */}
-              <div className="flex gap-2 mb-6 flex-wrap">
-                <button
-                  onClick={() => {
-                    setSelectedCategory(null);
-                    fetchTemplates();
-                  }}
-                  className={`px-4 py-2 rounded-lg font-semibold ${
-                    selectedCategory === null
-                      ? "text-white"
-                      : "bg-gray-100 text-gray-700"
-                  }`}
-                  style={selectedCategory === null ? { background: COLORS.primary } : {}}
-                >
-                  All
-                </button>
-                {(["booking", "payment", "reminder", "notification", "review"] as const).map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => {
-                      setSelectedCategory(cat);
-                      fetchTemplates(cat);
-                    }}
-                    className={`px-4 py-2 rounded-lg font-semibold capitalize ${
-                      selectedCategory === cat
-                        ? "text-white"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
-                    style={selectedCategory === cat ? { background: COLORS.primary } : {}}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-
-              {/* Templates Grid */}
-              {templatesLoading ? (
-                <div className="text-center py-12">
-                  <div className="text-xl text-gray-600">Loading templates...</div>
-                </div>
-              ) : templates.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-xl text-gray-600">No templates found</div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {templates.map((template) => (
-                    <div
-                      key={template.id}
-                      className="bg-white border-2 rounded-xl p-5 hover:shadow-lg transition-shadow"
-                      style={{ borderColor: COLORS.primaryLight }}
-                    >
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-lg font-bold" style={{ color: COLORS.primary }}>
-                            {template.name}
-                          </h3>
-                          <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 capitalize">
-                            {template.category}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-3">{template.description}</p>
-                      </div>
-
-                      <div className="space-y-2 mb-4 text-sm text-gray-600">
-                        <div>
-                          <span className="font-semibold">Trigger:</span> {template.trigger}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Conditions:</span> {template.conditions.length}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Actions:</span> {template.actions.length}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => instantiateTemplate(template.id)}
-                        className="w-full px-4 py-2 rounded-lg font-semibold text-white hover:opacity-90 transition-opacity"
-                        style={{ background: COLORS.primary }}
-                      >
-                        Use This Template
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Logs Modal */}
-        {showLogs && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                  Automation Logs
-                </h2>
-                <button
-                  onClick={() => setShowLogs(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="space-y-2">
-                {logs.length === 0 ? (
-                  <p className="text-gray-600">No logs yet</p>
-                ) : (
-                  logs.map((log) => (
-                    <div
-                      key={log.id}
-                      className={`p-4 rounded-lg border ${
-                        log.success
-                          ? "bg-green-50 border-green-200"
-                          : "bg-red-50 border-red-200"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="font-semibold">{log.trigger}</div>
-                        <div className="text-sm text-gray-600">
-                          {new Date(log.executedAt).toLocaleString()}
-                        </div>
-                      </div>
-                      {log.error && (
-                        <div className="text-red-600 text-sm mt-2">{log.error}</div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+              </Card>
+            ))}
           </div>
         )}
       </div>
-    </div>
+
+      {/* Template Gallery Modal */}
+      <Modal
+        isOpen={showTemplateGallery}
+        onClose={() => {
+          setShowTemplateGallery(false);
+          setSelectedCategory(null);
+        }}
+        title="Automation Templates"
+      >
+        <div>
+          <div
+            style={{
+              fontSize: tokens.typography.fontSize.sm[0],
+              color: tokens.colors.text.secondary,
+              marginBottom: tokens.spacing[4],
+            }}
+          >
+            Choose a pre-built template to get started quickly
+          </div>
+
+          {/* Category Filter */}
+          <div style={{ display: 'flex', gap: tokens.spacing[2], marginBottom: tokens.spacing[6], flexWrap: 'wrap' }}>
+            <Button
+              variant={selectedCategory === null ? "primary" : "tertiary"}
+              size="sm"
+              onClick={() => {
+                setSelectedCategory(null);
+                fetchTemplates();
+              }}
+            >
+              All
+            </Button>
+            {categories.map((cat) => (
+              <Button
+                key={cat}
+                variant={selectedCategory === cat ? "primary" : "tertiary"}
+                size="sm"
+                onClick={() => {
+                  setSelectedCategory(cat);
+                  fetchTemplates(cat);
+                }}
+              >
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </Button>
+            ))}
+          </div>
+
+          {/* Templates Grid */}
+          {templatesLoading ? (
+            <div style={{ textAlign: 'center', padding: tokens.spacing[12] }}>
+              <div style={{ fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.text.secondary }}>
+                Loading templates...
+              </div>
+            </div>
+          ) : templates.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: tokens.spacing[12] }}>
+              <div style={{ fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.text.secondary }}>
+                No templates found
+              </div>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: tokens.spacing[4],
+              }}
+            >
+              {templates.map((template) => (
+                <Card key={template.id}>
+                  <div style={{ marginBottom: tokens.spacing[3] }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[2] }}>
+                      <div
+                        style={{
+                          fontWeight: tokens.typography.fontWeight.bold,
+                          fontSize: tokens.typography.fontSize.lg[0],
+                          color: tokens.colors.text.primary,
+                        }}
+                      >
+                        {template.name}
+                      </div>
+                      <Badge variant="info" style={{ textTransform: 'capitalize' }}>
+                        {template.category}
+                      </Badge>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: tokens.typography.fontSize.sm[0],
+                        color: tokens.colors.text.secondary,
+                        marginBottom: tokens.spacing[3],
+                      }}
+                    >
+                      {template.description}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: tokens.spacing[2],
+                      marginBottom: tokens.spacing[4],
+                      fontSize: tokens.typography.fontSize.sm[0],
+                      color: tokens.colors.text.secondary,
+                    }}
+                  >
+                    <div>
+                      <strong>Trigger:</strong> {template.trigger}
+                    </div>
+                    <div>
+                      <strong>Conditions:</strong> {template.conditions.length}
+                    </div>
+                    <div>
+                      <strong>Actions:</strong> {template.actions.length}
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="primary"
+                    onClick={() => instantiateTemplate(template.id)}
+                    style={{ width: '100%' }}
+                  >
+                    Use This Template
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Logs Modal */}
+      <Modal
+        isOpen={showLogs}
+        onClose={() => setShowLogs(false)}
+        title="Automation Logs"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+          {logs.length === 0 ? (
+            <div style={{ color: tokens.colors.text.secondary }}>
+              No logs yet
+            </div>
+          ) : (
+            logs.map((log) => (
+              <Card
+                key={log.id}
+                style={{
+                  backgroundColor: log.success ? tokens.colors.success[50] : tokens.colors.error[50],
+                  borderColor: log.success ? tokens.colors.success[200] : tokens.colors.error[200],
+                }}
+              >
+                <div style={{ padding: tokens.spacing[3] }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[2] }}>
+                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.primary }}>
+                      {log.trigger}
+                    </div>
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                      {new Date(log.executedAt).toLocaleString()}
+                    </div>
+                  </div>
+                  {log.error && (
+                    <div style={{ color: tokens.colors.error[700], fontSize: tokens.typography.fontSize.sm[0], marginTop: tokens.spacing[2] }}>
+                      {log.error}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      </Modal>
+    </AppShell>
   );
 }
-

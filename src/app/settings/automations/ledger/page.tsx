@@ -1,8 +1,26 @@
-"use client";
+/**
+ * Automation Ledger Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Select,
+  Badge,
+  EmptyState,
+  Skeleton,
+  FormRow,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 interface AutomationRun {
   id: string;
@@ -28,6 +46,7 @@ export default function AutomationLedgerPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [automationTypeFilter, setAutomationTypeFilter] = useState<string>("all");
   const [total, setTotal] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRuns();
@@ -35,6 +54,7 @@ export default function AutomationLedgerPage() {
 
   const fetchRuns = async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (statusFilter !== "all") {
@@ -46,16 +66,15 @@ export default function AutomationLedgerPage() {
       params.append("limit", "100");
 
       const response = await fetch(`/api/automations/ledger?${params.toString()}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setRuns(data.runs || []);
-        setTotal(data.total || 0);
-      } else {
-        console.error("Failed to fetch automation runs:", data.error);
+      if (!response.ok) {
+        throw new Error('Failed to fetch automation runs');
       }
-    } catch (error) {
-      console.error("Failed to fetch automation runs:", error);
+      const data = await response.json();
+      setRuns(data.runs || []);
+      setTotal(data.total || 0);
+    } catch (err) {
+      setError('Failed to load automation runs');
+      setRuns([]);
     } finally {
       setLoading(false);
     }
@@ -72,190 +91,228 @@ export default function AutomationLedgerPage() {
     });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "success":
-        return "bg-green-100 text-green-800 border-green-300";
+        return <Badge variant="success">{status.toUpperCase()}</Badge>;
       case "failed":
-        return "bg-red-100 text-red-800 border-red-300";
+        return <Badge variant="error">{status.toUpperCase()}</Badge>;
       case "skipped":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+        return <Badge variant="warning">{status.toUpperCase()}</Badge>;
       case "pending":
-        return "bg-blue-100 text-blue-800 border-blue-300";
+        return <Badge variant="info">{status.toUpperCase()}</Badge>;
       default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
+        return <Badge variant="neutral">{status.toUpperCase()}</Badge>;
     }
   };
 
   const getAutomationTypeLabel = (type: string | null) => {
     if (!type) return "Unknown";
-    // Convert camelCase to readable label
     return type
       .replace(/([A-Z])/g, " $1")
       .replace(/^./, (str) => str.toUpperCase())
       .trim();
   };
 
-  return (
-    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex items-center justify-between flex-wrap gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 sm:gap-4">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: COLORS.primary }}>
-                <i className="fas fa-history text-sm sm:text-base" style={{ color: COLORS.primaryLight }}></i>
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold" style={{ color: COLORS.primary }}>
-                  Automation Run Ledger
-                </h1>
-                <p className="text-xs text-gray-500 hidden sm:block">View automation execution history and failures</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-              <Link
-                href="/settings"
-                className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border rounded-lg hover:bg-gray-50 transition-colors touch-manipulation min-h-[44px] flex items-center"
-                style={{ color: COLORS.primary, borderColor: COLORS.border }}
-              >
-                <i className="fas fa-arrow-left mr-1 sm:mr-2"></i>
-                <span className="hidden sm:inline">Back to Settings</span>
-                <span className="sm:hidden">Back</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+  const statusOptions = [
+    { value: "all", label: "All Statuses" },
+    { value: "success", label: "Success" },
+    { value: "failed", label: "Failed" },
+    { value: "skipped", label: "Skipped" },
+    { value: "pending", label: "Pending" },
+  ];
 
-      <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
+  const automationTypeOptions = [
+    { value: "all", label: "All Types" },
+    { value: "bookingConfirmation", label: "Booking Confirmation" },
+    { value: "ownerNewBookingAlert", label: "Owner Alert" },
+    { value: "nightBeforeReminder", label: "Night Before Reminder" },
+    { value: "paymentReminder", label: "Payment Reminder" },
+    { value: "sitterAssignment", label: "Sitter Assignment" },
+    { value: "postVisitThankYou", label: "Post Visit Thank You" },
+    { value: "dailySummary", label: "Daily Summary" },
+  ];
+
+  return (
+    <AppShell>
+      <PageHeader
+        title="Automation Run Ledger"
+        description="View automation execution history and failures"
+        actions={
+          <Link href="/settings">
+            <Button variant="tertiary" leftIcon={<i className="fas fa-arrow-left" />}>
+              Back to Settings
+            </Button>
+          </Link>
+        }
+      />
+
+      <div style={{ padding: tokens.spacing[6] }}>
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
+              <Button
+                variant="tertiary"
+                size="sm"
+                onClick={fetchRuns}
+                style={{ marginLeft: tokens.spacing[3] }}
+              >
+                Retry
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Filters */}
-        <div className="bg-white rounded-lg p-4 mb-4 sm:mb-6 border-2" style={{ borderColor: COLORS.primaryLight }}>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.primary }}>
-                Filter by Status
-              </label>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg text-sm"
-                style={{ borderColor: COLORS.border }}
-              >
-                <option value="all">All Statuses</option>
-                <option value="success">Success</option>
-                <option value="failed">Failed</option>
-                <option value="skipped">Skipped</option>
-                <option value="pending">Pending</option>
-              </select>
+        <Card style={{ marginBottom: tokens.spacing[6] }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4] }}>
+              <FormRow label="Filter by Status">
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  options={statusOptions}
+                />
+              </FormRow>
+              <FormRow label="Filter by Automation Type">
+                <Select
+                  value={automationTypeFilter}
+                  onChange={(e) => setAutomationTypeFilter(e.target.value)}
+                  options={automationTypeOptions}
+                />
+              </FormRow>
             </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-2" style={{ color: COLORS.primary }}>
-                Filter by Automation Type
-              </label>
-              <select
-                value={automationTypeFilter}
-                onChange={(e) => setAutomationTypeFilter(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg text-sm"
-                style={{ borderColor: COLORS.border }}
-              >
-                <option value="all">All Types</option>
-                <option value="bookingConfirmation">Booking Confirmation</option>
-                <option value="ownerNewBookingAlert">Owner Alert</option>
-                <option value="nightBeforeReminder">Night Before Reminder</option>
-                <option value="paymentReminder">Payment Reminder</option>
-                <option value="sitterAssignment">Sitter Assignment</option>
-                <option value="postVisitThankYou">Post Visit Thank You</option>
-                <option value="dailySummary">Daily Summary</option>
-              </select>
+            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+              Showing {runs.length} of {total} automation runs
             </div>
           </div>
-          <div className="mt-4 text-sm text-gray-600">
-            Showing {runs.length} of {total} automation runs
-          </div>
-        </div>
+        </Card>
 
         {/* Runs List */}
-        <div className="bg-white rounded-lg border-2" style={{ borderColor: COLORS.primaryLight }}>
+        <Card>
           {loading ? (
-            <div className="p-8 text-center">
-              <i className="fas fa-spinner fa-spin text-2xl" style={{ color: COLORS.primary }}></i>
-              <p className="mt-2 text-gray-600">Loading automation runs...</p>
+            <div style={{ padding: tokens.spacing[8], textAlign: 'center' }}>
+              <Skeleton height={100} />
+              <Skeleton height={100} />
+              <Skeleton height={100} />
             </div>
           ) : runs.length === 0 ? (
-            <div className="p-8 text-center">
-              <i className="fas fa-history text-4xl text-gray-300 mb-4"></i>
-              <p className="text-gray-600">No automation runs found</p>
-              <p className="text-sm text-gray-500 mt-2">
-                {statusFilter !== "all" || automationTypeFilter !== "all"
-                  ? "Try adjusting your filters"
-                  : "Automation runs will appear here once automations start executing"}
-              </p>
+            <div style={{ padding: tokens.spacing[8] }}>
+              <EmptyState
+                title="No automation runs found"
+                description={
+                  statusFilter !== "all" || automationTypeFilter !== "all"
+                    ? "Try adjusting your filters"
+                    : "Automation runs will appear here once automations start executing"
+                }
+                icon={<i className="fas fa-history" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+              />
             </div>
           ) : (
-            <div className="divide-y" style={{ borderColor: COLORS.border }}>
+            <div>
               {runs.map((run) => (
-                <div key={run.id} className="p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className={`px-2 py-1 text-xs font-bold rounded border ${getStatusColor(run.status)}`}>
-                          {run.status.toUpperCase()}
-                        </span>
-                        <span className="px-2 py-1 text-xs font-medium rounded" style={{ background: COLORS.primaryLight, color: COLORS.primary }}>
-                          {getAutomationTypeLabel(run.automationType)}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {formatDate(run.createdAt)}
-                        </span>
+                <div
+                  key={run.id}
+                  style={{
+                    padding: tokens.spacing[4],
+                    borderBottom: `1px solid ${tokens.colors.border.default}`,
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: tokens.spacing[2] }}>
+                      {getStatusBadge(run.status)}
+                      <Badge variant="neutral">{getAutomationTypeLabel(run.automationType)}</Badge>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>
+                        {formatDate(run.createdAt)}
                       </div>
-                      
-                      {run.booking && (
-                        <div className="text-sm text-gray-600 mb-2">
-                          <i className="fas fa-calendar mr-1"></i>
-                          Booking: {run.booking.firstName} {run.booking.lastName} - {run.booking.service}
-                          {run.bookingId && (
-                            <Link
-                              href={`/bookings?booking=${run.bookingId}`}
-                              className="ml-2 text-xs underline"
-                              style={{ color: COLORS.primary }}
-                            >
-                              View Booking
-                            </Link>
-                          )}
-                        </div>
-                      )}
-
-                      {run.error && (
-                        <div className="mt-2 p-3 bg-red-50 rounded border border-red-200">
-                          <p className="text-sm font-medium text-red-800 mb-1">
-                            <i className="fas fa-exclamation-circle mr-1"></i>
-                            Error:
-                          </p>
-                          <p className="text-sm text-red-700 whitespace-pre-wrap">{run.error}</p>
-                        </div>
-                      )}
-
-                      {run.metadata && Object.keys(run.metadata).length > 0 && (
-                        <details className="mt-2">
-                          <summary className="text-sm cursor-pointer" style={{ color: COLORS.primary }}>
-                            <i className="fas fa-info-circle mr-1"></i>
-                            View Details
-                          </summary>
-                          <div className="mt-2 p-3 bg-gray-50 rounded border text-xs font-mono overflow-x-auto">
-                            <pre>{JSON.stringify(run.metadata, null, 2)}</pre>
-                          </div>
-                        </details>
-                      )}
                     </div>
+                    
+                    {run.booking && (
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                        <i className="fas fa-calendar" style={{ marginRight: tokens.spacing[1] }} />
+                        Booking: {run.booking.firstName} {run.booking.lastName} - {run.booking.service}
+                        {run.bookingId && (
+                          <Link
+                            href={`/bookings/${run.bookingId}`}
+                            style={{ marginLeft: tokens.spacing[2], fontSize: tokens.typography.fontSize.xs[0], textDecoration: 'underline', color: tokens.colors.primary.DEFAULT }}
+                          >
+                            View Booking
+                          </Link>
+                        )}
+                      </div>
+                    )}
+
+                    {run.error && (
+                      <Card
+                        style={{
+                          backgroundColor: tokens.colors.error[50],
+                          borderColor: tokens.colors.error[200],
+                        }}
+                      >
+                        <div style={{ padding: tokens.spacing[3] }}>
+                          <div
+                            style={{
+                              fontSize: tokens.typography.fontSize.sm[0],
+                              fontWeight: tokens.typography.fontWeight.medium,
+                              color: tokens.colors.error[800],
+                              marginBottom: tokens.spacing[1],
+                            }}
+                          >
+                            <i className="fas fa-exclamation-circle" style={{ marginRight: tokens.spacing[1] }} />
+                            Error:
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.error[700], whiteSpace: 'pre-wrap' }}>
+                            {run.error}
+                          </div>
+                        </div>
+                      </Card>
+                    )}
+
+                    {run.metadata && Object.keys(run.metadata).length > 0 && (
+                      <details>
+                        <summary
+                          style={{
+                            fontSize: tokens.typography.fontSize.sm[0],
+                            color: tokens.colors.text.primary,
+                            cursor: 'pointer',
+                            fontWeight: tokens.typography.fontWeight.medium,
+                          }}
+                        >
+                          <i className="fas fa-info-circle" style={{ marginRight: tokens.spacing[1] }} />
+                          View Details
+                        </summary>
+                        <div
+                          style={{
+                            marginTop: tokens.spacing[2],
+                            padding: tokens.spacing[3],
+                            backgroundColor: tokens.colors.neutral[50],
+                            borderRadius: tokens.borderRadius.md,
+                            border: `1px solid ${tokens.colors.border.default}`,
+                            fontSize: tokens.typography.fontSize.xs[0],
+                            fontFamily: tokens.typography.fontFamily.mono.join(', '),
+                            overflowX: 'auto',
+                          }}
+                        >
+                          <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                            {JSON.stringify(run.metadata, null, 2)}
+                          </pre>
+                        </div>
+                      </details>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </Card>
       </div>
-    </div>
+    </AppShell>
   );
 }
-

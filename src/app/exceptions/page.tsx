@@ -1,15 +1,28 @@
 /**
- * Exceptions Page (Phase 6.3)
+ * Exceptions Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
  * 
  * Displays exception queue for unpaid, unassigned, drift, and automation failures.
- * Per Master Spec Phase 6: "Add exception queue for unpaid, unassigned, drift, automation failures"
  */
 
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { COLORS } from "@/lib/booking-utils";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Select,
+  Badge,
+  StatCard,
+  EmptyState,
+  Skeleton,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 interface Exception {
   id: string;
@@ -41,6 +54,7 @@ export default function ExceptionsPage() {
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [summary, setSummary] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchExceptions();
@@ -48,6 +62,7 @@ export default function ExceptionsPage() {
 
   const fetchExceptions = async () => {
     setLoading(true);
+    setError(null);
     try {
       const url = typeFilter === "all" 
         ? "/api/exceptions" 
@@ -59,8 +74,8 @@ export default function ExceptionsPage() {
       const data = await response.json();
       setExceptions(data.exceptions || []);
       setSummary(data.summary || null);
-    } catch (error) {
-      console.error("Failed to fetch exceptions:", error);
+    } catch (err) {
+      setError('Failed to load exceptions');
       setExceptions([]);
     } finally {
       setLoading(false);
@@ -72,16 +87,16 @@ export default function ExceptionsPage() {
     return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityBadge = (severity: string) => {
     switch (severity) {
       case "high":
-        return "bg-red-100 text-red-800 border-red-300";
+        return <Badge variant="error">{severity.toUpperCase()}</Badge>;
       case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+        return <Badge variant="warning">{severity.toUpperCase()}</Badge>;
       case "low":
-        return "bg-blue-100 text-blue-800 border-blue-300";
+        return <Badge variant="info">{severity.toUpperCase()}</Badge>;
       default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
+        return <Badge variant="neutral">{severity.toUpperCase()}</Badge>;
     }
   };
 
@@ -115,173 +130,250 @@ export default function ExceptionsPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/bookings" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-                <i className="fas fa-arrow-left"></i>
-                <span>Back to Bookings</span>
-              </Link>
-              <div>
-                <h1 className="text-xl font-bold" style={{ color: COLORS.primary }}>
-                  Exception Queue
-                </h1>
-                <p className="text-xs text-gray-500">Unpaid, unassigned, drift, and automation failures</p>
-              </div>
-            </div>
-            <button
-              onClick={fetchExceptions}
-              disabled={loading}
-              className="px-4 py-2 text-sm font-bold border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-              style={{ color: COLORS.primary, borderColor: COLORS.primaryLight }}
-            >
-              <i className={`fas fa-sync-alt ${loading ? 'animate-spin' : ''} mr-2`}></i>
-              Refresh
-            </button>
-          </div>
-        </div>
-      </div>
+  const typeOptions = [
+    { value: "all", label: "All Types" },
+    { value: "unpaid", label: "Unpaid" },
+    { value: "unassigned", label: "Unassigned" },
+    { value: "automation_failure", label: "Automation Failures" },
+    { value: "at_risk", label: "At Risk" },
+  ];
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-6">
+  return (
+    <AppShell>
+      <PageHeader
+        title="Exception Queue"
+        description="Unpaid, unassigned, drift, and automation failures"
+        actions={
+          <Button
+            variant="tertiary"
+            onClick={fetchExceptions}
+            disabled={loading}
+            leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
+          >
+            Refresh
+          </Button>
+        }
+      />
+
+      <div style={{ padding: tokens.spacing[6] }}>
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
+              <Button
+                variant="tertiary"
+                size="sm"
+                onClick={fetchExceptions}
+                style={{ marginLeft: tokens.spacing[3] }}
+              >
+                Retry
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Summary Cards */}
         {summary && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="text-sm text-gray-600 mb-1">Total Exceptions</div>
-              <div className="text-2xl font-bold" style={{ color: COLORS.primary }}>
-                {summary.total}
-              </div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border-2 border-red-300">
-              <div className="text-sm text-gray-600 mb-1">High Severity</div>
-              <div className="text-2xl font-bold text-red-600">
-                {summary.bySeverity?.high || 0}
-              </div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border-2 border-yellow-300">
-              <div className="text-sm text-gray-600 mb-1">Medium Severity</div>
-              <div className="text-2xl font-bold text-yellow-600">
-                {summary.bySeverity?.medium || 0}
-              </div>
-            </div>
-            <div className="bg-white rounded-lg p-4 border-2 border-blue-300">
-              <div className="text-sm text-gray-600 mb-1">Low Severity</div>
-              <div className="text-2xl font-bold text-blue-600">
-                {summary.bySeverity?.low || 0}
-              </div>
-            </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: tokens.spacing[4],
+              marginBottom: tokens.spacing[6],
+            }}
+          >
+            <StatCard
+              label="Total Exceptions"
+              value={summary.total}
+              icon={<i className="fas fa-exclamation-triangle" />}
+            />
+            <StatCard
+              label="High Severity"
+              value={summary.bySeverity?.high || 0}
+              icon={<i className="fas fa-exclamation-circle" />}
+            />
+            <StatCard
+              label="Medium Severity"
+              value={summary.bySeverity?.medium || 0}
+              icon={<i className="fas fa-exclamation-triangle" />}
+            />
+            <StatCard
+              label="Low Severity"
+              value={summary.bySeverity?.low || 0}
+              icon={<i className="fas fa-info-circle" />}
+            />
           </div>
         )}
 
         {/* Type Filter */}
-        <div className="bg-white rounded-lg p-4 border-2 mb-6" style={{ borderColor: COLORS.primaryLight }}>
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium" style={{ color: COLORS.primary }}>
+        <Card style={{ marginBottom: tokens.spacing[6] }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+            <label
+              style={{
+                fontSize: tokens.typography.fontSize.sm[0],
+                fontWeight: tokens.typography.fontWeight.medium,
+                color: tokens.colors.text.primary,
+              }}
+            >
               Filter by Type:
             </label>
-            <select
+            <Select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="px-3 py-2 border rounded-lg text-sm"
-              style={{ borderColor: COLORS.border }}
-            >
-              <option value="all">All Types</option>
-              <option value="unpaid">Unpaid</option>
-              <option value="unassigned">Unassigned</option>
-              <option value="automation_failure">Automation Failures</option>
-              <option value="at_risk">At Risk</option>
-            </select>
+              options={typeOptions}
+              style={{ minWidth: '200px' }}
+            />
           </div>
-        </div>
+        </Card>
 
         {/* Exceptions List */}
-        <div className="bg-white rounded-lg border-2" style={{ borderColor: COLORS.primaryLight }}>
-          <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
-            <h2 className="text-lg font-bold" style={{ color: COLORS.primary }}>
+        <Card>
+          <div
+            style={{
+              padding: tokens.spacing[4],
+              borderBottom: `1px solid ${tokens.colors.border.default}`,
+              marginBottom: 0,
+            }}
+          >
+            <div
+              style={{
+                fontWeight: tokens.typography.fontWeight.bold,
+                fontSize: tokens.typography.fontSize.lg[0],
+                color: tokens.colors.text.primary,
+              }}
+            >
               Exceptions ({exceptions.length})
-            </h2>
+            </div>
           </div>
 
-          <div className="divide-y" style={{ borderColor: COLORS.border }}>
-            {loading ? (
-              <div className="p-8 text-center">
-                <i className="fas fa-spinner fa-spin text-2xl mb-4" style={{ color: COLORS.primary }}></i>
-                <p className="text-gray-600">Loading exceptions...</p>
-              </div>
-            ) : exceptions.length === 0 ? (
-              <div className="p-8 text-center">
-                <i className="fas fa-check-circle text-4xl text-gray-300 mb-4"></i>
-                <p className="text-gray-600">No exceptions found</p>
-                <p className="text-sm text-gray-500 mt-2">All bookings are in good standing!</p>
-              </div>
-            ) : (
-              exceptions.map((exception) => (
-                <div
-                  key={exception.id}
-                  className={`p-4 hover:bg-gray-50 transition-colors border-l-4 ${
-                    exception.severity === "high" ? "border-red-500" :
-                    exception.severity === "medium" ? "border-yellow-500" :
-                    "border-blue-500"
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getSeverityColor(exception.severity).split(" ")[0]}`}>
-                        <i className={`${getTypeIcon(exception.type)} text-lg`} style={{ color: COLORS.primary }}></i>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-bold text-lg">{exception.title}</h3>
-                          <span className={`px-2 py-1 text-xs font-bold rounded ${getSeverityColor(exception.severity)}`}>
-                            {exception.severity.toUpperCase()}
-                          </span>
-                          <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-700">
-                            {getTypeLabel(exception.type)}
-                          </span>
+          {loading ? (
+            <div style={{ padding: tokens.spacing[8], textAlign: 'center' }}>
+              <Skeleton height={100} />
+              <Skeleton height={100} />
+              <Skeleton height={100} />
+            </div>
+          ) : exceptions.length === 0 ? (
+            <div style={{ padding: tokens.spacing[8] }}>
+              <EmptyState
+                title="No exceptions found"
+                description="All bookings are in good standing!"
+                icon={<i className="fas fa-check-circle" style={{ fontSize: '3rem', color: tokens.colors.success.DEFAULT }} />}
+              />
+            </div>
+          ) : (
+            <div>
+              {exceptions.map((exception) => {
+                const borderColor =
+                  exception.severity === "high" ? tokens.colors.error[500] :
+                  exception.severity === "medium" ? tokens.colors.warning[500] :
+                  tokens.colors.info[500];
+
+                return (
+                  <div
+                    key={exception.id}
+                    style={{
+                      padding: tokens.spacing[4],
+                      borderLeft: `4px solid ${borderColor}`,
+                      borderBottom: `1px solid ${tokens.colors.border.default}`,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[3], flex: 1 }}>
+                        <div
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: tokens.borderRadius.md,
+                            backgroundColor: tokens.colors.neutral[100],
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: tokens.colors.text.primary,
+                          }}
+                        >
+                          <i className={`${getTypeIcon(exception.type)} ${tokens.typography.fontSize.lg[0]}`} />
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{exception.description}</p>
-                        {exception.booking && (
-                          <div className="text-sm text-gray-600 space-y-1">
-                            <div>
-                              <strong>Booking:</strong> {exception.booking.firstName} {exception.booking.lastName} - {exception.booking.service}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[1], flexWrap: 'wrap' }}>
+                            <div
+                              style={{
+                                fontWeight: tokens.typography.fontWeight.bold,
+                                fontSize: tokens.typography.fontSize.lg[0],
+                                color: tokens.colors.text.primary,
+                              }}
+                            >
+                              {exception.title}
                             </div>
-                            {exception.booking.startAt && (
-                              <div>
-                                <strong>Start:</strong> {formatDate(exception.booking.startAt)}
-                              </div>
-                            )}
-                            {exception.type === "unpaid" && exception.booking.totalPrice && (
-                              <div>
-                                <strong>Amount:</strong> ${exception.booking.totalPrice.toFixed(2)}
-                              </div>
-                            )}
+                            {getSeverityBadge(exception.severity)}
+                            <Badge variant="neutral">{getTypeLabel(exception.type)}</Badge>
                           </div>
-                        )}
-                        <div className="text-xs text-gray-500 mt-2">
-                          Created: {formatDate(exception.createdAt)}
+                          <div
+                            style={{
+                              fontSize: tokens.typography.fontSize.sm[0],
+                              color: tokens.colors.text.secondary,
+                              marginBottom: tokens.spacing[2],
+                            }}
+                          >
+                            {exception.description}
+                          </div>
+                          {exception.booking && (
+                            <div
+                              style={{
+                                fontSize: tokens.typography.fontSize.sm[0],
+                                color: tokens.colors.text.secondary,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: tokens.spacing[1],
+                                marginBottom: tokens.spacing[2],
+                              }}
+                            >
+                              <div>
+                                <strong>Booking:</strong> {exception.booking.firstName} {exception.booking.lastName} - {exception.booking.service}
+                              </div>
+                              {exception.booking.startAt && (
+                                <div>
+                                  <strong>Start:</strong> {formatDate(exception.booking.startAt)}
+                                </div>
+                              )}
+                              {exception.type === "unpaid" && exception.booking.totalPrice && (
+                                <div>
+                                  <strong>Amount:</strong> ${exception.booking.totalPrice.toFixed(2)}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          <div
+                            style={{
+                              fontSize: tokens.typography.fontSize.xs[0],
+                              color: tokens.colors.text.tertiary,
+                              marginTop: tokens.spacing[2],
+                            }}
+                          >
+                            Created: {formatDate(exception.createdAt)}
+                          </div>
                         </div>
                       </div>
+                      {exception.bookingId && (
+                        <Link href={`/bookings/${exception.bookingId}`}>
+                          <Button variant="secondary" size="sm">
+                            View Booking
+                          </Button>
+                        </Link>
+                      )}
                     </div>
-                    {exception.bookingId && (
-                      <Link
-                        href={`/bookings?booking=${exception.bookingId}`}
-                        className="px-3 py-1 text-sm font-semibold rounded bg-blue-100 text-blue-800 hover:bg-blue-200"
-                      >
-                        View Booking
-                      </Link>
-                    )}
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
       </div>
-    </div>
+    </AppShell>
   );
 }
-
