@@ -1,7 +1,24 @@
-"use client";
+/**
+ * Sitter Tiers Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Badge,
+  EmptyState,
+  Skeleton,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 interface SitterTier {
   id: string;
@@ -19,18 +36,25 @@ interface SitterTier {
 export default function TiersPage() {
   const [tiers, setTiers] = useState<SitterTier[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTiers();
   }, []);
 
   const fetchTiers = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/sitter-tiers");
+      if (!response.ok) {
+        throw new Error('Failed to fetch tiers');
+      }
       const data = await response.json();
       setTiers((data.tiers || []).sort((a: SitterTier, b: SitterTier) => a.priorityLevel - b.priorityLevel));
-    } catch (error) {
-      console.error("Failed to fetch tiers:", error);
+    } catch (err) {
+      setError('Failed to load tiers');
+      setTiers([]);
     } finally {
       setLoading(false);
     }
@@ -45,9 +69,11 @@ export default function TiersPage() {
       });
       if (response.ok) {
         fetchTiers();
+      } else {
+        setError('Failed to delete tier');
       }
-    } catch (error) {
-      console.error("Failed to delete tier:", error);
+    } catch (err) {
+      setError('Failed to delete tier');
     }
   };
 
@@ -58,140 +84,146 @@ export default function TiersPage() {
       });
       if (response.ok) {
         alert("Tier calculation started!");
+      } else {
+        setError('Failed to calculate tiers');
       }
-    } catch (error) {
-      console.error("Failed to calculate tiers:", error);
-      alert("Failed to calculate tiers");
+    } catch (err) {
+      setError('Failed to calculate tiers');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-        <div className="text-center py-20">Loading tiers...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                Sitter Tiers
-              </h1>
-              <p className="text-gray-600">Manage sitter performance tiers and requirements</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={calculateTiers}
-                className="px-4 py-3 rounded-lg font-semibold bg-blue-100 text-blue-800"
-              >
-                Calculate Tiers
-              </button>
-              <button
-                onClick={() => window.location.href = "/settings/tiers/new"}
-                className="px-6 py-3 rounded-lg font-semibold text-white"
-                style={{ background: COLORS.primary }}
-              >
-                + Create Tier
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {tiers.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 text-center border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="text-6xl mb-4">⭐</div>
-              <h3 className="text-2xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                No Tiers Configured
-              </h3>
-              <p className="text-gray-600 mb-6">Create your first sitter tier</p>
-              <button
-                onClick={() => window.location.href = "/settings/tiers/new"}
-                className="inline-block px-6 py-3 rounded-lg font-semibold text-white"
-                style={{ background: COLORS.primary }}
-              >
+    <AppShell>
+      <PageHeader
+        title="Sitter Tiers"
+        description="Manage sitter performance tiers and requirements"
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              onClick={calculateTiers}
+              leftIcon={<i className="fas fa-calculator" />}
+            >
+              Calculate Tiers
+            </Button>
+            <Link href="/settings/tiers/new">
+              <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
                 Create Tier
-              </button>
+              </Button>
+            </Link>
+          </>
+        }
+      />
+
+      <div style={{ padding: tokens.spacing[6] }}>
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
             </div>
-          ) : (
-            tiers.map((tier) => {
+          </Card>
+        )}
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+          </div>
+        ) : tiers.length === 0 ? (
+          <EmptyState
+            title="No Tiers Configured"
+            description="Create your first sitter tier"
+            icon={<i className="fas fa-star" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            action={{
+              label: "Create Tier",
+              onClick: () => window.location.href = "/settings/tiers/new",
+            }}
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            {tiers.map((tier) => {
               const benefits = tier.benefits ? JSON.parse(tier.benefits) : {};
               return (
-                <div
-                  key={tier.id}
-                  className="bg-white rounded-xl p-6 border-2 shadow-sm"
-                  style={{ borderColor: COLORS.primaryLight }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold" style={{ color: COLORS.primary }}>
+                <Card key={tier.id}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[2], flexWrap: 'wrap' }}>
+                        <div
+                          style={{
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            fontSize: tokens.typography.fontSize.lg[0],
+                            color: tokens.colors.text.primary,
+                          }}
+                        >
                           {tier.name}
-                        </h3>
+                        </div>
                         {tier.isDefault && (
-                          <span className="px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800">
-                            Default
-                          </span>
+                          <Badge variant="warning">Default</Badge>
                         )}
-                        <span className="px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-                          Priority: {tier.priorityLevel}
-                        </span>
+                        <Badge variant="info">Priority: {tier.priorityLevel}</Badge>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                          gap: tokens.spacing[4],
+                          fontSize: tokens.typography.fontSize.sm[0],
+                          color: tokens.colors.text.secondary,
+                          marginBottom: tokens.spacing[3],
+                        }}
+                      >
                         <div>
-                          <span className="font-semibold">Point Target:</span> {tier.pointTarget}
+                          <strong>Point Target:</strong> {tier.pointTarget}
                         </div>
                         <div>
-                          <span className="font-semibold">Min Completion:</span> {tier.minCompletionRate}%
+                          <strong>Min Completion:</strong> {tier.minCompletionRate}%
                         </div>
                         <div>
-                          <span className="font-semibold">Min Response:</span> {tier.minResponseRate}%
+                          <strong>Min Response:</strong> {tier.minResponseRate}%
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
                           {tier.canTakeHouseSits && (
-                            <span className="px-2 py-1 rounded bg-green-100 text-green-800">House Sits</span>
+                            <Badge variant="success">House Sits</Badge>
                           )}
                           {tier.canTakeTwentyFourHourCare && (
-                            <span className="px-2 py-1 rounded bg-blue-100 text-blue-800">24hr Care</span>
+                            <Badge variant="info">24hr Care</Badge>
                           )}
                         </div>
                       </div>
                       {Object.keys(benefits).length > 0 && (
-                        <div className="text-sm text-gray-600">
-                          <span className="font-semibold">Benefits:</span> {JSON.stringify(benefits)}
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          <strong>Benefits:</strong> {JSON.stringify(benefits)}
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      <button
-                        onClick={() => window.location.href = `/settings/tiers/${tier.id}`}
-                        className="px-4 py-2 rounded-lg font-semibold text-white"
-                        style={{ background: COLORS.primary }}
-                      >
-                        Edit
-                      </button>
-                      <button
+                    <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+                      <Link href={`/settings/tiers/${tier.id}`}>
+                        <Button variant="secondary" size="sm">
+                          Edit
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() => deleteTier(tier.id)}
-                        className="px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-800"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </div>
-                </div>
+                </Card>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
-    </div>
+    </AppShell>
   );
 }
-
-
-

@@ -1,8 +1,27 @@
-"use client";
+/**
+ * Edit Template Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Input,
+  Select,
+  Textarea,
+  Skeleton,
+  FormRow,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 export default function EditTemplatePage() {
   const router = useRouter();
@@ -18,6 +37,7 @@ export default function EditTemplatePage() {
   const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (templateId) {
@@ -26,8 +46,13 @@ export default function EditTemplatePage() {
   }, [templateId]);
 
   const fetchTemplate = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch(`/api/templates/${templateId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch template');
+      }
       const data = await response.json();
       if (data.template) {
         const tpl = data.template;
@@ -39,8 +64,8 @@ export default function EditTemplatePage() {
         setBody(tpl.body || "");
         setIsActive(tpl.isActive !== false);
       }
-    } catch (error) {
-      console.error("Failed to fetch template:", error);
+    } catch (err) {
+      setError('Failed to load template');
     } finally {
       setLoading(false);
     }
@@ -53,6 +78,7 @@ export default function EditTemplatePage() {
     }
 
     setSaving(true);
+    setError(null);
     try {
       const response = await fetch(`/api/templates/${templateId}`, {
         method: "PATCH",
@@ -71,149 +97,170 @@ export default function EditTemplatePage() {
       if (response.ok) {
         router.push("/templates");
       } else {
-        const error = await response.json();
-        alert(`Failed to update template: ${error.error}`);
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to update template");
       }
-    } catch (error) {
-      console.error("Failed to update template:", error);
-      alert("Failed to update template");
+    } catch (err) {
+      setError("Failed to update template");
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-        <div className="text-center py-20">Loading template...</div>
-      </div>
-    );
-  }
+  const typeOptions = [
+    { value: "", label: "Select type" },
+    { value: "sms", label: "SMS" },
+    { value: "email", label: "Email" },
+  ];
+
+  const categoryOptions = [
+    { value: "", label: "Select category" },
+    { value: "client", label: "Client" },
+    { value: "sitter", label: "Sitter" },
+    { value: "owner", label: "Owner" },
+    { value: "report", label: "Report" },
+    { value: "invoice", label: "Invoice" },
+  ];
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
-            Edit Template
-          </h1>
-          <p className="text-gray-600">Update your message template</p>
-        </div>
+    <AppShell>
+      <PageHeader
+        title="Edit Template"
+        description="Update your message template"
+        actions={
+          <Link href="/templates">
+            <Button variant="tertiary" leftIcon={<i className="fas fa-arrow-left" />}>
+              Back to Templates
+            </Button>
+          </Link>
+        }
+      />
 
-        <div className="bg-white rounded-xl p-6 border-2 shadow-sm mb-6" style={{ borderColor: COLORS.primaryLight }}>
-          <h2 className="text-2xl font-bold mb-4" style={{ color: COLORS.primary }}>
-            Template Information
-          </h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block font-semibold mb-2">Name *</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-              />
+      <div style={{ padding: tokens.spacing[6] }}>
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
             </div>
+          </Card>
+        )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block font-semibold mb-2">Type *</label>
-                <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
-                >
-                  <option value="">Select type</option>
-                  <option value="sms">SMS</option>
-                  <option value="email">Email</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-semibold mb-2">Category *</label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
-                >
-                  <option value="">Select category</option>
-                  <option value="client">Client</option>
-                  <option value="sitter">Sitter</option>
-                  <option value="owner">Owner</option>
-                  <option value="report">Report</option>
-                  <option value="invoice">Invoice</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block font-semibold mb-2">Template Key *</label>
-              <input
-                type="text"
-                value={templateKey}
-                onChange={(e) => setTemplateKey(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-                placeholder="e.g., booking.confirmation"
-              />
-            </div>
-
-            {type === "email" && (
-              <div>
-                <label className="block font-semibold mb-2">Subject</label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="block font-semibold mb-2">Body *</label>
-              <textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-                rows={10}
-                placeholder="Message body with {{variables}}"
-              />
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                />
-                <span>Active</span>
-              </label>
-            </div>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <Skeleton height={400} />
           </div>
-        </div>
+        ) : (
+          <>
+            <Card style={{ marginBottom: tokens.spacing[6] }}>
+              <div
+                style={{
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  fontSize: tokens.typography.fontSize.lg[0],
+                  color: tokens.colors.text.primary,
+                  marginBottom: tokens.spacing[4],
+                }}
+              >
+                Template Information
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                <FormRow label="Name *">
+                  <Input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </FormRow>
 
-        <div className="flex items-center justify-end gap-4">
-          <button
-            onClick={() => router.back()}
-            className="px-6 py-3 rounded-lg font-semibold bg-gray-200 text-gray-800"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !name || !type || !category || !templateKey || !body}
-            className="px-6 py-3 rounded-lg font-semibold text-white disabled:opacity-50"
-            style={{ background: COLORS.primary }}
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4] }}>
+                  <FormRow label="Type *">
+                    <Select
+                      value={type}
+                      onChange={(e) => setType(e.target.value)}
+                      options={typeOptions}
+                    />
+                  </FormRow>
+
+                  <FormRow label="Category *">
+                    <Select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      options={categoryOptions}
+                    />
+                  </FormRow>
+                </div>
+
+                <FormRow label="Template Key *">
+                  <Input
+                    type="text"
+                    value={templateKey}
+                    onChange={(e) => setTemplateKey(e.target.value)}
+                    placeholder="e.g., booking.confirmation"
+                    required
+                  />
+                </FormRow>
+
+                {type === "email" && (
+                  <FormRow label="Subject">
+                    <Input
+                      type="text"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                    />
+                  </FormRow>
+                )}
+
+                <FormRow label="Body *">
+                  <Textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    rows={10}
+                    placeholder="Message body with {{variables}}"
+                    required
+                  />
+                </FormRow>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                    style={{ accentColor: tokens.colors.primary.DEFAULT }}
+                  />
+                  <label htmlFor="isActive" style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary, cursor: 'pointer' }}>
+                    Active
+                  </label>
+                </div>
+              </div>
+            </Card>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[4] }}>
+              <Button
+                variant="tertiary"
+                onClick={() => router.back()}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleSave}
+                disabled={saving || !name || !type || !category || !templateKey || !body}
+                leftIcon={saving ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-save" />}
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </AppShell>
   );
 }
-
-
-

@@ -1,7 +1,26 @@
-"use client";
+/**
+ * Custom Fields Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Select,
+  Badge,
+  EmptyState,
+  Skeleton,
+  FormRow,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 interface CustomField {
   id: string;
@@ -21,21 +40,28 @@ export default function CustomFieldsPage() {
   const [fields, setFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ entityType: "" });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFields();
   }, [filter]);
 
   const fetchFields = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (filter.entityType) params.append("entityType", filter.entityType);
 
       const response = await fetch(`/api/custom-fields?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch custom fields');
+      }
       const data = await response.json();
       setFields(data.fields || []);
-    } catch (error) {
-      console.error("Failed to fetch custom fields:", error);
+    } catch (err) {
+      setError('Failed to load custom fields');
+      setFields([]);
     } finally {
       setLoading(false);
     }
@@ -50,141 +76,140 @@ export default function CustomFieldsPage() {
       });
       if (response.ok) {
         fetchFields();
+      } else {
+        setError('Failed to delete field');
       }
-    } catch (error) {
-      console.error("Failed to delete field:", error);
+    } catch (err) {
+      setError('Failed to delete field');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-        <div className="text-center py-20">Loading custom fields...</div>
-      </div>
-    );
-  }
+  const entityTypeOptions = [
+    { value: "", label: "All Entity Types" },
+    { value: "client", label: "Client" },
+    { value: "pet", label: "Pet" },
+    { value: "sitter", label: "Sitter" },
+    { value: "booking", label: "Booking" },
+  ];
 
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                Custom Fields
-              </h1>
-              <p className="text-gray-600">Manage custom fields for clients, pets, sitters, and bookings</p>
-            </div>
-            <button
-              onClick={() => window.location.href = "/settings/custom-fields/new"}
-              className="px-6 py-3 rounded-lg font-semibold text-white"
-              style={{ background: COLORS.primary }}
-            >
-              + Create Field
-            </button>
-          </div>
+    <AppShell>
+      <PageHeader
+        title="Custom Fields"
+        description="Manage custom fields for clients, pets, sitters, and bookings"
+        actions={
+          <Link href="/settings/custom-fields/new">
+            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+              Create Field
+            </Button>
+          </Link>
+        }
+      />
 
-          <div className="flex items-center gap-4 mb-6">
-            <select
+      <div style={{ padding: tokens.spacing[6] }}>
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
+            </div>
+          </Card>
+        )}
+
+        <Card style={{ marginBottom: tokens.spacing[6] }}>
+          <FormRow label="Filter by Entity Type">
+            <Select
               value={filter.entityType}
               onChange={(e) => setFilter({ ...filter, entityType: e.target.value })}
-              className="px-4 py-2 border rounded-lg"
-            >
-              <option value="">All Entity Types</option>
-              <option value="client">Client</option>
-              <option value="pet">Pet</option>
-              <option value="sitter">Sitter</option>
-              <option value="booking">Booking</option>
-            </select>
-          </div>
-        </div>
+              options={entityTypeOptions}
+            />
+          </FormRow>
+        </Card>
 
-        <div className="space-y-4">
-          {fields.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 text-center border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="text-6xl mb-4">🏷️</div>
-              <h3 className="text-2xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                No Custom Fields
-              </h3>
-              <p className="text-gray-600 mb-6">Create your first custom field</p>
-              <button
-                onClick={() => window.location.href = "/settings/custom-fields/new"}
-                className="inline-block px-6 py-3 rounded-lg font-semibold text-white"
-                style={{ background: COLORS.primary }}
-              >
-                Create Field
-              </button>
-            </div>
-          ) : (
-            fields.map((field) => (
-              <div
-                key={field.id}
-                className="bg-white rounded-xl p-6 border-2 shadow-sm"
-                style={{ borderColor: COLORS.primaryLight }}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold" style={{ color: COLORS.primary }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+          </div>
+        ) : fields.length === 0 ? (
+          <EmptyState
+            title="No Custom Fields"
+            description="Create your first custom field"
+            icon={<i className="fas fa-tag" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            action={{
+              label: "Create Field",
+              onClick: () => window.location.href = "/settings/custom-fields/new",
+            }}
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            {fields.map((field) => (
+              <Card key={field.id}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[2], flexWrap: 'wrap' }}>
+                      <div
+                        style={{
+                          fontWeight: tokens.typography.fontWeight.bold,
+                          fontSize: tokens.typography.fontSize.lg[0],
+                          color: tokens.colors.text.primary,
+                        }}
+                      >
                         {field.label}
-                      </h3>
-                      <span className="px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-                        {field.type}
-                      </span>
-                      <span className="px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-800">
-                        {field.entityType}
-                      </span>
+                      </div>
+                      <Badge variant="info">{field.type}</Badge>
+                      <Badge variant="neutral">{field.entityType}</Badge>
                       {field.required && (
-                        <span className="px-3 py-1 rounded-full text-sm bg-red-100 text-red-800">
-                          Required
-                        </span>
+                        <Badge variant="error">Required</Badge>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
                       {field.visibleToOwner && (
-                        <span className="px-2 py-1 rounded bg-gray-100 text-gray-800">Owner</span>
+                        <Badge variant="neutral">Owner</Badge>
                       )}
                       {field.visibleToSitter && (
-                        <span className="px-2 py-1 rounded bg-green-100 text-green-800">Sitter</span>
+                        <Badge variant="success">Sitter</Badge>
                       )}
                       {field.visibleToClient && (
-                        <span className="px-2 py-1 rounded bg-blue-100 text-blue-800">Client</span>
+                        <Badge variant="info">Client</Badge>
                       )}
                       {field.editableBySitter && (
-                        <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-800">Sitter Editable</span>
+                        <Badge variant="warning">Sitter Editable</Badge>
                       )}
                       {field.editableByClient && (
-                        <span className="px-2 py-1 rounded bg-orange-100 text-orange-800">Client Editable</span>
+                        <Badge variant="warning">Client Editable</Badge>
                       )}
                       {field.showInTemplates && (
-                        <span className="px-2 py-1 rounded bg-purple-100 text-purple-800">In Templates</span>
+                        <Badge variant="neutral">In Templates</Badge>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <button
-                      onClick={() => window.location.href = `/settings/custom-fields/${field.id}`}
-                      className="px-4 py-2 rounded-lg font-semibold text-white"
-                      style={{ background: COLORS.primary }}
-                    >
-                      Edit
-                    </button>
-                    <button
+                  <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+                    <Link href={`/settings/custom-fields/${field.id}`}>
+                      <Button variant="secondary" size="sm">
+                        Edit
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="danger"
+                      size="sm"
                       onClick={() => deleteField(field.id)}
-                      className="px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-800"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </AppShell>
   );
 }
-
-
-

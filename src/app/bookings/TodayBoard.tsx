@@ -1,19 +1,26 @@
 /**
- * Today Board Component (Phase 6.2)
+ * Today Board Component - Enterprise Rebuild
  * 
- * Displays the Today board with quick action buttons.
- * Per Master Spec 8.1: Today board with one-click actions.
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
  */
 
-"use client";
+'use client';
 
-import { COLORS } from "@/lib/booking-utils";
 import { 
   assignSitterToBooking, 
   sendPaymentLinkToBooking, 
   resendConfirmation, 
   markBookingComplete 
-} from "@/lib/today-board-helpers";
+} from '@/lib/today-board-helpers';
+import {
+  Card,
+  Button,
+  Badge,
+  Select,
+  StatCard,
+} from '@/components/ui';
+import { tokens } from '@/lib/design-tokens';
 
 interface Booking {
   id: string;
@@ -121,46 +128,76 @@ export default function TodayBoard({
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return <Badge variant="success">confirmed</Badge>;
+      case 'pending':
+        return <Badge variant="warning">pending</Badge>;
+      default:
+        return <Badge variant="neutral">{status}</Badge>;
+    }
+  };
+
   const renderBookingCard = (booking: Booking, section: string) => {
     const isUnassigned = !booking.sitterId;
     const isUnpaid = booking.paymentStatus === 'unpaid';
     const isAtRisk = section === 'atRisk';
 
+    const borderColor = isAtRisk 
+      ? tokens.colors.error[300]
+      : isUnpaid 
+      ? tokens.colors.warning[300]
+      : isUnassigned 
+      ? tokens.colors.warning[400]
+      : tokens.colors.border.default;
+
+    const backgroundColor = isAtRisk 
+      ? tokens.colors.error[50]
+      : isUnpaid 
+      ? tokens.colors.warning[50]
+      : isUnassigned 
+      ? tokens.colors.warning[50]
+      : tokens.colors.background.primary;
+
     return (
-      <div
+      <Card
         key={booking.id}
-        className={`p-4 border-2 rounded-lg mb-3 ${
-          isAtRisk ? 'border-red-300 bg-red-50' : 
-          isUnpaid ? 'border-yellow-300 bg-yellow-50' :
-          isUnassigned ? 'border-orange-300 bg-orange-50' :
-          'border-gray-200'
-        }`}
+        style={{
+          borderColor,
+          backgroundColor,
+          marginBottom: tokens.spacing[3],
+        }}
       >
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="font-bold text-lg">
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: tokens.spacing[3] }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[2], flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  fontSize: tokens.typography.fontSize.lg[0],
+                  color: tokens.colors.text.primary,
+                }}
+              >
                 {booking.firstName} {booking.lastName}
-              </h3>
-              <span className={`px-2 py-1 text-xs font-bold rounded ${
-                booking.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {booking.status}
-              </span>
+              </div>
+              {getStatusBadge(booking.status)}
               {isUnpaid && (
-                <span className="px-2 py-1 text-xs font-bold rounded bg-red-100 text-red-800">
-                  Unpaid
-                </span>
+                <Badge variant="error">Unpaid</Badge>
               )}
               {isUnassigned && (
-                <span className="px-2 py-1 text-xs font-bold rounded bg-orange-100 text-orange-800">
-                  Unassigned
-                </span>
+                <Badge variant="warning">Unassigned</Badge>
               )}
             </div>
-            <div className="text-sm text-gray-600 space-y-1">
+            <div
+              style={{
+                fontSize: tokens.typography.fontSize.sm[0],
+                color: tokens.colors.text.secondary,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: tokens.spacing[1],
+              }}
+            >
               <div><strong>Service:</strong> {booking.service}</div>
               <div><strong>Date:</strong> {formatDate(booking.startAt)} at {formatTime(booking.startAt)}</div>
               <div><strong>Pets:</strong> {formatPets(booking.pets)}</div>
@@ -170,130 +207,172 @@ export default function TodayBoard({
               )}
             </div>
           </div>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => onBookingClick(booking)}
-            className="px-3 py-1 text-sm font-semibold rounded bg-blue-100 text-blue-800 hover:bg-blue-200"
+            style={{ marginLeft: tokens.spacing[4] }}
           >
             Details
-          </button>
+          </Button>
         </div>
 
         {/* Quick Action Buttons */}
-        <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-200">
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: tokens.spacing[2],
+            paddingTop: tokens.spacing[3],
+            borderTop: `1px solid ${tokens.colors.border.default}`,
+          }}
+        >
           {isUnassigned && sitters.length > 0 && (
-            <select
+            <Select
+              value=""
               onChange={(e) => {
                 if (e.target.value) {
                   handleQuickAction('assign', booking, e.target.value);
-                  e.target.value = '';
                 }
               }}
-              className="px-2 py-1 text-xs border rounded"
-              defaultValue=""
-            >
-              <option value="">Assign Sitter...</option>
-              {sitters.map(sitter => (
-                <option key={sitter.id} value={sitter.id}>
-                  {sitter.firstName} {sitter.lastName}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: 'Assign Sitter...' },
+                ...sitters.map(sitter => ({
+                  value: sitter.id,
+                  label: `${sitter.firstName} ${sitter.lastName}`,
+                })),
+              ]}
+              style={{ minWidth: '150px' }}
+            />
           )}
           {isUnpaid && (
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={() => handleQuickAction('payment', booking)}
-              className="px-3 py-1 text-xs font-semibold rounded text-white bg-blue-500 hover:bg-blue-600"
             >
               Send Payment Link
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => handleQuickAction('resend', booking)}
-            className="px-3 py-1 text-xs font-semibold rounded text-white bg-green-500 hover:bg-green-600"
           >
             Resend Confirmation
-          </button>
+          </Button>
           {booking.status !== 'completed' && (
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => handleQuickAction('complete', booking)}
-              className="px-3 py-1 text-xs font-semibold rounded text-white bg-purple-500 hover:bg-purple-600"
             >
               Mark Complete
-            </button>
+            </Button>
           )}
         </div>
-      </div>
+      </Card>
     );
   };
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}>
       {/* Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg p-4 border-2" style={{ borderColor: COLORS.primaryLight }}>
-          <div className="text-2xl font-bold mb-1" style={{ color: COLORS.primary }}>
-            {todayBoardData.stats.todayCount}
-          </div>
-          <div className="text-sm text-gray-600">Today's Bookings</div>
-        </div>
-        <div className="bg-white rounded-lg p-4 border-2 border-orange-300">
-          <div className="text-2xl font-bold mb-1 text-orange-600">
-            {todayBoardData.stats.unassignedCount}
-          </div>
-          <div className="text-sm text-gray-600">Unassigned</div>
-        </div>
-        <div className="bg-white rounded-lg p-4 border-2 border-yellow-300">
-          <div className="text-2xl font-bold mb-1 text-yellow-600">
-            {todayBoardData.stats.unpaidCount}
-          </div>
-          <div className="text-sm text-gray-600">Unpaid</div>
-        </div>
-        <div className="bg-white rounded-lg p-4 border-2 border-red-300">
-          <div className="text-2xl font-bold mb-1 text-red-600">
-            {todayBoardData.stats.atRiskCount}
-          </div>
-          <div className="text-sm text-gray-600">At Risk</div>
-        </div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: tokens.spacing[4],
+        }}
+      >
+        <StatCard
+          label="Today's Bookings"
+          value={todayBoardData.stats.todayCount}
+          icon={<i className="fas fa-calendar-check" />}
+        />
+        <StatCard
+          label="Unassigned"
+          value={todayBoardData.stats.unassignedCount}
+          icon={<i className="fas fa-user-times" />}
+        />
+        <StatCard
+          label="Unpaid"
+          value={todayBoardData.stats.unpaidCount}
+          icon={<i className="fas fa-dollar-sign" />}
+        />
+        <StatCard
+          label="At Risk"
+          value={todayBoardData.stats.atRiskCount}
+          icon={<i className="fas fa-exclamation-triangle" />}
+        />
       </div>
 
       {/* Today's Bookings */}
       {todayBoardData.today.length > 0 && (
-        <div className="bg-white rounded-lg border-2 p-4" style={{ borderColor: COLORS.primaryLight }}>
-          <h3 className="text-lg font-bold mb-4" style={{ color: COLORS.primary }}>
+        <Card>
+          <div
+            style={{
+              fontWeight: tokens.typography.fontWeight.bold,
+              fontSize: tokens.typography.fontSize.lg[0],
+              color: tokens.colors.text.primary,
+              marginBottom: tokens.spacing[4],
+            }}
+          >
             Today's Bookings ({todayBoardData.today.length})
-          </h3>
+          </div>
           {todayBoardData.today.map(booking => renderBookingCard(booking, 'today'))}
-        </div>
+        </Card>
       )}
 
       {/* Unassigned Bookings */}
       {todayBoardData.unassigned.length > 0 && (
-        <div className="bg-white rounded-lg border-2 border-orange-300 p-4">
-          <h3 className="text-lg font-bold mb-4 text-orange-600">
+        <Card style={{ borderColor: tokens.colors.warning[300] }}>
+          <div
+            style={{
+              fontWeight: tokens.typography.fontWeight.bold,
+              fontSize: tokens.typography.fontSize.lg[0],
+              color: tokens.colors.warning[700],
+              marginBottom: tokens.spacing[4],
+            }}
+          >
             Unassigned Bookings ({todayBoardData.unassigned.length})
-          </h3>
+          </div>
           {todayBoardData.unassigned.map(booking => renderBookingCard(booking, 'unassigned'))}
-        </div>
+        </Card>
       )}
 
       {/* Unpaid Bookings */}
       {todayBoardData.unpaid.length > 0 && (
-        <div className="bg-white rounded-lg border-2 border-yellow-300 p-4">
-          <h3 className="text-lg font-bold mb-4 text-yellow-600">
+        <Card style={{ borderColor: tokens.colors.warning[300] }}>
+          <div
+            style={{
+              fontWeight: tokens.typography.fontWeight.bold,
+              fontSize: tokens.typography.fontSize.lg[0],
+              color: tokens.colors.warning[700],
+              marginBottom: tokens.spacing[4],
+            }}
+          >
             Unpaid Bookings ({todayBoardData.unpaid.length})
-          </h3>
+          </div>
           {todayBoardData.unpaid.map(booking => renderBookingCard(booking, 'unpaid'))}
-        </div>
+        </Card>
       )}
 
       {/* At Risk Bookings */}
       {todayBoardData.atRisk.length > 0 && (
-        <div className="bg-white rounded-lg border-2 border-red-300 p-4">
-          <h3 className="text-lg font-bold mb-4 text-red-600">
+        <Card style={{ borderColor: tokens.colors.error[300] }}>
+          <div
+            style={{
+              fontWeight: tokens.typography.fontWeight.bold,
+              fontSize: tokens.typography.fontSize.lg[0],
+              color: tokens.colors.error[700],
+              marginBottom: tokens.spacing[4],
+            }}
+          >
             At Risk Bookings ({todayBoardData.atRisk.length})
-          </h3>
+          </div>
           {todayBoardData.atRisk.map(booking => renderBookingCard(booking, 'atRisk'))}
-        </div>
+        </Card>
       )}
 
       {/* Empty State */}
@@ -301,12 +380,15 @@ export default function TodayBoard({
        todayBoardData.unassigned.length === 0 && 
        todayBoardData.unpaid.length === 0 && 
        todayBoardData.atRisk.length === 0 && (
-        <div className="bg-white rounded-lg border-2 p-8 text-center" style={{ borderColor: COLORS.primaryLight }}>
-          <i className="fas fa-calendar-check text-4xl text-gray-300 mb-4"></i>
-          <p className="text-gray-600">No bookings for today. Great job!</p>
-        </div>
+        <Card>
+          <div style={{ textAlign: 'center', padding: tokens.spacing[8] }}>
+            <i className="fas fa-calendar-check" style={{ fontSize: '3rem', color: tokens.colors.neutral[300], marginBottom: tokens.spacing[4] }} />
+            <div style={{ color: tokens.colors.text.secondary }}>
+              No bookings for today. Great job!
+            </div>
+          </div>
+        </Card>
       )}
     </div>
   );
 }
-

@@ -1,7 +1,24 @@
-"use client";
+/**
+ * Pricing Rules Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Badge,
+  EmptyState,
+  Skeleton,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 interface PricingRule {
   id: string;
@@ -15,18 +32,25 @@ interface PricingRule {
 export default function PricingRulesPage() {
   const [rules, setRules] = useState<PricingRule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRules();
   }, []);
 
   const fetchRules = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/pricing-rules");
+      if (!response.ok) {
+        throw new Error('Failed to fetch pricing rules');
+      }
       const data = await response.json();
       setRules(data.rules || []);
-    } catch (error) {
-      console.error("Failed to fetch pricing rules:", error);
+    } catch (err) {
+      setError('Failed to load pricing rules');
+      setRules([]);
     } finally {
       setLoading(false);
     }
@@ -41,9 +65,11 @@ export default function PricingRulesPage() {
       });
       if (response.ok) {
         fetchRules();
+      } else {
+        setError('Failed to update rule');
       }
-    } catch (error) {
-      console.error("Failed to toggle rule:", error);
+    } catch (err) {
+      setError('Failed to update rule');
     }
   };
 
@@ -56,127 +82,121 @@ export default function PricingRulesPage() {
       });
       if (response.ok) {
         fetchRules();
+      } else {
+        setError('Failed to delete rule');
       }
-    } catch (error) {
-      console.error("Failed to delete rule:", error);
+    } catch (err) {
+      setError('Failed to delete rule');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-        <div className="text-center py-20">Loading pricing rules...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                Pricing Rules
-              </h1>
-              <p className="text-gray-600">Manage dynamic pricing rules and fees</p>
-            </div>
-            <button
-              onClick={() => window.location.href = "/settings/pricing/new"}
-              className="px-6 py-3 rounded-lg font-semibold text-white"
-              style={{ background: COLORS.primary }}
-            >
-              + Create Rule
-            </button>
-          </div>
-        </div>
+    <AppShell>
+      <PageHeader
+        title="Pricing Rules"
+        description="Manage dynamic pricing rules and fees"
+        actions={
+          <Link href="/settings/pricing/new">
+            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+              Create Rule
+            </Button>
+          </Link>
+        }
+      />
 
-        <div className="space-y-4">
-          {rules.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 text-center border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="text-6xl mb-4">💰</div>
-              <h3 className="text-2xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                No Pricing Rules
-              </h3>
-              <p className="text-gray-600 mb-6">Create your first pricing rule</p>
-              <button
-                onClick={() => window.location.href = "/settings/pricing/new"}
-                className="inline-block px-6 py-3 rounded-lg font-semibold text-white"
-                style={{ background: COLORS.primary }}
-              >
-                Create Rule
-              </button>
+      <div style={{ padding: tokens.spacing[6] }}>
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
             </div>
-          ) : (
-            rules.map((rule) => {
+          </Card>
+        )}
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+          </div>
+        ) : rules.length === 0 ? (
+          <EmptyState
+            title="No Pricing Rules"
+            description="Create your first pricing rule"
+            icon={<i className="fas fa-dollar-sign" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            action={{
+              label: "Create Rule",
+              onClick: () => window.location.href = "/settings/pricing/new",
+            }}
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            {rules.map((rule) => {
               const conditions = rule.conditions ? JSON.parse(rule.conditions) : {};
               return (
-                <div
-                  key={rule.id}
-                  className="bg-white rounded-xl p-6 border-2 shadow-sm"
-                  style={{ borderColor: COLORS.primaryLight }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold" style={{ color: COLORS.primary }}>
+                <Card key={rule.id}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[2], flexWrap: 'wrap' }}>
+                        <div
+                          style={{
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            fontSize: tokens.typography.fontSize.lg[0],
+                            color: tokens.colors.text.primary,
+                          }}
+                        >
                           {rule.name}
-                        </h3>
-                        <span className={`px-3 py-1 rounded-full text-sm ${
-                          rule.enabled
-                            ? "bg-green-100 text-green-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}>
+                        </div>
+                        <Badge variant={rule.enabled ? "success" : "neutral"}>
                           {rule.enabled ? "Active" : "Inactive"}
-                        </span>
-                        <span className="px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-                          {rule.type}
-                        </span>
+                        </Badge>
+                        <Badge variant="info">{rule.type}</Badge>
                       </div>
-                      <div className="text-sm text-gray-600">
-                        <div><span className="font-semibold">Value:</span> {rule.value}</div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                        <div>
+                          <strong>Value:</strong> {rule.value}
+                        </div>
                         {Object.keys(conditions).length > 0 && (
-                          <div className="mt-1">
-                            <span className="font-semibold">Conditions:</span> {JSON.stringify(conditions)}
+                          <div style={{ marginTop: tokens.spacing[1] }}>
+                            <strong>Conditions:</strong> {JSON.stringify(conditions)}
                           </div>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      <button
+                    <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => toggleRule(rule.id, rule.enabled)}
-                        className={`px-4 py-2 rounded-lg font-semibold ${
-                          rule.enabled
-                            ? "bg-gray-200 text-gray-800"
-                            : "bg-green-200 text-green-800"
-                        }`}
                       >
                         {rule.enabled ? "Disable" : "Enable"}
-                      </button>
-                      <button
-                        onClick={() => window.location.href = `/settings/pricing/${rule.id}`}
-                        className="px-4 py-2 rounded-lg font-semibold text-white"
-                        style={{ background: COLORS.primary }}
-                      >
-                        Edit
-                      </button>
-                      <button
+                      </Button>
+                      <Link href={`/settings/pricing/${rule.id}`}>
+                        <Button variant="secondary" size="sm">
+                          Edit
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() => deleteRule(rule.id)}
-                        className="px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-800"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </div>
-                </div>
+                </Card>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
-    </div>
+    </AppShell>
   );
 }
-
-
-

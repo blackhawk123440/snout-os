@@ -1,7 +1,23 @@
-"use client";
+/**
+ * Service Settings Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
 
-import { useState, useEffect } from "react";
-import { COLORS } from "@/lib/booking-utils";
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Badge,
+  EmptyState,
+  Skeleton,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
 
 interface ServiceConfig {
   id: string;
@@ -21,18 +37,25 @@ export default function ServiceSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingService, setEditingService] = useState<ServiceConfig | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchServices();
   }, []);
 
   const fetchServices = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/service-configs");
+      if (!response.ok) {
+        throw new Error('Failed to fetch services');
+      }
       const data = await response.json();
       setServices(data.configs || []);
-    } catch (error) {
-      console.error("Failed to fetch services:", error);
+    } catch (err) {
+      setError('Failed to load services');
+      setServices([]);
     } finally {
       setLoading(false);
     }
@@ -47,119 +70,134 @@ export default function ServiceSettingsPage() {
       });
       if (response.ok) {
         fetchServices();
+      } else {
+        setError('Failed to delete service');
       }
-    } catch (error) {
-      console.error("Failed to delete service:", error);
+    } catch (err) {
+      setError('Failed to delete service');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-        <div className="text-center py-20">Loading services...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen p-8" style={{ background: COLORS.primaryLighter }}>
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-4xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                Service Settings
-              </h1>
-              <p className="text-gray-600">Configure all service types and rules</p>
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 rounded-lg font-semibold text-white"
-              style={{ background: COLORS.primary }}
-            >
-              + Add Service
-            </button>
-          </div>
-        </div>
+    <AppShell>
+      <PageHeader
+        title="Service Settings"
+        description="Configure all service types and rules"
+        actions={
+          <Button
+            variant="primary"
+            onClick={() => setShowCreateModal(true)}
+            leftIcon={<i className="fas fa-plus" />}
+          >
+            Add Service
+          </Button>
+        }
+      />
 
-        <div className="space-y-4">
-          {services.length === 0 ? (
-            <div className="bg-white rounded-xl p-12 text-center border-2" style={{ borderColor: COLORS.primaryLight }}>
-              <div className="text-6xl mb-4">⚙️</div>
-              <h3 className="text-2xl font-bold mb-2" style={{ color: COLORS.primary }}>
-                No Services Configured
-              </h3>
-              <p className="text-gray-600 mb-6">Create your first service configuration</p>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="inline-block px-6 py-3 rounded-lg font-semibold text-white"
-                style={{ background: COLORS.primary }}
-              >
-                Add Service
-              </button>
+      <div style={{ padding: tokens.spacing[6] }}>
+        {error && (
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+              backgroundColor: tokens.colors.error[50],
+              borderColor: tokens.colors.error[200],
+            }}
+          >
+            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+              {error}
             </div>
-          ) : (
-            services.map((service) => {
+          </Card>
+        )}
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+          </div>
+        ) : services.length === 0 ? (
+          <EmptyState
+            title="No Services Configured"
+            description="Create your first service configuration"
+            icon={<i className="fas fa-cog" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            action={{
+              label: "Add Service",
+              onClick: () => setShowCreateModal(true),
+            }}
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            {services.map((service) => {
               const config = service.config ? JSON.parse(service.config) : {};
               return (
-                <div
-                  key={service.id}
-                  className="bg-white rounded-xl p-6 border-2 shadow-sm"
-                  style={{ borderColor: COLORS.primaryLight }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-2" style={{ color: COLORS.primary }}>
+                <Card key={service.id}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          fontWeight: tokens.typography.fontWeight.bold,
+                          fontSize: tokens.typography.fontSize.lg[0],
+                          color: tokens.colors.text.primary,
+                          marginBottom: tokens.spacing[2],
+                        }}
+                      >
                         {service.serviceName}
-                      </h3>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      </div>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                          gap: tokens.spacing[4],
+                          fontSize: tokens.typography.fontSize.sm[0],
+                          color: tokens.colors.text.secondary,
+                          marginBottom: tokens.spacing[3],
+                        }}
+                      >
                         <div>
-                          <span className="font-semibold">Base Price:</span> ${service.basePrice}
+                          <strong>Base Price:</strong> ${service.basePrice}
                         </div>
                         <div>
-                          <span className="font-semibold">Default Length:</span> {service.defaultVisitLength} min
+                          <strong>Default Length:</strong> {service.defaultVisitLength} min
                         </div>
                         <div>
-                          <span className="font-semibold">Category:</span> {service.category}
+                          <strong>Category:</strong> {service.category}
                         </div>
                         <div>
-                          <span className="font-semibold">Weekend Multiplier:</span> {service.weekendMultiplier}x
+                          <strong>Weekend Multiplier:</strong> {service.weekendMultiplier}x
                         </div>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
                         {service.gpsCheckInRequired && (
-                          <span className="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">GPS Required</span>
+                          <Badge variant="info">GPS Required</Badge>
                         )}
                         {service.photosRequired && (
-                          <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">Photos Required</span>
+                          <Badge variant="success">Photos Required</Badge>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      <button
+                    <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => setEditingService(service)}
-                        className="px-4 py-2 rounded-lg font-semibold text-white"
-                        style={{ background: COLORS.primary }}
                       >
                         Edit
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
                         onClick={() => deleteService(service.id)}
-                        className="px-4 py-2 rounded-lg font-semibold bg-red-100 text-red-800"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </div>
-                </div>
+                </Card>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
       </div>
-    </div>
+    </AppShell>
   );
 }
-
-
-
