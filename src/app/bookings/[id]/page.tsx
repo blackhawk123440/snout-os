@@ -1261,7 +1261,39 @@ export default function BookingDetailPage() {
             gap: tokens.spacing[3],
           }}
         >
-          {booking.stripePaymentLinkUrl ? (
+          {/* Priority 1: Send Payment Link Button - Always visible */}
+          <Button
+            variant="primary"
+            style={{ width: '100%' }}
+            onClick={async () => {
+              // If payment link exists, use it; otherwise create it first
+              if (booking.stripePaymentLinkUrl) {
+                // Payment link exists - show preview and send
+                setPaymentLinkUrl(booking.stripePaymentLinkUrl);
+                const { generatePaymentLinkMessage } = await import('@/lib/payment-link-message');
+                const petQuantities = booking.pets.map(p => p.species).join(', ');
+                const message = await generatePaymentLinkMessage(
+                  booking.firstName,
+                  booking.service,
+                  formatDate(booking.startAt),
+                  petQuantities,
+                  booking.totalPrice,
+                  booking.stripePaymentLinkUrl
+                );
+                setPaymentLinkMessage(message);
+                setShowPaymentLinkPreview(true);
+              } else {
+                // No payment link - create it first
+                setShowPaymentLinkModal(true);
+              }
+            }}
+            leftIcon={<i className="fas fa-paper-plane" />}
+          >
+            {booking.stripePaymentLinkUrl ? 'Send Payment Link' : 'Create & Send Payment Link'}
+          </Button>
+
+          {/* Show existing payment link if it exists */}
+          {booking.stripePaymentLinkUrl && (
             <div>
               <div
                 style={{
@@ -1309,15 +1341,6 @@ export default function BookingDetailPage() {
                 </Button>
               </div>
             </div>
-          ) : (
-            <Button
-              variant="primary"
-              style={{ width: '100%' }}
-              onClick={() => setShowPaymentLinkModal(true)}
-              leftIcon={<i className="fas fa-link" />}
-            >
-              Create Payment Link
-            </Button>
           )}
 
           {booking.sitter && (
