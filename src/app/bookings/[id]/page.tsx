@@ -1634,19 +1634,61 @@ export default function BookingDetailPage() {
                 >
                   Schedule & Service
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: tokens.spacing[4] }}>
-                    <div>
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: tokens.spacing[4],
+                  }}
+                >
+                  <div 
+                    style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr', 
+                      gap: tokens.spacing[3],
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: tokens.spacing[3],
+                        backgroundColor: tokens.colors.background.secondary,
+                        borderRadius: tokens.borderRadius.md,
+                      }}
+                    >
+                      <div 
+                        style={{ 
+                          fontSize: tokens.typography.fontSize.sm[0], 
+                          color: tokens.colors.text.secondary, 
+                          marginBottom: tokens.spacing[1],
+                          fontWeight: tokens.typography.fontWeight.medium,
+                        }}
+                      >
                         Start
                       </div>
-                      <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDateTime(booking.startAt)}</div>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                        {formatDateTime(booking.startAt)}
+                      </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    <div
+                      style={{
+                        padding: tokens.spacing[3],
+                        backgroundColor: tokens.colors.background.secondary,
+                        borderRadius: tokens.borderRadius.md,
+                      }}
+                    >
+                      <div 
+                        style={{ 
+                          fontSize: tokens.typography.fontSize.sm[0], 
+                          color: tokens.colors.text.secondary, 
+                          marginBottom: tokens.spacing[1],
+                          fontWeight: tokens.typography.fontWeight.medium,
+                        }}
+                      >
                         End
                       </div>
-                      <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDateTime(booking.endAt)}</div>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                        {formatDateTime(booking.endAt)}
+                      </div>
                     </div>
                   </div>
                   {booking.timeSlots.length > 0 && (
@@ -1664,47 +1706,146 @@ export default function BookingDetailPage() {
                     </div>
                   )}
                   {booking.address && (
-                    <div>
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Address</div>
-                      <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{booking.address}</div>
+                    <div
+                      style={{
+                        padding: tokens.spacing[3],
+                        backgroundColor: tokens.colors.background.secondary,
+                        borderRadius: tokens.borderRadius.md,
+                      }}
+                    >
+                      <div 
+                        style={{ 
+                          fontSize: tokens.typography.fontSize.sm[0], 
+                          color: tokens.colors.text.secondary, 
+                          marginBottom: tokens.spacing[1],
+                          fontWeight: tokens.typography.fontWeight.medium,
+                        }}
+                      >
+                        Address
+                      </div>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                        {booking.address}
+                      </div>
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: tokens.spacing[3], flexWrap: 'wrap' }}>
-                    {booking.quantity > 1 && <Badge variant="default">Quantity: {booking.quantity}</Badge>}
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      gap: tokens.spacing[2], 
+                      flexWrap: 'wrap',
+                      marginTop: tokens.spacing[2],
+                    }}
+                  >
+                    {booking.quantity > 1 && (
+                      <Badge variant="default">Quantity: {booking.quantity}</Badge>
+                    )}
                     {booking.afterHours && <Badge variant="warning">After Hours</Badge>}
                     {booking.holiday && <Badge variant="warning">Holiday</Badge>}
                   </div>
+                  <Button
+                    variant="secondary"
+                    leftIcon={<i className="fas fa-edit" />}
+                    onClick={() => setShowEditModal(true)}
+                    style={{ alignSelf: 'flex-start', marginTop: tokens.spacing[2] }}
+                  >
+                    Edit Schedule
+                  </Button>
                 </div>
               </Card>
             </TabPanel>
             <TabPanel id="pets">
               <Card>
-                <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.primary, marginBottom: tokens.spacing[4] }}>
+                <div 
+                  style={{ 
+                    fontSize: tokens.typography.fontSize.lg[0], 
+                    fontWeight: tokens.typography.fontWeight.semibold, 
+                    color: tokens.colors.text.primary, 
+                    marginBottom: tokens.spacing[4] 
+                  }}
+                >
                   Pets & Care
                 </div>
                 {booking.pets.length === 0 ? (
                   <EmptyState icon="🐾" title="No pets" description="No pets have been added to this booking." />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: tokens.spacing[3] 
+                    }}
+                  >
                     {booking.pets.map((pet) => (
-                      <div key={pet.id} style={{ padding: tokens.spacing[4], border: `1px solid ${tokens.colors.border.default}`, borderRadius: tokens.borderRadius.md }}>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.lg[0] }}>{pet.name}</div>
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
-                          {pet.species}{pet.breed && ` • ${pet.breed}`}{pet.age && ` • ${pet.age} ${pet.age === 1 ? 'year' : 'years'} old`}
+                      <div 
+                        key={pet.id} 
+                        style={{ 
+                          padding: tokens.spacing[3],
+                          border: `1px solid ${tokens.colors.border.default}`, 
+                          borderRadius: tokens.borderRadius.md,
+                          backgroundColor: tokens.colors.background.primary,
+                        }}
+                      >
+                        <div 
+                          style={{ 
+                            fontWeight: tokens.typography.fontWeight.semibold, 
+                            fontSize: tokens.typography.fontSize.base[0],
+                            marginBottom: tokens.spacing[1],
+                          }}
+                        >
+                          {pet.name}
+                        </div>
+                        <div 
+                          style={{ 
+                            fontSize: tokens.typography.fontSize.sm[0], 
+                            color: tokens.colors.text.secondary,
+                          }}
+                        >
+                          {pet.species}
+                          {pet.breed && ` • ${pet.breed}`}
+                          {pet.age && ` • ${pet.age} ${pet.age === 1 ? 'year' : 'years'} old`}
                         </div>
                         {pet.notes && (
-                          <div style={{ marginTop: tokens.spacing[2], padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm, fontSize: tokens.typography.fontSize.sm[0] }}>
+                          <div 
+                            style={{ 
+                              marginTop: tokens.spacing[2], 
+                              padding: tokens.spacing[2], 
+                              backgroundColor: tokens.colors.background.secondary, 
+                              borderRadius: tokens.borderRadius.sm, 
+                              fontSize: tokens.typography.fontSize.sm[0],
+                              lineHeight: 1.5,
+                            }}
+                          >
                             {pet.notes}
                           </div>
                         )}
                       </div>
                     ))}
                     {booking.notes && (
-                      <div>
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                      <div
+                        style={{
+                          marginTop: tokens.spacing[2],
+                          padding: tokens.spacing[3],
+                          backgroundColor: tokens.colors.background.secondary,
+                          borderRadius: tokens.borderRadius.md,
+                        }}
+                      >
+                        <div 
+                          style={{ 
+                            fontSize: tokens.typography.fontSize.sm[0], 
+                            color: tokens.colors.text.secondary, 
+                            marginBottom: tokens.spacing[2], 
+                            fontWeight: tokens.typography.fontWeight.medium 
+                          }}
+                        >
                           Booking Notes
                         </div>
-                        <div style={{ padding: tokens.spacing[4], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.md, whiteSpace: 'pre-wrap' }}>
+                        <div 
+                          style={{ 
+                            fontSize: tokens.typography.fontSize.sm[0],
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: 1.6,
+                          }}
+                        >
                           {booking.notes}
                         </div>
                       </div>
@@ -1715,21 +1856,88 @@ export default function BookingDetailPage() {
             </TabPanel>
             <TabPanel id="pricing">
               <Card>
-                <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.primary, marginBottom: tokens.spacing[4] }}>
+                <div 
+                  style={{ 
+                    fontSize: tokens.typography.fontSize.lg[0], 
+                    fontWeight: tokens.typography.fontWeight.semibold, 
+                    color: tokens.colors.text.primary, 
+                    marginBottom: tokens.spacing[4] 
+                  }}
+                >
                   Pricing Breakdown
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: tokens.spacing[3] 
+                  }}
+                >
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: tokens.spacing[2] 
+                    }}
+                  >
                     {pricingDisplay.breakdown.map((item: any, index: number) => (
-                      <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: tokens.spacing[2] }}>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{item.label}</div>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>{formatCurrency(item.amount)}</div>
+                      <div 
+                        key={index} 
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          padding: tokens.spacing[2],
+                          backgroundColor: tokens.colors.background.secondary,
+                          borderRadius: tokens.borderRadius.sm,
+                        }}
+                      >
+                        <div 
+                          style={{ 
+                            fontWeight: tokens.typography.fontWeight.medium,
+                            fontSize: tokens.typography.fontSize.sm[0],
+                          }}
+                        >
+                          {item.label}
+                        </div>
+                        <div 
+                          style={{ 
+                            fontWeight: tokens.typography.fontWeight.semibold,
+                            fontSize: tokens.typography.fontSize.sm[0],
+                          }}
+                        >
+                          {formatCurrency(item.amount)}
+                        </div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}` }}>
-                    <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>Total</div>
-                    <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.bold }}>{formatCurrency(pricingDisplay.total)}</div>
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      paddingTop: tokens.spacing[3], 
+                      paddingBottom: tokens.spacing[2],
+                      borderTop: `2px solid ${tokens.colors.border.default}`,
+                      marginTop: tokens.spacing[1],
+                    }}
+                  >
+                    <div 
+                      style={{ 
+                        fontSize: tokens.typography.fontSize.base[0], 
+                        fontWeight: tokens.typography.fontWeight.semibold 
+                      }}
+                    >
+                      Total
+                    </div>
+                    <div 
+                      style={{ 
+                        fontSize: tokens.typography.fontSize.base[0], 
+                        fontWeight: tokens.typography.fontWeight.bold 
+                      }}
+                    >
+                      {formatCurrency(pricingDisplay.total)}
+                    </div>
                   </div>
                 </div>
               </Card>

@@ -47,7 +47,11 @@ export const Card: React.FC<CardProps> = ({
       )}
       <div
         style={{
-          padding: padding ? tokens.spacing[4] : 0,
+          padding: padding 
+            ? (typeof window !== 'undefined' && window.innerWidth < 1024 
+                ? tokens.spacing[3] 
+                : tokens.spacing[4])
+            : 0,
         }}
       >
         {children}

@@ -329,19 +329,28 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: tokens.spacing[6],
+            gap: typeof window !== 'undefined' && window.innerWidth < 768
+              ? tokens.spacing[4]
+              : tokens.spacing[6],
             maxHeight: 'calc(90vh - 120px)',
             overflowY: 'auto',
+            padding: typeof window !== 'undefined' && window.innerWidth < 768
+              ? tokens.spacing[3]
+              : 0,
           }}
         >
           {/* Service and Schedule */}
           <div>
             <h3
               style={{
-                fontSize: tokens.typography.fontSize.lg[0],
+                fontSize: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.typography.fontSize.base[0]
+                  : tokens.typography.fontSize.lg[0],
                 fontWeight: tokens.typography.fontWeight.semibold,
                 color: tokens.colors.text.primary,
-                marginBottom: tokens.spacing[4],
+                marginBottom: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.spacing[3]
+                  : tokens.spacing[4],
               }}
             >
               Service & Schedule
@@ -350,7 +359,9 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: tokens.spacing[4],
+                gap: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.spacing[3]
+                  : tokens.spacing[4],
               }}
             >
               <Select
@@ -426,10 +437,14 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
           <div>
             <h3
               style={{
-                fontSize: tokens.typography.fontSize.lg[0],
+                fontSize: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.typography.fontSize.base[0]
+                  : tokens.typography.fontSize.lg[0],
                 fontWeight: tokens.typography.fontWeight.semibold,
                 color: tokens.colors.text.primary,
-                marginBottom: tokens.spacing[4],
+                marginBottom: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.spacing[3]
+                  : tokens.spacing[4],
               }}
             >
               Client Information
@@ -438,7 +453,9 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: tokens.spacing[4],
+                gap: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.spacing[3]
+                  : tokens.spacing[4],
               }}
             >
               <Input
@@ -473,10 +490,14 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
           <div>
             <h3
               style={{
-                fontSize: tokens.typography.fontSize.lg[0],
+                fontSize: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.typography.fontSize.base[0]
+                  : tokens.typography.fontSize.lg[0],
                 fontWeight: tokens.typography.fontWeight.semibold,
                 color: tokens.colors.text.primary,
-                marginBottom: tokens.spacing[4],
+                marginBottom: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.spacing[3]
+                  : tokens.spacing[4],
               }}
             >
               Addresses
@@ -485,7 +506,9 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: tokens.spacing[4],
+                gap: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.spacing[3]
+                  : tokens.spacing[4],
               }}
             >
               <Input
@@ -513,10 +536,14 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
           <div>
             <h3
               style={{
-                fontSize: tokens.typography.fontSize.lg[0],
+                fontSize: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.typography.fontSize.base[0]
+                  : tokens.typography.fontSize.lg[0],
                 fontWeight: tokens.typography.fontWeight.semibold,
                 color: tokens.colors.text.primary,
-                marginBottom: tokens.spacing[4],
+                marginBottom: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.spacing[3]
+                  : tokens.spacing[4],
               }}
             >
               Pets ({formData.pets?.length || 0})
@@ -525,23 +552,32 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: tokens.spacing[3],
+                gap: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.spacing[2]
+                  : tokens.spacing[3],
               }}
             >
               {(formData.pets || []).map((pet, index) => (
                 <div
                   key={index}
                   style={{
-                    padding: tokens.spacing[4],
+                    padding: typeof window !== 'undefined' && window.innerWidth < 768
+                      ? tokens.spacing[3]
+                      : tokens.spacing[4],
                     border: `1px solid ${tokens.colors.border.default}`,
                     borderRadius: tokens.borderRadius.md,
+                    backgroundColor: tokens.colors.background.secondary,
                   }}
                 >
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: tokens.spacing[3],
+                      gridTemplateColumns: typeof window !== 'undefined' && window.innerWidth < 768
+                        ? '1fr'
+                        : '1fr 1fr',
+                      gap: typeof window !== 'undefined' && window.innerWidth < 768
+                        ? tokens.spacing[2]
+                        : tokens.spacing[3],
                     }}
                   >
                     <Input
@@ -583,10 +619,14 @@ export const EditBookingModal: React.FC<EditBookingModalProps> = ({
           <div>
             <h3
               style={{
-                fontSize: tokens.typography.fontSize.lg[0],
+                fontSize: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.typography.fontSize.base[0]
+                  : tokens.typography.fontSize.lg[0],
                 fontWeight: tokens.typography.fontWeight.semibold,
                 color: tokens.colors.text.primary,
-                marginBottom: tokens.spacing[4],
+                marginBottom: typeof window !== 'undefined' && window.innerWidth < 768
+                  ? tokens.spacing[3]
+                  : tokens.spacing[4],
               }}
             >
               Notes
