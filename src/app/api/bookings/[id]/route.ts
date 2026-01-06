@@ -395,6 +395,19 @@ export async function PATCH(
       );
     }
 
+    // Tip link automation: Trigger when booking is completed and has sitter
+    if (status === "completed" && previousStatusForHistory !== "completed" && finalBooking.sitterId) {
+      const { enqueueAutomation } = await import("@/lib/automation-queue");
+      
+      // Enqueue tip link automation
+      await enqueueAutomation(
+        "tipLink",
+        "client",
+        { bookingId: finalBooking.id, sitterId: finalBooking.sitterId },
+        `tipLink:client:${finalBooking.id}`
+      );
+    }
+
     // Phase 3.4: Legacy direct execution code removed - now handled by automation queue
     // All booking confirmation and sitter assignment automations are enqueued above
 
