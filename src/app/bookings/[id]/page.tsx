@@ -1732,7 +1732,7 @@ export default function BookingDetailPage() {
             >
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleStatusChange} isLoading={saving}>
+            <Button variant="primary" onClick={() => handleStatusChange()} isLoading={saving}>
               Update Status
             </Button>
           </div>
