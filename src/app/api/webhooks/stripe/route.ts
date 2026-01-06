@@ -73,6 +73,12 @@ export async function POST(request: NextRequest) {
         });
 
         if (booking) {
+          // Idempotency check: Skip if already paid to prevent duplicate processing
+          if (booking.paymentStatus === "paid") {
+            console.log(`[Webhook] Payment already processed for booking ${bookingId}, skipping`);
+            return NextResponse.json({ received: true, message: "Payment already processed" });
+          }
+
           // Update payment status and booking status
           await prisma.booking.update({
             where: { id: bookingId },
@@ -90,7 +96,7 @@ export async function POST(request: NextRequest) {
           // Per Master Spec: "Implement booking confirmed message on Stripe payment success"
           const { enqueueAutomation } = await import("@/lib/automation-queue");
           
-          // Enqueue booking confirmation for client
+          // Enqueue booking confirmation for client (idempotency key prevents duplicates)
           await enqueueAutomation(
             "bookingConfirmation",
             "client",
@@ -116,6 +122,12 @@ export async function POST(request: NextRequest) {
         });
 
         if (booking) {
+          // Idempotency check: Skip if already paid to prevent duplicate processing
+          if (booking.paymentStatus === "paid") {
+            console.log(`[Webhook] Payment already processed for booking ${bookingId}, skipping`);
+            return NextResponse.json({ received: true, message: "Payment already processed" });
+          }
+
           // Update payment status and booking status
           await prisma.booking.update({
             where: { id: bookingId },
@@ -133,7 +145,7 @@ export async function POST(request: NextRequest) {
           // Per Master Spec: "Implement booking confirmed message on Stripe payment success"
           const { enqueueAutomation } = await import("@/lib/automation-queue");
           
-          // Enqueue booking confirmation for client
+          // Enqueue booking confirmation for client (idempotency key prevents duplicates)
           await enqueueAutomation(
             "bookingConfirmation",
             "client",
