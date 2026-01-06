@@ -825,6 +825,10 @@ async function executeTipLink(
         };
       }
 
+      // Priority 1: Calculate tip amount from booking total
+      // Tip link calculation rule: Based on booking.totalPrice (service amount)
+      const serviceAmount = booking.totalPrice || 0;
+      
       // Send tip link message to client
       const sitterName = booking.sitter 
         ? `${booking.sitter.firstName} ${booking.sitter.lastName}`
@@ -840,14 +844,37 @@ async function executeTipLink(
         sitterName,
         tipLink: tipLinkUrl,
         service: booking.service,
+        serviceAmount: serviceAmount.toFixed(2),
       });
 
+      // Priority 1: Validate phone number before sending
+      if (!booking.phone || booking.phone.trim() === '') {
+        return {
+          success: false,
+          error: "Cannot send tip link: Client phone number is missing",
+          metadata: { recipient: "client", phone: null, tipLinkUrl },
+        };
+      }
+
       const sent = await sendMessage(booking.phone, message, booking.id);
+      
+      // Priority 1: Log tip link send result
+      const { logEvent } = await import("@/lib/event-logger");
+      await logEvent("automation.tipLink.sent", sent ? "success" : "failed", {
+        bookingId: booking.id,
+        metadata: {
+          recipient: "client",
+          phone: booking.phone,
+          tipLinkUrl,
+          serviceAmount,
+          sitterId: booking.sitterId,
+        },
+      });
       
       return {
         success: sent,
         message: sent ? "Tip link sent to client" : "Failed to send tip link",
-        metadata: { recipient: "client", phone: booking.phone, tipLinkUrl },
+        metadata: { recipient: "client", phone: booking.phone, tipLinkUrl, serviceAmount },
       };
     } catch (error) {
       console.error("[executeTipLink] Failed to create or send tip link:", error);

@@ -395,16 +395,29 @@ export async function PATCH(
       );
     }
 
-    // Tip link automation: Trigger when booking is completed and has sitter
+    // Priority 1: Tip link automation - Trigger when booking is completed and has sitter
+    // Idempotency: Only triggers on status transition to "completed", not on unrelated edits
     if (status === "completed" && previousStatusForHistory !== "completed" && finalBooking.sitterId) {
       const { enqueueAutomation } = await import("@/lib/automation-queue");
+      const { logEvent } = await import("@/lib/event-logger");
       
-      // Enqueue tip link automation
+      // Priority 1: Log tip link automation trigger
+      await logEvent("automation.tipLink.triggered", "pending", {
+        bookingId: finalBooking.id,
+        metadata: {
+          sitterId: finalBooking.sitterId,
+          bookingTotal: finalBooking.totalPrice,
+          triggerReason: "status_changed_to_completed",
+        },
+      });
+      
+      // Enqueue tip link automation with idempotency key
+      // Priority 1: Idempotency key ensures it only runs once per booking
       await enqueueAutomation(
         "tipLink",
         "client",
         { bookingId: finalBooking.id, sitterId: finalBooking.sitterId },
-        `tipLink:client:${finalBooking.id}`
+        `tipLink:client:${finalBooking.id}` // Idempotency key prevents duplicate execution
       );
     }
 
