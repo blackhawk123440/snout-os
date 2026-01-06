@@ -400,6 +400,9 @@ export default function CalendarPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: tokens.spacing[2],
+                flexWrap: 'wrap',
+                flex: 1,
+                minWidth: 0,
               }}
             >
               <Button variant="ghost" size="sm" onClick={() => navigateMonth('prev')}>
@@ -410,8 +413,12 @@ export default function CalendarPage() {
                   fontSize: tokens.typography.fontSize.xl[0],
                   fontWeight: tokens.typography.fontWeight.semibold,
                   color: tokens.colors.text.primary,
-                  minWidth: '200px',
+                  minWidth: 0,
+                  flex: '1 1 auto',
                   textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
                 {monthNames[currentMonth]} {currentYear}
@@ -419,7 +426,15 @@ export default function CalendarPage() {
               <Button variant="ghost" size="sm" onClick={() => navigateMonth('next')}>
                 <i className="fas fa-chevron-right" />
               </Button>
-              <Button variant="secondary" size="sm" onClick={goToToday}>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={goToToday}
+                style={{
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 Today
               </Button>
             </div>
@@ -490,14 +505,18 @@ export default function CalendarPage() {
           padding={false}
           style={{
             overflow: 'hidden',
+            width: '100%',
+            maxWidth: '100%',
           }}
         >
           {/* Day Names Header */}
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
+              gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
               borderBottom: `1px solid ${tokens.colors.border.default}`,
+              width: '100%',
+              overflow: 'hidden',
             }}
           >
             {dayNames.map((day) => (
@@ -522,7 +541,9 @@ export default function CalendarPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
+              gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+              width: '100%',
+              overflow: 'hidden',
             }}
           >
             {calendarDays.map((day, index) => {
@@ -535,7 +556,10 @@ export default function CalendarPage() {
                   key={index}
                   onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
                   style={{
-                    minHeight: '120px',
+                    minHeight: '80px',
+                    '@media (min-width: 768px)': {
+                      minHeight: '120px',
+                    },
                     borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
                     borderBottom: `1px solid ${tokens.colors.border.default}`,
                     padding: tokens.spacing[2],
@@ -549,7 +573,9 @@ export default function CalendarPage() {
                     cursor: day.isCurrentMonth ? 'pointer' : 'default',
                     opacity: day.isCurrentMonth ? 1 : 0.5,
                     transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
-                  }}
+                    overflow: 'hidden',
+                    wordBreak: 'break-word',
+                  } as React.CSSProperties & { '@media (min-width: 768px)': React.CSSProperties }}
                   onMouseEnter={(e) => {
                     if (day.isCurrentMonth && !day.isPast) {
                       e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;

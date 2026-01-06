@@ -466,14 +466,19 @@ export default function AutomationPage() {
             const config = settings[automation.id];
             const isExpanded = expandedAutomation === automation.id;
 
+            const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
             return (
-              <Card key={automation.id}>
+              <Card 
+                key={automation.id}
+                style={isMobile ? { padding: tokens.spacing[3] } : undefined}
+              >
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'flex-start',
                     justifyContent: 'space-between',
                     gap: tokens.spacing[4],
+                    flexWrap: isMobile ? 'wrap' : 'nowrap',
                   }}
                 >
                   <div
@@ -570,6 +575,7 @@ export default function AutomationPage() {
                       onClick={() =>
                         setExpandedAutomation(isExpanded ? null : automation.id)
                       }
+                      style={isMobile ? { width: '100%', marginTop: tokens.spacing[2] } : undefined}
                     >
                       {isExpanded ? 'Collapse' : 'Configure'}
                     </Button>

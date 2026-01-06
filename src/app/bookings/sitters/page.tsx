@@ -345,12 +345,28 @@ export default function SittersPage() {
                     </div>
                   </div>
                   
-                  <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+                  <div 
+                    style={{ 
+                      display: 'flex', 
+                      gap: tokens.spacing[2], 
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      '@media (max-width: 1023px)': {
+                        width: '100%',
+                        flexDirection: 'column',
+                      },
+                    } as React.CSSProperties & { '@media (max-width: 1023px)': React.CSSProperties }}
+                  >
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => window.open(`/sitter-dashboard?id=${sitter.id}&admin=true`, '_blank')}
                       leftIcon={<i className="fas fa-calendar-alt" />}
+                      style={{
+                        '@media (max-width: 1023px)': {
+                          width: '100%',
+                        },
+                      } as React.CSSProperties & { '@media (max-width: 1023px)': React.CSSProperties }}
                     >
                       View Dashboard
                     </Button>
@@ -383,6 +399,7 @@ export default function SittersPage() {
         isOpen={showAddForm}
         onClose={resetForm}
         title={editingSitter ? "Edit Sitter" : "Add Sitter"}
+        size="full"
       >
         {error && (
           <div

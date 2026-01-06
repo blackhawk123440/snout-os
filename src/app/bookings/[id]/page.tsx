@@ -516,8 +516,11 @@ export default function BookingDetailPage() {
     defaultExpanded?: boolean;
   }) => {
     const isExpanded = expanded || defaultExpanded;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
     return (
-      <Card>
+      <Card
+        style={isMobile ? { padding: tokens.spacing[3] } : undefined}
+      >
         <div
           style={{
             display: 'flex',
@@ -530,7 +533,7 @@ export default function BookingDetailPage() {
         >
           <h3
             style={{
-              fontSize: tokens.typography.fontSize.lg[0],
+              fontSize: isMobile ? tokens.typography.fontSize.base[0] : tokens.typography.fontSize.lg[0],
               fontWeight: tokens.typography.fontWeight.semibold,
               color: tokens.colors.text.primary,
               margin: 0,
@@ -543,11 +546,16 @@ export default function BookingDetailPage() {
             style={{
               color: tokens.colors.text.secondary,
               transition: `transform ${tokens.transitions.duration.DEFAULT}`,
+              flexShrink: 0,
             }}
           />
         </div>
         {isExpanded && (
-          <div style={{ marginTop: tokens.spacing[4] }}>
+          <div 
+            style={{ 
+              marginTop: isMobile ? tokens.spacing[2] : tokens.spacing[4],
+            }}
+          >
             {children}
           </div>
         )}
