@@ -65,7 +65,7 @@ export interface BookingEditInput {
   status?: string;
 }
 
-export interface BookingEditResult {
+export type BookingEditResult = {
   success: true;
   booking: any;
   changes: {
