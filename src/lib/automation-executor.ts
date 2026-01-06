@@ -94,6 +94,9 @@ export async function executeAutomationForRecipient(
     case "postVisitThankYou":
       return await executePostVisitThankYou(recipient, context, booking);
     
+    case "tipLink":
+      return await executeTipLink(recipient, context, booking);
+    
     default:
       return {
         success: false,
@@ -763,4 +766,106 @@ async function executePostVisitThankYou(
   }
 
   return { success: false, error: `Unsupported recipient for postVisitThankYou: ${recipient}` };
+}
+
+/**
+ * Execute tip link automation
+ * Creates tip link and sends it to client after booking completion
+ */
+async function executeTipLink(
+  recipient: "client" | "sitter" | "owner",
+  context: AutomationContext,
+  booking: any
+): Promise<AutomationResult> {
+  if (!booking) {
+    return { success: false, error: "Booking required for tipLink" };
+  }
+
+  // Only send to completed bookings with assigned sitter
+  if (booking.status !== "completed") {
+    return {
+      success: true,
+      message: "Tip link skipped - booking not completed",
+      metadata: { skipped: true, reason: "not_completed", status: booking.status },
+    };
+  }
+
+  if (!booking.sitterId && !context.sitterId) {
+    return {
+      success: true,
+      message: "Tip link skipped - no sitter assigned",
+      metadata: { skipped: true, reason: "no_sitter" },
+    };
+  }
+
+  if (recipient === "client") {
+    // Create tip link via API
+    try {
+      const tipLinkResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/payments/create-tip-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId: booking.id }),
+      });
+
+      if (!tipLinkResponse.ok) {
+        const errorData = await tipLinkResponse.json().catch(() => ({}));
+        return {
+          success: false,
+          error: `Failed to create tip link: ${errorData.error || 'Unknown error'}`,
+        };
+      }
+
+      const tipLinkData = await tipLinkResponse.json();
+      const tipLinkUrl = tipLinkData.tipLink;
+
+      if (!tipLinkUrl) {
+        return {
+          success: false,
+          error: "Tip link URL not returned from API",
+        };
+      }
+
+      // Send tip link message to client
+      const sitterName = booking.sitter 
+        ? `${booking.sitter.firstName} ${booking.sitter.lastName}`
+        : "your sitter";
+
+      let template = await getMessageTemplate("tipLink", "client");
+      if (!template || template.trim() === "") {
+        template = "💝 TIP YOUR SITTER!\n\nHi {{firstName}},\n\nThank you for choosing Snout Services! If you'd like to show your appreciation to {{sitterName}}, you can leave a tip here:\n\n{{tipLink}}\n\nTips are optional but always appreciated! 🐾";
+      }
+
+      const message = replaceTemplateVariables(template, {
+        firstName: booking.firstName,
+        sitterName,
+        tipLink: tipLinkUrl,
+        service: booking.service,
+      });
+
+      const sent = await sendMessage(booking.phone, message, booking.id);
+      
+      return {
+        success: sent,
+        message: sent ? "Tip link sent to client" : "Failed to send tip link",
+        metadata: { recipient: "client", phone: booking.phone, tipLinkUrl },
+      };
+    } catch (error) {
+      console.error("[executeTipLink] Failed to create or send tip link:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to create tip link",
+      };
+    }
+  }
+
+  // Tip links are only sent to clients
+  if (recipient === "sitter" || recipient === "owner") {
+    return {
+      success: true,
+      message: `Tip link skipped for ${recipient} (only sent to clients)`,
+      metadata: { skipped: true, reason: "recipient_not_client" },
+    };
+  }
+
+  return { success: false, error: `Unsupported recipient for tipLink: ${recipient}` };
 }

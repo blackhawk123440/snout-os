@@ -65,6 +65,10 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Mobile: full-height sheet, Desktop: centered modal
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+  const isFullHeight = isMobile || size === 'full';
+
   return (
     <div
       style={{
@@ -72,9 +76,9 @@ export const Modal: React.FC<ModalProps> = ({
         inset: 0,
         zIndex: tokens.zIndex.modal,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: isFullHeight ? 'flex-end' : 'center',
         justifyContent: 'center',
-        padding: tokens.spacing[4],
+        padding: isFullHeight ? 0 : tokens.spacing[4],
       }}
     >
       {/* Backdrop */}
@@ -96,9 +100,10 @@ export const Modal: React.FC<ModalProps> = ({
         style={{
           position: 'relative',
           width: '100%',
-          maxHeight: '90vh',
+          height: isFullHeight ? '100%' : 'auto',
+          maxHeight: isFullHeight ? '100%' : '90vh',
           backgroundColor: tokens.colors.background.primary,
-          borderRadius: tokens.borderRadius.xl,
+          borderRadius: isFullHeight ? 0 : tokens.borderRadius.xl,
           boxShadow: tokens.shadows.xl,
           display: 'flex',
           flexDirection: 'column',
