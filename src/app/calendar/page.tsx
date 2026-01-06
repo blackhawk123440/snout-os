@@ -507,6 +507,7 @@ export default function CalendarPage() {
             overflow: 'hidden',
             width: '100%',
             maxWidth: '100%',
+            margin: 0,
           }}
         >
           {/* Day Names Header */}
@@ -523,9 +524,13 @@ export default function CalendarPage() {
               <div
                 key={day}
                 style={{
-                  padding: tokens.spacing[3],
+                  padding: typeof window !== 'undefined' && window.innerWidth < 768
+                    ? `${tokens.spacing[2]} ${tokens.spacing[1]}`
+                    : tokens.spacing[3],
                   textAlign: 'center',
-                  fontSize: tokens.typography.fontSize.sm[0],
+                  fontSize: typeof window !== 'undefined' && window.innerWidth < 768
+                    ? tokens.typography.fontSize.xs[0]
+                    : tokens.typography.fontSize.sm[0],
                   fontWeight: tokens.typography.fontWeight.semibold,
                   color: tokens.colors.text.primary,
                   backgroundColor: tokens.colors.background.secondary,
@@ -544,6 +549,7 @@ export default function CalendarPage() {
               gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
               width: '100%',
               overflow: 'hidden',
+              maxWidth: '100vw',
             }}
           >
             {calendarDays.map((day, index) => {
@@ -556,13 +562,15 @@ export default function CalendarPage() {
                   key={index}
                   onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
                   style={{
-                    minHeight: '80px',
+                    minHeight: typeof window !== 'undefined' && window.innerWidth < 768 ? '60px' : '80px',
                     '@media (min-width: 768px)': {
                       minHeight: '120px',
                     },
                     borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
                     borderBottom: `1px solid ${tokens.colors.border.default}`,
-                    padding: tokens.spacing[2],
+                    padding: typeof window !== 'undefined' && window.innerWidth < 768
+                      ? tokens.spacing[1]
+                      : tokens.spacing[2],
                     backgroundColor: day.isCurrentMonth
                       ? isSelected
                         ? tokens.colors.primary[50]
@@ -575,6 +583,7 @@ export default function CalendarPage() {
                     transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
                     overflow: 'hidden',
                     wordBreak: 'break-word',
+                    position: 'relative',
                   } as React.CSSProperties & { '@media (min-width: 768px)': React.CSSProperties }}
                   onMouseEnter={(e) => {
                     if (day.isCurrentMonth && !day.isPast) {
