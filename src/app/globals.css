@@ -499,17 +499,6 @@ input[type="checkbox"]:checked {
   }
 }
 
-
-      left: 0.5rem;
-      width: 45%;
-      padding-right: 0.5rem;
-      white-space: nowrap;
-      font-weight: 600;
-      color: #525252;
-    }
-  }
-}
-
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
