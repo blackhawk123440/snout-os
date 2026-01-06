@@ -114,6 +114,7 @@ export default function BookingDetailPage() {
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
   const [showPaymentLinkPreview, setShowPaymentLinkPreview] = useState(false);
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
+  const [paymentLinkMessage, setPaymentLinkMessage] = useState<string>('');
   const [showTipLinkModal, setShowTipLinkModal] = useState(false);
   const [newStatus, setNewStatus] = useState<string>('');
   
@@ -284,6 +285,20 @@ export default function BookingDetailPage() {
       if (response.ok) {
         const data = await response.json();
         setPaymentLinkUrl(data.paymentLink);
+        
+        // Priority 1: Generate message preview using centralized template
+        const { generatePaymentLinkMessage } = await import('@/lib/payment-link-message');
+        const petQuantities = booking.pets.map(p => p.species).join(', ');
+        const message = await generatePaymentLinkMessage(
+          booking.firstName,
+          booking.service,
+          formatDate(booking.startAt),
+          petQuantities,
+          booking.totalPrice,
+          data.paymentLink
+        );
+        setPaymentLinkMessage(message);
+        
         setShowPaymentLinkModal(false);
         setShowPaymentLinkPreview(true);
       } else {
@@ -300,11 +315,26 @@ export default function BookingDetailPage() {
 
   const handleSendPaymentLink = async () => {
     if (!booking || !paymentLinkUrl) return;
+    
+    // Priority 1: Validate phone number before sending
+    if (!booking.phone || booking.phone.trim() === '') {
+      alert('Cannot send payment link: Client phone number is missing');
+      return;
+    }
+    
     setSaving(true);
     try {
-      // Get payment link message template
+      // Priority 1: Use centralized payment link message template
+      const { generatePaymentLinkMessage } = await import('@/lib/payment-link-message');
       const petQuantities = booking.pets.map(p => p.species).join(', ');
-      const message = `💳 PAYMENT REMINDER\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking on ${formatDate(booking.startAt)} is ready for payment.\n\nPets: ${petQuantities}\nTotal: ${formatCurrency(booking.totalPrice)}\n\nPay now: ${paymentLinkUrl}`;
+      const message = await generatePaymentLinkMessage(
+        booking.firstName,
+        booking.service,
+        formatDate(booking.startAt),
+        petQuantities,
+        booking.totalPrice,
+        paymentLinkUrl
+      );
       
       // Send message
       const response = await fetch('/api/messages/send', {
@@ -324,6 +354,7 @@ export default function BookingDetailPage() {
           await fetchBooking();
           setShowPaymentLinkPreview(false);
           setPaymentLinkUrl(null);
+          setPaymentLinkMessage('');
           alert('Payment link sent to client!');
         } else {
           alert(`Failed to send message: ${result.error || 'Unknown error'}`);
@@ -1819,6 +1850,7 @@ export default function BookingDetailPage() {
         onClose={() => {
           setShowPaymentLinkPreview(false);
           setPaymentLinkUrl(null);
+          setPaymentLinkMessage('');
         }}
         title="Send Payment Link"
         size="lg"
@@ -1887,10 +1919,7 @@ export default function BookingDetailPage() {
                 border: `1px solid ${tokens.colors.border.default}`,
               }}
             >
-              {paymentLinkUrl && (() => {
-                const petQuantities = booking.pets.map(p => p.species).join(', ');
-                return `💳 PAYMENT REMINDER\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking on ${formatDate(booking.startAt)} is ready for payment.\n\nPets: ${petQuantities}\nTotal: ${formatCurrency(booking.totalPrice)}\n\nPay now: ${paymentLinkUrl}`;
-              })()}
+              {paymentLinkMessage || 'Loading message preview...'}
             </div>
           </div>
 
@@ -1955,6 +1984,7 @@ export default function BookingDetailPage() {
               onClick={() => {
                 setShowPaymentLinkPreview(false);
                 setPaymentLinkUrl(null);
+                setPaymentLinkMessage('');
               }}
             >
               Cancel

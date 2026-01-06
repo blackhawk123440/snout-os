@@ -107,6 +107,16 @@ export async function PATCH(request: NextRequest) {
       const savedChecksum = calculateAutomationSettingsChecksum(savedAutomationSettings);
       console.log(`[Automation Settings] Saved and validated with checksum: ${savedChecksum}`);
       
+      // Priority 1: Log automation settings change to audit trail
+      const { logEvent } = await import("@/lib/event-logger");
+      await logEvent("automation.settings.updated", "success", {
+        metadata: {
+          checksum: savedChecksum,
+          changedKeys: Object.keys(normalizedAutomation),
+          timestamp: new Date().toISOString(),
+        },
+      });
+      
       // Store message templates separately for easier retrieval
       const automation = body.automation;
       
