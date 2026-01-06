@@ -225,7 +225,8 @@ export default function AutomationPage() {
           }));
         }
         setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
+        // Priority 1: Show success message for 5 seconds to ensure visibility
+        setTimeout(() => setSuccess(false), 5000);
       } else {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to save settings');
@@ -277,7 +278,8 @@ export default function AutomationPage() {
       const data = await response.json();
       if (data.success) {
         setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
+        // Priority 1: Show success message for 5 seconds to ensure visibility
+        setTimeout(() => setSuccess(false), 5000);
       } else {
         setError(data.error || 'Failed to send test message');
       }
