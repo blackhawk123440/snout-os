@@ -196,19 +196,26 @@ export function Table<T extends Record<string, any>>({
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      style={{
-                        padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
-                        textAlign: column.align || 'left',
-                        fontSize: tokens.typography.fontSize.base[0],
-                        color: tokens.colors.text.primary,
-                      }}
-                    >
-                      {column.render ? column.render(row, index) : row[column.key]}
-                    </td>
-                  ))}
+                  {columns.map((column) => {
+                    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+                    return (
+                      <td
+                        key={column.key}
+                        style={{
+                          padding: isMobile 
+                            ? `${tokens.spacing[2]} ${tokens.spacing[2]}` 
+                            : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                          textAlign: column.align || 'left',
+                          fontSize: isMobile 
+                            ? tokens.typography.fontSize.sm[0] 
+                            : tokens.typography.fontSize.base[0],
+                          color: tokens.colors.text.primary,
+                        }}
+                      >
+                        {column.render ? column.render(row, index) : row[column.key]}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}
