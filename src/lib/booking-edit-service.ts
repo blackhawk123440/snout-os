@@ -226,13 +226,13 @@ export async function editBooking(
       firstName: updates.firstName || original.firstName,
       lastName: updates.lastName || original.lastName,
       phone: updates.phone || original.phone,
-      email: updates.email !== undefined ? updates.email : (original.email ?? undefined),
+      email: updates.email !== undefined ? (updates.email ?? undefined) : (original.email ?? undefined),
       service: updates.service || original.service,
       startAt: updates.startAt ? new Date(updates.startAt).toISOString() : new Date(original.startAt).toISOString(),
       endAt: updates.endAt ? new Date(updates.endAt).toISOString() : new Date(original.endAt).toISOString(),
-      address: updates.address !== undefined ? updates.address : (original.address ?? undefined),
-      pickupAddress: updates.pickupAddress !== undefined ? updates.pickupAddress : (original.pickupAddress ?? undefined),
-      dropoffAddress: updates.dropoffAddress !== undefined ? updates.dropoffAddress : (original.dropoffAddress ?? undefined),
+      address: updates.address !== undefined ? (updates.address ?? undefined) : (original.address ?? undefined),
+      pickupAddress: updates.pickupAddress !== undefined ? (updates.pickupAddress ?? undefined) : (original.pickupAddress ?? undefined),
+      dropoffAddress: updates.dropoffAddress !== undefined ? (updates.dropoffAddress ?? undefined) : (original.dropoffAddress ?? undefined),
       quantity: updates.quantity !== undefined ? updates.quantity : original.quantity,
       afterHours: updates.afterHours !== undefined ? updates.afterHours : original.afterHours,
       holiday: updates.holiday !== undefined ? updates.holiday : original.holiday,
@@ -240,7 +240,7 @@ export async function editBooking(
         name: p.name,
         species: p.species,
       })),
-      notes: updates.notes !== undefined ? updates.notes : (original.notes ?? undefined),
+      notes: updates.notes !== undefined ? (updates.notes ?? undefined) : (original.notes ?? undefined),
     };
 
     const validation = validateFormPayload(formPayload);
