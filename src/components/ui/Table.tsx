@@ -80,25 +80,32 @@ export function Table<T extends Record<string, any>>({
             }}
           >
             <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  style={{
-                    padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
-                    textAlign: column.align || 'left',
-                    fontSize: tokens.typography.fontSize.sm[0],
-                    fontWeight: tokens.typography.fontWeight.semibold,
-                    color: tokens.colors.text.primary,
-                    textTransform: 'uppercase',
-                    letterSpacing: tokens.typography.letterSpacing.wide,
-                    width: column.width,
-                    minWidth: column.width,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {column.header}
-                </th>
-              ))}
+              {columns.map((column) => {
+                const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+                return (
+                  <th
+                    key={column.key}
+                    style={{
+                      padding: isMobile 
+                        ? `${tokens.spacing[2]} ${tokens.spacing[2]}` 
+                        : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                      textAlign: column.align || 'left',
+                      fontSize: isMobile 
+                        ? tokens.typography.fontSize.xs[0] 
+                        : tokens.typography.fontSize.sm[0],
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: tokens.colors.text.primary,
+                      textTransform: 'uppercase',
+                      letterSpacing: tokens.typography.letterSpacing.wide,
+                      width: column.width,
+                      minWidth: column.width,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {column.header}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>

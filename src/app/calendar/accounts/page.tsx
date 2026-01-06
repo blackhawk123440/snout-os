@@ -252,6 +252,7 @@ export default function CalendarAccountsPage() {
         isOpen={showAddForm}
         onClose={resetForm}
         title="Add Calendar Account"
+        size="full"
       >
         {error && (
           <div
