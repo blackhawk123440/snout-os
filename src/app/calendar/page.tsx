@@ -551,21 +551,24 @@ export default function CalendarPage() {
             overflow: 'hidden', // Prevent card from causing scroll
           }}
         >
-          {/* Calendar container - fits viewport on mobile */}
+          {/* Scrollable container for mobile month view */}
           <div
             style={{
+              overflowX: isMobile ? 'auto' : 'visible',
+              overflowY: 'visible',
+              WebkitOverflowScrolling: 'touch',
               width: '100%',
-              overflow: 'visible',
             }}
           >
-            {/* Day Names Header - Always 7 columns, fits viewport */}
+            {/* Day Names Header - Always 7 columns, never stack */}
             <div
               data-calendar-grid
               style={{
                 display: 'grid',
-                gridTemplateColumns: isMobile ? 'repeat(7, minmax(0, 1fr))' : 'repeat(7, minmax(80px, 1fr))',
+                gridTemplateColumns: 'repeat(7, minmax(80px, 1fr))',
                 borderBottom: `1px solid ${tokens.colors.border.default}`,
-                width: '100%',
+                width: isMobile ? '700px' : '100%', // Fixed width on mobile for horizontal scroll
+                minWidth: isMobile ? '700px' : 'auto', // Ensure 7 columns on mobile
                 boxSizing: 'border-box',
               }}
             >
@@ -574,7 +577,7 @@ export default function CalendarPage() {
                   key={day}
                   style={{
                     padding: isMobile
-                      ? `${tokens.spacing[1]} 2px`
+                      ? `${tokens.spacing[2]} ${tokens.spacing[1]}`
                       : tokens.spacing[3],
                     textAlign: 'center',
                     fontSize: isMobile
@@ -584,9 +587,7 @@ export default function CalendarPage() {
                     color: tokens.colors.text.primary,
                     backgroundColor: tokens.colors.background.secondary,
                     borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
-                    minWidth: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    minWidth: 0, // Prevent grid item overflow
                   }}
                 >
                   {day}
@@ -594,13 +595,14 @@ export default function CalendarPage() {
               ))}
             </div>
 
-            {/* Calendar Grid - Always 7 columns, fits viewport */}
+            {/* Calendar Grid - Always 7 columns, scrollable on mobile */}
             <div
               data-calendar-grid
               style={{
                 display: 'grid',
-                gridTemplateColumns: isMobile ? 'repeat(7, minmax(0, 1fr))' : 'repeat(7, minmax(80px, 1fr))',
-                width: '100%',
+                gridTemplateColumns: 'repeat(7, minmax(80px, 1fr))',
+                width: isMobile ? '700px' : '100%', // Match header width for alignment
+                minWidth: isMobile ? '700px' : 'auto',
                 boxSizing: 'border-box',
               }}
             >
