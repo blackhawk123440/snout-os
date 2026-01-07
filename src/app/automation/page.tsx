@@ -225,8 +225,7 @@ export default function AutomationPage() {
           }));
         }
         setSuccess(true);
-        // Priority 1: Show success message for 5 seconds to ensure visibility
-        setTimeout(() => setSuccess(false), 5000);
+        setTimeout(() => setSuccess(false), 3000);
       } else {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to save settings');
@@ -278,8 +277,7 @@ export default function AutomationPage() {
       const data = await response.json();
       if (data.success) {
         setSuccess(true);
-        // Priority 1: Show success message for 5 seconds to ensure visibility
-        setTimeout(() => setSuccess(false), 5000);
+        setTimeout(() => setSuccess(false), 3000);
       } else {
         setError(data.error || 'Failed to send test message');
       }
@@ -468,19 +466,14 @@ export default function AutomationPage() {
             const config = settings[automation.id];
             const isExpanded = expandedAutomation === automation.id;
 
-            const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
             return (
-              <Card 
-                key={automation.id}
-                style={isMobile ? { padding: tokens.spacing[3] } : undefined}
-              >
+              <Card key={automation.id}>
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'flex-start',
                     justifyContent: 'space-between',
                     gap: tokens.spacing[4],
-                    flexWrap: isMobile ? 'wrap' : 'nowrap',
                   }}
                 >
                   <div
@@ -577,7 +570,6 @@ export default function AutomationPage() {
                       onClick={() =>
                         setExpandedAutomation(isExpanded ? null : automation.id)
                       }
-                      style={isMobile ? { width: '100%', marginTop: tokens.spacing[2] } : undefined}
                     >
                       {isExpanded ? 'Collapse' : 'Configure'}
                     </Button>

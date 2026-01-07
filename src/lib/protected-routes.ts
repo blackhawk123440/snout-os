@@ -140,11 +140,6 @@ export function isProtectedRoute(pathname: string): boolean {
     return true;
   }
 
-  // Admin API routes - Messages (sending messages)
-  if (pathname.startsWith("/api/messages")) {
-    return true;
-  }
-
   // Admin API routes - Custom fields
   if (pathname.startsWith("/api/custom-fields")) {
     return true;

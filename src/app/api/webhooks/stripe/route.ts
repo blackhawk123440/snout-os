@@ -63,9 +63,6 @@ export async function POST(request: NextRequest) {
       const paymentIntent = event.data.object as any;
       const bookingId = paymentIntent.metadata?.bookingId;
       
-      // Priority 1: Generate correlation ID for this webhook event
-      const correlationId = `webhook:${event.id}:${Date.now()}`;
-      
       if (bookingId) {
         const booking = await prisma.booking.findUnique({
           where: { id: bookingId },
@@ -76,24 +73,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (booking) {
-          // Idempotency check: Skip if already paid to prevent duplicate processing
-          if (booking.paymentStatus === "paid") {
-            console.log(`[Webhook] Payment already processed for booking ${bookingId}, skipping (correlationId: ${correlationId})`);
-            await logEvent("payment.webhook.duplicate", "skipped", {
-              bookingId,
-              metadata: { correlationId, webhookEventId: event.id, reason: "already_paid" },
-            });
-            return NextResponse.json({ received: true, message: "Payment already processed" });
-          }
-
-          // Priority 1: Log payment processing start
-          await logEvent("payment.webhook.processing", "pending", {
-            bookingId,
-            metadata: { correlationId, webhookEventId: event.id, amount: paymentIntent.amount / 100 },
-          });
-
           // Update payment status and booking status
-          const previousStatus = booking.status;
           await prisma.booking.update({
             where: { id: bookingId },
             data: {
@@ -106,28 +86,16 @@ export async function POST(request: NextRequest) {
           const amount = paymentIntent.amount / 100; // Convert from cents
           await emitPaymentSuccess(booking, amount);
 
-          // Priority 1: Log payment success
-          await logEvent("payment.webhook.success", "success", {
-            bookingId,
-            metadata: { 
-              correlationId, 
-              webhookEventId: event.id, 
-              amount,
-              previousStatus,
-              newStatus: booking.status === "pending" ? "confirmed" : booking.status,
-            },
-          });
-
           // Phase 6.1: Trigger booking confirmation automation on payment success
           // Per Master Spec: "Implement booking confirmed message on Stripe payment success"
           const { enqueueAutomation } = await import("@/lib/automation-queue");
           
-          // Enqueue booking confirmation for client (idempotency key prevents duplicates)
+          // Enqueue booking confirmation for client
           await enqueueAutomation(
             "bookingConfirmation",
             "client",
-            { bookingId, correlationId },
-            `bookingConfirmation:client:${bookingId}:payment:${correlationId}`
+            { bookingId },
+            `bookingConfirmation:client:${bookingId}:payment`
           );
         }
       }
@@ -137,9 +105,6 @@ export async function POST(request: NextRequest) {
     if (event.type === "invoice.payment_succeeded") {
       const invoice = event.data.object as any;
       const bookingId = invoice.metadata?.bookingId;
-      
-      // Priority 1: Generate correlation ID for this webhook event
-      const correlationId = `webhook:${event.id}:${Date.now()}`;
       
       if (bookingId) {
         const booking = await prisma.booking.findUnique({
@@ -151,24 +116,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (booking) {
-          // Idempotency check: Skip if already paid to prevent duplicate processing
-          if (booking.paymentStatus === "paid") {
-            console.log(`[Webhook] Payment already processed for booking ${bookingId}, skipping (correlationId: ${correlationId})`);
-            await logEvent("payment.webhook.duplicate", "skipped", {
-              bookingId,
-              metadata: { correlationId, webhookEventId: event.id, reason: "already_paid" },
-            });
-            return NextResponse.json({ received: true, message: "Payment already processed" });
-          }
-
-          // Priority 1: Log payment processing start
-          await logEvent("payment.webhook.processing", "pending", {
-            bookingId,
-            metadata: { correlationId, webhookEventId: event.id, amount: invoice.amount_paid / 100 },
-          });
-
           // Update payment status and booking status
-          const previousStatus = booking.status;
           await prisma.booking.update({
             where: { id: bookingId },
             data: {
@@ -181,28 +129,16 @@ export async function POST(request: NextRequest) {
           const amount = invoice.amount_paid / 100; // Convert from cents
           await emitPaymentSuccess(booking, amount);
 
-          // Priority 1: Log payment success
-          await logEvent("payment.webhook.success", "success", {
-            bookingId,
-            metadata: { 
-              correlationId, 
-              webhookEventId: event.id, 
-              amount,
-              previousStatus,
-              newStatus: booking.status === "pending" ? "confirmed" : booking.status,
-            },
-          });
-
           // Phase 6.1: Trigger booking confirmation automation on payment success
           // Per Master Spec: "Implement booking confirmed message on Stripe payment success"
           const { enqueueAutomation } = await import("@/lib/automation-queue");
           
-          // Enqueue booking confirmation for client (idempotency key prevents duplicates)
+          // Enqueue booking confirmation for client
           await enqueueAutomation(
             "bookingConfirmation",
             "client",
-            { bookingId, correlationId },
-            `bookingConfirmation:client:${bookingId}:payment:${correlationId}`
+            { bookingId },
+            `bookingConfirmation:client:${bookingId}:payment`
           );
         }
       }

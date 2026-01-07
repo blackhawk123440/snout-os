@@ -65,10 +65,6 @@ export const Tabs: React.FC<TabsProps> = ({
             borderBottom: `2px solid ${tokens.colors.border.default}`,
             marginBottom: tokens.spacing[6],
             overflowX: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            padding: typeof window !== 'undefined' && window.innerWidth < 1024 ? `0 ${tokens.spacing[3]}` : 0,
           }}
         >
           {tabs.map((tab) => {
@@ -83,9 +79,7 @@ export const Tabs: React.FC<TabsProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: tokens.spacing[2],
-                  padding: typeof window !== 'undefined' && window.innerWidth < 1024 
-                    ? `${tokens.spacing[2]} ${tokens.spacing[3]}` 
-                    : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                  padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
                   borderBottom: `2px solid ${isActive ? tokens.colors.primary.DEFAULT : 'transparent'}`,
                   marginBottom: '-2px',
                   backgroundColor: 'transparent',
@@ -105,8 +99,6 @@ export const Tabs: React.FC<TabsProps> = ({
                   cursor: tab.disabled ? 'not-allowed' : 'pointer',
                   transition: `all ${tokens.transitions.duration.DEFAULT}`,
                   whiteSpace: 'nowrap',
-                  flexShrink: 0,
-                  minHeight: typeof window !== 'undefined' && window.innerWidth < 1024 ? '40px' : 'auto',
                 }}
                 onMouseEnter={(e) => {
                   if (!tab.disabled && !isActive) {

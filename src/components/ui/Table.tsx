@@ -45,28 +45,20 @@ export function Table<T extends Record<string, any>>({
         borderRadius: tokens.borderRadius.lg,
         overflow: 'hidden',
         backgroundColor: tokens.colors.background.primary,
-        width: '100%',
-        maxWidth: '100%',
       }}
     >
       <div
-        className="table-wrapper"
         style={{
           overflowX: 'auto',
           overflowY: 'auto',
           maxHeight: 'calc(100vh - 300px)',
-          width: '100%',
-          maxWidth: '100%',
-          WebkitOverflowScrolling: 'touch',
         }}
       >
         <table
           {...props}
           style={{
             width: '100%',
-            minWidth: '100%',
             borderCollapse: 'collapse',
-            tableLayout: 'auto',
             ...props.style,
           }}
         >
@@ -80,32 +72,25 @@ export function Table<T extends Record<string, any>>({
             }}
           >
             <tr>
-              {columns.map((column) => {
-                const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
-                return (
-                  <th
-                    key={column.key}
-                    style={{
-                      padding: isMobile 
-                        ? `${tokens.spacing[2]} ${tokens.spacing[2]}` 
-                        : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
-                      textAlign: column.align || 'left',
-                      fontSize: isMobile 
-                        ? tokens.typography.fontSize.xs[0] 
-                        : tokens.typography.fontSize.sm[0],
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      color: tokens.colors.text.primary,
-                      textTransform: 'uppercase',
-                      letterSpacing: tokens.typography.letterSpacing.wide,
-                      width: column.width,
-                      minWidth: column.width,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {column.header}
-                  </th>
-                );
-              })}
+              {columns.map((column) => (
+                <th
+                  key={column.key}
+                  style={{
+                    padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                    textAlign: column.align || 'left',
+                    fontSize: tokens.typography.fontSize.sm[0],
+                    fontWeight: tokens.typography.fontWeight.semibold,
+                    color: tokens.colors.text.primary,
+                    textTransform: 'uppercase',
+                    letterSpacing: tokens.typography.letterSpacing.wide,
+                    width: column.width,
+                    minWidth: column.width,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {column.header}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -196,26 +181,19 @@ export function Table<T extends Record<string, any>>({
                     e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  {columns.map((column) => {
-                    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
-                    return (
-                      <td
-                        key={column.key}
-                        style={{
-                          padding: isMobile 
-                            ? `${tokens.spacing[2]} ${tokens.spacing[2]}` 
-                            : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
-                          textAlign: column.align || 'left',
-                          fontSize: isMobile 
-                            ? tokens.typography.fontSize.sm[0] 
-                            : tokens.typography.fontSize.base[0],
-                          color: tokens.colors.text.primary,
-                        }}
-                      >
-                        {column.render ? column.render(row, index) : row[column.key]}
-                      </td>
-                    );
-                  })}
+                  {columns.map((column) => (
+                    <td
+                      key={column.key}
+                      style={{
+                        padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
+                        textAlign: column.align || 'left',
+                        fontSize: tokens.typography.fontSize.base[0],
+                        color: tokens.colors.text.primary,
+                      }}
+                    >
+                      {column.render ? column.render(row, index) : row[column.key]}
+                    </td>
+                  ))}
                 </tr>
               ))
             )}
