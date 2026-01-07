@@ -7,7 +7,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { tokens } from '@/lib/design-tokens';
@@ -38,6 +38,34 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Close sidebar on navigation
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  // Close sidebar on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [sidebarOpen]);
+
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (sidebarOpen && typeof window !== 'undefined' && window.innerWidth < 1024) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
+
   const isActive = (href: string) => {
     if (href === '/') {
       return pathname === '/';
@@ -51,23 +79,43 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         display: 'flex',
         minHeight: '100vh',
         backgroundColor: tokens.colors.background.secondary,
+        width: '100%',
       }}
     >
-      {/* Sidebar */}
+      {/* Blurred Backdrop - Only show when sidebar is open */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.25)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            zIndex: 1020, // Behind sidebar, above content
+            pointerEvents: 'auto', // Clickable to close
+          }}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar - Always overlay, never pushes content */}
       <aside
-        className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:flex`}
         style={{
           position: 'fixed',
-          left: 0,
+          left: sidebarOpen ? 0 : `-${tokens.layout.appShell.sidebarWidth}`,
           top: 0,
           bottom: 0,
           width: tokens.layout.appShell.sidebarWidth,
           backgroundColor: tokens.colors.background.primary,
           borderRight: `1px solid ${tokens.colors.border.default}`,
-          zIndex: tokens.zIndex.fixed,
+          zIndex: 1030, // Above backdrop (1020), below modals (1040+)
           display: 'flex',
           flexDirection: 'column',
-          transition: `transform ${tokens.transitions.duration.slow}`,
+          transition: `left ${tokens.transitions.duration.slow} ease-in-out`,
+          boxShadow: sidebarOpen ? '2px 0 12px rgba(0, 0, 0, 0.15)' : 'none',
+          pointerEvents: sidebarOpen ? 'auto' : 'none', // Only interactive when open
+          overflowY: 'auto', // Allow scrolling if content is long
         }}
       >
         {/* Logo/Brand */}
@@ -130,6 +178,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setSidebarOpen(false)} // Close sidebar on navigation
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -148,6 +197,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   ? tokens.typography.fontWeight.semibold
                   : tokens.typography.fontWeight.normal,
                 transition: `all ${tokens.transitions.duration.DEFAULT}`,
+                cursor: 'pointer',
+                pointerEvents: 'auto', // Ensure links are clickable
               }}
               onMouseEnter={(e) => {
                 if (!isActive(item.href)) {
@@ -198,15 +249,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         </nav>
       </aside>
 
-      {/* Main Content Area */}
+      {/* Main Content Area - Always full width, never resized */}
       <div
-        className="lg:ml-64"
         style={{
           flex: 1,
-          marginLeft: tokens.layout.appShell.sidebarWidth,
+          width: '100%',
           display: 'flex',
           flexDirection: 'column',
           minHeight: '100vh',
+          marginLeft: 0, // Never push content
         }}
       >
         {/* Top Bar */}
@@ -222,12 +273,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             position: 'sticky',
             top: 0,
             zIndex: tokens.zIndex.sticky,
+            width: '100%',
           }}
         >
+          {/* Hamburger Button - Always visible on all screen sizes */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden flex"
             style={{
+              display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               width: '2.5rem',
@@ -237,10 +290,18 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               backgroundColor: 'transparent',
               cursor: 'pointer',
               color: tokens.colors.text.primary,
+              transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
             }}
             aria-label="Toggle sidebar"
+            aria-expanded={sidebarOpen}
           >
-            <i className="fas fa-bars" />
+            <i className={`fas ${sidebarOpen ? 'fa-times' : 'fa-bars'}`} />
           </button>
           <div style={{ flex: 1 }} />
           {/* User menu placeholder */}
@@ -268,21 +329,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           {children}
         </main>
       </div>
-
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          className="lg:hidden"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: tokens.zIndex.modalBackdrop,
-          }}
-          aria-hidden="true"
-        />
-      )}
     </div>
   );
 };
