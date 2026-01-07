@@ -340,18 +340,22 @@ function BookingsPageContent() {
           marginBottom: tokens.spacing[6],
         }}
       >
+        <StatCard
           label="Today's Visits"
           value={overviewStats.todaysVisits}
           icon={<i className="fas fa-calendar-day" />}
         />
+        <StatCard
           label="Unassigned"
           value={overviewStats.unassigned}
           icon={<i className="fas fa-user-slash" />}
         />
+        <StatCard
           label="Pending"
           value={overviewStats.pending}
           icon={<i className="fas fa-clock" />}
         />
+        <StatCard
           label="Monthly Revenue"
           value={formatCurrency(overviewStats.monthlyRevenue)}
           icon={<i className="fas fa-dollar-sign" />}
