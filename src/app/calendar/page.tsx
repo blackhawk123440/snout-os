@@ -21,6 +21,7 @@ import {
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { BookingDetailCard } from '@/components/booking/BookingDetailCard';
 
 interface Booking {
   id: string;
@@ -545,66 +546,62 @@ export default function CalendarPage() {
         <Card
           padding={false}
           style={{
+            overflow: isMobile ? 'auto' : 'visible',
             width: '100%',
             maxWidth: '100%',
             margin: 0,
-            overflow: 'visible', // Don't clip, let inner container handle scrolling
+            // Prevent clipping on mobile
+            ...(isMobile ? {
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+            } : {}),
           }}
         >
-          {/* Mobile: Wrap in scrollable container with min-width */}
-          {/* Desktop: No wrapper needed */}
-          {isMobile ? (
-            <div
-              style={{
-                overflowX: 'auto',
-                WebkitOverflowScrolling: 'touch',
-                width: '100%',
-              }}
-            >
+          {/* Day Names Header - Always 7 columns, never stack */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+              borderBottom: `1px solid ${tokens.colors.border.default}`,
+              width: '100%',
+              minWidth: isMobile ? '600px' : 'auto', // Ensure 7 columns on mobile with horizontal scroll
+              boxSizing: 'border-box',
+            }}
+          >
+            {dayNames.map((day) => (
               <div
+                key={day}
                 style={{
-                  minWidth: '700px', // Ensure 7 columns stay readable
-                  width: '100%',
+                  padding: isMobile
+                    ? `${tokens.spacing[2]} ${tokens.spacing[1]}`
+                    : tokens.spacing[3],
+                  textAlign: 'center',
+                  fontSize: isMobile
+                    ? tokens.typography.fontSize.xs[0]
+                    : tokens.typography.fontSize.sm[0],
+                  fontWeight: tokens.typography.fontWeight.semibold,
+                  color: tokens.colors.text.primary,
+                  backgroundColor: tokens.colors.background.secondary,
+                  borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
+                  minWidth: 0, // Prevent grid item overflow
                 }}
               >
-                {/* Day Names Header - Always 7 columns, never stack */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(7, 100px)', // Fixed width prevents collapse
-                    borderBottom: `1px solid ${tokens.colors.border.default}`,
-                    width: '700px', // Fixed width: 7 columns * 100px
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  {dayNames.map((day) => (
-                    <div
-                      key={day}
-                      style={{
-                        padding: `${tokens.spacing[2]} ${tokens.spacing[1]}`,
-                        textAlign: 'center',
-                        fontSize: tokens.typography.fontSize.xs[0],
-                        fontWeight: tokens.typography.fontWeight.semibold,
-                        color: tokens.colors.text.primary,
-                        backgroundColor: tokens.colors.background.secondary,
-                        borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
-                      }}
-                    >
-                      {day}
-                    </div>
-                  ))}
-                </div>
+                {day}
+              </div>
+            ))}
+          </div>
 
-                {/* Calendar Grid - Always 7 columns, scrollable on mobile */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(7, 100px)', // Fixed width prevents collapse
-                    width: '700px', // Fixed width: 7 columns * 100px
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  {calendarDays.map((day, index) => {
+          {/* Calendar Grid - Always 7 columns, scrollable on mobile */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+              width: '100%',
+              minWidth: isMobile ? '600px' : 'auto', // Match header width for alignment
+              boxSizing: 'border-box',
+            }}
+          >
+            {calendarDays.map((day, index) => {
               const maxVisibleBookings = 2;
               const remainingCount = Math.max(0, day.bookings.length - maxVisibleBookings);
               const isSelected = selectedDate && selectedDate.getTime() === day.date.getTime();
@@ -636,7 +633,7 @@ export default function CalendarPage() {
                     overflow: 'hidden',
                     wordBreak: 'break-word',
                     position: 'relative',
-                    width: isMobile ? '100px' : 'auto', // Fixed width on mobile prevents stacking
+                    minWidth: 0, // Prevent grid item overflow
                   } as React.CSSProperties & { '@media (min-width: 768px)': React.CSSProperties }}
                   onMouseEnter={(e) => {
                     if (day.isCurrentMonth && !day.isPast) {
@@ -791,235 +788,7 @@ export default function CalendarPage() {
                 </div>
               );
             })}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Day Names Header - Desktop: Always 7 columns */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-                  borderBottom: `1px solid ${tokens.colors.border.default}`,
-                  width: '100%',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {dayNames.map((day) => (
-                  <div
-                    key={day}
-                    style={{
-                      padding: tokens.spacing[3],
-                      textAlign: 'center',
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      color: tokens.colors.text.primary,
-                      backgroundColor: tokens.colors.background.secondary,
-                      borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
-                    }}
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar Grid - Desktop: Always 7 columns */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {calendarDays.map((day, index) => {
-                  const maxVisibleBookings = 2;
-                  const remainingCount = Math.max(0, day.bookings.length - maxVisibleBookings);
-                  const isSelected = selectedDate && selectedDate.getTime() === day.date.getTime();
-
-                  return (
-                    <div
-                      key={index}
-                      onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
-                      style={{
-                        minHeight: '80px',
-                        '@media (min-width: 768px)': {
-                          minHeight: '120px',
-                        },
-                        borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
-                        borderBottom: `1px solid ${tokens.colors.border.default}`,
-                        padding: tokens.spacing[2],
-                        backgroundColor: day.isCurrentMonth
-                          ? isSelected
-                            ? tokens.colors.primary[50]
-                            : day.isPast
-                            ? tokens.colors.background.tertiary
-                            : tokens.colors.background.primary
-                          : tokens.colors.background.secondary,
-                        cursor: day.isCurrentMonth ? 'pointer' : 'default',
-                        opacity: day.isCurrentMonth ? 1 : 0.5,
-                        transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
-                        overflow: 'hidden',
-                        wordBreak: 'break-word',
-                        position: 'relative',
-                      } as React.CSSProperties & { '@media (min-width: 768px)': React.CSSProperties }}
-                      onMouseEnter={(e) => {
-                        if (day.isCurrentMonth && !day.isPast) {
-                          e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.currentTarget.style.backgroundColor = day.isCurrentMonth
-                            ? day.isPast
-                              ? tokens.colors.background.tertiary
-                              : tokens.colors.background.primary
-                            : tokens.colors.background.secondary;
-                        }
-                      }}
-                    >
-                      {/* Date Number */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          marginBottom: tokens.spacing[1],
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: tokens.typography.fontSize.sm[0],
-                            fontWeight: day.isToday
-                              ? tokens.typography.fontWeight.bold
-                              : tokens.typography.fontWeight.normal,
-                            color: day.isToday
-                              ? tokens.colors.primary.DEFAULT
-                              : tokens.colors.text.primary,
-                          }}
-                        >
-                          {day.date.getDate()}
-                        </span>
-                        {day.isToday && (
-                          <div
-                            style={{
-                              width: '6px',
-                              height: '6px',
-                              borderRadius: tokens.borderRadius.full,
-                              backgroundColor: tokens.colors.primary.DEFAULT,
-                            }}
-                          />
-                        )}
-                      </div>
-
-                      {/* Bookings */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: tokens.spacing[1],
-                        }}
-                      >
-                        {day.bookings.slice(0, maxVisibleBookings).map((booking) => {
-                          const dateStr = day.date.toISOString().split('T')[0];
-                          let displayTime = '';
-
-                          if (booking.timeSlots && booking.timeSlots.length > 0) {
-                            const daySlots = booking.timeSlots.filter((slot) => {
-                              const slotDate = new Date(slot.startAt);
-                              return slotDate.toISOString().split('T')[0] === dateStr;
-                            });
-                            if (daySlots.length > 0) {
-                              const start = formatTime(new Date(daySlots[0].startAt));
-                              displayTime = daySlots.length > 1 ? `${daySlots.length} slots` : start;
-                            }
-                          } else if (
-                            booking.service === 'Housesitting' ||
-                            booking.service === '24/7 Care'
-                          ) {
-                            const startAt = new Date(booking.startAt);
-                            const startDateStr = startAt.toISOString().split('T')[0];
-                            if (dateStr === startDateStr) {
-                              displayTime = formatTime(startAt);
-                            } else {
-                              displayTime = 'All day';
-                            }
-                          } else {
-                            displayTime = formatTime(new Date(booking.startAt));
-                          }
-
-                          return (
-                            <div
-                              key={booking.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedDate(day.date);
-                              }}
-                              style={{
-                                padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                                borderRadius: tokens.borderRadius.sm,
-                                fontSize: tokens.typography.fontSize.xs[0],
-                                backgroundColor: tokens.colors.primary[100],
-                                color: tokens.colors.text.primary,
-                                cursor: 'pointer',
-                                borderLeft: `3px solid ${tokens.colors.primary.DEFAULT}`,
-                              }}
-                              title={`${booking.firstName} ${booking.lastName} - ${booking.service}`}
-                            >
-                              <div
-                                style={{
-                                  fontWeight: tokens.typography.fontWeight.semibold,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {booking.firstName} {booking.lastName.charAt(0)}.
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: tokens.typography.fontSize.xs[0],
-                                  opacity: 0.8,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {displayTime}
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {remainingCount > 0 && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedDate(day.date);
-                            }}
-                            style={{
-                              padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                              borderRadius: tokens.borderRadius.sm,
-                              fontSize: tokens.typography.fontSize.xs[0],
-                              backgroundColor: tokens.colors.primary[50],
-                              color: tokens.colors.primary.DEFAULT,
-                              border: 'none',
-                              cursor: 'pointer',
-                              fontWeight: tokens.typography.fontWeight.medium,
-                              textAlign: 'left',
-                            }}
-                          >
-                            {remainingCount} more
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+          </div>
         </Card>
       ) : (
         /* Agenda View */
@@ -1197,221 +966,14 @@ export default function CalendarPage() {
             >
               {selectedDateBookings.map((booking) => {
                 const dateStr = selectedDate.toISOString().split('T')[0];
-                const dayTimeSlots =
-                  booking.timeSlots && booking.timeSlots.length > 0
-                    ? booking.timeSlots
-                        .filter((slot) => {
-                          const slotDate = new Date(slot.startAt).toISOString().split('T')[0];
-                          return slotDate === dateStr;
-                        })
-                        .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
-                    : [];
-
                 return (
-                  <Card key={booking.id}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        justifyContent: 'space-between',
-                        marginBottom: tokens.spacing[4],
-                      }}
-                    >
-                      <div>
-                        <h3
-                          style={{
-                            fontSize: tokens.typography.fontSize.xl[0],
-                            fontWeight: tokens.typography.fontWeight.bold,
-                            color: tokens.colors.text.primary,
-                            margin: 0,
-                            marginBottom: tokens.spacing[1],
-                          }}
-                        >
-                          {booking.firstName} {booking.lastName}
-                        </h3>
-                        <p
-                          style={{
-                            fontSize: tokens.typography.fontSize.base[0],
-                            color: tokens.colors.text.secondary,
-                            margin: 0,
-                          }}
-                        >
-                          {booking.service}
-                        </p>
-                      </div>
-                      <Badge variant={getStatusBadgeVariant(booking.status)}>
-                        {booking.status}
-                      </Badge>
-                    </div>
-
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: tokens.spacing[4],
-                        marginBottom: tokens.spacing[4],
-                      }}
-                    >
-                      {dayTimeSlots.length > 0 ? (
-                        <div>
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.sm[0],
-                              color: tokens.colors.text.secondary,
-                              marginBottom: tokens.spacing[1],
-                            }}
-                          >
-                            Time Slots
-                          </div>
-                          {dayTimeSlots.map((slot, idx) => (
-                            <div
-                              key={idx}
-                              style={{
-                                fontSize: tokens.typography.fontSize.base[0],
-                                fontWeight: tokens.typography.fontWeight.medium,
-                              }}
-                            >
-                              {formatTime(new Date(slot.startAt))} - {formatTime(new Date(slot.endAt))}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div>
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.sm[0],
-                              color: tokens.colors.text.secondary,
-                              marginBottom: tokens.spacing[1],
-                            }}
-                          >
-                            Time
-                          </div>
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.base[0],
-                              fontWeight: tokens.typography.fontWeight.medium,
-                            }}
-                          >
-                            {formatTime(new Date(booking.startAt))} - {formatTime(new Date(booking.endAt))}
-                          </div>
-                        </div>
-                      )}
-
-                      {booking.sitter ? (
-                        <div>
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.sm[0],
-                              color: tokens.colors.text.secondary,
-                              marginBottom: tokens.spacing[1],
-                            }}
-                          >
-                            Assigned Sitter
-                          </div>
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.base[0],
-                              fontWeight: tokens.typography.fontWeight.semibold,
-                              color: tokens.colors.text.primary,
-                            }}
-                          >
-                            {booking.sitter.firstName} {booking.sitter.lastName}
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.sm[0],
-                              color: tokens.colors.text.secondary,
-                              marginBottom: tokens.spacing[1],
-                            }}
-                          >
-                            Assigned Sitter
-                          </div>
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.base[0],
-                              color: tokens.colors.text.tertiary,
-                            }}
-                          >
-                            Not Assigned
-                          </div>
-                        </div>
-                      )}
-
-                      <div>
-                        <div
-                          style={{
-                            fontSize: tokens.typography.fontSize.sm[0],
-                            color: tokens.colors.text.secondary,
-                            marginBottom: tokens.spacing[1],
-                          }}
-                        >
-                          Pets
-                        </div>
-                        <div
-                          style={{
-                            fontSize: tokens.typography.fontSize.base[0],
-                            fontWeight: tokens.typography.fontWeight.medium,
-                          }}
-                        >
-                          {formatPetsByQuantity(booking.pets)}
-                        </div>
-                      </div>
-
-                      <div>
-                        <div
-                          style={{
-                            fontSize: tokens.typography.fontSize.sm[0],
-                            color: tokens.colors.text.secondary,
-                            marginBottom: tokens.spacing[1],
-                          }}
-                        >
-                          Total Price
-                        </div>
-                        <div
-                          style={{
-                            fontSize: tokens.typography.fontSize.base[0],
-                            fontWeight: tokens.typography.fontWeight.bold,
-                            color: tokens.colors.text.primary,
-                          }}
-                        >
-                          ${booking.totalPrice.toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {(booking.email || booking.phone) && (
-                      <div
-                        style={{
-                          paddingTop: tokens.spacing[4],
-                          borderTop: `1px solid ${tokens.colors.border.default}`,
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                          gap: tokens.spacing[3],
-                          fontSize: tokens.typography.fontSize.sm[0],
-                        }}
-                      >
-                        {booking.phone && (
-                          <div>
-                            <i className="fas fa-phone" style={{ marginRight: tokens.spacing[2] }} />
-                            <a href={`tel:${booking.phone}`} style={{ color: tokens.colors.primary.DEFAULT }}>
-                              {booking.phone}
-                            </a>
-                          </div>
-                        )}
-                        {booking.email && (
-                          <div>
-                            <i className="fas fa-envelope" style={{ marginRight: tokens.spacing[2] }} />
-                            <a href={`mailto:${booking.email}`} style={{ color: tokens.colors.primary.DEFAULT }}>
-                              {booking.email}
-                            </a>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </Card>
+                  <BookingDetailCard
+                    key={booking.id}
+                    booking={booking}
+                    variant="full"
+                    showDate={true}
+                    dateStr={dateStr}
+                  />
                 );
               })}
             </div>
