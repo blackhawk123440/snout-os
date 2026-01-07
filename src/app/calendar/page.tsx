@@ -549,7 +549,8 @@ export default function CalendarPage() {
               gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
               width: '100%',
               overflow: 'hidden',
-              maxWidth: '100vw',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
             }}
           >
             {calendarDays.map((day, index) => {
@@ -670,45 +671,85 @@ export default function CalendarPage() {
                         displayTime = formatTime(new Date(booking.startAt));
                       }
 
+                      // Get status color for indicator
+                      const getStatusColor = (status: string) => {
+                        switch (status) {
+                          case 'confirmed': return tokens.colors.success.DEFAULT;
+                          case 'pending': return tokens.colors.warning.DEFAULT;
+                          case 'completed': return tokens.colors.primary.DEFAULT;
+                          case 'cancelled': return tokens.colors.error.DEFAULT;
+                          default: return tokens.colors.primary.DEFAULT;
+                        }
+                      };
+
                       return (
                         <div
                           key={booking.id}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedDate(day.date);
+                            window.location.href = `/bookings/${booking.id}`;
                           }}
                           style={{
-                            padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: tokens.spacing[1],
+                            padding: `${tokens.spacing[1]} ${tokens.spacing[1]} ${tokens.spacing[1]} ${tokens.spacing[2]}`,
                             borderRadius: tokens.borderRadius.sm,
                             fontSize: tokens.typography.fontSize.xs[0],
-                            backgroundColor: tokens.colors.primary[100],
+                            backgroundColor: tokens.colors.background.primary,
                             color: tokens.colors.text.primary,
                             cursor: 'pointer',
-                            borderLeft: `3px solid ${tokens.colors.primary.DEFAULT}`,
+                            border: `1px solid ${tokens.colors.border.default}`,
+                            width: '100%',
+                            minWidth: 0,
                           }}
                           title={`${booking.firstName} ${booking.lastName} - ${booking.service}`}
                         >
+                          {/* Text content on the left */}
                           <div
                             style={{
-                              fontWeight: tokens.typography.fontWeight.semibold,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
+                              flex: 1,
+                              minWidth: 0,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 1,
                             }}
                           >
-                            {booking.firstName} {booking.lastName.charAt(0)}.
+                            <div
+                              style={{
+                                fontWeight: tokens.typography.fontWeight.medium,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontSize: tokens.typography.fontSize.xs[0],
+                              }}
+                            >
+                              {booking.firstName} {booking.lastName.charAt(0)}.
+                            </div>
+                            {displayTime && (
+                              <div
+                                style={{
+                                  fontSize: tokens.typography.fontSize.xs[0],
+                                  opacity: 0.7,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {displayTime}
+                              </div>
+                            )}
                           </div>
+                          {/* Status indicator dot on the right */}
                           <div
                             style={{
-                              fontSize: tokens.typography.fontSize.xs[0],
-                              opacity: 0.8,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: tokens.borderRadius.full,
+                              backgroundColor: getStatusColor(booking.status),
+                              flexShrink: 0,
                             }}
-                          >
-                            {displayTime}
-                          </div>
+                          />
                         </div>
                       );
                     })}
@@ -795,92 +836,85 @@ export default function CalendarPage() {
                       {group.bookings.map((booking) => {
                         const start = new Date(booking.startAt);
                         const end = new Date(booking.endAt);
+                        const getStatusColor = (status: string) => {
+                          switch (status) {
+                            case 'confirmed': return tokens.colors.success.DEFAULT;
+                            case 'pending': return tokens.colors.warning.DEFAULT;
+                            case 'completed': return tokens.colors.primary.DEFAULT;
+                            case 'cancelled': return tokens.colors.error.DEFAULT;
+                            default: return tokens.colors.primary.DEFAULT;
+                          }
+                        };
                         return (
-                          <div
+                          <Link
                             key={booking.id}
+                            href={`/bookings/${booking.id}`}
                             style={{
-                              padding: tokens.spacing[4],
-                              borderBottom: `1px solid ${tokens.colors.border.muted}`,
                               display: 'flex',
-                              alignItems: 'flex-start',
-                              justifyContent: 'space-between',
-                              gap: tokens.spacing[4],
+                              alignItems: 'center',
+                              gap: tokens.spacing[3],
+                              padding: tokens.spacing[3],
+                              borderBottom: `1px solid ${tokens.colors.border.muted}`,
+                              textDecoration: 'none',
+                              color: 'inherit',
                             }}
                           >
-                            <div style={{ flex: 1 }}>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: tokens.spacing[2],
-                                  marginBottom: tokens.spacing[2],
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    fontSize: tokens.typography.fontSize.base[0],
-                                    fontWeight: tokens.typography.fontWeight.semibold,
-                                    color: tokens.colors.text.primary,
-                                  }}
-                                >
-                                  {booking.service}
-                                </span>
-                                <Badge variant={getStatusBadgeVariant(booking.status)}>
-                                  {booking.status}
-                                </Badge>
-                              </div>
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: tokens.spacing[1],
-                                  fontSize: tokens.typography.fontSize.sm[0],
-                                  color: tokens.colors.text.secondary,
-                                }}
-                              >
-                                <div>
-                                  <i className="fas fa-clock" style={{ marginRight: tokens.spacing[2] }} />
-                                  {formatTime(start)} - {formatTime(end)}
-                                </div>
-                                <div>
-                                  <i className="fas fa-user" style={{ marginRight: tokens.spacing[2] }} />
-                                  {booking.firstName} {booking.lastName}
-                                </div>
-                                {booking.sitter && (
-                                  <div>
-                                    <i className="fas fa-user-check" style={{ marginRight: tokens.spacing[2] }} />
-                                    Sitter: {booking.sitter.firstName} {booking.sitter.lastName}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                            {/* Status indicator dot on the left */}
                             <div
                               style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'flex-end',
-                                gap: tokens.spacing[1],
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: tokens.borderRadius.full,
+                                backgroundColor: getStatusColor(booking.status),
+                                flexShrink: 0,
                               }}
-                            >
+                            />
+                            {/* Text content */}
+                            <div style={{ flex: 1, minWidth: 0 }}>
                               <div
                                 style={{
                                   fontSize: tokens.typography.fontSize.base[0],
-                                  fontWeight: tokens.typography.fontWeight.bold,
+                                  fontWeight: tokens.typography.fontWeight.semibold,
                                   color: tokens.colors.text.primary,
+                                  marginBottom: tokens.spacing[1],
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
                                 }}
                               >
-                                ${booking.totalPrice.toFixed(2)}
+                                {booking.firstName} {booking.lastName}
                               </div>
                               <div
                                 style={{
                                   fontSize: tokens.typography.fontSize.sm[0],
                                   color: tokens.colors.text.secondary,
+                                  marginBottom: tokens.spacing[1],
                                 }}
                               >
-                                {formatPetsByQuantity(booking.pets)}
+                                {booking.service}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: tokens.typography.fontSize.xs[0],
+                                  color: tokens.colors.text.secondary,
+                                  opacity: 0.8,
+                                }}
+                              >
+                                {formatTime(start)} - {formatTime(end)}
                               </div>
                             </div>
-                          </div>
+                            {/* Price on the right */}
+                            <div
+                              style={{
+                                fontSize: tokens.typography.fontSize.base[0],
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                color: tokens.colors.text.primary,
+                                flexShrink: 0,
+                              }}
+                            >
+                              ${booking.totalPrice.toFixed(2)}
+                            </div>
+                          </Link>
                         );
                       })}
                     </div>
