@@ -24,7 +24,6 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { TableColumn } from '@/components/ui/Table';
-import { BookingDetailCard } from '@/components/booking/BookingDetailCard';
 
 interface Booking {
   id: string;
@@ -332,55 +331,18 @@ function BookingsPageContent() {
           />
         </Card>
       ) : (
-        <>
-          {/* Mobile: Card View */}
-          <div
-            style={{
-              display: 'block',
-              '@media (min-width: 1024px)': {
-                display: 'none',
-              },
-            } as React.CSSProperties & { '@media (min-width: 1024px)': React.CSSProperties }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: tokens.spacing[4],
-              }}
-            >
-              {filteredAndSortedBookings.map((booking) => (
-                <BookingDetailCard
-                  key={booking.id}
-                  booking={booking}
-                  variant="compact"
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Desktop: Compact Card Grid */}
-          <div
-            style={{
-              display: 'none',
-              '@media (min-width: 1024px)': {
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-                gap: tokens.spacing[4],
-              },
-            } as React.CSSProperties & { '@media (min-width: 1024px)': React.CSSProperties }}
-          >
-            {filteredAndSortedBookings.map((booking) => (
-              <BookingDetailCard
-                key={booking.id}
-                booking={booking}
-                variant="compact"
-              />
-            ))}
-          </div>
-        </>
-      )}
-    </AppShell>
+        <Card padding={!loading}>
+          <Table
+            columns={columns}
+            data={filteredAndSortedBookings}
+            emptyMessage="No bookings found. Create your first booking to get started."
+            onRowClick={(row) => {
+              setSelectedBooking(row);
+            }}
+            keyExtractor={(row) => row.id}
+          />
+        </Card>
+      )}    </AppShell>
   );
 }
 
