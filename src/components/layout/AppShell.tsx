@@ -1,19 +1,13 @@
 /**
  * AppShell Component
  * 
- * Enterprise application shell with overlay sidebar navigation.
- * 
- * Sidebar Behavior:
- * - Always overlays content (never pushes or resizes)
- * - Blurred backdrop when open
- * - Closes on: hamburger click, outside tap, navigation, Escape key
- * - Fully interactive when open
- * - Content always full width
+ * Enterprise application shell with sidebar navigation, top bar, and content container.
+ * All dashboard pages must use this layout.
  */
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { tokens } from '@/lib/design-tokens';
@@ -44,33 +38,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Close sidebar on route change
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [pathname]);
-
-  // Handle Escape key to close sidebar
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && sidebarOpen) {
-        setSidebarOpen(false);
-      }
-    };
-
-    if (sidebarOpen) {
-      document.addEventListener('keydown', handleEscape);
-      // Prevent body scroll when sidebar is open on mobile
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
-    };
-  }, [sidebarOpen]);
-
   const isActive = (href: string) => {
     if (href === '/') {
       return pathname === '/';
@@ -78,348 +45,244 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     return pathname.startsWith(href);
   };
 
-  const handleToggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    // Only close if clicking directly on backdrop, not on sidebar
-    if (e.target === e.currentTarget) {
-      setSidebarOpen(false);
-    }
-  };
-
   return (
-    <>
-      <div
+    <div
+      style={{
+        display: 'flex',
+        minHeight: '100vh',
+        backgroundColor: tokens.colors.background.secondary,
+      }}
+    >
+      {/* Sidebar */}
+      <aside
+        className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:flex`}
         style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: tokens.layout.appShell.sidebarWidth,
+          backgroundColor: tokens.colors.background.primary,
+          borderRight: `1px solid ${tokens.colors.border.default}`,
+          zIndex: tokens.zIndex.fixed,
           display: 'flex',
-          minHeight: '100vh',
-          backgroundColor: tokens.colors.background.secondary,
-          width: '100%',
-          maxWidth: '100vw',
-          overflowX: 'hidden',
-          position: 'relative',
+          flexDirection: 'column',
+          transition: `transform ${tokens.transitions.duration.slow}`,
         }}
       >
-        {/* Main Content Area - Always Full Width */}
+        {/* Logo/Brand */}
         <div
           style={{
-            flex: 1,
+            padding: tokens.spacing[6],
+            borderBottom: `1px solid ${tokens.colors.border.default}`,
             display: 'flex',
-            flexDirection: 'column',
-            minHeight: '100vh',
-            width: '100%',
-            maxWidth: '100vw',
-            marginLeft: 0, // Never add margin
+            alignItems: 'center',
+            gap: tokens.spacing[3],
+            height: tokens.layout.appShell.topBarHeight,
           }}
         >
-          {/* Top Bar */}
-          <header
+          <div
             style={{
-              height: tokens.layout.appShell.topBarHeight,
-              backgroundColor: tokens.colors.background.primary,
-              borderBottom: `1px solid ${tokens.colors.border.default}`,
-              padding: `0 ${tokens.spacing[4]}`,
+              width: '2rem',
+              height: '2rem',
+              backgroundColor: tokens.colors.primary.DEFAULT,
+              borderRadius: tokens.borderRadius.md,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              position: 'sticky',
-              top: 0,
-              zIndex: tokens.zIndex.sticky,
-              width: '100%',
-              maxWidth: '100vw',
-              flexShrink: 0,
+              justifyContent: 'center',
+              color: tokens.colors.text.inverse,
+              fontSize: tokens.typography.fontSize.xl[0],
+              fontWeight: tokens.typography.fontWeight.bold,
             }}
           >
-            <button
-              onClick={handleToggleSidebar}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '2.5rem',
-                height: '2.5rem',
-                minWidth: '44px',
-                minHeight: '44px',
-                borderRadius: tokens.borderRadius.md,
-                border: `1px solid ${tokens.colors.border.default}`,
-                backgroundColor: 'transparent',
-                cursor: 'pointer',
-                color: tokens.colors.text.primary,
-                flexShrink: 0,
-                transition: `all ${tokens.transitions.duration.DEFAULT}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              aria-label="Toggle sidebar"
-              aria-expanded={sidebarOpen}
-            >
-              <i className="fas fa-bars" />
-            </button>
-            <div style={{ flex: 1, minWidth: 0 }} />
-            {/* User menu placeholder */}
+            S
+          </div>
+          <div>
             <div
+              style={{
+                fontSize: tokens.typography.fontSize.base[0],
+                fontWeight: tokens.typography.fontWeight.bold,
+                color: tokens.colors.text.primary,
+              }}
+            >
+              Snout OS
+            </div>
+            <div
+              style={{
+                fontSize: tokens.typography.fontSize.xs[0],
+                color: tokens.colors.text.secondary,
+              }}
+            >
+              Enterprise
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: tokens.spacing[2],
+          }}
+        >
+          {navigation.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: tokens.spacing[3],
-                flexShrink: 0,
+                padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                marginBottom: tokens.spacing[1],
+                borderRadius: tokens.borderRadius.md,
+                textDecoration: 'none',
+                color: isActive(item.href)
+                  ? tokens.colors.primary.DEFAULT
+                  : tokens.colors.text.primary,
+                backgroundColor: isActive(item.href)
+                  ? tokens.colors.primary[100]
+                  : 'transparent',
+                fontWeight: isActive(item.href)
+                  ? tokens.typography.fontWeight.semibold
+                  : tokens.typography.fontWeight.normal,
+                transition: `all ${tokens.transitions.duration.DEFAULT}`,
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive(item.href)) {
+                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive(item.href)) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
               }}
             >
-              {/* User menu can go here */}
-            </div>
-          </header>
+              {item.icon && (
+                <i
+                  className={item.icon}
+                  style={{
+                    width: '1.25rem',
+                    textAlign: 'center',
+                  }}
+                />
+              )}
+              <span
+                style={{
+                  flex: 1,
+                  fontSize: tokens.typography.fontSize.base[0],
+                }}
+              >
+                {item.label}
+              </span>
+              {item.badge && item.badge > 0 && (
+                <span
+                  style={{
+                    backgroundColor: tokens.colors.error.DEFAULT,
+                    color: tokens.colors.text.inverse,
+                    borderRadius: tokens.borderRadius.full,
+                    padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                    fontSize: tokens.typography.fontSize.xs[0],
+                    fontWeight: tokens.typography.fontWeight.semibold,
+                    minWidth: '1.25rem',
+                    textAlign: 'center',
+                  }}
+                >
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          ))}
+        </nav>
+      </aside>
 
-          {/* Content - Always Full Width */}
-          <main
-            style={{
-              flex: 1,
-              padding: tokens.spacing[4],
-              maxWidth: tokens.layout.appShell.contentMaxWidth,
-              width: '100%',
-              margin: '0 auto',
-              overflowX: 'hidden',
-            }}
-            className="lg:p-6"
-          >
-            <div style={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
-              {children}
-            </div>
-          </main>
-        </div>
-
-        {/* Blurred Backdrop - Only when sidebar is open */}
-        {sidebarOpen && (
-          <div
-            onClick={handleBackdropClick}
-            className="sidebar-backdrop"
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: tokens.zIndex.modalBackdrop,
-              pointerEvents: 'auto',
-            }}
-            aria-hidden="true"
-          />
-        )}
-
-        {/* Sidebar - Always Overlay */}
-        <aside
-          className={`sidebar-overlay ${sidebarOpen ? 'sidebar-open' : ''}`}
+      {/* Main Content Area */}
+      <div
+        className="lg:ml-64"
+        style={{
+          flex: 1,
+          marginLeft: tokens.layout.appShell.sidebarWidth,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+        }}
+      >
+        {/* Top Bar */}
+        <header
           style={{
-            position: 'fixed',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: tokens.layout.appShell.sidebarWidth,
+            height: tokens.layout.appShell.topBarHeight,
             backgroundColor: tokens.colors.background.primary,
-            borderRight: `1px solid ${tokens.colors.border.default}`,
-            zIndex: tokens.zIndex.modal,
+            borderBottom: `1px solid ${tokens.colors.border.default}`,
+            padding: `0 ${tokens.spacing[6]}`,
             display: 'flex',
-            flexDirection: 'column',
-            transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-            transition: `transform ${tokens.transitions.duration.slow} ${tokens.transitions.timingFunction.DEFAULT}`,
-            boxShadow: sidebarOpen ? tokens.shadows.xl : 'none',
-            pointerEvents: sidebarOpen ? 'auto' : 'none',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'sticky',
+            top: 0,
+            zIndex: tokens.zIndex.sticky,
           }}
         >
-          {/* Logo/Brand */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="lg:hidden flex"
+            style={{
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '2.5rem',
+              height: '2.5rem',
+              borderRadius: tokens.borderRadius.md,
+              border: `1px solid ${tokens.colors.border.default}`,
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+              color: tokens.colors.text.primary,
+            }}
+            aria-label="Toggle sidebar"
+          >
+            <i className="fas fa-bars" />
+          </button>
+          <div style={{ flex: 1 }} />
+          {/* User menu placeholder */}
           <div
             style={{
-              padding: tokens.spacing[6],
-              borderBottom: `1px solid ${tokens.colors.border.default}`,
               display: 'flex',
               alignItems: 'center',
               gap: tokens.spacing[3],
-              height: tokens.layout.appShell.topBarHeight,
-              flexShrink: 0,
             }}
           >
-            <div
-              style={{
-                width: '2rem',
-                height: '2rem',
-                backgroundColor: tokens.colors.primary.DEFAULT,
-                borderRadius: tokens.borderRadius.md,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: tokens.colors.text.inverse,
-                fontSize: tokens.typography.fontSize.xl[0],
-                fontWeight: tokens.typography.fontWeight.bold,
-                flexShrink: 0,
-              }}
-            >
-              S
-            </div>
-            <div style={{ minWidth: 0, overflow: 'hidden' }}>
-              <div
-                style={{
-                  fontSize: tokens.typography.fontSize.base[0],
-                  fontWeight: tokens.typography.fontWeight.bold,
-                  color: tokens.colors.text.primary,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                Snout OS
-              </div>
-              <div
-                style={{
-                  fontSize: tokens.typography.fontSize.xs[0],
-                  color: tokens.colors.text.secondary,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                Enterprise
-              </div>
-            </div>
+            {/* User menu can go here */}
           </div>
+        </header>
 
-          {/* Navigation */}
-          <nav
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              padding: tokens.spacing[2],
-            }}
-          >
-            {navigation.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => {
-                  setSidebarOpen(false);
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: tokens.spacing[3],
-                  padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
-                  marginBottom: tokens.spacing[1],
-                  borderRadius: tokens.borderRadius.md,
-                  textDecoration: 'none',
-                  color: isActive(item.href)
-                    ? tokens.colors.primary.DEFAULT
-                    : tokens.colors.text.primary,
-                  backgroundColor: isActive(item.href)
-                    ? tokens.colors.primary[100]
-                    : 'transparent',
-                  fontWeight: isActive(item.href)
-                    ? tokens.typography.fontWeight.semibold
-                    : tokens.typography.fontWeight.normal,
-                  transition: `all ${tokens.transitions.duration.DEFAULT}`,
-                  minHeight: '44px', // Touch target
-                  pointerEvents: 'auto',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive(item.href)) {
-                    e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive(item.href)) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }
-                }}
-              >
-                {item.icon && (
-                  <i
-                    className={item.icon}
-                    style={{
-                      width: '1.25rem',
-                      textAlign: 'center',
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
-                <span
-                  style={{
-                    flex: 1,
-                    fontSize: tokens.typography.fontSize.base[0],
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    minWidth: 0,
-                  }}
-                >
-                  {item.label}
-                </span>
-                {item.badge && item.badge > 0 && (
-                  <span
-                    style={{
-                      backgroundColor: tokens.colors.error.DEFAULT,
-                      color: tokens.colors.text.inverse,
-                      borderRadius: tokens.borderRadius.full,
-                      padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                      fontSize: tokens.typography.fontSize.xs[0],
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      minWidth: '1.25rem',
-                      textAlign: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </nav>
-        </aside>
+        {/* Content */}
+        <main
+          style={{
+            flex: 1,
+            padding: tokens.layout.appShell.contentPadding,
+            maxWidth: tokens.layout.appShell.contentMaxWidth,
+            width: '100%',
+            margin: '0 auto',
+          }}
+        >
+          {children}
+        </main>
       </div>
 
-      {/* Global CSS for backdrop blur and sidebar behavior */}
-      <style jsx global>{`
-        /* Blurred backdrop */
-        .sidebar-backdrop {
-          backdrop-filter: blur(4px);
-          -webkit-backdrop-filter: blur(4px);
-          background: rgba(0, 0, 0, 0.2);
-        }
-
-        /* Ensure sidebar is above backdrop */
-        .sidebar-overlay {
-          pointer-events: none;
-        }
-
-        .sidebar-overlay.sidebar-open {
-          pointer-events: auto;
-        }
-
-        /* Prevent body scroll when sidebar is open on mobile */
-        @media (max-width: 1023px) {
-          body.sidebar-open {
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-          }
-        }
-
-        /* Smooth sidebar animation */
-        .sidebar-overlay {
-          will-change: transform;
-        }
-
-        /* Ensure content never shifts */
-        html, body {
-          overflow-x: hidden;
-          max-width: 100vw;
-        }
-
-        /* Prevent horizontal scroll */
-        * {
-          box-sizing: border-box;
-        }
-      `}</style>
-    </>
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="lg:hidden"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: tokens.zIndex.modalBackdrop,
+          }}
+          aria-hidden="true"
+        />
+      )}
+    </div>
   );
 };

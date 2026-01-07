@@ -32,16 +32,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
-    // Priority 1: Calculate tip amount from booking total
-    // Tip calculation rule: Use booking.totalPrice (service amount) as base
-    // This ensures consistency with payment link and pricing display
+    // Calculate the true total using price breakdown
     const breakdown = calculatePriceBreakdown(booking);
     const serviceAmount = breakdown.total;
-    
-    // Priority 1: Validate that serviceAmount matches booking.totalPrice for consistency
-    if (Math.abs(serviceAmount - booking.totalPrice) > 0.01) {
-      console.warn(`[Tip Link] Service amount mismatch: breakdown.total=${serviceAmount}, booking.totalPrice=${booking.totalPrice}. Using breakdown.total.`);
-    }
     
     // Generate sitter alias for the tip link
     const sitterAlias = booking.sitter 

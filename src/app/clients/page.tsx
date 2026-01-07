@@ -39,17 +39,9 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'recent' | 'bookings'>('name');
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     fetchClients();
-  }, []);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 1024);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
   }, []);
 
   const fetchClients = async () => {
@@ -201,8 +193,8 @@ export default function ClientsPage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: tokens.spacing[4],
           }}
         >
           <Input
@@ -224,135 +216,22 @@ export default function ClientsPage() {
         </div>
       </Card>
 
-      {/* Clients List (mobile cards, desktop table) */}
-      {loading ? (
-        <Card>
+      {/* Clients Table */}
+      <Card padding={!loading}>
+        {loading ? (
           <Skeleton height="400px" />
-        </Card>
-      ) : filteredAndSortedClients.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon="👥"
-            title="No clients found"
-            description="Add your first client to get started."
+        ) : (
+          <Table
+            columns={columns}
+            data={filteredAndSortedClients}
+            emptyMessage="No clients found. Add your first client to get started."
+            onRowClick={(row) => {
+              window.location.href = `/clients/${row.id}`;
+            }}
+            keyExtractor={(row) => row.id}
           />
-        </Card>
-      ) : (
-        <>
-          {/* Mobile: Card list */}
-          <div
-            style={{
-              display: 'block',
-              '@media (min-width: 1024px)': {
-                display: 'none',
-              },
-            } as React.CSSProperties & { '@media (min-width: 1024px)': React.CSSProperties }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
-              {filteredAndSortedClients.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/clients/${c.id}`}
-                  style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
-                >
-                  <Card padding={false}>
-                    <div style={{ padding: tokens.spacing[3] }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          justifyContent: 'space-between',
-                          gap: tokens.spacing[3],
-                          marginBottom: tokens.spacing[2],
-                        }}
-                      >
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.base[0],
-                              fontWeight: tokens.typography.fontWeight.semibold,
-                              color: tokens.colors.text.primary,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {c.firstName} {c.lastName}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.sm[0],
-                              color: tokens.colors.text.secondary,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {c.email}
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            fontSize: tokens.typography.fontSize.sm[0],
-                            color: tokens.colors.text.secondary,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          {c.petCount || 0} pets
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: tokens.spacing[1],
-                          fontSize: tokens.typography.fontSize.sm[0],
-                          color: tokens.colors.text.secondary,
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                          <i className="fas fa-phone" style={{ width: '16px' }} />
-                          <span style={{ color: tokens.colors.text.primary }}>{c.phone}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                          <i className="fas fa-book" style={{ width: '16px' }} />
-                          <span>{c.totalBookings || 0} bookings</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                          <i className="fas fa-calendar" style={{ width: '16px' }} />
-                          <span>Last: {formatDate(c.lastBooking)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Desktop: Table */}
-          <Card
-            padding={false}
-            style={{
-              display: 'none',
-              '@media (min-width: 1024px)': {
-                display: 'block',
-              },
-            } as React.CSSProperties & { '@media (min-width: 1024px)': React.CSSProperties }}
-          >
-            <Table
-              columns={columns}
-              data={filteredAndSortedClients}
-              emptyMessage="No clients found. Add your first client to get started."
-              onRowClick={(row) => {
-                window.location.href = `/clients/${row.id}`;
-              }}
-              keyExtractor={(row) => row.id}
-            />
-          </Card>
-        </>
-      )}
+        )}
+      </Card>
     </AppShell>
   );
 }
