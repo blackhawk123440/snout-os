@@ -599,10 +599,15 @@ export default function CalendarPage() {
                   key={index}
                   onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
                   style={{
-                    minHeight: '120px',
+                    minHeight: typeof window !== 'undefined' && window.innerWidth <= 768 ? '60px' : '80px',
+                    '@media (min-width: 768px)': {
+                      minHeight: '120px',
+                    },
                     borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
                     borderBottom: `1px solid ${tokens.colors.border.default}`,
-                    padding: tokens.spacing[2],
+                    padding: typeof window !== 'undefined' && window.innerWidth <= 768
+                      ? tokens.spacing[1]
+                      : tokens.spacing[2],
                     backgroundColor: day.isCurrentMonth
                       ? isSelected
                         ? tokens.colors.primary[50]
