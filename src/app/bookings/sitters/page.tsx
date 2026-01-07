@@ -44,6 +44,7 @@ export default function SittersPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSitter, setEditingSitter] = useState<Sitter | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -59,6 +60,13 @@ export default function SittersPage() {
 
   useEffect(() => {
     fetchSitters();
+  }, []);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
   }, []);
 
   const fetchSitters = async () => {
@@ -212,7 +220,7 @@ export default function SittersPage() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div style={{ padding: isMobile ? tokens.spacing[4] : tokens.spacing[6] }}>
         {error && (
           <Card
             style={{
@@ -255,30 +263,33 @@ export default function SittersPage() {
             }}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? tokens.spacing[3] : tokens.spacing[4] }}>
             {sitters.map((sitter) => (
-              <Card key={sitter.id}>
+              <Card key={sitter.id} padding={false}>
+                <div style={{ padding: isMobile ? tokens.spacing[3] : tokens.spacing[4] }}>
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'flex-start',
                     justifyContent: 'space-between',
-                    gap: tokens.spacing[4],
+                    flexDirection: isMobile ? 'column' : 'row',
+                    gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
                   }}
                 >
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
                       <div
                         style={{
-                          width: '48px',
-                          height: '48px',
+                          width: isMobile ? '40px' : '48px',
+                          height: isMobile ? '40px' : '48px',
                           borderRadius: '50%',
                           backgroundColor: tokens.colors.primary[100],
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           color: tokens.colors.primary.DEFAULT,
-                          fontSize: tokens.typography.fontSize.xl[0],
+                          fontSize: isMobile ? tokens.typography.fontSize.lg[0] : tokens.typography.fontSize.xl[0],
+                          flexShrink: 0,
                         }}
                       >
                         <i className="fas fa-user" />
@@ -287,7 +298,7 @@ export default function SittersPage() {
                         <div
                           style={{
                             fontWeight: tokens.typography.fontWeight.bold,
-                            fontSize: tokens.typography.fontSize.lg[0],
+                            fontSize: isMobile ? tokens.typography.fontSize.base[0] : tokens.typography.fontSize.lg[0],
                             color: tokens.colors.text.primary,
                             marginBottom: tokens.spacing[1],
                           }}
@@ -307,11 +318,14 @@ export default function SittersPage() {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: tokens.spacing[1],
+                        minWidth: 0,
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], minWidth: 0 }}>
                         <i className="fas fa-phone" style={{ width: '16px' }} />
-                        <span>{formatPhoneNumber(sitter.phone)}</span>
+                        <span style={{ color: tokens.colors.text.primary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {formatPhoneNumber(sitter.phone)}
+                        </span>
                         {sitter.phoneType && (
                           <Badge variant="neutral" style={{ marginLeft: tokens.spacing[1] }}>
                             {sitter.phoneType === "personal" ? "Personal" : "OpenPhone"}
@@ -319,20 +333,24 @@ export default function SittersPage() {
                         )}
                       </div>
                       {sitter.personalPhone && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], minWidth: 0 }}>
                           <i className="fas fa-mobile-alt" style={{ width: '16px' }} />
-                          <span>Personal: {formatPhoneNumber(sitter.personalPhone)}</span>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            Personal: {formatPhoneNumber(sitter.personalPhone)}
+                          </span>
                         </div>
                       )}
                       {sitter.openphonePhone && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], minWidth: 0 }}>
                           <i className="fas fa-phone-alt" style={{ width: '16px' }} />
-                          <span>OpenPhone: {formatPhoneNumber(sitter.openphonePhone)}</span>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            OpenPhone: {formatPhoneNumber(sitter.openphonePhone)}
+                          </span>
                         </div>
                       )}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], minWidth: 0 }}>
                         <i className="fas fa-envelope" style={{ width: '16px' }} />
-                        <span>{sitter.email}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sitter.email}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
                         <i className="fas fa-calendar" style={{ width: '16px' }} />
@@ -347,8 +365,8 @@ export default function SittersPage() {
                   
                   <div 
                     style={{ 
-                      display: 'flex', 
-                      gap: tokens.spacing[2], 
+                      display: 'flex',
+                      gap: tokens.spacing[2],
                       alignItems: 'center',
                       flexWrap: 'wrap',
                       '@media (max-width: 1023px)': {
@@ -370,23 +388,49 @@ export default function SittersPage() {
                     >
                       View Dashboard
                     </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => startEdit(sitter)}
-                      leftIcon={<i className="fas fa-edit" />}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => handleDelete(sitter.id)}
-                      leftIcon={<i className="fas fa-trash" />}
-                    >
-                      Delete
-                    </Button>
+                    {isMobile ? (
+                      <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[2] }}>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => startEdit(sitter)}
+                          leftIcon={<i className="fas fa-edit" />}
+                          style={{ width: '100%' }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDelete(sitter.id)}
+                          leftIcon={<i className="fas fa-trash" />}
+                          style={{ width: '100%' }}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => startEdit(sitter)}
+                          leftIcon={<i className="fas fa-edit" />}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => handleDelete(sitter.id)}
+                          leftIcon={<i className="fas fa-trash" />}
+                        >
+                          Delete
+                        </Button>
+                      </>
+                    )}
                   </div>
+                </div>
                 </div>
               </Card>
             ))}
