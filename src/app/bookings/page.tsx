@@ -88,18 +88,17 @@ function BookingsPageContent() {
 
 
   // Sync activeTab with filter
-
+  useEffect(() => {
     if (activeTab === 'all') {
-      setFilter('all');
+    setFilter('all');
     } else if (activeTab === 'today') {
-      setFilter('today');
+    setFilter('today');
     } else if (activeTab === 'pending') {
-      setFilter('pending');
+    setFilter('pending');
     } else if (activeTab === 'confirmed') {
-      setFilter('confirmed');
+    setFilter('confirmed');
     } else if (activeTab === 'completed') {
-      setFilter('completed');
-    }
+    setFilter('completed');
   }, [activeTab]);
 
   useEffect(() => {
