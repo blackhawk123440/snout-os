@@ -574,12 +574,12 @@ export default function BookingDetailPage() {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0] }}>
                         <div>
                           <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[0.5] }}>{formatDate(booking.startAt)}</div>
+                          <div style={{ fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[1] }}>{formatDate(booking.startAt)}</div>
                           <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>{formatTime(booking.startAt)}</div>
                         </div>
                         <div>
                           <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[0.5] }}>{formatDate(booking.endAt)}</div>
+                          <div style={{ fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[1] }}>{formatDate(booking.endAt)}</div>
                           <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>{formatTime(booking.endAt)}</div>
                         </div>
                       </div>
