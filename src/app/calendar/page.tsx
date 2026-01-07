@@ -80,18 +80,22 @@ export default function CalendarPage() {
       setIsMobile(mobile);
       
       // Only set default to Agenda on initial load if mobile
-      if (!hasInitialized && mobile) {
-        setViewMode('agenda');
-        setHasInitialized(true);
-      } else if (!hasInitialized) {
+      if (!hasInitialized) {
+        if (mobile) {
+          setViewMode('agenda');
+        }
         setHasInitialized(true);
       }
     };
     
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, [hasInitialized]); // Only run until initialized
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []); // Only run on mount
 
   useEffect(() => {
     fetchData();
@@ -541,62 +545,67 @@ export default function CalendarPage() {
         <Card
           padding={false}
           style={{
-            overflow: isMobile ? 'auto' : 'visible',
             width: '100%',
             maxWidth: '100%',
             margin: 0,
-            // Prevent clipping on mobile
-            ...(isMobile ? {
-              overflowX: 'auto',
-              WebkitOverflowScrolling: 'touch',
-            } : {}),
+            overflow: 'visible', // Don't clip, let inner container handle scrolling
           }}
         >
-          {/* Day Names Header - Always 7 columns, never stack */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-              borderBottom: `1px solid ${tokens.colors.border.default}`,
-              width: '100%',
-              minWidth: isMobile ? '600px' : 'auto', // Ensure 7 columns on mobile with horizontal scroll
-              boxSizing: 'border-box',
-            }}
-          >
-            {dayNames.map((day) => (
+          {/* Mobile: Wrap in scrollable container with min-width */}
+          {/* Desktop: No wrapper needed */}
+          {isMobile ? (
+            <div
+              style={{
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                width: '100%',
+              }}
+            >
               <div
-                key={day}
                 style={{
-                  padding: isMobile
-                    ? `${tokens.spacing[2]} ${tokens.spacing[1]}`
-                    : tokens.spacing[3],
-                  textAlign: 'center',
-                  fontSize: isMobile
-                    ? tokens.typography.fontSize.xs[0]
-                    : tokens.typography.fontSize.sm[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  color: tokens.colors.text.primary,
-                  backgroundColor: tokens.colors.background.secondary,
-                  borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
-                  minWidth: 0, // Prevent grid item overflow
+                  minWidth: '700px', // Ensure 7 columns stay readable
+                  width: '100%',
                 }}
               >
-                {day}
-              </div>
-            ))}
-          </div>
+                {/* Day Names Header - Always 7 columns, never stack */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, minmax(80px, 1fr))', // Fixed min to prevent collapse
+                    borderBottom: `1px solid ${tokens.colors.border.default}`,
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {dayNames.map((day) => (
+                    <div
+                      key={day}
+                      style={{
+                        padding: `${tokens.spacing[2]} ${tokens.spacing[1]}`,
+                        textAlign: 'center',
+                        fontSize: tokens.typography.fontSize.xs[0],
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        color: tokens.colors.text.primary,
+                        backgroundColor: tokens.colors.background.secondary,
+                        borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
+                        minWidth: '80px', // Prevent grid item from collapsing
+                      }}
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
 
-          {/* Calendar Grid - Always 7 columns, scrollable on mobile */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-              width: '100%',
-              minWidth: isMobile ? '600px' : 'auto', // Match header width for alignment
-              boxSizing: 'border-box',
-            }}
-          >
-            {calendarDays.map((day, index) => {
+                {/* Calendar Grid - Always 7 columns, scrollable on mobile */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, minmax(80px, 1fr))', // Fixed min to prevent collapse
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {calendarDays.map((day, index) => {
               const maxVisibleBookings = 2;
               const remainingCount = Math.max(0, day.bookings.length - maxVisibleBookings);
               const isSelected = selectedDate && selectedDate.getTime() === day.date.getTime();
@@ -628,7 +637,7 @@ export default function CalendarPage() {
                     overflow: 'hidden',
                     wordBreak: 'break-word',
                     position: 'relative',
-                    minWidth: 0, // Prevent grid item overflow
+                    minWidth: isMobile ? '80px' : 0, // Prevent grid item from collapsing on mobile
                   } as React.CSSProperties & { '@media (min-width: 768px)': React.CSSProperties }}
                   onMouseEnter={(e) => {
                     if (day.isCurrentMonth && !day.isPast) {
@@ -783,7 +792,235 @@ export default function CalendarPage() {
                 </div>
               );
             })}
-          </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Day Names Header - Desktop: Always 7 columns */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                  borderBottom: `1px solid ${tokens.colors.border.default}`,
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {dayNames.map((day) => (
+                  <div
+                    key={day}
+                    style={{
+                      padding: tokens.spacing[3],
+                      textAlign: 'center',
+                      fontSize: tokens.typography.fontSize.sm[0],
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: tokens.colors.text.primary,
+                      backgroundColor: tokens.colors.background.secondary,
+                      borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
+                    }}
+                  >
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              {/* Calendar Grid - Desktop: Always 7 columns */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {calendarDays.map((day, index) => {
+                  const maxVisibleBookings = 2;
+                  const remainingCount = Math.max(0, day.bookings.length - maxVisibleBookings);
+                  const isSelected = selectedDate && selectedDate.getTime() === day.date.getTime();
+
+                  return (
+                    <div
+                      key={index}
+                      onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
+                      style={{
+                        minHeight: '80px',
+                        '@media (min-width: 768px)': {
+                          minHeight: '120px',
+                        },
+                        borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
+                        borderBottom: `1px solid ${tokens.colors.border.default}`,
+                        padding: tokens.spacing[2],
+                        backgroundColor: day.isCurrentMonth
+                          ? isSelected
+                            ? tokens.colors.primary[50]
+                            : day.isPast
+                            ? tokens.colors.background.tertiary
+                            : tokens.colors.background.primary
+                          : tokens.colors.background.secondary,
+                        cursor: day.isCurrentMonth ? 'pointer' : 'default',
+                        opacity: day.isCurrentMonth ? 1 : 0.5,
+                        transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
+                        overflow: 'hidden',
+                        wordBreak: 'break-word',
+                        position: 'relative',
+                      } as React.CSSProperties & { '@media (min-width: 768px)': React.CSSProperties }}
+                      onMouseEnter={(e) => {
+                        if (day.isCurrentMonth && !day.isPast) {
+                          e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.backgroundColor = day.isCurrentMonth
+                            ? day.isPast
+                              ? tokens.colors.background.tertiary
+                              : tokens.colors.background.primary
+                            : tokens.colors.background.secondary;
+                        }
+                      }}
+                    >
+                      {/* Date Number */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: tokens.spacing[1],
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: tokens.typography.fontSize.sm[0],
+                            fontWeight: day.isToday
+                              ? tokens.typography.fontWeight.bold
+                              : tokens.typography.fontWeight.normal,
+                            color: day.isToday
+                              ? tokens.colors.primary.DEFAULT
+                              : tokens.colors.text.primary,
+                          }}
+                        >
+                          {day.date.getDate()}
+                        </span>
+                        {day.isToday && (
+                          <div
+                            style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: tokens.borderRadius.full,
+                              backgroundColor: tokens.colors.primary.DEFAULT,
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Bookings */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: tokens.spacing[1],
+                        }}
+                      >
+                        {day.bookings.slice(0, maxVisibleBookings).map((booking) => {
+                          const dateStr = day.date.toISOString().split('T')[0];
+                          let displayTime = '';
+
+                          if (booking.timeSlots && booking.timeSlots.length > 0) {
+                            const daySlots = booking.timeSlots.filter((slot) => {
+                              const slotDate = new Date(slot.startAt);
+                              return slotDate.toISOString().split('T')[0] === dateStr;
+                            });
+                            if (daySlots.length > 0) {
+                              const start = formatTime(new Date(daySlots[0].startAt));
+                              displayTime = daySlots.length > 1 ? `${daySlots.length} slots` : start;
+                            }
+                          } else if (
+                            booking.service === 'Housesitting' ||
+                            booking.service === '24/7 Care'
+                          ) {
+                            const startAt = new Date(booking.startAt);
+                            const startDateStr = startAt.toISOString().split('T')[0];
+                            if (dateStr === startDateStr) {
+                              displayTime = formatTime(startAt);
+                            } else {
+                              displayTime = 'All day';
+                            }
+                          } else {
+                            displayTime = formatTime(new Date(booking.startAt));
+                          }
+
+                          return (
+                            <div
+                              key={booking.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedDate(day.date);
+                              }}
+                              style={{
+                                padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                                borderRadius: tokens.borderRadius.sm,
+                                fontSize: tokens.typography.fontSize.xs[0],
+                                backgroundColor: tokens.colors.primary[100],
+                                color: tokens.colors.text.primary,
+                                cursor: 'pointer',
+                                borderLeft: `3px solid ${tokens.colors.primary.DEFAULT}`,
+                              }}
+                              title={`${booking.firstName} ${booking.lastName} - ${booking.service}`}
+                            >
+                              <div
+                                style={{
+                                  fontWeight: tokens.typography.fontWeight.semibold,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {booking.firstName} {booking.lastName.charAt(0)}.
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: tokens.typography.fontSize.xs[0],
+                                  opacity: 0.8,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {displayTime}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {remainingCount > 0 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDate(day.date);
+                            }}
+                            style={{
+                              padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                              borderRadius: tokens.borderRadius.sm,
+                              fontSize: tokens.typography.fontSize.xs[0],
+                              backgroundColor: tokens.colors.primary[50],
+                              color: tokens.colors.primary.DEFAULT,
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontWeight: tokens.typography.fontWeight.medium,
+                              textAlign: 'left',
+                            }}
+                          >
+                            {remainingCount} more
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </Card>
       ) : (
         /* Agenda View */
