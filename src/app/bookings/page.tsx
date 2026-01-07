@@ -90,15 +90,15 @@ function BookingsPageContent() {
   // Sync activeTab with filter
   useEffect(() => {
     if (activeTab === 'all') {
-    setFilter('all');
+      setFilter('all');
     } else if (activeTab === 'today') {
-    setFilter('today');
+      setFilter('today');
     } else if (activeTab === 'pending') {
-    setFilter('pending');
+      setFilter('pending');
     } else if (activeTab === 'confirmed') {
-    setFilter('confirmed');
+      setFilter('confirmed');
     } else if (activeTab === 'completed') {
-    setFilter('completed');
+      setFilter('completed');
   }, [activeTab]);
 
   useEffect(() => {
@@ -124,10 +124,44 @@ function BookingsPageContent() {
       }
 
       if (sittersRes?.ok) {
-
         const data = await sittersRes.json();
-
         setSitters(data.sitters || []);
+      }
+
+      // Calculate overview stats
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const todaysVisits = allBookings.filter((b: any) => {
+        const startDate = new Date(b.startAt);
+        return startDate >= today && startDate < tomorrow && b.status !== 'cancelled';
+      }).length;
+
+      const unassigned = allBookings.filter((b: any) => 
+        !b.sitterId && b.status !== 'cancelled' && b.status !== 'completed'
+      ).length;
+
+      const pending = allBookings.filter((b: any) => b.status === 'pending').length;
+
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const monthlyRevenue = allBookings
+        .filter((b: any) => {
+          const bookingDate = new Date(b.createdAt);
+          return bookingDate.getMonth() === currentMonth && 
+                 bookingDate.getFullYear() === currentYear &&
+                 b.status !== 'cancelled';
+        })
+        .reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0);
+
+      setOverviewStats({
+        todaysVisits,
+        unassigned,
+        pending,
+        monthlyRevenue,
+      });
 
       }
 
