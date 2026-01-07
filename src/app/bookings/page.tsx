@@ -24,6 +24,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { TableColumn } from '@/components/ui/Table';
+import { BookingDetailCard } from '@/components/booking/BookingDetailCard';
 
 interface Booking {
   id: string;
@@ -42,7 +43,12 @@ interface Booking {
     id: string;
     firstName: string;
     lastName: string;
-  };
+  } | null;
+  timeSlots?: Array<{
+    startAt: Date | string;
+    endAt: Date | string;
+    duration?: number;
+  }>;
 }
 
 interface Sitter {
@@ -312,22 +318,69 @@ function BookingsPageContent() {
                                           </div>
       </Card>
 
-      {/* Bookings Table */}
-      <Card padding={!loading}>
-        {loading ? (
+      {/* Bookings List - Cards on mobile, Table on desktop */}
+      {loading ? (
+        <Card>
           <Skeleton height="400px" />
-        ) : (
-          <Table
-            columns={columns}
-            data={filteredAndSortedBookings}
-            emptyMessage="No bookings found. Create your first booking to get started."
-            onRowClick={(row) => {
-              window.location.href = `/bookings/${row.id}`;
-            }}
-            keyExtractor={(row) => row.id}
+        </Card>
+      ) : filteredAndSortedBookings.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon="📭"
+            title="No bookings found"
+            description="Create your first booking to get started."
           />
-        )}
-      </Card>
+        </Card>
+      ) : (
+        <>
+          {/* Mobile: Card View */}
+          <div
+            style={{
+              display: 'block',
+              '@media (min-width: 1024px)': {
+                display: 'none',
+              },
+            } as React.CSSProperties & { '@media (min-width: 1024px)': React.CSSProperties }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: tokens.spacing[4],
+              }}
+            >
+              {filteredAndSortedBookings.map((booking) => (
+                <BookingDetailCard
+                  key={booking.id}
+                  booking={booking}
+                  variant="compact"
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop: Table View */}
+          <Card
+            padding={false}
+            style={{
+              display: 'none',
+              '@media (min-width: 1024px)': {
+                display: 'block',
+              },
+            } as React.CSSProperties & { '@media (min-width: 1024px)': React.CSSProperties }}
+          >
+            <Table
+              columns={columns}
+              data={filteredAndSortedBookings}
+              emptyMessage="No bookings found. Create your first booking to get started."
+              onRowClick={(row) => {
+                window.location.href = `/bookings/${row.id}`;
+              }}
+              keyExtractor={(row) => row.id}
+            />
+          </Card>
+        </>
+      )}
     </AppShell>
   );
 }
