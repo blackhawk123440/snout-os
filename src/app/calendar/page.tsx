@@ -96,7 +96,7 @@ export default function CalendarPage() {
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []); // Only run on mount
+  }, [hasInitialized]); // Include hasInitialized to prevent re-running
 
   useEffect(() => {
     fetchData();
@@ -421,6 +421,8 @@ export default function CalendarPage() {
               alignItems: isMobile ? 'stretch' : 'center',
               justifyContent: 'space-between',
               gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
+              paddingLeft: isMobile ? 'env(safe-area-inset-left)' : 0,
+              paddingRight: isMobile ? 'env(safe-area-inset-right)' : 0,
             }}
           >
             <div
@@ -431,6 +433,7 @@ export default function CalendarPage() {
                 flex: 1,
                 minWidth: 0,
                 justifyContent: isMobile ? 'space-between' : 'flex-start',
+                width: isMobile ? '100%' : 'auto',
               }}
             >
               <Button variant="ghost" size="sm" onClick={() => navigateMonth('prev')}>
@@ -546,61 +549,65 @@ export default function CalendarPage() {
         <Card
           padding={false}
           style={{
-            overflow: isMobile ? 'auto' : 'visible',
             width: '100%',
             maxWidth: '100%',
             margin: 0,
-            // Prevent clipping on mobile
-            ...(isMobile ? {
-              overflowX: 'auto',
-              WebkitOverflowScrolling: 'touch',
-            } : {}),
+            overflow: 'hidden', // Prevent card from causing scroll
           }}
         >
-          {/* Day Names Header - Always 7 columns, never stack */}
+          {/* Scrollable container for mobile month view */}
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-              borderBottom: `1px solid ${tokens.colors.border.default}`,
+              overflowX: isMobile ? 'auto' : 'visible',
+              overflowY: 'visible',
+              WebkitOverflowScrolling: 'touch',
               width: '100%',
-              minWidth: isMobile ? '600px' : 'auto', // Ensure 7 columns on mobile with horizontal scroll
-              boxSizing: 'border-box',
             }}
           >
-            {dayNames.map((day) => (
-              <div
-                key={day}
-                style={{
-                  padding: isMobile
-                    ? `${tokens.spacing[2]} ${tokens.spacing[1]}`
-                    : tokens.spacing[3],
-                  textAlign: 'center',
-                  fontSize: isMobile
-                    ? tokens.typography.fontSize.xs[0]
-                    : tokens.typography.fontSize.sm[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  color: tokens.colors.text.primary,
-                  backgroundColor: tokens.colors.background.secondary,
-                  borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
-                  minWidth: 0, // Prevent grid item overflow
-                }}
-              >
-                {day}
-              </div>
-            ))}
-          </div>
+            {/* Day Names Header - Always 7 columns, never stack */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, minmax(80px, 1fr))',
+                borderBottom: `1px solid ${tokens.colors.border.default}`,
+                width: isMobile ? '700px' : '100%', // Fixed width on mobile for horizontal scroll
+                minWidth: isMobile ? '700px' : 'auto', // Ensure 7 columns on mobile
+                boxSizing: 'border-box',
+              }}
+            >
+              {dayNames.map((day) => (
+                <div
+                  key={day}
+                  style={{
+                    padding: isMobile
+                      ? `${tokens.spacing[2]} ${tokens.spacing[1]}`
+                      : tokens.spacing[3],
+                    textAlign: 'center',
+                    fontSize: isMobile
+                      ? tokens.typography.fontSize.xs[0]
+                      : tokens.typography.fontSize.sm[0],
+                    fontWeight: tokens.typography.fontWeight.semibold,
+                    color: tokens.colors.text.primary,
+                    backgroundColor: tokens.colors.background.secondary,
+                    borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
+                    minWidth: 0, // Prevent grid item overflow
+                  }}
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
 
-          {/* Calendar Grid - Always 7 columns, scrollable on mobile */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-              width: '100%',
-              minWidth: isMobile ? '600px' : 'auto', // Match header width for alignment
-              boxSizing: 'border-box',
-            }}
-          >
+            {/* Calendar Grid - Always 7 columns, scrollable on mobile */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, minmax(80px, 1fr))',
+                width: isMobile ? '700px' : '100%', // Match header width for alignment
+                minWidth: isMobile ? '700px' : 'auto',
+                boxSizing: 'border-box',
+              }}
+            >
             {calendarDays.map((day, index) => {
               const maxVisibleBookings = 2;
               const remainingCount = Math.max(0, day.bookings.length - maxVisibleBookings);
@@ -611,10 +618,7 @@ export default function CalendarPage() {
                   key={index}
                   onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
                   style={{
-                    minHeight: isMobile ? '60px' : '80px',
-                    '@media (min-width: 768px)': {
-                      minHeight: '120px',
-                    },
+                    minHeight: isMobile ? '80px' : '120px',
                     borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
                     borderBottom: `1px solid ${tokens.colors.border.default}`,
                     padding: isMobile
@@ -634,7 +638,7 @@ export default function CalendarPage() {
                     wordBreak: 'break-word',
                     position: 'relative',
                     minWidth: 0, // Prevent grid item overflow
-                  } as React.CSSProperties & { '@media (min-width: 768px)': React.CSSProperties }}
+                  }}
                   onMouseEnter={(e) => {
                     if (day.isCurrentMonth && !day.isPast) {
                       e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
@@ -788,6 +792,7 @@ export default function CalendarPage() {
                 </div>
               );
             })}
+          </div>
           </div>
         </Card>
       ) : (
