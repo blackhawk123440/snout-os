@@ -571,9 +571,9 @@ export default function CalendarPage() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(7, minmax(80px, 1fr))', // Fixed min to prevent collapse
+                    gridTemplateColumns: 'repeat(7, 100px)', // Fixed width prevents collapse
                     borderBottom: `1px solid ${tokens.colors.border.default}`,
-                    width: '100%',
+                    width: '700px', // Fixed width: 7 columns * 100px
                     boxSizing: 'border-box',
                   }}
                 >
@@ -588,7 +588,6 @@ export default function CalendarPage() {
                         color: tokens.colors.text.primary,
                         backgroundColor: tokens.colors.background.secondary,
                         borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
-                        minWidth: '80px', // Prevent grid item from collapsing
                       }}
                     >
                       {day}
@@ -600,8 +599,8 @@ export default function CalendarPage() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(7, minmax(80px, 1fr))', // Fixed min to prevent collapse
-                    width: '100%',
+                    gridTemplateColumns: 'repeat(7, 100px)', // Fixed width prevents collapse
+                    width: '700px', // Fixed width: 7 columns * 100px
                     boxSizing: 'border-box',
                   }}
                 >
@@ -637,7 +636,7 @@ export default function CalendarPage() {
                     overflow: 'hidden',
                     wordBreak: 'break-word',
                     position: 'relative',
-                    minWidth: isMobile ? '80px' : 0, // Prevent grid item from collapsing on mobile
+                    width: isMobile ? '100px' : 'auto', // Fixed width on mobile prevents stacking
                   } as React.CSSProperties & { '@media (min-width: 768px)': React.CSSProperties }}
                   onMouseEnter={(e) => {
                     if (day.isCurrentMonth && !day.isPast) {
