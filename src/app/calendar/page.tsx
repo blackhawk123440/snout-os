@@ -70,6 +70,28 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSitterFilter, setSelectedSitterFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month');
+  const [isMobile, setIsMobile] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Detect mobile and default to Agenda view on mobile (only on initial load)
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      
+      // Only set default to Agenda on initial load if mobile
+      if (!hasInitialized && mobile) {
+        setViewMode('agenda');
+        setHasInitialized(true);
+      } else if (!hasInitialized) {
+        setHasInitialized(true);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [hasInitialized]); // Only run until initialized
 
   useEffect(() => {
     fetchData();
@@ -376,23 +398,24 @@ export default function CalendarPage() {
       <Card
         style={{
           marginBottom: tokens.spacing[6],
+          padding: isMobile ? tokens.spacing[3] : tokens.spacing[4],
         }}
       >
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: tokens.spacing[4],
+            gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
           }}
         >
           {/* Month Navigation */}
           <div
             style={{
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
               justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: tokens.spacing[4],
+              gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
             }}
           >
             <div
@@ -400,9 +423,9 @@ export default function CalendarPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: tokens.spacing[2],
-                flexWrap: 'wrap',
                 flex: 1,
                 minWidth: 0,
+                justifyContent: isMobile ? 'space-between' : 'flex-start',
               }}
             >
               <Button variant="ghost" size="sm" onClick={() => navigateMonth('prev')}>
@@ -410,7 +433,9 @@ export default function CalendarPage() {
               </Button>
               <h2
                 style={{
-                  fontSize: tokens.typography.fontSize.xl[0],
+                  fontSize: isMobile 
+                    ? tokens.typography.fontSize.base[0]
+                    : tokens.typography.fontSize.xl[0],
                   fontWeight: tokens.typography.fontWeight.semibold,
                   color: tokens.colors.text.primary,
                   minWidth: 0,
@@ -445,6 +470,7 @@ export default function CalendarPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: tokens.spacing[2],
+                width: isMobile ? '100%' : 'auto',
               }}
             >
               <Button
@@ -452,6 +478,9 @@ export default function CalendarPage() {
                 size="sm"
                 onClick={() => setViewMode('month')}
                 leftIcon={<i className="fas fa-table" />}
+                style={{
+                  flex: isMobile ? 1 : 'none',
+                }}
               >
                 Month
               </Button>
@@ -460,6 +489,9 @@ export default function CalendarPage() {
                 size="sm"
                 onClick={() => setViewMode('agenda')}
                 leftIcon={<i className="fas fa-list" />}
+                style={{
+                  flex: isMobile ? 1 : 'none',
+                }}
               >
                 Agenda
               </Button>
@@ -470,8 +502,9 @@ export default function CalendarPage() {
           <div
             style={{
               display: 'flex',
-              alignItems: 'center',
-              gap: tokens.spacing[3],
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
+              gap: isMobile ? tokens.spacing[2] : tokens.spacing[3],
             }}
           >
             <label
@@ -479,6 +512,7 @@ export default function CalendarPage() {
                 fontSize: tokens.typography.fontSize.sm[0],
                 fontWeight: tokens.typography.fontWeight.medium,
                 color: tokens.colors.text.primary,
+                width: isMobile ? '100%' : 'auto',
               }}
             >
               Sitter:
@@ -493,7 +527,10 @@ export default function CalendarPage() {
               ]}
               value={selectedSitterFilter}
               onChange={(e) => setSelectedSitterFilter(e.target.value)}
-              style={{ minWidth: '200px' }}
+              style={{ 
+                minWidth: isMobile ? '100%' : '200px',
+                width: isMobile ? '100%' : 'auto',
+              }}
             />
           </div>
         </div>
@@ -504,37 +541,44 @@ export default function CalendarPage() {
         <Card
           padding={false}
           style={{
-            overflow: 'hidden',
+            overflow: isMobile ? 'auto' : 'visible',
             width: '100%',
             maxWidth: '100%',
             margin: 0,
+            // Prevent clipping on mobile
+            ...(isMobile ? {
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+            } : {}),
           }}
         >
-          {/* Day Names Header */}
+          {/* Day Names Header - Always 7 columns, never stack */}
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
               borderBottom: `1px solid ${tokens.colors.border.default}`,
               width: '100%',
-              overflow: 'hidden',
+              minWidth: isMobile ? '600px' : 'auto', // Ensure 7 columns on mobile with horizontal scroll
+              boxSizing: 'border-box',
             }}
           >
             {dayNames.map((day) => (
               <div
                 key={day}
                 style={{
-                  padding: typeof window !== 'undefined' && window.innerWidth < 768
+                  padding: isMobile
                     ? `${tokens.spacing[2]} ${tokens.spacing[1]}`
                     : tokens.spacing[3],
                   textAlign: 'center',
-                  fontSize: typeof window !== 'undefined' && window.innerWidth < 768
+                  fontSize: isMobile
                     ? tokens.typography.fontSize.xs[0]
                     : tokens.typography.fontSize.sm[0],
                   fontWeight: tokens.typography.fontWeight.semibold,
                   color: tokens.colors.text.primary,
                   backgroundColor: tokens.colors.background.secondary,
                   borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
+                  minWidth: 0, // Prevent grid item overflow
                 }}
               >
                 {day}
@@ -542,14 +586,13 @@ export default function CalendarPage() {
             ))}
           </div>
 
-          {/* Calendar Grid */}
+          {/* Calendar Grid - Always 7 columns, scrollable on mobile */}
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
               width: '100%',
-              overflow: 'hidden',
-              maxWidth: '100%',
+              minWidth: isMobile ? '600px' : 'auto', // Match header width for alignment
               boxSizing: 'border-box',
             }}
           >
@@ -563,13 +606,13 @@ export default function CalendarPage() {
                   key={index}
                   onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
                   style={{
-                    minHeight: typeof window !== 'undefined' && window.innerWidth < 768 ? '60px' : '80px',
+                    minHeight: isMobile ? '60px' : '80px',
                     '@media (min-width: 768px)': {
                       minHeight: '120px',
                     },
                     borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
                     borderBottom: `1px solid ${tokens.colors.border.default}`,
-                    padding: typeof window !== 'undefined' && window.innerWidth < 768
+                    padding: isMobile
                       ? tokens.spacing[1]
                       : tokens.spacing[2],
                     backgroundColor: day.isCurrentMonth
@@ -585,6 +628,7 @@ export default function CalendarPage() {
                     overflow: 'hidden',
                     wordBreak: 'break-word',
                     position: 'relative',
+                    minWidth: 0, // Prevent grid item overflow
                   } as React.CSSProperties & { '@media (min-width: 768px)': React.CSSProperties }}
                   onMouseEnter={(e) => {
                     if (day.isCurrentMonth && !day.isPast) {
@@ -671,85 +715,45 @@ export default function CalendarPage() {
                         displayTime = formatTime(new Date(booking.startAt));
                       }
 
-                      // Get status color for indicator
-                      const getStatusColor = (status: string) => {
-                        switch (status) {
-                          case 'confirmed': return tokens.colors.success.DEFAULT;
-                          case 'pending': return tokens.colors.warning.DEFAULT;
-                          case 'completed': return tokens.colors.primary.DEFAULT;
-                          case 'cancelled': return tokens.colors.error.DEFAULT;
-                          default: return tokens.colors.primary.DEFAULT;
-                        }
-                      };
-
                       return (
                         <div
                           key={booking.id}
                           onClick={(e) => {
                             e.stopPropagation();
-                            window.location.href = `/bookings/${booking.id}`;
+                            setSelectedDate(day.date);
                           }}
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: tokens.spacing[1],
-                            padding: `${tokens.spacing[1]} ${tokens.spacing[1]} ${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                            padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
                             borderRadius: tokens.borderRadius.sm,
                             fontSize: tokens.typography.fontSize.xs[0],
-                            backgroundColor: tokens.colors.background.primary,
+                            backgroundColor: tokens.colors.primary[100],
                             color: tokens.colors.text.primary,
                             cursor: 'pointer',
-                            border: `1px solid ${tokens.colors.border.default}`,
-                            width: '100%',
-                            minWidth: 0,
+                            borderLeft: `3px solid ${tokens.colors.primary.DEFAULT}`,
                           }}
                           title={`${booking.firstName} ${booking.lastName} - ${booking.service}`}
                         >
-                          {/* Text content on the left */}
                           <div
                             style={{
-                              flex: 1,
-                              minWidth: 0,
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 1,
+                              fontWeight: tokens.typography.fontWeight.semibold,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
                             }}
                           >
-                            <div
-                              style={{
-                                fontWeight: tokens.typography.fontWeight.medium,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                fontSize: tokens.typography.fontSize.xs[0],
-                              }}
-                            >
-                              {booking.firstName} {booking.lastName.charAt(0)}.
-                            </div>
-                            {displayTime && (
-                              <div
-                                style={{
-                                  fontSize: tokens.typography.fontSize.xs[0],
-                                  opacity: 0.7,
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                {displayTime}
-                              </div>
-                            )}
+                            {booking.firstName} {booking.lastName.charAt(0)}.
                           </div>
-                          {/* Status indicator dot on the right */}
                           <div
                             style={{
-                              width: '6px',
-                              height: '6px',
-                              borderRadius: tokens.borderRadius.full,
-                              backgroundColor: getStatusColor(booking.status),
-                              flexShrink: 0,
+                              fontSize: tokens.typography.fontSize.xs[0],
+                              opacity: 0.8,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
                             }}
-                          />
+                          >
+                            {displayTime}
+                          </div>
                         </div>
                       );
                     })}
@@ -836,85 +840,92 @@ export default function CalendarPage() {
                       {group.bookings.map((booking) => {
                         const start = new Date(booking.startAt);
                         const end = new Date(booking.endAt);
-                        const getStatusColor = (status: string) => {
-                          switch (status) {
-                            case 'confirmed': return tokens.colors.success.DEFAULT;
-                            case 'pending': return tokens.colors.warning.DEFAULT;
-                            case 'completed': return tokens.colors.primary.DEFAULT;
-                            case 'cancelled': return tokens.colors.error.DEFAULT;
-                            default: return tokens.colors.primary.DEFAULT;
-                          }
-                        };
                         return (
-                          <Link
+                          <div
                             key={booking.id}
-                            href={`/bookings/${booking.id}`}
                             style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: tokens.spacing[3],
-                              padding: tokens.spacing[3],
+                              padding: tokens.spacing[4],
                               borderBottom: `1px solid ${tokens.colors.border.muted}`,
-                              textDecoration: 'none',
-                              color: 'inherit',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'space-between',
+                              gap: tokens.spacing[4],
                             }}
                           >
-                            {/* Status indicator dot on the left */}
+                            <div style={{ flex: 1 }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: tokens.spacing[2],
+                                  marginBottom: tokens.spacing[2],
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontSize: tokens.typography.fontSize.base[0],
+                                    fontWeight: tokens.typography.fontWeight.semibold,
+                                    color: tokens.colors.text.primary,
+                                  }}
+                                >
+                                  {booking.service}
+                                </span>
+                                <Badge variant={getStatusBadgeVariant(booking.status)}>
+                                  {booking.status}
+                                </Badge>
+                              </div>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: tokens.spacing[1],
+                                  fontSize: tokens.typography.fontSize.sm[0],
+                                  color: tokens.colors.text.secondary,
+                                }}
+                              >
+                                <div>
+                                  <i className="fas fa-clock" style={{ marginRight: tokens.spacing[2] }} />
+                                  {formatTime(start)} - {formatTime(end)}
+                                </div>
+                                <div>
+                                  <i className="fas fa-user" style={{ marginRight: tokens.spacing[2] }} />
+                                  {booking.firstName} {booking.lastName}
+                                </div>
+                                {booking.sitter && (
+                                  <div>
+                                    <i className="fas fa-user-check" style={{ marginRight: tokens.spacing[2] }} />
+                                    Sitter: {booking.sitter.firstName} {booking.sitter.lastName}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                             <div
                               style={{
-                                width: '8px',
-                                height: '8px',
-                                borderRadius: tokens.borderRadius.full,
-                                backgroundColor: getStatusColor(booking.status),
-                                flexShrink: 0,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-end',
+                                gap: tokens.spacing[1],
                               }}
-                            />
-                            {/* Text content */}
-                            <div style={{ flex: 1, minWidth: 0 }}>
+                            >
                               <div
                                 style={{
                                   fontSize: tokens.typography.fontSize.base[0],
-                                  fontWeight: tokens.typography.fontWeight.semibold,
+                                  fontWeight: tokens.typography.fontWeight.bold,
                                   color: tokens.colors.text.primary,
-                                  marginBottom: tokens.spacing[1],
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
                                 }}
                               >
-                                {booking.firstName} {booking.lastName}
+                                ${booking.totalPrice.toFixed(2)}
                               </div>
                               <div
                                 style={{
                                   fontSize: tokens.typography.fontSize.sm[0],
                                   color: tokens.colors.text.secondary,
-                                  marginBottom: tokens.spacing[1],
                                 }}
                               >
-                                {booking.service}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: tokens.typography.fontSize.xs[0],
-                                  color: tokens.colors.text.secondary,
-                                  opacity: 0.8,
-                                }}
-                              >
-                                {formatTime(start)} - {formatTime(end)}
+                                {formatPetsByQuantity(booking.pets)}
                               </div>
                             </div>
-                            {/* Price on the right */}
-                            <div
-                              style={{
-                                fontSize: tokens.typography.fontSize.base[0],
-                                fontWeight: tokens.typography.fontWeight.semibold,
-                                color: tokens.colors.text.primary,
-                                flexShrink: 0,
-                              }}
-                            >
-                              ${booking.totalPrice.toFixed(2)}
-                            </div>
-                          </Link>
+                          </div>
                         );
                       })}
                     </div>

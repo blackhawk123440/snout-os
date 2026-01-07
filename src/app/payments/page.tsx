@@ -265,46 +265,25 @@ export default function PaymentsPage() {
       .join(' ');
   };
 
-  const getPaymentStatusColor = (status: string) => {
-    const normalized = status.toLowerCase();
-    if (normalized === 'paid' || normalized === 'succeeded') return tokens.colors.success.DEFAULT;
-    if (normalized === 'pending' || normalized === 'processing') return tokens.colors.warning.DEFAULT;
-    if (normalized === 'failed' || normalized === 'canceled' || normalized === 'requires_payment_method') return tokens.colors.error.DEFAULT;
-    return tokens.colors.primary.DEFAULT;
-  };
-
   const paymentColumns: TableColumn<Payment>[] = [
     {
       key: 'client',
       header: 'Client',
       render: (payment) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-          {/* Status indicator dot on the left */}
-          <div
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: tokens.borderRadius.full,
-              backgroundColor: getPaymentStatusColor(payment.status),
-              flexShrink: 0,
-            }}
-          />
-          {/* Text content */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-              {payment.customerName || payment.customerEmail}
-            </div>
-            {payment.customerName && (
-              <div
-                style={{
-                  fontSize: tokens.typography.fontSize.sm[0],
-                  color: tokens.colors.text.secondary,
-                }}
-              >
-                {payment.customerEmail}
-              </div>
-            )}
+        <div>
+          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+            {payment.customerName || payment.customerEmail}
           </div>
+          {payment.customerName && (
+            <div
+              style={{
+                fontSize: tokens.typography.fontSize.sm[0],
+                color: tokens.colors.text.secondary,
+              }}
+            >
+              {payment.customerEmail}
+            </div>
+          )}
         </div>
       ),
     },
