@@ -21,6 +21,8 @@ import {
   EmptyState,
   Skeleton,
   StatCard,
+  Tabs,
+  TabPanel,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -75,9 +77,30 @@ function BookingsPageContent() {
     pending: 0,
     monthlyRevenue: 0,
   });
+  const [activeTab, setActiveTab] = useState<'all' | 'today' | 'pending' | 'confirmed' | 'completed' | 'unassigned'>('all');
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'today'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'price'>('date');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+
+  // Sync activeTab with filter
+
+    if (activeTab === 'all') {
+      setFilter('all');
+    } else if (activeTab === 'today') {
+      setFilter('today');
+    } else if (activeTab === 'pending') {
+      setFilter('pending');
+    } else if (activeTab === 'confirmed') {
+      setFilter('confirmed');
+    } else if (activeTab === 'completed') {
+      setFilter('completed');
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     fetchData();
@@ -102,6 +125,10 @@ function BookingsPageContent() {
       }
 
       if (sittersRes?.ok) {
+        const data = await sittersRes.json();
+        setSitters(data.sitters || []);
+      }
+
       // Calculate overview stats
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -136,9 +163,6 @@ function BookingsPageContent() {
         pending,
         monthlyRevenue,
       });
-        const data = await sittersRes.json();
-              setSitters(data.sitters || []);
-      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
       } finally {
@@ -149,7 +173,22 @@ function BookingsPageContent() {
   const filteredAndSortedBookings = useMemo(() => {
     let filtered = bookings;
 
-    // Apply status filter
+    // Apply tab-based filter
+    if (activeTab === 'today') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      filtered = filtered.filter((b) => {
+        const start = new Date(b.startAt);
+        start.setHours(0, 0, 0, 0);
+        return start.getTime() === today.getTime();
+      });
+    } else if (activeTab === 'unassigned') {
+      filtered = filtered.filter((b) => !b.sitterId && b.status !== 'cancelled' && b.status !== 'completed');
+    } else if (activeTab !== 'all' && activeTab !== 'today' && activeTab !== 'unassigned') {
+      filtered = filtered.filter((b) => b.status === activeTab);
+    }
+
+    // Apply legacy filter (for backward compatibility)
     if (filter === 'today') {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -187,7 +226,7 @@ function BookingsPageContent() {
     });
 
     return filtered;
-  }, [bookings, filter, searchTerm, sortBy]);
+  }, [bookings, activeTab, filter, searchTerm, sortBy]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'success' | 'warning' | 'error' | 'neutral'> = {
@@ -362,76 +401,220 @@ function BookingsPageContent() {
         />
       </div>
 
-      {/* Filters and Search */}
-      <Card
-                              style={{ 
-          marginBottom: tokens.spacing[6],
-        }}
+      {/* Tabs Navigation */}
+      <Tabs
+        activeTab={activeTab}
+        onTabChange={(tabId) => setActiveTab(tabId as any)}
+        tabs={[
+          { id: 'all', label: 'All Bookings' },
+          { id: 'today', label: "Today's Visits", badge: overviewStats.todaysVisits > 0 ? overviewStats.todaysVisits : undefined },
+          { id: 'pending', label: 'Pending', badge: overviewStats.pending > 0 ? overviewStats.pending : undefined },
+          { id: 'confirmed', label: 'Confirmed' },
+          { id: 'completed', label: 'Completed' },
+          { id: 'unassigned', label: 'Unassigned', badge: overviewStats.unassigned > 0 ? overviewStats.unassigned : undefined },
+        ]}
       >
-        <div
-                                        style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: tokens.spacing[4],
+        {/* Search and Sort Controls */}
+        <Card
+          style={{ 
+            marginBottom: tokens.spacing[6],
           }}
         >
-          <Input
-            placeholder="Search bookings..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            leftIcon={<i className="fas fa-search" />}
-          />
-          <Select
-            options={[
-              { value: 'all', label: 'All Statuses' },
-              { value: 'pending', label: 'Pending' },
-              { value: 'confirmed', label: 'Confirmed' },
-              { value: 'completed', label: 'Completed' },
-              { value: 'cancelled', label: 'Cancelled' },
-              { value: 'today', label: 'Today' },
-            ]}
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as any)}
-          />
-          <Select
-            label="Sort By"
-            options={[
-              { value: 'date', label: 'Date' },
-              { value: 'name', label: 'Name' },
-              { value: 'price', label: 'Price' },
-            ]}
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-          />
-                                          </div>
-      </Card>
-
-      {/* Bookings List - Cards on mobile and desktop */}
-      {loading ? (
-        <Card>
-          <Skeleton height="400px" />
-        </Card>
-      ) : filteredAndSortedBookings.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon="📭"
-            title="No bookings found"
-            description="Create your first booking to get started."
-          />
-        </Card>
-      ) : (
-        <Card padding={!loading}>
-          <Table
-            columns={columns}
-            data={filteredAndSortedBookings}
-            emptyMessage="No bookings found. Create your first booking to get started."
-            onRowClick={(row) => {
-              window.location.href = `/bookings/${row.id}`;
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: tokens.spacing[4],
             }}
-            keyExtractor={(row) => row.id}
-          />
+          >
+            <Input
+              placeholder="Search bookings..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              leftIcon={<i className="fas fa-search" />}
+            />
+            <Select
+              label="Sort By"
+              options={[
+                { value: 'date', label: 'Date' },
+                { value: 'name', label: 'Name' },
+                { value: 'price', label: 'Price' },
+              ]}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+            />
+          </div>
         </Card>
-      )}    </AppShell>
+
+        {/* Tab Panels */}
+        <TabPanel id="all">
+          {loading ? (
+            <Card>
+              <Skeleton height="400px" />
+            </Card>
+          ) : filteredAndSortedBookings.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon="📭"
+                title="No bookings found"
+                description="Create your first booking to get started."
+              />
+            </Card>
+          ) : (
+            <Card padding={!loading}>
+              <Table
+                columns={columns}
+                data={filteredAndSortedBookings}
+                emptyMessage="No bookings found. Create your first booking to get started."
+                onRowClick={(row) => {
+                  window.location.href = `/bookings/${row.id}`;
+                }}
+                keyExtractor={(row) => row.id}
+              />
+            </Card>
+          )}
+        </TabPanel>
+
+        <TabPanel id="today">
+          {loading ? (
+            <Card>
+              <Skeleton height="400px" />
+            </Card>
+          ) : filteredAndSortedBookings.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon="📅"
+                title="No visits today"
+                description="No bookings scheduled for today."
+              />
+            </Card>
+          ) : (
+            <Card padding={!loading}>
+              <Table
+                columns={columns}
+                data={filteredAndSortedBookings}
+                emptyMessage="No visits scheduled for today."
+                onRowClick={(row) => {
+                  window.location.href = `/bookings/${row.id}`;
+                }}
+                keyExtractor={(row) => row.id}
+              />
+            </Card>
+          )}
+        </TabPanel>
+
+        <TabPanel id="pending">
+          {loading ? (
+            <Card>
+              <Skeleton height="400px" />
+            </Card>
+          ) : filteredAndSortedBookings.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon="⏳"
+                title="No pending bookings"
+                description="All bookings are confirmed or completed."
+              />
+            </Card>
+          ) : (
+            <Card padding={!loading}>
+              <Table
+                columns={columns}
+                data={filteredAndSortedBookings}
+                emptyMessage="No pending bookings."
+                onRowClick={(row) => {
+                  window.location.href = `/bookings/${row.id}`;
+                }}
+                keyExtractor={(row) => row.id}
+              />
+            </Card>
+          )}
+        </TabPanel>
+
+        <TabPanel id="confirmed">
+          {loading ? (
+            <Card>
+              <Skeleton height="400px" />
+            </Card>
+          ) : filteredAndSortedBookings.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon="✅"
+                title="No confirmed bookings"
+                description="No bookings are currently confirmed."
+              />
+            </Card>
+          ) : (
+            <Card padding={!loading}>
+              <Table
+                columns={columns}
+                data={filteredAndSortedBookings}
+                emptyMessage="No confirmed bookings."
+                onRowClick={(row) => {
+                  window.location.href = `/bookings/${row.id}`;
+                }}
+                keyExtractor={(row) => row.id}
+              />
+            </Card>
+          )}
+        </TabPanel>
+
+        <TabPanel id="completed">
+          {loading ? (
+            <Card>
+              <Skeleton height="400px" />
+            </Card>
+          ) : filteredAndSortedBookings.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon="🎉"
+                title="No completed bookings"
+                description="No bookings have been completed yet."
+              />
+            </Card>
+          ) : (
+            <Card padding={!loading}>
+              <Table
+                columns={columns}
+                data={filteredAndSortedBookings}
+                emptyMessage="No completed bookings."
+                onRowClick={(row) => {
+                  window.location.href = `/bookings/${row.id}`;
+                }}
+                keyExtractor={(row) => row.id}
+              />
+            </Card>
+          )}
+        </TabPanel>
+
+        <TabPanel id="unassigned">
+          {loading ? (
+            <Card>
+              <Skeleton height="400px" />
+            </Card>
+          ) : filteredAndSortedBookings.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon="👤"
+                title="All bookings assigned"
+                description="All active bookings have sitters assigned."
+              />
+            </Card>
+          ) : (
+            <Card padding={!loading}>
+              <Table
+                columns={columns}
+                data={filteredAndSortedBookings}
+                emptyMessage="All bookings are assigned."
+                onRowClick={(row) => {
+                  window.location.href = `/bookings/${row.id}`;
+                }}
+                keyExtractor={(row) => row.id}
+              />
+            </Card>
+          )}
+        </TabPanel>
+      </Tabs>    </AppShell>
   );
 }
 

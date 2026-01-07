@@ -8,7 +8,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PageHeader, StatCard, Card, Button, Skeleton, Badge, EmptyState } from '@/components/ui';
+import { PageHeader, StatCard, Card, Button, Skeleton, Badge, EmptyState, Tabs, TabPanel } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import Link from 'next/link';
@@ -38,6 +38,8 @@ export default function DashboardHomePage() {
     happyClients: 0,
   });
   const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
+  const [todaysBookings, setTodaysBookings] = useState<RecentBooking[]>([]);
+  const [activeTab, setActiveTab] = useState<'overview' | 'today' | 'recent'>('overview');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -83,6 +85,28 @@ export default function DashboardHomePage() {
           totalPrice: b.totalPrice || 0,
         }));
       setRecentBookings(recent);
+
+      // Get today's bookings
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const todayBookings = (bookings.bookings || [])
+        .filter((b: any) => {
+          const startDate = new Date(b.startAt);
+          return startDate >= today && startDate < tomorrow && b.status !== 'cancelled';
+        })
+        .slice(0, 10)
+        .map((b: any) => ({
+          id: b.id,
+          firstName: b.firstName,
+          lastName: b.lastName,
+          service: b.service,
+          startAt: new Date(b.startAt),
+          status: b.status,
+          totalPrice: b.totalPrice || 0,
+        }));
+      setTodaysBookings(todayBookings);
     } catch (error) {
       console.error('Failed to fetch stats:', error);
     } finally {
@@ -104,7 +128,7 @@ export default function DashboardHomePage() {
         }
       />
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Always Visible */}
       <div
         style={{
           display: 'grid',
@@ -146,172 +170,310 @@ export default function DashboardHomePage() {
         )}
       </div>
 
-      {/* Quick Actions */}
-      <Card
-        header={
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.lg[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-              color: tokens.colors.text.primary,
-            }}
-          >
-            Quick Actions
-          </div>
-        }
+      {/* Tabs Navigation */}
+      <Tabs
+        activeTab={activeTab}
+        onTabChange={(tabId) => setActiveTab(tabId as any)}
+        tabs={[
+          { id: 'overview', label: 'Overview' },
+          { id: 'today', label: "Today's Visits", badge: todaysBookings.length > 0 ? todaysBookings.length : undefined },
+          { id: 'recent', label: 'Recent Activity' },
+        ]}
       >
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: tokens.spacing[4],
-          }}
-        >
-          <Link href="/bookings">
-            <Button variant="secondary" leftIcon={<i className="fas fa-calendar-check" />}>
-              View Bookings
-            </Button>
-          </Link>
-          <Link href="/clients">
-            <Button variant="secondary" leftIcon={<i className="fas fa-users" />}>
-              Manage Clients
-            </Button>
-          </Link>
-          <Link href="/bookings/sitters">
-            <Button variant="secondary" leftIcon={<i className="fas fa-user-friends" />}>
-              Manage Sitters
-            </Button>
-          </Link>
-          <Link href="/payments">
-            <Button variant="secondary" leftIcon={<i className="fas fa-credit-card" />}>
-              View Payments
-            </Button>
-          </Link>
-        </div>
-      </Card>
-
-      {/* Recent Bookings */}
-      <Card
-        header={
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.lg[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-              color: tokens.colors.text.primary,
-            }}
-          >
-            Recent Bookings
-          </div>
-        }
-      >
-        {loading ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: tokens.spacing[2],
-            }}
-          >
-            <Skeleton height="60px" />
-            <Skeleton height="60px" />
-            <Skeleton height="60px" />
-          </div>
-        ) : recentBookings.length === 0 ? (
-          <EmptyState
-            icon="📭"
-            title="No recent bookings"
-            description="Bookings will appear here once created."
-          />
-        ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: tokens.spacing[2],
-            }}
-          >
-            {recentBookings.map((booking) => (
-              <Link
-                key={booking.id}
-                href={`/bookings/${booking.id}`}
+        <TabPanel id="overview">
+          {/* Quick Actions */}
+          <Card
+            header={
+              <div
                 style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: tokens.spacing[3],
-                  backgroundColor: tokens.colors.background.secondary,
-                  borderRadius: tokens.borderRadius.md,
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  transition: 'background-color 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                  fontSize: tokens.typography.fontSize.lg[0],
+                  fontWeight: tokens.typography.fontWeight.semibold,
+                  color: tokens.colors.text.primary,
                 }}
               >
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      fontWeight: tokens.typography.fontWeight.medium,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
-                    {booking.firstName} {booking.lastName}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                    }}
-                  >
-                    {booking.service} • {new Date(booking.startAt).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: tokens.spacing[3],
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      color: tokens.colors.text.secondary,
-                    }}
-                  >
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: 'USD',
-                    }).format(booking.totalPrice)}
-                  </div>
-                  <Badge
-                    variant={
-                      booking.status === 'confirmed'
-                        ? 'success'
-                        : booking.status === 'pending'
-                        ? 'warning'
-                        : booking.status === 'completed'
-                        ? 'default'
-                        : 'error'
-                    }
-                  >
-                    {booking.status}
-                  </Badge>
-                </div>
+                Quick Actions
+              </div>
+            }
+            style={{ marginBottom: tokens.spacing[6] }}
+          >
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: tokens.spacing[4],
+              }}
+            >
+              <Link href="/bookings">
+                <Button variant="secondary" leftIcon={<i className="fas fa-calendar-check" />}>
+                  View Bookings
+                </Button>
               </Link>
-            ))}
-          </div>
-        )}
-      </Card>
+              <Link href="/clients">
+                <Button variant="secondary" leftIcon={<i className="fas fa-users" />}>
+                  Manage Clients
+                </Button>
+              </Link>
+              <Link href="/bookings/sitters">
+                <Button variant="secondary" leftIcon={<i className="fas fa-user-friends" />}>
+                  Manage Sitters
+                </Button>
+              </Link>
+              <Link href="/payments">
+                <Button variant="secondary" leftIcon={<i className="fas fa-credit-card" />}>
+                  View Payments
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        </TabPanel>
+
+        <TabPanel id="today">
+          <Card
+            header={
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.lg[0],
+                  fontWeight: tokens.typography.fontWeight.semibold,
+                  color: tokens.colors.text.primary,
+                }}
+              >
+                Today's Visits
+              </div>
+            }
+          >
+            {loading ? (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: tokens.spacing[2],
+                }}
+              >
+                <Skeleton height="60px" />
+                <Skeleton height="60px" />
+                <Skeleton height="60px" />
+              </div>
+            ) : todaysBookings.length === 0 ? (
+              <EmptyState
+                icon="📅"
+                title="No visits today"
+                description="No bookings scheduled for today."
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: tokens.spacing[2],
+                }}
+              >
+                {todaysBookings.map((booking) => (
+                  <Link
+                    key={booking.id}
+                    href={`/bookings/${booking.id}`}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: tokens.spacing[3],
+                      backgroundColor: tokens.colors.background.secondary,
+                      borderRadius: tokens.borderRadius.md,
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      transition: 'background-color 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          fontWeight: tokens.typography.fontWeight.medium,
+                          marginBottom: tokens.spacing[1],
+                        }}
+                      >
+                        {booking.firstName} {booking.lastName}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: tokens.typography.fontSize.sm[0],
+                          color: tokens.colors.text.secondary,
+                        }}
+                      >
+                        {booking.service} • {new Date(booking.startAt).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: tokens.spacing[3],
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: tokens.typography.fontSize.sm[0],
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.text.secondary,
+                        }}
+                      >
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                        }).format(booking.totalPrice)}
+                      </div>
+                      <Badge
+                        variant={
+                          booking.status === 'confirmed'
+                            ? 'success'
+                            : booking.status === 'pending'
+                            ? 'warning'
+                            : booking.status === 'completed'
+                            ? 'default'
+                            : 'error'
+                        }
+                      >
+                        {booking.status}
+                      </Badge>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Card>
+        </TabPanel>
+
+        <TabPanel id="recent">
+          <Card
+            header={
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.lg[0],
+                  fontWeight: tokens.typography.fontWeight.semibold,
+                  color: tokens.colors.text.primary,
+                }}
+              >
+                Recent Bookings
+              </div>
+            }
+          >
+            {loading ? (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: tokens.spacing[2],
+                }}
+              >
+                <Skeleton height="60px" />
+                <Skeleton height="60px" />
+                <Skeleton height="60px" />
+              </div>
+            ) : recentBookings.length === 0 ? (
+              <EmptyState
+                icon="📭"
+                title="No recent bookings"
+                description="Bookings will appear here once created."
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: tokens.spacing[2],
+                }}
+              >
+                {recentBookings.map((booking) => (
+                  <Link
+                    key={booking.id}
+                    href={`/bookings/${booking.id}`}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: tokens.spacing[3],
+                      backgroundColor: tokens.colors.background.secondary,
+                      borderRadius: tokens.borderRadius.md,
+                      textDecoration: 'none',
+                      color: 'inherit',
+                      transition: 'background-color 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div
+                        style={{
+                          fontWeight: tokens.typography.fontWeight.medium,
+                          marginBottom: tokens.spacing[1],
+                        }}
+                      >
+                        {booking.firstName} {booking.lastName}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: tokens.typography.fontSize.sm[0],
+                          color: tokens.colors.text.secondary,
+                        }}
+                      >
+                        {booking.service} • {new Date(booking.startAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: tokens.spacing[3],
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: tokens.typography.fontSize.sm[0],
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.text.secondary,
+                        }}
+                      >
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                        }).format(booking.totalPrice)}
+                      </div>
+                      <Badge
+                        variant={
+                          booking.status === 'confirmed'
+                            ? 'success'
+                            : booking.status === 'pending'
+                            ? 'warning'
+                            : booking.status === 'completed'
+                            ? 'default'
+                            : 'error'
+                        }
+                      >
+                        {booking.status}
+                      </Badge>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </Card>
+        </TabPanel>
+      </Tabs>
     </AppShell>
   );
 }
