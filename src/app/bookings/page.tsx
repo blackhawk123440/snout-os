@@ -318,7 +318,7 @@ function BookingsPageContent() {
                                           </div>
       </Card>
 
-      {/* Bookings List - Cards on mobile, Table on desktop */}
+      {/* Bookings List - Cards on mobile and desktop */}
       {loading ? (
         <Card>
           <Skeleton height="400px" />
@@ -359,26 +359,25 @@ function BookingsPageContent() {
             </div>
           </div>
 
-          {/* Desktop: Table View */}
-          <Card
-            padding={false}
+          {/* Desktop: Compact Card Grid */}
+          <div
             style={{
               display: 'none',
               '@media (min-width: 1024px)': {
-                display: 'block',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+                gap: tokens.spacing[4],
               },
             } as React.CSSProperties & { '@media (min-width: 1024px)': React.CSSProperties }}
           >
-            <Table
-              columns={columns}
-              data={filteredAndSortedBookings}
-              emptyMessage="No bookings found. Create your first booking to get started."
-              onRowClick={(row) => {
-                window.location.href = `/bookings/${row.id}`;
-              }}
-              keyExtractor={(row) => row.id}
-            />
-          </Card>
+            {filteredAndSortedBookings.map((booking) => (
+              <BookingDetailCard
+                key={booking.id}
+                booking={booking}
+                variant="compact"
+              />
+            ))}
+          </div>
         </>
       )}
     </AppShell>
