@@ -556,10 +556,10 @@ export default function BookingDetailPage() {
                 <TabPanel id="overview">
                   <div
                     style={{
-                      padding: tokens.spacing[2],
+                      padding: tokens.spacing[3],
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: tokens.spacing[2],
+                      gap: tokens.spacing[3],
                       height: '100%',
                       overflowY: 'auto',
                       overflowX: 'hidden',
@@ -567,51 +567,51 @@ export default function BookingDetailPage() {
                     }}
                   >
                     {/* Compact Schedule Card */}
-                    <Card style={{ padding: tokens.spacing[2], flexShrink: 0 }}>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Schedule
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.xs[0] }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0] }}>
                         <div>
-                          <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(booking.startAt)}</div>
-                          <div style={{ color: tokens.colors.text.secondary }}>{formatTime(booking.startAt)}</div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
+                          <div style={{ fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[0.5] }}>{formatDate(booking.startAt)}</div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>{formatTime(booking.startAt)}</div>
                         </div>
                         <div>
-                          <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(booking.endAt)}</div>
-                          <div style={{ color: tokens.colors.text.secondary }}>{formatTime(booking.endAt)}</div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
+                          <div style={{ fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[0.5] }}>{formatDate(booking.endAt)}</div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>{formatTime(booking.endAt)}</div>
                         </div>
                       </div>
                     </Card>
                     {/* Compact Client Card */}
-                    <Card style={{ padding: tokens.spacing[2], flexShrink: 0 }}>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Client
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.xs[0] }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0] }}>
                         <div>
-                          <div style={{ color: tokens.colors.text.secondary }}>Name</div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Name</div>
                           <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{booking.firstName} {booking.lastName}</div>
                         </div>
                         <div>
-                          <div style={{ color: tokens.colors.text.secondary }}>Phone</div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Phone</div>
                           <a href={`tel:${booking.phone}`} style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none', fontWeight: tokens.typography.fontWeight.medium }}>{booking.phone}</a>
                         </div>
                         {booking.email && (
                           <div>
-                            <div style={{ color: tokens.colors.text.secondary }}>Email</div>
+                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Email</div>
                             <a href={`mailto:${booking.email}`} style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none', fontWeight: tokens.typography.fontWeight.medium }}>{booking.email}</a>
                           </div>
                         )}
                       </div>
                     </Card>
                     {booking.sitter && (
-                      <Card style={{ padding: tokens.spacing[2], flexShrink: 0 }}>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
+                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                           Assigned Sitter
                         </div>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{booking.sitter.firstName} {booking.sitter.lastName}</div>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{booking.sitter.firstName} {booking.sitter.lastName}</div>
                       </Card>
                     )}
                   </div>
