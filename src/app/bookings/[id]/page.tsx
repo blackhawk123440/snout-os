@@ -550,6 +550,7 @@ export default function BookingDetailPage() {
                   overflow: 'hidden',
                   display: 'flex',
                   flexDirection: 'column',
+                  minHeight: 0,
                 }}
               >
                 <TabPanel id="overview">
@@ -560,7 +561,9 @@ export default function BookingDetailPage() {
                       flexDirection: 'column',
                       gap: tokens.spacing[2],
                       height: '100%',
-                      overflow: 'hidden',
+                      overflowY: 'auto',
+                      overflowX: 'hidden',
+                      WebkitOverflowScrolling: 'touch',
                     }}
                   >
                     {/* Compact Schedule Card */}
@@ -614,24 +617,24 @@ export default function BookingDetailPage() {
                   </div>
                 </TabPanel>
                 <TabPanel id="schedule">
-                  <div style={{ padding: tokens.spacing[2], display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], height: '100%', overflow: 'hidden' }}>
-                    <Card style={{ padding: tokens.spacing[2], flexShrink: 0 }}>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date Range</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.xs[0] }}>
+                  <div style={{ padding: tokens.spacing[3], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], height: '100%', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+                    <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date Range</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0] }}>
                         <div>
-                          <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
                           <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDateTime(booking.startAt)}</div>
                         </div>
                         <div>
-                          <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
                           <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDateTime(booking.endAt)}</div>
                         </div>
                       </div>
                     </Card>
                     {booking.timeSlots.length > 0 && (
-                      <Card style={{ padding: tokens.spacing[2], flexShrink: 0 }}>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Time Slots ({booking.timeSlots.length})</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.xs[0] }}>
+                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
+                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Time Slots ({booking.timeSlots.length})</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
                           {booking.timeSlots.slice(0, 3).map((slot) => (
                             <div key={slot.id} style={{ padding: tokens.spacing[2], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
                               {formatTime(slot.startAt)} - {formatTime(slot.endAt)} ({slot.duration} min)
@@ -644,22 +647,22 @@ export default function BookingDetailPage() {
                       </Card>
                     )}
                     {booking.address && (
-                      <Card style={{ padding: tokens.spacing[2], flexShrink: 0 }}>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Address</div>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0] }}>{booking.address}</div>
+                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
+                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Address</div>
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>{booking.address}</div>
                       </Card>
                     )}
                   </div>
                 </TabPanel>
                 <TabPanel id="pets">
-                  <div style={{ padding: tokens.spacing[2], display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], height: '100%', overflow: 'hidden' }}>
-                    <Card style={{ padding: tokens.spacing[2], flexShrink: 0 }}>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pets ({booking.pets.length})</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.xs[0] }}>
+                  <div style={{ padding: tokens.spacing[3], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], height: '100%', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+                    <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pets ({booking.pets.length})</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
                         {booking.pets.map((pet) => (
-                          <div key={pet.id} style={{ padding: tokens.spacing[2], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
-                            <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{pet.name || 'Unnamed'} • {pet.species}</div>
-                            {pet.breed && <div style={{ color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{pet.breed}</div>}
+                          <div key={pet.id} style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
+                            <div style={{ fontWeight: tokens.typography.fontWeight.medium, marginBottom: pet.breed ? tokens.spacing[1] : 0 }}>{pet.name || 'Unnamed'} • {pet.species}</div>
+                            {pet.breed && <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>{pet.breed}</div>}
                           </div>
                         ))}
                       </div>
@@ -667,17 +670,17 @@ export default function BookingDetailPage() {
                   </div>
                 </TabPanel>
                 <TabPanel id="pricing">
-                  <div style={{ padding: tokens.spacing[2], display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], height: '100%', overflow: 'hidden' }}>
-                    <Card style={{ padding: tokens.spacing[2], flexShrink: 0 }}>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing Breakdown</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.xs[0] }}>
+                  <div style={{ padding: tokens.spacing[3], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], height: '100%', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
+                    <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing Breakdown</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
                         {pricingDisplay.breakdown.map((item, idx) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: tokens.spacing[1], borderBottom: idx < pricingDisplay.breakdown.length - 1 ? `1px solid ${tokens.colors.border.default}` : 'none' }}>
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: tokens.spacing[2], borderBottom: idx < pricingDisplay.breakdown.length - 1 ? `1px solid ${tokens.colors.border.default}` : 'none' }}>
                             <div style={{ color: tokens.colors.text.secondary }}>{item.label}</div>
                             <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatCurrency(item.amount)}</div>
                           </div>
                         ))}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: tokens.spacing[1], paddingTop: tokens.spacing[1], borderTop: `2px solid ${tokens.colors.border.default}`, fontWeight: tokens.typography.fontWeight.bold }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: tokens.spacing[2], paddingTop: tokens.spacing[2], borderTop: `2px solid ${tokens.colors.border.default}`, fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.base[0] }}>
                           <div>Total</div>
                           <div>{formatCurrency(pricingDisplay.total)}</div>
                         </div>
@@ -686,22 +689,22 @@ export default function BookingDetailPage() {
                   </div>
                 </TabPanel>
                 <TabPanel id="actions">
-                  <div style={{ padding: tokens.spacing[2], display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], height: '100%', overflow: 'hidden' }}>
+                  <div style={{ padding: tokens.spacing[3], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], height: '100%', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
                     {statusTransitions.length > 0 && (
-                      <Card style={{ padding: tokens.spacing[2], flexShrink: 0 }}>
+                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
                         <Button variant="primary" style={{ width: '100%' }} onClick={() => { setNewStatus(statusTransitions[0]); setShowStatusModal(true); }}>
                           {statusTransitions[0] === 'confirmed' ? 'Confirm Booking' : statusTransitions[0] === 'completed' ? 'Mark Complete' : `Change to ${statusTransitions[0]}`}
                         </Button>
                       </Card>
                     )}
                     {booking.sitter ? (
-                      <Card style={{ padding: tokens.spacing[2], flexShrink: 0 }}>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assigned: {booking.sitter.firstName} {booking.sitter.lastName}</div>
-                        <Button variant="secondary" style={{ width: '100%', marginBottom: tokens.spacing[2] }} onClick={() => setShowUnassignModal(true)}>Unassign</Button>
+                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
+                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assigned: {booking.sitter.firstName} {booking.sitter.lastName}</div>
+                        <Button variant="secondary" style={{ width: '100%', marginBottom: tokens.spacing[3] }} onClick={() => setShowUnassignModal(true)}>Unassign</Button>
                         <Select label="Reassign" options={sitters.filter((s) => s.id !== booking.sitter?.id).map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))} onChange={(e) => { if (e.target.value) { handleSitterAssign(e.target.value); } }} />
                       </Card>
                     ) : (
-                      <Card style={{ padding: tokens.spacing[2], flexShrink: 0 }}>
+                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
                         <Select label="Assign Sitter" options={sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))} onChange={(e) => { if (e.target.value) { handleSitterAssign(e.target.value); } }} />
                       </Card>
                     )}

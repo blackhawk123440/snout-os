@@ -63,9 +63,14 @@ export const Tabs: React.FC<TabsProps> = ({
             display: 'flex',
             gap: tokens.spacing[2],
             borderBottom: `2px solid ${tokens.colors.border.default}`,
-            marginBottom: tokens.spacing[6],
+            marginBottom: tokens.spacing[4],
             overflowX: 'auto',
-          }}
+            flexShrink: 0,
+            ...(typeof window !== 'undefined' && window.innerWidth < 1024 ? {
+              marginBottom: tokens.spacing[2],
+              padding: `0 ${tokens.spacing[2]}`,
+            } : {}),
+          } as React.CSSProperties & { '@media (max-width: 1023px)': React.CSSProperties }}
         >
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
