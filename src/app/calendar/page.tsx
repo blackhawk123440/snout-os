@@ -70,33 +70,29 @@ export default function CalendarPage() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSitterFilter, setSelectedSitterFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month');
-  const [isMobile, setIsMobile] = useState(false);
-  const [hasInitialized, setHasInitialized] = useState(false);
+  // Initialize with mobile detection on client-side only
+  const [viewMode, setViewMode] = useState<'month' | 'agenda'>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= 768 ? 'agenda' : 'month';
+    }
+    return 'month';
+  });
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth <= 768;
+    }
+    return false;
+  });
 
-  // Detect mobile and default to Agenda view on mobile (only on initial load)
+  // Update mobile state on resize (but don't change view mode after initial load)
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth <= 768;
-      setIsMobile(mobile);
-      
-      // Only set default to Agenda on initial load if mobile
-      if (!hasInitialized) {
-        if (mobile) {
-          setViewMode('agenda');
-        }
-        setHasInitialized(true);
-      }
-    };
-    
-    checkMobile();
     const handleResize = () => {
       const mobile = window.innerWidth <= 768;
       setIsMobile(mobile);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [hasInitialized]); // Include hasInitialized to prevent re-running
+  }, []); // Only run on mount
 
   useEffect(() => {
     fetchData();
@@ -566,6 +562,7 @@ export default function CalendarPage() {
           >
             {/* Day Names Header - Always 7 columns, never stack */}
             <div
+              data-calendar-grid
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(7, minmax(80px, 1fr))',
@@ -600,6 +597,7 @@ export default function CalendarPage() {
 
             {/* Calendar Grid - Always 7 columns, scrollable on mobile */}
             <div
+              data-calendar-grid
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(7, minmax(80px, 1fr))',

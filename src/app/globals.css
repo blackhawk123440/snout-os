@@ -407,8 +407,8 @@ input[type="checkbox"]:checked {
 
 /* Grid layouts should stack on mobile */
 @media (max-width: 768px) {
-  /* Stat cards grid */
-  [style*="grid-template-columns"] {
+  /* Stat cards grid - exclude calendar grids */
+  [style*="grid-template-columns"]:not([data-calendar-grid]) {
     grid-template-columns: 1fr !important;
   }
   
@@ -546,8 +546,8 @@ input[type="checkbox"]:checked {
 
 /* Grid layouts should stack on mobile */
 @media (max-width: 768px) {
-  /* Stat cards grid */
-  [style*="grid-template-columns"] {
+  /* Stat cards grid - exclude calendar grids */
+  [style*="grid-template-columns"]:not([data-calendar-grid]) {
     grid-template-columns: 1fr !important;
   }
   
