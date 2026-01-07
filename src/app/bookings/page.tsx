@@ -20,6 +20,7 @@ import {
   Select,
   EmptyState,
   Skeleton,
+  StatCard,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -50,6 +51,13 @@ interface Booking {
   }>;
 }
 
+interface OverviewStats {
+  todaysVisits: number;
+  unassigned: number;
+  pending: number;
+  monthlyRevenue: number;
+}
+
 interface Sitter {
   id: string;
   firstName: string;
@@ -61,6 +69,12 @@ function BookingsPageContent() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [sitters, setSitters] = useState<Sitter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [overviewStats, setOverviewStats] = useState<OverviewStats>({
+    todaysVisits: 0,
+    unassigned: 0,
+    pending: 0,
+    monthlyRevenue: 0,
+  });
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'today'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'price'>('date');
@@ -76,9 +90,11 @@ function BookingsPageContent() {
         fetch('/api/sitters').catch(() => null),
       ]);
 
+      let allBookings: any[] = [];
       if (bookingsRes?.ok) {
         const data = await bookingsRes.json();
-        setBookings((data.bookings || []).map((b: any) => ({
+        allBookings = data.bookings || [];
+        setBookings(allBookings.map((b: any) => ({
           ...b,
           startAt: new Date(b.startAt),
           endAt: new Date(b.endAt),
@@ -86,6 +102,40 @@ function BookingsPageContent() {
       }
 
       if (sittersRes?.ok) {
+      // Calculate overview stats
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const todaysVisits = allBookings.filter((b: any) => {
+        const startDate = new Date(b.startAt);
+        return startDate >= today && startDate < tomorrow && b.status !== 'cancelled';
+      }).length;
+
+      const unassigned = allBookings.filter((b: any) => 
+        !b.sitterId && b.status !== 'cancelled' && b.status !== 'completed'
+      ).length;
+
+      const pending = allBookings.filter((b: any) => b.status === 'pending').length;
+
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const monthlyRevenue = allBookings
+        .filter((b: any) => {
+          const bookingDate = new Date(b.createdAt);
+          return bookingDate.getMonth() === currentMonth && 
+                 bookingDate.getFullYear() === currentYear &&
+                 b.status !== 'cancelled';
+        })
+        .reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0);
+
+      setOverviewStats({
+        todaysVisits,
+        unassigned,
+        pending,
+        monthlyRevenue,
+      });
         const data = await sittersRes.json();
               setSitters(data.sitters || []);
       }
@@ -160,6 +210,13 @@ function BookingsPageContent() {
       day: 'numeric',
       year: 'numeric',
     });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
   };
 
   const formatPets = (pets: Array<{ species: string }>) => {
@@ -272,6 +329,34 @@ function BookingsPageContent() {
           </a>
         }
       />
+
+
+      {/* Overview Dashboard Cards */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: tokens.spacing[4],
+          marginBottom: tokens.spacing[6],
+        }}
+      >
+          label="Today's Visits"
+          value={overviewStats.todaysVisits}
+          icon={<i className="fas fa-calendar-day" />}
+        />
+          label="Unassigned"
+          value={overviewStats.unassigned}
+          icon={<i className="fas fa-user-slash" />}
+        />
+          label="Pending"
+          value={overviewStats.pending}
+          icon={<i className="fas fa-clock" />}
+        />
+          label="Monthly Revenue"
+          value={formatCurrency(overviewStats.monthlyRevenue)}
+          icon={<i className="fas fa-dollar-sign" />}
+        />
+      </div>
 
       {/* Filters and Search */}
       <Card
