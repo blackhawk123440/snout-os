@@ -8,7 +8,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PageHeader, StatCard, Card, Button, Skeleton } from '@/components/ui';
+import { PageHeader, StatCard, Card, Button, Skeleton, Badge, EmptyState } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import Link from 'next/link';
@@ -20,6 +20,16 @@ interface DashboardStats {
   happyClients: number;
 }
 
+interface RecentBooking {
+  id: string;
+  firstName: string;
+  lastName: string;
+  service: string;
+  startAt: Date | string;
+  status: string;
+  totalPrice: number;
+}
+
 export default function DashboardHomePage() {
   const [stats, setStats] = useState<DashboardStats>({
     totalBookings: 0,
@@ -27,6 +37,7 @@ export default function DashboardHomePage() {
     totalRevenue: 0,
     happyClients: 0,
   });
+  const [recentBookings, setRecentBookings] = useState<RecentBooking[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,6 +69,20 @@ export default function DashboardHomePage() {
         totalRevenue,
         happyClients: Math.floor(activeBookings.length * 0.95),
       });
+
+      // Get recent bookings (last 5)
+      const recent = (bookings.bookings || [])
+        .slice(0, 5)
+        .map((b: any) => ({
+          id: b.id,
+          firstName: b.firstName,
+          lastName: b.lastName,
+          service: b.service,
+          startAt: new Date(b.startAt),
+          status: b.status,
+          totalPrice: b.totalPrice || 0,
+        }));
+      setRecentBookings(recent);
     } catch (error) {
       console.error('Failed to fetch stats:', error);
     } finally {
@@ -163,6 +188,129 @@ export default function DashboardHomePage() {
             </Button>
           </Link>
         </div>
+      </Card>
+
+      {/* Recent Bookings */}
+      <Card
+        header={
+          <div
+            style={{
+              fontSize: tokens.typography.fontSize.lg[0],
+              fontWeight: tokens.typography.fontWeight.semibold,
+              color: tokens.colors.text.primary,
+            }}
+          >
+            Recent Bookings
+          </div>
+        }
+      >
+        {loading ? (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: tokens.spacing[2],
+            }}
+          >
+            <Skeleton height="60px" />
+            <Skeleton height="60px" />
+            <Skeleton height="60px" />
+          </div>
+        ) : recentBookings.length === 0 ? (
+          <EmptyState
+            icon="📭"
+            title="No recent bookings"
+            description="Bookings will appear here once created."
+          />
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: tokens.spacing[2],
+            }}
+          >
+            {recentBookings.map((booking) => (
+              <Link
+                key={booking.id}
+                href={`/bookings/${booking.id}`}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: tokens.spacing[3],
+                  backgroundColor: tokens.colors.background.secondary,
+                  borderRadius: tokens.borderRadius.md,
+                  textDecoration: 'none',
+                  color: 'inherit',
+                  transition: 'background-color 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      fontWeight: tokens.typography.fontWeight.medium,
+                      marginBottom: tokens.spacing[1],
+                    }}
+                  >
+                    {booking.firstName} {booking.lastName}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: tokens.typography.fontSize.sm[0],
+                      color: tokens.colors.text.secondary,
+                    }}
+                  >
+                    {booking.service} • {new Date(booking.startAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: tokens.spacing[3],
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: tokens.typography.fontSize.sm[0],
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: tokens.colors.text.secondary,
+                    }}
+                  >
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: 'USD',
+                    }).format(booking.totalPrice)}
+                  </div>
+                  <Badge
+                    variant={
+                      booking.status === 'confirmed'
+                        ? 'success'
+                        : booking.status === 'pending'
+                        ? 'warning'
+                        : booking.status === 'completed'
+                        ? 'default'
+                        : 'error'
+                    }
+                  >
+                    {booking.status}
+                  </Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </Card>
     </AppShell>
   );
