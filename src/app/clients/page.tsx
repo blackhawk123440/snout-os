@@ -105,30 +105,17 @@ export default function ClientsPage() {
       key: 'name',
       header: 'Client',
       render: (row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-          {/* Indicator dot on the left */}
+        <div>
+          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+            {row.firstName} {row.lastName}
+          </div>
           <div
             style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: tokens.borderRadius.full,
-              backgroundColor: tokens.colors.primary.DEFAULT,
-              flexShrink: 0,
+              fontSize: tokens.typography.fontSize.sm[0],
+              color: tokens.colors.text.secondary,
             }}
-          />
-          {/* Text content */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-              {row.firstName} {row.lastName}
-            </div>
-            <div
-              style={{
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-              }}
-            >
-              {row.email}
-            </div>
+          >
+            {row.email}
           </div>
         </div>
       ),
