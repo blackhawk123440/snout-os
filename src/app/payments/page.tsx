@@ -81,11 +81,23 @@ export default function PaymentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>({
     label: 'Last 30 Days',
     value: '30d',
     days: 30,
   });
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== 'undefined' && window.innerWidth <= 768);
+    };
+    checkMobile();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+    }
+  }, []);
 
   const timeRanges: TimeRange[] = [
     { label: 'Last 7 Days', value: '7d', days: 7 },
@@ -270,10 +282,10 @@ export default function PaymentsPage() {
       key: 'client',
       header: 'Client',
       render: (payment) => (
-        <div>
+              <div>
           <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
             {payment.customerName || payment.customerEmail}
-          </div>
+              </div>
           {payment.customerName && (
             <div
               style={{
@@ -299,7 +311,7 @@ export default function PaymentsPage() {
           }}
         >
           #{payment.id.slice(-8).toUpperCase()}
-        </div>
+          </div>
       ),
     },
     {
@@ -328,7 +340,7 @@ export default function PaymentsPage() {
       render: (payment) => (
         <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
           {getPaymentMethodLabel(payment.paymentMethod)}
-        </div>
+                  </div>
       ),
     },
     {
@@ -337,7 +349,7 @@ export default function PaymentsPage() {
       render: (payment) => (
         <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
           {formatDateTime(payment.created)}
-        </div>
+                  </div>
       ),
     },
   ];
@@ -361,7 +373,7 @@ export default function PaymentsPage() {
           <Skeleton height="120px" />
           <Skeleton height="120px" />
           <Skeleton height="120px" />
-        </div>
+                            </div>
         <Card>
           <Skeleton height="400px" />
         </Card>
@@ -424,9 +436,9 @@ export default function PaymentsPage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: tokens.spacing[6],
-          marginBottom: tokens.spacing[6],
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: isMobile ? tokens.spacing[3] : tokens.spacing[6],
+          marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[6],
         }}
       >
         <StatCard
@@ -449,19 +461,20 @@ export default function PaymentsPage() {
           value={formatCurrency(kpis.upcomingPayouts)}
           icon={<i className="fas fa-arrow-up" />}
         />
-      </div>
+            </div>
 
       {/* Filters */}
       <Card
         style={{
-          marginBottom: tokens.spacing[6],
+          marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[6],
+          padding: isMobile ? tokens.spacing[3] : undefined,
         }}
       >
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: tokens.spacing[4],
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
           }}
         >
           <Input
@@ -469,6 +482,7 @@ export default function PaymentsPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             leftIcon={<i className="fas fa-search" />}
+            style={{ width: isMobile ? '100%' : 'auto', flex: isMobile ? 'none' : 1 }}
           />
           <Select
             options={[
@@ -480,8 +494,9 @@ export default function PaymentsPage() {
             ]}
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ width: isMobile ? '100%' : 'auto', minWidth: isMobile ? '100%' : '200px' }}
           />
-        </div>
+                  </div>
       </Card>
 
       {/* Payments Table */}

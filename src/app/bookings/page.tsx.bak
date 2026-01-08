@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   PageHeader,
   Table,
@@ -66,6 +67,7 @@ interface Sitter {
 }
 
 function BookingsPageContent() {
+  const searchParams = useSearchParams();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [sitters, setSitters] = useState<Sitter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,7 @@ function BookingsPageContent() {
   const [activeTab, setActiveTab] = useState<'all' | 'today' | 'pending' | 'confirmed' | 'completed' | 'unassigned'>('all');
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'today'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'name' | 'price'>('date');
+  const [sortBy, setSortBy] = useState<\'date\' | \'name\' | \'price\'>(\'date\');
 
   // Sync activeTab with filter
   useEffect(() => {
@@ -93,84 +95,219 @@ function BookingsPageContent() {
     } else if (activeTab === 'completed') {
       setFilter('completed');
     } else if (activeTab === 'unassigned') {
-      // "unassigned" is a view-mode (not a Booking.status). Keep `filter` as a status-only filter.
-      setFilter('all');
+      setFilter('unassigned');
     }
-  }, [activeTab]);
 
-  // Initial load
   useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [bookingsRes, sittersRes] = await Promise.allSettled([
-          fetch('/api/bookings').catch(() => null),
-          fetch('/api/sitters').catch(() => null),
-        ]);
-
-        let nextBookings: Booking[] = [];
-        if (bookingsRes.status === 'fulfilled' && bookingsRes.value?.ok) {
-          const data = await bookingsRes.value.json();
-          nextBookings = (data.bookings || []) as Booking[];
-        }
-
-        let nextSitters: Sitter[] = [];
-        if (sittersRes.status === 'fulfilled' && sittersRes.value?.ok) {
-          const data = await sittersRes.value.json();
-          nextSitters = (data.sitters || []) as Sitter[];
-        }
-
-        if (cancelled) return;
-        setBookings(nextBookings);
-        setSitters(nextSitters);
-
-        // Overview stats
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-
-        const todaysVisits = nextBookings.filter((b) => {
-          const startDate = new Date(b.startAt);
-          return startDate >= today && startDate < tomorrow && b.status !== 'cancelled';
-        }).length;
-
-        const unassigned = nextBookings.filter((b) => !b.sitter?.id && b.status !== 'cancelled' && b.status !== 'completed').length;
-        const pending = nextBookings.filter((b) => b.status === 'pending').length;
-
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-        const monthlyRevenue = nextBookings
-          .filter((b) => {
-            const d = new Date(b.startAt);
-            return d.getMonth() == currentMonth && d.getFullYear() == currentYear && b.status !== 'cancelled';
-          })
-          .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
-
-        setOverviewStats({
-          todaysVisits,
-          unassigned,
-          pending,
-          monthlyRevenue,
-        });
-      } catch {
-        if (!cancelled) {
-          setBookings([]);
-          setSitters([]);
-          setOverviewStats({ todaysVisits: 0, unassigned: 0, pending: 0, monthlyRevenue: 0 });
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      const [bookingsRes, sittersRes] = await Promise.all([
+        fetch('/api/bookings').catch(() => null),
+        fetch('/api/sitters').catch(() => null),
+      ]);
+
+      let allBookings: any[] = [];
+      if (bookingsRes?.ok) {
+        const data = await bookingsRes.json();
+        allBookings = data.bookings || [];
+        setBookings(allBookings.map((b: any) => ({
+          ...b,
+          startAt: new Date(b.startAt),
+          endAt: new Date(b.endAt),
+        })));
+      }
+
+      if (sittersRes?.ok) {
+        const data = await sittersRes.json();
+        setSitters(data.sitters || []);
+      }
+
+      // Calculate overview stats
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const todaysVisits = allBookings.filter((b: any) => {
+        const startDate = new Date(b.startAt);
+        return startDate >= today && startDate < tomorrow && b.status !== 'cancelled';
+      }).length;
+
+      const unassigned = allBookings.filter((b: any) => 
+        !b.sitterId && b.status !== 'cancelled' && b.status !== 'completed'
+      ).length;
+
+      const pending = allBookings.filter((b: any) => b.status === 'pending').length;
+
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const monthlyRevenue = allBookings
+        .filter((b: any) => {
+          const bookingDate = new Date(b.createdAt);
+          return bookingDate.getMonth() === currentMonth && 
+                 bookingDate.getFullYear() === currentYear &&
+                 b.status !== 'cancelled';
+        })
+        .reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0);
+
+      setOverviewStats({
+        todaysVisits,
+        unassigned,
+        pending,
+        monthlyRevenue,
+      });
+
+      }
+
+
+
+      // Calculate overview stats
+
+      const today = new Date();
+
+      today.setHours(0, 0, 0, 0);
+
+      const tomorrow = new Date(today);
+
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+
+
+      const todaysVisits = allBookings.filter((b: any) => {
+
+        const startDate = new Date(b.startAt);
+
+        return startDate >= today && startDate < tomorrow && b.status !== 'cancelled';
+
+      }).length;
+
+
+
+      const unassigned = allBookings.filter((b: any) => 
+
+        !b.sitterId && b.status !== 'cancelled' && b.status !== 'completed'
+
+      ).length;
+
+
+
+      const pending = allBookings.filter((b: any) => b.status === 'pending').length;
+
+
+
+      const currentMonth = new Date().getMonth();
+
+      const currentYear = new Date().getFullYear();
+
+      const monthlyRevenue = allBookings
+
+        .filter((b: any) => {
+
+          const bookingDate = new Date(b.createdAt);
+
+          return bookingDate.getMonth() === currentMonth && 
+
+                 bookingDate.getFullYear() === currentYear &&
+
+                 b.status !== 'cancelled';
+
+        })
+
+        .reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0);
+
+
+
+      setOverviewStats({
+
+        todaysVisits,
+
+        unassigned,
+
+        pending,
+
+        monthlyRevenue,
+
+      });
+
+
+      // Calculate overview stats
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const todaysVisits = allBookings.filter((b: any) => {
+        const startDate = new Date(b.startAt);
+        return startDate >= today && startDate < tomorrow && b.status !== 'cancelled';
+      }).length;
+
+      const unassigned = allBookings.filter((b: any) => 
+        !b.sitterId && b.status !== 'cancelled' && b.status !== 'completed'
+      ).length;
+
+      const pending = allBookings.filter((b: any) => b.status === 'pending').length;
+
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const monthlyRevenue = allBookings
+        .filter((b: any) => {
+          const bookingDate = new Date(b.createdAt);
+          return bookingDate.getMonth() === currentMonth && 
+                 bookingDate.getFullYear() === currentYear &&
+                 b.status !== 'cancelled';
+        })
+        .reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0);
+
+      setOverviewStats({
+        todaysVisits,
+        unassigned,
+        pending,
+        monthlyRevenue,
+      });
+
+      // Calculate overview stats
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const todaysVisits = allBookings.filter((b: any) => {
+        const startDate = new Date(b.startAt);
+        return startDate >= today && startDate < tomorrow && b.status !== 'cancelled';
+      }).length;
+
+      const unassigned = allBookings.filter((b: any) => 
+        !b.sitterId && b.status !== 'cancelled' && b.status !== 'completed'
+      ).length;
+
+      const pending = allBookings.filter((b: any) => b.status === 'pending').length;
+
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const monthlyRevenue = allBookings
+        .filter((b: any) => {
+          const bookingDate = new Date(b.createdAt);
+          return bookingDate.getMonth() === currentMonth && 
+                 bookingDate.getFullYear() === currentYear &&
+                 b.status !== 'cancelled';
+        })
+        .reduce((sum: number, b: any) => sum + (b.totalPrice || 0), 0);
+
+      setOverviewStats({
+        todaysVisits,
+        unassigned,
+        pending,
+        monthlyRevenue,
+      });
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      } finally {
+          setLoading(false);
+    }
+  };
 
   const filteredAndSortedBookings = useMemo(() => {
     let filtered = bookings;
@@ -185,8 +322,8 @@ function BookingsPageContent() {
         return start.getTime() === today.getTime();
       });
     } else if (activeTab === 'unassigned') {
-      filtered = filtered.filter((b) => !b.sitter?.id && b.status !== 'cancelled' && b.status !== 'completed');
-    } else if (activeTab !== 'all') {
+      filtered = filtered.filter((b) => !b.sitterId && b.status !== 'cancelled' && b.status !== 'completed');
+    } else if (activeTab !== 'all' && activeTab !== 'today' && activeTab !== 'unassigned') {
       filtered = filtered.filter((b) => b.status === activeTab);
     }
 

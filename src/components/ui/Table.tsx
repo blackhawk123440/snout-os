@@ -48,10 +48,14 @@ export function Table<T extends Record<string, any>>({
       }}
     >
       <div
+        className="table-wrapper"
         style={{
           overflowX: 'auto',
           overflowY: 'auto',
           maxHeight: 'calc(100vh - 300px)',
+          width: '100%',
+          maxWidth: '100%',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         <table
@@ -59,6 +63,7 @@ export function Table<T extends Record<string, any>>({
           style={{
             width: '100%',
             borderCollapse: 'collapse',
+            minWidth: typeof window !== 'undefined' && window.innerWidth <= 768 ? '600px' : '100%',
             ...props.style,
           }}
         >
@@ -76,9 +81,13 @@ export function Table<T extends Record<string, any>>({
                 <th
                   key={column.key}
                   style={{
-                    padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                    padding: typeof window !== 'undefined' && window.innerWidth <= 768
+                      ? `${tokens.spacing[2]} ${tokens.spacing[2]}`
+                      : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
                     textAlign: column.align || 'left',
-                    fontSize: tokens.typography.fontSize.sm[0],
+                    fontSize: typeof window !== 'undefined' && window.innerWidth <= 768
+                      ? tokens.typography.fontSize.xs[0]
+                      : tokens.typography.fontSize.sm[0],
                     fontWeight: tokens.typography.fontWeight.semibold,
                     color: tokens.colors.text.primary,
                     textTransform: 'uppercase',
@@ -102,7 +111,9 @@ export function Table<T extends Record<string, any>>({
                     <td
                       key={column.key}
                       style={{
-                        padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
+                        padding: typeof window !== 'undefined' && window.innerWidth <= 768
+                          ? `${tokens.spacing[2]} ${tokens.spacing[2]}`
+                          : `${tokens.spacing[4]} ${tokens.spacing[4]}`,
                         textAlign: column.align || 'left',
                       }}
                     >
@@ -185,9 +196,13 @@ export function Table<T extends Record<string, any>>({
                     <td
                       key={column.key}
                       style={{
-                        padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
+                        padding: typeof window !== 'undefined' && window.innerWidth <= 768
+                          ? `${tokens.spacing[2]} ${tokens.spacing[2]}`
+                          : `${tokens.spacing[4]} ${tokens.spacing[4]}`,
                         textAlign: column.align || 'left',
-                        fontSize: tokens.typography.fontSize.base[0],
+                        fontSize: typeof window !== 'undefined' && window.innerWidth <= 768
+                          ? tokens.typography.fontSize.sm[0]
+                          : tokens.typography.fontSize.base[0],
                         color: tokens.colors.text.primary,
                       }}
                     >

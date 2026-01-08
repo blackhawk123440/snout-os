@@ -120,7 +120,7 @@ export default function CalendarPage() {
 
       if (bookingsRes?.ok) {
         const data = await bookingsRes.json();
-        setBookings(data.bookings || []);
+      setBookings(data.bookings || []);
       } else if (bookingsRes && !bookingsRes.ok) {
         throw new Error('Failed to fetch bookings');
       }
@@ -139,10 +139,10 @@ export default function CalendarPage() {
   const filteredBookings = useMemo(() => {
     return bookings.filter((booking) => {
       if (selectedSitterFilter !== 'all') {
-        return booking.sitter?.id === selectedSitterFilter;
-      }
-      return true;
-    });
+      return booking.sitter?.id === selectedSitterFilter;
+    }
+    return true;
+  });
   }, [bookings, selectedSitterFilter]);
 
   const agendaBookings = useMemo(() => {
@@ -500,8 +500,8 @@ export default function CalendarPage() {
               >
                 Agenda
               </Button>
-            </div>
-          </div>
+        </div>
+      </div>
 
           {/* Sitter Filter */}
           <div
@@ -530,8 +530,8 @@ export default function CalendarPage() {
                   label: `${s.firstName} ${s.lastName}`,
                 })),
               ]}
-              value={selectedSitterFilter}
-              onChange={(e) => setSelectedSitterFilter(e.target.value)}
+                value={selectedSitterFilter}
+                onChange={(e) => setSelectedSitterFilter(e.target.value)}
               style={{ 
                 minWidth: isMobile ? '100%' : '200px',
                 width: isMobile ? '100%' : 'auto',
@@ -556,6 +556,8 @@ export default function CalendarPage() {
           <div
             className="calendar-weekday-header"
             style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
               borderBottom: `1px solid ${tokens.colors.border.default}`,
               width: '100%',
             }}
@@ -564,11 +566,11 @@ export default function CalendarPage() {
               <div
                 key={day}
                 style={{
-                  padding: typeof window !== 'undefined' && window.innerWidth <= 768
+                  padding: isMobile
                     ? `${tokens.spacing[2]} ${tokens.spacing[1]}`
                     : tokens.spacing[3],
                   textAlign: 'center',
-                  fontSize: typeof window !== 'undefined' && window.innerWidth <= 768
+                  fontSize: isMobile
                     ? tokens.typography.fontSize.xs[0]
                     : tokens.typography.fontSize.sm[0],
                   fontWeight: tokens.typography.fontWeight.semibold,
@@ -586,6 +588,8 @@ export default function CalendarPage() {
           <div
             className="calendar-grid"
             style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
               width: '100%',
             }}
           >
@@ -599,15 +603,10 @@ export default function CalendarPage() {
                   key={index}
                   onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
                   style={{
-                    minHeight: typeof window !== 'undefined' && window.innerWidth <= 768 ? '60px' : '80px',
-                    '@media (min-width: 768px)': {
-                      minHeight: '120px',
-                    },
+                    minHeight: isMobile ? '60px' : '120px',
                     borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
                     borderBottom: `1px solid ${tokens.colors.border.default}`,
-                    padding: typeof window !== 'undefined' && window.innerWidth <= 768
-                      ? tokens.spacing[1]
-                      : tokens.spacing[2],
+                    padding: isMobile ? tokens.spacing[1] : tokens.spacing[2],
                     backgroundColor: day.isCurrentMonth
                       ? isSelected
                         ? tokens.colors.primary[50]
@@ -622,7 +621,7 @@ export default function CalendarPage() {
                     wordBreak: 'break-word',
                     position: 'relative',
                     minWidth: 0, // Prevent grid item overflow
-                  } as React.CSSProperties & { '@media (min-width: 768px)': React.CSSProperties }}
+                  }}
                   onMouseEnter={(e) => {
                     if (day.isCurrentMonth && !day.isPast) {
                       e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
@@ -670,7 +669,7 @@ export default function CalendarPage() {
                         }}
                       />
                     )}
-                  </div>
+              </div>
 
                   {/* Bookings */}
                   <div
@@ -984,8 +983,8 @@ export default function CalendarPage() {
                             marginBottom: tokens.spacing[1],
                           }}
                         >
-                          {booking.firstName} {booking.lastName}
-                        </h3>
+                            {booking.firstName} {booking.lastName}
+                          </h3>
                         <p
                           style={{
                             fontSize: tokens.typography.fontSize.base[0],
@@ -997,7 +996,7 @@ export default function CalendarPage() {
                         </p>
                       </div>
                       <Badge variant={getStatusBadgeVariant(booking.status)}>
-                        {booking.status}
+                            {booking.status}
                       </Badge>
                     </div>
 
@@ -1156,7 +1155,7 @@ export default function CalendarPage() {
                             <a href={`tel:${booking.phone}`} style={{ color: tokens.colors.primary.DEFAULT }}>
                               {booking.phone}
                             </a>
-                          </div>
+                  </div>
                         )}
                         {booking.email && (
                           <div>
@@ -1164,14 +1163,14 @@ export default function CalendarPage() {
                             <a href={`mailto:${booking.email}`} style={{ color: tokens.colors.primary.DEFAULT }}>
                               {booking.email}
                             </a>
-                          </div>
-                        )}
-                      </div>
+              </div>
+            )}
+          </div>
                     )}
                   </Card>
                 );
               })}
-            </div>
+        </div>
           )}
         </Modal>
       )}

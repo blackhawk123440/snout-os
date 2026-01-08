@@ -4,7 +4,9 @@
  * Complete rebuild using design system and components.
  * Zero legacy styling - all through components and tokens.
  * 
- * Note: This page manages Message Templates, not conversations.
+ * Features:
+ * - Conversations tab: View and send messages with masked numbers
+ * - Templates tab: Manage message templates
  */
 
 'use client';
@@ -23,9 +25,13 @@ import {
   Skeleton,
   Modal,
   FormRow,
+  Tabs,
+  TabPanel,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import ConversationList from '@/components/messaging/ConversationList';
+import ConversationView from '@/components/messaging/ConversationView';
 
 interface MessageTemplate {
   id: string;
@@ -37,7 +43,24 @@ interface MessageTemplate {
   updatedAt: string;
 }
 
+interface Conversation {
+  id: string;
+  participantName: string;
+  participantPhone: string;
+  participantType: 'client' | 'sitter';
+  bookingId: string | null;
+  bookingTitle: string | null;
+  lastMessage: string;
+  lastMessageAt: Date | string;
+  unreadCount: number;
+  messageCount: number;
+}
+
 export default function MessagesPage() {
+  const [activeTab, setActiveTab] = useState<'conversations' | 'templates'>('conversations');
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  
+  // Templates state
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -158,33 +181,64 @@ export default function MessagesPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Message Templates"
-        description="Manage automated messages and notifications"
+        title="Messages"
+        description={activeTab === 'conversations' ? "View and manage conversations" : "Manage automated message templates"}
         actions={
-          <>
-            <Button
-              variant="primary"
-              onClick={() => {
-                resetForm();
-                setShowAddForm(true);
-              }}
-              leftIcon={<i className="fas fa-plus" />}
-            >
-              New Template
-            </Button>
-            <Button
-              variant="tertiary"
-              onClick={fetchTemplates}
-              disabled={loading}
-              leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
-            >
-              Refresh
-            </Button>
-          </>
+          activeTab === 'templates' ? (
+            <>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  resetForm();
+                  setShowAddForm(true);
+                }}
+                leftIcon={<i className="fas fa-plus" />}
+              >
+                New Template
+              </Button>
+              <Button
+                variant="tertiary"
+                onClick={fetchTemplates}
+                disabled={loading}
+                leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
+              >
+                Refresh
+              </Button>
+            </>
+          ) : null
         }
       />
 
       <div style={{ padding: tokens.spacing[6] }}>
+        <Tabs
+          tabs={[
+            { id: 'conversations', label: 'Conversations' },
+            { id: 'templates', label: 'Templates' },
+          ]}
+          activeTab={activeTab}
+          onTabChange={(id) => {
+            setActiveTab(id as 'conversations' | 'templates');
+            setSelectedConversation(null);
+          }}
+        >
+          <TabPanel id="conversations">
+            {selectedConversation ? (
+              <ConversationView
+                participantPhone={selectedConversation.participantPhone}
+                participantName={selectedConversation.participantName}
+                bookingId={selectedConversation.bookingId}
+                role="owner"
+                onBack={() => setSelectedConversation(null)}
+              />
+            ) : (
+              <ConversationList
+                role="owner"
+                onSelectConversation={setSelectedConversation}
+              />
+            )}
+          </TabPanel>
+          
+          <TabPanel id="templates">
         {error && (
           <Card
             style={{
@@ -284,7 +338,9 @@ export default function MessagesPage() {
               );
             })}
           </div>
-        )}
+            )}
+          </TabPanel>
+        </Tabs>
       </div>
 
       {/* Add/Edit Form Modal */}
