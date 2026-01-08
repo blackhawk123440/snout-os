@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { COLORS } from "@/lib/booking-utils";
+import { AppShell } from "@/components/layout/AppShell";
+import {
+  PageHeader,
+  Card,
+  Button,
+  Input,
+  Modal,
+  Badge,
+  EmptyState,
+  Skeleton,
+} from "@/components/ui";
+import { tokens } from "@/lib/design-tokens";
 
 interface CalendarAccount {
   id: string;
@@ -36,7 +47,7 @@ export default function CalendarAccountsPage() {
     } catch {
       setAccounts([]);
     } finally {
-    setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -51,9 +62,10 @@ export default function CalendarAccountsPage() {
       });
 
       if (response.ok) {
-        alert("Calendar account added!");
         resetForm();
         fetchAccounts();
+      } else {
+        alert("Failed to save calendar account");
       }
     } catch {
       alert("Failed to save calendar account");
@@ -82,206 +94,223 @@ export default function CalendarAccountsPage() {
   };
 
   return (
-    <div className="min-h-screen w-full" style={{ background: COLORS.primaryLighter }}>
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm" style={{ borderColor: COLORS.border }}>
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: COLORS.primary }}>
-                <i className="fas fa-calendar-alt" style={{ color: COLORS.primaryLight }}></i>
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold" style={{ color: COLORS.primary }}>
-                  Calendar Accounts
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-500">Manage calendar integrations</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
-              <button
-                onClick={() => {
-                  resetForm();
-                  setShowAddForm(true);
-                }}
-                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all w-full sm:w-auto"
-                style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-              >
-                <i className="fas fa-plus"></i><span>Add Account</span>
-              </button>
-              <a
-                href="/calendar"
-                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-sm font-semibold border rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto"
-                style={{ color: COLORS.primary, borderColor: COLORS.border }}
-              >
-                <i className="fas fa-arrow-left"></i><span>Back to Calendar</span>
-              </a>
-            </div>
+    <AppShell>
+      <PageHeader
+        title="Calendar Accounts"
+        description="Manage calendar integrations"
+        actions={
+          <div style={{ display: "flex", gap: tokens.spacing[3] }}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                resetForm();
+                setShowAddForm(true);
+              }}
+              leftIcon={<i className="fas fa-plus" />}
+            >
+              Add Account
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => window.location.href = "/calendar"}
+              leftIcon={<i className="fas fa-arrow-left" />}
+            >
+              Back to Calendar
+            </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="max-w-[1400px] mx-auto px-8 py-6">
-        {/* Accounts List */}
-        <div className="grid gap-4">
-          {loading ? (
-            <div className="text-center py-8">
-              <i className="fas fa-spinner fa-spin text-2xl" style={{ color: COLORS.primary }}></i>
-              <p className="mt-2 text-gray-600">Loading accounts...</p>
+      <div style={{ padding: tokens.spacing[6] }}>
+        {loading ? (
+          <Card>
+            <div style={{ padding: tokens.spacing[6], textAlign: "center" }}>
+              <Skeleton height={200} />
             </div>
-          ) : accounts.length === 0 ? (
-            <div className="text-center py-8">
-              <i className="fas fa-calendar-alt text-4xl text-gray-300 mb-4"></i>
-              <p className="text-gray-600">No calendar accounts found</p>
-            </div>
-          ) : (
-            accounts.map((account) => (
-              <div
-                key={account.id}
-                className="bg-white rounded-lg p-6 border-2 hover:shadow-md transition-all"
-                style={{ borderColor: COLORS.primaryLight }}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: COLORS.primaryLight }}>
-                        <i className={`fab fa-${account.provider} text-xl`} style={{ color: COLORS.primary }}></i>
+          </Card>
+        ) : accounts.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon="📅"
+              title="No calendar accounts"
+              description="Add a calendar account to get started"
+            />
+          </Card>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: tokens.spacing[4] }}>
+            {accounts.map((account) => (
+              <Card key={account.id}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    gap: tokens.spacing[4],
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: tokens.spacing[3],
+                        marginBottom: tokens.spacing[3],
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "3rem",
+                          height: "3rem",
+                          borderRadius: tokens.borderRadius.full,
+                          backgroundColor: tokens.colors.primary[100],
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <i
+                          className={`fab fa-${account.provider}`}
+                          style={{
+                            fontSize: tokens.typography.fontSize.xl[0],
+                            color: tokens.colors.primary.DEFAULT,
+                          }}
+                        />
                       </div>
                       <div>
-                        <h3 className="font-bold text-lg" style={{ color: COLORS.primary }}>
+                        <div
+                          style={{
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            fontSize: tokens.typography.fontSize.lg[0],
+                            marginBottom: tokens.spacing[1],
+                          }}
+                        >
                           {account.email}
-                        </h3>
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-1 text-xs font-bold rounded bg-blue-100 text-blue-700">
-                            {account.provider}
-                          </span>
-                          <span className={`px-2 py-1 text-xs font-bold rounded ${
-                            account.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                          }`}>
+                        </div>
+                        <div style={{ display: "flex", gap: tokens.spacing[2] }}>
+                          <Badge variant="default">{account.provider}</Badge>
+                          <Badge
+                            variant={account.isActive ? "success" : "error"}
+                          >
                             {account.isActive ? "Active" : "Inactive"}
-                          </span>
+                          </Badge>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="text-sm text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <i className="fas fa-calendar w-4"></i>
-                        <span>Added {new Date(account.createdAt).toLocaleDateString()}</span>
-                      </div>
+                    <div
+                      style={{
+                        fontSize: tokens.typography.fontSize.sm[0],
+                        color: tokens.colors.text.secondary,
+                      }}
+                    >
+                      <i className="fas fa-calendar" style={{ marginRight: tokens.spacing[2] }} />
+                      Added {new Date(account.createdAt).toLocaleDateString()}
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 ml-6">
-                    <button
+                  <div style={{ display: "flex", alignItems: "center", gap: tokens.spacing[2] }}>
+                    <Button
+                      variant={account.isActive ? "danger" : "primary"}
                       onClick={() => handleToggleActive(account.id, account.isActive)}
-                      className={`px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all ${
-                        account.isActive 
-                          ? "bg-red-500 text-white" 
-                          : "bg-green-500 text-white"
-                      }`}
+                      leftIcon={
+                        <i className={`fas fa-${account.isActive ? "pause" : "play"}`} />
+                      }
                     >
-                      <i className={`fas fa-${account.isActive ? 'pause' : 'play'} mr-2`}></i>
                       {account.isActive ? "Deactivate" : "Activate"}
-                    </button>
+                    </Button>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Add Form Modal */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4" style={{ color: COLORS.primary }}>
-              Add Calendar Account
-            </h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: COLORS.primaryLight }}
-                />
-              </div>
+      <Modal
+        isOpen={showAddForm}
+        onClose={resetForm}
+        title="Add Calendar Account"
+        size="full"
+      >
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: tokens.spacing[4] }}>
+          <Input
+            label="Email *"
+            type="email"
+            required
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="Enter email address"
+          />
 
-              <div>
-                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                  Provider *
-                </label>
-                <select
-                  required
-                  value={formData.provider}
-                  onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: COLORS.primaryLight }}
-                >
-                  <option value="google">Google Calendar</option>
-                  <option value="outlook">Outlook</option>
-                  <option value="apple">Apple Calendar</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                  Access Token *
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={formData.accessToken}
-                  onChange={(e) => setFormData({ ...formData, accessToken: e.target.value })}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: COLORS.primaryLight }}
-                  placeholder="Paste your access token here"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-1" style={{ color: COLORS.primary }}>
-                  Refresh Token
-                </label>
-                <input
-                  type="password"
-                  value={formData.refreshToken}
-                  onChange={(e) => setFormData({ ...formData, refreshToken: e.target.value })}
-                  className="w-full px-3 py-2 border-2 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ borderColor: COLORS.primaryLight }}
-                  placeholder="Paste your refresh token here (optional)"
-                />
-              </div>
-              
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 text-sm font-bold rounded-lg hover:opacity-90 transition-all"
-                  style={{ background: COLORS.primary, color: COLORS.primaryLight }}
-                >
-                  Add Account
-                </button>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="flex-1 px-4 py-2 text-sm font-bold border-2 rounded-lg hover:opacity-90 transition-all"
-                  style={{ color: COLORS.gray, borderColor: COLORS.border }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontSize: tokens.typography.fontSize.sm[0],
+                fontWeight: tokens.typography.fontWeight.semibold,
+                marginBottom: tokens.spacing[2],
+                color: tokens.colors.text.primary,
+              }}
+            >
+              Provider *
+            </label>
+            <select
+              required
+              value={formData.provider}
+              onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
+              style={{
+                width: "100%",
+                padding: tokens.spacing[3],
+                border: `1px solid ${tokens.colors.border.default}`,
+                borderRadius: tokens.borderRadius.md,
+                fontSize: tokens.typography.fontSize.base[0],
+                backgroundColor: tokens.colors.background.primary,
+                color: tokens.colors.text.primary,
+              }}
+            >
+              <option value="google">Google Calendar</option>
+              <option value="outlook">Outlook</option>
+              <option value="apple">Apple Calendar</option>
+            </select>
           </div>
-        </div>
-      )}
-    </div>
+          
+          <Input
+            label="Access Token *"
+            type="password"
+            required
+            value={formData.accessToken}
+            onChange={(e) => setFormData({ ...formData, accessToken: e.target.value })}
+            placeholder="Paste your access token here"
+          />
+
+          <Input
+            label="Refresh Token"
+            type="password"
+            value={formData.refreshToken}
+            onChange={(e) => setFormData({ ...formData, refreshToken: e.target.value })}
+            placeholder="Paste your refresh token here (optional)"
+          />
+          
+          <div style={{ display: "flex", gap: tokens.spacing[3], paddingTop: tokens.spacing[4] }}>
+            <Button
+              type="submit"
+              variant="primary"
+              style={{ flex: 1 }}
+            >
+              Add Account
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={resetForm}
+              style={{ flex: 1 }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </Modal>
+    </AppShell>
   );
 }

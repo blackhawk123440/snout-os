@@ -255,6 +255,14 @@ function SitterDashboardContent() {
       <PageHeader
         title={isAdminView ? `Sitter Dashboard: ${dashboardData.sitter.firstName} ${dashboardData.sitter.lastName}` : "My Dashboard"}
         description={isAdminView ? "Read-only admin view" : undefined}
+        actions={
+          dashboardData.tier ? (
+            <Badge variant="success" style={{ fontSize: tokens.typography.fontSize.sm[0], padding: `${tokens.spacing[2]} ${tokens.spacing[4]}` }}>
+              <i className="fas fa-star" style={{ marginRight: tokens.spacing[2] }} />
+              {dashboardData.tier.name} (Level {dashboardData.tier.priorityLevel})
+            </Badge>
+          ) : undefined
+        }
       />
 
       <div style={{ padding: tokens.spacing[6] }}>
