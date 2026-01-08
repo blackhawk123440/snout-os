@@ -22,6 +22,7 @@ import {
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 interface Sitter {
   id: string;
@@ -49,18 +50,7 @@ export default function SittersPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSitter, setEditingSitter] = useState<Sitter | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(typeof window !== 'undefined' && window.innerWidth <= 768);
-    };
-    checkMobile();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', checkMobile);
-      return () => window.removeEventListener('resize', checkMobile);
-    }
-  }, []);
+  const isMobile = useMobile();
   
   const [formData, setFormData] = useState({
     firstName: "",
