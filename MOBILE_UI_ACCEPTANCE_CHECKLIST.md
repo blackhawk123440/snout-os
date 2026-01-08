@@ -1,0 +1,431 @@
+# Mobile UI Acceptance Checklist
+## Snout OS Mobile UI Reconstruction
+
+This checklist matches the acceptance criteria for the mobile UI reconstruction. Each item is specific and testable.
+
+---
+
+## Global Criteria
+
+### A. No horizontal scroll on iPhone widths 390x844 and 430x932
+**Test:** 
+1. Open DevTools, set device to iPhone 12/13 (390x844)
+2. Navigate through all pages
+3. Scroll both vertically and horizontally
+4. **Expected:** No horizontal scroll indicator appears at bottom of viewport
+5. Repeat with iPhone 14 Pro Max (430x932)
+
+**Pages to test:**
+- [ ] Dashboard
+- [ ] Bookings list
+- [ ] Booking detail
+- [ ] Clients
+- [ ] Sitters management
+- [ ] Calendar
+- [ ] Automations
+- [ ] Payments
+
+**Status:** ⚠️ Pending - Table components need mobile labels
+
+---
+
+### B. All modals are full height sheets on mobile and never cut off content
+**Test:**
+1. On mobile viewport, open any modal
+2. Verify modal appears from bottom of screen
+3. Verify modal takes up ~90% of viewport height
+4. Verify handle bar visible at top of modal
+5. Scroll modal content - verify all content accessible
+6. **Expected:** Modal is bottom sheet, all content scrollable, no cutoff
+
+**Modals to test:**
+- [ ] Edit Booking modal (from booking detail)
+- [ ] Status change modal (from booking detail)
+- [ ] Unassign sitter modal (from booking detail)
+- [ ] Add sitter modal (from sitters page)
+- [ ] Edit sitter modal (from sitters page)
+- [ ] Add account modal (from calendar page)
+
+**Status:** ✅ Complete - Modal component fixed
+
+---
+
+### C. Buttons have consistent height, padding, radius, icon alignment, and visual hierarchy
+**Test:**
+1. Inspect buttons across all pages on mobile
+2. Verify all buttons minimum 44px height
+3. Verify consistent padding within each size variant
+4. Verify consistent border radius
+5. Verify icon alignment (left/right) consistent
+6. Verify visual hierarchy (primary vs secondary vs tertiary)
+7. **Expected:** All buttons consistent, minimum 44px, proper touch targets
+
+**Buttons to test:**
+- [ ] Primary buttons
+- [ ] Secondary buttons
+- [ ] Tertiary/Ghost buttons
+- [ ] Danger buttons
+- [ ] Buttons with left icons
+- [ ] Buttons with right icons
+- [ ] Buttons with no icons
+
+**Status:** ✅ Complete - Button component fixed
+
+---
+
+## Bookings List Criteria
+
+### A. Status filter bar is readable and scrollable without cramming
+**Test:**
+1. Navigate to Bookings page
+2. Locate status filter tabs at top
+3. Verify tabs are readable (no truncation)
+4. Swipe/scroll tabs horizontally
+5. **Expected:** Tabs scroll smoothly, all text readable, proper spacing
+
+**Status:** ✅ Complete - Tabs component fixed
+
+---
+
+### B. Booking rows render as a mobile card list, not a table
+**Test:**
+1. Navigate to Bookings page on mobile
+2. Verify bookings display as cards (not table rows)
+3. Each card shows:
+   - Client name and phone
+   - Service and pets
+   - Date and time
+   - Sitter assignment
+   - Status badge
+   - Total price
+4. **Expected:** Card layout with label-value pairs, no table
+
+**Status:** ⚠️ Pending - Need to add mobile labels to columns
+
+---
+
+### C. No horizontal scroll. No truncated important info
+**Test:**
+1. Navigate to Bookings page
+2. Verify no horizontal scroll
+3. Verify all important info visible:
+   - Client name (full)
+   - Phone number (full)
+   - Service type (full)
+   - Date/time (readable)
+   - Price (full)
+4. **Expected:** No scroll, all info readable
+
+**Status:** ⚠️ Pending - Depends on Table card layout
+
+---
+
+### D. Sort and search area does not smash
+**Test:**
+1. Navigate to Bookings page
+2. Locate search and sort controls
+3. Verify:
+   - Search input full width
+   - Sort dropdown full width
+   - Proper spacing between controls
+   - No overlapping elements
+4. **Expected:** Controls stack vertically, full width, proper spacing
+
+**Status:** ⚠️ Pending - Need responsive grid fix
+
+---
+
+## Booking Detail Criteria
+
+### A. Mobile layout uses single page with collapsible sections and bottom action bar
+**Test:**
+1. Navigate to booking detail page on mobile
+2. Verify:
+   - Single page layout (no tabs)
+   - Collapsible sections for:
+     - Schedule
+     - Client information
+     - Pets
+     - Pricing
+     - Status history
+   - Bottom action bar with Edit button visible
+3. **Expected:** Single page, collapsible sections, bottom action bar
+
+**Status:** ⚠️ Needs Implementation - Currently uses tabs
+
+---
+
+### B. Must include Edit Booking button on mobile that opens full height bottom sheet modal
+**Test:**
+1. Navigate to booking detail on mobile
+2. Locate Edit Booking button (in bottom action bar)
+3. Tap Edit Booking button
+4. Verify modal opens as bottom sheet
+5. Verify modal is full height (~90vh)
+6. **Expected:** Button visible, modal opens as bottom sheet
+
+**Status:** ⚠️ Needs Implementation - Edit button needs to be in bottom bar
+
+---
+
+### C. Actions grouped into three sections
+**Test:**
+1. Navigate to booking detail on mobile
+2. Verify actions grouped into:
+   - **Operational:**
+     - Status change
+     - Sitter assignment
+   - **Financial:**
+     - Payment link
+     - Tip link
+     - View in Stripe
+   - **Utility:**
+     - Copy booking ID
+     - Copy details
+     - Cancel booking
+3. **Expected:** Actions clearly grouped, labeled, accessible
+
+**Status:** ⚠️ Needs Implementation - Actions need reorganization
+
+---
+
+### D. Financial actions must include confirmation and message preview before send
+**Test:**
+1. Navigate to booking detail
+2. Locate financial actions (payment link, tip link)
+3. Tap a financial action
+4. Verify confirmation dialog appears
+5. Verify message preview shown
+6. **Expected:** Confirmation required, message preview visible
+
+**Status:** ⚠️ Needs Implementation - Requires confirmation flow
+
+---
+
+### E. No long stacked form look. Read only intelligence first, operations second
+**Test:**
+1. Navigate to booking detail on mobile
+2. Verify:
+   - Read-only information displayed first (client, schedule, pets, pricing)
+   - Action buttons and controls below read-only info
+   - Layout feels like control surface, not form
+3. **Expected:** Intelligence first, operations second, not form-like
+
+**Status:** ⚠️ Needs Implementation - Layout needs reorganization
+
+---
+
+## Clients Criteria
+
+### A. Client list renders as mobile cards
+**Test:**
+1. Navigate to Clients page on mobile
+2. Verify clients display as cards (not table)
+3. Each card shows:
+   - Client name
+   - Email
+   - Phone
+   - Pet count
+   - Total bookings
+   - Last booking date
+4. **Expected:** Card layout with all info readable
+
+**Status:** ⚠️ Pending - Need to add mobile labels to columns
+
+---
+
+### B. No horizontal scroll
+**Test:**
+1. Navigate to Clients page
+2. Verify no horizontal scroll
+3. **Expected:** No horizontal scroll indicator
+
+**Status:** ⚠️ Pending - Depends on Table card layout
+
+---
+
+## Sitters Management Criteria
+
+### A. Cards not cramped. View dashboard button visible and full width on mobile
+**Test:**
+1. Navigate to Sitters management page
+2. Verify:
+   - Sitter cards have proper padding
+   - Cards not cramped
+   - "View dashboard" button visible
+   - Button full width on mobile
+3. **Expected:** Cards readable, button full width
+
+**Status:** ⚠️ Needs Review
+
+---
+
+### B. Add sitter and edit sitter modals are full height sheets
+**Test:**
+1. Navigate to Sitters page
+2. Tap "Add Sitter" button
+3. Verify modal opens as bottom sheet
+4. Verify modal is full height
+5. Repeat for Edit Sitter
+6. **Expected:** Modals are bottom sheets, full height
+
+**Status:** ✅ Complete - Modal component handles this
+
+---
+
+### C. Active sitter toggle aligned properly
+**Test:**
+1. Navigate to Sitters page
+2. Locate active sitter toggle
+3. Verify toggle properly aligned
+4. **Expected:** Toggle aligned correctly, not cut off
+
+**Status:** ⚠️ Needs Review
+
+---
+
+## Calendar Criteria
+
+### A. Header controls do not smash (today, month nav, view toggle)
+**Test:**
+1. Navigate to Calendar page
+2. Locate header controls:
+   - Today button
+   - Month navigation (prev/next)
+   - View toggle (Month/Agenda)
+3. Verify:
+   - Controls not overlapping
+   - All text readable
+   - Buttons properly sized
+   - Proper spacing
+4. **Expected:** Controls readable, no overlap, proper spacing
+
+**Status:** ⚠️ Needs Review - Calendar has mobile handling but needs verification
+
+---
+
+### B. Add account modal is full height and fits
+**Test:**
+1. Navigate to Calendar page
+2. Open "Add account" modal (if applicable)
+3. Verify modal is bottom sheet
+4. Verify all content fits and is scrollable
+5. **Expected:** Modal is bottom sheet, content accessible
+
+**Status:** ✅ Complete - Modal component handles this
+
+---
+
+## Automations Criteria
+
+### A. Automation cards readable, buttons usable, filter tabs scroll properly
+**Test:**
+1. Navigate to Automations page
+2. Verify:
+   - Automation cards readable (not cramped)
+   - Buttons in cards are properly sized (min 44px)
+   - Filter tabs scroll horizontally
+   - All text readable
+3. **Expected:** Cards readable, buttons usable, tabs scroll
+
+**Status:** ⚠️ Needs Review - Tabs component fix should help
+
+---
+
+## Payments Criteria
+
+### A. Transaction list renders as mobile cards with label value layout
+**Test:**
+1. Navigate to Payments page
+2. Verify transactions display as cards
+3. Each card shows:
+   - Client name/email
+   - Invoice reference
+   - Amount
+   - Status
+   - Payment method
+   - Date
+4. **Expected:** Card layout with label-value pairs
+
+**Status:** ⚠️ Pending - Need to add mobile labels to columns
+
+---
+
+### B. No horizontal scroll
+**Test:**
+1. Navigate to Payments page
+2. Verify no horizontal scroll
+3. **Expected:** No horizontal scroll indicator
+
+**Status:** ⚠️ Pending - Depends on Table card layout
+
+---
+
+## Summary
+
+### Completed ✅
+- Modal component (full-height bottom sheets)
+- Button component (consistent sizing, 44px minimum)
+- Card component (compact mobile padding)
+- Tabs component (horizontal scrolling)
+- PageHeader component (responsive layout)
+- Mobile utility hook
+
+### In Progress ⚠️
+- Booking detail page (needs redesign)
+- Table column mobile labels (multiple pages)
+- Responsive grid layouts (search/sort controls)
+
+### Needs Review 🔍
+- Sitters management page
+- Calendar page
+- Automations page
+
+---
+
+## Testing Instructions
+
+1. **Setup:**
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+2. **Open DevTools:**
+   - Chrome: F12 or Cmd+Option+I
+   - Safari: Cmd+Option+I
+   - Enable device toolbar
+   - Select iPhone 12/13 (390x844) or iPhone 14 Pro Max (430x932)
+
+3. **Test Each Page:**
+   - Navigate through all pages
+   - Verify no horizontal scroll
+   - Verify modals are bottom sheets
+   - Verify buttons are 44px minimum
+   - Verify tables render as cards
+   - Verify tabs scroll horizontally
+
+4. **Document Issues:**
+   - Screenshot any problems
+   - Note page and action that caused issue
+   - Verify on actual device if possible
+
+---
+
+## Acceptance Sign-off
+
+- [ ] All Global Criteria met
+- [ ] All Bookings List Criteria met
+- [ ] All Booking Detail Criteria met
+- [ ] All Clients Criteria met
+- [ ] All Sitters Management Criteria met
+- [ ] All Calendar Criteria met
+- [ ] All Automations Criteria met
+- [ ] All Payments Criteria met
+- [ ] Typecheck passes
+- [ ] Build succeeds
+- [ ] Tested on actual iOS device
+
+**Sign-off Date:** _____________  
+**Sign-off By:** _____________
+

@@ -26,6 +26,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { TableColumn } from '@/components/ui/Table';
+import { useMobile } from '@/lib/use-mobile';
 
 interface Booking {
   id: string;
@@ -66,6 +67,7 @@ interface Sitter {
 }
 
 function BookingsPageContent() {
+  const isMobile = useMobile();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [sitters, setSitters] = useState<Sitter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -274,6 +276,8 @@ function BookingsPageContent() {
     {
       key: 'client',
       header: 'Client',
+      mobileLabel: 'Client',
+      mobileOrder: 1,
       render: (row) => (
                 <div>
           <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
@@ -293,6 +297,8 @@ function BookingsPageContent() {
     {
       key: 'service',
       header: 'Service',
+      mobileLabel: 'Service',
+      mobileOrder: 5,
       render: (row) => (
         <div>
           <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{row.service}</div>
@@ -310,6 +316,8 @@ function BookingsPageContent() {
     {
       key: 'date',
       header: 'Date',
+      mobileLabel: 'Date & Time',
+      mobileOrder: 4,
       render: (row) => (
         <div>
           <div>{formatDate(row.startAt)}</div>
@@ -330,6 +338,8 @@ function BookingsPageContent() {
     {
       key: 'sitter',
       header: 'Sitter',
+      mobileLabel: 'Assigned Sitter',
+      mobileOrder: 6,
       render: (row) =>
         row.sitter ? (
                                           <div>
@@ -342,12 +352,16 @@ function BookingsPageContent() {
     {
       key: 'status',
       header: 'Status',
+      mobileLabel: 'Status',
+      mobileOrder: 2,
       render: (row) => getStatusBadge(row.status),
       align: 'center',
     },
     {
       key: 'price',
       header: 'Price',
+      mobileLabel: 'Total Price',
+      mobileOrder: 3,
       render: (row) => (
         <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
           ${row.totalPrice.toFixed(2)}
@@ -376,7 +390,7 @@ function BookingsPageContent() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: tokens.spacing[4],
           marginBottom: tokens.spacing[6],
         }}
@@ -425,7 +439,7 @@ function BookingsPageContent() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: tokens.spacing[4],
             }}
           >

@@ -2,10 +2,13 @@
  * Table Component
  * 
  * Enterprise data table with sticky header, row hover, empty states, and loading skeletons.
+ * On mobile, renders as card list instead of table.
  */
 
 import React from 'react';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
+import { Card } from './Card';
 
 export interface TableColumn<T = any> {
   key: string;
@@ -13,6 +16,8 @@ export interface TableColumn<T = any> {
   render?: (row: T, index: number) => React.ReactNode;
   align?: 'left' | 'center' | 'right';
   width?: string;
+  mobileLabel?: string; // Label for mobile card view
+  mobileOrder?: number; // Order in mobile view (lower = first)
 }
 
 export interface TableProps<T = any> extends React.HTMLAttributes<HTMLTableElement> {
@@ -33,11 +38,135 @@ export function Table<T extends Record<string, any>>({
   keyExtractor,
   ...props
 }: TableProps<T>) {
+  const isMobile = useMobile();
+  
   const getKey = (row: T, index: number): string => {
     if (keyExtractor) return keyExtractor(row, index);
     return row.id || row.key || `row-${index}`;
   };
 
+  // Mobile Card Layout
+  if (isMobile) {
+    const sortedColumns = [...columns].sort((a, b) => {
+      const orderA = a.mobileOrder ?? 999;
+      const orderB = b.mobileOrder ?? 999;
+      return orderA - orderB;
+    });
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: tokens.spacing[3],
+        }}
+      >
+        {loading ? (
+          Array.from({ length: 5 }).map((_, index) => (
+            <Card key={`skeleton-${index}`} style={{ padding: tokens.spacing[4] }}>
+              <div
+                style={{
+                  height: '1rem',
+                  backgroundColor: tokens.colors.neutral[200],
+                  borderRadius: tokens.borderRadius.sm,
+                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                  marginBottom: tokens.spacing[2],
+                }}
+              />
+              <div
+                style={{
+                  height: '1rem',
+                  width: '60%',
+                  backgroundColor: tokens.colors.neutral[200],
+                  borderRadius: tokens.borderRadius.sm,
+                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                }}
+              />
+            </Card>
+          ))
+        ) : data.length === 0 ? (
+          <Card style={{ padding: tokens.spacing[6] }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: tokens.spacing[2],
+                color: tokens.colors.text.secondary,
+              }}
+            >
+              <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], opacity: 0.5 }}>📭</div>
+              <p style={{ fontSize: tokens.typography.fontSize.base[0], margin: 0 }}>{emptyMessage}</p>
+            </div>
+          </Card>
+        ) : (
+          data.map((row, index) => (
+            <Card
+              key={getKey(row, index)}
+              onClick={() => onRowClick?.(row, index)}
+              style={{
+                padding: tokens.spacing[4],
+                cursor: onRowClick ? 'pointer' : 'default',
+                transition: `all ${tokens.transitions.duration.DEFAULT}`,
+              }}
+              onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
+                if (onRowClick) {
+                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                }
+              }}
+              onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
+                e.currentTarget.style.backgroundColor = tokens.colors.background.primary;
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                {sortedColumns.map((column) => {
+                  const content = column.render ? column.render(row, index) : row[column.key];
+                  const label = column.mobileLabel || column.header;
+                  
+                  return (
+                    <div key={column.key} style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
+                      <div
+                        style={{
+                          fontSize: tokens.typography.fontSize.xs[0],
+                          fontWeight: tokens.typography.fontWeight.medium,
+                          color: tokens.colors.text.secondary,
+                          textTransform: 'uppercase',
+                          letterSpacing: tokens.typography.letterSpacing.wide,
+                        }}
+                      >
+                        {label}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: tokens.typography.fontSize.base[0],
+                          color: tokens.colors.text.primary,
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {content}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          ))
+        )}
+        <style jsx>{`
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.5;
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // Desktop Table Layout
   return (
     <div
       style={{
@@ -63,7 +192,6 @@ export function Table<T extends Record<string, any>>({
           style={{
             width: '100%',
             borderCollapse: 'collapse',
-            minWidth: typeof window !== 'undefined' && window.innerWidth <= 768 ? '600px' : '100%',
             ...props.style,
           }}
         >
@@ -81,13 +209,9 @@ export function Table<T extends Record<string, any>>({
                 <th
                   key={column.key}
                   style={{
-                    padding: typeof window !== 'undefined' && window.innerWidth <= 768
-                      ? `${tokens.spacing[2]} ${tokens.spacing[2]}`
-                      : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                    padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
                     textAlign: column.align || 'left',
-                    fontSize: typeof window !== 'undefined' && window.innerWidth <= 768
-                      ? tokens.typography.fontSize.xs[0]
-                      : tokens.typography.fontSize.sm[0],
+                    fontSize: tokens.typography.fontSize.sm[0],
                     fontWeight: tokens.typography.fontWeight.semibold,
                     color: tokens.colors.text.primary,
                     textTransform: 'uppercase',
@@ -111,9 +235,7 @@ export function Table<T extends Record<string, any>>({
                     <td
                       key={column.key}
                       style={{
-                        padding: typeof window !== 'undefined' && window.innerWidth <= 768
-                          ? `${tokens.spacing[2]} ${tokens.spacing[2]}`
-                          : `${tokens.spacing[4]} ${tokens.spacing[4]}`,
+                        padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
                         textAlign: column.align || 'left',
                       }}
                     >
@@ -196,13 +318,9 @@ export function Table<T extends Record<string, any>>({
                     <td
                       key={column.key}
                       style={{
-                        padding: typeof window !== 'undefined' && window.innerWidth <= 768
-                          ? `${tokens.spacing[2]} ${tokens.spacing[2]}`
-                          : `${tokens.spacing[4]} ${tokens.spacing[4]}`,
+                        padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
                         textAlign: column.align || 'left',
-                        fontSize: typeof window !== 'undefined' && window.innerWidth <= 768
-                          ? tokens.typography.fontSize.sm[0]
-                          : tokens.typography.fontSize.base[0],
+                        fontSize: tokens.typography.fontSize.base[0],
                         color: tokens.colors.text.primary,
                       }}
                     >
