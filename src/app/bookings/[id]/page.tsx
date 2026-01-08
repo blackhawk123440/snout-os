@@ -110,6 +110,17 @@ export default function BookingDetailPage() {
   const [sitters, setSitters] = useState<Sitter[]>([]);
 
   useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== 'undefined' && window.innerWidth <= 768);
+    };
+    checkMobile();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+    }
+  }, []);
+
+  useEffect(() => {
     if (bookingId) {
       fetchBooking();
       fetchStatusHistory();
@@ -716,48 +727,48 @@ export default function BookingDetailPage() {
         ) : (
           <>
             {/* Desktop Page Header */}
-            <PageHeader
-              title={`Booking - ${booking.firstName} ${booking.lastName}`}
-              description={`${formatDate(booking.startAt)} - ${formatDate(booking.endAt)} • ${booking.status}${booking.sitter ? ` • Assigned: ${booking.sitter.firstName} ${booking.sitter.lastName}` : ''} • Updated ${formatDateTime(booking.updatedAt)}`}
-              actions={
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: tokens.spacing[3],
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <Link href="/bookings">
-                    <Button variant="secondary" leftIcon={<i className="fas fa-arrow-left" />}>
-                      Back
-                    </Button>
-                  </Link>
-                  {statusTransitions.length > 0 && (
-                    <Button
-                      variant="primary"
-                      onClick={() => {
-                        setNewStatus(statusTransitions[0]);
-                        setShowStatusModal(true);
-                      }}
-                      leftIcon={<i className="fas fa-check" />}
-                    >
-                      {statusTransitions[0] === 'confirmed' ? 'Confirm' : statusTransitions[0] === 'completed' ? 'Complete' : 'Update Status'}
-                    </Button>
-                  )}
-                </div>
-              }
-            />
+      <PageHeader
+        title={`Booking - ${booking.firstName} ${booking.lastName}`}
+        description={`${formatDate(booking.startAt)} - ${formatDate(booking.endAt)} • ${booking.status}${booking.sitter ? ` • Assigned: ${booking.sitter.firstName} ${booking.sitter.lastName}` : ''} • Updated ${formatDateTime(booking.updatedAt)}`}
+        actions={
+          <div
+            style={{
+              display: 'flex',
+              gap: tokens.spacing[3],
+              flexWrap: 'wrap',
+            }}
+          >
+            <Link href="/bookings">
+              <Button variant="secondary" leftIcon={<i className="fas fa-arrow-left" />}>
+                Back
+              </Button>
+            </Link>
+            {statusTransitions.length > 0 && (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setNewStatus(statusTransitions[0]);
+                  setShowStatusModal(true);
+                }}
+                leftIcon={<i className="fas fa-check" />}
+              >
+                {statusTransitions[0] === 'confirmed' ? 'Confirm' : statusTransitions[0] === 'completed' ? 'Complete' : 'Update Status'}
+              </Button>
+            )}
+          </div>
+        }
+      />
 
             {/* Desktop KPI Strip */}
-            <div
-              style={{
-                display: 'grid',
+      <div
+        style={{
+          display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
                 gap: tokens.spacing[4],
                 marginBottom: tokens.spacing[4],
                 flexShrink: 0,
-              }}
-            >
+        }}
+      >
         <StatCard
           label="Total"
           value={formatCurrency(booking.totalPrice)}
@@ -790,31 +801,29 @@ export default function BookingDetailPage() {
       </div>
 
         {/* Main Content - Two Column Layout with Internal Scrolling */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr',
+      <div
+          className="booking-detail-grid"
+        style={{
+          display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 400px',
             gap: tokens.spacing[4],
             flex: 1,
             minHeight: 0,
             overflow: 'hidden',
-            '@media (min-width: 1024px)': {
-              gridTemplateColumns: '1fr 400px',
-            },
-          } as React.CSSProperties & { '@media (min-width: 1024px)': React.CSSProperties }}
+          }}
         >
           {/* Left Column - Scrollable */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
               gap: tokens.spacing[4],
               overflowY: 'auto',
               overflowX: 'hidden',
               minHeight: 0,
               paddingRight: tokens.spacing[2],
-            }}
-          >
+          }}
+        >
           {/* Schedule and Visit Details */}
           <Card>
             <SectionHeader title="Schedule and Visit Details" />
@@ -1191,17 +1200,17 @@ export default function BookingDetailPage() {
         </div>
 
           {/* Right Column - Control Panel - Scrollable */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
               gap: tokens.spacing[4],
               overflowY: 'auto',
               overflowX: 'hidden',
               minHeight: 0,
               paddingRight: tokens.spacing[2],
-            }}
-          >
+          }}
+        >
           {/* Status Control */}
           <Card>
             <SectionHeader title="Status" />

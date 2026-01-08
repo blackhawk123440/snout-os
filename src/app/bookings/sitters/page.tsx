@@ -36,6 +36,11 @@ interface Sitter {
   commissionPercentage?: number;
   createdAt: Date;
   updatedAt: Date;
+  currentTier?: {
+    id: string;
+    name: string;
+    priorityLevel: number;
+  } | null;
 }
 
 export default function SittersPage() {
@@ -44,6 +49,18 @@ export default function SittersPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSitter, setEditingSitter] = useState<Sitter | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== 'undefined' && window.innerWidth <= 768);
+    };
+    checkMobile();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+    }
+  }, []);
   
   const [formData, setFormData] = useState({
     firstName: "",
@@ -70,7 +87,13 @@ export default function SittersPage() {
         throw new Error('Failed to fetch sitters');
       }
       const data = await response.json();
-      setSitters(data.sitters || []);
+      // Ensure sitters include tier information
+      const sittersWithTiers = (data.sitters || []).map((sitter: any) => ({
+        ...sitter,
+        isActive: sitter.active !== false,
+        currentTier: sitter.currentTier || null,
+      }));
+      setSitters(sittersWithTiers);
     } catch (err) {
       setError('Failed to load sitters');
       setSitters([]);
@@ -195,10 +218,10 @@ export default function SittersPage() {
           <>
             <Button
               variant="primary"
-              onClick={() => {
-                resetForm();
-                setShowAddForm(true);
-              }}
+                onClick={() => {
+                  resetForm();
+                  setShowAddForm(true);
+                }}
               leftIcon={<i className="fas fa-plus" />}
             >
               Add Sitter
@@ -240,8 +263,8 @@ export default function SittersPage() {
             <Skeleton height={150} />
             <Skeleton height={150} />
             <Skeleton height={150} />
-          </div>
-        ) : sitters.length === 0 ? (
+            </div>
+          ) : sitters.length === 0 ? (
           <EmptyState
             title="No sitters found"
             description="Add your first sitter to get started"
@@ -255,54 +278,80 @@ export default function SittersPage() {
             }}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
+          }}>
             {sitters.map((sitter) => (
-              <Card key={sitter.id}>
+              <Card 
+                key={sitter.id}
+                style={{
+                  padding: isMobile ? tokens.spacing[3] : undefined,
+                }}
+              >
                 <div
                   style={{
                     display: 'flex',
-                    alignItems: 'flex-start',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    alignItems: isMobile ? 'stretch' : 'flex-start',
                     justifyContent: 'space-between',
-                    gap: tokens.spacing[4],
+                    gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
                   }}
                 >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: isMobile ? tokens.spacing[2] : tokens.spacing[3], 
+                      marginBottom: isMobile ? tokens.spacing[2] : tokens.spacing[3],
+                      flexWrap: isMobile ? 'wrap' : 'nowrap',
+                    }}>
                       <div
                         style={{
-                          width: '48px',
-                          height: '48px',
+                          width: isMobile ? '40px' : '48px',
+                          height: isMobile ? '40px' : '48px',
                           borderRadius: '50%',
                           backgroundColor: tokens.colors.primary[100],
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           color: tokens.colors.primary.DEFAULT,
-                          fontSize: tokens.typography.fontSize.xl[0],
+                          fontSize: isMobile ? tokens.typography.fontSize.base[0] : tokens.typography.fontSize.xl[0],
+                          flexShrink: 0,
                         }}
                       >
                         <i className="fas fa-user" />
                       </div>
-                      <div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div
                           style={{
                             fontWeight: tokens.typography.fontWeight.bold,
-                            fontSize: tokens.typography.fontSize.lg[0],
+                            fontSize: isMobile ? tokens.typography.fontSize.base[0] : tokens.typography.fontSize.lg[0],
                             color: tokens.colors.text.primary,
                             marginBottom: tokens.spacing[1],
+                            wordBreak: 'break-word',
                           }}
                         >
                           {sitter.firstName} {sitter.lastName}
                         </div>
-                        <Badge variant={sitter.isActive ? "success" : "error"}>
+                        <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap', alignItems: 'center' }}>
+                          <Badge variant={sitter.isActive ? "success" : "error"}>
                           {sitter.isActive ? "Active" : "Inactive"}
-                        </Badge>
+                          </Badge>
+                          {sitter.currentTier && (
+                            <Badge variant="default" style={{ backgroundColor: tokens.colors.primary[100], color: tokens.colors.primary.DEFAULT }}>
+                              <i className="fas fa-star" style={{ marginRight: tokens.spacing[1] }} />
+                              {sitter.currentTier.name}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
                     <div
                       style={{
-                        fontSize: tokens.typography.fontSize.sm[0],
+                        fontSize: isMobile ? tokens.typography.fontSize.xs[0] : tokens.typography.fontSize.sm[0],
                         color: tokens.colors.text.secondary,
                         display: 'flex',
                         flexDirection: 'column',
@@ -345,12 +394,18 @@ export default function SittersPage() {
                     </div>
                   </div>
                   
-                  <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: tokens.spacing[2], 
+                    alignItems: 'center',
+                    flexWrap: isMobile ? 'wrap' : 'nowrap',
+                  }}>
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => window.open(`/sitter-dashboard?id=${sitter.id}&admin=true`, '_blank')}
                       leftIcon={<i className="fas fa-calendar-alt" />}
+                      style={{ width: isMobile ? '100%' : 'auto' }}
                     >
                       View Dashboard
                     </Button>
@@ -359,6 +414,7 @@ export default function SittersPage() {
                       size="sm"
                       onClick={() => startEdit(sitter)}
                       leftIcon={<i className="fas fa-edit" />}
+                      style={{ flex: isMobile ? 1 : 'none' }}
                     >
                       Edit
                     </Button>
@@ -367,6 +423,7 @@ export default function SittersPage() {
                       size="sm"
                       onClick={() => handleDelete(sitter.id)}
                       leftIcon={<i className="fas fa-trash" />}
+                      style={{ flex: isMobile ? 1 : 'none' }}
                     >
                       Delete
                     </Button>
@@ -374,8 +431,8 @@ export default function SittersPage() {
                 </div>
               </Card>
             ))}
-          </div>
-        )}
+              </div>
+          )}
       </div>
 
       {/* Add/Edit Form Modal */}
@@ -383,6 +440,7 @@ export default function SittersPage() {
         isOpen={showAddForm}
         onClose={resetForm}
         title={editingSitter ? "Edit Sitter" : "Add Sitter"}
+        size={isMobile ? "full" : "md"}
       >
         {error && (
           <div
@@ -404,21 +462,21 @@ export default function SittersPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4] }}>
               <FormRow label="First Name *">
                 <Input
-                  type="text"
-                  required
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    type="text"
+                    required
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 />
               </FormRow>
               <FormRow label="Last Name *">
                 <Input
-                  type="text"
-                  required
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                />
+                    type="text"
+                    required
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  />
               </FormRow>
-            </div>
+                </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4] }}>
               <FormRow label="Personal Phone Number">
@@ -437,8 +495,8 @@ export default function SittersPage() {
                   placeholder="(555) 123-4567"
                 />
               </FormRow>
-            </div>
-
+              </div>
+              
             <FormRow label="Use Phone Number Type for Messages">
               <div style={{ display: 'flex', gap: tokens.spacing[4] }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
@@ -453,7 +511,7 @@ export default function SittersPage() {
                   <span style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.primary }}>
                     Personal Phone
                   </span>
-                </label>
+                  </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
                   <input
                     type="radio"
@@ -475,10 +533,10 @@ export default function SittersPage() {
 
             <FormRow label="Email *">
               <Input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </FormRow>
 
@@ -497,42 +555,42 @@ export default function SittersPage() {
                 <span style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.primary }}>
                   %
                 </span>
-              </div>
+                </div>
               <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginTop: tokens.spacing[1] }}>
                 Percentage of booking total the sitter receives (typically 70% or 80%)
               </div>
             </FormRow>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3] }}>
-              <input
-                type="checkbox"
-                id="isActive"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                 style={{ accentColor: tokens.colors.primary.DEFAULT }}
-              />
+                />
               <label htmlFor="isActive" style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.primary, cursor: 'pointer' }}>
-                Active Sitter
-              </label>
-            </div>
-            
+                  Active Sitter
+                </label>
+              </div>
+              
             <div style={{ display: 'flex', gap: tokens.spacing[3], paddingTop: tokens.spacing[4] }}>
               <Button
-                type="submit"
+                  type="submit"
                 variant="primary"
                 style={{ flex: 1 }}
-              >
-                {editingSitter ? "Update" : "Add"} Sitter
+                >
+                  {editingSitter ? "Update" : "Add"} Sitter
               </Button>
               <Button
-                type="button"
-                onClick={resetForm}
+                  type="button"
+                  onClick={resetForm}
                 variant="tertiary"
                 style={{ flex: 1 }}
-              >
-                Cancel
+                >
+                  Cancel
               </Button>
-            </div>
+              </div>
           </div>
         </form>
       </Modal>

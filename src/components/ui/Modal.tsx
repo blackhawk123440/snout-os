@@ -96,8 +96,16 @@ export const Modal: React.FC<ModalProps> = ({
         style={{
           position: 'relative',
           width: '100%',
-          maxHeight: '90vh',
+          maxHeight: typeof window !== 'undefined' && window.innerWidth <= 768 ? '100vh' : '90vh',
           backgroundColor: tokens.colors.background.primary,
+          ...(typeof window !== 'undefined' && window.innerWidth <= 768 && size === 'full' ? {
+            height: '100vh',
+            maxHeight: '100vh',
+            margin: 0,
+            borderRadius: 0,
+            display: 'flex',
+            flexDirection: 'column',
+          } : {}),
           borderRadius: tokens.borderRadius.xl,
           boxShadow: tokens.shadows.xl,
           display: 'flex',

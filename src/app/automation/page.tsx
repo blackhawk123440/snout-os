@@ -301,6 +301,368 @@ export default function AutomationPage() {
     { id: 'notification', label: 'Notification' },
   ];
 
+  // Render automation card component
+  const renderAutomationCard = (automation: AutomationConfig) => {
+    const config = settings[automation.id];
+    const isExpanded = expandedAutomation === automation.id;
+
+    return (
+      <Card key={automation.id}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: tokens.spacing[4],
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: tokens.spacing[4],
+              flex: 1,
+            }}
+          >
+            <div
+              style={{
+                width: '3rem',
+                height: '3rem',
+                borderRadius: tokens.borderRadius.md,
+                backgroundColor: tokens.colors.primary[100],
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <i
+                className="fas fa-robot"
+                style={{
+                  fontSize: tokens.typography.fontSize.xl[0],
+                  color: tokens.colors.primary.DEFAULT,
+                }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: tokens.spacing[2],
+                  marginBottom: tokens.spacing[1],
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: tokens.typography.fontSize.lg[0],
+                    fontWeight: tokens.typography.fontWeight.semibold,
+                    color: tokens.colors.text.primary,
+                    margin: 0,
+                  }}
+                >
+                  {automation.name}
+                </h3>
+                <Badge variant={categoryColors[automation.category]}>
+                  {automation.category}
+                </Badge>
+                <Badge variant={config.enabled ? 'success' : 'neutral'}>
+                  {config.enabled ? 'Enabled' : 'Disabled'}
+                </Badge>
+              </div>
+              <p
+                style={{
+                  fontSize: tokens.typography.fontSize.sm[0],
+                  color: tokens.colors.text.secondary,
+                  margin: 0,
+                  marginBottom: tokens.spacing[3],
+                }}
+              >
+                {automation.description}
+              </p>
+            </div>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: tokens.spacing[2],
+            }}
+          >
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={config.enabled}
+                onChange={(e) =>
+                  updateAutomation(automation.id, { enabled: e.target.checked })
+                }
+              />
+            </label>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setExpandedAutomation(isExpanded ? null : automation.id)
+              }
+            >
+              {isExpanded ? 'Collapse' : 'Configure'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Expanded Configuration */}
+        {config.enabled && isExpanded && (
+          <div
+            style={{
+              borderTop: `1px solid ${tokens.colors.border.default}`,
+              marginTop: tokens.spacing[4],
+              paddingTop: tokens.spacing[4],
+            }}
+          >
+            {/* Booking Confirmation Config */}
+            {automation.id === 'bookingConfirmation' && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  gap: tokens.spacing[4],
+                }}
+              >
+                <FormRow>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[2],
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={(config as AutomationSettings['bookingConfirmation']).sendToClient}
+                      onChange={(e) =>
+                        updateAutomation('bookingConfirmation', {
+                          sendToClient: e.target.checked,
+                        } as any)
+                      }
+                    />
+                    <span>Send to Client</span>
+                  </label>
+                </FormRow>
+                <FormRow>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[2],
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={(config as AutomationSettings['bookingConfirmation']).sendToSitter}
+                      onChange={(e) =>
+                        updateAutomation('bookingConfirmation', {
+                          sendToSitter: e.target.checked,
+                        } as any)
+                      }
+                    />
+                    <span>Send to Sitter</span>
+                  </label>
+                </FormRow>
+                <FormRow>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[2],
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={(config as AutomationSettings['bookingConfirmation']).sendToOwner}
+                      onChange={(e) =>
+                        updateAutomation('bookingConfirmation', {
+                          sendToOwner: e.target.checked,
+                        } as any)
+                      }
+                    />
+                    <span>Send to Owner</span>
+                  </label>
+                </FormRow>
+              </div>
+            )}
+
+            {/* Night Before Reminder Config */}
+            {automation.id === 'nightBeforeReminder' && 'reminderTime' in config && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  gap: tokens.spacing[4],
+                }}
+              >
+                <FormRow label="Reminder Time">
+                  <Input
+                    type="time"
+                    value={(config as AutomationSettings['nightBeforeReminder']).reminderTime}
+                    onChange={(e) =>
+                      updateAutomation('nightBeforeReminder', {
+                        reminderTime: e.target.value,
+                      })
+                    }
+                  />
+                </FormRow>
+                <FormRow>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[2],
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={(config as AutomationSettings['nightBeforeReminder']).sendToClient}
+                      onChange={(e) =>
+                        updateAutomation('nightBeforeReminder', {
+                          sendToClient: e.target.checked,
+                        })
+                      }
+                    />
+                    <span>Send to Client</span>
+                  </label>
+                </FormRow>
+                <FormRow>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[2],
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={(config as AutomationSettings['nightBeforeReminder']).sendToSitter}
+                      onChange={(e) =>
+                        updateAutomation('nightBeforeReminder', {
+                          sendToSitter: e.target.checked,
+                        })
+                      }
+                    />
+                    <span>Send to Sitter</span>
+                  </label>
+                </FormRow>
+              </div>
+            )}
+
+            {/* Payment Reminder Config */}
+            {automation.id === 'paymentReminder' && 'reminderDelay' in config && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  gap: tokens.spacing[4],
+                }}
+              >
+                <FormRow label="Reminder Delay (hours)">
+                  <Input
+                    type="number"
+                    value={config.reminderDelay}
+                    onChange={(e) =>
+                      updateAutomation('paymentReminder', {
+                        reminderDelay: parseInt(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </FormRow>
+                <FormRow>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[2],
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={config.sendToClient}
+                      onChange={(e) =>
+                        updateAutomation('paymentReminder', {
+                          sendToClient: e.target.checked,
+                        })
+                      }
+                    />
+                    <span>Send to Client</span>
+                  </label>
+                </FormRow>
+                <FormRow>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[2],
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={config.repeatReminder}
+                      onChange={(e) =>
+                        updateAutomation('paymentReminder', {
+                          repeatReminder: e.target.checked,
+                        })
+                      }
+                    />
+                    <span>Repeat Reminder</span>
+                  </label>
+                </FormRow>
+              </div>
+            )}
+
+            {/* Generic message template fields */}
+            {'messageTemplateClient' in config && (
+              <FormRow label="Client Message Template">
+                <Textarea
+                  rows={6}
+                  value={(config as any).messageTemplateClient || ''}
+                  onChange={(e) =>
+                    updateAutomation(automation.id, {
+                      messageTemplateClient: e.target.value,
+                    } as any)
+                  }
+                  placeholder="Enter message template with variables like {{firstName}}, {{service}}, {{date}}"
+                />
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    const template = (config as any).messageTemplateClient || '';
+                    handleTestMessage(template, 'client');
+                  }}
+                  disabled={!testPhoneNumber.trim() || testingMessage !== null}
+                  leftIcon={<i className="fas fa-paper-plane" />}
+                >
+                  {testingMessage ? 'Sending...' : 'Test Message'}
+                </Button>
+              </FormRow>
+            )}
+          </div>
+        )}
+      </Card>
+    );
+  };
+
   if (loading) {
     return (
       <AppShell>
@@ -437,393 +799,118 @@ export default function AutomationPage() {
           activeTab={activeCategory}
           onTabChange={(id) => setActiveCategory(id as AutomationCategory | 'all')}
         >
-          <TabPanel id="all">{null}</TabPanel>
-          <TabPanel id="booking">{null}</TabPanel>
-          <TabPanel id="reminder">{null}</TabPanel>
-          <TabPanel id="payment">{null}</TabPanel>
-          <TabPanel id="notification">{null}</TabPanel>
+          <TabPanel id="all">
+            {/* Automation Cards - All */}
+            {automations.length === 0 ? (
+              <EmptyState
+                icon="🤖"
+                title="No Automations Found"
+                description="No automations found"
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: tokens.spacing[6],
+                }}
+              >
+                {automations.map((automation) => {
+                  return renderAutomationCard(automation);
+                })}
+              </div>
+            )}
+          </TabPanel>
+          <TabPanel id="booking">
+            {/* Automation Cards - Booking */}
+            {automations.filter((a) => a.category === 'booking').length === 0 ? (
+              <EmptyState
+                icon="🤖"
+                title="No Booking Automations"
+                description="No booking automations found"
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: tokens.spacing[6],
+                }}
+              >
+                {automations.filter((a) => a.category === 'booking').map((automation) => {
+                  return renderAutomationCard(automation);
+                })}
+              </div>
+            )}
+          </TabPanel>
+          <TabPanel id="reminder">
+            {/* Automation Cards - Reminder */}
+            {automations.filter((a) => a.category === 'reminder').length === 0 ? (
+              <EmptyState
+                icon="🤖"
+                title="No Reminder Automations"
+                description="No reminder automations found"
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: tokens.spacing[6],
+                }}
+              >
+                {automations.filter((a) => a.category === 'reminder').map((automation) => {
+                  return renderAutomationCard(automation);
+                })}
+              </div>
+            )}
+          </TabPanel>
+          <TabPanel id="payment">
+            {/* Automation Cards - Payment */}
+            {automations.filter((a) => a.category === 'payment').length === 0 ? (
+              <EmptyState
+                icon="🤖"
+                title="No Payment Automations"
+                description="No payment automations found"
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: tokens.spacing[6],
+                }}
+              >
+                {automations.filter((a) => a.category === 'payment').map((automation) => {
+                  return renderAutomationCard(automation);
+                })}
+              </div>
+            )}
+          </TabPanel>
+          <TabPanel id="notification">
+            {/* Automation Cards - Notification */}
+            {automations.filter((a) => a.category === 'notification').length === 0 ? (
+              <EmptyState
+                icon="🤖"
+                title="No Notification Automations"
+                description="No notification automations found"
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: tokens.spacing[6],
+                }}
+              >
+                {automations.filter((a) => a.category === 'notification').map((automation) => {
+                  return renderAutomationCard(automation);
+                })}
+              </div>
+            )}
+          </TabPanel>
         </Tabs>
       </Card>
-
-      {/* Automation Cards */}
-      {filteredAutomations.length === 0 ? (
-        <Card>
-          <EmptyState
-            icon="🤖"
-            title="No Automations Found"
-            description={`No automations found for category: ${activeCategory}`}
-          />
-        </Card>
-      ) : (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: tokens.spacing[6],
-          }}
-        >
-          {filteredAutomations.map((automation) => {
-            const config = settings[automation.id];
-            const isExpanded = expandedAutomation === automation.id;
-
-            return (
-              <Card key={automation.id}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    gap: tokens.spacing[4],
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: tokens.spacing[4],
-                      flex: 1,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '3rem',
-                        height: '3rem',
-                        borderRadius: tokens.borderRadius.md,
-                        backgroundColor: tokens.colors.primary[100],
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <i
-                        className="fas fa-robot"
-                        style={{
-                          fontSize: tokens.typography.fontSize.xl[0],
-                          color: tokens.colors.primary.DEFAULT,
-                        }}
-                      />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: tokens.spacing[2],
-                          marginBottom: tokens.spacing[1],
-                        }}
-                      >
-                        <h3
-                          style={{
-                            fontSize: tokens.typography.fontSize.lg[0],
-                            fontWeight: tokens.typography.fontWeight.semibold,
-                            color: tokens.colors.text.primary,
-                            margin: 0,
-                          }}
-                        >
-                          {automation.name}
-                        </h3>
-                        <Badge variant={categoryColors[automation.category]}>
-                          {automation.category}
-                        </Badge>
-                        <Badge variant={config.enabled ? 'success' : 'neutral'}>
-                          {config.enabled ? 'Enabled' : 'Disabled'}
-                        </Badge>
-                      </div>
-                      <p
-                        style={{
-                          fontSize: tokens.typography.fontSize.sm[0],
-                          color: tokens.colors.text.secondary,
-                          margin: 0,
-                          marginBottom: tokens.spacing[3],
-                        }}
-                      >
-                        {automation.description}
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: tokens.spacing[2],
-                    }}
-                  >
-                    <label
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={config.enabled}
-                        onChange={(e) =>
-                          updateAutomation(automation.id, { enabled: e.target.checked })
-                        }
-                      />
-                    </label>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setExpandedAutomation(isExpanded ? null : automation.id)
-                      }
-                    >
-                      {isExpanded ? 'Collapse' : 'Configure'}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Expanded Configuration */}
-                {config.enabled && isExpanded && (
-                  <div
-                    style={{
-                      borderTop: `1px solid ${tokens.colors.border.default}`,
-                      marginTop: tokens.spacing[4],
-                      paddingTop: tokens.spacing[4],
-                    }}
-                  >
-                    {/* Booking Confirmation Config */}
-                    {automation.id === 'bookingConfirmation' && (
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                          gap: tokens.spacing[4],
-                        }}
-                      >
-                        <FormRow>
-                          <label
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: tokens.spacing[2],
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={(config as AutomationSettings['bookingConfirmation']).sendToClient}
-                              onChange={(e) =>
-                                updateAutomation('bookingConfirmation', {
-                                  sendToClient: e.target.checked,
-                                } as any)
-                              }
-                            />
-                            <span>Send to Client</span>
-                          </label>
-                        </FormRow>
-                        <FormRow>
-                          <label
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: tokens.spacing[2],
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={(config as AutomationSettings['bookingConfirmation']).sendToSitter}
-                              onChange={(e) =>
-                                updateAutomation('bookingConfirmation', {
-                                  sendToSitter: e.target.checked,
-                                } as any)
-                              }
-                            />
-                            <span>Send to Sitter</span>
-                          </label>
-                        </FormRow>
-                        <FormRow>
-                          <label
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: tokens.spacing[2],
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={(config as AutomationSettings['bookingConfirmation']).sendToOwner}
-                              onChange={(e) =>
-                                updateAutomation('bookingConfirmation', {
-                                  sendToOwner: e.target.checked,
-                                } as any)
-                              }
-                            />
-                            <span>Send to Owner</span>
-                          </label>
-                        </FormRow>
-                      </div>
-                    )}
-
-                    {/* Night Before Reminder Config */}
-                    {automation.id === 'nightBeforeReminder' && 'reminderTime' in config && (
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                          gap: tokens.spacing[4],
-                        }}
-                      >
-                        <FormRow label="Reminder Time">
-                          <Input
-                            type="time"
-                            value={(config as AutomationSettings['nightBeforeReminder']).reminderTime}
-                            onChange={(e) =>
-                              updateAutomation('nightBeforeReminder', {
-                                reminderTime: e.target.value,
-                              })
-                            }
-                          />
-                        </FormRow>
-                        <FormRow>
-                          <label
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: tokens.spacing[2],
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={(config as AutomationSettings['nightBeforeReminder']).sendToClient}
-                              onChange={(e) =>
-                                updateAutomation('nightBeforeReminder', {
-                                  sendToClient: e.target.checked,
-                                })
-                              }
-                            />
-                            <span>Send to Client</span>
-                          </label>
-                        </FormRow>
-                        <FormRow>
-                          <label
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: tokens.spacing[2],
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={(config as AutomationSettings['nightBeforeReminder']).sendToSitter}
-                              onChange={(e) =>
-                                updateAutomation('nightBeforeReminder', {
-                                  sendToSitter: e.target.checked,
-                                })
-                              }
-                            />
-                            <span>Send to Sitter</span>
-                          </label>
-                        </FormRow>
-                      </div>
-                    )}
-
-                    {/* Payment Reminder Config */}
-                    {automation.id === 'paymentReminder' && 'reminderDelay' in config && (
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                          gap: tokens.spacing[4],
-                        }}
-                      >
-                        <FormRow label="Reminder Delay (hours)">
-                          <Input
-                            type="number"
-                            value={config.reminderDelay}
-                            onChange={(e) =>
-                              updateAutomation('paymentReminder', {
-                                reminderDelay: parseInt(e.target.value) || 0,
-                              })
-                            }
-                          />
-                        </FormRow>
-                        <FormRow>
-                          <label
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: tokens.spacing[2],
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={config.sendToClient}
-                              onChange={(e) =>
-                                updateAutomation('paymentReminder', {
-                                  sendToClient: e.target.checked,
-                                })
-                              }
-                            />
-                            <span>Send to Client</span>
-                          </label>
-                        </FormRow>
-                        <FormRow>
-                          <label
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: tokens.spacing[2],
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={config.repeatReminder}
-                              onChange={(e) =>
-                                updateAutomation('paymentReminder', {
-                                  repeatReminder: e.target.checked,
-                                })
-                              }
-                            />
-                            <span>Repeat Reminder</span>
-                          </label>
-                        </FormRow>
-                      </div>
-                    )}
-
-                    {/* Generic message template fields */}
-                    {'messageTemplateClient' in config && (
-                      <FormRow label="Client Message Template">
-                        <Textarea
-                          rows={6}
-                          value={(config as any).messageTemplateClient || ''}
-                          onChange={(e) =>
-                            updateAutomation(automation.id, {
-                              messageTemplateClient: e.target.value,
-                            } as any)
-                          }
-                          placeholder="Enter message template with variables like {{firstName}}, {{service}}, {{date}}"
-                        />
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            const template = (config as any).messageTemplateClient || '';
-                            handleTestMessage(template, 'client');
-                          }}
-                          disabled={!testPhoneNumber.trim() || testingMessage !== null}
-                          leftIcon={<i className="fas fa-paper-plane" />}
-                        >
-                          {testingMessage ? 'Sending...' : 'Test Message'}
-                        </Button>
-                      </FormRow>
-                    )}
-                  </div>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-      )}
     </AppShell>
   );
 }
