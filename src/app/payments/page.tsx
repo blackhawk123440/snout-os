@@ -281,11 +281,13 @@ export default function PaymentsPage() {
     {
       key: 'client',
       header: 'Client',
+      mobileLabel: 'Client',
+      mobileOrder: 1,
       render: (payment) => (
-              <div>
+        <div>
           <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
             {payment.customerName || payment.customerEmail}
-              </div>
+          </div>
           {payment.customerName && (
             <div
               style={{
@@ -300,23 +302,10 @@ export default function PaymentsPage() {
       ),
     },
     {
-      key: 'reference',
-      header: 'Invoice',
-      render: (payment) => (
-        <div
-          style={{
-            fontSize: tokens.typography.fontSize.sm[0],
-            color: tokens.colors.text.secondary,
-            fontFamily: tokens.typography.fontFamily.mono.join(', '),
-          }}
-        >
-          #{payment.id.slice(-8).toUpperCase()}
-          </div>
-      ),
-    },
-    {
       key: 'amount',
       header: 'Amount',
+      mobileLabel: 'Amount',
+      mobileOrder: 2,
       align: 'right',
       render: (payment) => (
         <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
@@ -327,6 +316,8 @@ export default function PaymentsPage() {
     {
       key: 'status',
       header: 'Status',
+      mobileLabel: 'Status',
+      mobileOrder: 3,
       render: (payment) => (
         <Badge variant={getStatusBadgeVariant(payment.status)}>
           {getStatusLabel(payment.status)}
@@ -335,21 +326,42 @@ export default function PaymentsPage() {
       align: 'center',
     },
     {
+      key: 'reference',
+      header: 'Invoice',
+      mobileLabel: 'Invoice #',
+      mobileOrder: 4,
+      render: (payment) => (
+        <div
+          style={{
+            fontSize: tokens.typography.fontSize.sm[0],
+            color: tokens.colors.text.secondary,
+            fontFamily: tokens.typography.fontFamily.mono.join(', '),
+          }}
+        >
+          #{payment.id.slice(-8).toUpperCase()}
+        </div>
+      ),
+    },
+    {
       key: 'method',
       header: 'Method',
+      mobileLabel: 'Payment Method',
+      mobileOrder: 5,
       render: (payment) => (
         <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
           {getPaymentMethodLabel(payment.paymentMethod)}
-                  </div>
+        </div>
       ),
     },
     {
       key: 'date',
       header: 'Date',
+      mobileLabel: 'Date',
+      mobileOrder: 6,
       render: (payment) => (
         <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
           {formatDateTime(payment.created)}
-                  </div>
+        </div>
       ),
     },
   ];

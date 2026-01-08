@@ -2,10 +2,12 @@
  * Card Component
  * 
  * Content container with consistent styling and optional header/footer.
+ * On mobile, uses compact padding automatically.
  */
 
 import React from 'react';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -22,6 +24,9 @@ export const Card: React.FC<CardProps> = ({
   className = '',
   ...props
 }) => {
+  const isMobile = useMobile();
+  const cardPadding = isMobile ? tokens.spacing[3] : tokens.spacing[4];
+
   return (
     <div
       {...props}
@@ -38,7 +43,11 @@ export const Card: React.FC<CardProps> = ({
       {header && (
         <div
           style={{
-            padding: padding ? `${tokens.spacing[4]} ${tokens.spacing[4]} ${tokens.spacing[3]}` : 0,
+            padding: padding
+              ? isMobile
+                ? `${cardPadding} ${cardPadding} ${tokens.spacing[2]}`
+                : `${tokens.spacing[4]} ${tokens.spacing[4]} ${tokens.spacing[3]}`
+              : 0,
             borderBottom: header ? `1px solid ${tokens.colors.border.default}` : 'none',
           }}
         >
@@ -47,7 +56,7 @@ export const Card: React.FC<CardProps> = ({
       )}
       <div
         style={{
-          padding: padding ? tokens.spacing[4] : 0,
+          padding: padding ? cardPadding : 0,
         }}
       >
         {children}
@@ -55,7 +64,11 @@ export const Card: React.FC<CardProps> = ({
       {footer && (
         <div
           style={{
-            padding: padding ? `${tokens.spacing[3]} ${tokens.spacing[4]} ${tokens.spacing[4]}` : 0,
+            padding: padding
+              ? isMobile
+                ? `${tokens.spacing[2]} ${cardPadding} ${cardPadding}`
+                : `${tokens.spacing[3]} ${tokens.spacing[4]} ${tokens.spacing[4]}`
+              : 0,
             borderTop: footer ? `1px solid ${tokens.colors.border.default}` : 'none',
             backgroundColor: tokens.colors.background.secondary,
           }}

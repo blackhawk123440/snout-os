@@ -2,10 +2,12 @@
  * Tabs Component
  * 
  * Enterprise tab navigation component.
+ * On mobile, tabs scroll horizontally with proper spacing.
  */
 
 import React, { useState, createContext, useContext } from 'react';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 export interface Tab {
   id: string;
@@ -45,6 +47,7 @@ export const Tabs: React.FC<TabsProps> = ({
   onTabChange,
   children,
 }) => {
+  const isMobile = useMobile();
   const [internalActiveTab, setInternalActiveTab] = useState(defaultTab || tabs[0]?.id || '');
   const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab;
 
@@ -61,16 +64,20 @@ export const Tabs: React.FC<TabsProps> = ({
         <div
           style={{
             display: 'flex',
-            gap: tokens.spacing[2],
+            gap: isMobile ? tokens.spacing[1] : tokens.spacing[2],
             borderBottom: `2px solid ${tokens.colors.border.default}`,
-            marginBottom: tokens.spacing[4],
+            marginBottom: isMobile ? tokens.spacing[3] : tokens.spacing[4],
             overflowX: 'auto',
+            overflowY: 'hidden',
             flexShrink: 0,
-            ...(typeof window !== 'undefined' && window.innerWidth < 1024 ? {
-              marginBottom: tokens.spacing[2],
-              padding: `0 ${tokens.spacing[2]}`,
-            } : {}),
-          } as React.CSSProperties & { '@media (max-width: 1023px)': React.CSSProperties }}
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'thin',
+            paddingBottom: '2px',
+            ...(isMobile && {
+              paddingLeft: tokens.spacing[3],
+              paddingRight: tokens.spacing[3],
+            }),
+          }}
         >
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -84,7 +91,9 @@ export const Tabs: React.FC<TabsProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   gap: tokens.spacing[2],
-                  padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                  padding: isMobile
+                    ? `${tokens.spacing[2]} ${tokens.spacing[3]}`
+                    : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
                   borderBottom: `2px solid ${isActive ? tokens.colors.primary.DEFAULT : 'transparent'}`,
                   marginBottom: '-2px',
                   backgroundColor: 'transparent',
@@ -100,10 +109,14 @@ export const Tabs: React.FC<TabsProps> = ({
                   fontWeight: isActive
                     ? tokens.typography.fontWeight.semibold
                     : tokens.typography.fontWeight.normal,
-                  fontSize: tokens.typography.fontSize.base[0],
+                  fontSize: isMobile
+                    ? tokens.typography.fontSize.sm[0]
+                    : tokens.typography.fontSize.base[0],
                   cursor: tab.disabled ? 'not-allowed' : 'pointer',
                   transition: `all ${tokens.transitions.duration.DEFAULT}`,
                   whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  minHeight: isMobile ? '44px' : 'auto',
                 }}
                 onMouseEnter={(e) => {
                   if (!tab.disabled && !isActive) {

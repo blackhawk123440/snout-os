@@ -3,10 +3,12 @@
  * 
  * Enterprise button component with variants and sizes.
  * All buttons in the dashboard must use this component.
+ * On mobile, ensures minimum touch target size of 44px.
  */
 
 import React from 'react';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'danger' | 'ghost';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -51,22 +53,38 @@ const getVariantStyles = (variant: ButtonVariant) => {
   return styles[variant];
 };
 
-const getSizeStyles = (size: ButtonSize) => {
-  const sizes: Record<ButtonSize, { padding: string; fontSize: string; height: string }> = {
+const getSizeStyles = (size: ButtonSize, isMobile: boolean) => {
+  // On mobile, ensure minimum 44px touch target
+  const sizes: Record<ButtonSize, { padding: string; fontSize: string; height: string; minHeight?: string }> = {
     sm: {
-      padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-      fontSize: tokens.typography.fontSize.sm[0],
-      height: '2rem',
+      padding: isMobile
+        ? `${tokens.spacing[2]} ${tokens.spacing[3]}`
+        : `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+      fontSize: isMobile
+        ? tokens.typography.fontSize.sm[0]
+        : tokens.typography.fontSize.sm[0],
+      height: isMobile ? '44px' : '2rem',
+      minHeight: isMobile ? '44px' : undefined,
     },
     md: {
-      padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
-      fontSize: tokens.typography.fontSize.base[0],
-      height: '2.5rem',
+      padding: isMobile
+        ? `${tokens.spacing[3]} ${tokens.spacing[4]}`
+        : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+      fontSize: isMobile
+        ? tokens.typography.fontSize.base[0]
+        : tokens.typography.fontSize.base[0],
+      height: isMobile ? '44px' : '2.5rem',
+      minHeight: isMobile ? '44px' : undefined,
     },
     lg: {
-      padding: `${tokens.spacing[4]} ${tokens.spacing[6]}`,
-      fontSize: tokens.typography.fontSize.lg[0],
-      height: '3rem',
+      padding: isMobile
+        ? `${tokens.spacing[3]} ${tokens.spacing[5]}`
+        : `${tokens.spacing[4]} ${tokens.spacing[6]}`,
+      fontSize: isMobile
+        ? tokens.typography.fontSize.base[0]
+        : tokens.typography.fontSize.lg[0],
+      height: isMobile ? '44px' : '3rem',
+      minHeight: isMobile ? '44px' : undefined,
     },
   };
   return sizes[size];
@@ -89,7 +107,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const sizeStyle = getSizeStyles(size);
+    const isMobile = useMobile();
+    const sizeStyle = getSizeStyles(size, isMobile);
     const variantStyle = getVariantStyles(variant);
     const isDisabled = disabled || isLoading;
 
@@ -131,6 +150,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           fontWeight: tokens.typography.fontWeight.medium,
           fontFamily: tokens.typography.fontFamily.sans.join(', '),
           height: sizeStyle.height,
+          minHeight: sizeStyle.minHeight || sizeStyle.height,
           padding: sizeStyle.padding,
           fontSize: sizeStyle.fontSize,
           lineHeight: '1',
@@ -138,6 +158,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           cursor: isDisabled ? 'not-allowed' : 'pointer',
           opacity: isDisabled ? 0.5 : 1,
           transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
+          touchAction: 'manipulation',
+          WebkitTapHighlightColor: 'transparent',
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

@@ -31,6 +31,7 @@ import { EditBookingModal } from '@/components/booking/EditBookingModal';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { getPricingForDisplay } from '@/lib/pricing-display-helpers';
+import { useMobile } from '@/lib/use-mobile';
 
 interface Pet {
   id: string;
@@ -104,23 +105,28 @@ export default function BookingDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('overview');
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useMobile();
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showUnassignModal, setShowUnassignModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [newStatus, setNewStatus] = useState<string>('');
   const [sitters, setSitters] = useState<Sitter[]>([]);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(typeof window !== 'undefined' && window.innerWidth <= 768);
-    };
-    checkMobile();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', checkMobile);
-      return () => window.removeEventListener('resize', checkMobile);
-    }
-  }, []);
+  
+  // Mobile layout state
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    overview: true,
+    schedule: false,
+    pets: false,
+    pricing: false,
+    actions: false,
+  });
+  const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
+  const [showTipLinkModal, setShowTipLinkModal] = useState(false);
+  const [showMoreActionsModal, setShowMoreActionsModal] = useState(false);
+  
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   useEffect(() => {
     if (bookingId) {
@@ -290,6 +296,181 @@ export default function BookingDetailPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const copyToClipboard = async (text: string): Promise<boolean> => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          return true;
+        } catch (err) {
+          document.body.removeChild(textArea);
+          return false;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+      return false;
+    }
+  };
+
+  const handleCopyBookingId = async () => {
+    if (!booking) return;
+    const copied = await copyToClipboard(booking.id);
+    if (copied) {
+      alert('Booking ID copied to clipboard');
+    } else {
+      alert('Failed to copy Booking ID');
+    }
+    setShowMoreActionsModal(false);
+  };
+
+  const handleCopyBookingDetails = async () => {
+    if (!booking) return;
+    const details = `Booking Details:
+ID: ${booking.id}
+Client: ${booking.firstName} ${booking.lastName}
+Phone: ${booking.phone}
+Email: ${booking.email || 'N/A'}
+Service: ${booking.service}
+Date: ${formatDate(booking.startAt)} - ${formatDate(booking.endAt)}
+Status: ${booking.status}
+Total: ${formatCurrency(booking.totalPrice)}`;
+    const copied = await copyToClipboard(details);
+    if (copied) {
+      alert('Booking details copied to clipboard');
+    } else {
+      alert('Failed to copy booking details');
+    }
+    setShowMoreActionsModal(false);
+  };
+
+  const handleCancelBooking = async () => {
+    if (!booking || !confirm('Are you sure you want to cancel this booking?')) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+      if (response.ok) {
+        await fetchBooking();
+        await fetchStatusHistory();
+        setShowMoreActionsModal(false);
+        alert('Booking cancelled successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to cancel booking: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Failed to cancel booking:', err);
+      alert('Failed to cancel booking');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePaymentLinkAction = async (action: 'copy' | 'send') => {
+    if (!booking) return;
+    
+    if (!booking.stripePaymentLinkUrl) {
+      // Generate payment link
+      try {
+        const response = await fetch(`/api/bookings/${bookingId}/payment-link`, {
+          method: 'POST',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          await fetchBooking();
+          if (action === 'copy') {
+            const copied = await copyToClipboard(data.link);
+            if (copied) {
+              alert('Payment link copied to clipboard');
+            }
+          } else {
+            // Send payment link
+            const message = `Hi ${booking.firstName}, here's your payment link for your ${booking.service} booking:\n\n${data.link}`;
+            // TODO: Implement send message functionality
+            alert(`Message to send:\n\n${message}`);
+          }
+        } else {
+          alert('Failed to generate payment link');
+        }
+      } catch (err) {
+        console.error('Failed to generate payment link:', err);
+        alert('Failed to generate payment link');
+      }
+    } else {
+      if (action === 'copy') {
+        const copied = await copyToClipboard(booking.stripePaymentLinkUrl);
+        if (copied) {
+          alert('Payment link copied to clipboard');
+        }
+      } else {
+        const message = `Hi ${booking.firstName}, here's your payment link for your ${booking.service} booking:\n\n${booking.stripePaymentLinkUrl}`;
+        // TODO: Implement send message functionality
+        alert(`Message to send:\n\n${message}`);
+      }
+    }
+    setShowPaymentLinkModal(false);
+  };
+
+  const handleTipLinkAction = async (action: 'copy' | 'send') => {
+    if (!booking) return;
+    
+    if (!booking.tipLinkUrl) {
+      // Generate tip link
+      try {
+        const response = await fetch(`/api/bookings/${bookingId}/tip-link`, {
+          method: 'POST',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          await fetchBooking();
+          if (action === 'copy') {
+            const copied = await copyToClipboard(data.link);
+            if (copied) {
+              alert('Tip link copied to clipboard');
+            }
+          } else {
+            const message = `Hi ${booking.firstName}, here's a tip link for your ${booking.service} booking:\n\n${data.link}`;
+            // TODO: Implement send message functionality
+            alert(`Message to send:\n\n${message}`);
+          }
+        } else {
+          alert('Failed to generate tip link');
+        }
+      } catch (err) {
+        console.error('Failed to generate tip link:', err);
+        alert('Failed to generate tip link');
+      }
+    } else {
+      if (action === 'copy') {
+        const copied = await copyToClipboard(booking.tipLinkUrl);
+        if (copied) {
+          alert('Tip link copied to clipboard');
+        }
+      } else {
+        const message = `Hi ${booking.firstName}, here's a tip link for your ${booking.service} booking:\n\n${booking.tipLinkUrl}`;
+        // TODO: Implement send message functionality
+        alert(`Message to send:\n\n${message}`);
+      }
+    }
+    setShowTipLinkModal(false);
   };
 
   const formatCurrency = (amount: number) => {
@@ -563,7 +744,7 @@ export default function BookingDetailPage() {
           </div>
         ) : null}
 
-        {/* Mobile: Tab-based Layout */}
+        {/* Mobile: Single-page Layout with Bottom Action Bar */}
         {isMobile ? (
           <div
             style={{
@@ -574,190 +755,227 @@ export default function BookingDetailPage() {
               overflow: 'hidden',
             }}
           >
-            <Tabs
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              tabs={[
-                { id: 'overview', label: 'Overview' },
-                { id: 'schedule', label: 'Schedule' },
-                { id: 'pets', label: 'Pets' },
-                { id: 'pricing', label: 'Pricing' },
-                { id: 'actions', label: 'Actions' },
-              ]}
+            {/* Scrollable Content */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                WebkitOverflowScrolling: 'touch',
+                paddingBottom: tokens.spacing[20],
+              }}
             >
-              <div
-                style={{
-                  flex: 1,
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  minHeight: 0,
-                }}
-              >
-                <TabPanel id="overview">
-                  <div
+              {/* Overview Section */}
+              <Card style={{ margin: tokens.spacing[3], padding: tokens.spacing[3] }}>
+                <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Overview
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                  <div>
+                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Client</div>
+                    <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.firstName} {booking.lastName}</div>
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{booking.phone}</div>
+                    {booking.email && (
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>{booking.email}</div>
+                    )}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Status</div>
+                    <Badge variant={getStatusBadgeVariant(booking.status)}>
+                      {booking.status}
+                    </Badge>
+                  </div>
+                  {booking.sitter && (
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Assigned Sitter</div>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.sitter.firstName} {booking.sitter.lastName}</div>
+                    </div>
+                  )}
+                  <div>
+                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Total Price</div>
+                    <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>{formatCurrency(booking.totalPrice)}</div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Collapsible Schedule Section */}
+              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'hidden' }}>
+                <button
+                  onClick={() => toggleSection('schedule')}
+                  style={{
+                    width: '100%',
+                    padding: tokens.spacing[3],
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    borderBottom: expandedSections.schedule ? `1px solid ${tokens.colors.border.default}` : 'none',
+                  }}
+                >
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Schedule
+                  </div>
+                  <i className={`fas fa-chevron-${expandedSections.schedule ? 'up' : 'down'}`} style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.xs[0] }} />
+                </button>
+                {expandedSections.schedule && (
+                  <div style={{ padding: tokens.spacing[3], paddingTop: tokens.spacing[2] }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0] }}>
+                      <div>
+                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(booking.startAt)}</div>
+                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{formatTime(booking.startAt)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(booking.endAt)}</div>
+                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{formatTime(booking.endAt)}</div>
+                      </div>
+                    </div>
+                    {booking.address && (
+                      <div style={{ marginTop: tokens.spacing[3], paddingTop: tokens.spacing[3], borderTop: `1px solid ${tokens.colors.border.default}` }}>
+                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Address</div>
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>{booking.address}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Card>
+
+              {/* Collapsible Pets Section */}
+              {booking.pets && booking.pets.length > 0 && (
+                <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'hidden' }}>
+                  <button
+                    onClick={() => toggleSection('pets')}
                     style={{
+                      width: '100%',
                       padding: tokens.spacing[3],
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: tokens.spacing[3],
-                      height: '100%',
-                      overflowY: 'auto',
-                      overflowX: 'hidden',
-                      WebkitOverflowScrolling: 'touch',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer',
+                      borderBottom: expandedSections.pets ? `1px solid ${tokens.colors.border.default}` : 'none',
                     }}
                   >
-                    {/* Compact Schedule Card */}
-                    <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Schedule
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0] }}>
-                        <div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[1] }}>{formatDate(booking.startAt)}</div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>{formatTime(booking.startAt)}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[1] }}>{formatDate(booking.endAt)}</div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>{formatTime(booking.endAt)}</div>
-                        </div>
-                      </div>
-                    </Card>
-                    {/* Compact Client Card */}
-                    <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Client
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0] }}>
-                        <div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Name</div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{booking.firstName} {booking.lastName}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Phone</div>
-                          <a href={`tel:${booking.phone}`} style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none', fontWeight: tokens.typography.fontWeight.medium }}>{booking.phone}</a>
-                        </div>
-                        {booking.email && (
-                          <div>
-                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Email</div>
-                            <a href={`mailto:${booking.email}`} style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none', fontWeight: tokens.typography.fontWeight.medium }}>{booking.email}</a>
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-                    {booking.sitter && (
-                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          Assigned Sitter
-                        </div>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{booking.sitter.firstName} {booking.sitter.lastName}</div>
-                      </Card>
-                    )}
-                  </div>
-                </TabPanel>
-                <TabPanel id="schedule">
-                  <div style={{ padding: tokens.spacing[3], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], height: '100%', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-                    <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Date Range</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0] }}>
-                        <div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDateTime(booking.startAt)}</div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDateTime(booking.endAt)}</div>
-                        </div>
-                      </div>
-                    </Card>
-                    {booking.timeSlots.length > 0 && (
-                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Time Slots ({booking.timeSlots.length})</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
-                          {booking.timeSlots.slice(0, 3).map((slot) => (
-                            <div key={slot.id} style={{ padding: tokens.spacing[2], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
-                              {formatTime(slot.startAt)} - {formatTime(slot.endAt)} ({slot.duration} min)
-                            </div>
-                          ))}
-                          {booking.timeSlots.length > 3 && (
-                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, padding: tokens.spacing[1] }}>+{booking.timeSlots.length - 3} more</div>
-                          )}
-                        </div>
-                      </Card>
-                    )}
-                    {booking.address && (
-                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Address</div>
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>{booking.address}</div>
-                      </Card>
-                    )}
-                  </div>
-                </TabPanel>
-                <TabPanel id="pets">
-                  <div style={{ padding: tokens.spacing[3], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], height: '100%', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-                    <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pets ({booking.pets.length})</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Pets ({booking.pets.length})
+                    </div>
+                    <i className={`fas fa-chevron-${expandedSections.pets ? 'up' : 'down'}`} style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.xs[0] }} />
+                  </button>
+                  {expandedSections.pets && (
+                    <div style={{ padding: tokens.spacing[3], paddingTop: tokens.spacing[2] }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
                         {booking.pets.map((pet) => (
                           <div key={pet.id} style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
-                            <div style={{ fontWeight: tokens.typography.fontWeight.medium, marginBottom: pet.breed ? tokens.spacing[1] : 0 }}>{pet.name || 'Unnamed'} • {pet.species}</div>
-                            {pet.breed && <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>{pet.breed}</div>}
+                            <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{pet.name || 'Unnamed'} • {pet.species}</div>
+                            {pet.breed && <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{pet.breed}</div>}
                           </div>
                         ))}
                       </div>
-                    </Card>
+                    </div>
+                  )}
+                </Card>
+              )}
+
+              {/* Collapsible Pricing Section */}
+              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'hidden' }}>
+                <button
+                  onClick={() => toggleSection('pricing')}
+                  style={{
+                    width: '100%',
+                    padding: tokens.spacing[3],
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    borderBottom: expandedSections.pricing ? `1px solid ${tokens.colors.border.default}` : 'none',
+                  }}
+                >
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Pricing
                   </div>
-                </TabPanel>
-                <TabPanel id="pricing">
-                  <div style={{ padding: tokens.spacing[3], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], height: '100%', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-                    <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing Breakdown</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
-                        {pricingBreakdown.map((item, idx) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: tokens.spacing[2], borderBottom: idx < pricingBreakdown.length - 1 ? `1px solid ${tokens.colors.border.default}` : 'none' }}>
-                            <div style={{ color: tokens.colors.text.secondary }}>{item.label}</div>
-                            <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatCurrency(item.amount)}</div>
-                          </div>
-                        ))}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: tokens.spacing[2], paddingTop: tokens.spacing[2], borderTop: `2px solid ${tokens.colors.border.default}`, fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.base[0] }}>
-                          <div>Total</div>
-                          <div>{formatCurrency(pricingDisplay.total)}</div>
+                  <i className={`fas fa-chevron-${expandedSections.pricing ? 'up' : 'down'}`} style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.xs[0] }} />
+                </button>
+                {expandedSections.pricing && (
+                  <div style={{ padding: tokens.spacing[3], paddingTop: tokens.spacing[2] }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                      {pricingBreakdown.map((item, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: tokens.spacing[2], borderBottom: idx < pricingBreakdown.length - 1 ? `1px solid ${tokens.colors.border.default}` : 'none' }}>
+                          <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>{item.label}</div>
+                          <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{formatCurrency(item.amount)}</div>
                         </div>
+                      ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: tokens.spacing[2], paddingTop: tokens.spacing[2], borderTop: `2px solid ${tokens.colors.border.default}`, fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.base[0] }}>
+                        <div>Total</div>
+                        <div>{formatCurrency(pricingDisplay.total)}</div>
                       </div>
-                    </Card>
+                    </div>
                   </div>
-                </TabPanel>
-                <TabPanel id="actions">
-                  <div style={{ padding: tokens.spacing[3], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], height: '100%', overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-                    {statusTransitions.length > 0 && (
-                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
-                        <Button variant="primary" style={{ width: '100%' }} onClick={() => { setNewStatus(statusTransitions[0]); setShowStatusModal(true); }}>
-                          {statusTransitions[0] === 'confirmed' ? 'Confirm Booking' : statusTransitions[0] === 'completed' ? 'Mark Complete' : `Change to ${statusTransitions[0]}`}
-                        </Button>
-                      </Card>
-                    )}
-                    {booking.sitter ? (
-                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assigned: {booking.sitter.firstName} {booking.sitter.lastName}</div>
-                        <Button variant="secondary" style={{ width: '100%', marginBottom: tokens.spacing[3] }} onClick={() => setShowUnassignModal(true)}>Unassign</Button>
-                        <Select label="Reassign" options={sitters.filter((s) => s.id !== booking.sitter?.id).map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))} onChange={(e) => { if (e.target.value) { handleSitterAssign(e.target.value); } }} />
-                      </Card>
-                    ) : (
-                      <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
-                        <Select label="Assign Sitter" options={sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))} onChange={(e) => { if (e.target.value) { handleSitterAssign(e.target.value); } }} />
-                      </Card>
-                    )}
-                  </div>
-                </TabPanel>
-              </div>
-            </Tabs>
+                )}
+              </Card>
+            </div>
+            {/* Fixed Bottom Action Bar */}
+            <div
+              style={{
+                position: 'fixed',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                backgroundColor: tokens.colors.background.primary,
+                borderTop: `1px solid ${tokens.colors.border.default}`,
+                padding: tokens.spacing[3],
+                display: 'flex',
+                gap: tokens.spacing[2],
+                zIndex: tokens.zIndex.sticky,
+                boxShadow: tokens.shadows.md,
+              }}
+            >
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => setShowEditModal(true)}
+                style={{ flex: 1 }}
+                leftIcon={<i className="fas fa-edit" />}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setShowPaymentLinkModal(true)}
+                style={{ flex: 1 }}
+                leftIcon={<i className="fas fa-link" />}
+              >
+                Payment
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setShowTipLinkModal(true)}
+                style={{ flex: 1 }}
+                leftIcon={<i className="fas fa-tip" />}
+              >
+                Tip
+              </Button>
+              <Button
+                variant="ghost"
+                size="md"
+                onClick={() => setShowMoreActionsModal(true)}
+                leftIcon={<i className="fas fa-ellipsis-h" />}
+              >
+                More
+              </Button>
+            </div>
           </div>
         ) : (
           <>
             {/* Desktop Page Header */}
-      <PageHeader
+            <PageHeader
         title={`Booking - ${booking.firstName} ${booking.lastName}`}
         description={`${formatDate(booking.startAt)} - ${formatDate(booking.endAt)} • ${booking.status}${booking.sitter ? ` • Assigned: ${booking.sitter.firstName} ${booking.sitter.lastName}` : ''} • Updated ${formatDateTime(booking.updatedAt)}`}
         actions={
@@ -794,7 +1012,7 @@ export default function BookingDetailPage() {
             )}
           </div>
         }
-      />
+            />
 
             {/* Desktop KPI Strip */}
       <div
@@ -1140,11 +1358,15 @@ export default function BookingDetailPage() {
                   {
                     key: 'label',
                     header: 'Item',
+                    mobileLabel: 'Item',
+                    mobileOrder: 1,
                     render: (row) => <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{row.label}</div>,
                   },
                   {
                     key: 'amount',
                     header: 'Amount',
+                    mobileLabel: 'Amount',
+                    mobileOrder: 2,
                     align: 'right',
                     render: (row) => <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>{formatCurrency(row.amount)}</div>,
                   },
@@ -1448,6 +1670,229 @@ export default function BookingDetailPage() {
           onSave={handleEditBooking}
         />
       )}
+
+      {/* Payment Link Modal */}
+        <Modal
+          isOpen={showPaymentLinkModal}
+          onClose={() => setShowPaymentLinkModal(false)}
+          title="Payment Link"
+          size="full"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div>
+              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                {booking?.stripePaymentLinkUrl 
+                  ? 'Copy or send the payment link to the client.'
+                  : 'Generate and send a payment link to the client.'}
+              </p>
+            </div>
+            {booking?.stripePaymentLinkUrl && (
+              <div>
+                <Input
+                  label="Payment Link"
+                  value={booking.stripePaymentLinkUrl}
+                  readOnly
+                  rightIcon={
+                    <button
+                      onClick={() => handlePaymentLinkAction('copy')}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        padding: tokens.spacing[2],
+                      }}
+                    >
+                      <i className="fas fa-copy" />
+                    </button>
+                  }
+                />
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: tokens.spacing[2], marginTop: tokens.spacing[4] }}>
+              <Button
+                variant="secondary"
+                onClick={() => handlePaymentLinkAction('copy')}
+                style={{ flex: 1 }}
+                leftIcon={<i className="fas fa-copy" />}
+              >
+                Copy Link
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => handlePaymentLinkAction('send')}
+                style={{ flex: 1 }}
+                leftIcon={<i className="fas fa-paper-plane" />}
+              >
+                Send to Client
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Tip Link Modal */}
+        <Modal
+          isOpen={showTipLinkModal}
+          onClose={() => setShowTipLinkModal(false)}
+          title="Tip Link"
+          size="full"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div>
+              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                {booking?.tipLinkUrl 
+                  ? 'Copy or send the tip link to the client.'
+                  : 'Generate and send a tip link to the client.'}
+              </p>
+            </div>
+            {booking?.tipLinkUrl && (
+              <div>
+                <Input
+                  label="Tip Link"
+                  value={booking.tipLinkUrl}
+                  readOnly
+                  rightIcon={
+                    <button
+                      onClick={() => handleTipLinkAction('copy')}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        padding: tokens.spacing[2],
+                      }}
+                    >
+                      <i className="fas fa-copy" />
+                    </button>
+                  }
+                />
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: tokens.spacing[2], marginTop: tokens.spacing[4] }}>
+              <Button
+                variant="secondary"
+                onClick={() => handleTipLinkAction('copy')}
+                style={{ flex: 1 }}
+                leftIcon={<i className="fas fa-copy" />}
+              >
+                Copy Link
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => handleTipLinkAction('send')}
+                style={{ flex: 1 }}
+                leftIcon={<i className="fas fa-paper-plane" />}
+              >
+                Send to Client
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* More Actions Modal */}
+        <Modal
+          isOpen={showMoreActionsModal}
+          onClose={() => setShowMoreActionsModal(false)}
+          title="More Actions"
+          size="full"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+            {/* Operational Actions */}
+            <div>
+              <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: tokens.spacing[2] }}>
+                Operational
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                {statusTransitions.length > 0 && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setNewStatus(statusTransitions[0]);
+                      setShowStatusModal(true);
+                      setShowMoreActionsModal(false);
+                    }}
+                    leftIcon={<i className="fas fa-check-circle" />}
+                  >
+                    Change Status to {statusTransitions[0]}
+                  </Button>
+                )}
+                {booking?.sitter ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setShowUnassignModal(true);
+                      setShowMoreActionsModal(false);
+                    }}
+                    leftIcon={<i className="fas fa-user-times" />}
+                  >
+                    Unassign Sitter
+                  </Button>
+                ) : (
+                  <Select
+                    label="Assign Sitter"
+                    options={sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleSitterAssign(e.target.value);
+                        setShowMoreActionsModal(false);
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Financial Actions */}
+            <div>
+              <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: tokens.spacing[2] }}>
+                Financial
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    window.open(booking?.stripePaymentLinkUrl || '', '_blank');
+                    setShowMoreActionsModal(false);
+                  }}
+                  disabled={!booking?.stripePaymentLinkUrl}
+                  leftIcon={<i className="fas fa-external-link-alt" />}
+                >
+                  View in Stripe
+                </Button>
+              </div>
+            </div>
+
+            {/* Utility Actions */}
+            <div>
+              <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: tokens.spacing[2] }}>
+                Utility
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                <Button
+                  variant="ghost"
+                  onClick={handleCopyBookingId}
+                  leftIcon={<i className="fas fa-copy" />}
+                >
+                  Copy Booking ID
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={handleCopyBookingDetails}
+                  leftIcon={<i className="fas fa-copy" />}
+                >
+                  Copy Booking Details
+                </Button>
+                {booking?.status !== 'cancelled' && (
+                  <Button
+                    variant="danger"
+                    onClick={handleCancelBooking}
+                    leftIcon={<i className="fas fa-times-circle" />}
+                  >
+                    Cancel Booking
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </Modal>
 
       {/* Status Change Modal */}
       <Modal

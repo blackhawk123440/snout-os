@@ -104,6 +104,8 @@ export default function ClientsPage() {
     {
       key: 'name',
       header: 'Client',
+      mobileLabel: 'Client',
+      mobileOrder: 1,
       render: (row) => (
         <div>
           <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
@@ -123,6 +125,8 @@ export default function ClientsPage() {
     {
       key: 'contact',
       header: 'Contact',
+      mobileLabel: 'Phone',
+      mobileOrder: 2,
       render: (row) => (
         <div
           style={{
@@ -137,6 +141,8 @@ export default function ClientsPage() {
     {
       key: 'pets',
       header: 'Pets',
+      mobileLabel: 'Pets',
+      mobileOrder: 3,
       render: (row) => (
         <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
           {row.petCount || 0}
@@ -147,6 +153,8 @@ export default function ClientsPage() {
     {
       key: 'bookings',
       header: 'Total Bookings',
+      mobileLabel: 'Total Bookings',
+      mobileOrder: 4,
       render: (row) => (
         <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
           {row.totalBookings || 0}
@@ -157,6 +165,8 @@ export default function ClientsPage() {
     {
       key: 'lastBooking',
       header: 'Last Booking',
+      mobileLabel: 'Last Booking',
+      mobileOrder: 5,
       render: (row) => (
         <div
           style={{
