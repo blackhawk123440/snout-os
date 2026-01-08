@@ -27,6 +27,7 @@ import {
   Tabs,
   TabPanel,
 } from '@/components/ui';
+import { EditBookingModal } from '@/components/booking/EditBookingModal';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { getPricingForDisplay } from '@/lib/pricing-display-helpers';
@@ -106,6 +107,7 @@ export default function BookingDetailPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showUnassignModal, setShowUnassignModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [newStatus, setNewStatus] = useState<string>('');
   const [sitters, setSitters] = useState<Sitter[]>([]);
 
@@ -191,6 +193,29 @@ export default function BookingDetailPage() {
       }
     } catch (err) {
       console.error('Failed to fetch sitters:', err);
+    }
+  };
+
+  const handleEditBooking = async (updates: Partial<Booking>) => {
+    if (!booking) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (response.ok) {
+        await fetchBooking();
+        await fetchStatusHistory();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update booking');
+      }
+    } catch (err) {
+      throw err;
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -400,6 +425,11 @@ export default function BookingDetailPage() {
         breakdown: [{ label: booking.service, amount: booking.totalPrice }],
         isFromSnapshot: false,
       };
+  
+  // Ensure breakdown is always an array
+  const pricingBreakdown = Array.isArray(pricingDisplay.breakdown) && pricingDisplay.breakdown.length > 0
+    ? pricingDisplay.breakdown
+    : [{ label: booking.service || 'Service', amount: booking.totalPrice }];
 
   const statusTransitions = getAvailableStatusTransitions(booking.status);
 
@@ -685,8 +715,8 @@ export default function BookingDetailPage() {
                     <Card style={{ padding: tokens.spacing[3], flexShrink: 0 }}>
                       <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing Breakdown</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
-                        {pricingDisplay.breakdown.map((item, idx) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: tokens.spacing[2], borderBottom: idx < pricingDisplay.breakdown.length - 1 ? `1px solid ${tokens.colors.border.default}` : 'none' }}>
+                        {pricingBreakdown.map((item, idx) => (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: tokens.spacing[2], borderBottom: idx < pricingBreakdown.length - 1 ? `1px solid ${tokens.colors.border.default}` : 'none' }}>
                             <div style={{ color: tokens.colors.text.secondary }}>{item.label}</div>
                             <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatCurrency(item.amount)}</div>
                           </div>
@@ -743,6 +773,13 @@ export default function BookingDetailPage() {
                 Back
               </Button>
             </Link>
+            <Button
+              variant="secondary"
+              onClick={() => setShowEditModal(true)}
+              leftIcon={<i className="fas fa-edit" />}
+            >
+              Edit
+            </Button>
             {statusTransitions.length > 0 && (
               <Button
                 variant="primary"
@@ -1112,7 +1149,7 @@ export default function BookingDetailPage() {
                     render: (row) => <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>{formatCurrency(row.amount)}</div>,
                   },
                 ]}
-                data={pricingDisplay.breakdown}
+                data={pricingBreakdown}
                 keyExtractor={(row, index) => `${row.label}-${index}`}
               />
               <div
@@ -1401,6 +1438,16 @@ export default function BookingDetailPage() {
           </>
         )}
       </div>
+
+      {/* Edit Booking Modal */}
+      {booking && (
+        <EditBookingModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          booking={booking}
+          onSave={handleEditBooking}
+        />
+      )}
 
       {/* Status Change Modal */}
       <Modal
