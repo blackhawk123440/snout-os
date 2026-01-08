@@ -21,6 +21,7 @@ import {
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 interface Booking {
   id: string;
@@ -70,34 +71,18 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSitterFilter, setSelectedSitterFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month');
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useMobile();
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Detect mobile and default to Agenda view on mobile (only on initial load)
+  // Default to Agenda view on mobile (only on initial load)
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-      setIsMobile(mobile);
-      
-      // Only set default to Agenda on initial load if mobile
-      if (!hasInitialized && mobile) {
-        setViewMode('agenda');
-        setHasInitialized(true);
-      } else if (!hasInitialized) {
-        setHasInitialized(true);
-      }
-    };
-    
-    if (typeof window !== 'undefined') {
-      checkMobile();
-      const handleResize = () => {
-        const mobile = window.innerWidth <= 768;
-        setIsMobile(mobile);
-      };
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+    if (!hasInitialized && isMobile) {
+      setViewMode('agenda');
+      setHasInitialized(true);
+    } else if (!hasInitialized) {
+      setHasInitialized(true);
     }
-  }, [hasInitialized]);
+  }, [isMobile, hasInitialized]);
 
   useEffect(() => {
     fetchData();
