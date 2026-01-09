@@ -25,6 +25,8 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
+import { BookingScheduleDisplay } from '@/components/booking';
+import { SitterTierBadge } from '@/components/sitter';
 
 interface DashboardJob {
   id: string;
@@ -177,14 +179,15 @@ function SitterDashboardContent() {
     }
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
+  // Format functions for simple date/time displays (expires, calendar cells)
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const getDaysInMonth = (month: number, year: number) => {
@@ -260,10 +263,7 @@ function SitterDashboardContent() {
         description={isAdminView ? "Read-only admin view" : undefined}
         actions={
           dashboardData.tier ? (
-            <Badge variant="success" style={{ fontSize: tokens.typography.fontSize.sm[0], padding: `${tokens.spacing[2]} ${tokens.spacing[4]}` }}>
-              <i className="fas fa-star" style={{ marginRight: tokens.spacing[2] }} />
-              {dashboardData.tier.name} (Level {dashboardData.tier.priorityLevel})
-            </Badge>
+            <SitterTierBadge tier={dashboardData.tier} />
           ) : undefined
         }
       />
@@ -305,19 +305,14 @@ function SitterDashboardContent() {
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                                 <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
-                                {job.timeSlots.length > 0 && (
-                                  <div>
-                                    <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Times:</span>{" "}
-                                    {job.timeSlots.map((ts, idx) => (
-                                      <span key={ts.id}>
-                                        {formatTime(ts.startAt)} ({ts.duration} min)
-                                        {idx < job.timeSlots.length - 1 ? ", " : ""}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Address:</span> {job.address}</div>
+                                <BookingScheduleDisplay
+                                  service={job.service}
+                                  startAt={job.startAt}
+                                  endAt={job.endAt}
+                                  timeSlots={job.timeSlots}
+                                  address={job.address}
+                                />
+                                
                                 <div>
                                   <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Pets:</span>{" "}
                                   {job.pets.map((p, idx) => (
@@ -1031,19 +1026,14 @@ function SitterDashboardContent() {
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                                 <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
-                                {job.timeSlots.length > 0 && (
-                                  <div>
-                                    <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Times:</span>{" "}
-                                    {job.timeSlots.map((ts, idx) => (
-                                      <span key={ts.id}>
-                                        {formatTime(ts.startAt)} ({ts.duration} min)
-                                        {idx < job.timeSlots.length - 1 ? ", " : ""}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Address:</span> {job.address}</div>
+                                <BookingScheduleDisplay
+                                  service={job.service}
+                                  startAt={job.startAt}
+                                  endAt={job.endAt}
+                                  timeSlots={job.timeSlots}
+                                  address={job.address}
+                                />
+                                
                                 <div>
                                   <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Pets:</span>{" "}
                                   {job.pets.map((p, idx) => (

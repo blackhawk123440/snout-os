@@ -23,6 +23,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
+import { SitterTierBadge } from '@/components/sitter';
 
 interface Sitter {
   id: string;
@@ -330,10 +331,7 @@ export default function SittersPage() {
                           {sitter.isActive ? "Active" : "Inactive"}
                           </Badge>
                           {sitter.currentTier && (
-                            <Badge variant="default" style={{ backgroundColor: tokens.colors.primary[100], color: tokens.colors.primary.DEFAULT }}>
-                              <i className="fas fa-star" style={{ marginRight: tokens.spacing[1] }} />
-                              {sitter.currentTier.name}
-                            </Badge>
+                            <SitterTierBadge tier={sitter.currentTier} />
                           )}
                         </div>
                       </div>

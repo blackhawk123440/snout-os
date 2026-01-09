@@ -10,6 +10,7 @@ export async function GET(
     const sitter = await prisma.sitter.findUnique({
       where: { id },
       include: {
+        currentTier: true,
         bookings: {
           include: {
             pets: true,

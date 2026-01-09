@@ -15,7 +15,11 @@ export async function GET(
       where: { id },
       include: {
         pets: true,
-        sitter: true,
+        sitter: {
+          include: {
+            currentTier: true,
+          },
+        },
         timeSlots: {
           orderBy: {
             startAt: "asc",
@@ -69,7 +73,11 @@ export async function PATCH(
       where: { id },
       include: {
         pets: true,
-        sitter: true,
+        sitter: {
+          include: {
+            currentTier: true,
+          },
+        },
         timeSlots: {
           orderBy: {
             startAt: "asc",
@@ -204,7 +212,11 @@ export async function PATCH(
       },
       include: {
         pets: true,
-        sitter: true,
+        sitter: {
+          include: {
+            currentTier: true,
+          },
+        },
         timeSlots: {
           orderBy: {
             startAt: "asc",
@@ -301,7 +313,11 @@ export async function PATCH(
       where: { id },
       include: {
         pets: true,
-        sitter: true,
+        sitter: {
+          include: {
+            currentTier: true,
+          },
+        },
         timeSlots: {
           orderBy: {
             startAt: "asc",

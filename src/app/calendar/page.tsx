@@ -22,6 +22,8 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
+import { BookingScheduleDisplay } from '@/components/booking';
+import { SitterAssignmentDisplay } from '@/components/sitter';
 
 interface Booking {
   id: string;
@@ -871,7 +873,7 @@ export default function CalendarPage() {
                                 {booking.sitter && (
                                   <div>
                                     <i className="fas fa-user-check" style={{ marginRight: tokens.spacing[2] }} />
-                                    Sitter: {booking.sitter.firstName} {booking.sitter.lastName}
+                                    Sitter: <SitterAssignmentDisplay sitter={booking.sitter} showTierBadge compact />
                                   </div>
                                 )}
                               </div>
@@ -1056,7 +1058,7 @@ export default function CalendarPage() {
                               color: tokens.colors.text.primary,
                             }}
                           >
-                            {booking.sitter.firstName} {booking.sitter.lastName}
+                            <SitterAssignmentDisplay sitter={booking.sitter} showTierBadge compact />
                           </div>
                         </div>
                       ) : (

@@ -4,6 +4,9 @@ import { prisma } from "@/lib/db";
 export async function GET() {
   try {
     const sitters = await prisma.sitter.findMany({
+      include: {
+        currentTier: true,
+      },
       orderBy: {
         createdAt: "desc",
       },
