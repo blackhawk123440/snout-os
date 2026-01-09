@@ -24,6 +24,7 @@ import {
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 interface Payment {
   id: string;
@@ -81,23 +82,12 @@ export default function PaymentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useMobile();
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>({
     label: 'Last 30 Days',
     value: '30d',
     days: 30,
   });
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(typeof window !== 'undefined' && window.innerWidth <= 768);
-    };
-    checkMobile();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', checkMobile);
-      return () => window.removeEventListener('resize', checkMobile);
-    }
-  }, []);
 
   const timeRanges: TimeRange[] = [
     { label: 'Last 7 Days', value: '7d', days: 7 },

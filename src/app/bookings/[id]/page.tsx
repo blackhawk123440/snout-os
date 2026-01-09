@@ -127,6 +127,10 @@ export default function BookingDetailPage() {
   });
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
   const [showTipLinkModal, setShowTipLinkModal] = useState(false);
+  const [paymentLinkMessage, setPaymentLinkMessage] = useState('');
+  const [tipLinkMessage, setTipLinkMessage] = useState('');
+  const [showPaymentLinkConfirm, setShowPaymentLinkConfirm] = useState(false);
+  const [showTipLinkConfirm, setShowTipLinkConfirm] = useState(false);
   const [showMoreActionsModal, setShowMoreActionsModal] = useState(false);
   
   const toggleSection = (section: string) => {
@@ -392,8 +396,44 @@ Total: ${formatCurrency(booking.totalPrice)}`;
   const handlePaymentLinkAction = async (action: 'copy' | 'send') => {
     if (!booking) return;
     
+    if (action === 'copy') {
+      // Handle copy immediately
+      if (!booking.stripePaymentLinkUrl) {
+        // Generate payment link first
+        try {
+          const response = await fetch(`/api/bookings/${bookingId}/payment-link`, {
+            method: 'POST',
+          });
+          if (response.ok) {
+            const data = await response.json();
+            await fetchBooking();
+            const copied = await copyToClipboard(data.link);
+            if (copied) {
+              alert('Payment link copied to clipboard');
+            }
+          } else {
+            alert('Failed to generate payment link');
+          }
+        } catch (err) {
+          console.error('Failed to generate payment link:', err);
+          alert('Failed to generate payment link');
+        }
+      } else {
+        const copied = await copyToClipboard(booking.stripePaymentLinkUrl);
+        if (copied) {
+          alert('Payment link copied to clipboard');
+        }
+      }
+      setShowPaymentLinkModal(false);
+      return;
+    }
+
+    // For send action, show preview first
+    const link = booking.stripePaymentLinkUrl || '';
+    let message = `Hi ${booking.firstName}, here's your payment link for your ${booking.service} booking:\n\n${link || '[Link will be generated]'}`;
+    
     if (!booking.stripePaymentLinkUrl) {
-      // Generate payment link
+      // Generate link first, then show preview
       try {
         const response = await fetch(`/api/bookings/${bookingId}/payment-link`, {
           method: 'POST',
@@ -401,17 +441,9 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         if (response.ok) {
           const data = await response.json();
           await fetchBooking();
-          if (action === 'copy') {
-            const copied = await copyToClipboard(data.link);
-            if (copied) {
-              alert('Payment link copied to clipboard');
-            }
-          } else {
-            // Send payment link
-            const message = `Hi ${booking.firstName}, here's your payment link for your ${booking.service} booking:\n\n${data.link}`;
-            // TODO: Implement send message functionality
-            alert(`Message to send:\n\n${message}`);
-          }
+          message = `Hi ${booking.firstName}, here's your payment link for your ${booking.service} booking:\n\n${data.link}`;
+          setPaymentLinkMessage(message);
+          setShowPaymentLinkConfirm(true);
         } else {
           alert('Failed to generate payment link');
         }
@@ -420,25 +452,54 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         alert('Failed to generate payment link');
       }
     } else {
-      if (action === 'copy') {
-        const copied = await copyToClipboard(booking.stripePaymentLinkUrl);
-        if (copied) {
-          alert('Payment link copied to clipboard');
-        }
-      } else {
-        const message = `Hi ${booking.firstName}, here's your payment link for your ${booking.service} booking:\n\n${booking.stripePaymentLinkUrl}`;
-        // TODO: Implement send message functionality
-        alert(`Message to send:\n\n${message}`);
-      }
+      setPaymentLinkMessage(message);
+      setShowPaymentLinkModal(false); // Close payment link modal
+      setShowPaymentLinkConfirm(true); // Show confirmation modal
     }
-    setShowPaymentLinkModal(false);
   };
 
   const handleTipLinkAction = async (action: 'copy' | 'send') => {
     if (!booking) return;
     
+    if (action === 'copy') {
+      // Handle copy immediately
+      if (!booking.tipLinkUrl) {
+        // Generate tip link first
+        try {
+          const response = await fetch(`/api/bookings/${bookingId}/tip-link`, {
+            method: 'POST',
+          });
+          if (response.ok) {
+            const data = await response.json();
+            await fetchBooking();
+            const copied = await copyToClipboard(data.link);
+            if (copied) {
+              alert('Tip link copied to clipboard');
+            }
+          } else {
+            alert('Failed to generate tip link');
+          }
+        } catch (err) {
+          console.error('Failed to generate tip link:', err);
+          alert('Failed to generate tip link');
+        }
+      } else {
+        const copied = await copyToClipboard(booking.tipLinkUrl);
+        if (copied) {
+          alert('Tip link copied to clipboard');
+        }
+      }
+      setShowTipLinkModal(false);
+      return;
+    }
+
+    // For send action, show preview first
+    const link = booking.tipLinkUrl || '';
+    const message = `Hi ${booking.firstName}, here's a tip link for your ${booking.service} booking:\n\n${link || '[Link will be generated]'}`;
+    setTipLinkMessage(message);
+    
     if (!booking.tipLinkUrl) {
-      // Generate tip link
+      // Generate link first, then show preview
       try {
         const response = await fetch(`/api/bookings/${bookingId}/tip-link`, {
           method: 'POST',
@@ -446,16 +507,10 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         if (response.ok) {
           const data = await response.json();
           await fetchBooking();
-          if (action === 'copy') {
-            const copied = await copyToClipboard(data.link);
-            if (copied) {
-              alert('Tip link copied to clipboard');
-            }
-          } else {
-            const message = `Hi ${booking.firstName}, here's a tip link for your ${booking.service} booking:\n\n${data.link}`;
-            // TODO: Implement send message functionality
-            alert(`Message to send:\n\n${message}`);
-          }
+          const finalMessage = `Hi ${booking.firstName}, here's a tip link for your ${booking.service} booking:\n\n${data.link}`;
+          setTipLinkMessage(finalMessage);
+          setShowTipLinkModal(false); // Close tip link modal
+          setShowTipLinkConfirm(true); // Show confirmation modal
         } else {
           alert('Failed to generate tip link');
         }
@@ -464,18 +519,70 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         alert('Failed to generate tip link');
       }
     } else {
-      if (action === 'copy') {
-        const copied = await copyToClipboard(booking.tipLinkUrl);
-        if (copied) {
-          alert('Tip link copied to clipboard');
-        }
-      } else {
-        const message = `Hi ${booking.firstName}, here's a tip link for your ${booking.service} booking:\n\n${booking.tipLinkUrl}`;
-        // TODO: Implement send message functionality
-        alert(`Message to send:\n\n${message}`);
-      }
+      setTipLinkMessage(message);
+      setShowTipLinkModal(false); // Close tip link modal
+      setShowTipLinkConfirm(true); // Show confirmation modal
     }
-    setShowTipLinkModal(false);
+  };
+
+  const handleSendPaymentLink = async () => {
+    if (!booking) return;
+    setSaving(true);
+    try {
+      // For now, we'll copy the message to clipboard and show success
+      // In production, this would call a message API endpoint
+      const copied = await copyToClipboard(paymentLinkMessage);
+      if (copied) {
+        alert('Message copied to clipboard. Send it via your messaging app:\n\n' + paymentLinkMessage);
+        // TODO: Implement actual message sending via API
+        // await fetch('/api/messages/send', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({
+        //     to: booking.phone,
+        //     message: paymentLinkMessage,
+        //     bookingId: booking.id,
+        //   }),
+        // });
+      }
+      setShowPaymentLinkConfirm(false);
+      setShowPaymentLinkModal(false);
+    } catch (err) {
+      console.error('Failed to send payment link message:', err);
+      alert('Failed to send message');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSendTipLink = async () => {
+    if (!booking) return;
+    setSaving(true);
+    try {
+      // For now, we'll copy the message to clipboard and show success
+      // In production, this would call a message API endpoint
+      const copied = await copyToClipboard(tipLinkMessage);
+      if (copied) {
+        alert('Message copied to clipboard. Send it via your messaging app:\n\n' + tipLinkMessage);
+        // TODO: Implement actual message sending via API
+        // await fetch('/api/messages/send', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify({
+        //     to: booking.phone,
+        //     message: tipLinkMessage,
+        //     bookingId: booking.id,
+        //   }),
+        // });
+      }
+      setShowTipLinkConfirm(false);
+      setShowTipLinkModal(false);
+    } catch (err) {
+      console.error('Failed to send tip link message:', err);
+      alert('Failed to send message');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -2150,6 +2257,144 @@ Total: ${formatCurrency(booking.totalPrice)}`;
             </Button>
             <Button variant="primary" onClick={handleStatusChange} isLoading={saving}>
               Update Status
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Payment Link Confirmation Modal */}
+      <Modal
+        isOpen={showPaymentLinkConfirm}
+        onClose={() => {
+          setShowPaymentLinkConfirm(false);
+          setPaymentLinkMessage('');
+        }}
+        title="Confirm Send Payment Link"
+        size="full"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div>
+            <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+              Recipient
+            </div>
+            <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.medium }}>
+              {booking?.firstName} {booking?.lastName}
+            </div>
+            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+              {booking?.phone}
+            </div>
+          </div>
+          
+          <div>
+            <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+              Message Preview
+            </div>
+            <div
+              style={{
+                padding: tokens.spacing[4],
+                backgroundColor: tokens.colors.background.secondary,
+                borderRadius: tokens.borderRadius.md,
+                border: `1px solid ${tokens.colors.border.default}`,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                fontSize: tokens.typography.fontSize.sm[0],
+                lineHeight: 1.6,
+                maxHeight: '200px',
+                overflowY: 'auto',
+              }}
+            >
+              {paymentLinkMessage}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4] }}>
+            <Button
+              variant="primary"
+              onClick={handleSendPaymentLink}
+              isLoading={saving}
+              leftIcon={<i className="fas fa-paper-plane" />}
+              style={{ width: '100%' }}
+            >
+              Send Message
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowPaymentLinkConfirm(false);
+                setPaymentLinkMessage('');
+              }}
+              style={{ width: '100%' }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Tip Link Confirmation Modal */}
+      <Modal
+        isOpen={showTipLinkConfirm}
+        onClose={() => {
+          setShowTipLinkConfirm(false);
+          setTipLinkMessage('');
+        }}
+        title="Confirm Send Tip Link"
+        size="full"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div>
+            <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+              Recipient
+            </div>
+            <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.medium }}>
+              {booking?.firstName} {booking?.lastName}
+            </div>
+            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+              {booking?.phone}
+            </div>
+          </div>
+          
+          <div>
+            <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+              Message Preview
+            </div>
+            <div
+              style={{
+                padding: tokens.spacing[4],
+                backgroundColor: tokens.colors.background.secondary,
+                borderRadius: tokens.borderRadius.md,
+                border: `1px solid ${tokens.colors.border.default}`,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                fontSize: tokens.typography.fontSize.sm[0],
+                lineHeight: 1.6,
+                maxHeight: '200px',
+                overflowY: 'auto',
+              }}
+            >
+              {tipLinkMessage}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4] }}>
+            <Button
+              variant="primary"
+              onClick={handleSendTipLink}
+              isLoading={saving}
+              leftIcon={<i className="fas fa-paper-plane" />}
+              style={{ width: '100%' }}
+            >
+              Send Message
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowTipLinkConfirm(false);
+                setTipLinkMessage('');
+              }}
+              style={{ width: '100%' }}
+            >
+              Cancel
             </Button>
           </div>
         </div>
