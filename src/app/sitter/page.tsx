@@ -22,6 +22,7 @@ import {
   Skeleton,
   Modal,
   SectionHeader,
+  MobileFilterBar,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -237,6 +238,479 @@ function SitterPageContent() {
     0
   );
 
+  // Helper function to render tab content
+  const renderTabContent = (tabId: TabType) => {
+    switch (tabId) {
+      case 'today':
+        return (
+          <Card>
+            <SectionHeader title={`Today's Visits (${todayBookings.length})`} />
+            <div style={{ padding: tokens.spacing[6] }}>
+              {todayBookings.length === 0 ? (
+                <EmptyState
+                  title="No visits scheduled for today"
+                  description="You have no bookings scheduled for today"
+                  icon={<i className="fas fa-calendar" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  {todayBookings.map((booking, index) => {
+                    const previousBooking = index > 0 ? todayBookings[index - 1] : null;
+                    const travelTime = calculateTravelTime(previousBooking, booking);
+                    const overdue = isOverdue(booking);
+                    
+                    return (
+                      <Card
+                        key={booking.id}
+                        style={{
+                          borderColor: overdue ? tokens.colors.error.DEFAULT : tokens.colors.border.default,
+                          backgroundColor: overdue ? tokens.colors.error[50] : undefined,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: tokens.spacing[4],
+                          }}
+                        >
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
+                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                                {booking.firstName} {booking.lastName.charAt(0)}.
+                              </div>
+                              {overdue && (
+                                <Badge variant="error">OVERDUE</Badge>
+                              )}
+                              {getStatusBadge(booking.status)}
+                            </div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+                                <span><i className="fas fa-clock" style={{ marginRight: tokens.spacing[1] }} /></span>
+                                {formatTime(booking.startAt)}
+                                <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                {formatPetsByQuantity(booking.pets)}
+                                <span><i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                {booking.address}
+                              </div>
+                              {previousBooking && (
+                                <div style={{ color: tokens.colors.info.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }}>
+                                  <i className="fas fa-route" style={{ marginRight: tokens.spacing[1] }} />
+                                  ~{travelTime} min travel from previous visit
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                            <Button
+                              variant="tertiary"
+                              size="sm"
+                              onClick={() => handleBookingClick(booking)}
+                            >
+                              Details
+                            </Button>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => checkIn(booking.id)}
+                            >
+                              Check In
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </Card>
+        );
+      case 'upcoming':
+        return (
+          <Card>
+            <SectionHeader title={`Upcoming Bookings (${upcomingBookings.length})`} />
+            <div style={{ padding: tokens.spacing[6] }}>
+              {loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <Skeleton height={100} />
+                  <Skeleton height={100} />
+                  <Skeleton height={100} />
+                </div>
+              ) : upcomingBookings.length === 0 ? (
+                <EmptyState
+                  title="No upcoming bookings"
+                  description="You have no upcoming bookings scheduled"
+                  icon={<i className="fas fa-calendar" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  {upcomingBookings.map((booking) => (
+                    <Card key={booking.id} style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
+                            <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                              {booking.firstName} {booking.lastName}
+                            </div>
+                            {getStatusBadge(booking.status)}
+                          </div>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+                              <span><i className="fas fa-calendar" style={{ marginRight: tokens.spacing[1] }} /></span>
+                              {formatDate(booking.startAt)}
+                              <span><i className="fas fa-clock" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                              {formatTime(booking.startAt)}
+                              <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                              {formatPetsByQuantity(booking.pets)}
+                              <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                              ${booking.totalPrice.toFixed(2)}
+                            </div>
+                            <div>
+                              <span><i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[1] }} /></span>
+                              {booking.address}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
+        );
+      case 'completed':
+        return (
+          <Card>
+            <SectionHeader title={`Completed Bookings (${completedBookings.length})`} />
+            <div style={{ padding: tokens.spacing[6] }}>
+              {completedBookings.length === 0 ? (
+                <EmptyState
+                  title="No completed bookings"
+                  description="You haven't completed any bookings yet"
+                  icon={<i className="fas fa-check-circle" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  {completedBookings.slice(0, 20).map((booking) => (
+                    <Card key={booking.id} style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
+                            <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                              {booking.firstName} {booking.lastName}
+                            </div>
+                            {getStatusBadge(booking.status)}
+                          </div>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            <span><i className="fas fa-calendar" style={{ marginRight: tokens.spacing[1] }} /></span>
+                            {formatDate(booking.startAt)}
+                            <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                            {formatPetsByQuantity(booking.pets)}
+                            <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                            ${booking.totalPrice.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                  {completedBookings.length > 20 && (
+                    <div style={{ textAlign: 'center', padding: tokens.spacing[4], color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+                      +{completedBookings.length - 20} more completed bookings
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </Card>
+        );
+      case 'earnings':
+        return (
+          <Card>
+            <SectionHeader title="Earnings Breakdown" />
+            <div style={{ padding: tokens.spacing[6] }}>
+              {earningsData ? (
+                <>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: tokens.spacing[4],
+                      marginBottom: tokens.spacing[6],
+                    }}
+                  >
+                    <Card style={{ padding: tokens.spacing[6] }}>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase' }}>
+                        Total Earnings
+                      </div>
+                      <div style={{ fontSize: tokens.typography.fontSize['3xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text.primary, marginBottom: tokens.spacing[1] }}>
+                        ${earningsData.summary.totalEarnings.toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                        {earningsData.summary.totalBookings} bookings ({earningsData.summary.commissionPercentage}% commission)
+                      </div>
+                    </Card>
+                    <StatCard
+                      label="Last 30 Days"
+                      value={`$${earningsData.summary.earningsLast30Days.toFixed(2)}`}
+                    />
+                    <StatCard
+                      label="Last 90 Days"
+                      value={`$${earningsData.summary.earningsLast90Days.toFixed(2)}`}
+                    />
+                  </div>
+                  {earningsData.earningsByService && earningsData.earningsByService.length > 0 && (
+                    <div style={{ marginBottom: tokens.spacing[6] }}>
+                      <SectionHeader title="Earnings by Service Type" />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4] }}>
+                        {earningsData.earningsByService.map((service: any, idx: number) => (
+                          <Card key={idx}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                                  {service.service}
+                                </div>
+                                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                  {service.bookingCount} booking{service.bookingCount !== 1 ? 's' : ''}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
+                                  ${service.totalEarnings.toFixed(2)}
+                                </div>
+                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                                  from ${service.totalRevenue.toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div>
+                    <SectionHeader title="Earnings by Booking" />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4], maxHeight: '24rem', overflowY: 'auto' }}>
+                      {earningsData.earningsByBooking.map((item: any) => (
+                        <Card key={item.bookingId}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                              <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                                {item.clientName}
+                              </div>
+                              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                {formatDate(item.date)} - {item.service}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
+                                ${item.earnings.toFixed(2)}
+                              </div>
+                              <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                                from ${item.totalPrice.toFixed(2)}
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <EmptyState
+                  title="Loading earnings data"
+                  description="Please wait while we fetch your earnings information"
+                />
+              )}
+            </div>
+          </Card>
+        );
+      case 'tier':
+        return (
+          <Card>
+            <SectionHeader title="Tier Progress" />
+            <div style={{ padding: tokens.spacing[6] }}>
+              {tierProgress ? (
+                <>
+                  {tierProgress.tier && (
+                    <Card
+                      style={{
+                        marginBottom: tokens.spacing[6],
+                        backgroundColor: tokens.colors.primary[50],
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+                        <div
+                          style={{
+                            width: '3rem',
+                            height: '3rem',
+                            borderRadius: tokens.borderRadius.md,
+                            backgroundColor: tokens.colors.primary[500],
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: tokens.colors.neutral[0],
+                            fontSize: tokens.typography.fontSize.xl[0],
+                          }}
+                        >
+                          <i className="fas fa-star" />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.primary.DEFAULT }}>
+                            Current Tier: {tierProgress.tier.name}
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            Priority Level: {tierProgress.tier.priorityLevel}
+                          </div>
+                          {tierProgress.tier.benefits && (
+                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
+                              Benefits: {typeof tierProgress.tier.benefits === 'string' ? tierProgress.tier.benefits : JSON.stringify(tierProgress.tier.benefits)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+                  {tierProgress.performance && (
+                    <div style={{ marginBottom: tokens.spacing[6] }}>
+                      <SectionHeader title="Performance Metrics" />
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                          gap: tokens.spacing[4],
+                          marginTop: tokens.spacing[4],
+                        }}
+                      >
+                        <StatCard
+                          label="Points"
+                          value={tierProgress.performance.points || 0}
+                        />
+                        <StatCard
+                          label="Completion Rate"
+                          value={`${tierProgress.performance.completionRate?.toFixed(1) || '0.0'}%`}
+                        />
+                        <StatCard
+                          label="Response Rate"
+                          value={`${tierProgress.performance.responseRate?.toFixed(1) || '0.0'}%`}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {tierProgress.nextTier && (
+                    <Card
+                      style={{
+                        marginBottom: tokens.spacing[6],
+                        backgroundColor: tokens.colors.info[50],
+                        borderColor: tokens.colors.info[200],
+                      }}
+                    >
+                      <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], marginBottom: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
+                        Next Tier: {tierProgress.nextTier.name}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                        {tierProgress.nextTier.pointTarget && (
+                          <div>Point Target: {tierProgress.nextTier.pointTarget}</div>
+                        )}
+                        {tierProgress.nextTier.minCompletionRate && (
+                          <div>Min Completion Rate: {tierProgress.nextTier.minCompletionRate}%</div>
+                        )}
+                        {tierProgress.nextTier.minResponseRate && (
+                          <div>Min Response Rate: {tierProgress.nextTier.minResponseRate}%</div>
+                        )}
+                      </div>
+                    </Card>
+                  )}
+                  {tierProgress.improvementAreas && tierProgress.improvementAreas.length > 0 && (
+                    <div>
+                      <SectionHeader title="Areas to Improve" />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], marginTop: tokens.spacing[4] }}>
+                        {tierProgress.improvementAreas.map((area: string, idx: number) => (
+                          <Card
+                            key={idx}
+                            style={{
+                              backgroundColor: tokens.colors.warning[50],
+                              borderColor: tokens.colors.warning[200],
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[2] }}>
+                              <div
+                                style={{
+                                  width: '1.5rem',
+                                  height: '1.5rem',
+                                  borderRadius: tokens.borderRadius.full,
+                                  backgroundColor: tokens.colors.warning[200],
+                                  color: tokens.colors.warning[700],
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  fontSize: tokens.typography.fontSize.xs[0],
+                                  fontWeight: tokens.typography.fontWeight.bold,
+                                }}
+                              >
+                                {idx + 1}
+                              </div>
+                              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary }}>
+                                {area}
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <EmptyState
+                  title="Loading tier progress"
+                  description="Please wait while we fetch your tier information"
+                />
+              )}
+            </div>
+          </Card>
+        );
+      case 'settings':
+        return (
+          <Card>
+            <SectionHeader title="Personal Settings" />
+            <div style={{ padding: tokens.spacing[6] }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                <div>
+                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+                    Commission Percentage
+                  </div>
+                  <div style={{ fontSize: tokens.typography.fontSize.lg[0] }}>{commissionPercentage}%</div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                    Set by owner
+                  </div>
+                </div>
+                {sitterTier && (
+                  <div>
+                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+                      Current Tier
+                    </div>
+                    <div style={{ fontSize: tokens.typography.fontSize.lg[0] }}>{sitterTier.name}</div>
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                      Priority: {sitterTier.priorityLevel}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        );
+      default:
+        return null;
+    }
+  };
+
   if (loading && !sitterId) {
     return (
       <AppShell>
@@ -349,14 +823,29 @@ function SitterPageContent() {
           />
         </div>
 
-        {/* Tabs */}
-        <Tabs
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as TabType)}
-        >
-          {/* Today Tab */}
-          <TabPanel id="today">
+        {/* Tabs - Mobile vs Desktop */}
+        {isMobile ? (
+          <>
+            <MobileFilterBar
+              activeFilter={activeTab}
+              onFilterChange={(filterId) => setActiveTab(filterId as TabType)}
+              sticky
+              options={tabs.map(tab => ({ 
+                id: tab.id, 
+                label: tab.label, 
+                badge: tab.badge 
+              }))}
+            />
+            {renderTabContent(activeTab)}
+          </>
+        ) : (
+          <Tabs
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={(tab) => setActiveTab(tab as TabType)}
+          >
+            {/* Today Tab */}
+            <TabPanel id="today">
             <Card>
               <SectionHeader title={`Today's Visits (${todayBookings.length})`} />
               <div style={{ padding: tokens.spacing[6] }}>
@@ -807,37 +1296,38 @@ function SitterPageContent() {
             </Card>
           </TabPanel>
 
-          {/* Settings Tab */}
-          <TabPanel id="settings">
-            <Card>
-              <SectionHeader title="Personal Settings" />
-              <div style={{ padding: tokens.spacing[6] }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-                  <div>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
-                      Commission Percentage
-                    </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.lg[0] }}>{commissionPercentage}%</div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
-                      Set by owner
-                    </div>
-                  </div>
-                  {sitterTier && (
+            {/* Settings Tab */}
+            <TabPanel id="settings">
+              <Card>
+                <SectionHeader title="Personal Settings" />
+                <div style={{ padding: tokens.spacing[6] }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
                     <div>
                       <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
-                        Current Tier
+                        Commission Percentage
                       </div>
-                      <div style={{ fontSize: tokens.typography.fontSize.lg[0] }}>{sitterTier.name}</div>
+                      <div style={{ fontSize: tokens.typography.fontSize.lg[0] }}>{commissionPercentage}%</div>
                       <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
-                        Priority: {sitterTier.priorityLevel}
+                        Set by owner
                       </div>
                     </div>
-                  )}
+                    {sitterTier && (
+                      <div>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+                          Current Tier
+                        </div>
+                        <div style={{ fontSize: tokens.typography.fontSize.lg[0] }}>{sitterTier.name}</div>
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                          Priority: {sitterTier.priorityLevel}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Card>
-          </TabPanel>
-        </Tabs>
+              </Card>
+            </TabPanel>
+          </Tabs>
+        )}
       </div>
 
       {/* Visit Detail Modal */}

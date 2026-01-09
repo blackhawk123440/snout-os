@@ -27,9 +27,11 @@ import {
   FormRow,
   Tabs,
   TabPanel,
+  MobileFilterBar,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 import ConversationList from '@/components/messaging/ConversationList';
 import ConversationView from '@/components/messaging/ConversationView';
 
@@ -57,6 +59,7 @@ interface Conversation {
 }
 
 export default function MessagesPage() {
+  const isMobile = useMobile();
   const [activeTab, setActiveTab] = useState<'conversations' | 'templates'>('conversations');
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   
@@ -210,137 +213,269 @@ export default function MessagesPage() {
       />
 
       <div style={{ padding: tokens.spacing[6] }}>
-        <Tabs
-          tabs={[
-            { id: 'conversations', label: 'Conversations' },
-            { id: 'templates', label: 'Templates' },
-          ]}
-          activeTab={activeTab}
-          onTabChange={(id) => {
-            setActiveTab(id as 'conversations' | 'templates');
-            setSelectedConversation(null);
-          }}
-        >
-          <TabPanel id="conversations">
-            {selectedConversation ? (
-              <ConversationView
-                participantPhone={selectedConversation.participantPhone}
-                participantName={selectedConversation.participantName}
-                bookingId={selectedConversation.bookingId}
-                role="owner"
-                onBack={() => setSelectedConversation(null)}
-              />
-            ) : (
-              <ConversationList
-                role="owner"
-                onSelectConversation={setSelectedConversation}
-              />
-            )}
-          </TabPanel>
-          
-          <TabPanel id="templates">
-        {error && (
-          <Card
-            style={{
-              marginBottom: tokens.spacing[6],
-              backgroundColor: tokens.colors.error[50],
-              borderColor: tokens.colors.error[200],
-            }}
-          >
-            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
-              {error}
-              <Button
-                variant="tertiary"
-                size="sm"
-                onClick={fetchTemplates}
-                style={{ marginLeft: tokens.spacing[3] }}
-              >
-                Retry
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            <Skeleton height={200} />
-            <Skeleton height={200} />
-            <Skeleton height={200} />
-          </div>
-        ) : templates.length === 0 ? (
+        {isMobile ? (
           <>
-            <EmptyState
-              title="No message templates"
-              description="Create your first message template to get started"
-              icon={<i className="fas fa-envelope" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
-              action={{
-                label: "Create Template",
-                onClick: () => {
-                  resetForm();
-                  setShowAddForm(true);
-                },
+            <MobileFilterBar
+              activeFilter={activeTab}
+              onFilterChange={(filterId) => {
+                setActiveTab(filterId as 'conversations' | 'templates');
+                setSelectedConversation(null);
               }}
+              sticky
+              options={[
+                { id: 'conversations', label: 'Conversations' },
+                { id: 'templates', label: 'Templates' },
+              ]}
             />
-          </>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            {templates.map((template) => {
-              const fields = extractFields(template.content);
-              return (
-                <Card key={template.id}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.text.primary }}>
-                          {template.name}
-                        </div>
-                        {getTypeBadge(template.type)}
-                      </div>
-                      
-                      <div style={{ marginBottom: tokens.spacing[3] }}>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                          Template Content:
-                        </div>
-                        <Card style={{ backgroundColor: tokens.colors.neutral[50], padding: tokens.spacing[3] }}>
-                          <div style={{ whiteSpace: 'pre-wrap', fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>
-                            {template.content}
-                          </div>
-                        </Card>
-                      </div>
-                      
-                      {fields.length > 0 && (
-                        <div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                            Available Fields:
-                          </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
-                            {fields.map((field) => (
-                              <Badge key={field} variant="info">
-                                {`{{${field}}}`}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+            {activeTab === 'conversations' ? (
+              selectedConversation ? (
+                <ConversationView
+                  participantPhone={selectedConversation.participantPhone}
+                  participantName={selectedConversation.participantName}
+                  bookingId={selectedConversation.bookingId}
+                  role="owner"
+                  onBack={() => setSelectedConversation(null)}
+                />
+              ) : (
+                <ConversationList
+                  role="owner"
+                  onSelectConversation={setSelectedConversation}
+                />
+              )
+            ) : (
+              <>
+                {error && (
+                  <Card
+                    style={{
+                      marginBottom: tokens.spacing[6],
+                      backgroundColor: tokens.colors.error[50],
+                      borderColor: tokens.colors.error[200],
+                    }}
+                  >
+                    <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+                      {error}
                       <Button
                         variant="tertiary"
                         size="sm"
-                        onClick={() => startEdit(template)}
+                        onClick={fetchTemplates}
+                        style={{ marginLeft: tokens.spacing[3] }}
                       >
-                        Edit
+                        Retry
                       </Button>
                     </div>
+                  </Card>
+                )}
+
+                {loading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                    <Skeleton height={200} />
+                    <Skeleton height={200} />
+                    <Skeleton height={200} />
+                  </div>
+                ) : templates.length === 0 ? (
+                  <EmptyState
+                    title="No message templates"
+                    description="Create your first message template to get started"
+                    icon={<i className="fas fa-envelope" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                    action={{
+                      label: "Create Template",
+                      onClick: () => {
+                        resetForm();
+                        setShowAddForm(true);
+                      },
+                    }}
+                  />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                    {templates.map((template) => {
+                      const fields = extractFields(template.content);
+                      return (
+                        <Card key={template.id}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.text.primary }}>
+                                  {template.name}
+                                </div>
+                                {getTypeBadge(template.type)}
+                              </div>
+                              
+                              <div style={{ marginBottom: tokens.spacing[3] }}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                  Template Content:
+                                </div>
+                                <Card style={{ backgroundColor: tokens.colors.neutral[50], padding: tokens.spacing[3] }}>
+                                  <div style={{ whiteSpace: 'pre-wrap', fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>
+                                    {template.content}
+                                  </div>
+                                </Card>
+                              </div>
+                              
+                              {fields.length > 0 && (
+                                <div>
+                                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                    Available Fields:
+                                  </div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
+                                    {fields.map((field) => (
+                                      <Badge key={field} variant="info">
+                                        {`{{${field}}}`}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                              <Button
+                                variant="tertiary"
+                                size="sm"
+                                onClick={() => startEdit(template)}
+                              >
+                                Edit
+                              </Button>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        ) : (
+          <Tabs
+            tabs={[
+              { id: 'conversations', label: 'Conversations' },
+              { id: 'templates', label: 'Templates' },
+            ]}
+            activeTab={activeTab}
+            onTabChange={(id) => {
+              setActiveTab(id as 'conversations' | 'templates');
+              setSelectedConversation(null);
+            }}
+          >
+            <TabPanel id="conversations">
+              {selectedConversation ? (
+                <ConversationView
+                  participantPhone={selectedConversation.participantPhone}
+                  participantName={selectedConversation.participantName}
+                  bookingId={selectedConversation.bookingId}
+                  role="owner"
+                  onBack={() => setSelectedConversation(null)}
+                />
+              ) : (
+                <ConversationList
+                  role="owner"
+                  onSelectConversation={setSelectedConversation}
+                />
+              )}
+            </TabPanel>
+            
+            <TabPanel id="templates">
+              {error && (
+                <Card
+                  style={{
+                    marginBottom: tokens.spacing[6],
+                    backgroundColor: tokens.colors.error[50],
+                    borderColor: tokens.colors.error[200],
+                  }}
+                >
+                  <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+                    {error}
+                    <Button
+                      variant="tertiary"
+                      size="sm"
+                      onClick={fetchTemplates}
+                      style={{ marginLeft: tokens.spacing[3] }}
+                    >
+                      Retry
+                    </Button>
                   </div>
                 </Card>
-              );
-            })}
-          </div>
-            )}
-          </TabPanel>
-        </Tabs>
+              )}
+
+              {loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <Skeleton height={200} />
+                  <Skeleton height={200} />
+                  <Skeleton height={200} />
+                </div>
+              ) : templates.length === 0 ? (
+                <EmptyState
+                  title="No message templates"
+                  description="Create your first message template to get started"
+                  icon={<i className="fas fa-envelope" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                  action={{
+                    label: "Create Template",
+                    onClick: () => {
+                      resetForm();
+                      setShowAddForm(true);
+                    },
+                  }}
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  {templates.map((template) => {
+                    const fields = extractFields(template.content);
+                    return (
+                      <Card key={template.id}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
+                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.text.primary }}>
+                                {template.name}
+                              </div>
+                              {getTypeBadge(template.type)}
+                            </div>
+                            
+                            <div style={{ marginBottom: tokens.spacing[3] }}>
+                              <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                Template Content:
+                              </div>
+                              <Card style={{ backgroundColor: tokens.colors.neutral[50], padding: tokens.spacing[3] }}>
+                                <div style={{ whiteSpace: 'pre-wrap', fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace' }}>
+                                  {template.content}
+                                </div>
+                              </Card>
+                            </div>
+                            
+                            {fields.length > 0 && (
+                              <div>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                  Available Fields:
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
+                                  {fields.map((field) => (
+                                    <Badge key={field} variant="info">
+                                      {`{{${field}}}`}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                            <Button
+                              variant="tertiary"
+                              size="sm"
+                              onClick={() => startEdit(template)}
+                            >
+                              Edit
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabPanel>
+          </Tabs>
+        )}
       </div>
 
       {/* Add/Edit Form Modal */}

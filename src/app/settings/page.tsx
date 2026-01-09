@@ -17,9 +17,11 @@ import {
   Button,
   FormRow,
   Skeleton,
+  MobileFilterBar,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 interface Settings {
   businessName: string;
@@ -48,6 +50,7 @@ interface Settings {
 type SettingsTab = 'general' | 'integrations' | 'automations' | 'advanced';
 
 export default function SettingsPage() {
+  const isMobile = useMobile();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [settings, setSettings] = useState<Settings>({
     businessName: 'Snout Services',
@@ -163,6 +166,225 @@ export default function SettingsPage() {
     { id: 'advanced', label: 'Advanced', icon: <i className="fas fa-sliders-h" /> },
   ];
 
+  // Helper function to render tab content
+  const renderTabContent = (tabId: SettingsTab) => {
+    switch (tabId) {
+      case 'general':
+        return (
+          <Card>
+            <h3
+              style={{
+                fontSize: tokens.typography.fontSize.lg[0],
+                fontWeight: tokens.typography.fontWeight.semibold,
+                marginBottom: tokens.spacing[6],
+                color: tokens.colors.text.primary,
+              }}
+            >
+              Business Information
+            </h3>
+            <FormRow label="Business Name" required>
+              <Input
+                value={settings.businessName}
+                onChange={(e) => handleInputChange('businessName', e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Business Phone">
+              <Input
+                type="tel"
+                value={settings.businessPhone}
+                onChange={(e) => handleInputChange('businessPhone', e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Business Email">
+              <Input
+                type="email"
+                value={settings.businessEmail}
+                onChange={(e) => handleInputChange('businessEmail', e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Business Address">
+              <Input
+                value={settings.businessAddress}
+                onChange={(e) => handleInputChange('businessAddress', e.target.value)}
+              />
+            </FormRow>
+          </Card>
+        );
+      case 'integrations':
+        return (
+          <Card>
+            <h3
+              style={{
+                fontSize: tokens.typography.fontSize.lg[0],
+                fontWeight: tokens.typography.fontWeight.semibold,
+                marginBottom: tokens.spacing[6],
+                color: tokens.colors.text.primary,
+              }}
+            >
+              Payment Integration (Stripe)
+            </h3>
+            <FormRow label="Stripe Secret Key">
+              <Input
+                type="password"
+                value={settings.stripeSecretKey}
+                onChange={(e) => handleInputChange('stripeSecretKey', e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Stripe Publishable Key">
+              <Input
+                value={settings.stripePublishableKey}
+                onChange={(e) => handleInputChange('stripePublishableKey', e.target.value)}
+              />
+            </FormRow>
+
+            <h3
+              style={{
+                fontSize: tokens.typography.fontSize.lg[0],
+                fontWeight: tokens.typography.fontWeight.semibold,
+                marginTop: tokens.spacing[8],
+                marginBottom: tokens.spacing[6],
+                color: tokens.colors.text.primary,
+              }}
+            >
+              Messaging Integration (OpenPhone)
+            </h3>
+            <FormRow label="OpenPhone API Key">
+              <Input
+                type="password"
+                value={settings.openphoneApiKey}
+                onChange={(e) => handleInputChange('openphoneApiKey', e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="OpenPhone Number ID">
+              <Input
+                value={settings.openphoneNumberId}
+                onChange={(e) => handleInputChange('openphoneNumberId', e.target.value)}
+              />
+            </FormRow>
+          </Card>
+        );
+      case 'automations':
+        return (
+          <Card>
+            <h3
+              style={{
+                fontSize: tokens.typography.fontSize.lg[0],
+                fontWeight: tokens.typography.fontWeight.semibold,
+                marginBottom: tokens.spacing[6],
+                color: tokens.colors.text.primary,
+              }}
+            >
+              Automation Settings
+            </h3>
+            <FormRow>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: tokens.spacing[3],
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={settings.automation.smsEnabled}
+                  onChange={(e) => handleInputChange('automation.smsEnabled', e.target.checked)}
+                />
+                <span>Enable SMS Notifications</span>
+              </label>
+            </FormRow>
+            <FormRow>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: tokens.spacing[3],
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={settings.automation.emailEnabled}
+                  onChange={(e) => handleInputChange('automation.emailEnabled', e.target.checked)}
+                />
+                <span>Enable Email Notifications</span>
+              </label>
+            </FormRow>
+            <FormRow>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: tokens.spacing[3],
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={settings.automation.autoConfirm}
+                  onChange={(e) => handleInputChange('automation.autoConfirm', e.target.checked)}
+                />
+                <span>Auto-confirm Bookings</span>
+              </label>
+            </FormRow>
+            <FormRow label="Reminder Timing">
+              <Select
+                options={[
+                  { value: '24h', label: '24 Hours Before' },
+                  { value: '12h', label: '12 Hours Before' },
+                  { value: '6h', label: '6 Hours Before' },
+                  { value: '1h', label: '1 Hour Before' },
+                ]}
+                value={settings.automation.reminderTiming}
+                onChange={(e) => handleInputChange('automation.reminderTiming', e.target.value)}
+              />
+            </FormRow>
+          </Card>
+        );
+      case 'advanced':
+        return (
+          <Card>
+            <h3
+              style={{
+                fontSize: tokens.typography.fontSize.lg[0],
+                fontWeight: tokens.typography.fontWeight.semibold,
+                marginBottom: tokens.spacing[6],
+                color: tokens.colors.text.primary,
+              }}
+            >
+              Advanced Settings
+            </h3>
+            <FormRow label="Owner Personal Phone">
+              <Input
+                type="tel"
+                value={settings.ownerPersonalPhone}
+                onChange={(e) => handleInputChange('ownerPersonalPhone', e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Owner OpenPhone">
+              <Input
+                type="tel"
+                value={settings.ownerOpenphonePhone}
+                onChange={(e) => handleInputChange('ownerOpenphonePhone', e.target.value)}
+              />
+            </FormRow>
+            <FormRow label="Owner Phone Type">
+              <Select
+                options={[
+                  { value: 'personal', label: 'Personal' },
+                  { value: 'openphone', label: 'OpenPhone' },
+                ]}
+                value={settings.ownerPhoneType}
+                onChange={(e) => handleInputChange('ownerPhoneType', e.target.value)}
+              />
+            </FormRow>
+          </Card>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <AppShell>
       <PageHeader
@@ -180,218 +402,34 @@ export default function SettingsPage() {
           <Skeleton height="400px" />
         </Card>
       ) : (
-        <Tabs tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as SettingsTab)}>
-          <TabPanel id="general">
-            <Card>
-              <h3
-                style={{
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginBottom: tokens.spacing[6],
-                  color: tokens.colors.text.primary,
-                }}
-              >
-                Business Information
-              </h3>
-              <FormRow label="Business Name" required>
-                <Input
-                  value={settings.businessName}
-                  onChange={(e) => handleInputChange('businessName', e.target.value)}
-                />
-              </FormRow>
-              <FormRow label="Business Phone">
-                <Input
-                  type="tel"
-                  value={settings.businessPhone}
-                  onChange={(e) => handleInputChange('businessPhone', e.target.value)}
-                />
-              </FormRow>
-              <FormRow label="Business Email">
-                <Input
-                  type="email"
-                  value={settings.businessEmail}
-                  onChange={(e) => handleInputChange('businessEmail', e.target.value)}
-                />
-              </FormRow>
-              <FormRow label="Business Address">
-                <Input
-                  value={settings.businessAddress}
-                  onChange={(e) => handleInputChange('businessAddress', e.target.value)}
-                />
-              </FormRow>
-            </Card>
-          </TabPanel>
-
-          <TabPanel id="integrations">
-            <Card>
-              <h3
-                style={{
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginBottom: tokens.spacing[6],
-                  color: tokens.colors.text.primary,
-                }}
-              >
-                Payment Integration (Stripe)
-              </h3>
-              <FormRow label="Stripe Secret Key">
-                <Input
-                  type="password"
-                  value={settings.stripeSecretKey}
-                  onChange={(e) => handleInputChange('stripeSecretKey', e.target.value)}
-                />
-              </FormRow>
-              <FormRow label="Stripe Publishable Key">
-                <Input
-                  value={settings.stripePublishableKey}
-                  onChange={(e) => handleInputChange('stripePublishableKey', e.target.value)}
-                />
-              </FormRow>
-
-              <h3
-                style={{
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginTop: tokens.spacing[8],
-                  marginBottom: tokens.spacing[6],
-                  color: tokens.colors.text.primary,
-                }}
-              >
-                Messaging Integration (OpenPhone)
-              </h3>
-              <FormRow label="OpenPhone API Key">
-                <Input
-                  type="password"
-                  value={settings.openphoneApiKey}
-                  onChange={(e) => handleInputChange('openphoneApiKey', e.target.value)}
-                />
-              </FormRow>
-              <FormRow label="OpenPhone Number ID">
-                <Input
-                  value={settings.openphoneNumberId}
-                  onChange={(e) => handleInputChange('openphoneNumberId', e.target.value)}
-                />
-              </FormRow>
-            </Card>
-          </TabPanel>
-
-          <TabPanel id="automations">
-            <Card>
-              <h3
-                style={{
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginBottom: tokens.spacing[6],
-                  color: tokens.colors.text.primary,
-                }}
-              >
-                Automation Settings
-              </h3>
-              <FormRow>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: tokens.spacing[3],
-                    cursor: 'pointer',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={settings.automation.smsEnabled}
-                    onChange={(e) => handleInputChange('automation.smsEnabled', e.target.checked)}
-                  />
-                  <span>Enable SMS Notifications</span>
-                </label>
-              </FormRow>
-              <FormRow>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: tokens.spacing[3],
-                    cursor: 'pointer',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={settings.automation.emailEnabled}
-                    onChange={(e) => handleInputChange('automation.emailEnabled', e.target.checked)}
-                  />
-                  <span>Enable Email Notifications</span>
-                </label>
-              </FormRow>
-              <FormRow>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: tokens.spacing[3],
-                    cursor: 'pointer',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={settings.automation.autoConfirm}
-                    onChange={(e) => handleInputChange('automation.autoConfirm', e.target.checked)}
-                  />
-                  <span>Auto-confirm Bookings</span>
-                </label>
-              </FormRow>
-              <FormRow label="Reminder Timing">
-                <Select
-                  options={[
-                    { value: '24h', label: '24 Hours Before' },
-                    { value: '12h', label: '12 Hours Before' },
-                    { value: '6h', label: '6 Hours Before' },
-                    { value: '1h', label: '1 Hour Before' },
-                  ]}
-                  value={settings.automation.reminderTiming}
-                  onChange={(e) => handleInputChange('automation.reminderTiming', e.target.value)}
-                />
-              </FormRow>
-            </Card>
-          </TabPanel>
-
-          <TabPanel id="advanced">
-            <Card>
-              <h3
-                style={{
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginBottom: tokens.spacing[6],
-                  color: tokens.colors.text.primary,
-                }}
-              >
-                Advanced Settings
-              </h3>
-              <FormRow label="Owner Personal Phone">
-                <Input
-                  type="tel"
-                  value={settings.ownerPersonalPhone}
-                  onChange={(e) => handleInputChange('ownerPersonalPhone', e.target.value)}
-                />
-              </FormRow>
-              <FormRow label="Owner OpenPhone">
-                <Input
-                  type="tel"
-                  value={settings.ownerOpenphonePhone}
-                  onChange={(e) => handleInputChange('ownerOpenphonePhone', e.target.value)}
-                />
-              </FormRow>
-              <FormRow label="Owner Phone Type">
-                <Select
-                  options={[
-                    { value: 'personal', label: 'Personal' },
-                    { value: 'openphone', label: 'OpenPhone' },
-                  ]}
-                  value={settings.ownerPhoneType}
-                  onChange={(e) => handleInputChange('ownerPhoneType', e.target.value)}
-                />
-              </FormRow>
-            </Card>
-          </TabPanel>
-        </Tabs>
+        <>
+          {isMobile ? (
+            <>
+              <MobileFilterBar
+                activeFilter={activeTab}
+                onFilterChange={(filterId) => setActiveTab(filterId as SettingsTab)}
+                sticky
+                options={tabs.map(tab => ({ id: tab.id, label: tab.label }))}
+              />
+              {renderTabContent(activeTab)}
+            </>
+          ) : (
+            <Tabs tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as SettingsTab)}>
+              <TabPanel id="general">
+                {renderTabContent('general')}
+              </TabPanel>
+              <TabPanel id="integrations">
+                {renderTabContent('integrations')}
+              </TabPanel>
+              <TabPanel id="automations">
+                {renderTabContent('automations')}
+              </TabPanel>
+              <TabPanel id="advanced">
+                {renderTabContent('advanced')}
+              </TabPanel>
+            </Tabs>
+          )}
+        </>
       )}
     </AppShell>
   );

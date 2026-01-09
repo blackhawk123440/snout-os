@@ -21,6 +21,7 @@ import {
   TableColumn,
   Skeleton,
   EmptyState,
+  MobileFilterBar,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -486,19 +487,33 @@ export default function PaymentsPage() {
             leftIcon={<i className="fas fa-search" />}
             style={{ width: isMobile ? '100%' : 'auto', flex: isMobile ? 'none' : 1 }}
           />
-          <Select
-            options={[
-              { value: 'all', label: 'All Statuses' },
-              { value: 'paid', label: 'Paid' },
-              { value: 'pending', label: 'Pending' },
-              { value: 'failed', label: 'Failed' },
-              { value: 'refunded', label: 'Refunded' },
-            ]}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ width: isMobile ? '100%' : 'auto', minWidth: isMobile ? '100%' : '200px' }}
-          />
-                  </div>
+          {isMobile ? (
+            <MobileFilterBar
+              activeFilter={statusFilter}
+              onFilterChange={(filterId) => setStatusFilter(filterId)}
+              options={[
+                { id: 'all', label: 'All' },
+                { id: 'paid', label: 'Paid' },
+                { id: 'pending', label: 'Pending' },
+                { id: 'failed', label: 'Failed' },
+                { id: 'refunded', label: 'Refunded' },
+              ]}
+            />
+          ) : (
+            <Select
+              options={[
+                { value: 'all', label: 'All Statuses' },
+                { value: 'paid', label: 'Paid' },
+                { value: 'pending', label: 'Pending' },
+                { value: 'failed', label: 'Failed' },
+                { value: 'refunded', label: 'Refunded' },
+              ]}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ width: 'auto', minWidth: '200px' }}
+            />
+          )}
+        </div>
       </Card>
 
       {/* Payments Table */}

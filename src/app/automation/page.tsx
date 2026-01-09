@@ -23,6 +23,7 @@ import {
   Skeleton,
   EmptyState,
   Modal,
+  MobileFilterBar,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -302,6 +303,45 @@ export default function AutomationPage() {
     { id: 'payment', label: 'Payment' },
     { id: 'notification', label: 'Notification' },
   ];
+
+  // Render automation content based on category
+  const renderAutomationContent = (category: AutomationCategory | 'all') => {
+    const filteredAutomations = category === 'all'
+      ? automations
+      : automations.filter((a) => a.category === category);
+    
+    const categoryLabels: Record<string, string> = {
+      'all': 'Automations',
+      'booking': 'Booking Automations',
+      'reminder': 'Reminder Automations',
+      'payment': 'Payment Automations',
+      'notification': 'Notification Automations',
+    };
+
+    if (filteredAutomations.length === 0) {
+      return (
+        <EmptyState
+          icon="🤖"
+          title={`No ${categoryLabels[category] || 'Automations'} Found`}
+          description={`No ${category === 'all' ? '' : category + ' '}automations found`}
+        />
+      );
+    }
+
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: tokens.spacing[6],
+        }}
+      >
+        {filteredAutomations.map((automation) => {
+          return renderAutomationCard(automation);
+        })}
+      </div>
+    );
+  };
 
   // Render automation card component
   const renderAutomationCard = (automation: AutomationConfig) => {
@@ -814,129 +854,52 @@ export default function AutomationPage() {
         </FormRow>
       </Card>
 
-      {/* Category Filter */}
-      <Card
-        style={{
-          marginBottom: tokens.spacing[6],
-        }}
-      >
-        <Tabs
-          tabs={tabs}
-          activeTab={activeCategory}
-          onTabChange={(id) => setActiveCategory(id as AutomationCategory | 'all')}
+      {/* Category Filter - Mobile vs Desktop */}
+      {isMobile ? (
+        <>
+          <MobileFilterBar
+            activeFilter={activeCategory}
+            onFilterChange={(filterId) => setActiveCategory(filterId as AutomationCategory | 'all')}
+            sticky
+            options={tabs.map(tab => ({ id: tab.id, label: tab.label }))}
+          />
+          <Card
+            style={{
+              marginBottom: tokens.spacing[6],
+            }}
+          >
+            {renderAutomationContent(activeCategory)}
+          </Card>
+        </>
+      ) : (
+        <Card
+          style={{
+            marginBottom: tokens.spacing[6],
+          }}
         >
-          <TabPanel id="all">
-            {/* Automation Cards - All */}
-            {automations.length === 0 ? (
-              <EmptyState
-                icon="🤖"
-                title="No Automations Found"
-                description="No automations found"
-              />
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: tokens.spacing[6],
-                }}
-              >
-                {automations.map((automation) => {
-                  return renderAutomationCard(automation);
-                })}
-              </div>
-            )}
-          </TabPanel>
-          <TabPanel id="booking">
-            {/* Automation Cards - Booking */}
-            {automations.filter((a) => a.category === 'booking').length === 0 ? (
-              <EmptyState
-                icon="🤖"
-                title="No Booking Automations"
-                description="No booking automations found"
-              />
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: tokens.spacing[6],
-                }}
-              >
-                {automations.filter((a) => a.category === 'booking').map((automation) => {
-                  return renderAutomationCard(automation);
-                })}
-              </div>
-            )}
-          </TabPanel>
-          <TabPanel id="reminder">
-            {/* Automation Cards - Reminder */}
-            {automations.filter((a) => a.category === 'reminder').length === 0 ? (
-              <EmptyState
-                icon="🤖"
-                title="No Reminder Automations"
-                description="No reminder automations found"
-              />
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: tokens.spacing[6],
-                }}
-              >
-                {automations.filter((a) => a.category === 'reminder').map((automation) => {
-                  return renderAutomationCard(automation);
-                })}
-              </div>
-            )}
-          </TabPanel>
-          <TabPanel id="payment">
-            {/* Automation Cards - Payment */}
-            {automations.filter((a) => a.category === 'payment').length === 0 ? (
-              <EmptyState
-                icon="🤖"
-                title="No Payment Automations"
-                description="No payment automations found"
-              />
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: tokens.spacing[6],
-                }}
-              >
-                {automations.filter((a) => a.category === 'payment').map((automation) => {
-                  return renderAutomationCard(automation);
-                })}
-              </div>
-            )}
-          </TabPanel>
-          <TabPanel id="notification">
-            {/* Automation Cards - Notification */}
-            {automations.filter((a) => a.category === 'notification').length === 0 ? (
-              <EmptyState
-                icon="🤖"
-                title="No Notification Automations"
-                description="No notification automations found"
-              />
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: tokens.spacing[6],
-                }}
-              >
-                {automations.filter((a) => a.category === 'notification').map((automation) => {
-                  return renderAutomationCard(automation);
-                })}
-              </div>
-            )}
-          </TabPanel>
-        </Tabs>
-      </Card>
+          <Tabs
+            tabs={tabs}
+            activeTab={activeCategory}
+            onTabChange={(id) => setActiveCategory(id as AutomationCategory | 'all')}
+          >
+            <TabPanel id="all">
+              {renderAutomationContent('all')}
+            </TabPanel>
+            <TabPanel id="booking">
+              {renderAutomationContent('booking')}
+            </TabPanel>
+            <TabPanel id="reminder">
+              {renderAutomationContent('reminder')}
+            </TabPanel>
+            <TabPanel id="payment">
+              {renderAutomationContent('payment')}
+            </TabPanel>
+            <TabPanel id="notification">
+              {renderAutomationContent('notification')}
+            </TabPanel>
+          </Tabs>
+        </Card>
+      )}
     </AppShell>
   );
 }
