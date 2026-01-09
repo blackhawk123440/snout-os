@@ -59,6 +59,9 @@ export function Table<T extends Record<string, any>>({
           display: 'flex',
           flexDirection: 'column',
           gap: tokens.spacing[3],
+          width: '100%',
+          maxWidth: '100%',
+          overflowX: 'hidden', // Part A: Zero horizontal scroll enforcement
         }}
       >
         {loading ? (
@@ -179,7 +182,7 @@ export function Table<T extends Record<string, any>>({
       <div
         className="table-wrapper"
         style={{
-          overflowX: 'auto',
+          overflowX: isMobile ? 'hidden' : 'auto', // Part A: No horizontal scroll on mobile
           overflowY: 'auto',
           maxHeight: 'calc(100vh - 300px)',
           width: '100%',
@@ -191,7 +194,9 @@ export function Table<T extends Record<string, any>>({
           {...props}
           style={{
             width: '100%',
+            maxWidth: '100%', // Part A: Zero horizontal scroll enforcement
             borderCollapse: 'collapse',
+            tableLayout: isMobile ? 'fixed' : 'auto', // Prevent table from forcing width on mobile
             ...props.style,
           }}
         >

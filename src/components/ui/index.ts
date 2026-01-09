@@ -10,6 +10,7 @@ export { Select, type SelectProps, type SelectOption, type SelectSize } from './
 export { Textarea, type TextareaProps, type TextareaSize } from './Textarea';
 export { Badge, type BadgeProps, type BadgeVariant } from './Badge';
 export { Card, type CardProps } from './Card';
+export { MobileFilterBar, type MobileFilterBarProps, type FilterOption } from './MobileFilterBar';
 export { Table, type TableProps, type TableColumn } from './Table';
 export { PageHeader, type PageHeaderProps } from './PageHeader';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
