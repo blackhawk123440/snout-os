@@ -33,6 +33,11 @@ import { tokens } from '@/lib/design-tokens';
 import { getPricingForDisplay } from '@/lib/pricing-display-helpers';
 import { useMobile } from '@/lib/use-mobile';
 
+// Helper to determine if service uses overnight range model
+const isOvernightRangeService = (service: string): boolean => {
+  return service === 'Housesitting' || service === '24/7 Care';
+};
+
 interface Pet {
   id: string;
   name: string;
@@ -753,8 +758,142 @@ Total: ${formatCurrency(booking.totalPrice)}`;
               flexDirection: 'column',
               minHeight: 0,
               overflow: 'hidden',
+              width: '100%',
             }}
           >
+            {/* Sticky Summary Header */}
+            <div
+              style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: tokens.zIndex.sticky + 1,
+                backgroundColor: tokens.colors.background.primary,
+                borderBottom: `1px solid ${tokens.colors.border.default}`,
+                padding: tokens.spacing[3],
+                boxShadow: tokens.shadows.sm,
+              }}
+            >
+              {/* Back button and Status */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: tokens.spacing[2],
+                }}
+              >
+                <Link href="/bookings">
+                  <Button variant="ghost" size="sm" leftIcon={<i className="fas fa-arrow-left" />}>
+                    Back
+                  </Button>
+                </Link>
+                <Badge variant={getStatusBadgeVariant(booking.status)}>
+                  {booking.status}
+                </Badge>
+              </div>
+              
+              {/* Client Name and Service */}
+              <div
+                style={{
+                  marginBottom: tokens.spacing[2],
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: tokens.typography.fontSize.lg[0],
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    color: tokens.colors.text.primary,
+                    marginBottom: tokens.spacing[1],
+                  }}
+                >
+                  {booking.firstName} {booking.lastName}
+                </div>
+                <div
+                  style={{
+                    fontSize: tokens.typography.fontSize.sm[0],
+                    color: tokens.colors.text.secondary,
+                  }}
+                >
+                  {booking.service}
+                </div>
+              </div>
+
+              {/* Total, Payment, and Sitter (if assigned) */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: booking.sitter ? '1fr 1fr 1fr' : '1fr 1fr',
+                  gap: tokens.spacing[2],
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: tokens.typography.fontSize.xs[0],
+                      color: tokens.colors.text.secondary,
+                      marginBottom: tokens.spacing[1],
+                    }}
+                  >
+                    Total
+                  </div>
+                  <div
+                    style={{
+                      fontSize: tokens.typography.fontSize.base[0],
+                      fontWeight: tokens.typography.fontWeight.bold,
+                      color: tokens.colors.text.primary,
+                    }}
+                  >
+                    {formatCurrency(booking.totalPrice)}
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: tokens.typography.fontSize.xs[0],
+                      color: tokens.colors.text.secondary,
+                      marginBottom: tokens.spacing[1],
+                    }}
+                  >
+                    Payment
+                  </div>
+                  <div
+                    style={{
+                      fontSize: tokens.typography.fontSize.sm[0],
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: booking.paymentStatus === 'Paid' ? tokens.colors.success.DEFAULT : tokens.colors.text.primary,
+                    }}
+                  >
+                    {booking.paymentStatus || 'Pending'}
+                  </div>
+                </div>
+                {booking.sitter && (
+                  <div>
+                    <div
+                      style={{
+                        fontSize: tokens.typography.fontSize.xs[0],
+                        color: tokens.colors.text.secondary,
+                        marginBottom: tokens.spacing[1],
+                      }}
+                    >
+                      Sitter
+                    </div>
+                    <div
+                      style={{
+                        fontSize: tokens.typography.fontSize.sm[0],
+                        fontWeight: tokens.typography.fontWeight.medium,
+                        color: tokens.colors.text.primary,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {booking.sitter.firstName} {booking.sitter.lastName}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Scrollable Content */}
             <div
               style={{
@@ -762,39 +901,31 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 WebkitOverflowScrolling: 'touch',
-                paddingBottom: tokens.spacing[20],
+                paddingBottom: tokens.spacing[20], // Space for bottom action bar
               }}
             >
-              {/* Overview Section */}
-              <Card style={{ margin: tokens.spacing[3], padding: tokens.spacing[3] }}>
+              {/* Client Contact Details Section */}
+              <Card style={{ margin: tokens.spacing[3], marginTop: tokens.spacing[3], padding: tokens.spacing[3] }}>
                 <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Overview
+                  Contact
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
                   <div>
-                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Client</div>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.firstName} {booking.lastName}</div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{booking.phone}</div>
-                    {booking.email && (
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>{booking.email}</div>
-                    )}
+                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Phone</div>
+                    <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.phone}</div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Status</div>
-                    <Badge variant={getStatusBadgeVariant(booking.status)}>
-                      {booking.status}
-                    </Badge>
-                  </div>
-                  {booking.sitter && (
+                  {booking.email && (
                     <div>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Assigned Sitter</div>
-                      <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.sitter.firstName} {booking.sitter.lastName}</div>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Email</div>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.email}</div>
                     </div>
                   )}
-                  <div>
-                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Total Price</div>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>{formatCurrency(booking.totalPrice)}</div>
-                  </div>
+                  {booking.address && (
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Address</div>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.address}</div>
+                    </div>
+                  )}
                 </div>
               </Card>
 
@@ -821,18 +952,90 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 </button>
                 {expandedSections.schedule && (
                   <div style={{ padding: tokens.spacing[3], paddingTop: tokens.spacing[2] }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0] }}>
+                    {/* Part E: Schedule display rules per service type */}
+                    {isOvernightRangeService(booking.service) ? (
+                      /* Overnight range services: Housesitting, 24/7 Care */
                       <div>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(booking.startAt)}</div>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{formatTime(booking.startAt)}</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[3] }}>
+                          <div>
+                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
+                            <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(booking.startAt)}</div>
+                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{formatTime(booking.startAt)}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
+                            <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(booking.endAt)}</div>
+                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{formatTime(booking.endAt)}</div>
+                          </div>
+                        </div>
+                        {/* Calculate nights count */}
+                        {(() => {
+                          const startDate = new Date(booking.startAt);
+                          const endDate = new Date(booking.endAt);
+                          const nights = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+                          return (
+                            <div style={{ padding: tokens.spacing[2], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm, marginBottom: tokens.spacing[3] }}>
+                              <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Duration</div>
+                              <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+                                {nights} {nights === 1 ? 'Night' : 'Nights'}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
+                    ) : (
+                      /* Multi-visit services: Drop-ins, Dog walking, Pet taxi */
                       <div>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(booking.endAt)}</div>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{formatTime(booking.endAt)}</div>
+                        {booking.timeSlots && booking.timeSlots.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                            {/* Group visits by date */}
+                            {(() => {
+                              const visitsByDate = booking.timeSlots.reduce((acc, slot) => {
+                                const dateKey = formatDate(slot.startAt);
+                                if (!acc[dateKey]) {
+                                  acc[dateKey] = [];
+                                }
+                                acc[dateKey].push(slot);
+                                return acc;
+                              }, {} as Record<string, typeof booking.timeSlots>);
+
+                              return Object.entries(visitsByDate).map(([date, visits]) => (
+                                <div key={date} style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
+                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    {date}
+                                  </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                                    {visits.map((slot) => {
+                                      const duration = slot.duration || (() => {
+                                        const start = new Date(slot.startAt);
+                                        const end = new Date(slot.endAt);
+                                        return Math.round((end.getTime() - start.getTime()) / 60000);
+                                      })();
+                                      return (
+                                        <div key={slot.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: tokens.spacing[2] }}>
+                                          <div>
+                                            <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
+                                              {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
+                                            </div>
+                                          </div>
+                                          <Badge variant="default">
+                                            {duration}m
+                                          </Badge>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            No time slots scheduled
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    )}
                     {booking.address && (
                       <div style={{ marginTop: tokens.spacing[3], paddingTop: tokens.spacing[3], borderTop: `1px solid ${tokens.colors.border.default}` }}>
                         <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Address</div>

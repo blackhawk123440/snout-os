@@ -26,6 +26,7 @@ import {
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 interface AutomationSettings {
   bookingConfirmation: {
@@ -132,6 +133,7 @@ const categoryColors: Record<AutomationCategory, 'default' | 'success' | 'warnin
 };
 
 export default function AutomationPage() {
+  const isMobile = useMobile();
   const [settings, setSettings] = useState<AutomationSettings>({
     bookingConfirmation: {
       enabled: true,
@@ -307,13 +309,17 @@ export default function AutomationPage() {
     const isExpanded = expandedAutomation === automation.id;
 
     return (
-      <Card key={automation.id}>
+      <Card key={automation.id} style={{ overflow: 'visible' }}>
         <div
           style={{
             display: 'flex',
-            alignItems: 'flex-start',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'stretch' : 'flex-start',
             justifyContent: 'space-between',
             gap: tokens.spacing[4],
+            width: '100%',
+            maxWidth: '100%',
+            overflow: 'visible', // Part G: Fix clipping - no overflow hidden
           }}
         >
           <div
@@ -322,6 +328,8 @@ export default function AutomationPage() {
               alignItems: 'flex-start',
               gap: tokens.spacing[4],
               flex: 1,
+              minWidth: 0, // Allow flex item to shrink
+              width: '100%',
             }}
           >
             <div
@@ -344,10 +352,11 @@ export default function AutomationPage() {
                 }}
               />
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
               <div
                 style={{
                   display: 'flex',
+                  flexWrap: 'wrap',
                   alignItems: 'center',
                   gap: tokens.spacing[2],
                   marginBottom: tokens.spacing[1],
@@ -359,6 +368,9 @@ export default function AutomationPage() {
                     fontWeight: tokens.typography.fontWeight.semibold,
                     color: tokens.colors.text.primary,
                     margin: 0,
+                    flex: '1 1 auto',
+                    minWidth: 0,
+                    wordBreak: 'break-word',
                   }}
                 >
                   {automation.name}
@@ -376,6 +388,11 @@ export default function AutomationPage() {
                   color: tokens.colors.text.secondary,
                   margin: 0,
                   marginBottom: tokens.spacing[3],
+                  overflow: 'hidden',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2, // Clamp to 2 lines
+                  WebkitBoxOrient: 'vertical',
+                  wordBreak: 'break-word',
                 }}
               >
                 {automation.description}
@@ -385,8 +402,12 @@ export default function AutomationPage() {
           <div
             style={{
               display: 'flex',
+              flexDirection: isMobile ? 'row' : 'row',
               alignItems: 'center',
               gap: tokens.spacing[2],
+              flexShrink: 0,
+              width: isMobile ? '100%' : 'auto', // Full width on mobile
+              justifyContent: isMobile ? 'space-between' : 'flex-end',
             }}
           >
             <label
@@ -394,6 +415,7 @@ export default function AutomationPage() {
                 display: 'flex',
                 alignItems: 'center',
                 cursor: 'pointer',
+                flexShrink: 0,
               }}
             >
               <input
@@ -410,6 +432,10 @@ export default function AutomationPage() {
               onClick={() =>
                 setExpandedAutomation(isExpanded ? null : automation.id)
               }
+              style={{
+                flex: isMobile ? 1 : 'none', // Full width on mobile
+                minWidth: isMobile ? 0 : 'auto',
+              }}
             >
               {isExpanded ? 'Collapse' : 'Configure'}
             </Button>
@@ -430,7 +456,7 @@ export default function AutomationPage() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
                   gap: tokens.spacing[4],
                 }}
               >
@@ -505,7 +531,7 @@ export default function AutomationPage() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
                   gap: tokens.spacing[4],
                 }}
               >
@@ -570,7 +596,7 @@ export default function AutomationPage() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
                   gap: tokens.spacing[4],
                 }}
               >

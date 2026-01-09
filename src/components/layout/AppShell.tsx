@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 export interface NavItem {
   label: string;
@@ -38,6 +39,7 @@ export interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const pathname = usePathname();
+  const isMobile = useMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Close sidebar on navigation
@@ -323,9 +325,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           style={{
             flex: 1,
             padding: tokens.layout.appShell.contentPadding,
-            maxWidth: tokens.layout.appShell.contentMaxWidth,
+            maxWidth: isMobile ? '100vw' : tokens.layout.appShell.contentMaxWidth, // Part A: Zero horizontal scroll enforcement
             width: '100%',
             margin: '0 auto',
+            overflowX: 'hidden', // Part A: Zero horizontal scroll enforcement
           }}
         >
           {children}
