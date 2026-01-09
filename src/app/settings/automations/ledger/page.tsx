@@ -18,9 +18,11 @@ import {
   EmptyState,
   Skeleton,
   FormRow,
+  MobileFilterBar,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 interface AutomationRun {
   id: string;
@@ -41,6 +43,7 @@ interface AutomationRun {
 }
 
 export default function AutomationLedgerPage() {
+  const isMobile = useMobile();
   const [runs, setRuns] = useState<AutomationRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -173,22 +176,47 @@ export default function AutomationLedgerPage() {
         {/* Filters */}
         <Card style={{ marginBottom: tokens.spacing[6] }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4] }}>
-              <FormRow label="Filter by Status">
-                <Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  options={statusOptions}
-                />
-              </FormRow>
-              <FormRow label="Filter by Automation Type">
-                <Select
-                  value={automationTypeFilter}
-                  onChange={(e) => setAutomationTypeFilter(e.target.value)}
-                  options={automationTypeOptions}
-                />
-              </FormRow>
-            </div>
+            {isMobile ? (
+              <>
+                <div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+                    Status
+                  </div>
+                  <MobileFilterBar
+                    activeFilter={statusFilter}
+                    onFilterChange={(filterId) => setStatusFilter(filterId)}
+                    options={statusOptions.map(opt => ({ id: opt.value, label: opt.label }))}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+                    Automation Type
+                  </div>
+                  <MobileFilterBar
+                    activeFilter={automationTypeFilter}
+                    onFilterChange={(filterId) => setAutomationTypeFilter(filterId)}
+                    options={automationTypeOptions.map(opt => ({ id: opt.value, label: opt.label }))}
+                  />
+                </div>
+              </>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4] }}>
+                <FormRow label="Filter by Status">
+                  <Select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    options={statusOptions}
+                  />
+                </FormRow>
+                <FormRow label="Filter by Automation Type">
+                  <Select
+                    value={automationTypeFilter}
+                    onChange={(e) => setAutomationTypeFilter(e.target.value)}
+                    options={automationTypeOptions}
+                  />
+                </FormRow>
+              </div>
+            )}
             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
               Showing {runs.length} of {total} automation runs
             </div>

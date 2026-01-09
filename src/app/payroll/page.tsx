@@ -26,9 +26,11 @@ import {
   Modal,
   Tabs,
   TabPanel,
+  MobileFilterBar,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 interface PayPeriod {
   id: string;
@@ -59,6 +61,7 @@ interface BookingEarning {
 }
 
 export default function PayrollPage() {
+  const isMobile = useMobile();
   const [payPeriods, setPayPeriods] = useState<PayPeriod[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPayPeriod, setSelectedPayPeriod] = useState<PayPeriod | null>(null);
@@ -309,22 +312,43 @@ export default function PayrollPage() {
         <Card style={{ marginBottom: tokens.spacing[6] }}>
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              display: 'flex',
+              flexDirection: 'column',
               gap: tokens.spacing[4],
             }}
           >
-            <Select
-              label="Status"
-              options={[
-                { value: 'all', label: 'All Statuses' },
-                { value: 'pending', label: 'Pending' },
-                { value: 'approved', label: 'Approved' },
-                { value: 'paid', label: 'Paid' },
-              ]}
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            />
+            {isMobile ? (
+              <MobileFilterBar
+                activeFilter={filterStatus}
+                onFilterChange={(filterId) => setFilterStatus(filterId)}
+                options={[
+                  { id: 'all', label: 'All' },
+                  { id: 'pending', label: 'Pending' },
+                  { id: 'approved', label: 'Approved' },
+                  { id: 'paid', label: 'Paid' },
+                ]}
+              />
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: tokens.spacing[4],
+                }}
+              >
+                <Select
+                  label="Status"
+                  options={[
+                    { value: 'all', label: 'All Statuses' },
+                    { value: 'pending', label: 'Pending' },
+                    { value: 'approved', label: 'Approved' },
+                    { value: 'paid', label: 'Paid' },
+                  ]}
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                />
+              </div>
+            )}
             <Select
               label="Pay Period"
               options={[

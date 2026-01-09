@@ -20,9 +20,11 @@ import {
   EmptyState,
   Skeleton,
   SectionHeader,
+  MobileFilterBar,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 interface DashboardJob {
   id: string;
@@ -108,6 +110,7 @@ interface DashboardData {
 type TabType = "pending" | "accepted" | "archived" | "tooLate" | "tier";
 
 function SitterDashboardContent() {
+  const isMobile = useMobile();
   const searchParams = useSearchParams();
   const sitterId = searchParams?.get("id") || "";
   const isAdminView = searchParams?.get("admin") === "true";
@@ -266,13 +269,549 @@ function SitterDashboardContent() {
       />
 
       <div style={{ padding: tokens.spacing[6] }}>
-        <Tabs
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as TabType)}
-        >
-          {/* Pending Tab */}
-          <TabPanel id="pending">
+        {isMobile ? (
+          <>
+            <MobileFilterBar
+              activeFilter={activeTab}
+              onFilterChange={(filterId) => setActiveTab(filterId as TabType)}
+              sticky
+              options={tabs.map(tab => ({ 
+                id: tab.id, 
+                label: tab.label, 
+                badge: tab.badge 
+              }))}
+            />
+            {/* Mobile: Render content based on activeTab */}
+            {activeTab === 'pending' && (
+              <Card>
+                <SectionHeader title={`Pending Requests (${dashboardData.jobs.needsResponse.length})`} />
+                <div style={{ padding: tokens.spacing[6] }}>
+                  {dashboardData.jobs.needsResponse.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                      {dashboardData.jobs.needsResponse.map((job) => (
+                        <Card key={job.id}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                                  {job.clientName}
+                                </div>
+                                <Badge variant="warning">Pool Request</Badge>
+                                {job.expiresAt && new Date(job.expiresAt) > new Date() && (
+                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                                    Expires: {formatDate(job.expiresAt)} {formatTime(job.expiresAt)}
+                                  </div>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
+                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
+                                {job.timeSlots.length > 0 && (
+                                  <div>
+                                    <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Times:</span>{" "}
+                                    {job.timeSlots.map((ts, idx) => (
+                                      <span key={ts.id}>
+                                        {formatTime(ts.startAt)} ({ts.duration} min)
+                                        {idx < job.timeSlots.length - 1 ? ", " : ""}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Address:</span> {job.address}</div>
+                                <div>
+                                  <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Pets:</span>{" "}
+                                  {job.pets.map((p, idx) => (
+                                    <span key={idx}>
+                                      {p.name || p.species} ({p.species})
+                                      {idx < job.pets.length - 1 ? ", " : ""}
+                                    </span>
+                                  ))}
+                                </div>
+                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                                {job.message && (
+                                  <Card style={{ marginTop: tokens.spacing[2], padding: tokens.spacing[2], backgroundColor: tokens.colors.neutral[50] }}>
+                                    <div style={{ fontSize: tokens.typography.fontSize.xs[0] }}>{job.message}</div>
+                                  </Card>
+                                )}
+                              </div>
+                            </div>
+                            {!isAdminView && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                                <Button
+                                  variant="primary"
+                                  onClick={() => acceptJob(job)}
+                                  disabled={acceptingJobId === job.id || !!(job.expiresAt && new Date(job.expiresAt) < new Date())}
+                                >
+                                  {acceptingJobId === job.id ? "Accepting..." : "Accept"}
+                                </Button>
+                                <Button variant="tertiary" disabled>
+                                  Decline
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      title="No Pending Requests"
+                      description="You don't have any pending job requests"
+                      icon={<i className="fas fa-inbox" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                    />
+                  )}
+                </div>
+              </Card>
+            )}
+            {activeTab === 'accepted' && (
+              <>
+                <div style={{ marginBottom: tokens.spacing[4], display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    variant={viewMode === "calendar" ? "primary" : "secondary"}
+                    onClick={() => setViewMode(viewMode === "calendar" ? "list" : "calendar")}
+                    leftIcon={<i className={viewMode === "calendar" ? "fas fa-list" : "fas fa-calendar"} />}
+                  >
+                    {viewMode === "calendar" ? "List View" : "Calendar View"}
+                  </Button>
+                </div>
+                {viewMode === "calendar" ? (
+                  <Card>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
+                      <SectionHeader title="Calendar" />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                        <Button
+                          variant="tertiary"
+                          size="sm"
+                          onClick={() => {
+                            if (selectedMonth === 0) {
+                              setSelectedMonth(11);
+                              setSelectedYear(selectedYear - 1);
+                            } else {
+                              setSelectedMonth(selectedMonth - 1);
+                            }
+                          }}
+                        >
+                          ←
+                        </Button>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold, minWidth: '200px', textAlign: 'center' }}>
+                          {new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </div>
+                        <Button
+                          variant="tertiary"
+                          size="sm"
+                          onClick={() => {
+                            if (selectedMonth === 11) {
+                              setSelectedMonth(0);
+                              setSelectedYear(selectedYear + 1);
+                            } else {
+                              setSelectedMonth(selectedMonth + 1);
+                            }
+                          }}
+                        >
+                          →
+                        </Button>
+                      </div>
+                    </div>
+                    <div style={{ padding: tokens.spacing[6] }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                          <div key={day} style={{ textAlign: 'center', fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.sm[0], padding: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
+                            {day}
+                          </div>
+                        ))}
+                        {Array.from({ length: firstDay }).map((_, i) => (
+                          <div key={`empty-${i}`} style={{ padding: tokens.spacing[2] }}></div>
+                        ))}
+                        {days.map((day) => {
+                          const jobsForDay = getJobsForDate(day, selectedMonth, selectedYear);
+                          const isToday = day === new Date().getDate() && 
+                                         selectedMonth === new Date().getMonth() && 
+                                         selectedYear === new Date().getFullYear();
+                          
+                          return (
+                            <div
+                              key={day}
+                              style={{
+                                minHeight: '100px',
+                                borderRight: `1px solid ${tokens.colors.border.default}`,
+                                borderBottom: `1px solid ${tokens.colors.border.default}`,
+                                padding: tokens.spacing[2],
+                                backgroundColor: isToday ? tokens.colors.primary[50] : tokens.colors.background.primary,
+                                borderColor: isToday ? tokens.colors.primary.DEFAULT : tokens.colors.border.default,
+                                borderWidth: isToday ? '2px' : '1px',
+                              }}
+                            >
+                              <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1], color: isToday ? tokens.colors.primary.DEFAULT : tokens.colors.text.primary }}>
+                                {day}
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
+                                {jobsForDay.map((job) => (
+                                  <Card
+                                    key={job.id}
+                                    style={{
+                                      padding: tokens.spacing[1],
+                                      backgroundColor: tokens.colors.primary[100],
+                                      borderColor: tokens.colors.primary[300],
+                                    }}
+                                  >
+                                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.primary[700] }}>
+                                      {job.clientName}
+                                    </div>
+                                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.primary[600] }}>
+                                      {job.service}
+                                    </div>
+                                    {job.timeSlots.length > 0 && (
+                                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.primary[600] }}>
+                                        {formatTime(job.timeSlots[0].startAt)}
+                                      </div>
+                                    )}
+                                  </Card>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </Card>
+                ) : (
+                  <Card>
+                    <SectionHeader title={`Accepted Jobs (${dashboardData.jobs.accepted.length})`} />
+                    <div style={{ padding: tokens.spacing[6] }}>
+                      {dashboardData.jobs.accepted.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                          {dashboardData.jobs.accepted.map((job) => (
+                            <Card key={job.id}>
+                              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
+                                    <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                                      {job.clientName}
+                                    </div>
+                                    <Badge variant={job.type === "direct" ? "info" : "success"}>
+                                      {job.type === "direct" ? "Direct Assignment" : "Pool Accepted"}
+                                    </Badge>
+                                  </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                    <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
+                                    <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
+                                    {job.timeSlots.length > 0 && (
+                                      <div>
+                                        <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Times:</span>{" "}
+                                        {job.timeSlots.map((ts, idx) => (
+                                          <span key={ts.id}>
+                                            {formatTime(ts.startAt)} ({ts.duration} min)
+                                            {idx < job.timeSlots.length - 1 ? ", " : ""}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Address:</span> {job.address}</div>
+                                    <div>
+                                      <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Pets:</span>{" "}
+                                      {job.pets.map((p, idx) => (
+                                        <span key={idx}>
+                                          {p.name || p.species} ({p.species})
+                                          {idx < job.pets.length - 1 ? ", " : ""}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyState
+                          title="No Accepted Jobs"
+                          description="You don't have any accepted jobs yet"
+                          icon={<i className="fas fa-check-circle" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                        />
+                      )}
+                    </div>
+                  </Card>
+                )}
+              </>
+            )}
+            {activeTab === 'archived' && (
+              <Card>
+                <SectionHeader title={`Archived Jobs (${dashboardData.jobs.archived.length})`} />
+                <div style={{ padding: tokens.spacing[6] }}>
+                  {dashboardData.jobs.archived.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                      {dashboardData.jobs.archived.map((job) => (
+                        <Card key={job.id} style={{ opacity: 0.75 }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                                  {job.clientName}
+                                </div>
+                                <Badge variant={job.status === "completed" ? "success" : "neutral"}>
+                                  {job.status === "completed" ? "Completed" : "Cancelled"}
+                                </Badge>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
+                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
+                                {job.timeSlots.length > 0 && (
+                                  <div>
+                                    <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Times:</span>{" "}
+                                    {job.timeSlots.map((ts, idx) => (
+                                      <span key={ts.id}>
+                                        {formatTime(ts.startAt)} ({ts.duration} min)
+                                        {idx < job.timeSlots.length - 1 ? ", " : ""}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      title="No Archived Jobs"
+                      description="You don't have any completed or cancelled jobs"
+                      icon={<i className="fas fa-archive" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                    />
+                  )}
+                </div>
+              </Card>
+            )}
+            {activeTab === 'tooLate' && (
+              <Card>
+                <SectionHeader title={`Too Late / Expired (${dashboardData.jobs.tooLate.length})`} />
+                <div style={{ padding: tokens.spacing[6] }}>
+                  {dashboardData.jobs.tooLate.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                      {dashboardData.jobs.tooLate.map((job) => (
+                        <Card key={job.id} style={{ opacity: 0.6 }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                                  {job.clientName}
+                                </div>
+                                <Badge variant="error">
+                                  {job.status === "expired" ? "Expired" : "Too Late"}
+                                </Badge>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
+                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
+                                {job.status === "expired" && (
+                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.error.DEFAULT }}>
+                                    This job expired before anyone accepted it
+                                  </div>
+                                )}
+                                {job.status === "too_late" && (
+                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.error.DEFAULT }}>
+                                    This job was accepted by another sitter
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      title="No Missed Jobs"
+                      description="You haven't missed any job opportunities"
+                      icon={<i className="fas fa-clock" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                    />
+                  )}
+                </div>
+              </Card>
+            )}
+            {activeTab === 'tier' && (
+              <>
+                {dashboardData.tier && (
+                  <Card style={{ marginBottom: tokens.spacing[6] }}>
+                    <SectionHeader title="Current Tier & Badge" />
+                    <div style={{ padding: tokens.spacing[6] }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[6] }}>
+                        <div
+                          style={{
+                            width: '6rem',
+                            height: '6rem',
+                            borderRadius: tokens.borderRadius.full,
+                            backgroundColor: tokens.colors.primary[100],
+                            color: tokens.colors.primary.DEFAULT,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: tokens.typography.fontSize['4xl'][0],
+                            fontWeight: tokens.typography.fontWeight.bold,
+                          }}
+                        >
+                          ⭐
+                        </div>
+                        <div>
+                          <div style={{ fontSize: tokens.typography.fontSize['3xl'][0], fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
+                            {dashboardData.tier.name}
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.secondary }}>
+                            Priority Level: {dashboardData.tier.priorityLevel}
+                          </div>
+                          {Object.keys(dashboardData.tier.benefits || {}).length > 0 && (
+                            <div style={{ marginTop: tokens.spacing[2] }}>
+                              <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                                Benefits:
+                              </div>
+                              <ul style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, listStyle: 'disc', listStylePosition: 'inside' }}>
+                                {Object.entries(dashboardData.tier.benefits).map(([key, value]) => (
+                                  <li key={key}>{key}: {String(value)}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+                <Card style={{ marginBottom: tokens.spacing[6] }}>
+                  <SectionHeader title="Performance Metrics (Last 30 Days)" />
+                  <div style={{ padding: tokens.spacing[6] }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[6] }}>
+                      <div>
+                        <StatCard
+                          label="Points Earned"
+                          value={dashboardData.performance.points}
+                        />
+                        {dashboardData.nextTier && (
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1], textAlign: 'center' }}>
+                            Need {dashboardData.nextTier.pointTarget} for next tier
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <StatCard
+                          label="Completion Rate"
+                          value={`${dashboardData.performance.completionRate.toFixed(1)}%`}
+                        />
+                        {dashboardData.nextTier?.minCompletionRate && (
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1], textAlign: 'center' }}>
+                            Need {dashboardData.nextTier.minCompletionRate}% for next tier
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <StatCard
+                          label="Response Rate"
+                          value={`${dashboardData.performance.responseRate.toFixed(1)}%`}
+                        />
+                        {dashboardData.nextTier?.minResponseRate && (
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1], textAlign: 'center' }}>
+                            Need {dashboardData.nextTier.minResponseRate}% for next tier
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+                <Card style={{ marginBottom: tokens.spacing[6] }}>
+                  <SectionHeader title="Job Statistics" />
+                  <div style={{ padding: tokens.spacing[6] }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: tokens.spacing[4] }}>
+                      <StatCard label="Jobs Received" value={dashboardData.performance.jobsReceived} />
+                      <StatCard label="Jobs Accepted" value={dashboardData.performance.jobsAccepted} />
+                      <StatCard label="Jobs Declined" value={dashboardData.performance.jobsDeclined} />
+                      <StatCard label="Acceptance Rate" value={`${dashboardData.performance.acceptanceRate.toFixed(1)}%`} />
+                    </div>
+                  </div>
+                </Card>
+                {dashboardData.improvementAreas.length > 0 && (
+                  <Card style={{ marginBottom: tokens.spacing[6] }}>
+                    <SectionHeader title="How to Rank Higher" />
+                    <div style={{ padding: tokens.spacing[6] }}>
+                      {dashboardData.nextTier && (
+                        <Card style={{ marginBottom: tokens.spacing[4], padding: tokens.spacing[4], backgroundColor: tokens.colors.primary[50] }}>
+                          <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
+                            Next Tier: {dashboardData.nextTier.name}
+                          </div>
+                        </Card>
+                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                        {dashboardData.improvementAreas.map((area, idx) => (
+                          <Card key={idx}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[3] }}>
+                              <div
+                                style={{
+                                  width: '1.5rem',
+                                  height: '1.5rem',
+                                  borderRadius: tokens.borderRadius.full,
+                                  backgroundColor: tokens.colors.primary[100],
+                                  color: tokens.colors.primary.DEFAULT,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  fontSize: tokens.typography.fontSize.xs[0],
+                                  fontWeight: tokens.typography.fontWeight.bold,
+                                }}
+                              >
+                                {idx + 1}
+                              </div>
+                              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary }}>
+                                {area}
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+                {dashboardData.tierHistory.length > 0 && (
+                  <Card>
+                    <SectionHeader title="Tier History" />
+                    <div style={{ padding: tokens.spacing[6] }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                        {dashboardData.tierHistory.map((history) => (
+                          <Card key={history.id}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[2] }}>
+                              <span style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
+                                {history.tierName}
+                              </span>
+                              <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                {new Date(history.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                              <div>Points: {history.points}</div>
+                              {history.completionRate !== null && (
+                                <div>Completion Rate: {history.completionRate.toFixed(1)}%</div>
+                              )}
+                              {history.responseRate !== null && (
+                                <div>Response Rate: {history.responseRate.toFixed(1)}%</div>
+                              )}
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+              </>
+            )}
+          </>
+        ) : (
+          <Tabs
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={(tab) => setActiveTab(tab as TabType)}
+          >
+            {/* Pending Tab */}
+            <TabPanel id="pending">
             <Card>
               <SectionHeader title={`Pending Requests (${dashboardData.jobs.needsResponse.length})`} />
               <div style={{ padding: tokens.spacing[6] }}>
@@ -814,6 +1353,7 @@ function SitterDashboardContent() {
             )}
           </TabPanel>
         </Tabs>
+        )}
       </div>
     </AppShell>
   );
