@@ -1760,7 +1760,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                       Assigned Sitter
                     </div>
                     <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-                      {booking.sitter.firstName} {booking.sitter.lastName}
+                      <SitterAssignmentDisplay sitter={booking.sitter} showTierBadge />
                     </div>
                   </div>
                   <Button

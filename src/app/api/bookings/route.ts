@@ -18,10 +18,8 @@ export async function GET() {
       include: {
         pets: true,
         sitter: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
+          include: {
+            currentTier: true,
           },
         },
         timeSlots: {

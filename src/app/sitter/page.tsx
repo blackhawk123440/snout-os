@@ -27,6 +27,8 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
+import { BookingScheduleDisplay } from '@/components/booking';
+import { SitterTierBadge } from '@/components/sitter';
 
 interface Booking {
   id: string;
@@ -162,6 +164,7 @@ function SitterPageContent() {
     }
   };
 
+  // Format functions for simple date displays (not schedule rendering)
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString();
   };
@@ -287,13 +290,16 @@ function SitterPageContent() {
                             </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
-                                <span><i className="fas fa-clock" style={{ marginRight: tokens.spacing[1] }} /></span>
-                                {formatTime(booking.startAt)}
-                                <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                              <BookingScheduleDisplay
+                                service={booking.service}
+                                startAt={booking.startAt}
+                                endAt={booking.endAt}
+                                timeSlots={booking.timeSlots}
+                                address={booking.address}
+                              />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], marginTop: tokens.spacing[2] }}>
+                                <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
                                 {formatPetsByQuantity(booking.pets)}
-                                <span><i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
-                                {booking.address}
                               </div>
                               {previousBooking && (
                                 <div style={{ color: tokens.colors.info.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }}>
@@ -360,19 +366,18 @@ function SitterPageContent() {
                           </div>
                           
                           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
-                              <span><i className="fas fa-calendar" style={{ marginRight: tokens.spacing[1] }} /></span>
-                              {formatDate(booking.startAt)}
-                              <span><i className="fas fa-clock" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
-                              {formatTime(booking.startAt)}
-                              <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                            <BookingScheduleDisplay
+                              service={booking.service}
+                              startAt={booking.startAt}
+                              endAt={booking.endAt}
+                              timeSlots={booking.timeSlots}
+                              address={booking.address}
+                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], marginTop: tokens.spacing[2] }}>
+                              <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
                               {formatPetsByQuantity(booking.pets)}
                               <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
                               ${booking.totalPrice.toFixed(2)}
-                            </div>
-                            <div>
-                              <span><i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[1] }} /></span>
-                              {booking.address}
                             </div>
                           </div>
                         </div>
@@ -408,10 +413,14 @@ function SitterPageContent() {
                             {getStatusBadge(booking.status)}
                           </div>
                           
-                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                            <span><i className="fas fa-calendar" style={{ marginRight: tokens.spacing[1] }} /></span>
-                            {formatDate(booking.startAt)}
-                            <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                          <BookingScheduleDisplay
+                            service={booking.service}
+                            startAt={booking.startAt}
+                            endAt={booking.endAt}
+                            timeSlots={booking.timeSlots}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
                             {formatPetsByQuantity(booking.pets)}
                             <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
                             ${booking.totalPrice.toFixed(2)}
@@ -964,12 +973,14 @@ function SitterPageContent() {
                             </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
-                                <span><i className="fas fa-calendar" style={{ marginRight: tokens.spacing[1] }} /></span>
-                                {formatDate(booking.startAt)}
-                                <span><i className="fas fa-clock" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
-                                {formatTime(booking.startAt)}
-                                <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                              <BookingScheduleDisplay
+                                service={booking.service}
+                                startAt={booking.startAt}
+                                endAt={booking.endAt}
+                                timeSlots={booking.timeSlots}
+                              />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], marginTop: tokens.spacing[2] }}>
+                                <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
                                 {formatPetsByQuantity(booking.pets)}
                                 <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
                                 ${booking.totalPrice.toFixed(2)}
@@ -1013,10 +1024,14 @@ function SitterPageContent() {
                               {getStatusBadge(booking.status)}
                             </div>
                             
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              <span><i className="fas fa-calendar" style={{ marginRight: tokens.spacing[1] }} /></span>
-                              {formatDate(booking.startAt)}
-                              <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                            <BookingScheduleDisplay
+                              service={booking.service}
+                              startAt={booking.startAt}
+                              endAt={booking.endAt}
+                              timeSlots={booking.timeSlots}
+                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                              <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
                               {formatPetsByQuantity(booking.pets)}
                               <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
                               ${booking.totalPrice.toFixed(2)}
@@ -1352,9 +1367,12 @@ function SitterPageContent() {
             <div>
               <div style={{ fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>Service</div>
               <p>{selectedBooking.service}</p>
-              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                {formatDate(selectedBooking.startAt)} at {formatTime(selectedBooking.startAt)}
-              </p>
+              <BookingScheduleDisplay
+                service={selectedBooking.service}
+                startAt={selectedBooking.startAt}
+                endAt={selectedBooking.endAt}
+                timeSlots={selectedBooking.timeSlots}
+              />
             </div>
             
             <div>
