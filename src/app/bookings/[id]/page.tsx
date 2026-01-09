@@ -132,6 +132,8 @@ export default function BookingDetailPage() {
   const [showPaymentLinkConfirm, setShowPaymentLinkConfirm] = useState(false);
   const [showTipLinkConfirm, setShowTipLinkConfirm] = useState(false);
   const [showMoreActionsModal, setShowMoreActionsModal] = useState(false);
+  const [showAssignSitterModal, setShowAssignSitterModal] = useState(false);
+  const [selectedSitterId, setSelectedSitterId] = useState<string>('');
   
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -1009,32 +1011,9 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 overflowX: 'hidden',
                 WebkitOverflowScrolling: 'touch',
                 paddingBottom: tokens.spacing[20], // Space for bottom action bar
+                paddingTop: tokens.spacing[3],
               }}
             >
-              {/* Client Contact Details Section */}
-              <Card style={{ margin: tokens.spacing[3], marginTop: tokens.spacing[3], padding: tokens.spacing[3] }}>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Contact
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
-                  <div>
-                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Phone</div>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.phone}</div>
-                  </div>
-                  {booking.email && (
-                    <div>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Email</div>
-                      <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.email}</div>
-                    </div>
-                  )}
-                  {booking.address && (
-                    <div>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Address</div>
-                      <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.address}</div>
-                    </div>
-                  )}
-                </div>
-              </Card>
 
               {/* Collapsible Schedule Section */}
               <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'hidden' }}>
@@ -2125,27 +2104,42 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   </Button>
                 )}
                 {booking?.sitter ? (
+                  <>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setShowAssignSitterModal(true);
+                        setShowMoreActionsModal(false);
+                      }}
+                      leftIcon={<i className="fas fa-user-edit" />}
+                      style={{ width: '100%' }}
+                    >
+                      Reassign Sitter
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setShowUnassignModal(true);
+                        setShowMoreActionsModal(false);
+                      }}
+                      leftIcon={<i className="fas fa-user-times" />}
+                      style={{ width: '100%' }}
+                    >
+                      Unassign Sitter
+                    </Button>
+                  </>
+                ) : (
                   <Button
                     variant="secondary"
                     onClick={() => {
-                      setShowUnassignModal(true);
+                      setShowAssignSitterModal(true);
                       setShowMoreActionsModal(false);
                     }}
-                    leftIcon={<i className="fas fa-user-times" />}
+                    leftIcon={<i className="fas fa-user-plus" />}
+                    style={{ width: '100%' }}
                   >
-                    Unassign Sitter
+                    Assign Sitter
                   </Button>
-                ) : (
-                  <Select
-                    label="Assign Sitter"
-                    options={sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        handleSitterAssign(e.target.value);
-                        setShowMoreActionsModal(false);
-                      }
-                    }}
-                  />
                 )}
               </div>
             </div>
@@ -2400,11 +2394,15 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         </div>
       </Modal>
 
-      {/* Unassign Modal */}
+      {/* Assign Sitter Modal */}
       <Modal
-        isOpen={showUnassignModal}
-        onClose={() => setShowUnassignModal(false)}
-        title="Unassign Sitter"
+        isOpen={showAssignSitterModal}
+        onClose={() => {
+          setShowAssignSitterModal(false);
+          setSelectedSitterId('');
+        }}
+        title={booking?.sitter ? "Reassign Sitter" : "Assign Sitter"}
+        size={isMobile ? "full" : "md"}
       >
         <div
           style={{
@@ -2414,7 +2412,79 @@ Total: ${formatCurrency(booking.totalPrice)}`;
           }}
         >
           <div>
-            Are you sure you want to unassign {booking.sitter?.firstName} {booking.sitter?.lastName} from this booking?
+            <div
+              style={{
+                fontSize: tokens.typography.fontSize.sm[0],
+                color: tokens.colors.text.secondary,
+                marginBottom: tokens.spacing[2],
+              }}
+            >
+              Select a sitter to {booking?.sitter ? 'reassign' : 'assign'} to this booking:
+            </div>
+            <Select
+              value={selectedSitterId}
+              onChange={(e) => setSelectedSitterId(e.target.value)}
+              options={[
+                { value: '', label: 'Select a sitter...' },
+                ...sitters
+                  .filter((s) => s.id !== booking?.sitter?.id)
+                  .map((s) => ({
+                    value: s.id,
+                    label: `${s.firstName} ${s.lastName}`,
+                  })),
+              ]}
+            />
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              gap: tokens.spacing[3],
+              justifyContent: 'flex-end',
+            }}
+          >
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowAssignSitterModal(false);
+                setSelectedSitterId('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (selectedSitterId) {
+                  handleSitterAssign(selectedSitterId);
+                  setShowAssignSitterModal(false);
+                  setSelectedSitterId('');
+                }
+              }}
+              disabled={!selectedSitterId || saving}
+              isLoading={saving}
+            >
+              {booking?.sitter ? 'Reassign' : 'Assign'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Unassign Modal */}
+      <Modal
+        isOpen={showUnassignModal}
+        onClose={() => setShowUnassignModal(false)}
+        title="Unassign Sitter"
+        size={isMobile ? "full" : "md"}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: tokens.spacing[4],
+          }}
+        >
+          <div>
+            Are you sure you want to unassign {booking?.sitter?.firstName} {booking?.sitter?.lastName} from this booking?
           </div>
           <div
             style={{

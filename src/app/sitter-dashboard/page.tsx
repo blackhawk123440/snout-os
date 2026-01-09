@@ -122,6 +122,17 @@ function SitterDashboardContent() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [acceptingJobId, setAcceptingJobId] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Default to list view on mobile (agenda-like behavior)
+  useEffect(() => {
+    if (!hasInitialized && isMobile && activeTab === 'accepted') {
+      setViewMode('list');
+      setHasInitialized(true);
+    } else if (!hasInitialized) {
+      setHasInitialized(true);
+    }
+  }, [isMobile, hasInitialized, activeTab]);
 
   useEffect(() => {
     if (sitterId) {
@@ -365,16 +376,18 @@ function SitterDashboardContent() {
             )}
             {activeTab === 'accepted' && (
               <>
-                <div style={{ marginBottom: tokens.spacing[4], display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button
-                    variant={viewMode === "calendar" ? "primary" : "secondary"}
-                    onClick={() => setViewMode(viewMode === "calendar" ? "list" : "calendar")}
-                    leftIcon={<i className={viewMode === "calendar" ? "fas fa-list" : "fas fa-calendar"} />}
-                  >
-                    {viewMode === "calendar" ? "List View" : "Calendar View"}
-                  </Button>
-                </div>
-                {viewMode === "calendar" ? (
+                {!isMobile && (
+                  <div style={{ marginBottom: tokens.spacing[4], display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button
+                      variant={viewMode === "calendar" ? "primary" : "secondary"}
+                      onClick={() => setViewMode(viewMode === "calendar" ? "list" : "calendar")}
+                      leftIcon={<i className={viewMode === "calendar" ? "fas fa-list" : "fas fa-calendar"} />}
+                    >
+                      {viewMode === "calendar" ? "List View" : "Calendar View"}
+                    </Button>
+                  </div>
+                )}
+                {viewMode === "calendar" && !isMobile ? (
                   <Card>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
                       <SectionHeader title="Calendar" />
@@ -475,63 +488,227 @@ function SitterDashboardContent() {
                     </div>
                   </Card>
                 ) : (
-                  <Card>
-                    <SectionHeader title={`Accepted Jobs (${dashboardData.jobs.accepted.length})`} />
-                    <div style={{ padding: tokens.spacing[6] }}>
-                      {dashboardData.jobs.accepted.length > 0 ? (
+                  isMobile ? (
+                    /* Mobile: Agenda-style grouped view like calendar page */
+                    (() => {
+                      const agendaGrouped = (() => {
+                        const groups = new Map<string, typeof dashboardData.jobs.accepted>();
+                        dashboardData.jobs.accepted.forEach((job) => {
+                          const dateKey = new Date(job.startAt).toISOString().split('T')[0];
+                          if (!groups.has(dateKey)) {
+                            groups.set(dateKey, []);
+                          }
+                          groups.get(dateKey)!.push(job);
+                        });
+                        return Array.from(groups.entries())
+                          .map(([date, items]) => ({
+                            date,
+                            jobs: items.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()),
+                          }))
+                          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                      })();
+
+                      return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-                          {dashboardData.jobs.accepted.map((job) => (
-                            <Card key={job.id}>
-                              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                                    <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
-                                      {job.clientName}
+                          {agendaGrouped.length === 0 ? (
+                            <Card>
+                              <EmptyState
+                                title="No Accepted Jobs"
+                                description="You don't have any accepted jobs yet"
+                                icon={<i className="fas fa-check-circle" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                              />
+                            </Card>
+                          ) : (
+                            agendaGrouped.map((group) => {
+                              const dateObj = new Date(group.date);
+                              return (
+                                <Card key={group.date} padding={false}>
+                                  <div
+                                    style={{
+                                      padding: tokens.spacing[4],
+                                      borderBottom: `1px solid ${tokens.colors.border.default}`,
+                                      backgroundColor: tokens.colors.background.secondary,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        fontSize: tokens.typography.fontSize.base[0],
+                                        fontWeight: tokens.typography.fontWeight.semibold,
+                                        color: tokens.colors.text.primary,
+                                      }}
+                                    >
+                                      {dateObj.toLocaleDateString('en-US', {
+                                        weekday: 'long',
+                                        month: 'long',
+                                        day: 'numeric',
+                                      })}
                                     </div>
-                                    <Badge variant={job.type === "direct" ? "info" : "success"}>
-                                      {job.type === "direct" ? "Direct Assignment" : "Pool Accepted"}
-                                    </Badge>
+                                    <Badge variant="default">{group.jobs.length} job{group.jobs.length > 1 ? 's' : ''}</Badge>
                                   </div>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                                    <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
-                                    <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
-                                    {job.timeSlots.length > 0 && (
+                                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                    {group.jobs.map((job) => {
+                                      return (
+                                        <div
+                                          key={job.id}
+                                          style={{
+                                            padding: tokens.spacing[4],
+                                            borderBottom: `1px solid ${tokens.colors.border.muted}`,
+                                            display: 'flex',
+                                            alignItems: 'flex-start',
+                                            justifyContent: 'space-between',
+                                            gap: tokens.spacing[4],
+                                          }}
+                                        >
+                                          <div style={{ flex: 1 }}>
+                                            <div
+                                              style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: tokens.spacing[2],
+                                                marginBottom: tokens.spacing[2],
+                                              }}
+                                            >
+                                              <span
+                                                style={{
+                                                  fontSize: tokens.typography.fontSize.base[0],
+                                                  fontWeight: tokens.typography.fontWeight.semibold,
+                                                  color: tokens.colors.text.primary,
+                                                }}
+                                              >
+                                                {job.service}
+                                              </span>
+                                              <Badge variant={job.type === "direct" ? "info" : "success"}>
+                                                {job.type === "direct" ? "Direct" : "Pool"}
+                                              </Badge>
+                                            </div>
+                                            <div
+                                              style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: tokens.spacing[1],
+                                                fontSize: tokens.typography.fontSize.sm[0],
+                                                color: tokens.colors.text.secondary,
+                                              }}
+                                            >
+                                              <div>
+                                                <i className="fas fa-clock" style={{ marginRight: tokens.spacing[2] }} />
+                                                {formatTime(job.startAt)}
+                                                {job.timeSlots.length > 0 && ` (${job.timeSlots.map(ts => `${ts.duration}m`).join(', ')})`}
+                                              </div>
+                                              <div>
+                                                <i className="fas fa-user" style={{ marginRight: tokens.spacing[2] }} />
+                                                {job.clientName}
+                                              </div>
+                                              {job.address && (
+                                                <div>
+                                                  <i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[2] }} />
+                                                  {job.address}
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div
+                                            style={{
+                                              display: 'flex',
+                                              flexDirection: 'column',
+                                              alignItems: 'flex-end',
+                                              gap: tokens.spacing[1],
+                                            }}
+                                          >
+                                            <div
+                                              style={{
+                                                fontSize: tokens.typography.fontSize.base[0],
+                                                fontWeight: tokens.typography.fontWeight.bold,
+                                                color: tokens.colors.text.primary,
+                                              }}
+                                            >
+                                              ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}
+                                            </div>
+                                            {job.pets.length > 0 && (
+                                              <div
+                                                style={{
+                                                  fontSize: tokens.typography.fontSize.sm[0],
+                                                  color: tokens.colors.text.secondary,
+                                                }}
+                                              >
+                                                {job.pets.length} pet{job.pets.length > 1 ? 's' : ''}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </Card>
+                              );
+                            })
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    /* Desktop: List View */
+                    <Card>
+                      <SectionHeader title={`Accepted Jobs (${dashboardData.jobs.accepted.length})`} />
+                      <div style={{ padding: tokens.spacing[6] }}>
+                        {dashboardData.jobs.accepted.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                            {dashboardData.jobs.accepted.map((job) => (
+                              <Card key={job.id}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
+                                      <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                                        {job.clientName}
+                                      </div>
+                                      <Badge variant={job.type === "direct" ? "info" : "success"}>
+                                        {job.type === "direct" ? "Direct Assignment" : "Pool Accepted"}
+                                      </Badge>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                      <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
+                                      <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
+                                      {job.timeSlots.length > 0 && (
+                                        <div>
+                                          <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Times:</span>{" "}
+                                          {job.timeSlots.map((ts, idx) => (
+                                            <span key={ts.id}>
+                                              {formatTime(ts.startAt)} ({ts.duration} min)
+                                              {idx < job.timeSlots.length - 1 ? ", " : ""}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                      <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Address:</span> {job.address}</div>
                                       <div>
-                                        <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Times:</span>{" "}
-                                        {job.timeSlots.map((ts, idx) => (
-                                          <span key={ts.id}>
-                                            {formatTime(ts.startAt)} ({ts.duration} min)
-                                            {idx < job.timeSlots.length - 1 ? ", " : ""}
+                                        <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Pets:</span>{" "}
+                                        {job.pets.map((p, idx) => (
+                                          <span key={idx}>
+                                            {p.name || p.species} ({p.species})
+                                            {idx < job.pets.length - 1 ? ", " : ""}
                                           </span>
                                         ))}
                                       </div>
-                                    )}
-                                    <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Address:</span> {job.address}</div>
-                                    <div>
-                                      <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Pets:</span>{" "}
-                                      {job.pets.map((p, idx) => (
-                                        <span key={idx}>
-                                          {p.name || p.species} ({p.species})
-                                          {idx < job.pets.length - 1 ? ", " : ""}
-                                        </span>
-                                      ))}
+                                      <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
                                     </div>
-                                    <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
                                   </div>
                                 </div>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <EmptyState
-                          title="No Accepted Jobs"
-                          description="You don't have any accepted jobs yet"
-                          icon={<i className="fas fa-check-circle" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
-                        />
-                      )}
-                    </div>
-                  </Card>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <EmptyState
+                            title="No Accepted Jobs"
+                            description="You don't have any accepted jobs yet"
+                            icon={<i className="fas fa-check-circle" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                          />
+                        )}
+                      </div>
+                    </Card>
+                  )
                 )}
               </>
             )}
