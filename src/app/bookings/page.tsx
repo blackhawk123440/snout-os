@@ -28,6 +28,8 @@ import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { TableColumn } from '@/components/ui/Table';
 import { useMobile } from '@/lib/use-mobile';
+import { SitterAssignmentDisplay } from '@/components/sitter';
+import { BookingScheduleDisplay } from '@/components/booking';
 
 interface Booking {
   id: string;
@@ -317,23 +319,16 @@ function BookingsPageContent() {
     {
       key: 'date',
       header: 'Date',
-      mobileLabel: 'Date & Time',
+      mobileLabel: 'Schedule',
       mobileOrder: 4,
       render: (row) => (
-        <div>
-          <div>{formatDate(row.startAt)}</div>
-          <div
-                                style={{ 
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-            }}
-          >
-            {new Date(row.startAt).toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-                                          })}
-                                        </div>
-                                      </div>
+        <BookingScheduleDisplay
+          service={row.service}
+          startAt={row.startAt}
+          endAt={row.endAt}
+          timeSlots={row.timeSlots}
+          compact={true}
+        />
       ),
     },
     {
@@ -341,14 +336,14 @@ function BookingsPageContent() {
       header: 'Sitter',
       mobileLabel: 'Assigned Sitter',
       mobileOrder: 6,
-      render: (row) =>
-        row.sitter ? (
-                                          <div>
-            {row.sitter.firstName} {row.sitter.lastName}
-                                </div>
-                              ) : (
-          <span style={{ color: tokens.colors.text.tertiary }}>Unassigned</span>
-        ),
+      render: (row) => (
+        <SitterAssignmentDisplay
+          sitter={row.sitter}
+          showUnassigned={true}
+          compact={true}
+          showTierBadge={true}
+        />
+      ),
     },
     {
       key: 'status',

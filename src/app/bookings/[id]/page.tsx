@@ -27,16 +27,12 @@ import {
   Tabs,
   TabPanel,
 } from '@/components/ui';
-import { EditBookingModal } from '@/components/booking/EditBookingModal';
+import { EditBookingModal, BookingScheduleDisplay, isOvernightRangeService } from '@/components/booking';
+import { SitterAssignmentDisplay, SitterTierBadge } from '@/components/sitter';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { getPricingForDisplay } from '@/lib/pricing-display-helpers';
 import { useMobile } from '@/lib/use-mobile';
-
-// Helper to determine if service uses overnight range model
-const isOvernightRangeService = (service: string): boolean => {
-  return service === 'Housesitting' || service === '24/7 Care';
-};
 
 interface Pet {
   id: string;
@@ -132,8 +128,6 @@ export default function BookingDetailPage() {
   const [showPaymentLinkConfirm, setShowPaymentLinkConfirm] = useState(false);
   const [showTipLinkConfirm, setShowTipLinkConfirm] = useState(false);
   const [showMoreActionsModal, setShowMoreActionsModal] = useState(false);
-  const [showAssignSitterModal, setShowAssignSitterModal] = useState(false);
-  const [selectedSitterId, setSelectedSitterId] = useState<string>('');
   
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -862,12 +856,12 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         {isMobile ? (
           <div
             style={{
-              flex: 1,
+              position: 'relative',
               display: 'flex',
               flexDirection: 'column',
-              minHeight: 0,
-              overflow: 'hidden',
+              height: '100%',
               width: '100%',
+              overflow: 'hidden',
             }}
           >
             {/* Sticky Summary Header */}
@@ -986,18 +980,12 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                     >
                       Sitter
                     </div>
-                    <div
-                      style={{
-                        fontSize: tokens.typography.fontSize.sm[0],
-                        fontWeight: tokens.typography.fontWeight.medium,
-                        color: tokens.colors.text.primary,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {booking.sitter.firstName} {booking.sitter.lastName}
-                    </div>
+                    <SitterAssignmentDisplay
+                      sitter={booking.sitter}
+                      showUnassigned={false}
+                      compact={true}
+                      showTierBadge={true}
+                    />
                   </div>
                 )}
               </div>
@@ -1006,14 +994,45 @@ Total: ${formatCurrency(booking.totalPrice)}`;
             {/* Scrollable Content */}
             <div
               style={{
-                flex: 1,
+                flex: '1 1 auto',
                 overflowY: 'auto',
                 overflowX: 'hidden',
                 WebkitOverflowScrolling: 'touch',
                 paddingBottom: tokens.spacing[20], // Space for bottom action bar
-                paddingTop: tokens.spacing[3],
+                // Fix iOS scroll jitter - prevent double scroll and momentum issues
+                overscrollBehaviorY: 'contain',
+                overscrollBehaviorX: 'none',
+                touchAction: 'pan-y',
+                willChange: 'scroll-position',
+                // Prevent layout shifts during scroll
+                containIntrinsicSize: 'auto 500px',
+                minHeight: 0,
               }}
             >
+              {/* Client Contact Details Section */}
+              <Card style={{ margin: tokens.spacing[3], marginTop: tokens.spacing[3], padding: tokens.spacing[3] }}>
+                <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Contact
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                  <div>
+                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Phone</div>
+                    <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.phone}</div>
+                  </div>
+                  {booking.email && (
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Email</div>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.email}</div>
+                    </div>
+                  )}
+                  {booking.address && (
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Address</div>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.base[0] }}>{booking.address}</div>
+                    </div>
+                  )}
+                </div>
+              </Card>
 
               {/* Collapsible Schedule Section */}
               <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'hidden' }}>
@@ -1038,96 +1057,14 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 </button>
                 {expandedSections.schedule && (
                   <div style={{ padding: tokens.spacing[3], paddingTop: tokens.spacing[2] }}>
-                    {/* Part E: Schedule display rules per service type */}
-                    {isOvernightRangeService(booking.service) ? (
-                      /* Overnight range services: Housesitting, 24/7 Care */
-                      <div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[3] }}>
-                          <div>
-                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
-                            <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(booking.startAt)}</div>
-                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{formatTime(booking.startAt)}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
-                            <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(booking.endAt)}</div>
-                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{formatTime(booking.endAt)}</div>
-                          </div>
-                        </div>
-                        {/* Calculate nights count */}
-                        {(() => {
-                          const startDate = new Date(booking.startAt);
-                          const endDate = new Date(booking.endAt);
-                          const nights = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-                          return (
-                            <div style={{ padding: tokens.spacing[2], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm, marginBottom: tokens.spacing[3] }}>
-                              <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Duration</div>
-                              <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
-                                {nights} {nights === 1 ? 'Night' : 'Nights'}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    ) : (
-                      /* Multi-visit services: Drop-ins, Dog walking, Pet taxi */
-                      <div>
-                        {booking.timeSlots && booking.timeSlots.length > 0 ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
-                            {/* Group visits by date */}
-                            {(() => {
-                              const visitsByDate = booking.timeSlots.reduce((acc, slot) => {
-                                const dateKey = formatDate(slot.startAt);
-                                if (!acc[dateKey]) {
-                                  acc[dateKey] = [];
-                                }
-                                acc[dateKey].push(slot);
-                                return acc;
-                              }, {} as Record<string, typeof booking.timeSlots>);
-
-                              return Object.entries(visitsByDate).map(([date, visits]) => (
-                                <div key={date} style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
-                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    {date}
-                                  </div>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
-                                    {visits.map((slot) => {
-                                      const duration = slot.duration || (() => {
-                                        const start = new Date(slot.startAt);
-                                        const end = new Date(slot.endAt);
-                                        return Math.round((end.getTime() - start.getTime()) / 60000);
-                                      })();
-                                      return (
-                                        <div key={slot.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: tokens.spacing[2] }}>
-                                          <div>
-                                            <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
-                                              {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
-                                            </div>
-                                          </div>
-                                          <Badge variant="default">
-                                            {duration}m
-                                          </Badge>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              ));
-                            })()}
-                          </div>
-                        ) : (
-                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                            No time slots scheduled
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {booking.address && (
-                      <div style={{ marginTop: tokens.spacing[3], paddingTop: tokens.spacing[3], borderTop: `1px solid ${tokens.colors.border.default}` }}>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Address</div>
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>{booking.address}</div>
-                      </div>
-                    )}
+                    <BookingScheduleDisplay
+                      service={booking.service}
+                      startAt={booking.startAt}
+                      endAt={booking.endAt}
+                      timeSlots={booking.timeSlots}
+                      address={booking.address}
+                      compact={false}
+                    />
                   </div>
                 )}
               </Card>
@@ -2104,42 +2041,27 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   </Button>
                 )}
                 {booking?.sitter ? (
-                  <>
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setShowAssignSitterModal(true);
-                        setShowMoreActionsModal(false);
-                      }}
-                      leftIcon={<i className="fas fa-user-edit" />}
-                      style={{ width: '100%' }}
-                    >
-                      Reassign Sitter
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        setShowUnassignModal(true);
-                        setShowMoreActionsModal(false);
-                      }}
-                      leftIcon={<i className="fas fa-user-times" />}
-                      style={{ width: '100%' }}
-                    >
-                      Unassign Sitter
-                    </Button>
-                  </>
-                ) : (
                   <Button
                     variant="secondary"
                     onClick={() => {
-                      setShowAssignSitterModal(true);
+                      setShowUnassignModal(true);
                       setShowMoreActionsModal(false);
                     }}
-                    leftIcon={<i className="fas fa-user-plus" />}
-                    style={{ width: '100%' }}
+                    leftIcon={<i className="fas fa-user-times" />}
                   >
-                    Assign Sitter
+                    Unassign Sitter
                   </Button>
+                ) : (
+                  <Select
+                    label="Assign Sitter"
+                    options={sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        handleSitterAssign(e.target.value);
+                        setShowMoreActionsModal(false);
+                      }
+                    }}
+                  />
                 )}
               </div>
             </div>
@@ -2394,87 +2316,11 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         </div>
       </Modal>
 
-      {/* Assign Sitter Modal */}
-      <Modal
-        isOpen={showAssignSitterModal}
-        onClose={() => {
-          setShowAssignSitterModal(false);
-          setSelectedSitterId('');
-        }}
-        title={booking?.sitter ? "Reassign Sitter" : "Assign Sitter"}
-        size={isMobile ? "full" : "md"}
-      >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: tokens.spacing[4],
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-                marginBottom: tokens.spacing[2],
-              }}
-            >
-              Select a sitter to {booking?.sitter ? 'reassign' : 'assign'} to this booking:
-            </div>
-            <Select
-              value={selectedSitterId}
-              onChange={(e) => setSelectedSitterId(e.target.value)}
-              options={[
-                { value: '', label: 'Select a sitter...' },
-                ...sitters
-                  .filter((s) => s.id !== booking?.sitter?.id)
-                  .map((s) => ({
-                    value: s.id,
-                    label: `${s.firstName} ${s.lastName}`,
-                  })),
-              ]}
-            />
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              gap: tokens.spacing[3],
-              justifyContent: 'flex-end',
-            }}
-          >
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowAssignSitterModal(false);
-                setSelectedSitterId('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => {
-                if (selectedSitterId) {
-                  handleSitterAssign(selectedSitterId);
-                  setShowAssignSitterModal(false);
-                  setSelectedSitterId('');
-                }
-              }}
-              disabled={!selectedSitterId || saving}
-              isLoading={saving}
-            >
-              {booking?.sitter ? 'Reassign' : 'Assign'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
       {/* Unassign Modal */}
       <Modal
         isOpen={showUnassignModal}
         onClose={() => setShowUnassignModal(false)}
         title="Unassign Sitter"
-        size={isMobile ? "full" : "md"}
       >
         <div
           style={{
@@ -2484,7 +2330,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
           }}
         >
           <div>
-            Are you sure you want to unassign {booking?.sitter?.firstName} {booking?.sitter?.lastName} from this booking?
+            Are you sure you want to unassign {booking.sitter?.firstName} {booking.sitter?.lastName} from this booking?
           </div>
           <div
             style={{

@@ -42,6 +42,9 @@ export const StatCard: React.FC<StatCardProps> = ({
         padding: tokens.spacing[6],
         cursor: onClick ? 'pointer' : 'default',
         transition: `all ${tokens.transitions.duration.DEFAULT}`,
+        minHeight: '140px', // Fixed height to prevent tile resize with big numbers
+        display: 'flex',
+        flexDirection: 'column',
         ...(onClick && {
           ':hover': {
             borderColor: tokens.colors.border.focus,
@@ -94,8 +97,14 @@ export const StatCard: React.FC<StatCardProps> = ({
           fontSize: tokens.typography.fontSize['3xl'][0],
           fontWeight: tokens.typography.fontWeight.bold,
           color: tokens.colors.text.primary,
-          lineHeight: '1',
+          lineHeight: '1.2',
           marginBottom: change ? tokens.spacing[2] : 0,
+          minHeight: '3rem', // Fixed height to prevent tile resize
+          display: 'flex',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          fontVariantNumeric: 'tabular-nums', // Tabular numerals for consistent width
+          wordBreak: 'break-word', // Allow wrapping if needed
         }}
       >
         {value}
