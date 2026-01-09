@@ -25,6 +25,7 @@ import {
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 interface Booking {
   id: string;
@@ -56,6 +57,7 @@ interface Booking {
 type TabType = "today" | "upcoming" | "completed" | "earnings" | "settings" | "tier";
 
 function SitterPageContent() {
+  const isMobile = useMobile();
   const searchParams = useSearchParams();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -325,7 +327,7 @@ function SitterPageContent() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: tokens.spacing[6],
             marginBottom: tokens.spacing[6],
           }}
