@@ -116,13 +116,15 @@
 - Status badges throughout
 **Files:** `src/app/bookings/page.tsx`, `src/app/bookings/[id]/page.tsx`
 
-### ✅ Edit Booking on Mobile
+### ✅ Edit Booking (Unified Form)
 **Status:** Implemented
 **Evidence:**
-- `EditBookingModal` component exists
-- Accessible via bottom action bar "Edit" button (line 1251)
-- Opens as full-height bottom sheet (Modal component handles this)
-**Files:** `src/app/bookings/[id]/page.tsx`, `src/components/booking/EditBookingModal.tsx`
+- `BookingForm` component exists with `mode: 'create' | 'edit'` (lines 21-34 in `src/components/bookings/BookingForm.tsx`)
+- Used in `/bookings/new` route (`src/app/bookings/new/page.tsx`)
+- Used in booking detail edit modal (`src/app/bookings/[id]/page.tsx`)
+- `bookingToFormValues` mapper converts Booking to form values (`src/lib/bookings/booking-form-mapper.ts`)
+- Form validation uses shared `VALID_SERVICES` and validation rules
+**Files:** `src/components/bookings/BookingForm.tsx`, `src/app/bookings/new/page.tsx`, `src/app/bookings/[id]/page.tsx`, `src/lib/bookings/booking-form-mapper.ts`
 
 ### ✅ Correct Schedule Display Per Service
 **Status:** Implemented
@@ -141,15 +143,15 @@
 - Generate payment/tip link API endpoints
 **Files:** `src/app/bookings/[id]/page.tsx`, `src/app/api/payments/create-payment-link/route.ts`, `src/app/api/bookings/[id]/tip-link/route.ts`
 
-### ⚠️ Assignment Management
-**Status:** Partial
+### ✅ Assignment Management
+**Status:** Implemented
 **Evidence:**
-- Assign sitter: ✅ Exists in More Actions modal
-- Unassign sitter: ✅ Exists in More Actions modal with confirmation
-- Reassign: ❌ Not verified - may need to assign different sitter to reassign
+- Assign sitter: ✅ `BookingRowActions` component in bookings list (lines 18-190 in `src/components/bookings/BookingRowActions.tsx`)
+- Unassign sitter: ✅ `BookingRowActions` includes unassign with confirmation modal
+- Reassign: ✅ `BookingRowActions` includes "Change" button to reassign different sitter
 - Assignment visible in booking detail sticky header: ✅
-- Assignment visible in booking list: ✅
-**Files:** `src/app/bookings/[id]/page.tsx`, `src/app/api/bookings/[id]/route.ts`
+- Assignment visible in booking list: ✅ Uses `BookingRowActions` component with `SitterAssignmentDisplay`
+**Files:** `src/components/bookings/BookingRowActions.tsx`, `src/app/bookings/page.tsx`, `src/app/bookings/[id]/page.tsx`, `src/app/api/bookings/[id]/route.ts`
 
 ### ✅ Zero Horizontal Scroll
 **Status:** Implemented
@@ -158,6 +160,30 @@
 - All columns have `mobileLabel` and `mobileOrder`
 - Global overflow-x prevention
 **Files:** `src/app/bookings/page.tsx`, `src/components/ui/Table.tsx`
+
+### ✅ New Booking Route
+**Status:** Implemented
+**Evidence:**
+- Route `/bookings/new` exists (`src/app/bookings/new/page.tsx`)
+- Uses unified `BookingForm` component with `mode="create"`
+- "New Booking" button in bookings list links to `/bookings/new` (line 413 in `src/app/bookings/page.tsx`)
+**Files:** `src/app/bookings/new/page.tsx`, `src/app/bookings/page.tsx`
+
+### ✅ StatCard Compact Mode
+**Status:** Implemented
+**Evidence:**
+- `StatCard` component supports `compact?: boolean` prop (`src/components/ui/StatCard.tsx`)
+- Bookings list uses `compact={isMobile}` for KPI cards (lines 394-420 in `src/app/bookings/page.tsx`)
+- Compact mode reduces padding and font sizes for mobile density
+**Files:** `src/components/ui/StatCard.tsx`, `src/app/bookings/page.tsx`
+
+### ✅ Desktop Clipping Fixes
+**Status:** Implemented
+**Evidence:**
+- Booking detail page containers have `minWidth: 0` to prevent flex truncation
+- Address fields, pet notes, booking notes use `wordBreak: 'break-word'`
+- Grid and flex containers properly sized
+**Files:** `src/app/bookings/[id]/page.tsx`
 
 ---
 

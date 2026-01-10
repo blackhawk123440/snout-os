@@ -30,6 +30,7 @@ import { TableColumn } from '@/components/ui/Table';
 import { useMobile } from '@/lib/use-mobile';
 import { SitterAssignmentDisplay } from '@/components/sitter';
 import { BookingScheduleDisplay } from '@/components/booking';
+import { BookingRowActions } from '@/components/bookings/BookingRowActions';
 
 interface Booking {
   id: string;
@@ -67,6 +68,11 @@ interface Sitter {
   id: string;
   firstName: string;
   lastName: string;
+  currentTier?: {
+    id: string;
+    name: string;
+    priorityLevel?: number;
+  } | null;
 }
 
 function BookingsPageContent() {
@@ -275,6 +281,29 @@ function BookingsPageContent() {
       .join(', ');
   };
 
+
+  const handleSitterAssign = async (bookingId: string, sitterId: string) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sitterId: sitterId || "" }),
+      });
+
+      if (response.ok) {
+        // Refresh bookings
+        const bookingsRes = await fetch('/api/bookings');
+        if (bookingsRes.ok) {
+          const data = await bookingsRes.json();
+          setBookings(data.bookings || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to assign sitter:', error);
+      throw error;
+    }
+  };
+
   const columns: TableColumn<Booking>[] = [
     {
       key: 'client',
@@ -331,17 +360,27 @@ function BookingsPageContent() {
         />
       ),
     },
-    {
-      key: 'sitter',
-      header: 'Sitter',
-      mobileLabel: 'Assigned Sitter',
+        {
+      key: 'actions',
+      header: 'Actions',
+      mobileLabel: 'Sitter Assignment',
       mobileOrder: 6,
       render: (row) => (
-        <SitterAssignmentDisplay
+        <BookingRowActions
+          bookingId={row.id}
           sitter={row.sitter}
-          showUnassigned={true}
-          compact={true}
-          showTierBadge={true}
+          sitters={sitters.map(s => ({
+            id: s.id,
+            firstName: s.firstName,
+            lastName: s.lastName,
+            currentTier: s.currentTier,
+          }))}
+          onAssign={async (bookingId, sitterId) => {
+            await handleSitterAssign(bookingId, sitterId);
+          }}
+          onUnassign={async (bookingId) => {
+            await handleSitterAssign(bookingId, '');
+          }}
         />
       ),
     },
@@ -373,11 +412,11 @@ function BookingsPageContent() {
         title="Bookings"
         description="Manage all bookings and assignments"
         actions={
-          <a href="https://snout-form.onrender.com" target="_blank" rel="noopener noreferrer">
+          <Link href="/bookings/new">
             <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
               New Booking
             </Button>
-          </a>
+          </Link>
         }
       />
 
@@ -394,21 +433,25 @@ function BookingsPageContent() {
         <StatCard
           label="Today's Visits"
           value={overviewStats.todaysVisits}
+          compact={isMobile}
           icon={<i className="fas fa-calendar-day" />}
         />
         <StatCard
           label="Unassigned"
           value={overviewStats.unassigned}
+          compact={isMobile}
           icon={<i className="fas fa-user-slash" />}
         />
         <StatCard
           label="Pending"
           value={overviewStats.pending}
+          compact={isMobile}
           icon={<i className="fas fa-clock" />}
         />
         <StatCard
           label="Monthly Revenue"
           value={formatCurrency(overviewStats.monthlyRevenue)}
+          compact={isMobile}
           icon={<i className="fas fa-dollar-sign" />}
         />
       </div>

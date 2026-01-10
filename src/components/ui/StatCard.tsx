@@ -2,10 +2,12 @@
  * StatCard Component
  * 
  * Metric display card for dashboard statistics.
+ * Supports compact mode for mobile to reduce height and padding.
  */
 
 import React from 'react';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 
 export interface StatCardProps {
   label: string;
@@ -16,6 +18,7 @@ export interface StatCardProps {
   };
   icon?: React.ReactNode;
   onClick?: () => void;
+  compact?: boolean; // Compact mode for mobile (reduces padding and height)
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -24,7 +27,11 @@ export const StatCard: React.FC<StatCardProps> = ({
   change,
   icon,
   onClick,
+  compact,
 }) => {
+  const isMobile = useMobile();
+  const useCompact = compact !== undefined ? compact : isMobile;
+  
   const changeColor =
     change?.trend === 'up'
       ? tokens.colors.success.DEFAULT
@@ -39,10 +46,10 @@ export const StatCard: React.FC<StatCardProps> = ({
         backgroundColor: tokens.colors.background.primary,
         border: `1px solid ${tokens.colors.border.default}`,
         borderRadius: tokens.borderRadius.lg,
-        padding: tokens.spacing[6],
+        padding: useCompact ? tokens.spacing[3] : tokens.spacing[6],
         cursor: onClick ? 'pointer' : 'default',
         transition: `all ${tokens.transitions.duration.DEFAULT}`,
-        minHeight: '140px', // Fixed height to prevent tile resize with big numbers
+        minHeight: useCompact ? '80px' : '140px', // Reduced height on mobile
         display: 'flex',
         flexDirection: 'column',
         ...(onClick && {
@@ -94,12 +101,12 @@ export const StatCard: React.FC<StatCardProps> = ({
       </div>
       <div
         style={{
-          fontSize: tokens.typography.fontSize['3xl'][0],
+          fontSize: useCompact ? tokens.typography.fontSize.xl[0] : tokens.typography.fontSize['3xl'][0],
           fontWeight: tokens.typography.fontWeight.bold,
           color: tokens.colors.text.primary,
           lineHeight: '1.2',
           marginBottom: change ? tokens.spacing[2] : 0,
-          minHeight: '3rem', // Fixed height to prevent tile resize
+          minHeight: useCompact ? '1.5rem' : '3rem', // Reduced height on mobile
           display: 'flex',
           alignItems: 'flex-start',
           flexWrap: 'wrap',
