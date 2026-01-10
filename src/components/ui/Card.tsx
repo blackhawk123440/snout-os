@@ -36,7 +36,7 @@ export const Card: React.FC<CardProps> = ({
         border: `1px solid ${tokens.colors.border.default}`,
         borderRadius: tokens.borderRadius.lg,
         boxShadow: tokens.shadows.sm,
-        overflow: 'hidden',
+        overflow: 'visible', // Changed from 'hidden' to allow content to be visible - only clip if explicitly needed
         ...props.style,
       }}
     >

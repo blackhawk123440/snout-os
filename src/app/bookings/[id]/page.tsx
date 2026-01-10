@@ -27,8 +27,10 @@ import {
   Tabs,
   TabPanel,
 } from '@/components/ui';
-import { EditBookingModal, BookingScheduleDisplay, isOvernightRangeService } from '@/components/booking';
+import { BookingScheduleDisplay, isOvernightRangeService } from '@/components/booking';
 import { SitterAssignmentDisplay, SitterTierBadge } from '@/components/sitter';
+import { BookingForm } from '@/components/bookings/BookingForm';
+import { bookingToFormValues, BookingFormValues } from '@/lib/bookings/booking-form-mapper';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { getPricingForDisplay } from '@/lib/pricing-display-helpers';
@@ -207,10 +209,57 @@ export default function BookingDetailPage() {
     }
   };
 
-  const handleEditBooking = async (updates: Partial<Booking>) => {
+  const handleEditBooking = async (formValues: BookingFormValues) => {
     if (!booking) return;
     setSaving(true);
     try {
+      // Convert form values to booking update format
+      const updates: any = {
+        firstName: formValues.firstName,
+        lastName: formValues.lastName,
+        phone: formValues.phone,
+        email: formValues.email || null,
+        address: formValues.address || null,
+        pickupAddress: formValues.pickupAddress || null,
+        dropoffAddress: formValues.dropoffAddress || null,
+        service: formValues.service,
+        startAt: formValues.startAt,
+        endAt: formValues.endAt,
+        notes: formValues.notes || null,
+        afterHours: formValues.afterHours || false,
+        holiday: formValues.holiday || false,
+      };
+
+      // Handle pets - need to delete old and create new  
+      if (formValues.pets && formValues.pets.length > 0) {
+        updates.pets = formValues.pets.map(p => ({
+          name: p.name,
+          species: p.species,
+        }));
+      }
+
+      // Handle timeSlots if provided
+      if (formValues.selectedDates && formValues.dateTimes) {
+        const timeSlots: any[] = [];
+        formValues.selectedDates.forEach(dateStr => {
+          const times = formValues.dateTimes![dateStr] || [];
+          times.forEach((timeEntry: { time: string; duration: number }) => {
+            const [hours, minutes] = timeEntry.time.split(':').map(Number);
+            const start = new Date(dateStr);
+            start.setHours(hours, minutes, 0, 0);
+            const end = new Date(start.getTime() + (timeEntry.duration || 30) * 60000);
+            timeSlots.push({
+              startAt: start.toISOString(),
+              endAt: end.toISOString(),
+              duration: timeEntry.duration || 30,
+            });
+          });
+        });
+        if (timeSlots.length > 0) {
+          updates.timeSlots = timeSlots;
+        }
+      }
+
       const response = await fetch(`/api/bookings/${bookingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -219,6 +268,7 @@ export default function BookingDetailPage() {
       if (response.ok) {
         await fetchBooking();
         await fetchStatusHistory();
+        setShowEditModal(false);
       } else {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to update booking');
@@ -923,7 +973,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
               </Card>
 
               {/* Collapsible Schedule Section */}
-              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'hidden' }}>
+              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'visible' }}>
                 <button
                   onClick={() => toggleSection('schedule')}
                   style={{
@@ -959,7 +1009,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
 
               {/* Collapsible Pets Section */}
               {booking.pets && booking.pets.length > 0 && (
-                <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'hidden' }}>
+                <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'visible' }}>
                   <button
                     onClick={() => toggleSection('pets')}
                     style={{
@@ -995,7 +1045,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
               )}
 
               {/* Collapsible Pricing Section */}
-              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'hidden' }}>
+              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'visible' }}>
                 <button
                   onClick={() => toggleSection('pricing')}
                   style={{
@@ -1240,6 +1290,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
               overflowY: 'auto',
               overflowX: 'hidden',
               minHeight: 0,
+              minWidth: 0, // Prevent flex child truncation
               paddingRight: tokens.spacing[2],
           }}
         >
@@ -1251,16 +1302,18 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 display: 'flex',
                 flexDirection: 'column',
                 gap: tokens.spacing[4],
+                minWidth: 0, // Prevent flex child truncation
               }}
             >
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: tokens.spacing[4],
-                }}
-              >
-                <div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: tokens.spacing[4],
+                    minWidth: 0, // Prevent grid child truncation
+                  }}
+                >
+                <div style={{ minWidth: 0 }}>
                   <div
                     style={{
                       fontSize: tokens.typography.fontSize.sm[0],
@@ -1270,11 +1323,11 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   >
                     Start Date & Time
                   </div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, wordBreak: 'break-word' }}>
                     {formatDateTime(booking.startAt)}
                   </div>
                 </div>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div
                     style={{
                       fontSize: tokens.typography.fontSize.sm[0],
@@ -1284,7 +1337,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   >
                     End Date & Time
                   </div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, wordBreak: 'break-word' }}>
                     {formatDateTime(booking.endAt)}
                   </div>
                 </div>
@@ -1326,7 +1379,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
               )}
 
               {booking.address && (
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div
                     style={{
                       fontSize: tokens.typography.fontSize.sm[0],
@@ -1336,14 +1389,14 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   >
                     Address
                   </div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, wordBreak: 'break-word' }}>
                     {booking.address}
                   </div>
                 </div>
               )}
 
               {booking.pickupAddress && (
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div
                     style={{
                       fontSize: tokens.typography.fontSize.sm[0],
@@ -1353,14 +1406,14 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   >
                     Pickup Address
                   </div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, wordBreak: 'break-word' }}>
                     {booking.pickupAddress}
                   </div>
                 </div>
               )}
 
               {booking.dropoffAddress && (
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div
                     style={{
                       fontSize: tokens.typography.fontSize.sm[0],
@@ -1370,7 +1423,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   >
                     Dropoff Address
                   </div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, wordBreak: 'break-word' }}>
                     {booking.dropoffAddress}
                   </div>
                 </div>
@@ -1381,10 +1434,11 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
                   gap: tokens.spacing[4],
+                  minWidth: 0, // Prevent grid child truncation
                 }}
               >
                 {booking.quantity > 1 && (
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div
                       style={{
                         fontSize: tokens.typography.fontSize.sm[0],
@@ -1428,6 +1482,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   display: 'flex',
                   flexDirection: 'column',
                   gap: tokens.spacing[4],
+                  minWidth: 0, // Prevent flex child truncation
                 }}
               >
                 {booking.pets.map((pet) => (
@@ -1437,6 +1492,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                       padding: tokens.spacing[4],
                       border: `1px solid ${tokens.colors.border.default}`,
                       borderRadius: tokens.borderRadius.md,
+                      minWidth: 0, // Prevent card truncation
                     }}
                   >
                     <div
@@ -1445,9 +1501,10 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                         justifyContent: 'space-between',
                         alignItems: 'flex-start',
                         marginBottom: tokens.spacing[2],
+                        minWidth: 0, // Prevent flex container truncation
                       }}
                     >
-                      <div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.lg[0] }}>
                           {pet.name}
                         </div>
@@ -1472,6 +1529,8 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                           backgroundColor: tokens.colors.background.secondary,
                           borderRadius: tokens.borderRadius.sm,
                           fontSize: tokens.typography.fontSize.sm[0],
+                          minWidth: 0,
+                          wordBreak: 'break-word',
                         }}
                       >
                         {pet.notes}
@@ -1499,6 +1558,8 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                     backgroundColor: tokens.colors.background.secondary,
                     borderRadius: tokens.borderRadius.md,
                     whiteSpace: 'pre-wrap',
+                    minWidth: 0,
+                    wordBreak: 'break-word',
                   }}
                 >
                   {booking.notes}
@@ -1827,12 +1888,26 @@ Total: ${formatCurrency(booking.totalPrice)}`;
 
       {/* Edit Booking Modal */}
       {booking && (
-        <EditBookingModal
+        <Modal
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
-          booking={booking}
-          onSave={handleEditBooking}
-        />
+          title="Edit Booking"
+          size={isMobile ? 'full' : 'lg'}
+        >
+          <div style={{ padding: isMobile ? 0 : tokens.spacing[4] }}>
+            <BookingForm
+              mode="edit"
+              bookingId={bookingId}
+              initialValues={booking ? bookingToFormValues({
+                ...booking,
+                pets: booking.pets || [],
+                timeSlots: booking.timeSlots || [],
+              }) : undefined}
+              onSubmit={handleEditBooking}
+              onCancel={() => setShowEditModal(false)}
+            />
+          </div>
+        </Modal>
       )}
 
       {/* Payment Link Modal */}

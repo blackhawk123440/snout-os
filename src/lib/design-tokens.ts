@@ -98,12 +98,20 @@ export const tokens = {
       DEFAULT: '#3b82f6',
     },
     
+    // Snout brand colors
+    brand: {
+      pink: '#fce1ef',
+      brown: '#432f21',
+      white: '#ffffff',
+    },
+    
     // Semantic aliases
     background: {
       primary: '#ffffff',
       secondary: '#fafafa',
       tertiary: '#f5f5f5',
       inverse: '#171717',
+      accent: '#fce1ef', // Snout pink for subtle accents
     },
     
     text: {
@@ -112,14 +120,15 @@ export const tokens = {
       tertiary: '#737373',
       disabled: '#a3a3a3',
       inverse: '#ffffff',
-      brand: '#432f21',
+      brand: '#432f21', // Snout brown
     },
     
     border: {
       default: '#e5e5e5',
       muted: '#f5f5f5',
       strong: '#d4d4d4',
-      focus: '#432f21',
+      focus: '#432f21', // Snout brown
+      accent: '#fce1ef', // Snout pink for subtle borders
     },
   },
   

@@ -141,7 +141,12 @@ export function Table<T extends Record<string, any>>({
                       </div>
                       <div
                         style={{
-                          fontSize: tokens.typography.fontSize.base[0],
+                          fontSize: column.key === 'client' || column.key === 'service' 
+                            ? tokens.typography.fontSize.lg[0]  // Larger font for key info (client name, service)
+                            : tokens.typography.fontSize.base[0],
+                          fontWeight: column.key === 'client' 
+                            ? tokens.typography.fontWeight.semibold  // Bold client name for emphasis
+                            : tokens.typography.fontWeight.normal,
                           color: tokens.colors.text.primary,
                           wordBreak: 'break-word',
                         }}

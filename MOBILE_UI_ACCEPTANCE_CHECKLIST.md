@@ -83,7 +83,38 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
 4. Swipe/scroll tabs horizontally
 5. **Expected:** Tabs scroll smoothly, all text readable, proper spacing
 
-**Status:** ✅ Complete - Tabs component fixed
+**Status:** ✅ Complete - MobileFilterBar component used on mobile
+
+### E. KPI boxes are compact on mobile
+**Test:**
+1. Navigate to Bookings page on mobile
+2. Verify KPI cards at top are compact (reduced padding and font sizes)
+3. Verify cards are still readable and tappable
+4. **Expected:** Compact cards that don't eat the screen
+
+**Status:** ✅ Complete - StatCard compact mode implemented
+
+### F. Sitter assignment available from bookings list
+**Test:**
+1. Navigate to Bookings page
+2. Verify each booking row shows sitter assignment actions (Assign/Change/Unassign)
+3. Tap Assign or Change button
+4. Verify modal opens with sitter selector
+5. Tap Unassign button
+6. Verify confirmation modal appears
+7. **Expected:** Assignment actions available from list, modals work correctly
+
+**Status:** ✅ Complete - BookingRowActions component implemented
+
+### G. New booking route works
+**Test:**
+1. Navigate to Bookings page
+2. Tap "New Booking" button
+3. Verify route `/bookings/new` loads
+4. Verify BookingForm component is displayed
+5. **Expected:** New booking route exists and uses BookingForm
+
+**Status:** ✅ Complete - `/bookings/new` route created
 
 ---
 
@@ -100,7 +131,7 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
    - Total price
 4. **Expected:** Card layout with label-value pairs, no table
 
-**Status:** ⚠️ Pending - Need to add mobile labels to columns
+**Status:** ✅ Complete - All columns have mobileLabel and mobileOrder
 
 ---
 
@@ -116,7 +147,7 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
    - Price (full)
 4. **Expected:** No scroll, all info readable
 
-**Status:** ⚠️ Pending - Depends on Table card layout
+**Status:** ✅ Complete - Table card layout implemented
 
 ---
 
@@ -176,9 +207,10 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
 3. Tap Edit Booking button
 4. Verify modal opens as bottom sheet
 5. Verify modal is full height (~90vh)
-6. **Expected:** Button visible, modal opens as bottom sheet
+6. Verify BookingForm component is used (same as new booking)
+7. **Expected:** Button visible, modal opens as bottom sheet, uses unified BookingForm
 
-**Status:** ⚠️ Needs Implementation - Edit button needs to be in bottom bar
+**Status:** ✅ Complete - Edit button in bottom bar, uses BookingForm component
 
 ---
 
@@ -244,7 +276,7 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
    - Last booking date
 4. **Expected:** Card layout with all info readable
 
-**Status:** ⚠️ Pending - Need to add mobile labels to columns
+**Status:** ✅ Complete - All columns have mobileLabel and mobileOrder
 
 ---
 
@@ -254,7 +286,7 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
 2. Verify no horizontal scroll
 3. **Expected:** No horizontal scroll indicator
 
-**Status:** ⚠️ Pending - Depends on Table card layout
+**Status:** ✅ Complete - Table card layout implemented
 
 ---
 
@@ -388,7 +420,7 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
    - Date
 4. **Expected:** Card layout with label-value pairs
 
-**Status:** ⚠️ Pending - Need to add mobile labels to columns
+**Status:** ✅ Complete - All columns have mobileLabel and mobileOrder
 
 ---
 
@@ -398,7 +430,7 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
 2. Verify no horizontal scroll
 3. **Expected:** No horizontal scroll indicator
 
-**Status:** ⚠️ Pending - Depends on Table card layout
+**Status:** ✅ Complete - Table card layout implemented
 
 ---
 
@@ -411,11 +443,15 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
 - Tabs component (horizontal scrolling)
 - PageHeader component (responsive layout)
 - Mobile utility hook
+- Table mobile card layout (all columns have mobileLabel and mobileOrder)
+- Booking detail page (sticky header, collapsible sections, bottom action bar)
+- BookingForm component (unified create and edit)
+- BookingRowActions component (assign/unassign from list)
+- StatCard compact mode
+- Desktop clipping fixes (minWidth: 0, wordBreak)
 
 ### In Progress ⚠️
-- Booking detail page (needs redesign)
-- Table column mobile labels (multiple pages)
-- Responsive grid layouts (search/sort controls)
+- Responsive grid layouts (search/sort controls) - May need verification
 
 ### Needs Review 🔍
 - Sitters management page

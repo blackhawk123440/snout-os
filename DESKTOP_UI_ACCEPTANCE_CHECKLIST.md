@@ -20,26 +20,26 @@
 | 430x932  | ⏳ Pending          | ⏳ Pending                      | ⏳ Pending                | ⏳ Pending              | ⏳      |
 
 ### Bookings List
-| Viewport | No Horizontal Scroll | Sticky Filters Work | Table Scan Friendly | Row Click Works | Status |
-|----------|---------------------|---------------------|---------------------|-----------------|--------|
-| 1024px   | ⏳ Pending          | ⏳ Pending          | ⏳ Pending          | ⏳ Pending       | ⏳      |
-| 1280px   | ⏳ Pending          | ⏳ Pending          | ⏳ Pending          | ⏳ Pending       | ⏳      |
-| 1440px   | ⏳ Pending          | ⏳ Pending          | ⏳ Pending          | ⏳ Pending       | ⏳      |
-| 390x844  | ⏳ Pending          | ✅ Cards Not Table  | ⏳ Pending          | ⏳ Pending       | ⏳      |
-| 430x932  | ⏳ Pending          | ✅ Cards Not Table  | ⏳ Pending          | ⏳ Pending       | ⏳      |
+| Viewport | No Horizontal Scroll | Sticky Filters Work | Table Scan Friendly | Row Click Works | Assign Actions | Status |
+|----------|---------------------|---------------------|---------------------|-----------------|---------------|--------|
+| 1024px   | ⏳ Pending          | ⏳ Pending          | ⏳ Pending          | ⏳ Pending       | ✅ BookingRowActions | ⏳      |
+| 1280px   | ⏳ Pending          | ⏳ Pending          | ⏳ Pending          | ⏳ Pending       | ✅ BookingRowActions | ⏳      |
+| 1440px   | ⏳ Pending          | ⏳ Pending          | ⏳ Pending          | ⏳ Pending       | ✅ BookingRowActions | ⏳      |
+| 390x844  | ⏳ Pending          | ✅ Cards Not Table  | ⏳ Pending          | ⏳ Pending       | ✅ BookingRowActions | ⏳      |
+| 430x932  | ⏳ Pending          | ✅ Cards Not Table  | ⏳ Pending          | ⏳ Pending       | ✅ BookingRowActions | ⏳      |
 
-**Notes**: Sticky filters implemented. Mobile uses cards. Desktop uses table with sticky header.
+**Notes**: Sticky filters implemented. Mobile uses cards. Desktop uses table with sticky header. BookingRowActions component provides assign/unassign actions on both mobile and desktop.
 
 ### Booking Detail
 | Viewport | Two Column Desktop | Sticky Summary Header | No Duplicate Headers | Edit Modal Works | Status |
 |----------|-------------------|----------------------|---------------------|------------------|--------|
-| 1024px   | ✅ Implemented     | ✅ Implemented        | ✅ Verified         | ⏳ Pending        | ⏳      |
-| 1280px   | ✅ Implemented     | ✅ Implemented        | ✅ Verified         | ⏳ Pending        | ⏳      |
-| 1440px   | ✅ Implemented     | ✅ Implemented        | ✅ Verified         | ⏳ Pending        | ⏳      |
-| 390x844  | N/A               | ✅ Implemented        | ✅ Verified         | ⏳ Pending        | ⏳      |
-| 430x932  | N/A               | ✅ Implemented        | ✅ Verified         | ⏳ Pending        | ⏳      |
+| 1024px   | ✅ Implemented     | ✅ Implemented        | ✅ Verified         | ✅ Uses BookingForm | ⏳      |
+| 1280px   | ✅ Implemented     | ✅ Implemented        | ✅ Verified         | ✅ Uses BookingForm | ⏳      |
+| 1440px   | ✅ Implemented     | ✅ Implemented        | ✅ Verified         | ✅ Uses BookingForm | ⏳      |
+| 390x844  | N/A               | ✅ Implemented        | ✅ Verified         | ✅ Uses BookingForm | ⏳      |
+| 430x932  | N/A               | ✅ Implemented        | ✅ Verified         | ✅ Uses BookingForm | ⏳      |
 
-**Notes**: Two-column desktop layout with intelligence (left) and controls (right). Sticky summary header. Mobile layout with collapsible sections.
+**Notes**: Two-column desktop layout with intelligence (left) and controls (right). Sticky summary header. Mobile layout with collapsible sections. Edit modal uses unified BookingForm component.
 
 ### Calendar
 | Viewport | Agenda Panel (Desktop) | Booking Drawer Works | Calendar Grid Readable | Status |
