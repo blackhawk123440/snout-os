@@ -489,6 +489,9 @@ export default function AutomationPage() {
               borderTop: `1px solid ${tokens.colors.border.default}`,
               marginTop: tokens.spacing[4],
               paddingTop: tokens.spacing[4],
+              width: '100%',
+              maxWidth: '100%',
+              minWidth: 0,
             }}
           >
             {/* Booking Confirmation Config */}
@@ -699,28 +702,46 @@ export default function AutomationPage() {
             {/* Generic message template fields */}
             {'messageTemplateClient' in config && (
               <FormRow label="Client Message Template">
-                <Textarea
-                  rows={6}
-                  value={(config as any).messageTemplateClient || ''}
-                  onChange={(e) =>
-                    updateAutomation(automation.id, {
-                      messageTemplateClient: e.target.value,
-                    } as any)
-                  }
-                  placeholder="Enter message template with variables like {{firstName}}, {{service}}, {{date}}"
-                />
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    const template = (config as any).messageTemplateClient || '';
-                    handleTestMessage(template, 'client');
+                <div
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: tokens.spacing[3],
                   }}
-                  disabled={!testPhoneNumber.trim() || testingMessage !== null}
-                  leftIcon={<i className="fas fa-paper-plane" />}
                 >
-                  {testingMessage ? 'Sending...' : 'Test Message'}
-                </Button>
+                  <Textarea
+                    rows={6}
+                    value={(config as any).messageTemplateClient || ''}
+                    onChange={(e) =>
+                      updateAutomation(automation.id, {
+                        messageTemplateClient: e.target.value,
+                      } as any)
+                    }
+                    placeholder="Enter message template with variables like {{firstName}}, {{service}}, {{date}}"
+                    fullWidth
+                    style={{
+                      width: '100%',
+                      maxWidth: '100%',
+                      minWidth: 0,
+                    }}
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      const template = (config as any).messageTemplateClient || '';
+                      handleTestMessage(template, 'client');
+                    }}
+                    disabled={!testPhoneNumber.trim() || testingMessage !== null}
+                    leftIcon={<i className="fas fa-paper-plane" />}
+                    style={{
+                      alignSelf: 'flex-start',
+                    }}
+                  >
+                    {testingMessage ? 'Sending...' : 'Test Message'}
+                  </Button>
+                </div>
               </FormRow>
             )}
           </div>
