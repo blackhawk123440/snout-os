@@ -28,6 +28,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
+import { MessageTemplatePreview } from '@/components/messaging';
 
 interface AutomationSettings {
   bookingConfirmation: {
@@ -701,15 +702,20 @@ export default function AutomationPage() {
 
             {/* Generic message template fields */}
             {'messageTemplateClient' in config && (
-              <FormRow label="Client Message Template">
+              <FormRow>
                 <div
                   style={{
                     width: '100%',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: tokens.spacing[3],
+                    gap: tokens.spacing[4],
                   }}
                 >
+                  <MessageTemplatePreview
+                    template={(config as any).messageTemplateClient || ''}
+                    label="Client Message Template"
+                    placeholder="Enter message template with variables like {{firstName}}, {{service}}, {{date}}"
+                  />
                   <Textarea
                     rows={6}
                     value={(config as any).messageTemplateClient || ''}
