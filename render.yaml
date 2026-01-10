@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: snout-form
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.x
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://snout-form.onrender.com
+    healthCheckPath: /api/health
+
