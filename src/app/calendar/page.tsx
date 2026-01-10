@@ -24,6 +24,7 @@ import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { SitterAssignmentDisplay } from '@/components/sitter';
+import { CalendarSurface, type CalendarDay as CalendarSurfaceDay } from '@/components/calendar';
 
 interface Booking {
   id: string;

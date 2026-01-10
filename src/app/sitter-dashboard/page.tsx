@@ -27,6 +27,7 @@ import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { SitterTierBadge } from '@/components/sitter';
+import { CalendarSurface, type CalendarDay as CalendarSurfaceDay } from '@/components/calendar';
 
 interface DashboardJob {
   id: string;
@@ -185,9 +186,9 @@ function SitterDashboardContent() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (date: Date | string) => {
+    const dateObj = new Date(date);
+    return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const getDaysInMonth = (month: number, year: number) => {
@@ -370,7 +371,7 @@ function SitterDashboardContent() {
                   </Button>
                 </div>
                 {viewMode === "calendar" ? (
-                  <Card>
+                  <>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
                       <SectionHeader title="Calendar" />
                       <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
@@ -407,68 +408,78 @@ function SitterDashboardContent() {
                         </Button>
                       </div>
                     </div>
-                    <div style={{ padding: tokens.spacing[6] }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                          <div key={day} style={{ textAlign: 'center', fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.sm[0], padding: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
-                            {day}
-                          </div>
-                        ))}
-                        {Array.from({ length: firstDay }).map((_, i) => (
-                          <div key={`empty-${i}`} style={{ padding: tokens.spacing[2] }}></div>
-                        ))}
-                        {days.map((day) => {
-                          const jobsForDay = getJobsForDate(day, selectedMonth, selectedYear);
-                          const isToday = day === new Date().getDate() && 
-                                         selectedMonth === new Date().getMonth() && 
-                                         selectedYear === new Date().getFullYear();
-                          
-                          return (
-                            <div
-                              key={day}
-                              style={{
-                                minHeight: '100px',
-                                borderRight: `1px solid ${tokens.colors.border.default}`,
-                                borderBottom: `1px solid ${tokens.colors.border.default}`,
-                                padding: tokens.spacing[2],
-                                backgroundColor: isToday ? tokens.colors.primary[50] : tokens.colors.background.primary,
-                                borderColor: isToday ? tokens.colors.primary.DEFAULT : tokens.colors.border.default,
-                                borderWidth: isToday ? '2px' : '1px',
-                              }}
-                            >
-                              <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1], color: isToday ? tokens.colors.primary.DEFAULT : tokens.colors.text.primary }}>
-                                {day}
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
-                                {jobsForDay.map((job) => (
-                                  <Card
-                                    key={job.id}
-                                    style={{
-                                      padding: tokens.spacing[1],
-                                      backgroundColor: tokens.colors.primary[100],
-                                      borderColor: tokens.colors.primary[300],
-                                    }}
-                                  >
-                                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.primary[700] }}>
-                                      {job.clientName}
-                                    </div>
-                                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.primary[600] }}>
-                                      {job.service}
-                                    </div>
-                                    {job.timeSlots.length > 0 && (
-                                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.primary[600] }}>
-                                        {formatTime(job.timeSlots[0].startAt)}
-                                      </div>
-                                    )}
-                                  </Card>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </Card>
+                    {(() => {
+                      // Build CalendarSurface-compatible days array
+                      const monthStart = new Date(selectedYear, selectedMonth, 1);
+                      const monthEnd = new Date(selectedYear, selectedMonth + 1, 0);
+                      const firstDayOfWeek = monthStart.getDay();
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+
+                      const calendarDays: CalendarSurfaceDay[] = [];
+
+                      // Add previous month's trailing days
+                      const prevMonthEnd = new Date(selectedYear, selectedMonth, 0);
+                      for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+                        const date = new Date(selectedYear, selectedMonth - 1, prevMonthEnd.getDate() - i);
+                        date.setHours(0, 0, 0, 0);
+                        calendarDays.push({
+                          date,
+                          isCurrentMonth: false,
+                          isToday: false,
+                          isPast: date < today,
+                          events: [],
+                        });
+                      }
+
+                      // Add current month's days
+                      for (let day = 1; day <= daysInMonth; day++) {
+                        const date = new Date(selectedYear, selectedMonth, day);
+                        date.setHours(0, 0, 0, 0);
+                        const jobsForDay = getJobsForDate(day, selectedMonth, selectedYear);
+                        calendarDays.push({
+                          date,
+                          isCurrentMonth: true,
+                          isToday: date.getTime() === today.getTime(),
+                          isPast: date < today && date.getTime() !== today.getTime(),
+                          events: jobsForDay.map(job => ({
+                            id: job.id,
+                            clientName: job.clientName,
+                            service: job.service,
+                            startAt: job.startAt,
+                            endAt: job.endAt,
+                            timeSlots: job.timeSlots,
+                          })),
+                        });
+                      }
+
+                      // Add next month's leading days to complete the grid
+                      const remainingDays = 42 - calendarDays.length;
+                      for (let day = 1; day <= remainingDays; day++) {
+                        const date = new Date(selectedYear, selectedMonth + 1, day);
+                        date.setHours(0, 0, 0, 0);
+                        calendarDays.push({
+                          date,
+                          isCurrentMonth: false,
+                          isToday: false,
+                          isPast: date < today,
+                          events: [],
+                        });
+                      }
+
+                      return (
+                        <CalendarSurface
+                          days={calendarDays}
+                          selectedDate={null}
+                          onDateSelect={() => {}}
+                          monthName={new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long' })}
+                          year={selectedYear}
+                          formatTime={formatTime}
+                          renderEventLabel={(event) => event.clientName || event.service}
+                        />
+                      );
+                    })()}
+                  </>
                 ) : (
                   <Card>
                     <SectionHeader title={`Accepted Jobs (${dashboardData.jobs.accepted.length})`} />

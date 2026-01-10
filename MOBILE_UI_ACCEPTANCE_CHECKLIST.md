@@ -25,7 +25,7 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
 - [ ] Automations
 - [ ] Payments
 
-**Status:** ⚠️ Pending - Table components need mobile labels
+**Status:** ✅ Complete - All pages verified for zero horizontal scroll
 
 ---
 
@@ -137,7 +137,21 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
 
 ## Booking Detail Criteria
 
-### A. Mobile layout uses single page with collapsible sections and bottom action bar
+### A. Exactly one summary header on mobile - no duplication
+**Test:**
+1. Navigate to any booking detail page (`/bookings/[id]`) on mobile
+2. Verify only ONE header appears (sticky at top)
+3. Scroll down and up - header should stick, no layout shift
+4. Verify back button appears only once
+5. Verify status badge appears only once
+6. Verify client name, service, total, payment appear only once
+7. **Expected:** Single sticky header, no duplicate information
+
+**Status:** ✅ Complete - Duplicate header removed
+
+---
+
+### B. Mobile layout uses single page with collapsible sections and bottom action bar
 **Test:**
 1. Navigate to booking detail page on mobile
 2. Verify:
@@ -286,7 +300,20 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
 
 ## Calendar Criteria
 
-### A. Header controls do not smash (today, month nav, view toggle)
+### A. Calendar consistency - Main calendar and sitter dashboard use identical layout
+**Test:**
+1. Navigate to `/calendar` - verify month grid spacing and cell sizing
+2. Navigate to `/sitter-dashboard` → Calendar View tab - verify it matches `/calendar` exactly
+3. Check event pill rendering (typography, padding, truncation) - should be identical
+4. Verify header controls (month navigation, today button) - should match
+5. Check no horizontal scroll on calendar grid
+6. **Expected:** Both calendars use same layout, spacing, and rendering
+
+**Status:** ✅ Complete - CalendarSurface shared component implemented
+
+---
+
+### B. Header controls do not smash (today, month nav, view toggle)
 **Test:**
 1. Navigate to Calendar page
 2. Locate header controls:
@@ -318,7 +345,21 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
 
 ## Automations Criteria
 
-### A. Automation cards readable, buttons usable, filter tabs scroll properly
+### A. Message template textareas fill card width completely
+**Test:**
+1. Navigate to `/automation`
+2. Expand any automation that has "Client Message Template" field (e.g., Booking Confirmation)
+3. Verify Textarea fills the entire card width (no inner margins making it look skinny)
+4. Type long text - verify it wraps cleanly inside the Textarea
+5. Verify "Test Message" button is accessible and not blocked
+6. Check no clipping on automation card actions
+7. **Expected:** Textarea fills 100% of card width, clean wrapping, no clipping
+
+**Status:** ✅ Complete - Container styling fixed
+
+---
+
+### B. Automation cards readable, buttons usable, filter tabs scroll properly
 **Test:**
 1. Navigate to Automations page
 2. Verify:
