@@ -24,7 +24,7 @@ import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { SitterAssignmentDisplay } from '@/components/sitter';
-import { CalendarSurface, type CalendarDay as CalendarSurfaceDay } from '@/components/calendar';
+import { CalendarGrid, type CalendarDay as CalendarGridDay } from '@/components/calendar';
 
 interface Booking {
   id: string;
@@ -298,8 +298,8 @@ export default function CalendarPage() {
     });
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (date: Date | string) => {
+    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const monthNames = [
@@ -531,240 +531,25 @@ export default function CalendarPage() {
 
       {/* Calendar View */}
       {viewMode === 'month' ? (
-        <Card
-          padding={false}
-          className="calendar-container-mobile"
-          style={{
-            width: '100%',
-            maxWidth: '100%',
-            margin: 0,
-          }}
-        >
-          {/* Day Names Header - Always 7 columns, never stack */}
-          <div
-            className="calendar-weekday-header"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              borderBottom: `1px solid ${tokens.colors.border.default}`,
-              width: '100%',
-            }}
-          >
-            {dayNames.map((day) => (
-              <div
-                key={day}
-                style={{
-                  padding: isMobile
-                    ? `${tokens.spacing[2]} ${tokens.spacing[1]}`
-                    : tokens.spacing[3],
-                  textAlign: 'center',
-                  fontSize: isMobile
-                    ? tokens.typography.fontSize.xs[0]
-                    : tokens.typography.fontSize.sm[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  color: tokens.colors.text.primary,
-                  backgroundColor: tokens.colors.background.secondary,
-                  borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
-                }}
-              >
-                {day}
-              </div>
-            ))}
-          </div>
-
-          {/* Calendar Grid - Always 7 columns, scrollable on mobile */}
-          <div
-            className="calendar-grid"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(7, 1fr)',
-              width: '100%',
-            }}
-          >
-            {calendarDays.map((day, index) => {
-              const maxVisibleBookings = 2;
-              const remainingCount = Math.max(0, day.bookings.length - maxVisibleBookings);
-              const isSelected = selectedDate && selectedDate.getTime() === day.date.getTime();
-
-              return (
-                <div
-                  key={index}
-                  onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
-                  style={{
-                    minHeight: isMobile ? '60px' : '120px',
-                    borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
-                    borderBottom: `1px solid ${tokens.colors.border.default}`,
-                    padding: isMobile ? tokens.spacing[1] : tokens.spacing[2],
-                    backgroundColor: day.isCurrentMonth
-                      ? isSelected
-                        ? tokens.colors.primary[50]
-                        : day.isPast
-                        ? tokens.colors.background.tertiary
-                        : tokens.colors.background.primary
-                      : tokens.colors.background.secondary,
-                    cursor: day.isCurrentMonth ? 'pointer' : 'default',
-                    opacity: day.isCurrentMonth ? 1 : 0.5,
-                    transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
-                    overflow: 'hidden',
-                    wordBreak: 'break-word',
-                    position: 'relative',
-                    minWidth: 0, // Prevent grid item overflow
-                  }}
-                  onMouseEnter={(e) => {
-                    if (day.isCurrentMonth && !day.isPast) {
-                      e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = day.isCurrentMonth
-                        ? day.isPast
-                          ? tokens.colors.background.tertiary
-                          : tokens.colors.background.primary
-                        : tokens.colors.background.secondary;
-                    }
-                  }}
-                >
-                  {/* Date Number */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: tokens.typography.fontSize.sm[0],
-                        fontWeight: day.isToday
-                          ? tokens.typography.fontWeight.bold
-                          : tokens.typography.fontWeight.normal,
-                        color: day.isToday
-                          ? tokens.colors.primary.DEFAULT
-                          : tokens.colors.text.primary,
-                      }}
-                    >
-                      {day.date.getDate()}
-                    </span>
-                    {day.isToday && (
-                      <div
-                        style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: tokens.borderRadius.full,
-                          backgroundColor: tokens.colors.primary.DEFAULT,
-                        }}
-                      />
-                    )}
-              </div>
-
-                  {/* Bookings */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: tokens.spacing[1],
-                    }}
-                  >
-                    {day.bookings.slice(0, maxVisibleBookings).map((booking) => {
-                      const dateStr = day.date.toISOString().split('T')[0];
-                      let displayTime = '';
-
-                      if (booking.timeSlots && booking.timeSlots.length > 0) {
-                        const daySlots = booking.timeSlots.filter((slot) => {
-                          const slotDate = new Date(slot.startAt);
-                          return slotDate.toISOString().split('T')[0] === dateStr;
-                        });
-                        if (daySlots.length > 0) {
-                          const start = formatTime(new Date(daySlots[0].startAt));
-                          displayTime = daySlots.length > 1 ? `${daySlots.length} slots` : start;
-                        }
-                      } else if (
-                        booking.service === 'Housesitting' ||
-                        booking.service === '24/7 Care'
-                      ) {
-                        const startAt = new Date(booking.startAt);
-                        const startDateStr = startAt.toISOString().split('T')[0];
-                        if (dateStr === startDateStr) {
-                          displayTime = formatTime(startAt);
-                        } else {
-                          displayTime = 'All day';
-                        }
-                      } else {
-                        displayTime = formatTime(new Date(booking.startAt));
-                      }
-
-                      return (
-                        <div
-                          key={booking.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedDate(day.date);
-                          }}
-                          style={{
-                            padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                            borderRadius: tokens.borderRadius.sm,
-                            fontSize: tokens.typography.fontSize.xs[0],
-                            backgroundColor: tokens.colors.primary[100],
-                            color: tokens.colors.text.primary,
-                            cursor: 'pointer',
-                            borderLeft: `3px solid ${tokens.colors.primary.DEFAULT}`,
-                          }}
-                          title={`${booking.firstName} ${booking.lastName} - ${booking.service}`}
-                        >
-                          <div
-                            style={{
-                              fontWeight: tokens.typography.fontWeight.semibold,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {booking.firstName} {booking.lastName.charAt(0)}.
-                          </div>
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.xs[0],
-                              opacity: 0.8,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {displayTime}
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {remainingCount > 0 && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedDate(day.date);
-                        }}
-                        style={{
-                          padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                          borderRadius: tokens.borderRadius.sm,
-                          fontSize: tokens.typography.fontSize.xs[0],
-                          backgroundColor: tokens.colors.primary[50],
-                          color: tokens.colors.primary.DEFAULT,
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontWeight: tokens.typography.fontWeight.medium,
-                          textAlign: 'left',
-                        }}
-                      >
-                        {remainingCount} more
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
+        <CalendarGrid
+          days={calendarDays.map(day => ({
+            ...day,
+            events: day.bookings.map(booking => ({
+              id: booking.id,
+              firstName: booking.firstName,
+              lastName: booking.lastName,
+              service: booking.service,
+              startAt: booking.startAt,
+              endAt: booking.endAt,
+              timeSlots: booking.timeSlots,
+            })),
+          })) as CalendarGridDay[]}
+          selectedDate={selectedDate}
+          onDateSelect={setSelectedDate}
+          monthName={monthNames[currentMonth]}
+          year={currentYear}
+          formatTime={formatTime}
+        />
       ) : (
         /* Agenda View */
         <Card>

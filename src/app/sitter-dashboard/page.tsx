@@ -27,7 +27,7 @@ import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { SitterTierBadge } from '@/components/sitter';
-import { CalendarSurface, type CalendarDay as CalendarSurfaceDay } from '@/components/calendar';
+import { CalendarGrid, type CalendarDay as CalendarGridDay } from '@/components/calendar';
 
 interface DashboardJob {
   id: string;
@@ -409,14 +409,14 @@ function SitterDashboardContent() {
                       </div>
                     </div>
                     {(() => {
-                      // Build CalendarSurface-compatible days array
+                      // Build CalendarGrid-compatible days array
                       const monthStart = new Date(selectedYear, selectedMonth, 1);
                       const monthEnd = new Date(selectedYear, selectedMonth + 1, 0);
                       const firstDayOfWeek = monthStart.getDay();
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
 
-                      const calendarDays: CalendarSurfaceDay[] = [];
+                      const calendarDays: CalendarGridDay[] = [];
 
                       // Add previous month's trailing days
                       const prevMonthEnd = new Date(selectedYear, selectedMonth, 0);
@@ -468,7 +468,7 @@ function SitterDashboardContent() {
                       }
 
                       return (
-                        <CalendarSurface
+                        <CalendarGrid
                           days={calendarDays}
                           selectedDate={null}
                           onDateSelect={() => {}}

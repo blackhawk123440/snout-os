@@ -1,8 +1,10 @@
 /**
- * CalendarSurface Component
+ * CalendarGrid Component
  * 
  * Shared primitive for calendar month grid rendering.
- * Universal Law: ONE CALENDAR RENDERING SYSTEM
+ * Universal Law: ONE CALENDAR RENDERING SYSTEM (Universal Law K)
+ * 
+ * Supports intentional horizontal scroll on mobile when grid needs more space.
  */
 
 'use client';
@@ -36,7 +38,7 @@ export interface CalendarDay {
   events: CalendarEvent[];
 }
 
-export interface CalendarSurfaceProps {
+export interface CalendarGridProps {
   days: CalendarDay[];
   selectedDate: Date | null;
   onDateSelect: (date: Date) => void;
@@ -61,7 +63,7 @@ const defaultRenderEventLabel = (event: CalendarEvent) => {
   return event.service;
 };
 
-export const CalendarSurface: React.FC<CalendarSurfaceProps> = ({
+export const CalendarGrid: React.FC<CalendarGridProps> = ({
   days,
   selectedDate,
   onDateSelect,
