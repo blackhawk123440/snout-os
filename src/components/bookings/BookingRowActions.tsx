@@ -21,6 +21,8 @@ export interface BookingRowActionsProps {
   sitters: Array<{ id: string; firstName: string; lastName: string; currentTier?: SitterInfo['currentTier'] }>;
   onAssign: (bookingId: string, sitterId: string) => Promise<void>;
   onUnassign: (bookingId: string) => Promise<void>;
+  showInMoreMenu?: boolean; // If true, show actions in More menu instead of direct buttons
+  onMoreMenuOpen?: () => void; // Callback when More menu should open
 }
 
 export const BookingRowActions: React.FC<BookingRowActionsProps> = ({

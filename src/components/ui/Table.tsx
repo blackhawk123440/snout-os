@@ -142,13 +142,18 @@ export function Table<T extends Record<string, any>>({
                       <div
                         style={{
                           fontSize: column.key === 'client' || column.key === 'service' 
-                            ? tokens.typography.fontSize.lg[0]  // Larger font for key info (client name, service)
-                            : tokens.typography.fontSize.base[0],
+                            ? tokens.typography.fontSize.xl[0]  // Even larger font for key info (client name, service) - mobile readability
+                            : column.key === 'date' || column.key === 'schedule'
+                            ? tokens.typography.fontSize.base[0]  // Standard size for dates
+                            : tokens.typography.fontSize.sm[0],  // Slightly smaller for secondary info
                           fontWeight: column.key === 'client' 
-                            ? tokens.typography.fontWeight.semibold  // Bold client name for emphasis
+                            ? tokens.typography.fontWeight.bold  // Bold client name for emphasis
+                            : column.key === 'service'
+                            ? tokens.typography.fontWeight.semibold
                             : tokens.typography.fontWeight.normal,
                           color: tokens.colors.text.primary,
                           wordBreak: 'break-word',
+                          lineHeight: 1.4,
                         }}
                       >
                         {content}

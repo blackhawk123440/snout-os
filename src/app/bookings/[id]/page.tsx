@@ -111,6 +111,8 @@ export default function BookingDetailPage() {
   const isMobile = useMobile();
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showUnassignModal, setShowUnassignModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedSitterId, setSelectedSitterId] = useState<string>('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [newStatus, setNewStatus] = useState<string>('');
   const [sitters, setSitters] = useState<Sitter[]>([]);
@@ -1083,7 +1085,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 )}
               </Card>
             </div>
-            {/* Fixed Bottom Action Bar */}
+            {/* Fixed Bottom Action Bar - Professional Design */}
             <div
               style={{
                 position: 'fixed',
@@ -1092,18 +1094,25 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 right: 0,
                 backgroundColor: tokens.colors.background.primary,
                 borderTop: `1px solid ${tokens.colors.border.default}`,
-                padding: tokens.spacing[3],
+                padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                paddingBottom: `calc(${tokens.spacing[3]} + env(safe-area-inset-bottom))`,
                 display: 'flex',
                 gap: tokens.spacing[2],
-                zIndex: tokens.zIndex.sticky,
-                boxShadow: tokens.shadows.md,
+                zIndex: tokens.zIndex.sticky + 1,
+                boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.08)',
+                backdropFilter: 'blur(10px)',
               }}
             >
               <Button
                 variant="primary"
                 size="md"
                 onClick={() => setShowEditModal(true)}
-                style={{ flex: 1 }}
+                style={{ 
+                  flex: 1,
+                  minHeight: '44px',
+                  fontSize: tokens.typography.fontSize.base[0],
+                  fontWeight: tokens.typography.fontWeight.semibold,
+                }}
                 leftIcon={<i className="fas fa-edit" />}
               >
                 Edit
@@ -1112,8 +1121,13 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 variant="secondary"
                 size="md"
                 onClick={() => setShowPaymentLinkModal(true)}
-                style={{ flex: 1 }}
-                leftIcon={<i className="fas fa-link" />}
+                style={{ 
+                  flex: 1,
+                  minHeight: '44px',
+                  fontSize: tokens.typography.fontSize.base[0],
+                  fontWeight: tokens.typography.fontWeight.medium,
+                }}
+                leftIcon={<i className="fas fa-dollar-sign" />}
               >
                 Payment
               </Button>
@@ -1121,8 +1135,13 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 variant="secondary"
                 size="md"
                 onClick={() => setShowTipLinkModal(true)}
-                style={{ flex: 1 }}
-                leftIcon={<i className="fas fa-tip" />}
+                style={{ 
+                  flex: 1,
+                  minHeight: '44px',
+                  fontSize: tokens.typography.fontSize.base[0],
+                  fontWeight: tokens.typography.fontWeight.medium,
+                }}
+                leftIcon={<i className="fas fa-heart" />}
               >
                 Tip
               </Button>
@@ -1130,6 +1149,11 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 variant="ghost"
                 size="md"
                 onClick={() => setShowMoreActionsModal(true)}
+                style={{ 
+                  minWidth: '60px',
+                  minHeight: '44px',
+                  fontSize: tokens.typography.fontSize.base[0],
+                }}
                 leftIcon={<i className="fas fa-ellipsis-h" />}
               >
                 More
@@ -2054,27 +2078,41 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   </Button>
                 )}
                 {booking?.sitter ? (
+                  <>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setSelectedSitterId(booking.sitter?.id || '');
+                        setShowAssignModal(true);
+                        setShowMoreActionsModal(false);
+                      }}
+                      leftIcon={<i className="fas fa-user-edit" />}
+                    >
+                      Change Sitter
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setShowUnassignModal(true);
+                        setShowMoreActionsModal(false);
+                      }}
+                      leftIcon={<i className="fas fa-user-times" />}
+                    >
+                      Unassign Sitter
+                    </Button>
+                  </>
+                ) : (
                   <Button
                     variant="secondary"
                     onClick={() => {
-                      setShowUnassignModal(true);
+                      setSelectedSitterId('');
+                      setShowAssignModal(true);
                       setShowMoreActionsModal(false);
                     }}
-                    leftIcon={<i className="fas fa-user-times" />}
+                    leftIcon={<i className="fas fa-user-plus" />}
                   >
-                    Unassign Sitter
+                    Assign Sitter
                   </Button>
-                ) : (
-                  <Select
-                    label="Assign Sitter"
-                    options={sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        handleSitterAssign(e.target.value);
-                        setShowMoreActionsModal(false);
-                      }
-                    }}
-                  />
                 )}
               </div>
             </div>
@@ -2324,6 +2362,57 @@ Total: ${formatCurrency(booking.totalPrice)}`;
               style={{ width: '100%' }}
             >
               Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Assign Sitter Modal */}
+      <Modal
+        isOpen={showAssignModal}
+        onClose={() => {
+          setShowAssignModal(false);
+          setSelectedSitterId('');
+        }}
+        title={booking?.sitter ? "Change Sitter Assignment" : "Assign Sitter"}
+        size={isMobile ? 'full' : 'md'}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <Select
+            label="Select Sitter"
+            value={selectedSitterId}
+            onChange={(e) => setSelectedSitterId(e.target.value)}
+            options={[
+              { value: '', label: 'Select a sitter...' },
+              ...sitters.map(s => ({
+                value: s.id,
+                label: `${s.firstName} ${s.lastName}${(s as any).currentTier ? ` (${(s as any).currentTier.name})` : ''}`,
+              })),
+            ]}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[3] }}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowAssignModal(false);
+                setSelectedSitterId('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={async () => {
+                if (selectedSitterId) {
+                  await handleSitterAssign(selectedSitterId);
+                  setShowAssignModal(false);
+                  setSelectedSitterId('');
+                }
+              }}
+              disabled={!selectedSitterId || saving}
+              isLoading={saving}
+            >
+              {booking?.sitter ? "Update Assignment" : "Assign Sitter"}
             </Button>
           </div>
         </div>

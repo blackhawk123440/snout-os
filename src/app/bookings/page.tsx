@@ -89,7 +89,7 @@ function BookingsPageContent() {
   const [activeTab, setActiveTab] = useState<'all' | 'today' | 'pending' | 'confirmed' | 'completed' | 'unassigned'>('all');
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'today'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'name' | 'price'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'name' | 'price' | 'sitter'>('date');
 
   // Sync activeTab with filter
   useEffect(() => {
@@ -233,6 +233,14 @@ function BookingsPageContent() {
         return new Date(b.startAt).getTime() - new Date(a.startAt).getTime();
       } else if (sortBy === 'name') {
           return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+      } else if (sortBy === 'sitter') {
+        // Sort by sitter name, unassigned at top
+        const aSitter = a.sitter ? `${a.sitter.firstName} ${a.sitter.lastName}`.toLowerCase() : '';
+        const bSitter = b.sitter ? `${b.sitter.firstName} ${b.sitter.lastName}`.toLowerCase() : '';
+        if (!aSitter && !bSitter) return 0;
+        if (!aSitter) return -1; // Unassigned first
+        if (!bSitter) return 1; // Unassigned first
+        return aSitter.localeCompare(bSitter);
       } else {
         return b.totalPrice - a.totalPrice;
       }
@@ -498,6 +506,7 @@ function BookingsPageContent() {
                   { value: 'date', label: 'Date' },
                   { value: 'name', label: 'Name' },
                   { value: 'price', label: 'Price' },
+                    { value: 'sitter', label: 'Sitter' },
                 ]}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
@@ -592,6 +601,7 @@ function BookingsPageContent() {
                     { value: 'date', label: 'Date' },
                     { value: 'name', label: 'Name' },
                     { value: 'price', label: 'Price' },
+                    { value: 'sitter', label: 'Sitter' },
                   ]}
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
