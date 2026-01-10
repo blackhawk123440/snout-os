@@ -1,19 +1,16 @@
 /**
- * Pay Period Details API
+ * Payroll Run Details API
  * 
- * GET /api/payroll/[id] - Get detailed breakdown of a pay period
+ * GET /api/payroll/[id] - Get detailed breakdown of a payroll run
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import {
-  calculateSitterEarnings,
-  type BookingEarning,
-} from "@/lib/payroll-engine";
+import { getPayrollRunDetails } from "@/lib/payroll/payroll-service";
 
 /**
  * GET /api/payroll/[id]
- * Get detailed breakdown of a pay period including all bookings
+ * Get detailed breakdown of a payroll run including line items and adjustments
  */
 export async function GET(
   request: NextRequest,
@@ -22,40 +19,60 @@ export async function GET(
   try {
     const { id } = await params;
     
-    // Parse pay period ID format: sitterId-startDateISO
-    const [sitterId, ...dateParts] = id.split('-');
-    if (!sitterId) {
+    // Handle both runId and composite IDs (runId-lineItemId)
+    const [runId] = id.split('-');
+    
+    const payrollRun = await getPayrollRunDetails(runId);
+    
+    if (!payrollRun) {
       return NextResponse.json(
-        { error: "Invalid pay period ID" },
-        { status: 400 }
+        { error: "Payroll run not found" },
+        { status: 404 }
       );
     }
 
-    // Reconstruct start date (ISO string may contain dashes)
-    const startDateStr = dateParts.join('-');
-    const startDate = new Date(startDateStr);
-    
-    // Calculate end date (assuming biweekly for now)
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 13);
-    endDate.setHours(23, 59, 59, 999);
+    // Get booking details for line items (for backward compatibility)
+    const bookings: any[] = [];
+    for (const lineItem of payrollRun.lineItems) {
+      // Get bookings for this sitter in this period
+      const sitterBookings = await prisma.booking.findMany({
+        where: {
+          sitterId: lineItem.sitterId,
+          status: 'completed',
+          startAt: {
+            gte: payrollRun.payPeriodStart,
+            lte: payrollRun.payPeriodEnd,
+          },
+        },
+        orderBy: {
+          startAt: 'asc',
+        },
+      });
 
-    const earnings = await calculateSitterEarnings(sitterId, startDate, endDate);
+      for (const booking of sitterBookings) {
+        const commissionRate = lineItem.commissionRate;
+        bookings.push({
+          bookingId: booking.id,
+          bookingDate: booking.startAt,
+          service: booking.service,
+          totalPrice: booking.totalPrice,
+          commissionPercentage: commissionRate,
+          commissionAmount: (booking.totalPrice * commissionRate) / 100,
+          status: booking.status,
+        });
+      }
+    }
 
     return NextResponse.json({
-      payPeriodId: id,
-      sitterId,
-      startDate,
-      endDate,
-      bookings: earnings.bookings,
-      totalEarnings: earnings.totalEarnings,
-      totalCommission: earnings.totalCommission,
-      bookingCount: earnings.bookingCount,
+      payrollRun,
+      bookings,
+      lineItems: payrollRun.lineItems,
+      adjustments: payrollRun.adjustments,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("[GET /api/payroll/[id]] Error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch pay period details" },
+      { error: "Failed to fetch payroll run details", details: error.message },
       { status: 500 }
     );
   }

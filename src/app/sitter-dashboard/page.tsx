@@ -811,11 +811,19 @@ function SitterDashboardContent() {
             )}
           </>
         ) : (
-          <Tabs
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={(tab) => setActiveTab(tab as TabType)}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 400px',
+              gap: tokens.spacing[6],
+            }}
           >
+            <div style={{ minWidth: 0 }}>
+              <Tabs
+                tabs={tabs}
+                activeTab={activeTab}
+                onTabChange={(tab) => setActiveTab(tab as TabType)}
+              >
             {/* Pending Tab */}
             <TabPanel id="pending">
             <Card>
@@ -1354,6 +1362,226 @@ function SitterDashboardContent() {
             )}
           </TabPanel>
         </Tabs>
+            </div>
+
+            {/* Desktop Right Side Panel */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: tokens.spacing[4],
+                position: 'sticky',
+                top: 0,
+                alignSelf: 'flex-start',
+                maxHeight: 'calc(100vh - 200px)',
+                overflowY: 'auto',
+              }}
+            >
+              {/* Today Summary */}
+              <Card>
+                <SectionHeader title="Today" />
+                <div style={{ padding: tokens.spacing[4] }}>
+                  {(() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    
+                    const todayJobs = dashboardData.jobs.accepted.filter((job) => {
+                      const jobDate = new Date(job.startAt);
+                      jobDate.setHours(0, 0, 0, 0);
+                      return jobDate >= today && jobDate < tomorrow;
+                    });
+                    
+                    const todayVisits = todayJobs.reduce((count, job) => {
+                      if (job.timeSlots && job.timeSlots.length > 0) {
+                        return count + job.timeSlots.length;
+                      }
+                      return count + 1;
+                    }, 0);
+                    
+                    const todayEarnings = todayJobs.reduce((sum, job) => {
+                      return sum + ((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100);
+                    }, 0);
+                    
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                        <div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                            Visits
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold }}>
+                            {todayVisits}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                            Bookings
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold }}>
+                            {todayJobs.length}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                            Earnings Estimate
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success.DEFAULT }}>
+                            ${todayEarnings.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </Card>
+
+              {/* Upcoming Bookings (Next 7 Days) */}
+              <Card>
+                <SectionHeader title="Upcoming (Next 7 Days)" />
+                <div style={{ padding: tokens.spacing[4] }}>
+                  {(() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const nextWeek = new Date(today);
+                    nextWeek.setDate(nextWeek.getDate() + 7);
+                    
+                    const upcomingJobs = dashboardData.jobs.accepted
+                      .filter((job) => {
+                        const jobDate = new Date(job.startAt);
+                        jobDate.setHours(0, 0, 0, 0);
+                        return jobDate > today && jobDate <= nextWeek;
+                      })
+                      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
+                      .slice(0, 5);
+                    
+                    if (upcomingJobs.length === 0) {
+                      return (
+                        <EmptyState
+                          title="No upcoming bookings"
+                          description="No bookings scheduled in the next 7 days"
+                          icon="📅"
+                        />
+                      );
+                    }
+                    
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                        {upcomingJobs.map((job) => (
+                          <div
+                            key={job.id}
+                            style={{
+                              padding: tokens.spacing[3],
+                              border: `1px solid ${tokens.colors.border.default}`,
+                              borderRadius: tokens.borderRadius.md,
+                            }}
+                          >
+                            <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                              {job.clientName}
+                            </div>
+                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                              {formatDate(job.startAt)}
+                            </div>
+                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                              {job.service}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </Card>
+
+              {/* Quick Actions */}
+              <Card>
+                <SectionHeader title="Quick Actions" />
+                <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    style={{ width: '100%' }}
+                    leftIcon={<i className="fas fa-envelope" />}
+                    onClick={() => window.location.href = '/messages'}
+                  >
+                    Messages
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    style={{ width: '100%' }}
+                    leftIcon={<i className="fas fa-calendar" />}
+                    onClick={() => {
+                      setActiveTab('accepted');
+                      setViewMode('calendar');
+                    }}
+                  >
+                    View Calendar
+                  </Button>
+                  {!isAdminView && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      style={{ width: '100%' }}
+                      leftIcon={<i className="fas fa-list" />}
+                      onClick={() => setActiveTab('accepted')}
+                    >
+                      View All Bookings
+                    </Button>
+                  )}
+                </div>
+              </Card>
+
+              {/* Earnings Snapshot */}
+              <Card>
+                <SectionHeader title="Earnings Snapshot" />
+                <div style={{ padding: tokens.spacing[4] }}>
+                  {(() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const weekStart = new Date(today);
+                    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                    
+                    const thisWeekEarnings = dashboardData.jobs.accepted
+                      .filter((job) => {
+                        const jobDate = new Date(job.startAt);
+                        return jobDate >= weekStart;
+                      })
+                      .reduce((sum, job) => sum + ((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100), 0);
+                    
+                    const thisMonthEarnings = dashboardData.jobs.accepted
+                      .filter((job) => {
+                        const jobDate = new Date(job.startAt);
+                        return jobDate >= monthStart;
+                      })
+                      .reduce((sum, job) => sum + ((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100), 0);
+                    
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                        <div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                            This Week
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success.DEFAULT }}>
+                            ${thisWeekEarnings.toFixed(2)}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                            This Month
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success.DEFAULT }}>
+                            ${thisMonthEarnings.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </Card>
+            </div>
+          </div>
         )}
       </div>
     </AppShell>

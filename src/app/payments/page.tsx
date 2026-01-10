@@ -83,6 +83,19 @@ export default function PaymentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [kpis, setKpis] = useState({
+    totalCollected: 0,
+    pendingCount: 0,
+    pendingAmount: 0,
+    failedCount: 0,
+    failedAmount: 0,
+    refundedAmount: 0,
+  });
+  const [comparison, setComparison] = useState<{
+    previousPeriodTotal: number;
+    periodComparison: number;
+    isPositive: boolean;
+  } | null>(null);
   const isMobile = useMobile();
   const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>({
     label: 'Last 30 Days',
@@ -99,26 +112,86 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     fetchAnalytics();
-  }, [selectedTimeRange]);
+  }, [selectedTimeRange, statusFilter, searchTerm]);
 
   const fetchAnalytics = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/stripe/analytics?timeRange=${selectedTimeRange.value}`);
+      const params = new URLSearchParams({
+        timeRange: selectedTimeRange.value,
+        status: statusFilter,
+        search: searchTerm,
+      });
+      
+      const response = await fetch(`/api/payments?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch payment data');
       }
       const data = await response.json();
-      const analyticsData = data.analytics || analytics;
       
-      // Convert date strings to Date objects
-      analyticsData.recentPayments = (analyticsData.recentPayments || []).map((p: any) => ({
+      // Convert charges to Payment format and update state
+      const payments = (data.payments || []).map((p: any) => ({
         ...p,
         created: new Date(p.created),
       }));
       
-      setAnalytics(analyticsData);
+      // Update KPIs and comparison from API response
+      if (data.kpis) {
+        setKpis(data.kpis);
+      }
+      if (data.comparison) {
+        setComparison(data.comparison);
+      }
+      
+      // Calculate derived metrics
+      const totalRevenue = data.kpis?.totalCollected || 0;
+      const monthlyTotal = data.revenueByMonth 
+        ? Object.values(data.revenueByMonth).reduce((sum: number, val: any) => sum + val, 0)
+        : 0;
+      
+      // Calculate weekly and daily revenue from revenueByDay
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+      const dayAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+      
+      const weeklyRevenue = data.revenueByDay
+        ? Object.entries(data.revenueByDay as Record<string, number>)
+            .filter(([day]) => new Date(day) >= weekAgo)
+            .reduce((sum, [, amount]) => sum + (typeof amount === 'number' ? amount : 0), 0)
+        : 0;
+      
+      const dailyRevenue = data.revenueByDay
+        ? Object.entries(data.revenueByDay as Record<string, number>)
+            .filter(([day]) => new Date(day) >= dayAgo)
+            .reduce((sum, [, amount]) => sum + (typeof amount === 'number' ? amount : 0), 0)
+        : 0;
+      
+      // Calculate payment methods breakdown
+      const paymentMethods: Record<string, number> = {};
+      payments.forEach((p: any) => {
+        const method = p.paymentMethod || 'card';
+        paymentMethods[method] = (paymentMethods[method] || 0) + 1;
+      });
+      
+      setAnalytics({
+        totalRevenue,
+        totalCustomers: data.topCustomers?.length || 0,
+        totalInvoices: payments.length,
+        recentPayments: payments,
+        monthlyRevenue: monthlyTotal,
+        weeklyRevenue,
+        dailyRevenue,
+        averagePayment: payments.length > 0 ? totalRevenue / payments.length : 0,
+        paymentMethods,
+        revenueByMonth: data.revenueByMonth || {},
+        topCustomers: data.topCustomers || [],
+        conversionRate: 0, // Not available from charges
+        refundRate: data.kpis?.refundedCount > 0 && payments.length > 0
+          ? (data.kpis.refundedCount / payments.length) * 100
+          : 0,
+        churnRate: 0, // Not available from charges
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load payment data');
     } finally {
@@ -126,42 +199,31 @@ export default function PaymentsPage() {
     }
   };
 
-  // Calculate KPIs
-  const kpis = useMemo(() => {
-    const payments = analytics.recentPayments || [];
-    const totalCollected = payments
-      .filter((p) => p.status === 'paid' || p.status === 'succeeded')
-      .reduce((sum, p) => sum + p.amount, 0);
-    
-    const pendingCount = payments.filter(
-      (p) => p.status === 'pending' || p.status === 'processing'
-    ).length;
-    
-    const pendingAmount = payments
-      .filter((p) => p.status === 'pending' || p.status === 'processing')
-      .reduce((sum, p) => sum + p.amount, 0);
-    
-    const failedCount = payments.filter(
-      (p) => p.status === 'failed' || p.status === 'canceled' || p.status === 'requires_payment_method'
-    ).length;
-    
-    const failedAmount = payments
-      .filter((p) => p.status === 'failed' || p.status === 'canceled' || p.status === 'requires_payment_method')
-      .reduce((sum, p) => sum + p.amount, 0);
-    
-    // Upcoming payouts: For now, use pending amount as proxy
-    // In a real implementation, this would come from payout schedule
-    const upcomingPayouts = pendingAmount;
-
-    return {
-      totalCollected,
-      pendingCount,
-      pendingAmount,
-      failedCount,
-      failedAmount,
-      upcomingPayouts,
-    };
-  }, [analytics.recentPayments]);
+  const handleExportCSV = async () => {
+    try {
+      const params = new URLSearchParams({
+        timeRange: selectedTimeRange.value,
+        type: 'all',
+      });
+      
+      const response = await fetch(`/api/payments/export?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to export payments');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `payments-export-${selectedTimeRange.value}-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to export payments');
+    }
+  };
 
   const filteredPayments = useMemo(() => {
     let filtered = analytics.recentPayments || [];
@@ -435,6 +497,28 @@ export default function PaymentsPage() {
         </Card>
       )}
 
+      {/* Comparison Banner */}
+      {comparison && !isMobile && (
+        <Card style={{ marginBottom: tokens.spacing[4], backgroundColor: comparison.isPositive ? tokens.colors.success[50] : tokens.colors.error[50] }}>
+          <div style={{ padding: tokens.spacing[4], display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                {selectedTimeRange.label} vs Previous Period
+              </div>
+              <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.bold }}>
+                {comparison.isPositive ? '+' : ''}{comparison.periodComparison.toFixed(1)}%
+              </div>
+              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                Previous: {formatCurrency(comparison.previousPeriodTotal)} → Current: {formatCurrency(kpis.totalCollected)}
+              </div>
+            </div>
+            <div style={{ fontSize: '2rem' }}>
+              {comparison.isPositive ? '📈' : '📉'}
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* KPI Summary Row */}
       <div
         style={{
@@ -460,11 +544,25 @@ export default function PaymentsPage() {
           icon={<i className="fas fa-exclamation-triangle" />}
         />
         <StatCard
-          label="Upcoming Payouts"
-          value={formatCurrency(kpis.upcomingPayouts)}
-          icon={<i className="fas fa-arrow-up" />}
+          label="Refunded"
+          value={formatCurrency(kpis.refundedAmount || 0)}
+          icon={<i className="fas fa-undo" />}
         />
-            </div>
+      </div>
+
+      {/* Mobile Export Button */}
+      {isMobile && (
+        <Card style={{ marginBottom: tokens.spacing[4] }}>
+          <Button
+            variant="secondary"
+            style={{ width: '100%' }}
+            leftIcon={<i className="fas fa-download" />}
+            onClick={handleExportCSV}
+          >
+            Export CSV
+          </Button>
+        </Card>
+      )}
 
       {/* Filters */}
       <Card

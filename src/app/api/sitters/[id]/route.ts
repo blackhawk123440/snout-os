@@ -10,10 +10,33 @@ export async function GET(
     const sitter = await prisma.sitter.findUnique({
       where: { id },
       include: {
-        currentTier: true,
+        currentTier: {
+          select: {
+            id: true,
+            name: true,
+            priorityLevel: true,
+          },
+        },
         bookings: {
           include: {
             pets: true,
+            timeSlots: {
+              orderBy: {
+                startAt: "asc",
+              },
+            },
+            client: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+              },
+            },
+          },
+          orderBy: {
+            startAt: "desc",
           },
         },
       },
@@ -23,7 +46,31 @@ export async function GET(
       return NextResponse.json({ error: "Sitter not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ sitter });
+    // Calculate upcoming bookings (not cancelled or completed, start date in future)
+    const now = new Date();
+    const upcomingBookings = sitter.bookings.filter(b => 
+      b.status !== 'cancelled' && 
+      b.status !== 'completed' &&
+      new Date(b.startAt) > now
+    ).slice(0, 10); // Limit to 10 for detail page
+
+    // Calculate stats
+    const totalBookings = sitter.bookings.length;
+    const completedBookings = sitter.bookings.filter(b => b.status === 'completed').length;
+    const totalEarnings = sitter.bookings
+      .filter(b => b.status === 'completed')
+      .reduce((sum, b) => sum + ((b.totalPrice * (sitter.commissionPercentage || 80)) / 100), 0);
+
+    return NextResponse.json({ 
+      sitter,
+      upcomingBookings,
+      stats: {
+        totalBookings,
+        completedBookings,
+        totalEarnings,
+        upcomingCount: upcomingBookings.length,
+      },
+    });
   } catch (error) {
     console.error("Failed to fetch sitter:", error);
     return NextResponse.json({ error: "Failed to fetch sitter" }, { status: 500 });

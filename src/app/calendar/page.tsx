@@ -24,7 +24,7 @@ import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { SitterAssignmentDisplay } from '@/components/sitter';
-import { CalendarGrid, type CalendarDay as CalendarGridDay } from '@/components/calendar';
+import { CalendarGrid, AgendaPanel, BookingDrawer, type CalendarDay as CalendarGridDay, type AgendaBooking, type BookingDrawerBooking } from '@/components/calendar';
 
 interface Booking {
   id: string;
@@ -74,6 +74,10 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSitterFilter, setSelectedSitterFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month');
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [drawerBooking, setDrawerBooking] = useState<BookingDrawerBooking | null>(null);
+  const [showBookingDrawer, setShowBookingDrawer] = useState(false);
   const isMobile = useMobile();
   const [hasInitialized, setHasInitialized] = useState(false);
 
@@ -530,27 +534,42 @@ export default function CalendarPage() {
       </Card>
 
       {/* Calendar View */}
-      {viewMode === 'month' ? (
-        <CalendarGrid
-          days={calendarDays.map(day => ({
-            ...day,
-            events: day.bookings.map(booking => ({
-              id: booking.id,
-              firstName: booking.firstName,
-              lastName: booking.lastName,
-              service: booking.service,
-              startAt: booking.startAt,
-              endAt: booking.endAt,
-              timeSlots: booking.timeSlots,
-            })),
-          })) as CalendarGridDay[]}
-          selectedDate={selectedDate}
-          onDateSelect={setSelectedDate}
-          monthName={monthNames[currentMonth]}
-          year={currentYear}
-          formatTime={formatTime}
-        />
-      ) : (
+      {isMobile ? (
+        viewMode === 'month' ? (
+          <CalendarGrid
+            days={calendarDays.map(day => ({
+              ...day,
+              events: day.bookings.map(booking => ({
+                id: booking.id,
+                firstName: booking.firstName,
+                lastName: booking.lastName,
+                service: booking.service,
+                startAt: booking.startAt,
+                endAt: booking.endAt,
+                timeSlots: booking.timeSlots,
+              })),
+            })) as CalendarGridDay[]}
+            selectedDate={selectedDate}
+            onDateSelect={(date) => {
+              setSelectedDate(date);
+              const dayBookings = getBookingsForDate(date);
+              if (dayBookings.length > 0) {
+                setSelectedBooking(dayBookings[0]);
+                setShowDetailModal(true);
+              }
+            }}
+            onEventClick={(event, date) => {
+              const booking = bookings.find(b => b.id === event.id);
+              if (booking) {
+                setSelectedBooking(booking);
+                setShowDetailModal(true);
+              }
+            }}
+            monthName={monthNames[currentMonth]}
+            year={currentYear}
+            formatTime={formatTime}
+          />
+        ) : (
         /* Agenda View */
         <Card>
           {agendaGrouped.length === 0 ? (
@@ -700,10 +719,11 @@ export default function CalendarPage() {
             </div>
           )}
         </Card>
-      )}
+        )
+      ) : null}
 
-      {/* Selected Date Modal */}
-      {viewMode === 'month' && selectedDate && (
+      {/* Selected Date Modal - Mobile Only */}
+      {isMobile && viewMode === 'month' && selectedDate && (
         <Modal
           isOpen={!!selectedDate}
           onClose={() => setSelectedDate(null)}
@@ -946,6 +966,121 @@ export default function CalendarPage() {
         </div>
           )}
         </Modal>
+      )}
+
+      {/* Desktop Layout with Agenda Panel and Drawer */}
+      {!isMobile && viewMode === 'month' && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '320px 1fr 480px',
+            gap: tokens.spacing[6],
+            marginTop: tokens.spacing[6],
+          }}
+        >
+          {/* Left: Agenda Panel */}
+          <AgendaPanel
+            selectedDate={selectedDate}
+            bookings={filteredBookings.map(b => ({
+              id: b.id,
+              firstName: b.firstName,
+              lastName: b.lastName,
+              service: b.service,
+              startAt: b.startAt,
+              endAt: b.endAt,
+              status: b.status,
+              totalPrice: b.totalPrice,
+              sitter: b.sitter ? {
+                id: b.sitter.id,
+                firstName: b.sitter.firstName,
+                lastName: b.sitter.lastName,
+                currentTier: null,
+              } : null,
+              timeSlots: b.timeSlots?.map((ts: any) => ({
+                id: ts.id || `${b.id}-${ts.startAt}`,
+                startAt: ts.startAt,
+                endAt: ts.endAt,
+                duration: ts.duration,
+              })),
+            }))}
+            onBookingClick={(booking) => {
+              const fullBooking = bookings.find(b => b.id === booking.id);
+              if (fullBooking) {
+                setDrawerBooking({
+                  ...fullBooking,
+                  paymentStatus: 'unknown',
+                  pets: fullBooking.pets || [],
+                  timeSlots: fullBooking.timeSlots?.map((ts: any) => ({
+                    id: ts.id || `${fullBooking.id}-${ts.startAt}`,
+                    startAt: ts.startAt,
+                    endAt: ts.endAt,
+                    duration: ts.duration,
+                  })),
+                });
+                setShowBookingDrawer(true);
+              }
+            }}
+            formatTime={formatTime}
+          />
+
+          {/* Center: Calendar Grid */}
+          <div style={{ minWidth: 0 }}>
+            <CalendarGrid
+              days={calendarDays.map(day => ({
+                ...day,
+                events: day.bookings.map(booking => ({
+                  id: booking.id,
+                  firstName: booking.firstName,
+                  lastName: booking.lastName,
+                  service: booking.service,
+                  startAt: booking.startAt,
+                  endAt: booking.endAt,
+                  timeSlots: booking.timeSlots,
+                })),
+              })) as CalendarGridDay[]}
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              onEventClick={(event, date) => {
+                const booking = bookings.find(b => b.id === event.id);
+                if (booking) {
+                  setDrawerBooking({
+                    ...booking,
+                    paymentStatus: 'unknown',
+                    pets: booking.pets || [],
+                    timeSlots: booking.timeSlots?.map((ts: any) => ({
+                      id: ts.id || `${booking.id}-${ts.startAt}`,
+                      startAt: ts.startAt,
+                      endAt: ts.endAt,
+                      duration: ts.duration,
+                    })),
+                  });
+                  setShowBookingDrawer(true);
+                }
+              }}
+              monthName={monthNames[currentMonth]}
+              year={currentYear}
+              formatTime={formatTime}
+            />
+          </div>
+
+          {/* Right: Booking Drawer */}
+          {showBookingDrawer && drawerBooking && (
+            <BookingDrawer
+              isOpen={showBookingDrawer}
+              booking={drawerBooking}
+              onClose={() => {
+                setShowBookingDrawer(false);
+                setDrawerBooking(null);
+              }}
+              onViewFull={() => {
+                window.location.href = `/bookings/${drawerBooking.id}`;
+              }}
+              onEdit={() => {
+                window.location.href = `/bookings/${drawerBooking.id}`;
+              }}
+            />
+          )}
+        </div>
       )}
     </AppShell>
   );
