@@ -20,7 +20,9 @@ import {
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 import { TableColumn } from '@/components/ui/Table';
+import { MobileFilterBar } from '@/components/ui';
 
 interface Client {
   id: string;
@@ -39,6 +41,8 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'recent' | 'bookings'>('name');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const isMobile = useMobile();
 
   useEffect(() => {
     fetchClients();
@@ -186,45 +190,84 @@ export default function ClientsPage() {
         title="Clients"
         description="Manage client information and contact details"
         actions={
-          <Link href="/clients/new">
-            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
-              New Client
-            </Button>
-          </Link>
+          !isMobile ? undefined : (
+            <Link href="/clients/new">
+              <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+                New Client
+              </Button>
+            </Link>
+          )
         }
       />
 
       {/* Filters and Search */}
-      <Card
-        style={{
-          marginBottom: tokens.spacing[6],
-        }}
-      >
+      {isMobile ? (
+        <MobileFilterBar
+          activeFilter={sortBy}
+          onFilterChange={(filterId) => setSortBy(filterId as any)}
+          sticky
+          options={[
+            { id: 'name', label: 'Name' },
+            { id: 'recent', label: 'Recent' },
+            { id: 'bookings', label: 'Bookings' },
+          ]}
+        />
+      ) : (
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: tokens.spacing[4],
+            position: 'sticky',
+            top: 0,
+            zIndex: tokens.zIndex.sticky,
+            backgroundColor: tokens.colors.background.primary,
+            marginBottom: tokens.spacing[4],
           }}
         >
+          <Card>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto auto',
+                gap: tokens.spacing[4],
+                alignItems: 'end',
+              }}
+            >
+              <Input
+                placeholder="Search clients..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                leftIcon={<i className="fas fa-search" />}
+              />
+              <Select
+                label="Sort By"
+                options={[
+                  { value: 'name', label: 'Name' },
+                  { value: 'recent', label: 'Most Recent' },
+                  { value: 'bookings', label: 'Most Bookings' },
+                ]}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+              />
+              <Link href="/clients/new">
+                <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+                  New Client
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Mobile Search */}
+      {isMobile && (
+        <Card style={{ marginBottom: tokens.spacing[4] }}>
           <Input
             placeholder="Search clients..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             leftIcon={<i className="fas fa-search" />}
           />
-          <Select
-            label="Sort By"
-            options={[
-              { value: 'name', label: 'Name' },
-              { value: 'recent', label: 'Most Recent' },
-              { value: 'bookings', label: 'Most Bookings' },
-            ]}
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-          />
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Clients Table */}
       <Card padding={!loading}>

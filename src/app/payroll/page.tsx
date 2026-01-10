@@ -38,7 +38,7 @@ interface PayPeriod {
   sitterName?: string;
   startDate: Date | string;
   endDate: Date | string;
-  status: 'pending' | 'calculated' | 'approved' | 'paid' | 'cancelled';
+  status: 'draft' | 'pending' | 'calculated' | 'approved' | 'paid' | 'cancelled';
   totalEarnings: number;
   commissionAmount: number;
   fees: number;
@@ -133,6 +133,33 @@ export default function PayrollPage() {
     }
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const params = new URLSearchParams({
+        payPeriod: filterPayPeriod,
+        status: filterStatus,
+      });
+      
+      const response = await fetch(`/api/payroll/export?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to export payroll');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `payroll-export-${filterPayPeriod}-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export payroll:', error);
+      alert('Failed to export payroll. Please try again.');
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -151,18 +178,18 @@ export default function PayrollPage() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'success' | 'warning' | 'error'> = {
+      draft: 'default',
       pending: 'warning',
-      calculated: 'default',
       approved: 'success',
       paid: 'success',
-      cancelled: 'error',
+      canceled: 'error',
     };
     return <Badge variant={variants[status] || 'default'}>{status}</Badge>;
   };
 
   // Calculate totals
   const totalPending = payPeriods
-    .filter((p) => p.status === 'pending')
+    .filter((p) => p.status === 'pending' || p.status === 'draft')
     .reduce((sum, p) => sum + p.netPayout, 0);
   const totalApproved = payPeriods
     .filter((p) => p.status === 'approved')
@@ -265,14 +292,34 @@ export default function PayrollPage() {
         title="Payroll"
         description="Manage sitter commissions and payouts"
         actions={
-          <Button
-            variant="primary"
-            onClick={fetchPayroll}
-            disabled={loading}
-            leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
-          >
-            Refresh
-          </Button>
+          !isMobile ? (
+            <div style={{ display: 'flex', gap: tokens.spacing[3] }}>
+              <Button
+                variant="secondary"
+                leftIcon={<i className="fas fa-download" />}
+                onClick={handleExportCSV}
+              >
+                Export CSV
+              </Button>
+              <Button
+                variant="primary"
+                onClick={fetchPayroll}
+                disabled={loading}
+                leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
+              >
+                Refresh
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="primary"
+              onClick={fetchPayroll}
+              disabled={loading}
+              leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
+            >
+              Refresh
+            </Button>
+          )
         }
       />
 

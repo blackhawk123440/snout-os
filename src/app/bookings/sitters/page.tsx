@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   PageHeader,
@@ -19,6 +19,10 @@ import {
   EmptyState,
   Skeleton,
   FormRow,
+  Table,
+  TableColumn,
+  MobileFilterBar,
+  Select,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -51,6 +55,10 @@ export default function SittersPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSitter, setEditingSitter] = useState<Sitter | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [tierFilter, setTierFilter] = useState<string>('all');
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'tier' | 'created'>('name');
   const isMobile = useMobile();
   
   const [formData, setFormData] = useState({
@@ -65,9 +73,24 @@ export default function SittersPage() {
     commissionPercentage: 80.0,
   });
 
+  const [tiers, setTiers] = useState<Array<{ id: string; name: string }>>([]);
+
   useEffect(() => {
     fetchSitters();
+    fetchTiers();
   }, []);
+
+  const fetchTiers = async () => {
+    try {
+      const response = await fetch("/api/sitter-tiers");
+      if (response.ok) {
+        const data = await response.json();
+        setTiers(data.tiers || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tiers:', err);
+    }
+  };
 
   const fetchSitters = async () => {
     setLoading(true);
@@ -200,29 +223,155 @@ export default function SittersPage() {
     return phone;
   };
 
+  const filteredAndSortedSitters = useMemo(() => {
+    let filtered = sitters;
+
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (s) =>
+          s.firstName.toLowerCase().includes(term) ||
+          s.lastName.toLowerCase().includes(term) ||
+          s.email.toLowerCase().includes(term) ||
+          s.phone.includes(term)
+      );
+    }
+
+    // Tier filter
+    if (tierFilter !== 'all') {
+      filtered = filtered.filter(
+        (s) => s.currentTier?.id === tierFilter
+      );
+    }
+
+    // Active filter
+    if (activeFilter !== 'all') {
+      filtered = filtered.filter(
+        (s) => (activeFilter === 'active') === s.isActive
+      );
+    }
+
+    // Sort
+    filtered = [...filtered].sort((a, b) => {
+      if (sortBy === 'name') {
+        return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+      } else if (sortBy === 'tier') {
+        const aTier = a.currentTier?.priorityLevel ?? 0;
+        const bTier = b.currentTier?.priorityLevel ?? 0;
+        return bTier - aTier;
+      } else {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+
+    return filtered;
+  }, [sitters, searchTerm, tierFilter, activeFilter, sortBy]);
+
+  const sitterColumns: TableColumn<Sitter>[] = [
+    {
+      key: 'name',
+      header: 'Sitter',
+      mobileLabel: 'Sitter',
+      mobileOrder: 1,
+      render: (row) => (
+        <div>
+          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+            {row.firstName} {row.lastName}
+          </div>
+          <div
+            style={{
+              fontSize: tokens.typography.fontSize.sm[0],
+              color: tokens.colors.text.secondary,
+            }}
+          >
+            {row.email}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'tier',
+      header: 'Tier',
+      mobileLabel: 'Tier',
+      mobileOrder: 2,
+      render: (row) => (
+        row.currentTier ? (
+          <SitterTierBadge tier={row.currentTier} />
+        ) : (
+          <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+            No tier
+          </span>
+        )
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      mobileLabel: 'Status',
+      mobileOrder: 3,
+      render: (row) => (
+        <Badge variant={row.isActive ? "success" : "error"}>
+          {row.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
+      align: 'center',
+    },
+    {
+      key: 'commission',
+      header: 'Commission',
+      mobileLabel: 'Commission',
+      mobileOrder: 4,
+      render: (row) => (
+        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+          {row.commissionPercentage || 80}%
+        </div>
+      ),
+      align: 'right',
+    },
+    {
+      key: 'contact',
+      header: 'Contact',
+      mobileLabel: 'Phone',
+      mobileOrder: 5,
+      render: (row) => (
+        <div
+          style={{
+            fontSize: tokens.typography.fontSize.sm[0],
+            color: tokens.colors.text.secondary,
+          }}
+        >
+          {formatPhoneNumber(row.phone)}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <AppShell>
       <PageHeader
         title="Sitters Management"
         description="Manage your pet care team"
         actions={
-          <>
-            <Button
-              variant="primary"
+          !isMobile ? undefined : (
+            <>
+              <Button
+                variant="primary"
                 onClick={() => {
                   resetForm();
                   setShowAddForm(true);
                 }}
-              leftIcon={<i className="fas fa-plus" />}
-            >
-              Add Sitter
-            </Button>
-            <Link href="/bookings">
-              <Button variant="tertiary" leftIcon={<i className="fas fa-arrow-left" />}>
-                Back to Bookings
+                leftIcon={<i className="fas fa-plus" />}
+              >
+                Add Sitter
               </Button>
-            </Link>
-          </>
+              <Link href="/bookings">
+                <Button variant="tertiary" leftIcon={<i className="fas fa-arrow-left" />}>
+                  Back to Bookings
+                </Button>
+              </Link>
+            </>
+          )
         }
       />
 
@@ -249,32 +398,146 @@ export default function SittersPage() {
           </Card>
         )}
 
+        {/* Filters */}
+        {isMobile ? (
+          <>
+            <MobileFilterBar
+              activeFilter={sortBy}
+              onFilterChange={(filterId) => setSortBy(filterId as any)}
+              sticky
+              options={[
+                { id: 'name', label: 'Name' },
+                { id: 'tier', label: 'Tier' },
+                { id: 'created', label: 'Newest' },
+              ]}
+            />
+            <Card style={{ marginBottom: tokens.spacing[4], marginTop: tokens.spacing[4] }}>
+              <Input
+                placeholder="Search sitters..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                leftIcon={<i className="fas fa-search" />}
+              />
+            </Card>
+            <Card style={{ marginBottom: tokens.spacing[4] }}>
+              <Select
+                label="Tier"
+                options={[
+                  { value: 'all', label: 'All Tiers' },
+                  ...tiers.map(t => ({ value: t.id, label: t.name })),
+                ]}
+                value={tierFilter}
+                onChange={(e) => setTierFilter(e.target.value)}
+              />
+              <div style={{ marginTop: tokens.spacing[3] }}>
+                <Select
+                  label="Status"
+                  options={[
+                    { value: 'all', label: 'All Status' },
+                    { value: 'active', label: 'Active' },
+                    { value: 'inactive', label: 'Inactive' },
+                  ]}
+                  value={activeFilter}
+                  onChange={(e) => setActiveFilter(e.target.value)}
+                />
+              </div>
+            </Card>
+          </>
+        ) : (
+          <div
+            style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: tokens.zIndex.sticky,
+              backgroundColor: tokens.colors.background.primary,
+              marginBottom: tokens.spacing[4],
+            }}
+          >
+            <Card>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto auto auto auto',
+                  gap: tokens.spacing[4],
+                  alignItems: 'end',
+                }}
+              >
+                <Input
+                  placeholder="Search sitters..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  leftIcon={<i className="fas fa-search" />}
+                />
+                <Select
+                  label="Tier"
+                  options={[
+                    { value: 'all', label: 'All Tiers' },
+                    ...tiers.map(t => ({ value: t.id, label: t.name })),
+                  ]}
+                  value={tierFilter}
+                  onChange={(e) => setTierFilter(e.target.value)}
+                />
+                <Select
+                  label="Status"
+                  options={[
+                    { value: 'all', label: 'All' },
+                    { value: 'active', label: 'Active' },
+                    { value: 'inactive', label: 'Inactive' },
+                  ]}
+                  value={activeFilter}
+                  onChange={(e) => setActiveFilter(e.target.value)}
+                />
+                <Select
+                  label="Sort"
+                  options={[
+                    { value: 'name', label: 'Name' },
+                    { value: 'tier', label: 'Tier' },
+                    { value: 'created', label: 'Newest' },
+                  ]}
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                />
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    resetForm();
+                    setShowAddForm(true);
+                  }}
+                  leftIcon={<i className="fas fa-plus" />}
+                >
+                  Add Sitter
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            <Skeleton height={150} />
-            <Skeleton height={150} />
-            <Skeleton height={150} />
-            </div>
-          ) : sitters.length === 0 ? (
+          <Card padding={false}>
+            <Skeleton height="400px" />
+          </Card>
+        ) : filteredAndSortedSitters.length === 0 ? (
           <EmptyState
             title="No sitters found"
-            description="Add your first sitter to get started"
+            description={sitters.length === 0 ? "Add your first sitter to get started" : "No sitters match your filters"}
             icon={<i className="fas fa-user-friends" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
-            action={{
-              label: "Add Sitter",
-              onClick: () => {
-                resetForm();
-                setShowAddForm(true);
-              },
-            }}
+            action={
+              sitters.length === 0 ? {
+                label: "Add Sitter",
+                onClick: () => {
+                  resetForm();
+                  setShowAddForm(true);
+                },
+              } : undefined
+            }
           />
-        ) : (
+        ) : isMobile ? (
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column', 
-            gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
+            gap: tokens.spacing[3],
           }}>
-            {sitters.map((sitter) => (
+            {filteredAndSortedSitters.map((sitter) => (
               <Card 
                 key={sitter.id}
                 style={{
@@ -419,8 +682,20 @@ export default function SittersPage() {
                 </div>
               </Card>
             ))}
-              </div>
-          )}
+          </div>
+        ) : (
+          <Card padding={!loading}>
+            <Table
+              columns={sitterColumns}
+              data={filteredAndSortedSitters}
+              emptyMessage="No sitters found. Add your first sitter to get started."
+              onRowClick={(row) => {
+                window.location.href = `/sitters/${row.id}`;
+              }}
+              keyExtractor={(row) => row.id}
+            />
+          </Card>
+        )}
       </div>
 
       {/* Add/Edit Form Modal */}

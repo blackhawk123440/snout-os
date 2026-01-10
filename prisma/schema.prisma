@@ -33,7 +33,7 @@ model Booking {
   totalPrice           Float
   pricingSnapshot      String?                @db.Text // JSON string of CanonicalPricingBreakdown (Phase 2)
   status               String                 @default("pending")
-  assignmentType       String?                // "direct" or "pool" - null means not yet assigned
+  assignmentType       String? // "direct" or "pool" - null means not yet assigned
   notes                String?
   stripePaymentLinkUrl String?
   tipLinkUrl           String?
@@ -112,6 +112,8 @@ model Sitter {
   customFields         CustomFieldValue[]
   // Link to User if this sitter has auth access (Gate B Phase 1)
   user                 User?
+  PayrollLineItem      PayrollLineItem[]
+  PayrollAdjustment    PayrollAdjustment[]
 
   @@index([active])
   @@index([currentTierId])
@@ -638,7 +640,7 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  passwordHash  String?   // For credentials provider
+  passwordHash  String? // For credentials provider
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
@@ -729,9 +731,9 @@ model FeatureFlag {
 
 model EventLog {
   id             String   @id @default(uuid())
-  eventType      String   // e.g., "automation.run", "booking.created", "payment.success"
-  automationType String?  // Automation type if eventType is "automation.run" (e.g., "bookingConfirmation", "nightBeforeReminder")
-  status         String   // "success", "failed", "skipped", "pending"
+  eventType      String // e.g., "automation.run", "booking.created", "payment.success"
+  automationType String? // Automation type if eventType is "automation.run" (e.g., "bookingConfirmation", "nightBeforeReminder")
+  status         String // "success", "failed", "skipped", "pending"
   error          String?  @db.Text // Error message if status is "failed"
   metadata       String?  @db.Text // JSON string for additional context (inputs, outputs, etc.)
   bookingId      String?
@@ -750,18 +752,153 @@ model EventLog {
 // ============================================
 
 model BookingStatusHistory {
-  id        String   @id @default(uuid())
-  bookingId String
-  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   fromStatus String? // Previous status (null for initial status)
-  toStatus   String  // New status
+  toStatus   String // New status
   changedBy  String? // User ID who made the change (null if system/automation)
-  reason     String? @db.Text // Optional reason for status change
-  metadata   String? @db.Text // JSON string for additional context
+  reason     String?  @db.Text // Optional reason for status change
+  metadata   String?  @db.Text // JSON string for additional context
   createdAt  DateTime @default(now())
 
   @@index([bookingId])
   @@index([toStatus])
   @@index([createdAt])
   @@index([changedBy])
+}
+
+// Stripe Payment Read Models
+model StripeCharge {
+  id              String    @id // Stripe charge ID
+  amount          Int // Amount in cents
+  amountRefunded  Int       @default(0)
+  currency        String    @default("usd")
+  status          String // succeeded, pending, failed
+  description     String?   @db.Text
+  customerId      String? // Stripe customer ID
+  customerEmail   String?
+  customerName    String?
+  paymentMethod   String? // card, bank_account, etc.
+  paymentIntentId String? // Stripe payment intent ID
+  invoiceId       String? // Stripe invoice ID
+  bookingId       String? // Linked booking ID
+  refunded        Boolean   @default(false)
+  refundedAt      DateTime?
+  createdAt       DateTime // Stripe created timestamp
+  syncedAt        DateTime  @default(now()) @updatedAt
+
+  @@index([customerId])
+  @@index([bookingId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([syncedAt])
+}
+
+model StripeRefund {
+  id              String   @id // Stripe refund ID
+  chargeId        String // Stripe charge ID
+  amount          Int // Amount in cents
+  currency        String   @default("usd")
+  reason          String? // duplicate, fraudulent, requested_by_customer
+  status          String // succeeded, pending, failed, canceled
+  paymentIntentId String? // Stripe payment intent ID
+  createdAt       DateTime // Stripe created timestamp
+  syncedAt        DateTime @default(now()) @updatedAt
+
+  @@index([chargeId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model StripePayout {
+  id                  String    @id // Stripe payout ID
+  amount              Int // Amount in cents
+  currency            String    @default("usd")
+  status              String // paid, pending, in_transit, canceled, failed
+  arrivalDate         DateTime? // When payout arrives
+  description         String?   @db.Text
+  statementDescriptor String?
+  createdAt           DateTime // Stripe created timestamp
+  syncedAt            DateTime  @default(now()) @updatedAt
+
+  @@index([status])
+  @@index([arrivalDate])
+  @@index([createdAt])
+}
+
+model StripeBalanceTransaction {
+  id          String   @id // Stripe balance transaction ID
+  amount      Int // Amount in cents (can be negative for fees)
+  currency    String   @default("usd")
+  type        String // charge, payment, refund, payout, etc.
+  description String?  @db.Text
+  fee         Int      @default(0) // Fee amount in cents
+  net         Int // Net amount after fees
+  chargeId    String? // Related charge ID
+  payoutId    String? // Related payout ID
+  createdAt   DateTime // Stripe created timestamp
+  syncedAt    DateTime @default(now()) @updatedAt
+
+  @@index([type])
+  @@index([chargeId])
+  @@index([payoutId])
+  @@index([createdAt])
+}
+
+// Payroll Models
+model PayrollRun {
+  id             String              @id @default(uuid())
+  payPeriodStart DateTime
+  payPeriodEnd   DateTime
+  status         String              @default("draft") // draft, pending, approved, paid, canceled
+  totalAmount    Float
+  totalSitters   Int
+  approvedBy     String? // User ID
+  approvedAt     DateTime?
+  paidAt         DateTime?
+  notes          String?             @db.Text
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  lineItems      PayrollLineItem[]
+  adjustments    PayrollAdjustment[]
+
+  @@index([payPeriodStart])
+  @@index([payPeriodEnd])
+  @@index([status])
+}
+
+model PayrollLineItem {
+  id               String     @id @default(uuid())
+  payrollRunId     String
+  payrollRun       PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  sitterId         String
+  sitter           Sitter     @relation(fields: [sitterId], references: [id])
+  bookingCount     Int
+  totalEarnings    Float
+  commissionRate   Float
+  commissionAmount Float
+  adjustments      Float      @default(0) // Sum of bonuses - deductions
+  netAmount        Float
+  notes            String?    @db.Text
+  createdAt        DateTime   @default(now())
+
+  @@index([payrollRunId])
+  @@index([sitterId])
+}
+
+model PayrollAdjustment {
+  id           String     @id @default(uuid())
+  payrollRunId String
+  payrollRun   PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  sitterId     String
+  sitter       Sitter     @relation(fields: [sitterId], references: [id])
+  type         String // bonus, deduction
+  amount       Float
+  reason       String     @db.Text
+  createdBy    String? // User ID
+  createdAt    DateTime   @default(now())
+
+  @@index([payrollRunId])
+  @@index([sitterId])
 }

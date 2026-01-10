@@ -1088,86 +1088,136 @@ Total: ${formatCurrency(booking.totalPrice)}`;
           </div>
         ) : (
           <>
-            {/* Desktop Page Header */}
-            <PageHeader
-        title={`Booking - ${booking.firstName} ${booking.lastName}`}
-        description={`${formatDate(booking.startAt)} - ${formatDate(booking.endAt)} • ${booking.status}${booking.sitter ? ` • Assigned: ${booking.sitter.firstName} ${booking.sitter.lastName}` : ''} • Updated ${formatDateTime(booking.updatedAt)}`}
-        actions={
-          <div
-            style={{
-              display: 'flex',
-              gap: tokens.spacing[3],
-              flexWrap: 'wrap',
-            }}
-          >
-            <Link href="/bookings">
-              <Button variant="secondary" leftIcon={<i className="fas fa-arrow-left" />}>
-                Back
-              </Button>
-            </Link>
-            <Button
-              variant="secondary"
-              onClick={() => setShowEditModal(true)}
-              leftIcon={<i className="fas fa-edit" />}
-            >
-              Edit
-            </Button>
-            {statusTransitions.length > 0 && (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setNewStatus(statusTransitions[0]);
-                  setShowStatusModal(true);
-                }}
-                leftIcon={<i className="fas fa-check" />}
-              >
-                {statusTransitions[0] === 'confirmed' ? 'Confirm' : statusTransitions[0] === 'completed' ? 'Complete' : 'Update Status'}
-              </Button>
-            )}
-          </div>
-        }
-            />
-
-            {/* Desktop KPI Strip */}
-      <div
-        style={{
-          display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: tokens.spacing[4],
+            {/* Desktop: Sticky Summary Header */}
+            <div
+              style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: tokens.zIndex.sticky,
+                backgroundColor: tokens.colors.background.primary,
+                borderBottom: `1px solid ${tokens.colors.border.default}`,
+                padding: `${tokens.spacing[4]} ${tokens.spacing[6]}`,
+                boxShadow: tokens.shadows.sm,
                 marginBottom: tokens.spacing[4],
-                flexShrink: 0,
-        }}
-      >
-        <StatCard
-          label="Total"
-          value={formatCurrency(booking.totalPrice)}
-          icon={<i className="fas fa-dollar-sign" />}
-        />
-        <StatCard
-          label="Payment Status"
-          value={booking.paymentStatus}
-          icon={<i className="fas fa-credit-card" />}
-        />
-        {booking.paymentStatus !== 'paid' && (
-          <StatCard
-            label="Balance"
-            value={formatCurrency(balance)}
-            icon={<i className="fas fa-wallet" />}
-          />
-        )}
-        <StatCard
-          label="Service"
-          value={booking.service}
-          icon={<i className="fas fa-paw" />}
-        />
-        {booking.pets.length > 0 && (
-          <StatCard
-            label="Pets"
-            value={booking.pets.length}
-            icon={<i className="fas fa-dog" />}
-          />
-        )}
-      </div>
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: tokens.spacing[4],
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[3],
+                      marginBottom: tokens.spacing[2],
+                    }}
+                  >
+                    <Link href="/bookings">
+                      <Button variant="ghost" size="sm" leftIcon={<i className="fas fa-arrow-left" />}>
+                        Back
+                      </Button>
+                    </Link>
+                    <h1
+                      style={{
+                        fontSize: tokens.typography.fontSize['2xl'][0],
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        color: tokens.colors.text.primary,
+                        margin: 0,
+                      }}
+                    >
+                      {booking.firstName} {booking.lastName}
+                    </h1>
+                    <Badge variant={getStatusBadgeVariant(booking.status)}>
+                      {booking.status}
+                    </Badge>
+                    {booking.sitter && (
+                      <SitterAssignmentDisplay sitter={booking.sitter} showTierBadge compact />
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: tokens.typography.fontSize.sm[0],
+                      color: tokens.colors.text.secondary,
+                      marginLeft: tokens.spacing[10],
+                    }}
+                  >
+                    {formatDate(booking.startAt)} - {formatDate(booking.endAt)} • {booking.service}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: tokens.spacing[3],
+                    alignItems: 'center',
+                  }}
+                >
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowEditModal(true)}
+                    leftIcon={<i className="fas fa-edit" />}
+                  >
+                    Edit
+                  </Button>
+                  {statusTransitions.length > 0 && (
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        setNewStatus(statusTransitions[0]);
+                        setShowStatusModal(true);
+                      }}
+                      leftIcon={<i className="fas fa-check" />}
+                    >
+                      {statusTransitions[0] === 'confirmed' ? 'Confirm' : statusTransitions[0] === 'completed' ? 'Complete' : 'Update Status'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Desktop KPI Strip */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                  gap: tokens.spacing[4],
+                }}
+              >
+                <StatCard
+                  label="Total"
+                  value={formatCurrency(booking.totalPrice)}
+                  icon={<i className="fas fa-dollar-sign" />}
+                />
+                <StatCard
+                  label="Payment Status"
+                  value={booking.paymentStatus}
+                  icon={<i className="fas fa-credit-card" />}
+                />
+                {booking.paymentStatus !== 'paid' && (
+                  <StatCard
+                    label="Balance"
+                    value={formatCurrency(balance)}
+                    icon={<i className="fas fa-wallet" />}
+                  />
+                )}
+                <StatCard
+                  label="Service"
+                  value={booking.service}
+                  icon={<i className="fas fa-paw" />}
+                />
+                {booking.pets.length > 0 && (
+                  <StatCard
+                    label="Pets"
+                    value={booking.pets.length}
+                    icon={<i className="fas fa-dog" />}
+                  />
+                )}
+              </div>
+            </div>
 
         {/* Main Content - Two Column Layout with Internal Scrolling */}
       <div
@@ -1195,7 +1245,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         >
           {/* Schedule and Visit Details */}
           <Card>
-            <SectionHeader title="Schedule and Visit Details" />
+            <SectionHeader title="Schedule & Service" />
             <div
               style={{
                 display: 'flex',

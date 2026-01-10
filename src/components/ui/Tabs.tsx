@@ -38,6 +38,7 @@ export interface TabsProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
   children: React.ReactNode;
+  hideHeader?: boolean; // Hide header, useful when header is rendered separately for sticky behavior
 }
 
 export const Tabs: React.FC<TabsProps> = ({
@@ -46,6 +47,7 @@ export const Tabs: React.FC<TabsProps> = ({
   activeTab: controlledActiveTab,
   onTabChange,
   children,
+  hideHeader = false,
 }) => {
   const isMobile = useMobile();
   const [internalActiveTab, setInternalActiveTab] = useState(defaultTab || tabs[0]?.id || '');
@@ -61,7 +63,9 @@ export const Tabs: React.FC<TabsProps> = ({
   return (
     <TabsContext.Provider value={{ activeTab, setActiveTab: handleTabChange }}>
       <div>
+        {!hideHeader && (
         <div
+          className="tabs-header"
           style={{
             display: 'flex',
             gap: isMobile ? tokens.spacing[1] : tokens.spacing[2],
@@ -153,6 +157,7 @@ export const Tabs: React.FC<TabsProps> = ({
             );
           })}
         </div>
+        )}
         {children}
       </div>
     </TabsContext.Provider>
