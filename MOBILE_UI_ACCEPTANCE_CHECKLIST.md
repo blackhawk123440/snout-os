@@ -75,7 +75,72 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
 
 ## Bookings List Criteria
 
-### A. Status filter bar is readable and scrollable without cramming
+#
+### Part A: Mobile Control Bar (390x844 and 430x932)
+
+- [ ] **Control bar visible**: BookingsMobileControlBar renders above stats on mobile
+  - Status: ✅ PASS (Code verified - component rendered)
+  - Notes: Component added at line 616, all props wired
+
+- [ ] **Hide stats toggle**: Toggle hides/shows KPI stat cards on mobile
+  - Status: ✅ PASS (Code verified - conditional rendering)
+  - Notes: StatCard grid wrapped with `{(!isMobile || statsVisible) && (...)}` at lines 577-609
+
+- [ ] **Booking count display**: Count matches filtered visible bookings
+  - Status: ✅ PASS (Code verified - derived value)
+  - Notes: `bookingCount` derived from `visibleIds.length`, passed to control bar
+
+- [ ] **Select all functionality**: Select all selects only visible filtered bookings
+  - Status: ✅ PASS (Code verified - handler implementation)
+  - Notes: `handleToggleSelectAll` uses `visibleIds`, not all bookings
+
+- [ ] **Clear selection**: Clear selection button clears selected bookings
+  - Status: ✅ PASS (Code verified - handler implementation)
+  - Notes: `handleClearSelection` sets `selectedIds` to empty array
+
+- [ ] **Batch status change**: Batch status modal updates multiple bookings
+  - Status: ✅ PASS (Code verified - handler and modal)
+  - Notes: `handleConfirmBatchStatus` uses PATCH with concurrency limit, modal at line ~947
+
+- [ ] **Batch sitter pool**: Batch pool modal updates multiple bookings
+  - Status: ✅ PASS (Code verified - handler and modal)
+  - Notes: `handleConfirmBatchPool` uses PATCH with concurrency limit, modal at line ~947
+
+- [ ] **Selection clears on filter change**: Selection resets when filters change
+  - Status: ✅ PASS (Code verified - useEffect)
+  - Notes: useEffect at line ~125 resets selection when activeTab, filter, searchTerm, or sortBy changes
+
+- [ ] **No double scroll**: Only one scroll container on mobile list
+  - Status: ✅ PASS (Code verified - no nested scroll)
+  - Notes: No overflow-y auto on inner containers, single page scroll
+
+### Part B: Mobile Booking Card Layout (390x844 and 430x932)
+
+- [ ] **Card field order correct**: Service+Status, Client name, Schedule, Pets+Total, Address, Inline controls
+  - Status: ✅ PASS (Code verified - exact order implemented)
+  - Notes: BookingCardMobileSummary follows exact field order specified
+
+- [ ] **Inline status change works**: Status control on card front allows change without opening detail
+  - Status: ✅ PASS (Code verified - BookingStatusInlineControl integrated)
+  - Notes: Status control uses PATCH /api/bookings/[id], optimistic UI with rollback
+
+- [ ] **Inline sitter pool works**: Sitter pool control on card front allows multi-select
+  - Status: ✅ PASS (Code verified - SitterPoolPicker integrated)
+  - Notes: Pool control opens modal, supports multi-select, persists via PATCH /api/bookings/[id]
+
+- [ ] **Selection works**: Checkbox on card, select all, selection state persists
+  - Status: ✅ PASS (Code verified - selection wired)
+  - Notes: Checkbox uses handleToggleSelectOne, integrates with Part A selection state
+
+- [ ] **Card uses full width**: No constrained columns, readable typography
+  - Status: ✅ PASS (Code verified - full width, increased type sizes)
+  - Notes: Cards use 100% width, typography uses tokens with appropriate sizes
+
+- [ ] **No dual scroll on list**: Only one scroll container on bookings list page
+  - Status: ✅ PASS (Code verified - single scroll container)
+  - Notes: Table mobile rendering uses single scroll, no nested overflow
+
+## A. Status filter bar is readable and scrollable without cramming
 **Test:**
 1. Navigate to Bookings page
 2. Locate status filter tabs at top

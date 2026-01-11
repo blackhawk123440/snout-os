@@ -22,6 +22,15 @@ export async function GET() {
             currentTier: true,
           },
         },
+        sitterPool: {
+          include: {
+            sitter: {
+              include: {
+                currentTier: true,
+              },
+            },
+          },
+        },
         timeSlots: {
           orderBy: {
             startAt: "asc",

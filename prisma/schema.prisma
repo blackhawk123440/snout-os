@@ -50,6 +50,7 @@ model Booking {
   messages             Message[]
   reports              Report[]
   sitterPoolOffers     SitterPoolOffer[]
+  sitterPool           BookingSitterPool[]    @relation("BookingSitterPool")
   client               Client?                @relation(fields: [clientId], references: [id])
   clientId             String?
   tags                 BookingTagAssignment[]
@@ -106,6 +107,7 @@ model Sitter {
   phoneType            String?
   stripeAccountId      String?
   sitterPoolOffers     SitterPoolOffer[]
+  bookingSitterPool    BookingSitterPool[] @relation("SitterPoolMembers")
   tierHistory          SitterTierHistory[]
   currentTierId        String?
   currentTier          SitterTier?         @relation(fields: [currentTierId], references: [id])
@@ -137,6 +139,20 @@ model SitterPoolOffer {
   @@index([bookingId])
   @@index([sitterId])
   @@index([status])
+}
+
+model BookingSitterPool {
+  id              String   @id @default(uuid())
+  bookingId       String
+  sitterId        String
+  createdAt       DateTime @default(now())
+  createdByUserId String?
+  booking         Booking  @relation("BookingSitterPool", fields: [bookingId], references: [id], onDelete: Cascade)
+  sitter          Sitter   @relation("SitterPoolMembers", fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, sitterId])
+  @@index([bookingId])
+  @@index([sitterId])
 }
 
 model Message {

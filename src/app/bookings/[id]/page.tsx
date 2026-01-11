@@ -117,12 +117,12 @@ export default function BookingDetailPage() {
   const [newStatus, setNewStatus] = useState<string>('');
   const [sitters, setSitters] = useState<Sitter[]>([]);
   
-  // Mobile layout state
+  // Mobile layout state - Default sections open (Part C requirement)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     overview: true,
-    schedule: false,
-    pets: false,
-    pricing: false,
+    schedule: true,
+    pets: true,
+    pricing: true,
     actions: false,
   });
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
@@ -1253,41 +1253,46 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 </div>
               </div>
 
-              {/* Desktop KPI Strip */}
+              {/* Desktop KPI Strip - Slimmed (Part D) */}
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                  gap: tokens.spacing[4],
+                  gap: tokens.spacing[3],
                 }}
               >
                 <StatCard
                   label="Total"
                   value={formatCurrency(booking.totalPrice)}
                   icon={<i className="fas fa-dollar-sign" />}
+                  compact={true}
                 />
                 <StatCard
                   label="Payment Status"
                   value={booking.paymentStatus}
                   icon={<i className="fas fa-credit-card" />}
+                  compact={true}
                 />
                 {booking.paymentStatus !== 'paid' && (
                   <StatCard
                     label="Balance"
                     value={formatCurrency(balance)}
                     icon={<i className="fas fa-wallet" />}
+                    compact={true}
                   />
                 )}
                 <StatCard
                   label="Service"
                   value={booking.service}
                   icon={<i className="fas fa-paw" />}
+                  compact={true}
                 />
                 {booking.pets.length > 0 && (
                   <StatCard
                     label="Pets"
                     value={booking.pets.length}
                     icon={<i className="fas fa-dog" />}
+                    compact={true}
                   />
                 )}
               </div>

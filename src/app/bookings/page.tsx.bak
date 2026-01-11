@@ -30,6 +30,8 @@ import { TableColumn } from '@/components/ui/Table';
 import { useMobile } from '@/lib/use-mobile';
 import { SitterAssignmentDisplay } from '@/components/sitter';
 import { BookingScheduleDisplay } from '@/components/booking';
+import { BookingRowActions } from '@/components/bookings/BookingRowActions';
+import { BookingsMobileControlBar } from '@/components/bookings/BookingsMobileControlBar';
 
 interface Booking {
   id: string;
@@ -67,6 +69,11 @@ interface Sitter {
   id: string;
   firstName: string;
   lastName: string;
+  currentTier?: {
+    id: string;
+    name: string;
+    priorityLevel?: number;
+  } | null;
 }
 
 function BookingsPageContent() {
@@ -83,7 +90,7 @@ function BookingsPageContent() {
   const [activeTab, setActiveTab] = useState<'all' | 'today' | 'pending' | 'confirmed' | 'completed' | 'unassigned'>('all');
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'today'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'name' | 'price'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'name' | 'price' | 'sitter'>('date');
 
   // Sync activeTab with filter
   useEffect(() => {
@@ -102,6 +109,18 @@ function BookingsPageContent() {
       setFilter('all');
     }
   }, [activeTab]);
+
+  // Part A: Persist stats visibility to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bookings-stats-visible', String(statsVisible));
+    }
+  }, [statsVisible]);
+
+  // Part A: Reset selection when filters change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activeTab, filter, searchTerm, sortBy]);
 
   // Initial load
   useEffect(() => {
@@ -227,6 +246,14 @@ function BookingsPageContent() {
         return new Date(b.startAt).getTime() - new Date(a.startAt).getTime();
       } else if (sortBy === 'name') {
           return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+      } else if (sortBy === 'sitter') {
+        // Sort by sitter name, unassigned at top
+        const aSitter = a.sitter ? `${a.sitter.firstName} ${a.sitter.lastName}`.toLowerCase() : '';
+        const bSitter = b.sitter ? `${b.sitter.firstName} ${b.sitter.lastName}`.toLowerCase() : '';
+        if (!aSitter && !bSitter) return 0;
+        if (!aSitter) return -1; // Unassigned first
+        if (!bSitter) return 1; // Unassigned first
+        return aSitter.localeCompare(bSitter);
       } else {
         return b.totalPrice - a.totalPrice;
       }
@@ -273,6 +300,29 @@ function BookingsPageContent() {
     return Object.entries(counts)
       .map(([species, count]) => `${count} ${species}${count > 1 ? 's' : ''}`)
       .join(', ');
+  };
+
+
+  const handleSitterAssign = async (bookingId: string, sitterId: string) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sitterId: sitterId || "" }),
+      });
+
+      if (response.ok) {
+        // Refresh bookings
+        const bookingsRes = await fetch('/api/bookings');
+        if (bookingsRes.ok) {
+          const data = await bookingsRes.json();
+          setBookings(data.bookings || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to assign sitter:', error);
+      throw error;
+    }
   };
 
   const columns: TableColumn<Booking>[] = [
@@ -331,17 +381,27 @@ function BookingsPageContent() {
         />
       ),
     },
-    {
-      key: 'sitter',
-      header: 'Sitter',
-      mobileLabel: 'Assigned Sitter',
+        {
+      key: 'actions',
+      header: 'Actions',
+      mobileLabel: 'Sitter Assignment',
       mobileOrder: 6,
       render: (row) => (
-        <SitterAssignmentDisplay
+        <BookingRowActions
+          bookingId={row.id}
           sitter={row.sitter}
-          showUnassigned={true}
-          compact={true}
-          showTierBadge={true}
+          sitters={sitters.map(s => ({
+            id: s.id,
+            firstName: s.firstName,
+            lastName: s.lastName,
+            currentTier: s.currentTier,
+          }))}
+          onAssign={async (bookingId, sitterId) => {
+            await handleSitterAssign(bookingId, sitterId);
+          }}
+          onUnassign={async (bookingId) => {
+            await handleSitterAssign(bookingId, '');
+          }}
         />
       ),
     },
@@ -373,15 +433,16 @@ function BookingsPageContent() {
         title="Bookings"
         description="Manage all bookings and assignments"
         actions={
-          <a href="https://snout-form.onrender.com" target="_blank" rel="noopener noreferrer">
+          <Link href="/bookings/new">
             <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
               New Booking
             </Button>
-          </a>
+          </Link>
         }
       />
 
 
+      )}
       {/* Overview Dashboard Cards */}
       <div
         style={{
@@ -421,6 +482,21 @@ function BookingsPageContent() {
       {isMobile ? (
         <>
           {/* Mobile: MobileFilterBar */}
+          {/* Part A: Mobile Control Bar */}
+          {isMobile && (
+            <BookingsMobileControlBar
+              count={filteredAndSortedBookings.length}
+              statsVisible={statsVisible}
+              onToggleStats={setStatsVisible}
+              selectedCount={selectedIds.size}
+              allSelected={selectedIds.size === filteredAndSortedBookings.length && filteredAndSortedBookings.length > 0}
+              onToggleSelectAll={handleToggleSelectAll}
+              onBatchStatus={handleBatchStatus}
+              onBatchSitterPool={handleBatchSitterPool}
+              onClearSelection={handleClearSelection}
+            />
+          )}
+
           <MobileFilterBar
             activeFilter={activeTab}
             onFilterChange={(filterId) => setActiveTab(filterId as any)}
@@ -459,6 +535,7 @@ function BookingsPageContent() {
                   { value: 'date', label: 'Date' },
                   { value: 'name', label: 'Name' },
                   { value: 'price', label: 'Price' },
+                    { value: 'sitter', label: 'Sitter' },
                 ]}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
@@ -553,6 +630,7 @@ function BookingsPageContent() {
                     { value: 'date', label: 'Date' },
                     { value: 'name', label: 'Name' },
                     { value: 'price', label: 'Price' },
+                    { value: 'sitter', label: 'Sitter' },
                   ]}
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
