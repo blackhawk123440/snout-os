@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { BuildHash } from "@/components/ui/BuildHash";
 
 export const metadata: Metadata = {
   title: "Snout OS - Pet Care Management System",
@@ -58,6 +59,7 @@ export default function RootLayout({
           <div className="w-full min-h-screen">
             {children}
           </div>
+          <BuildHash />
         </Providers>
       </body>
     </html>

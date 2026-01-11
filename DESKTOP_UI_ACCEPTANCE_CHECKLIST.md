@@ -30,6 +30,12 @@
 
 **Notes**: Sticky filters implemented. Mobile uses cards. Desktop uses table with sticky header. BookingRowActions component provides assign/unassign actions on both mobile and desktop. Part A: BookingsMobileControlBar only renders on mobile (code verified), stats always visible on desktop, batch modals available on all viewports. Part B: Desktop table layout unchanged (mobileCardRenderer only affects mobile), BookingCardMobileSummary used for mobile cards with exact field order and inline controls. Desktop verified: No regression from Part A and Part B changes - table layout intact, no modal clipping, sticky headers/filters work, row actions intact.
 
+### Visual Verification: Brand Colors
+
+- [ ] **Brand colors visible on desktop**: Dashboard shows pink/white control surface with brown accents, not gray default theme
+  - Status: ⏳ Pending Visual Verification
+  - Notes: Design tokens updated - semantic aliases use brand colors (#fce1ef pink, #432f21 brown). Components automatically inherit. **REQUIRES SCREENSHOT**.
+
 #
 ### Part A: Desktop Compatibility (1024, 1280, 1440)
 
