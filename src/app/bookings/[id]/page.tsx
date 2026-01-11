@@ -28,13 +28,14 @@ import {
   TabPanel,
 } from '@/components/ui';
 import { BookingScheduleDisplay, isOvernightRangeService } from '@/components/booking';
-import { SitterAssignmentDisplay, SitterTierBadge } from '@/components/sitter';
+import { SitterAssignmentDisplay, SitterTierBadge, SitterInfo } from '@/components/sitter';
 import { BookingForm } from '@/components/bookings/BookingForm';
 import { bookingToFormValues, BookingFormValues } from '@/lib/bookings/booking-form-mapper';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { getPricingForDisplay } from '@/lib/pricing-display-helpers';
 import { useMobile } from '@/lib/use-mobile';
+import { Tabs, TabPanel } from '@/components/ui';
 
 interface Pet {
   id: string;
@@ -95,6 +96,9 @@ interface Booking {
   pets: Pet[];
   timeSlots: TimeSlot[];
   sitter?: Sitter | null;
+  sitterPool?: Array<{
+    sitter: SitterInfo;
+  }>;
 }
 
 export default function BookingDetailPage() {
@@ -113,11 +117,20 @@ export default function BookingDetailPage() {
   const [showUnassignModal, setShowUnassignModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedSitterId, setSelectedSitterId] = useState<string>('');
+  const [selectedPoolSitterIds, setSelectedPoolSitterIds] = useState<Set<string>>(new Set());
+  const [assignMode, setAssignMode] = useState<'direct' | 'pool'>('direct');
   const [showEditModal, setShowEditModal] = useState(false);
   const [newStatus, setNewStatus] = useState<string>('');
   const [sitters, setSitters] = useState<Sitter[]>([]);
   
-  // Mobile layout state - All sections open (no dropdowns)
+  // Mobile layout state - Default sections open (Part C requirement)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    overview: true,
+    schedule: true,
+    pets: true,
+    pricing: true,
+    actions: false,
+  });
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
   const [showTipLinkModal, setShowTipLinkModal] = useState(false);
   const [paymentLinkMessage, setPaymentLinkMessage] = useState('');
@@ -126,6 +139,9 @@ export default function BookingDetailPage() {
   const [showTipLinkConfirm, setShowTipLinkConfirm] = useState(false);
   const [showMoreActionsModal, setShowMoreActionsModal] = useState(false);
   
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   useEffect(() => {
     if (bookingId) {
@@ -163,8 +179,13 @@ export default function BookingDetailPage() {
           startAt: new Date(ts.startAt),
           endAt: new Date(ts.endAt),
         })),
+        sitterPool: data.booking.sitterPool || [],
       };
       setBooking(bookingData);
+      // Update pool selection state when booking loads
+      if (data.booking.sitterPool && data.booking.sitterPool.length > 0) {
+        setSelectedPoolSitterIds(new Set(data.booking.sitterPool.map((p: any) => p.sitter?.id).filter(Boolean)));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load booking');
     } finally {
@@ -319,6 +340,47 @@ export default function BookingDetailPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSitterPoolChange = async (sitterIds: string[]) => {
+    if (!booking) return;
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sitterPoolIds: sitterIds }),
+      });
+      if (response.ok) {
+        await fetchBooking();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to update sitter pool: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Failed to update sitter pool:', err);
+      alert('Failed to update sitter pool');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTogglePoolSitter = (sitterId: string) => {
+    setSelectedPoolSitterIds(prev => {
+      const next = new Set(prev);
+      if (next.has(sitterId)) {
+        next.delete(sitterId);
+      } else {
+        next.add(sitterId);
+      }
+      return next;
+    });
+  };
+
+  const handleSavePool = async () => {
+    await handleSitterPoolChange(Array.from(selectedPoolSitterIds));
+    setShowAssignModal(false);
+    setSelectedPoolSitterIds(new Set(booking?.sitterPool?.map(p => p.sitter?.id).filter(Boolean) || []));
   };
 
   const handleUnassign = async () => {
@@ -794,60 +856,113 @@ Total: ${formatCurrency(booking.totalPrice)}`;
               overflow: 'hidden',
             }}
           >
-            {/* Overview Section - Card Container (like Contact, Schedule, etc.) */}
-            <Card style={{ margin: tokens.spacing[3], marginTop: tokens.spacing[3], padding: tokens.spacing[3] }}>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Overview
+            {/* Sticky Summary Header - Fixed container to prevent double scroll */}
+            <div
+              style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: tokens.zIndex.sticky + 1,
+                backgroundColor: tokens.colors.background.primary,
+                borderBottom: `1px solid ${tokens.colors.border.default}`,
+                padding: tokens.spacing[3],
+                boxShadow: tokens.shadows.sm,
+                overflow: 'visible', // Ensure content is visible
+              }}
+            >
+              {/* Back button and Status */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: tokens.spacing[2],
+                }}
+              >
+                <Link href="/bookings">
+                  <Button variant="ghost" size="sm" leftIcon={<i className="fas fa-arrow-left" />}>
+                    Back
+                  </Button>
+                </Link>
+                <Badge variant={getStatusBadgeVariant(booking.status)}>
+                  {booking.status}
+                </Badge>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
-                {/* Back button and Status */}
+              
+              {/* Client Name and Service */}
+              <div
+                style={{
+                  marginBottom: tokens.spacing[2],
+                }}
+              >
                 <div
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    fontSize: tokens.typography.fontSize.lg[0],
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    color: tokens.colors.text.primary,
+                    marginBottom: tokens.spacing[1],
                   }}
                 >
-                  <Link href="/bookings">
-                    <Button variant="ghost" size="sm" leftIcon={<i className="fas fa-arrow-left" />}>
-                      Back
-                    </Button>
-                  </Link>
-                  <Badge variant={getStatusBadgeVariant(booking.status)}>
-                    {booking.status}
-                  </Badge>
+                  {booking.firstName} {booking.lastName}
                 </div>
-                
-                {/* Client Name and Service */}
+                <div
+                  style={{
+                    fontSize: tokens.typography.fontSize.sm[0],
+                    color: tokens.colors.text.secondary,
+                  }}
+                >
+                  {booking.service}
+                </div>
+              </div>
+
+              {/* Total, Payment, and Sitter (if assigned) */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: booking.sitter ? '1fr 1fr 1fr' : '1fr 1fr',
+                  gap: tokens.spacing[2],
+                }}
+              >
                 <div>
                   <div
                     style={{
-                      fontSize: tokens.typography.fontSize.lg[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                      color: tokens.colors.text.primary,
+                      fontSize: tokens.typography.fontSize.xs[0],
+                      color: tokens.colors.text.secondary,
                       marginBottom: tokens.spacing[1],
                     }}
                   >
-                    {booking.firstName} {booking.lastName}
+                    Total
+                  </div>
+                  <div
+                    style={{
+                      fontSize: tokens.typography.fontSize.base[0],
+                      fontWeight: tokens.typography.fontWeight.bold,
+                      color: tokens.colors.text.primary,
+                    }}
+                  >
+                    {formatCurrency(booking.totalPrice)}
+                  </div>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: tokens.typography.fontSize.xs[0],
+                      color: tokens.colors.text.secondary,
+                      marginBottom: tokens.spacing[1],
+                    }}
+                  >
+                    Payment
                   </div>
                   <div
                     style={{
                       fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: booking.paymentStatus === 'Paid' ? tokens.colors.success.DEFAULT : tokens.colors.text.primary,
                     }}
                   >
-                    {booking.service}
+                    {booking.paymentStatus || 'Pending'}
                   </div>
                 </div>
-
-                {/* Total, Payment, and Sitter (if assigned) */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: booking.sitter ? '1fr 1fr 1fr' : '1fr 1fr',
-                    gap: tokens.spacing[3],
-                  }}
-                >
+                {booking.sitter && (
                   <div>
                     <div
                       style={{
@@ -856,60 +971,18 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                         marginBottom: tokens.spacing[1],
                       }}
                     >
-                      Total
+                      Sitter
                     </div>
-                    <div
-                      style={{
-                        fontSize: tokens.typography.fontSize.base[0],
-                        fontWeight: tokens.typography.fontWeight.bold,
-                        color: tokens.colors.text.primary,
-                      }}
-                    >
-                      {formatCurrency(booking.totalPrice)}
-                    </div>
+                    <SitterAssignmentDisplay
+                      sitter={booking.sitter}
+                      showUnassigned={false}
+                      compact={true}
+                      showTierBadge={true}
+                    />
                   </div>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: tokens.typography.fontSize.xs[0],
-                        color: tokens.colors.text.secondary,
-                        marginBottom: tokens.spacing[1],
-                      }}
-                    >
-                      Payment
-                    </div>
-                    <div
-                      style={{
-                        fontSize: tokens.typography.fontSize.sm[0],
-                        fontWeight: tokens.typography.fontWeight.semibold,
-                        color: booking.paymentStatus === 'Paid' ? tokens.colors.success.DEFAULT : tokens.colors.text.primary,
-                      }}
-                    >
-                      {booking.paymentStatus || 'Pending'}
-                    </div>
-                  </div>
-                  {booking.sitter && (
-                    <div>
-                      <div
-                        style={{
-                          fontSize: tokens.typography.fontSize.xs[0],
-                          color: tokens.colors.text.secondary,
-                          marginBottom: tokens.spacing[1],
-                        }}
-                      >
-                        Sitter
-                      </div>
-                      <SitterAssignmentDisplay
-                        sitter={booking.sitter}
-                        showUnassigned={false}
-                        compact={true}
-                        showTierBadge={true}
-                      />
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-            </Card>
+            </div>
 
             {/* Scrollable Content */}
             <div
@@ -954,55 +1027,115 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 </div>
               </Card>
 
-              {/* Schedule Section - Open Container */}
-              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: tokens.spacing[3] }}>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Schedule
-                </div>
-                <BookingScheduleDisplay
-                  service={booking.service}
-                  startAt={booking.startAt}
-                  endAt={booking.endAt}
-                  timeSlots={booking.timeSlots}
-                  address={booking.address}
-                  compact={false}
-                />
+              {/* Collapsible Schedule Section */}
+              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'visible' }}>
+                <button
+                  onClick={() => toggleSection('schedule')}
+                  style={{
+                    width: '100%',
+                    padding: tokens.spacing[3],
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    borderBottom: expandedSections.schedule ? `1px solid ${tokens.colors.border.default}` : 'none',
+                  }}
+                >
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Schedule
+                  </div>
+                  <i className={`fas fa-chevron-${expandedSections.schedule ? 'up' : 'down'}`} style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.xs[0] }} />
+                </button>
+                {expandedSections.schedule && (
+                  <div style={{ padding: tokens.spacing[3], paddingTop: tokens.spacing[2] }}>
+                    <BookingScheduleDisplay
+                      service={booking.service}
+                      startAt={booking.startAt}
+                      endAt={booking.endAt}
+                      timeSlots={booking.timeSlots}
+                      address={booking.address}
+                      compact={false}
+                    />
+                  </div>
+                )}
               </Card>
 
-              {/* Pets Section - Open Container */}
+              {/* Collapsible Pets Section */}
               {booking.pets && booking.pets.length > 0 && (
-                <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: tokens.spacing[3] }}>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Pets ({booking.pets.length})
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
-                    {booking.pets.map((pet) => (
-                      <div key={pet.id} style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{pet.name || 'Unnamed'} • {pet.species}</div>
-                        {pet.breed && <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{pet.breed}</div>}
+                <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'visible' }}>
+                  <button
+                    onClick={() => toggleSection('pets')}
+                    style={{
+                      width: '100%',
+                      padding: tokens.spacing[3],
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer',
+                      borderBottom: expandedSections.pets ? `1px solid ${tokens.colors.border.default}` : 'none',
+                    }}
+                  >
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Pets ({booking.pets.length})
+                    </div>
+                    <i className={`fas fa-chevron-${expandedSections.pets ? 'up' : 'down'}`} style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.xs[0] }} />
+                  </button>
+                  {expandedSections.pets && (
+                    <div style={{ padding: tokens.spacing[3], paddingTop: tokens.spacing[2] }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                        {booking.pets.map((pet) => (
+                          <div key={pet.id} style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
+                            <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{pet.name || 'Unnamed'} • {pet.species}</div>
+                            {pet.breed && <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{pet.breed}</div>}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </Card>
               )}
 
-              {/* Pricing Section - Open Container */}
-              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: tokens.spacing[3] }}>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Pricing
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
-                  {pricingBreakdown.map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: tokens.spacing[2], borderBottom: idx < pricingBreakdown.length - 1 ? `1px solid ${tokens.colors.border.default}` : 'none' }}>
-                      <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>{item.label}</div>
-                      <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{formatCurrency(item.amount)}</div>
-                    </div>
-                  ))}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: tokens.spacing[2], paddingTop: tokens.spacing[2], borderTop: `2px solid ${tokens.colors.border.default}`, fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.base[0] }}>
-                    <div>Total</div>
-                    <div>{formatCurrency(pricingDisplay.total)}</div>
+              {/* Collapsible Pricing Section */}
+              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'visible' }}>
+                <button
+                  onClick={() => toggleSection('pricing')}
+                  style={{
+                    width: '100%',
+                    padding: tokens.spacing[3],
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    border: 'none',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    borderBottom: expandedSections.pricing ? `1px solid ${tokens.colors.border.default}` : 'none',
+                  }}
+                >
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Pricing
                   </div>
-                </div>
+                  <i className={`fas fa-chevron-${expandedSections.pricing ? 'up' : 'down'}`} style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.xs[0] }} />
+                </button>
+                {expandedSections.pricing && (
+                  <div style={{ padding: tokens.spacing[3], paddingTop: tokens.spacing[2] }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                      {pricingBreakdown.map((item, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: tokens.spacing[2], borderBottom: idx < pricingBreakdown.length - 1 ? `1px solid ${tokens.colors.border.default}` : 'none' }}>
+                          <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>{item.label}</div>
+                          <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{formatCurrency(item.amount)}</div>
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: tokens.spacing[2], paddingTop: tokens.spacing[2], borderTop: `2px solid ${tokens.colors.border.default}`, fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.base[0] }}>
+                        <div>Total</div>
+                        <div>{formatCurrency(pricingDisplay.total)}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </Card>
             </div>
             {/* Fixed Bottom Action Bar - Professional Design */}
@@ -1027,55 +1160,71 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 variant="primary"
                 size="md"
                 onClick={() => setShowEditModal(true)}
-                leftIcon={<i className="fas fa-edit" />}
                 style={{ 
                   flex: 1,
                   minHeight: '44px',
                   fontSize: tokens.typography.fontSize.base[0],
                   fontWeight: tokens.typography.fontWeight.semibold,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: tokens.spacing[2],
                 }}
               >
+                <i className="fas fa-edit" />
                 Edit
               </Button>
               <Button
                 variant="secondary"
                 size="md"
                 onClick={() => setShowPaymentLinkModal(true)}
-                leftIcon={<i className="fas fa-dollar-sign" />}
                 style={{ 
                   flex: 1,
                   minHeight: '44px',
                   fontSize: tokens.typography.fontSize.base[0],
                   fontWeight: tokens.typography.fontWeight.medium,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: tokens.spacing[2],
                 }}
               >
+                <i className="fas fa-dollar-sign" />
                 Payment
               </Button>
               <Button
                 variant="secondary"
                 size="md"
                 onClick={() => setShowTipLinkModal(true)}
-                leftIcon={<i className="fas fa-heart" />}
                 style={{ 
                   flex: 1,
                   minHeight: '44px',
                   fontSize: tokens.typography.fontSize.base[0],
                   fontWeight: tokens.typography.fontWeight.medium,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: tokens.spacing[2],
                 }}
               >
+                <i className="fas fa-heart" />
                 Tip
               </Button>
               <Button
                 variant="ghost"
                 size="md"
                 onClick={() => setShowMoreActionsModal(true)}
-                leftIcon={<i className="fas fa-ellipsis-h" />}
                 style={{ 
                   minWidth: '60px',
                   minHeight: '44px',
                   fontSize: tokens.typography.fontSize.base[0],
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: tokens.spacing[2],
                 }}
               >
+                <i className="fas fa-ellipsis-h" />
                 More
               </Button>
             </div>
@@ -2292,55 +2441,139 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         </div>
       </Modal>
 
-      {/* Assign Sitter Modal */}
+      {/* Assign Sitter Modal with Tabs for Direct Assignment and Sitter Pool */}
       <Modal
         isOpen={showAssignModal}
         onClose={() => {
           setShowAssignModal(false);
           setSelectedSitterId('');
+          setAssignMode('direct');
+          setSelectedPoolSitterIds(new Set(booking?.sitterPool?.map(p => p.sitter?.id).filter(Boolean) || []));
         }}
         title={booking?.sitter ? "Change Sitter Assignment" : "Assign Sitter"}
-        size={isMobile ? 'full' : 'md'}
+        size={isMobile ? 'full' : 'lg'}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-          <Select
-            label="Select Sitter"
-            value={selectedSitterId}
-            onChange={(e) => setSelectedSitterId(e.target.value)}
-            options={[
-              { value: '', label: 'Select a sitter...' },
-              ...sitters.map(s => ({
-                value: s.id,
-                label: `${s.firstName} ${s.lastName}${(s as any).currentTier ? ` (${(s as any).currentTier.name})` : ''}`,
-              })),
-            ]}
-          />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[3] }}>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowAssignModal(false);
-                setSelectedSitterId('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onClick={async () => {
-                if (selectedSitterId) {
-                  await handleSitterAssign(selectedSitterId);
-                  setShowAssignModal(false);
-                  setSelectedSitterId('');
-                }
-              }}
-              disabled={!selectedSitterId || saving}
-              isLoading={saving}
-            >
-              {booking?.sitter ? "Update Assignment" : "Assign Sitter"}
-            </Button>
-          </div>
-        </div>
+        <Tabs
+          tabs={[
+            { id: 'direct', label: 'Direct Assignment' },
+            { id: 'pool', label: 'Sitter Pool' },
+          ]}
+          activeTab={assignMode}
+          onTabChange={(tab) => setAssignMode(tab as 'direct' | 'pool')}
+        >
+          <TabPanel id="direct">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+              <Select
+                label="Select Sitter"
+                value={selectedSitterId}
+                onChange={(e) => setSelectedSitterId(e.target.value)}
+                options={[
+                  { value: '', label: 'Select a sitter...' },
+                  ...sitters.map(s => ({
+                    value: s.id,
+                    label: `${s.firstName} ${s.lastName}${(s as any).currentTier ? ` (${(s as any).currentTier.name})` : ''}`,
+                  })),
+                ]}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[3] }}>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowAssignModal(false);
+                    setSelectedSitterId('');
+                    setAssignMode('direct');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={async () => {
+                    if (selectedSitterId) {
+                      await handleSitterAssign(selectedSitterId);
+                      setShowAssignModal(false);
+                      setSelectedSitterId('');
+                      setAssignMode('direct');
+                    }
+                  }}
+                  disabled={!selectedSitterId || saving}
+                  isLoading={saving}
+                >
+                  {booking?.sitter ? "Update Assignment" : "Assign Sitter"}
+                </Button>
+              </div>
+            </div>
+          </TabPanel>
+          
+          <TabPanel id="pool">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+                Select one or more sitters for the pool. Multiple sitters can be assigned to this booking.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], maxHeight: '400px', overflowY: 'auto' }}>
+                {sitters.map(sitterOption => {
+                  const isSelected = selectedPoolSitterIds.has(sitterOption.id);
+                  return (
+                    <label
+                      key={sitterOption.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: tokens.spacing[3],
+                        padding: tokens.spacing[3],
+                        cursor: 'pointer',
+                        borderRadius: tokens.borderRadius.md,
+                        border: `1px solid ${tokens.colors.border.default}`,
+                        backgroundColor: isSelected ? tokens.colors.background.secondary : tokens.colors.background.primary,
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleTogglePoolSitter(sitterOption.id)}
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          cursor: 'pointer',
+                        }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                          {sitterOption.firstName} {sitterOption.lastName}
+                        </div>
+                        {(sitterOption as any).currentTier && (
+                          <div style={{ marginTop: tokens.spacing[1] }}>
+                            <SitterTierBadge tier={(sitterOption as any).currentTier} />
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[3] }}>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowAssignModal(false);
+                    setAssignMode('direct');
+                    setSelectedPoolSitterIds(new Set(booking?.sitterPool?.map(p => p.sitter?.id).filter(Boolean) || []));
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleSavePool}
+                  disabled={saving}
+                  isLoading={saving}
+                >
+                  Save Pool
+                </Button>
+              </div>
+            </div>
+          </TabPanel>
+        </Tabs>
       </Modal>
 
       {/* Unassign Modal */}
