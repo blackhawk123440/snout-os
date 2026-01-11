@@ -105,30 +105,30 @@ export const tokens = {
       white: '#ffffff',
     },
     
-    // Semantic aliases
+    // Semantic aliases - Snout brand theme
     background: {
-      primary: '#ffffff',
-      secondary: '#fafafa',
-      tertiary: '#f5f5f5',
-      inverse: '#171717',
-      accent: '#fce1ef', // Snout pink for subtle accents
+      primary: '#ffffff', // White
+      secondary: '#fce1ef', // Snout pink - warm tint instead of gray
+      tertiary: '#fef7fb', // Very light pink tint
+      inverse: '#432f21', // Snout brown
+      accent: '#fce1ef', // Snout pink for accents
     },
     
     text: {
-      primary: '#171717',
-      secondary: '#525252',
-      tertiary: '#737373',
+      primary: '#432f21', // Snout brown - primary text
+      secondary: '#525252', // Gray for secondary text (readable on pink)
+      tertiary: '#737373', // Lighter gray for tertiary
       disabled: '#a3a3a3',
-      inverse: '#ffffff',
+      inverse: '#ffffff', // White text on brown
       brand: '#432f21', // Snout brown
     },
     
     border: {
-      default: '#e5e5e5',
-      muted: '#f5f5f5',
-      strong: '#d4d4d4',
+      default: '#f5bfdb', // Light pink border - warm instead of gray
+      muted: '#fce1ef', // Snout pink - very subtle borders
+      strong: '#432f21', // Snout brown for strong borders
       focus: '#432f21', // Snout brown
-      accent: '#fce1ef', // Snout pink for subtle borders
+      accent: '#fce1ef', // Snout pink
     },
   },
   

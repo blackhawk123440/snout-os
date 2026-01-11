@@ -140,6 +140,20 @@ This checklist matches the acceptance criteria for the mobile UI reconstruction.
   - Status: ✅ PASS (Code verified - single scroll container)
   - Notes: Table mobile rendering uses single scroll, no nested overflow
 
+### Visual Verification: Brand Colors and Sitter Pool
+
+- [ ] **Brand colors visible on mobile booking cards**: Page background and cards show pink/white control surface with brown accents
+  - Status: ⏳ Pending Visual Verification
+  - Notes: Design tokens updated - background.secondary uses #fce1ef (pink), text.primary uses #432f21 (brown), border.default uses #f5bfdb (light pink). Components automatically inherit via semantic tokens. **REQUIRES SCREENSHOT**.
+
+- [ ] **Sitter pool visible on mobile booking card**: Card shows sitter pool summary when pool exists, SitterPoolPicker control is visible
+  - Status: ⏳ Pending Visual Verification  
+  - Notes: BookingCardMobileSummary shows pool summary at line 247-258, SitterPoolPicker integrated at line 277-282. API returns sitterPool data. **REQUIRES SCREENSHOT**.
+
+- [ ] **Sitter pool editable from card**: Can add/edit sitter pool directly from mobile booking card
+  - Status: ⏳ Pending Visual Verification
+  - Notes: SitterPoolPicker allows multi-select, persists via PATCH /api/bookings/[id]. **REQUIRES SCREENSHOT**.
+
 ## A. Status filter bar is readable and scrollable without cramming
 **Test:**
 1. Navigate to Bookings page
