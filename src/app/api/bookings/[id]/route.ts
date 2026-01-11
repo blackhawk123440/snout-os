@@ -20,6 +20,15 @@ export async function GET(
             currentTier: true,
           },
         },
+        sitterPool: {
+          include: {
+            sitter: {
+              include: {
+                currentTier: true,
+              },
+            },
+          },
+        },
         timeSlots: {
           orderBy: {
             startAt: "asc",
@@ -66,7 +75,8 @@ export async function PATCH(
       paymentStatus, 
       notes,
       timeSlots,
-      pets
+      pets,
+      sitterPoolIds
     } = body;
 
     const booking = await prisma.booking.findUnique({
@@ -76,6 +86,15 @@ export async function PATCH(
         sitter: {
           include: {
             currentTier: true,
+          },
+        },
+        sitterPool: {
+          include: {
+            sitter: {
+              include: {
+                currentTier: true,
+              },
+            },
           },
         },
         timeSlots: {
@@ -305,6 +324,70 @@ export async function PATCH(
             })),
           });
         }
+
+        // Handle sitterPool updates if provided
+        if (sitterPoolIds !== undefined && Array.isArray(sitterPoolIds)) {
+          // Validate sitter IDs exist
+          for (const sitterId of sitterPoolIds) {
+            if (typeof sitterId !== 'string') {
+              throw new Error("Invalid sitter ID in sitterPoolIds");
+            }
+            const sitterExists = await tx.sitter.findUnique({ where: { id: sitterId } });
+            if (!sitterExists) {
+              throw new Error(`Sitter not found: ${sitterId}`);
+            }
+          }
+
+          // Delete existing sitter pool entries
+          await tx.bookingSitterPool.deleteMany({
+            where: { bookingId: id },
+          });
+
+          // Create new sitter pool entries
+          if (sitterPoolIds.length > 0) {
+            const currentUser = await getCurrentUserSafe(request);
+            await tx.bookingSitterPool.createMany({
+              data: sitterPoolIds.map((sitterId: string) => ({
+                bookingId: id,
+                sitterId,
+                createdByUserId: currentUser?.id || null,
+              })),
+              skipDuplicates: true,
+            });
+          }
+        }
+      });
+    } else if (sitterPoolIds !== undefined && Array.isArray(sitterPoolIds)) {
+      // Handle sitterPool updates in a separate transaction if timeSlots/pets weren't updated
+      await prisma.$transaction(async (tx) => {
+        // Validate sitter IDs exist
+        for (const sitterId of sitterPoolIds) {
+          if (typeof sitterId !== 'string') {
+            throw new Error("Invalid sitter ID in sitterPoolIds");
+          }
+          const sitterExists = await tx.sitter.findUnique({ where: { id: sitterId } });
+          if (!sitterExists) {
+            throw new Error(`Sitter not found: ${sitterId}`);
+          }
+        }
+
+        // Delete existing sitter pool entries
+        await tx.bookingSitterPool.deleteMany({
+          where: { bookingId: id },
+        });
+
+        // Create new sitter pool entries
+        if (sitterPoolIds.length > 0) {
+          const currentUser = await getCurrentUserSafe(request);
+          await tx.bookingSitterPool.createMany({
+            data: sitterPoolIds.map((sitterId: string) => ({
+              bookingId: id,
+              sitterId,
+              createdByUserId: currentUser?.id || null,
+            })),
+            skipDuplicates: true,
+          });
+        }
       });
     }
 
@@ -316,6 +399,15 @@ export async function PATCH(
         sitter: {
           include: {
             currentTier: true,
+          },
+        },
+        sitterPool: {
+          include: {
+            sitter: {
+              include: {
+                currentTier: true,
+              },
+            },
           },
         },
         timeSlots: {
@@ -364,6 +456,24 @@ export async function PATCH(
       } else if (!sitterId && previousSitterId) {
         // Sitter was unassigned
         await emitSitterUnassigned(finalBooking, previousSitterId);
+      }
+    }
+
+    // Log sitter pool changes if provided
+    if (sitterPoolIds !== undefined) {
+      const { logEvent } = await import("@/lib/event-logger");
+      const previousPool = booking.sitterPool || [];
+      const previousPoolIds = previousPool.map((p: any) => p.sitterId).sort();
+      const newPoolIds = Array.isArray(sitterPoolIds) ? sitterPoolIds.sort() : [];
+      
+      if (JSON.stringify(previousPoolIds) !== JSON.stringify(newPoolIds)) {
+        await logEvent("booking.sitterPoolUpdated", "success", {
+          bookingId: id,
+          metadata: {
+            previousPoolIds,
+            newPoolIds,
+          },
+        });
       }
     }
 

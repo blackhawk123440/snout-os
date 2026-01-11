@@ -31,6 +31,9 @@ import { useMobile } from '@/lib/use-mobile';
 import { SitterAssignmentDisplay } from '@/components/sitter';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { BookingRowActions } from '@/components/bookings/BookingRowActions';
+import { BookingCardMobileSummary } from '@/components/bookings/BookingCardMobileSummary';
+import { Modal } from '@/components/ui';
+import { BookingsMobileControlBar } from '@/components/bookings/BookingsMobileControlBar';
 
 interface Booking {
   id: string;
@@ -54,6 +57,17 @@ interface Booking {
     startAt: Date | string;
     endAt: Date | string;
     duration?: number;
+  }>;
+  sitterPool?: Array<{
+    sitter: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      currentTier?: {
+        id: string;
+        name: string;
+      } | null;
+    };
   }>;
 }
 
@@ -90,6 +104,19 @@ function BookingsPageContent() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'today'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name' | 'price' | 'sitter'>('date');
+  // Part A: Mobile control bar state
+  const [statsVisible, setStatsVisible] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const stored = localStorage.getItem('bookings-stats-visible');
+    return stored !== null ? stored === 'true' : true;
+  });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchStatusModalOpen, setBatchStatusModalOpen] = useState(false);
+  const [batchPoolModalOpen, setBatchPoolModalOpen] = useState(false);
+  const [batchStatusValue, setBatchStatusValue] = useState<string>('');
+  const [batchPoolSitterIds, setBatchPoolSitterIds] = useState<string[]>([]);
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
 
   // Sync activeTab with filter
   useEffect(() => {
@@ -108,6 +135,18 @@ function BookingsPageContent() {
       setFilter('all');
     }
   }, [activeTab]);
+  // Part A: Persist stats visibility
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bookings-stats-visible', String(statsVisible));
+    }
+  }, [statsVisible]);
+
+  // Part A: Reset selection when filters change
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [activeTab, filter, searchTerm, sortBy]);
+
 
   // Initial load
   useEffect(() => {
@@ -248,6 +287,12 @@ function BookingsPageContent() {
 
     return filtered;
   }, [bookings, activeTab, filter, searchTerm, sortBy]);
+  // Part A: Derived values
+  const visibleIds = useMemo(() => filteredAndSortedBookings.map(b => b.id), [filteredAndSortedBookings]);
+  const bookingCount = visibleIds.length;
+  const selectedCount = selectedIds.length;
+  const allSelected = bookingCount > 0 && visibleIds.every(id => selectedSet.has(id));
+
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'success' | 'warning' | 'error' | 'neutral'> = {
@@ -414,6 +459,178 @@ function BookingsPageContent() {
     },
   ];
                                       
+  // Part A: Handlers (BEFORE return)
+  const handleToggleStats = (visible: boolean) => {
+    setStatsVisible(visible);
+  };
+
+  const handleToggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds([...visibleIds]);
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  const handleToggleSelectOne = (bookingId: string) => {
+    setSelectedIds(prev => {
+      if (prev.includes(bookingId)) {
+        return prev.filter(id => id !== bookingId);
+      } else {
+        return [...prev, bookingId];
+      }
+    });
+  };
+
+  const handleOpenBatchStatus = () => {
+    if (selectedCount === 0) return;
+    setBatchStatusValue('');
+    setBatchStatusModalOpen(true);
+  };
+
+  const handleConfirmBatchStatus = async () => {
+    if (!batchStatusValue || selectedCount === 0) return;
+    
+    const ids = [...selectedIds];
+    const concurrencyLimit = 5;
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < ids.length; i += concurrencyLimit) {
+      const batch = ids.slice(i, i + concurrencyLimit);
+      const results = await Promise.all(
+        batch.map(async (bookingId) => {
+          try {
+            const response = await fetch(`/api/bookings/${bookingId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: batchStatusValue }),
+            });
+            return response.ok;
+          } catch {
+            return false;
+          }
+        })
+      );
+      successCount += results.filter(r => r).length;
+      failCount += results.filter(r => !r).length;
+    }
+
+    setBatchStatusModalOpen(false);
+    setBatchStatusValue('');
+    setSelectedIds([]);
+    
+    // Refresh bookings
+    window.location.reload();
+  };
+
+  const handleOpenBatchPool = () => {
+    if (selectedCount === 0) return;
+    setBatchPoolSitterIds([]);
+    setBatchPoolModalOpen(true);
+  };
+
+  const handleConfirmBatchPool = async () => {
+    if (selectedCount === 0) return;
+    
+    const ids = [...selectedIds];
+    const concurrencyLimit = 5;
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < ids.length; i += concurrencyLimit) {
+      const batch = ids.slice(i, i + concurrencyLimit);
+      const results = await Promise.all(
+        batch.map(async (bookingId) => {
+          try {
+            const response = await fetch(`/api/bookings/${bookingId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sitterPoolIds: batchPoolSitterIds }),
+            });
+            return response.ok;
+          } catch {
+            return false;
+          }
+        })
+      );
+      successCount += results.filter(r => r).length;
+      failCount += results.filter(r => !r).length;
+    }
+
+    setBatchPoolModalOpen(false);
+    setBatchPoolSitterIds([]);
+    setSelectedIds([]);
+    
+    // Refresh bookings
+    window.location.reload();
+  };
+
+  // Part B: Mobile card renderer for bookings
+  const handleStatusChange = async (bookingId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (response.ok) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
+  };
+
+  const renderBookingMobileCard = (booking: Booking, index: number) => {
+    const isSelected = selectedIds.includes(booking.id);
+    return (
+      <BookingCardMobileSummary
+        key={booking.id}
+        booking={{
+          id: booking.id,
+          service: booking.service,
+          status: booking.status,
+          firstName: booking.firstName,
+          lastName: booking.lastName,
+          startAt: booking.startAt,
+          endAt: booking.endAt,
+          timeSlots: booking.timeSlots,
+          pets: booking.pets,
+          totalPrice: booking.totalPrice,
+          address: booking.address,
+          sitterPool: booking.sitterPool || [],
+        }}
+        onOpen={() => {
+          window.location.href = `/bookings/${booking.id}`;
+        }}
+        onStatusChange={handleStatusChange}
+        onSitterPoolChange={async (bookingId, sitterIds) => {
+          try {
+            const response = await fetch(`/api/bookings/${bookingId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sitterPoolIds: sitterIds }),
+            });
+            if (response.ok) {
+              window.location.reload();
+            }
+          } catch (error) {
+            console.error('Failed to update sitter pool:', error);
+          }
+        }}
+        availableSitters={sitters}
+        showSelection={selectedIds.length > 0 || allSelected}
+        selected={isSelected}
+        onToggleSelected={() => handleToggleSelectOne(booking.id)}
+      />
+    );
+  };
+
                                       return (
     <AppShell>
       <PageHeader
@@ -430,6 +647,7 @@ function BookingsPageContent() {
 
 
       {/* Overview Dashboard Cards */}
+      {(!isMobile || statsVisible) && (
       <div
         style={{
           display: 'grid',
@@ -463,11 +681,24 @@ function BookingsPageContent() {
           icon={<i className="fas fa-dollar-sign" />}
         />
       </div>
+      )}
 
       {/* Filter Navigation - Mobile vs Desktop */}
       {isMobile ? (
         <>
           {/* Mobile: MobileFilterBar */}
+          {/* Part A: Mobile Control Bar */}
+          <BookingsMobileControlBar
+            statsVisible={statsVisible}
+            onToggleStats={handleToggleStats}
+            count={bookingCount}
+            selectedCount={selectedCount}
+            allSelected={allSelected}
+            onToggleSelectAll={handleToggleSelectAll}
+            onBatchStatus={handleOpenBatchStatus}
+            onBatchSitterPool={handleOpenBatchPool}
+            onClearSelection={handleClearSelection}
+          />
           <MobileFilterBar
             activeFilter={activeTab}
             onFilterChange={(filterId) => setActiveTab(filterId as any)}
@@ -556,6 +787,7 @@ function BookingsPageContent() {
                 onRowClick={(row) => {
                   window.location.href = `/bookings/${row.id}`;
                 }}
+                mobileCardRenderer={renderBookingMobileCard}
                 keyExtractor={(row) => row.id}
               />
             </Card>
@@ -632,6 +864,7 @@ function BookingsPageContent() {
                     onRowClick={(row) => {
                       window.location.href = `/bookings/${row.id}`;
                     }}
+                    mobileCardRenderer={renderBookingMobileCard}
                     keyExtractor={(row) => row.id}
                   />
                 </Card>
@@ -660,6 +893,7 @@ function BookingsPageContent() {
                     onRowClick={(row) => {
                       window.location.href = `/bookings/${row.id}`;
                     }}
+                    mobileCardRenderer={renderBookingMobileCard}
                     keyExtractor={(row) => row.id}
                   />
                 </Card>
@@ -688,6 +922,7 @@ function BookingsPageContent() {
                     onRowClick={(row) => {
                       window.location.href = `/bookings/${row.id}`;
                     }}
+                    mobileCardRenderer={renderBookingMobileCard}
                     keyExtractor={(row) => row.id}
                   />
                 </Card>
@@ -716,6 +951,7 @@ function BookingsPageContent() {
                     onRowClick={(row) => {
                       window.location.href = `/bookings/${row.id}`;
                     }}
+                    mobileCardRenderer={renderBookingMobileCard}
                     keyExtractor={(row) => row.id}
                   />
                 </Card>
@@ -744,6 +980,7 @@ function BookingsPageContent() {
                     onRowClick={(row) => {
                       window.location.href = `/bookings/${row.id}`;
                     }}
+                    mobileCardRenderer={renderBookingMobileCard}
                     keyExtractor={(row) => row.id}
                   />
                 </Card>
@@ -772,6 +1009,7 @@ function BookingsPageContent() {
                     onRowClick={(row) => {
                       window.location.href = `/bookings/${row.id}`;
                     }}
+                    mobileCardRenderer={renderBookingMobileCard}
                     keyExtractor={(row) => row.id}
                   />
                 </Card>
@@ -780,6 +1018,90 @@ function BookingsPageContent() {
           </Tabs>
         </>
       )}
+      {/* Part A: Batch Operation Modals */}
+      <Modal
+        isOpen={batchStatusModalOpen}
+        onClose={() => {
+          setBatchStatusModalOpen(false);
+          setBatchStatusValue('');
+        }}
+        title="Update Status"
+        size="sm"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <p style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.primary }}>
+            Update status for {selectedCount} selected booking{selectedCount !== 1 ? 's' : ''}.
+          </p>
+          <Select
+            label="Status"
+            options={[
+              { value: 'pending', label: 'Pending' },
+              { value: 'confirmed', label: 'Confirmed' },
+              { value: 'completed', label: 'Completed' },
+              { value: 'cancelled', label: 'Cancelled' },
+            ]}
+            value={batchStatusValue}
+            onChange={(e) => setBatchStatusValue(e.target.value)}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[3] }}>
+            <Button variant="secondary" onClick={() => {
+              setBatchStatusModalOpen(false);
+              setBatchStatusValue('');
+            }}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleConfirmBatchStatus}>
+              Update Status
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={batchPoolModalOpen}
+        onClose={() => {
+          setBatchPoolModalOpen(false);
+          setBatchPoolSitterIds([]);
+        }}
+        title="Update Sitter Pool"
+        size="md"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <p style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.primary }}>
+            Update sitter pool for {selectedCount} selected booking{selectedCount !== 1 ? 's' : ''}.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+            {sitters.map(sitter => (
+              <label key={sitter.id} style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], padding: tokens.spacing[2], cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={batchPoolSitterIds.includes(sitter.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setBatchPoolSitterIds([...batchPoolSitterIds, sitter.id]);
+                    } else {
+                      setBatchPoolSitterIds(batchPoolSitterIds.filter(id => id !== sitter.id));
+                    }
+                  }}
+                  style={{ width: '20px', height: '20px' }}
+                />
+                <span>{sitter.firstName} {sitter.lastName}</span>
+              </label>
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[3] }}>
+            <Button variant="secondary" onClick={() => {
+              setBatchPoolModalOpen(false);
+              setBatchPoolSitterIds([]);
+            }}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleConfirmBatchPool}>
+              Update Pool
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </AppShell>
   );
 }

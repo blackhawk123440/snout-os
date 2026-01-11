@@ -27,6 +27,7 @@ export interface TableProps<T = any> extends React.HTMLAttributes<HTMLTableEleme
   emptyMessage?: string;
   onRowClick?: (row: T, index: number) => void;
   keyExtractor?: (row: T, index: number) => string;
+  mobileCardRenderer?: (row: T, index: number) => React.ReactNode;
 }
 
 export function Table<T extends Record<string, any>>({
@@ -36,6 +37,7 @@ export function Table<T extends Record<string, any>>({
   emptyMessage = 'No data available',
   onRowClick,
   keyExtractor,
+  mobileCardRenderer,
   ...props
 }: TableProps<T>) {
   const isMobile = useMobile();
