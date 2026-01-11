@@ -48,7 +48,8 @@ export const MobileFilterBar: React.FC<MobileFilterBarProps> = ({
         marginLeft: `-${tokens.spacing[6]}`,
         marginRight: `-${tokens.spacing[6]}`,
         marginBottom: tokens.spacing[4],
-        width: `calc(100% + ${parseInt(tokens.spacing[6]) * 2}px)`,
+        width: '100vw',
+        maxWidth: '100vw',
       }}
     >
       <div
