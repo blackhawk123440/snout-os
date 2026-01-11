@@ -856,14 +856,17 @@ Total: ${formatCurrency(booking.totalPrice)}`;
             }}
           >
             {/* Sticky Summary Header - Fixed container to prevent double scroll */}
-            <div
+            <Card
               style={{
                 position: 'sticky',
                 top: 0,
                 zIndex: tokens.zIndex.sticky + 1,
-                backgroundColor: tokens.colors.background.primary,
                 borderBottom: `1px solid ${tokens.colors.border.default}`,
-                padding: tokens.spacing[3],
+                marginBottom: 0,
+                borderRadius: 0,
+                borderTop: 'none',
+                borderLeft: 'none',
+                borderRight: 'none',
                 boxShadow: tokens.shadows.sm,
                 overflow: 'visible', // Ensure content is visible
               }}
@@ -981,7 +984,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
 
             {/* Scrollable Content */}
             <div
