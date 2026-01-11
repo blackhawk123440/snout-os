@@ -122,14 +122,6 @@ export default function BookingDetailPage() {
   const [newStatus, setNewStatus] = useState<string>('');
   const [sitters, setSitters] = useState<Sitter[]>([]);
   
-  // Mobile layout state - Default sections open (Part C requirement)
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    overview: true,
-    schedule: true,
-    pets: true,
-    pricing: true,
-    actions: false,
-  });
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
   const [showTipLinkModal, setShowTipLinkModal] = useState(false);
   const [paymentLinkMessage, setPaymentLinkMessage] = useState('');
@@ -138,9 +130,6 @@ export default function BookingDetailPage() {
   const [showTipLinkConfirm, setShowTipLinkConfirm] = useState(false);
   const [showMoreActionsModal, setShowMoreActionsModal] = useState(false);
   
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
 
   useEffect(() => {
     if (bookingId) {
@@ -831,44 +820,28 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         style={{
           display: 'flex',
           flexDirection: 'column',
-          ...(isMobile ? {
-            minHeight: 'calc(100vh - 64px)',
-            maxHeight: 'calc(100vh - 64px)',
-            overflow: 'hidden',
-          } : {
+          ...(isMobile ? {} : {
             height: 'calc(100vh - 64px)',
             overflow: 'hidden',
           }),
         }}
       >
-        {/* Mobile header removed - using sticky summary header only */}
-
-        {/* Mobile: Single-page Layout with Bottom Action Bar */}
+        {/* Mobile: Single scroll page with all sections expanded */}
         {isMobile ? (
           <div
             style={{
-              position: 'relative',
               display: 'flex',
               flexDirection: 'column',
-              height: '100%',
               width: '100%',
-              overflow: 'hidden',
+              paddingBottom: tokens.spacing[20], // Space for bottom action bar
             }}
           >
-            {/* Sticky Summary Header - Fixed container to prevent double scroll */}
-            <Card
+            {/* Summary Header - Not sticky, just regular content */}
+            <div
               style={{
-                position: 'sticky',
-                top: 0,
-                zIndex: tokens.zIndex.sticky + 1,
+                backgroundColor: tokens.colors.background.primary,
                 borderBottom: `1px solid ${tokens.colors.border.default}`,
-                marginBottom: 0,
-                borderRadius: 0,
-                borderTop: 'none',
-                borderLeft: 'none',
-                borderRight: 'none',
-                boxShadow: tokens.shadows.sm,
-                overflow: 'visible', // Ensure content is visible
+                padding: tokens.spacing[3],
               }}
             >
               {/* Back button and Status */}
@@ -984,24 +957,13 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
 
-            {/* Scrollable Content */}
+            {/* All Content - All sections always expanded */}
             <div
               style={{
-                flex: '1 1 auto',
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                WebkitOverflowScrolling: 'touch',
-                paddingBottom: tokens.spacing[20], // Space for bottom action bar
-                // Fix iOS scroll jitter - prevent double scroll and momentum issues
-                overscrollBehaviorY: 'contain',
-                overscrollBehaviorX: 'none',
-                touchAction: 'pan-y',
-                willChange: 'scroll-position',
-                // Prevent layout shifts during scroll
-                containIntrinsicSize: 'auto 500px',
-                minHeight: 0,
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
               {/* Client Contact Details Section */}
@@ -1029,115 +991,55 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 </div>
               </Card>
 
-              {/* Collapsible Schedule Section */}
-              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'visible' }}>
-                <button
-                  onClick={() => toggleSection('schedule')}
-                  style={{
-                    width: '100%',
-                    padding: tokens.spacing[3],
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    borderBottom: expandedSections.schedule ? `1px solid ${tokens.colors.border.default}` : 'none',
-                  }}
-                >
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Schedule
-                  </div>
-                  <i className={`fas fa-chevron-${expandedSections.schedule ? 'up' : 'down'}`} style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.xs[0] }} />
-                </button>
-                {expandedSections.schedule && (
-                  <div style={{ padding: tokens.spacing[3], paddingTop: tokens.spacing[2] }}>
-                    <BookingScheduleDisplay
-                      service={booking.service}
-                      startAt={booking.startAt}
-                      endAt={booking.endAt}
-                      timeSlots={booking.timeSlots}
-                      address={booking.address}
-                      compact={false}
-                    />
-                  </div>
-                )}
+              {/* Schedule Section - Always expanded */}
+              <Card style={{ margin: tokens.spacing[3], marginTop: tokens.spacing[3], padding: tokens.spacing[3] }}>
+                <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Schedule
+                </div>
+                <BookingScheduleDisplay
+                  service={booking.service}
+                  startAt={booking.startAt}
+                  endAt={booking.endAt}
+                  timeSlots={booking.timeSlots}
+                  address={booking.address}
+                  compact={false}
+                />
               </Card>
 
-              {/* Collapsible Pets Section */}
+              {/* Pets Section - Always expanded */}
               {booking.pets && booking.pets.length > 0 && (
-                <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'visible' }}>
-                  <button
-                    onClick={() => toggleSection('pets')}
-                    style={{
-                      width: '100%',
-                      padding: tokens.spacing[3],
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      cursor: 'pointer',
-                      borderBottom: expandedSections.pets ? `1px solid ${tokens.colors.border.default}` : 'none',
-                    }}
-                  >
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Pets ({booking.pets.length})
-                    </div>
-                    <i className={`fas fa-chevron-${expandedSections.pets ? 'up' : 'down'}`} style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.xs[0] }} />
-                  </button>
-                  {expandedSections.pets && (
-                    <div style={{ padding: tokens.spacing[3], paddingTop: tokens.spacing[2] }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
-                        {booking.pets.map((pet) => (
-                          <div key={pet.id} style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
-                            <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{pet.name || 'Unnamed'} • {pet.species}</div>
-                            {pet.breed && <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{pet.breed}</div>}
-                          </div>
-                        ))}
+                <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: tokens.spacing[3] }}>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Pets ({booking.pets.length})
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                    {booking.pets.map((pet) => (
+                      <div key={pet.id} style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{pet.name || 'Unnamed'} • {pet.species}</div>
+                        {pet.breed && <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{pet.breed}</div>}
                       </div>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </Card>
               )}
 
-              {/* Collapsible Pricing Section */}
-              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: 0, overflow: 'visible' }}>
-                <button
-                  onClick={() => toggleSection('pricing')}
-                  style={{
-                    width: '100%',
-                    padding: tokens.spacing[3],
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    borderBottom: expandedSections.pricing ? `1px solid ${tokens.colors.border.default}` : 'none',
-                  }}
-                >
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Pricing
-                  </div>
-                  <i className={`fas fa-chevron-${expandedSections.pricing ? 'up' : 'down'}`} style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.xs[0] }} />
-                </button>
-                {expandedSections.pricing && (
-                  <div style={{ padding: tokens.spacing[3], paddingTop: tokens.spacing[2] }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
-                      {pricingBreakdown.map((item, idx) => (
-                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: tokens.spacing[2], borderBottom: idx < pricingBreakdown.length - 1 ? `1px solid ${tokens.colors.border.default}` : 'none' }}>
-                          <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>{item.label}</div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{formatCurrency(item.amount)}</div>
-                        </div>
-                      ))}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: tokens.spacing[2], paddingTop: tokens.spacing[2], borderTop: `2px solid ${tokens.colors.border.default}`, fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.base[0] }}>
-                        <div>Total</div>
-                        <div>{formatCurrency(pricingDisplay.total)}</div>
-                      </div>
+              {/* Pricing Section - Always expanded */}
+              <Card style={{ margin: tokens.spacing[3], marginTop: 0, padding: tokens.spacing[3] }}>
+                <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Pricing
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                  {pricingBreakdown.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: tokens.spacing[2], borderBottom: idx < pricingBreakdown.length - 1 ? `1px solid ${tokens.colors.border.default}` : 'none' }}>
+                      <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>{item.label}</div>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{formatCurrency(item.amount)}</div>
                     </div>
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: tokens.spacing[2], paddingTop: tokens.spacing[2], borderTop: `2px solid ${tokens.colors.border.default}`, fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.base[0] }}>
+                    <div>Total</div>
+                    <div>{formatCurrency(pricingDisplay.total)}</div>
                   </div>
-                )}
+                </div>
               </Card>
             </div>
             {/* Fixed Bottom Action Bar - Professional Design */}
