@@ -836,14 +836,8 @@ Total: ${formatCurrency(booking.totalPrice)}`;
               paddingBottom: tokens.spacing[20], // Space for bottom action bar
             }}
           >
-            {/* Summary Header - Not sticky, just regular content */}
-            <div
-              style={{
-                backgroundColor: tokens.colors.background.primary,
-                borderBottom: `1px solid ${tokens.colors.border.default}`,
-                padding: tokens.spacing[3],
-              }}
-            >
+            {/* Summary Header - Card container */}
+            <Card style={{ margin: tokens.spacing[3], marginTop: tokens.spacing[3], padding: tokens.spacing[3] }}>
               {/* Back button and Status */}
               <div
                 style={{
@@ -957,7 +951,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
 
             {/* All Content - All sections always expanded */}
             <div
