@@ -35,7 +35,6 @@ import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { getPricingForDisplay } from '@/lib/pricing-display-helpers';
 import { useMobile } from '@/lib/use-mobile';
-import { Tabs, TabPanel } from '@/components/ui';
 
 interface Pet {
   id: string;
