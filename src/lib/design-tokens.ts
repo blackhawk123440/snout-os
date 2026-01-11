@@ -107,11 +107,11 @@ export const tokens = {
     
     // Semantic aliases - Snout brand theme
     background: {
-      primary: '#ffffff', // White
-      secondary: '#fce1ef', // Snout pink - warm tint instead of gray
+      primary: '#ffffff', // White (cards, surfaces)
+      secondary: '#feecf4', // Snout pink - primary canvas background wash
       tertiary: '#fef7fb', // Very light pink tint
       inverse: '#432f21', // Snout brown
-      accent: '#fce1ef', // Snout pink for accents
+      accent: '#fce1ef', // Snout pink for badges, buttons, highlights only
     },
     
     text: {
@@ -124,11 +124,11 @@ export const tokens = {
     },
     
     border: {
-      default: '#f5bfdb', // Light pink border - warm instead of gray
-      muted: '#fce1ef', // Snout pink - very subtle borders
+      default: '#f5d0e3', // Ultra light pink stroke - subtle borders, not fills
+      muted: '#f9e4f0', // Very light pink for muted borders
       strong: '#432f21', // Snout brown for strong borders
       focus: '#432f21', // Snout brown
-      accent: '#fce1ef', // Snout pink
+      accent: '#fce1ef', // Snout pink for accent borders
     },
   },
   

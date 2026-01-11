@@ -32,10 +32,10 @@ export const Card: React.FC<CardProps> = ({
       {...props}
       className={className}
       style={{
-        backgroundColor: tokens.colors.background.primary,
-        border: `1px solid ${tokens.colors.border.default}`,
+        backgroundColor: tokens.colors.background.primary, // White cards
+        border: `1px solid ${tokens.colors.border.default}`, // Ultra light pink stroke
         borderRadius: tokens.borderRadius.lg,
-        boxShadow: tokens.shadows.sm,
+        boxShadow: tokens.shadows.sm, // Subtle shadow for depth
         overflow: 'visible', // Changed from 'hidden' to allow content to be visible - only clip if explicitly needed
         ...props.style,
       }}

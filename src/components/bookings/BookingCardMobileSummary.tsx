@@ -149,10 +149,10 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
       >
         <div
           style={{
-            fontSize: tokens.typography.fontSize.lg[0],
-            fontWeight: tokens.typography.fontWeight.semibold,
-            color: tokens.colors.brand.brown,
-            lineHeight: 1.5,
+            fontSize: tokens.typography.fontSize.base[0], // Reduced from lg to base (secondary)
+            fontWeight: tokens.typography.fontWeight.medium,
+            color: tokens.colors.text.secondary, // Lighter color
+            lineHeight: 1.4,
           }}
         >
           {booking.service}
@@ -160,24 +160,24 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
         <Badge variant={getStatusVariant(booking.status)}>{booking.status}</Badge>
       </div>
 
-      {/* Line 2: Client name (larger) */}
+      {/* Line 2: Client name (dominant anchor) */}
       <div
         style={{
-          fontSize: tokens.typography.fontSize.xl[0],
+          fontSize: tokens.typography.fontSize['2xl'][0], // Larger, dominant
           fontWeight: tokens.typography.fontWeight.bold,
           color: tokens.colors.text.primary,
-          lineHeight: 1.5,
+          lineHeight: 1.3,
         }}
       >
         {booking.firstName} {booking.lastName}
       </div>
 
-      {/* Line 3: Date and time summary */}
+      {/* Line 3: Date and time summary (secondary) */}
       <div
         style={{
-          fontSize: tokens.typography.fontSize.base[0],
+          fontSize: tokens.typography.fontSize.sm[0], // Reduced from base to sm
           color: tokens.colors.text.secondary,
-          lineHeight: 1.5,
+          lineHeight: 1.4,
         }}
       >
         <BookingScheduleDisplay
