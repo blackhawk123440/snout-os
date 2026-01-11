@@ -71,12 +71,13 @@ export const BookingsMobileControlBar: React.FC<BookingsMobileControlBarProps> =
         style={{
           minHeight: '44px',
           padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+          borderRadius: tokens.borderRadius.full, // Made rounded per requirements
         }}
       >
         {statsVisible ? 'Hide Stats' : 'Show Stats'}
       </Button>
 
-      {/* Select All Checkbox */}
+      {/* Select All Checkbox - Made rounded or hidden per requirements */}
       {!showBatchActions && (
         <label
           style={{
@@ -86,6 +87,7 @@ export const BookingsMobileControlBar: React.FC<BookingsMobileControlBarProps> =
             cursor: 'pointer',
             minHeight: '44px',
             padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+            borderRadius: tokens.borderRadius.full, // Made rounded per requirements
           }}
         >
           <input
@@ -96,6 +98,7 @@ export const BookingsMobileControlBar: React.FC<BookingsMobileControlBarProps> =
               width: '20px',
               height: '20px',
               cursor: 'pointer',
+              borderRadius: tokens.borderRadius.full, // Made rounded per requirements
             }}
           />
           <span

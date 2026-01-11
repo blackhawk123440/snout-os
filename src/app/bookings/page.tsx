@@ -624,7 +624,7 @@ function BookingsPageContent() {
           }
         }}
         availableSitters={sitters}
-        showSelection={selectedIds.length > 0 || allSelected}
+        showSelection={true} // Always show selection on mobile per requirements
         selected={isSelected}
         onToggleSelected={() => handleToggleSelectOne(booking.id)}
       />
@@ -699,19 +699,31 @@ function BookingsPageContent() {
             onBatchSitterPool={handleOpenBatchPool}
             onClearSelection={handleClearSelection}
           />
-          <MobileFilterBar
-            activeFilter={activeTab}
-            onFilterChange={(filterId) => setActiveTab(filterId as any)}
-            sticky
-            options={[
-              { id: 'all', label: 'All' },
-              { id: 'today', label: "Today's", badge: overviewStats.todaysVisits > 0 ? overviewStats.todaysVisits : undefined },
-              { id: 'pending', label: 'Pending', badge: overviewStats.pending > 0 ? overviewStats.pending : undefined },
-              { id: 'confirmed', label: 'Confirmed' },
-              { id: 'completed', label: 'Completed' },
-              { id: 'unassigned', label: 'Unassigned', badge: overviewStats.unassigned > 0 ? overviewStats.unassigned : undefined },
-            ]}
-          />
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            width: '100%', 
+            marginBottom: tokens.spacing[4],
+            paddingLeft: tokens.spacing[4],
+            paddingRight: tokens.spacing[4],
+          }}>
+            <div style={{ width: '100%', maxWidth: '100%' }}>
+              <MobileFilterBar
+                activeFilter={activeTab}
+                onFilterChange={(filterId) => setActiveTab(filterId as any)}
+                sticky
+                options={[
+                  { id: 'all', label: 'All' },
+                  { id: 'today', label: "Today's", badge: overviewStats.todaysVisits > 0 ? overviewStats.todaysVisits : undefined },
+                  { id: 'pending', label: 'Pending', badge: overviewStats.pending > 0 ? overviewStats.pending : undefined },
+                  { id: 'confirmed', label: 'Confirmed' },
+                  { id: 'completed', label: 'Completed' },
+                  { id: 'unassigned', label: 'Unassigned', badge: overviewStats.unassigned > 0 ? overviewStats.unassigned : undefined },
+                ]}
+              />
+            </div>
+          </div>
           {/* Search and Sort Controls */}
           <Card
             style={{ 
