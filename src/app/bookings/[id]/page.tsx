@@ -1129,19 +1129,8 @@ Total: ${formatCurrency(booking.totalPrice)}`;
           </div>
         ) : (
           <>
-            {/* Desktop: Sticky Summary Header */}
-            <div
-              style={{
-                position: 'sticky',
-                top: 0,
-                zIndex: tokens.zIndex.sticky,
-                backgroundColor: tokens.colors.background.primary,
-                borderBottom: `1px solid ${tokens.colors.border.default}`,
-                padding: `${tokens.spacing[4]} ${tokens.spacing[6]}`,
-                boxShadow: tokens.shadows.sm,
-                marginBottom: tokens.spacing[4],
-              }}
-            >
+            {/* Desktop: Summary Header - Card container */}
+            <Card style={{ marginBottom: tokens.spacing[4], padding: tokens.spacing[6] }}>
               <div
                 style={{
                   display: 'flex',
@@ -1263,7 +1252,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   />
                 )}
               </div>
-            </div>
+            </Card>
 
         {/* Main Content - Two Column Layout with Internal Scrolling */}
       <div
