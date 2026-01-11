@@ -149,7 +149,7 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
       >
         <div
           style={{
-            fontSize: tokens.typography.fontSize.base[0], // Reduced from lg to base (secondary)
+            fontSize: tokens.typography.fontSize.lg[0], // Made bigger per requirements
             fontWeight: tokens.typography.fontWeight.medium,
             color: tokens.colors.text.secondary, // Lighter color
             lineHeight: 1.4,
@@ -157,7 +157,7 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
         >
           {booking.service}
         </div>
-        <Badge variant={getStatusVariant(booking.status)}>{booking.status}</Badge>
+        <Badge variant={getStatusVariant(booking.status)} style={{ fontSize: tokens.typography.fontSize.base[0] }}>{booking.status}</Badge>
       </div>
 
       {/* Line 2: Client name (dominant anchor) */}
@@ -172,10 +172,10 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
         {booking.firstName} {booking.lastName}
       </div>
 
-      {/* Line 3: Date and time summary (secondary) */}
+      {/* Line 3: Date and time summary (secondary) - Made bigger */}
       <div
         style={{
-          fontSize: tokens.typography.fontSize.sm[0], // Reduced from base to sm
+          fontSize: tokens.typography.fontSize.base[0], // Made bigger per requirements
           color: tokens.colors.text.secondary,
           lineHeight: 1.4,
         }}
@@ -197,15 +197,33 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
           gap: tokens.spacing[2],
         }}
       >
-        {/* Pets count + Total on same line */}
+        {/* Pets count + Total on same line - Made bigger */}
         <div
           style={{
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'baseline',
+            flexDirection: 'column',
             gap: tokens.spacing[2],
           }}
         >
+          <div
+            style={{
+              fontSize: tokens.typography.fontSize.sm[0],
+              color: tokens.colors.text.secondary,
+              fontWeight: tokens.typography.fontWeight.semibold,
+            }}
+          >
+            Total Price
+          </div>
+          <div
+            style={{
+              fontSize: tokens.typography.fontSize['2xl'][0], // Made bigger per requirements
+              fontWeight: tokens.typography.fontWeight.bold,
+              color: tokens.colors.text.primary,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {formatCurrency(booking.totalPrice)}
+          </div>
           <div
             style={{
               fontSize: tokens.typography.fontSize.base[0],
@@ -213,16 +231,6 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
             }}
           >
             {formatPetsByQuantity(booking.pets)}
-          </div>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.lg[0],
-              fontWeight: tokens.typography.fontWeight.bold,
-              color: tokens.colors.text.primary,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {formatCurrency(booking.totalPrice)}
           </div>
         </div>
 

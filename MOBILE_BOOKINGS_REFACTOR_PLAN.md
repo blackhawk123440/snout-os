@@ -77,3 +77,4 @@ Comprehensive refactor of mobile bookings UI to address visual hierarchy, scroll
 2. Refactor booking detail page systematically
 3. Test and verify
 
+

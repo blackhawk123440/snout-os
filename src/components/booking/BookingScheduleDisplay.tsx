@@ -94,13 +94,16 @@ export const BookingScheduleDisplay: React.FC<BookingScheduleDisplayProps> = ({
     const nights = calculateNights(startAt, endAt);
 
     if (compact) {
-      // Compact version for lists/cards
+      // Compact version for lists/cards - Made bigger per requirements
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
-          <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium }}>
+          <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+            Scheduled
+          </div>
+          <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.medium }}>
             {formatDate(startAt)} - {formatDate(endAt)}
           </div>
-          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+          <div style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.secondary, fontWeight: tokens.typography.fontWeight.medium }}>
             {formatTime(startAt)} - {formatTime(endAt)} • {nights} {nights === 1 ? 'Night' : 'Nights'}
           </div>
         </div>

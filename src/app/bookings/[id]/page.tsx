@@ -804,7 +804,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
               overflow: 'hidden',
             }}
           >
-            {/* Sticky Summary Header */}
+            {/* Sticky Summary Header - Fixed container to prevent double scroll */}
             <div
               style={{
                 position: 'sticky',
@@ -814,6 +814,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 borderBottom: `1px solid ${tokens.colors.border.default}`,
                 padding: tokens.spacing[3],
                 boxShadow: tokens.shadows.sm,
+                overflow: 'visible', // Ensure content is visible
               }}
             >
               {/* Back button and Status */}
@@ -1112,9 +1113,13 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   minHeight: '44px',
                   fontSize: tokens.typography.fontSize.base[0],
                   fontWeight: tokens.typography.fontWeight.semibold,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: tokens.spacing[2],
                 }}
-                leftIcon={<i className="fas fa-edit" />}
               >
+                <i className="fas fa-edit" />
                 Edit
               </Button>
               <Button
@@ -1126,9 +1131,13 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   minHeight: '44px',
                   fontSize: tokens.typography.fontSize.base[0],
                   fontWeight: tokens.typography.fontWeight.medium,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: tokens.spacing[2],
                 }}
-                leftIcon={<i className="fas fa-dollar-sign" />}
               >
+                <i className="fas fa-dollar-sign" />
                 Payment
               </Button>
               <Button
@@ -1140,9 +1149,13 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   minHeight: '44px',
                   fontSize: tokens.typography.fontSize.base[0],
                   fontWeight: tokens.typography.fontWeight.medium,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: tokens.spacing[2],
                 }}
-                leftIcon={<i className="fas fa-heart" />}
               >
+                <i className="fas fa-heart" />
                 Tip
               </Button>
               <Button
@@ -1153,9 +1166,13 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   minWidth: '60px',
                   minHeight: '44px',
                   fontSize: tokens.typography.fontSize.base[0],
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: tokens.spacing[2],
                 }}
-                leftIcon={<i className="fas fa-ellipsis-h" />}
               >
+                <i className="fas fa-ellipsis-h" />
                 More
               </Button>
             </div>

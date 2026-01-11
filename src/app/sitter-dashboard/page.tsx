@@ -28,6 +28,8 @@ import { useMobile } from '@/lib/use-mobile';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { SitterTierBadge } from '@/components/sitter';
 import { CalendarGrid, type CalendarDay as CalendarGridDay } from '@/components/calendar';
+import { BookingStatusInlineControl } from '@/components/bookings/BookingStatusInlineControl';
+import { SitterPoolPicker } from '@/components/bookings/SitterPoolPicker';
 
 interface DashboardJob {
   id: string;
@@ -1043,27 +1045,48 @@ function SitterDashboardContent() {
                                   {job.type === "direct" ? "Direct Assignment" : "Pool Accepted"}
                                 </Badge>
                               </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
-                                <BookingScheduleDisplay
-                                  service={job.service}
-                                  startAt={job.startAt}
-                                  endAt={job.endAt}
-                                  timeSlots={job.timeSlots}
-                                  address={job.address}
-                                />
-                                
-                                <div>
-                                  <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Pets:</span>{" "}
-                                  {job.pets.map((p, idx) => (
-                                    <span key={idx}>
-                                      {p.name || p.species} ({p.species})
-                                      {idx < job.pets.length - 1 ? ", " : ""}
-                                    </span>
-                                  ))}
-                                </div>
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
-                              </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                    <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
+                                    <BookingScheduleDisplay
+                                      service={job.service}
+                                      startAt={job.startAt}
+                                      endAt={job.endAt}
+                                      timeSlots={job.timeSlots}
+                                      address={job.address}
+                                    />
+                                    
+                                    <div>
+                                      <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Pets:</span>{" "}
+                                      {job.pets.map((p, idx) => (
+                                        <span key={idx}>
+                                          {p.name || p.species} ({p.species})
+                                          {idx < job.pets.length - 1 ? ", " : ""}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    <div>
+                                      <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Total Price:</span> ${job.totalPrice.toFixed(2)}
+                                    </div>
+                                    <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                                  </div>
+                                  {/* Status and Sitter Pool Controls - Desktop */}
+                                  <div style={{ display: 'flex', gap: tokens.spacing[2], marginTop: tokens.spacing[3], flexWrap: 'wrap' }}>
+                                    <BookingStatusInlineControl
+                                      bookingId={job.bookingId}
+                                      currentStatus={job.status === "needs_response" ? "pending" : job.status === "accepted" ? "confirmed" : job.status === "completed" ? "completed" : "cancelled"}
+                                      onStatusChange={async (bookingId, newStatus) => {
+                                        // Handle status change
+                                        const response = await fetch(`/api/bookings/${bookingId}`, {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ status: newStatus }),
+                                        });
+                                        if (response.ok) {
+                                          fetchDashboardData();
+                                        }
+                                      }}
+                                    />
+                                  </div>
                             </div>
                           </div>
                         </Card>

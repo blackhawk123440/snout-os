@@ -30,3 +30,4 @@
 3. Refactor booking detail page systematically
 4. Test and verify all changes
 
+

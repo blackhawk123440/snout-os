@@ -38,3 +38,4 @@
 
 Booking detail page is 2461 lines. Changes require careful, targeted edits to maintain functionality while fixing UX issues.
 
+

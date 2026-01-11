@@ -200,3 +200,4 @@ The fixes ensure:
 3. **Professional mobile layout**: Vertical stacking with proper spacing
 4. **Desktop unchanged**: All mobile fixes are conditional on `isMobile` state and CSS media queries
 
+
