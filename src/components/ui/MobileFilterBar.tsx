@@ -43,13 +43,11 @@ export const MobileFilterBar: React.FC<MobileFilterBarProps> = ({
         borderBottom: `1px solid ${tokens.colors.border.default}`,
         paddingTop: tokens.spacing[3],
         paddingBottom: tokens.spacing[3],
-        paddingLeft: tokens.spacing[6],
-        paddingRight: tokens.spacing[6],
-        marginLeft: `-${tokens.spacing[6]}`,
-        marginRight: `-${tokens.spacing[6]}`,
+        paddingLeft: tokens.spacing[4],
+        paddingRight: tokens.spacing[4],
+        marginLeft: `-${tokens.spacing[4]}`,
+        marginRight: `-${tokens.spacing[4]}`,
         marginBottom: tokens.spacing[4],
-        width: '100vw',
-        maxWidth: '100vw',
       }}
     >
       <div

@@ -127,28 +127,14 @@ function SitterDashboardContent() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [acceptingJobId, setAcceptingJobId] = useState<string | null>(null);
-  const [sitters, setSitters] = useState<any[]>([]);
 
   useEffect(() => {
     if (sitterId) {
       fetchDashboardData();
-      fetchSitters();
     } else {
       setLoading(false);
     }
   }, [sitterId, isAdminView]);
-
-  const fetchSitters = async () => {
-    try {
-      const response = await fetch('/api/sitters');
-      if (response.ok) {
-        const data = await response.json();
-        setSitters(data.sitters || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch sitters:', error);
-    }
-  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -345,43 +331,6 @@ function SitterDashboardContent() {
                                     <div style={{ fontSize: tokens.typography.fontSize.xs[0] }}>{job.message}</div>
                                   </Card>
                                 )}
-                              </div>
-                              {/* Status and Sitter Pool Controls - Mobile Pending */}
-                              <div style={{ display: 'flex', gap: tokens.spacing[2], marginTop: tokens.spacing[3], flexWrap: 'wrap' }}>
-                                <BookingStatusInlineControl
-                                  bookingId={job.bookingId || job.id}
-                                  currentStatus="pending"
-                                  onStatusChange={async (bookingId, newStatus) => {
-                                    const response = await fetch(`/api/bookings/${bookingId}`, {
-                                      method: 'PATCH',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ status: newStatus }),
-                                    });
-                                    if (response.ok) {
-                                      fetchDashboardData();
-                                    }
-                                  }}
-                                />
-                                <SitterPoolPicker
-                                  bookingId={job.bookingId || job.id}
-                                  currentPool={[]}
-                                  availableSitters={sitters.map(s => ({
-                                    id: s.id,
-                                    firstName: s.firstName,
-                                    lastName: s.lastName,
-                                    currentTier: s.currentTier,
-                                  }))}
-                                  onPoolChange={async (bookingId, sitterIds) => {
-                                    const response = await fetch(`/api/bookings/${bookingId}`, {
-                                      method: 'PATCH',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ sitterPoolIds: sitterIds }),
-                                    });
-                                    if (response.ok) {
-                                      fetchDashboardData();
-                                    }
-                                  }}
-                                />
                               </div>
                             </div>
                             {!isAdminView && (
@@ -1131,26 +1080,6 @@ function SitterDashboardContent() {
                                           method: 'PATCH',
                                           headers: { 'Content-Type': 'application/json' },
                                           body: JSON.stringify({ status: newStatus }),
-                                        });
-                                        if (response.ok) {
-                                          fetchDashboardData();
-                                        }
-                                      }}
-                                    />
-                                    <SitterPoolPicker
-                                      bookingId={job.bookingId}
-                                      currentPool={[]} // TODO: Get current pool from job data
-                                      availableSitters={sitters.map(s => ({
-                                        id: s.id,
-                                        firstName: s.firstName,
-                                        lastName: s.lastName,
-                                        currentTier: s.currentTier,
-                                      }))}
-                                      onPoolChange={async (bookingId, sitterIds) => {
-                                        const response = await fetch(`/api/bookings/${bookingId}`, {
-                                          method: 'PATCH',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ sitterPoolIds: sitterIds }),
                                         });
                                         if (response.ok) {
                                           fetchDashboardData();
