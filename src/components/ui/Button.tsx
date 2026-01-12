@@ -146,7 +146,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           alignItems: 'center',
           justifyContent: 'center',
           gap: tokens.spacing[2],
-          borderRadius: tokens.borderRadius.full, // Rounded edges per requirements
+          borderRadius: tokens.borderRadius.full,
           fontWeight: tokens.typography.fontWeight.medium,
           fontFamily: tokens.typography.fontFamily.sans.join(', '),
           height: sizeStyle.height,

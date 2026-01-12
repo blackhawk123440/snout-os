@@ -401,65 +401,21 @@ export default function SittersPage() {
         {/* Filters */}
         {isMobile ? (
           <>
-            {/* Name Tier Newest Filter Bar - Card container, centered */}
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center',
-              width: '100%', 
-              marginBottom: tokens.spacing[4],
-              marginTop: tokens.spacing[4],
-              paddingLeft: tokens.spacing[4],
-              paddingRight: tokens.spacing[4],
-            }}>
-              <Card style={{ width: '100%', maxWidth: '100%', padding: tokens.spacing[4] }}>
-                <div style={{ 
-                  display: 'flex', 
-                  gap: tokens.spacing[2], 
-                  overflowX: 'auto',
-                  paddingBottom: '2px',
-                }}>
-                  {[
-                    { id: 'name', label: 'Name' },
-                    { id: 'tier', label: 'Tier' },
-                    { id: 'created', label: 'Newest' },
-                  ].map((option) => {
-                    const isActive = sortBy === option.id;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setSortBy(option.id as any)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: tokens.spacing[2],
-                          padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
-                          border: `1px solid ${isActive ? tokens.colors.primary.DEFAULT : tokens.colors.border.default}`,
-                          borderRadius: tokens.borderRadius.full,
-                          backgroundColor: isActive
-                            ? tokens.colors.primary.DEFAULT
-                            : tokens.colors.background.primary,
-                          color: isActive
-                            ? tokens.colors.text.inverse
-                            : tokens.colors.text.primary,
-                          fontWeight: isActive
-                            ? tokens.typography.fontWeight.semibold
-                            : tokens.typography.fontWeight.medium,
-                          fontSize: tokens.typography.fontSize.sm[0],
-                          cursor: 'pointer',
-                          transition: `all ${tokens.transitions.duration.DEFAULT}`,
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0,
-                          minHeight: '2.5rem',
-                        }}
-                      >
-                        <span>{option.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </Card>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', marginBottom: tokens.spacing[4], paddingLeft: tokens.spacing[4], paddingRight: tokens.spacing[4] }}>
+              <div style={{ width: '100%', maxWidth: '100%' }}>
+                <Card style={{ padding: tokens.spacing[4], marginBottom: tokens.spacing[4] }}>
+                  <MobileFilterBar
+                    activeFilter={sortBy}
+                    onFilterChange={(filterId) => setSortBy(filterId as any)}
+                    sticky={false}
+                    options={[
+                      { id: 'name', label: 'Name' },
+                      { id: 'tier', label: 'Tier' },
+                      { id: 'created', label: 'Newest' },
+                    ]}
+                  />
+                </Card>
+              </div>
             </div>
             <Card style={{ marginBottom: tokens.spacing[4], marginTop: tokens.spacing[4] }}>
               <Input
@@ -585,159 +541,151 @@ export default function SittersPage() {
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column', 
-            gap: tokens.spacing[3],
+            gap: tokens.spacing[4], // Increased gap for bigger containers
           }}>
             {filteredAndSortedSitters.map((sitter) => (
               <Card 
                 key={sitter.id}
                 style={{
-                  padding: tokens.spacing[6], // Made bigger per requirements
+                  padding: tokens.spacing[6], // Increased padding for bigger containers
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    alignItems: isMobile ? 'stretch' : 'flex-start',
-                    justifyContent: 'space-between',
-                    gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: isMobile ? tokens.spacing[2] : tokens.spacing[3], 
-                      marginBottom: isMobile ? tokens.spacing[2] : tokens.spacing[3],
-                      flexWrap: isMobile ? 'wrap' : 'nowrap',
-                    }}>
-                      <div
-                        style={{
-                          width: isMobile ? '40px' : '48px',
-                          height: isMobile ? '40px' : '48px',
-                          borderRadius: '50%',
-                          backgroundColor: tokens.colors.primary[100],
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: tokens.colors.primary.DEFAULT,
-                          fontSize: isMobile ? tokens.typography.fontSize.base[0] : tokens.typography.fontSize.xl[0],
-                          flexShrink: 0,
-                        }}
-                      >
-                        <i className="fas fa-user" />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontWeight: tokens.typography.fontWeight.bold,
-                            fontSize: isMobile ? tokens.typography.fontSize.base[0] : tokens.typography.fontSize.lg[0],
-                            color: tokens.colors.text.primary,
-                            marginBottom: tokens.spacing[1],
-                            wordBreak: 'break-word',
-                          }}
-                        >
-                          {sitter.firstName} {sitter.lastName}
-                        </div>
-                        <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap', alignItems: 'center' }}>
-                          <Badge variant={sitter.isActive ? "success" : "error"}>
-                          {sitter.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                          {sitter.currentTier && (
-                            <SitterTierBadge tier={sitter.currentTier} />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
+                {/* Name/Tier Container - Centered */}
+                <Card style={{ 
+                  padding: tokens.spacing[4], 
+                  marginBottom: tokens.spacing[4],
+                  backgroundColor: tokens.colors.background.secondary,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    gap: tokens.spacing[3], 
+                    marginBottom: tokens.spacing[2],
+                  }}>
                     <div
                       style={{
-                        fontSize: tokens.typography.fontSize.base[0], // Made larger per requirements
-                        color: tokens.colors.text.secondary,
+                        width: '48px', // Made bigger
+                        height: '48px',
+                        borderRadius: '50%',
+                        backgroundColor: tokens.colors.primary[100],
                         display: 'flex',
-                        flexDirection: 'column',
-                        gap: tokens.spacing[2], // Increased gap for better spacing
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: tokens.colors.primary.DEFAULT,
+                        fontSize: tokens.typography.fontSize.lg[0], // Made bigger
+                        flexShrink: 0,
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                        <i className="fas fa-phone" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
-                        <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>{formatPhoneNumber(sitter.phone)}</span>
-                        {sitter.phoneType && (
-                          <Badge variant="neutral" style={{ marginLeft: tokens.spacing[1] }}>
-                            {sitter.phoneType === "personal" ? "Personal" : "OpenPhone"}
-                          </Badge>
+                      <i className="fas fa-user" />
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontWeight: tokens.typography.fontWeight.bold,
+                          fontSize: tokens.typography.fontSize.xl[0], // Made bigger
+                          color: tokens.colors.text.primary,
+                          marginBottom: tokens.spacing[1],
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {sitter.firstName} {sitter.lastName}
+                      </div>
+                      <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
+                        <Badge variant={sitter.isActive ? "success" : "error"}>
+                          {sitter.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                        {sitter.currentTier && (
+                          <SitterTierBadge tier={sitter.currentTier} />
                         )}
-                      </div>
-                      {sitter.personalPhone && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                          <i className="fas fa-mobile-alt" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
-                          <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>Personal: {formatPhoneNumber(sitter.personalPhone)}</span>
-                        </div>
-                      )}
-                      {sitter.openphonePhone && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                          <i className="fas fa-phone-alt" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
-                          <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>OpenPhone: {formatPhoneNumber(sitter.openphonePhone)}</span>
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                        <i className="fas fa-envelope" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
-                        <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>{sitter.email}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                        <i className="fas fa-calendar" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
-                        <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>Added {new Date(sitter.createdAt).toLocaleDateString()}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                        <i className="fas fa-percentage" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
-                        <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>Commission: {sitter.commissionPercentage || 80}%</span>
                       </div>
                     </div>
                   </div>
-                  
-                  <div style={{ 
-                    display: 'flex', 
-                    gap: tokens.spacing[2], 
-                    alignItems: 'center',
-                    flexWrap: isMobile ? 'wrap' : 'nowrap',
-                  }}>
+                </Card>
+                
+                {/* Contact Info - Made larger */}
+                <div
+                  style={{
+                    fontSize: tokens.typography.fontSize.base[0], // Made bigger from xs/sm
+                    color: tokens.colors.text.secondary,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: tokens.spacing[3], // Increased gap
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                    <i className="fas fa-phone" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
+                    <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>{formatPhoneNumber(sitter.phone)}</span>
+                    {sitter.phoneType && (
+                      <Badge variant="neutral" style={{ marginLeft: tokens.spacing[1] }}>
+                        {sitter.phoneType === "personal" ? "Personal" : "OpenPhone"}
+                      </Badge>
+                    )}
+                  </div>
+                  {sitter.personalPhone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                      <i className="fas fa-mobile-alt" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
+                      <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>Personal: {formatPhoneNumber(sitter.personalPhone)}</span>
+                    </div>
+                  )}
+                  {sitter.openphonePhone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                      <i className="fas fa-phone-alt" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
+                      <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>OpenPhone: {formatPhoneNumber(sitter.openphonePhone)}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                    <i className="fas fa-envelope" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
+                    <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>{sitter.email}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                    <i className="fas fa-calendar" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
+                    <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>Added {new Date(sitter.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                    <i className="fas fa-percentage" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
+                    <span style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>Commission: {sitter.commissionPercentage || 80}%</span>
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  gap: tokens.spacing[3], 
+                  marginTop: tokens.spacing[4],
+                }}>
                     <Button
-                      variant="secondary"
-                      size="sm"
+                      variant="primary"
+                      size="md"
                       onClick={() => window.open(`/sitter-dashboard?id=${sitter.id}&admin=true`, '_blank')}
                       leftIcon={<i className="fas fa-calendar-alt" />}
-                      style={{ 
-                        width: isMobile ? '100%' : 'auto',
-                        borderRadius: tokens.borderRadius.full, // Rounded edges per requirements
-                      }}
+                      style={{ width: '100%' }}
                     >
                       View Dashboard
                     </Button>
                     <Button
                       variant="secondary"
-                      size="sm"
+                      size="md"
                       onClick={() => startEdit(sitter)}
                       leftIcon={<i className="fas fa-edit" />}
-                      style={{ 
-                        flex: isMobile ? 1 : 'none',
-                        borderRadius: tokens.borderRadius.full, // Rounded edges per requirements
-                      }}
+                      style={{ width: '100%' }}
                     >
                       Edit
                     </Button>
                     <Button
                       variant="danger"
-                      size="sm"
+                      size="md"
                       onClick={() => handleDelete(sitter.id)}
                       leftIcon={<i className="fas fa-trash" />}
-                      style={{ 
-                        flex: isMobile ? 1 : 'none',
-                        borderRadius: tokens.borderRadius.full, // Rounded edges per requirements
-                      }}
+                      style={{ width: '100%' }}
                     >
                       Delete
                     </Button>
-                  </div>
                 </div>
               </Card>
             ))}

@@ -274,39 +274,69 @@ function SitterDashboardContent() {
       <div style={{ padding: tokens.spacing[6] }}>
         {isMobile ? (
           <>
-            <MobileFilterBar
-              activeFilter={activeTab}
-              onFilterChange={(filterId) => setActiveTab(filterId as TabType)}
-              sticky
-              options={tabs.map(tab => ({ 
-                id: tab.id, 
-                label: tab.label, 
-                badge: tab.badge 
-              }))}
-            />
+            {/* Name/Tier Container - Centered with other containers */}
+            {isAdminView && (
+              <Card style={{ 
+                marginBottom: tokens.spacing[6],
+                padding: tokens.spacing[6],
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+              }}>
+                <div style={{ 
+                  fontSize: tokens.typography.fontSize['2xl'][0], // Made bigger
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  color: tokens.colors.text.primary,
+                  marginBottom: tokens.spacing[3],
+                }}>
+                  {dashboardData.sitter.firstName} {dashboardData.sitter.lastName}
+                </div>
+                {dashboardData.tier && (
+                  <SitterTierBadge tier={dashboardData.tier} />
+                )}
+              </Card>
+            )}
+            
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', marginBottom: tokens.spacing[4], paddingLeft: tokens.spacing[4], paddingRight: tokens.spacing[4] }}>
+              <div style={{ width: '100%', maxWidth: '100%' }}>
+                <Card style={{ padding: tokens.spacing[4], marginBottom: tokens.spacing[4] }}>
+                  <MobileFilterBar
+                    activeFilter={activeTab}
+                    onFilterChange={(filterId) => setActiveTab(filterId as TabType)}
+                    sticky={false}
+                    options={tabs.map(tab => ({ 
+                      id: tab.id, 
+                      label: tab.label, 
+                      badge: tab.badge 
+                    }))}
+                  />
+                </Card>
+              </div>
+            </div>
             {/* Mobile: Render content based on activeTab */}
             {activeTab === 'pending' && (
-              <Card>
+              <Card style={{ padding: tokens.spacing[6] }}> {/* Increased padding */}
                 <SectionHeader title={`Pending Requests (${dashboardData.jobs.needsResponse.length})`} />
-                <div style={{ padding: tokens.spacing[6] }}>
+                <div>
                   {dashboardData.jobs.needsResponse.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}> {/* Increased gap */}
                       {dashboardData.jobs.needsResponse.map((job) => (
-                        <Card key={job.id}>
+                        <Card key={job.id} style={{ padding: tokens.spacing[6] }}> {/* Increased padding */}
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
                             <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.xl[0] }}> {/* Made bigger */}
                                   {job.clientName}
                                 </div>
                                 <Badge variant="warning">Pool Request</Badge>
                                 {job.expiresAt && new Date(job.expiresAt) > new Date() && (
-                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                                  <div style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.secondary }}> {/* Made bigger */}
                                     Expires: {formatDate(job.expiresAt)} {formatTime(job.expiresAt)}
                                   </div>
                                 )}
                               </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.secondary }}> {/* Made bigger */}
                                 <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
                                 <BookingScheduleDisplay
                                   service={job.service}
@@ -325,7 +355,9 @@ function SitterDashboardContent() {
                                     </span>
                                   ))}
                                 </div>
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                                <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+                                  <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}
+                                </div>
                                 {job.message && (
                                   <Card style={{ marginTop: tokens.spacing[2], padding: tokens.spacing[2], backgroundColor: tokens.colors.neutral[50] }}>
                                     <div style={{ fontSize: tokens.typography.fontSize.xs[0] }}>{job.message}</div>
@@ -334,15 +366,17 @@ function SitterDashboardContent() {
                               </div>
                             </div>
                             {!isAdminView && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], width: '100%' }}>
                                 <Button
                                   variant="primary"
+                                  size="md"
                                   onClick={() => acceptJob(job)}
                                   disabled={acceptingJobId === job.id || !!(job.expiresAt && new Date(job.expiresAt) < new Date())}
+                                  style={{ width: '100%' }}
                                 >
                                   {acceptingJobId === job.id ? "Accepting..." : "Accept"}
                                 </Button>
-                                <Button variant="tertiary" disabled>
+                                <Button variant="tertiary" size="md" disabled style={{ width: '100%' }}>
                                   Decline
                                 </Button>
                               </div>
@@ -366,6 +400,7 @@ function SitterDashboardContent() {
                 <div style={{ marginBottom: tokens.spacing[4], display: 'flex', justifyContent: 'flex-end' }}>
                   <Button
                     variant={viewMode === "calendar" ? "primary" : "secondary"}
+                    size="md"
                     onClick={() => setViewMode(viewMode === "calendar" ? "list" : "calendar")}
                     leftIcon={<i className={viewMode === "calendar" ? "fas fa-list" : "fas fa-calendar"} />}
                   >
@@ -483,24 +518,24 @@ function SitterDashboardContent() {
                     })()}
                   </>
                 ) : (
-                  <Card>
+                  <Card style={{ padding: tokens.spacing[6] }}> {/* Increased padding */}
                     <SectionHeader title={`Accepted Jobs (${dashboardData.jobs.accepted.length})`} />
-                    <div style={{ padding: tokens.spacing[6] }}>
+                    <div>
                       {dashboardData.jobs.accepted.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}> {/* Increased gap */}
                           {dashboardData.jobs.accepted.map((job) => (
-                            <Card key={job.id}>
+                            <Card key={job.id} style={{ padding: tokens.spacing[6] }}> {/* Increased padding */}
                               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                                 <div style={{ flex: 1 }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                                    <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
+                                    <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.xl[0] }}> {/* Made bigger */}
                                       {job.clientName}
                                     </div>
                                     <Badge variant={job.type === "direct" ? "info" : "success"}>
                                       {job.type === "direct" ? "Direct Assignment" : "Pool Accepted"}
                                     </Badge>
                                   </div>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.secondary }}> {/* Made bigger */}
                                     <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
                                     <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
                                     {job.timeSlots.length > 0 && (
@@ -524,7 +559,9 @@ function SitterDashboardContent() {
                                         </span>
                                       ))}
                                     </div>
-                                    <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                                    <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+                                      <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -544,24 +581,24 @@ function SitterDashboardContent() {
               </>
             )}
             {activeTab === 'archived' && (
-              <Card>
+              <Card style={{ padding: tokens.spacing[6] }}> {/* Increased padding */}
                 <SectionHeader title={`Archived Jobs (${dashboardData.jobs.archived.length})`} />
-                <div style={{ padding: tokens.spacing[6] }}>
+                <div>
                   {dashboardData.jobs.archived.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}> {/* Increased gap */}
                       {dashboardData.jobs.archived.map((job) => (
-                        <Card key={job.id} style={{ opacity: 0.75 }}>
+                        <Card key={job.id} style={{ opacity: 0.75, padding: tokens.spacing[6] }}> {/* Increased padding */}
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                             <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.xl[0] }}> {/* Made bigger */}
                                   {job.clientName}
                                 </div>
                                 <Badge variant={job.status === "completed" ? "success" : "neutral"}>
                                   {job.status === "completed" ? "Completed" : "Cancelled"}
                                 </Badge>
                               </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.secondary }}> {/* Made bigger */}
                                 <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
                                 <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
                                 {job.timeSlots.length > 0 && (
@@ -575,7 +612,9 @@ function SitterDashboardContent() {
                                     ))}
                                   </div>
                                 )}
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                                <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+                                  <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -593,33 +632,33 @@ function SitterDashboardContent() {
               </Card>
             )}
             {activeTab === 'tooLate' && (
-              <Card>
+              <Card style={{ padding: tokens.spacing[6] }}> {/* Increased padding */}
                 <SectionHeader title={`Too Late / Expired (${dashboardData.jobs.tooLate.length})`} />
-                <div style={{ padding: tokens.spacing[6] }}>
+                <div>
                   {dashboardData.jobs.tooLate.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}> {/* Increased gap */}
                       {dashboardData.jobs.tooLate.map((job) => (
-                        <Card key={job.id} style={{ opacity: 0.6 }}>
+                        <Card key={job.id} style={{ opacity: 0.6, padding: tokens.spacing[6] }}> {/* Increased padding */}
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                             <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.xl[0] }}> {/* Made bigger */}
                                   {job.clientName}
                                 </div>
                                 <Badge variant="error">
                                   {job.status === "expired" ? "Expired" : "Too Late"}
                                 </Badge>
                               </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.secondary }}> {/* Made bigger */}
                                 <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
                                 <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
                                 {job.status === "expired" && (
-                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.error.DEFAULT }}>
+                                  <div style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.error.DEFAULT }}> {/* Made bigger */}
                                     This job expired before anyone accepted it
                                   </div>
                                 )}
                                 {job.status === "too_late" && (
-                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.error.DEFAULT }}>
+                                  <div style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.error.DEFAULT }}> {/* Made bigger */}
                                     This job was accepted by another sitter
                                   </div>
                                 )}
@@ -642,9 +681,9 @@ function SitterDashboardContent() {
             {activeTab === 'tier' && (
               <>
                 {dashboardData.tier && (
-                  <Card style={{ marginBottom: tokens.spacing[6] }}>
+                  <Card style={{ marginBottom: tokens.spacing[6], padding: tokens.spacing[6] }}> {/* Increased padding */}
                     <SectionHeader title="Current Tier & Badge" />
-                    <div style={{ padding: tokens.spacing[6] }}>
+                    <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[6] }}>
                         <div
                           style={{
@@ -686,9 +725,9 @@ function SitterDashboardContent() {
                     </div>
                   </Card>
                 )}
-                <Card style={{ marginBottom: tokens.spacing[6] }}>
+                <Card style={{ marginBottom: tokens.spacing[6], padding: tokens.spacing[6] }}> {/* Increased padding */}
                   <SectionHeader title="Performance Metrics (Last 30 Days)" />
-                  <div style={{ padding: tokens.spacing[6] }}>
+                  <div>
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[6] }}>
                       <div>
                         <StatCard
@@ -726,9 +765,9 @@ function SitterDashboardContent() {
                     </div>
                   </div>
                 </Card>
-                <Card style={{ marginBottom: tokens.spacing[6] }}>
+                <Card style={{ marginBottom: tokens.spacing[6], padding: tokens.spacing[6] }}> {/* Increased padding */}
                   <SectionHeader title="Job Statistics" />
-                  <div style={{ padding: tokens.spacing[6] }}>
+                  <div>
                     <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(150px, 1fr))', gap: tokens.spacing[4] }}>
                       <StatCard label="Jobs Received" value={dashboardData.performance.jobsReceived} />
                       <StatCard label="Jobs Accepted" value={dashboardData.performance.jobsAccepted} />
@@ -738,9 +777,9 @@ function SitterDashboardContent() {
                   </div>
                 </Card>
                 {dashboardData.improvementAreas.length > 0 && (
-                  <Card style={{ marginBottom: tokens.spacing[6] }}>
+                  <Card style={{ marginBottom: tokens.spacing[6], padding: tokens.spacing[6] }}> {/* Increased padding */}
                     <SectionHeader title="How to Rank Higher" />
-                    <div style={{ padding: tokens.spacing[6] }}>
+                    <div>
                       {dashboardData.nextTier && (
                         <Card style={{ marginBottom: tokens.spacing[4], padding: tokens.spacing[4], backgroundColor: tokens.colors.primary[50] }}>
                           <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
@@ -748,9 +787,9 @@ function SitterDashboardContent() {
                           </div>
                         </Card>
                       )}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}> {/* Increased gap */}
                         {dashboardData.improvementAreas.map((area, idx) => (
-                          <Card key={idx}>
+                          <Card key={idx} style={{ padding: tokens.spacing[4] }}> {/* Added padding */}
                             <div style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[3] }}>
                               <div
                                 style={{
@@ -780,12 +819,12 @@ function SitterDashboardContent() {
                   </Card>
                 )}
                 {dashboardData.tierHistory.length > 0 && (
-                  <Card>
+                  <Card style={{ padding: tokens.spacing[6] }}> {/* Increased padding */}
                     <SectionHeader title="Tier History" />
-                    <div style={{ padding: tokens.spacing[6] }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                    <div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}> {/* Increased gap */}
                         {dashboardData.tierHistory.map((history) => (
-                          <Card key={history.id}>
+                          <Card key={history.id} style={{ padding: tokens.spacing[4] }}> {/* Added padding */}
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[2] }}>
                               <span style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
                                 {history.tierName}
@@ -872,24 +911,28 @@ function SitterDashboardContent() {
                                   </span>
                                 ))}
                               </div>
-                              <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                              <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+                                <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}
+                              </div>
                               {job.message && (
                                 <Card style={{ marginTop: tokens.spacing[2], padding: tokens.spacing[2], backgroundColor: tokens.colors.neutral[50] }}>
-                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0] }}>{job.message}</div>
+                                  <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>{job.message}</div> {/* Made bigger */}
                                 </Card>
                               )}
                             </div>
                           </div>
                           {!isAdminView && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], width: '100%' }}>
                               <Button
                                 variant="primary"
+                                size="md"
                                 onClick={() => acceptJob(job)}
                                 disabled={acceptingJobId === job.id || !!(job.expiresAt && new Date(job.expiresAt) < new Date())}
+                                style={{ width: '100%' }}
                               >
                                 {acceptingJobId === job.id ? "Accepting..." : "Accept"}
                               </Button>
-                              <Button variant="tertiary" disabled>
+                              <Button variant="tertiary" size="md" disabled style={{ width: '100%' }}>
                                 Decline
                               </Button>
                             </div>
