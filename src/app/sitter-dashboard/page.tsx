@@ -28,6 +28,7 @@ import { useMobile } from '@/lib/use-mobile';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { SitterTierBadge } from '@/components/sitter';
 import { CalendarGrid, type CalendarDay as CalendarGridDay } from '@/components/calendar';
+import { AgendaPanel } from '@/components/calendar/AgendaPanel';
 import { BookingStatusInlineControl } from '@/components/bookings/BookingStatusInlineControl';
 import { SitterPoolPicker } from '@/components/bookings/SitterPoolPicker';
 
@@ -126,6 +127,7 @@ function SitterDashboardContent() {
   const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [acceptingJobId, setAcceptingJobId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -923,107 +925,140 @@ function SitterDashboardContent() {
 
             {/* Calendar View */}
             {viewMode === "calendar" && (
-              <Card>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
-                  <SectionHeader title="Calendar" />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                    <Button
-                      variant="tertiary"
-                      size="sm"
-                      onClick={() => {
-                        if (selectedMonth === 0) {
-                          setSelectedMonth(11);
-                          setSelectedYear(selectedYear - 1);
-                        } else {
-                          setSelectedMonth(selectedMonth - 1);
-                        }
-                      }}
-                    >
-                      ←
-                    </Button>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, minWidth: '200px', textAlign: 'center' }}>
-                      {new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </div>
-                    <Button
-                      variant="tertiary"
-                      size="sm"
-                      onClick={() => {
-                        if (selectedMonth === 11) {
-                          setSelectedMonth(0);
-                          setSelectedYear(selectedYear + 1);
-                        } else {
-                          setSelectedMonth(selectedMonth + 1);
-                        }
-                      }}
-                    >
-                      →
-                    </Button>
-                  </div>
-                </div>
-                <div style={{ padding: tokens.spacing[6] }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                      <div key={day} style={{ textAlign: 'center', fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.sm[0], padding: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
-                        {day}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: tokens.spacing[4] }}>
+                {/* Calendar Grid */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
+                    <SectionHeader title="Calendar" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                      <Button
+                        variant="tertiary"
+                        size="sm"
+                        onClick={() => {
+                          if (selectedMonth === 0) {
+                            setSelectedMonth(11);
+                            setSelectedYear(selectedYear - 1);
+                          } else {
+                            setSelectedMonth(selectedMonth - 1);
+                          }
+                        }}
+                      >
+                        ←
+                      </Button>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.semibold, minWidth: '200px', textAlign: 'center' }}>
+                        {new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                       </div>
-                    ))}
-                    
-                    {Array.from({ length: firstDay }).map((_, i) => (
-                      <div key={`empty-${i}`} style={{ padding: tokens.spacing[2] }}></div>
-                    ))}
-                    
-                    {days.map((day) => {
-                      const jobsForDay = getJobsForDate(day, selectedMonth, selectedYear);
-                      const isToday = day === new Date().getDate() && 
-                                     selectedMonth === new Date().getMonth() && 
-                                     selectedYear === new Date().getFullYear();
-                      
-                      return (
-                        <div
-                          key={day}
-                          style={{
-                            minHeight: '100px',
-                            borderRight: `1px solid ${tokens.colors.border.default}`,
-                            borderBottom: `1px solid ${tokens.colors.border.default}`,
-                            padding: tokens.spacing[2],
-                            backgroundColor: isToday ? tokens.colors.primary[50] : tokens.colors.background.primary,
-                            borderColor: isToday ? tokens.colors.primary.DEFAULT : tokens.colors.border.default,
-                            borderWidth: isToday ? '2px' : '1px',
-                          }}
-                        >
-                          <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1], color: isToday ? tokens.colors.primary.DEFAULT : tokens.colors.text.primary }}>
-                            {day}
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
-                            {jobsForDay.map((job) => (
-                              <Card
-                                key={job.id}
-                                style={{
-                                  padding: tokens.spacing[1],
-                                  backgroundColor: tokens.colors.primary[100],
-                                  borderColor: tokens.colors.primary[300],
-                                }}
-                              >
-                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.primary[700] }}>
-                                  {job.clientName}
-                                </div>
-                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.primary[600] }}>
-                                  {job.service}
-                                </div>
-                                {job.timeSlots.length > 0 && (
-                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.primary[600] }}>
-                                    {formatTime(job.timeSlots[0].startAt)}
-                                  </div>
-                                )}
-                              </Card>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
+                      <Button
+                        variant="tertiary"
+                        size="sm"
+                        onClick={() => {
+                          if (selectedMonth === 11) {
+                            setSelectedMonth(0);
+                            setSelectedYear(selectedYear + 1);
+                          } else {
+                            setSelectedMonth(selectedMonth + 1);
+                          }
+                        }}
+                      >
+                        →
+                      </Button>
+                    </div>
                   </div>
+                  {(() => {
+                    // Build CalendarGrid-compatible days array
+                    const monthStart = new Date(selectedYear, selectedMonth, 1);
+                    const monthEnd = new Date(selectedYear, selectedMonth + 1, 0);
+                    const firstDayOfWeek = monthStart.getDay();
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    const calendarDays: CalendarGridDay[] = [];
+
+                    // Add previous month's trailing days
+                    const prevMonthEnd = new Date(selectedYear, selectedMonth, 0);
+                    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+                      const date = new Date(selectedYear, selectedMonth - 1, prevMonthEnd.getDate() - i);
+                      date.setHours(0, 0, 0, 0);
+                      calendarDays.push({
+                        date,
+                        isCurrentMonth: false,
+                        isToday: false,
+                        isPast: date < today,
+                        events: [],
+                      });
+                    }
+
+                    // Add current month's days
+                    for (let day = 1; day <= daysInMonth; day++) {
+                      const date = new Date(selectedYear, selectedMonth, day);
+                      date.setHours(0, 0, 0, 0);
+                      const jobsForDay = getJobsForDate(day, selectedMonth, selectedYear);
+                      calendarDays.push({
+                        date,
+                        isCurrentMonth: true,
+                        isToday: date.getTime() === today.getTime(),
+                        isPast: date < today && date.getTime() !== today.getTime(),
+                        events: jobsForDay.map(job => ({
+                          id: job.id,
+                          clientName: job.clientName,
+                          service: job.service,
+                          startAt: job.startAt,
+                          endAt: job.endAt,
+                          timeSlots: job.timeSlots,
+                        })),
+                      });
+                    }
+
+                    // Add next month's leading days to complete the grid
+                    const remainingDays = 42 - calendarDays.length;
+                    for (let day = 1; day <= remainingDays; day++) {
+                      const date = new Date(selectedYear, selectedMonth + 1, day);
+                      date.setHours(0, 0, 0, 0);
+                      calendarDays.push({
+                        date,
+                        isCurrentMonth: false,
+                        isToday: false,
+                        isPast: date < today,
+                        events: [],
+                      });
+                    }
+
+                    return (
+                      <CalendarGrid
+                        days={calendarDays}
+                        selectedDate={selectedDate}
+                        onDateSelect={(date) => setSelectedDate(date)}
+                        monthName={new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long' })}
+                        year={selectedYear}
+                        formatTime={formatTime}
+                        renderEventLabel={(event) => event.clientName || event.service}
+                      />
+                    );
+                  })()}
                 </div>
-              </Card>
+
+                {/* Agenda Panel */}
+                <div>
+                  <AgendaPanel
+                    selectedDate={selectedDate}
+                    bookings={dashboardData.jobs.accepted.map(job => ({
+                      id: job.id,
+                      firstName: job.clientName.split(' ')[0] || '',
+                      lastName: job.clientName.split(' ').slice(1).join(' ') || '',
+                      service: job.service,
+                      startAt: job.startAt,
+                      endAt: job.endAt,
+                      status: job.status === 'accepted' ? 'confirmed' : job.status === 'needs_response' ? 'pending' : 'completed',
+                      totalPrice: job.totalPrice,
+                      timeSlots: job.timeSlots,
+                    }))}
+                    onBookingClick={(booking) => {
+                      window.location.href = `/bookings/${booking.id}`;
+                    }}
+                    formatTime={formatTime}
+                  />
+                </div>
+              </div>
             )}
 
             {/* List View */}
