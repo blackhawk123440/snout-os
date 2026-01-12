@@ -527,6 +527,23 @@ model SitterTier {
   canTakeHouseSits          Boolean             @default(false)
   canTakeTwentyFourHourCare Boolean             @default(false)
   isDefault                 Boolean             @default(false)
+  // Canonical tier permissions (Enterprise Tier System)
+  canJoinPools              Boolean             @default(false) // Can join sitter pools
+  canAutoAssign             Boolean             @default(false) // Can be auto-assigned without owner approval
+  canOvernight              Boolean             @default(false) // Can handle overnight/extended care
+  canSameDay                Boolean             @default(false) // Can handle same-day emergency bookings
+  canHighValue              Boolean             @default(false) // Can handle high-value clients
+  canRecurring              Boolean             @default(false) // Can accept recurring clients
+  canLeadPool               Boolean             @default(false) // Can lead sitter pools (Elite only)
+  canOverrideDecline        Boolean             @default(false) // Can override certain decline rules (Elite only)
+  // Commission split (percentage sitter receives, e.g., 70 = 70% to sitter, 30% to owner)
+  commissionSplit           Float               @default(70.0) // Default commission percentage
+  // Visual properties
+  badgeColor                String? // Hex color for badge
+  badgeStyle                String? // "outline" | "filled" | "accent" - for visual differentiation
+  // Description and progression info
+  description               String? // What this tier means
+  progressionRequirements   String? // JSON object with requirements to advance
   sitters                   SitterTierHistory[]
   createdAt                 DateTime            @default(now())
   updatedAt                 DateTime            @updatedAt
@@ -546,11 +563,16 @@ model SitterTierHistory {
   responseRate   Float?
   periodStart    DateTime
   periodEnd      DateTime?
+  // Audit fields for tier changes
+  changedBy      String? // User ID who made the change (null if system/automation)
+  reason         String? // Reason for tier change (promotion/demotion)
+  metadata       String? // JSON string for additional context
   createdAt      DateTime   @default(now())
 
   @@index([sitterId])
   @@index([tierId])
   @@index([periodStart])
+  @@index([createdAt])
 }
 
 model ServicePointWeight {

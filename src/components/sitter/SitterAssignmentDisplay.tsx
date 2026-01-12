@@ -3,24 +3,22 @@
  * 
  * Shared primitive for displaying sitter assignment consistently across the app.
  * Universal Law: ONE ASSIGNMENT VISIBILITY CONTRACT
+ * 
+ * Universal Tier Badge Rule: All tier displays MUST use SitterTierBadge component.
+ * Never use basic Badge for tier information.
  */
 
 'use client';
 
 import React from 'react';
-import { Badge } from '@/components/ui/Badge';
 import { tokens } from '@/lib/design-tokens';
+import { SitterTierBadge, type TierInfo } from './SitterTierBadge';
 
 export interface SitterInfo {
   id: string;
   firstName: string;
   lastName: string;
-  currentTier?: {
-    id: string;
-    name: string;
-    priorityLevel?: number;
-    color?: string;
-  } | null;
+  currentTier?: TierInfo | null;
 }
 
 export interface SitterAssignmentDisplayProps {
@@ -56,17 +54,7 @@ export const SitterAssignmentDisplay: React.FC<SitterAssignmentDisplayProps> = (
           {fullName}
         </span>
         {showTierBadge && sitter.currentTier && (
-          <Badge
-            variant="default"
-            style={{
-              backgroundColor: sitter.currentTier.color || tokens.colors.primary[100],
-              color: tokens.colors.primary.DEFAULT,
-              fontSize: tokens.typography.fontSize.xs[0],
-              padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-            }}
-          >
-            {sitter.currentTier.name}
-          </Badge>
+          <SitterTierBadge tier={sitter.currentTier} size="sm" />
         )}
       </div>
     );
@@ -78,17 +66,7 @@ export const SitterAssignmentDisplay: React.FC<SitterAssignmentDisplayProps> = (
         {fullName}
       </div>
       {showTierBadge && sitter.currentTier && (
-        <Badge
-          variant="default"
-          style={{
-            backgroundColor: sitter.currentTier.color || tokens.colors.primary[100],
-            color: tokens.colors.primary.DEFAULT,
-            fontSize: tokens.typography.fontSize.xs[0],
-            padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-          }}
-        >
-          {sitter.currentTier.name}
-        </Badge>
+        <SitterTierBadge tier={sitter.currentTier} size="sm" />
       )}
     </div>
   );
