@@ -10,13 +10,7 @@ export async function GET(
     const sitter = await prisma.sitter.findUnique({
       where: { id },
       include: {
-        currentTier: {
-          select: {
-            id: true,
-            name: true,
-            priorityLevel: true,
-          },
-        },
+        currentTier: true, // Include all tier fields for badges and dashboard
         bookings: {
           include: {
             pets: true,
