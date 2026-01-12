@@ -788,32 +788,30 @@ function SitterPageContent() {
 
   return (
     <AppShell>
-      <PageHeader
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3] }}>
-            <span>Sitter Dashboard</span>
-            {sitterTier && <SitterTierBadge tier={sitterTier} size="md" />}
-          </div>
-        }
-        description="Your pet care assignments and earnings"
-        actions={
-          <>
-            <Link href={`/sitter-dashboard?id=${sitterId}`}>
-              <Button variant="secondary" leftIcon={<i className="fas fa-calendar-alt" />}>
-                Full Dashboard
+      <div style={{ marginBottom: tokens.spacing[6] }}>
+        <PageHeader
+          title="Sitter Dashboard"
+          description="Your pet care assignments and earnings"
+          actions={
+            <>
+              {sitterTier && <SitterTierBadge tier={sitterTier} size="md" />}
+              <Link href={`/sitter-dashboard?id=${sitterId}`}>
+                <Button variant="secondary" leftIcon={<i className="fas fa-calendar-alt" />}>
+                  Full Dashboard
+                </Button>
+              </Link>
+              <Button
+                variant="tertiary"
+                onClick={() => fetchSitterBookings(sitterId)}
+                disabled={loading}
+                leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
+              >
+                Refresh
               </Button>
-            </Link>
-            <Button
-              variant="tertiary"
-              onClick={() => fetchSitterBookings(sitterId)}
-              disabled={loading}
-              leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
-            >
-              Refresh
-            </Button>
-          </>
-        }
-      />
+            </>
+          }
+        />
+      </div>
 
       <div style={{ padding: tokens.spacing[6] }}>
         {/* Tier Badge - Prominent Display */}
