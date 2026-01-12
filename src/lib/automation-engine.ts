@@ -477,35 +477,47 @@ export async function processAutomations(
   // Find all enabled automations that match this trigger
   const automations = await prisma.automation.findMany({
     where: {
-      trigger: eventType,
-      enabled: true,
+      trigger: {
+        triggerType: eventType,
+      },
+      isEnabled: true,
+      status: 'active',
     },
     include: {
-      conditions: {
+      trigger: true,
+      conditionGroups: {
+        include: {
+          conditions: {
+            orderBy: { order: "asc" },
+          },
+        },
         orderBy: { order: "asc" },
       },
       actions: {
         orderBy: { order: "asc" },
       },
     },
-    orderBy: { priority: "desc" }, // Higher priority first
+    orderBy: { version: "desc" }, // Higher version first
   });
 
   for (const automation of automations) {
     try {
-      // Evaluate conditions
-      const conditions = automation.conditions.map((c) => ({
-        field: c.field,
-        operator: c.operator,
-        value: c.value,
-        logic: c.logic || undefined,
-      }));
-
-      const conditionsMet = evaluateConditions(conditions, context);
+      // Evaluate condition groups
+      const { evaluateAllConditionGroups } = await import('./automations/condition-builder');
+      const conditionsMet = evaluateAllConditionGroups(
+        automation.conditionGroups.map(g => ({
+          operator: g.operator,
+          conditions: g.conditions.map(c => ({
+            conditionType: c.conditionType,
+            conditionConfig: c.conditionConfig,
+          })),
+        })),
+        context
+      );
 
       if (!conditionsMet) {
         // Log that conditions weren't met
-        await logAutomationExecution(automation.id, eventType, context, conditions, [], false, null);
+        await logAutomationExecution(automation.id, eventType, context, [], [], false, 'Conditions not met');
         continue;
       }
 
@@ -515,19 +527,19 @@ export async function processAutomations(
       let firstError: string | null = null;
 
       for (const action of automation.actions) {
-        const actionConfig = JSON.parse(action.config || "{}");
+        const actionConfig = JSON.parse(action.actionConfig || "{}");
         const result = await executeAction(
           {
-            type: action.type,
-            config: action.config || "{}",
-            delayMinutes: action.delayMinutes || 0,
+            type: action.actionType,
+            config: action.actionConfig || "{}",
+            delayMinutes: 0, // Delay handled in schedule system
           },
           context,
           automation.id
         );
 
         actionResults.push({
-          type: action.type,
+          type: action.actionType,
           success: result.success,
           error: result.error,
           result: result.result,
@@ -546,7 +558,7 @@ export async function processAutomations(
         automation.id,
         eventType,
         context,
-        conditions,
+        automation.conditionGroups,
         actionResults,
         allSuccess,
         firstError
@@ -573,21 +585,63 @@ async function logAutomationExecution(
   automationId: string,
   trigger: string,
   context: EventContext,
-  conditions: any[],
+  conditionGroups: any[],
   actions: any[],
   success: boolean,
   error: string | null
 ): Promise<void> {
   try {
-    await prisma.automationLog.create({
+    const correlationId = `automation-${automationId}-${Date.now()}`;
+    const status = success ? 'success' : (error ? 'failed' : 'skipped');
+    
+    const run = await prisma.automationRun.create({
       data: {
         automationId,
-        trigger,
-        context: JSON.stringify(context),
-        conditions: JSON.stringify(conditions),
-        actions: JSON.stringify(actions),
-        success,
+        status,
+        reason: error || null,
+        targetEntityType: context.targetEntityType,
+        targetEntityId: context.targetEntityId,
+        idempotencyKey: context.idempotencyKey,
+        metadata: JSON.stringify({
+          trigger,
+          context,
+          conditionGroups,
+          actions,
+        }),
+        correlationId,
+        steps: {
+          create: [
+            ...conditionGroups.map((group, idx) => ({
+              stepType: 'conditionCheck',
+              status: 'success',
+              input: JSON.stringify(group),
+              output: JSON.stringify({ passed: true }),
+            })),
+            ...actions.map((action, idx) => ({
+              stepType: 'actionExecute',
+              status: action.success ? 'success' : 'failed',
+              input: JSON.stringify({ type: action.type }),
+              output: JSON.stringify(action.result || {}),
+              error: action.error ? JSON.stringify({ message: action.error }) : null,
+            })),
+          ],
+        },
+      },
+    });
+
+    // Also create EventLog entry
+    await prisma.eventLog.create({
+      data: {
+        eventType: 'automation.run',
+        automationType: trigger,
+        status,
         error: error || null,
+        metadata: JSON.stringify({
+          automationId,
+          correlationId,
+          runId: run.id,
+        }),
+        bookingId: context.bookingId || context.booking?.id,
       },
     });
   } catch (logError) {

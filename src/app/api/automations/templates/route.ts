@@ -74,32 +74,48 @@ export async function POST(request: NextRequest) {
       data: {
         name: automationName,
         description: template.description,
-        trigger: template.trigger,
-        enabled: enabled !== undefined ? enabled : template.defaultEnabled,
-        priority: 0,
-        conditions: {
-          create: template.conditions.map((cond, index) => ({
-            field: cond.field,
-            operator: cond.operator,
-            value: cond.value,
-            logic: cond.logic || null,
-            order: index,
-          })),
+        isEnabled: enabled !== undefined ? enabled : template.defaultEnabled,
+        status: 'draft',
+        trigger: {
+          create: {
+            triggerType: template.trigger,
+            triggerConfig: JSON.stringify({}),
+          },
         },
+        conditionGroups: template.conditions.length > 0 ? {
+          create: [{
+            operator: 'all',
+            order: 0,
+            conditions: {
+              create: template.conditions.map((cond, index) => ({
+                conditionType: cond.field, // Map old field to conditionType
+                conditionConfig: JSON.stringify({
+                  operator: cond.operator,
+                  value: cond.value,
+                }),
+                order: index,
+              })),
+            },
+          }],
+        } : undefined,
         actions: {
           create: template.actions.map((action, index) => ({
-            type: action.type,
-            config: JSON.stringify({
+            actionType: action.type,
+            actionConfig: JSON.stringify({
               ...action.config,
               ...(customizations[action.type] || {}),
             }),
             order: index,
-            delayMinutes: action.delayMinutes || 0,
           })),
         },
       },
       include: {
-        conditions: true,
+        trigger: true,
+        conditionGroups: {
+          include: {
+            conditions: true,
+          },
+        },
         actions: true,
       },
     });
