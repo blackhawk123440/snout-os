@@ -211,66 +211,135 @@ model GoogleCalendarAccount {
 }
 
 // ============================================
-// AUTOMATION CENTER MODELS
+// AUTOMATION CENTER MODELS (Enterprise Rebuild)
 // ============================================
 
 model Automation {
-  id          String                @id @default(uuid())
+  id          String                    @id @default(uuid())
   name        String
   description String?
-  trigger     String // e.g., "booking.created", "sitter.assigned"
-  enabled     Boolean               @default(true)
-  priority    Int                   @default(0) // Higher priority runs first
-  conditions  AutomationCondition[]
+  isEnabled   Boolean                   @default(true)
+  scope       String                    @default("global") // global, org, sitter, client
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  createdBy  String? // User ID or system
+  updatedBy  String? // User ID or system
+  version    Int                        @default(1)
+  status     String                     @default("draft") // draft, active, paused, archived
+  
+  // Relations
+  trigger     AutomationTrigger?
+  conditionGroups AutomationConditionGroup[]
   actions     AutomationAction[]
-  logs        AutomationLog[]
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
+  templates  AutomationTemplate[]
+  runs       AutomationRun[]
+  
+  @@index([isEnabled])
+  @@index([status])
+  @@index([scope])
+  @@index([createdAt])
+}
 
-  @@index([trigger])
-  @@index([enabled])
+model AutomationTrigger {
+  id            String     @id @default(uuid())
+  automationId  String     @unique
+  automation    Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  triggerType   String // e.g., "booking.created", "booking.statusChanged", "time.scheduled"
+  triggerConfig String     @db.Text // JSON string with trigger-specific configuration
+  
+  @@index([triggerType])
+}
+
+model AutomationConditionGroup {
+  id            String                @id @default(uuid())
+  automationId  String
+  automation    Automation            @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  operator      String                @default("all") // "all" or "any"
+  order         Int                   @default(0)
+  conditions    AutomationCondition[]
+  
+  @@index([automationId])
+  @@index([order])
 }
 
 model AutomationCondition {
-  id           String     @id @default(uuid())
-  automationId String
-  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
-  field        String // e.g., "service", "bookingTotal", "dayOfWeek"
-  operator     String // e.g., "equals", "greaterThan", "contains"
-  value        String // JSON string for complex values
-  logic        String? // "AND" or "OR" - how to combine with next condition
-  order        Int        @default(0)
-
-  @@index([automationId])
+  id            String                  @id @default(uuid())
+  groupId       String
+  group          AutomationConditionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  conditionType String // e.g., "booking.service", "booking.status", "client.isNew"
+  conditionConfig String                @db.Text // JSON string with condition-specific configuration
+  order         Int                     @default(0)
+  
+  @@index([groupId])
+  @@index([order])
 }
 
 model AutomationAction {
   id           String     @id @default(uuid())
   automationId String
   automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
-  type         String // e.g., "sendSMS", "sendEmail", "updateStatus", "assignSitter"
-  config       String // JSON string with action-specific configuration
+  actionType   String // e.g., "sendSMS", "sendEmail", "updateBookingStatus", "assignSitter"
+  actionConfig String     @db.Text // JSON string with action-specific configuration
   order        Int        @default(0)
-  delayMinutes Int?       @default(0) // Delay before executing
-
+  
   @@index([automationId])
+  @@index([order])
 }
 
-model AutomationLog {
-  id           String     @id @default(uuid())
-  automationId String
-  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
-  trigger      String
-  context      String // JSON string with event context
-  conditions   String // JSON string with condition results
-  actions      String // JSON string with action results
-  success      Boolean
-  error        String?
-  executedAt   DateTime   @default(now())
-
+model AutomationTemplate {
+  id            String     @id @default(uuid())
+  automationId  String
+  automation    Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  templateType  String // "sms", "email", "internalMessage"
+  subject       String? // For emails
+  body          String     @db.Text
+  variablesUsed String?    @db.Text // JSON array of variable names
+  previewText   String?    @db.Text
+  updatedAt     DateTime   @updatedAt
+  updatedBy     String? // User ID
+  
   @@index([automationId])
-  @@index([executedAt])
-  @@index([success])
+  @@index([templateType])
+}
+
+model AutomationRun {
+  id                String            @id @default(uuid())
+  automationId      String
+  automation         Automation        @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  triggeredAt       DateTime          @default(now())
+  status            String            @default("queued") // queued, running, success, failed, skipped, test
+  reason            String?           @db.Text // If skipped
+  targetEntityType  String? // booking, client, sitter, payrollRun, payment, messageThread
+  targetEntityId    String?
+  idempotencyKey    String?           @unique
+  metadata          String?           @db.Text // JSON string
+  correlationId     String? // For EventLog correlation
+  
+  // Relations
+  steps             AutomationRunStep[]
+  
+  @@index([automationId])
+  @@index([status])
+  @@index([triggeredAt])
+  @@index([targetEntityType, targetEntityId])
+  @@index([correlationId])
+  @@index([idempotencyKey])
+}
+
+model AutomationRunStep {
+  id            String        @id @default(uuid())
+  automationRunId String
+  automationRun   AutomationRun @relation(fields: [automationRunId], references: [id], onDelete: Cascade)
+  stepType       String // "conditionCheck", "actionExecute"
+  status         String // "success", "failed", "skipped"
+  input          String?       @db.Text // JSON string
+  output         String?       @db.Text // JSON string
+  error          String?       @db.Text // JSON string
+  createdAt      DateTime      @default(now())
+  
+  @@index([automationRunId])
+  @@index([stepType])
+  @@index([status])
 }
 
 // ============================================

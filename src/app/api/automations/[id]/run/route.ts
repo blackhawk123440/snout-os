@@ -18,7 +18,13 @@ export async function POST(
     const automation = await prisma.automation.findUnique({
       where: { id },
       include: {
-        conditions: {
+        trigger: true,
+        conditionGroups: {
+          include: {
+            conditions: {
+              orderBy: { order: "asc" },
+            },
+          },
           orderBy: { order: "asc" },
         },
         actions: {
@@ -35,7 +41,14 @@ export async function POST(
     }
 
     // Process this specific automation
-    await processAutomations(automation.trigger, {
+    if (!automation.trigger) {
+      return NextResponse.json(
+        { error: "Automation has no trigger configured" },
+        { status: 400 }
+      );
+    }
+
+    await processAutomations(automation.trigger.triggerType, {
       ...context,
       manualTrigger: true,
       automationId: id,

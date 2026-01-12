@@ -1,106 +1,65 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-
 /**
- * GET /api/automations
- * Get all automations
+ * Automations API - List and Create
  */
-export async function GET() {
+
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+
+export async function GET(request: NextRequest) {
   try {
     const automations = await prisma.automation.findMany({
       include: {
-        conditions: {
-          orderBy: { order: "asc" },
-        },
-        actions: {
-          orderBy: { order: "asc" },
+        trigger: true,
+        runs: {
+          take: 1,
+          orderBy: { triggeredAt: 'desc' },
         },
         _count: {
-          select: {
-            logs: true,
-          },
+          select: { runs: true },
         },
       },
-      orderBy: [
-        { priority: "desc" },
-        { createdAt: "desc" },
-      ],
+      orderBy: { createdAt: 'desc' },
     });
 
     return NextResponse.json({ automations });
   } catch (error: any) {
-    console.error("Failed to fetch automations:", error);
+    console.error('Failed to fetch automations:', error);
     return NextResponse.json(
-      { error: "Failed to fetch automations" },
+      { error: error.message || 'Failed to fetch automations' },
       { status: 500 }
     );
   }
 }
 
-/**
- * POST /api/automations
- * Create a new automation
- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      name,
-      description,
-      trigger,
-      enabled = true,
-      priority = 0,
-      conditions = [],
-      actions = [],
-    } = body;
-
-    if (!name || !trigger) {
-      return NextResponse.json(
-        { error: "Name and trigger are required" },
-        { status: 400 }
-      );
-    }
+    const { name, description, triggerType, triggerConfig } = body;
 
     const automation = await prisma.automation.create({
       data: {
         name,
         description,
-        trigger,
-        enabled,
-        priority,
-        conditions: {
-          create: conditions.map((c: any, index: number) => ({
-            field: c.field,
-            operator: c.operator,
-            value: c.value,
-            logic: c.logic,
-            order: c.order ?? index,
-          })),
-        },
-        actions: {
-          create: actions.map((a: any, index: number) => ({
-            type: a.type,
-            config: typeof a.config === "string" ? a.config : JSON.stringify(a.config),
-            order: a.order ?? index,
-            delayMinutes: a.delayMinutes ?? 0,
-          })),
+        status: 'draft',
+        isEnabled: false,
+        trigger: {
+          create: {
+            triggerType,
+            triggerConfig: JSON.stringify(triggerConfig || {}),
+          },
         },
       },
       include: {
-        conditions: true,
-        actions: true,
+        trigger: true,
       },
     });
 
     return NextResponse.json({ automation });
   } catch (error: any) {
-    console.error("Failed to create automation:", error);
+    console.error('Failed to create automation:', error);
     return NextResponse.json(
-      { error: "Failed to create automation" },
+      { error: error.message || 'Failed to create automation' },
       { status: 500 }
     );
   }
 }
-
-
-
