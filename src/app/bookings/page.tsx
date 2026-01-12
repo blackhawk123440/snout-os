@@ -52,6 +52,13 @@ interface Booking {
     id: string;
     firstName: string;
     lastName: string;
+    currentTier?: {
+      id: string;
+      name: string;
+      priorityLevel?: number;
+      badgeColor?: string | null;
+      badgeStyle?: string | null;
+    } | null;
   } | null;
   timeSlots?: Array<{
     startAt: Date | string;

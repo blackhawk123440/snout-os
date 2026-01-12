@@ -72,6 +72,18 @@ export async function GET(
           id: sitter.currentTier.id,
           name: sitter.currentTier.name,
           priorityLevel: sitter.currentTier.priorityLevel,
+          badgeColor: sitter.currentTier.badgeColor,
+          badgeStyle: sitter.currentTier.badgeStyle,
+          description: sitter.currentTier.description,
+          commissionSplit: sitter.currentTier.commissionSplit,
+          // Include permission fields for dashboard display
+          canJoinPools: sitter.currentTier.canJoinPools,
+          canAutoAssign: sitter.currentTier.canAutoAssign,
+          canOvernight: sitter.currentTier.canOvernight,
+          canSameDay: sitter.currentTier.canSameDay,
+          canHighValue: sitter.currentTier.canHighValue,
+          canRecurring: sitter.currentTier.canRecurring,
+          canLeadPool: sitter.currentTier.canLeadPool,
         } : null,
       }
     });

@@ -20,7 +20,8 @@
     "proof:phaseA": "tsx scripts/proof-phaseA.ts",
     "audit:tier-badges": "tsx scripts/audit-tier-badges.ts",
     "backfill:tiers": "tsx scripts/backfill-sitter-tiers.ts",
-    "verify:backfill": "tsx scripts/verify-tier-backfill.ts"
+    "verify:backfill": "tsx scripts/verify-tier-backfill.ts",
+    "check:tiers": "tsx scripts/check-tier-visibility.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

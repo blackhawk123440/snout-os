@@ -100,6 +100,14 @@ function SitterPageContent() {
       const sitterData = await sitterResponse.json();
       if (sitterData.sitter?.currentTier) {
         setSitterTier(sitterData.sitter.currentTier);
+        console.log('Sitter tier loaded:', sitterData.sitter.currentTier);
+      } else {
+        console.log('No tier assigned to sitter. Run backfill: npm run backfill:tiers');
+      }
+      
+      // Also check tier from bookings API (fallback)
+      if (data.sitter?.currentTier && !sitterTier) {
+        setSitterTier(data.sitter.currentTier);
       }
 
       // Fetch tier progress data from dashboard API
