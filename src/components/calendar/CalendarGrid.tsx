@@ -91,12 +91,15 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
         WebkitOverflowScrolling: 'touch',
       }}
     >
-      <Card
-        padding={false}
+      <div
         style={{
           width: '100%',
           minWidth: minGridWidth,
           margin: 0,
+          backgroundColor: tokens.colors.background.primary,
+          border: `1px solid ${tokens.colors.neutral[200]}`,
+          borderRadius: tokens.borderRadius.md,
+          overflow: 'hidden',
         }}
       >
         {/* Day Names Header */}
@@ -104,9 +107,10 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(7, 1fr)',
-            borderBottom: `1px solid ${tokens.colors.border.default}`,
+            borderBottom: `1px solid ${tokens.colors.neutral[200]}`,
             width: '100%',
             minWidth: minGridWidth,
+            backgroundColor: tokens.colors.background.primary,
           }}
         >
         {dayNames.map((day) => (
@@ -121,9 +125,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 ? tokens.typography.fontSize.xs[0]
                 : tokens.typography.fontSize.sm[0],
               fontWeight: tokens.typography.fontWeight.semibold,
-              color: tokens.colors.text.primary,
-              backgroundColor: tokens.colors.background.secondary,
-              borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
+              color: tokens.colors.text.secondary,
+              backgroundColor: tokens.colors.background.primary,
+              borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.neutral[200]}` : 'none',
             }}
           >
             {day}
@@ -150,19 +154,19 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               key={index}
               onClick={() => day.isCurrentMonth && onDateSelect(day.date)}
               style={{
-                minHeight: isMobile ? '60px' : '180px',
-                borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
-                borderBottom: `1px solid ${tokens.colors.border.default}`,
-                padding: isMobile ? tokens.spacing[1] : tokens.spacing[4],
+                minHeight: isMobile ? '60px' : '150px',
+                borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.neutral[200]}` : 'none',
+                borderBottom: `1px solid ${tokens.colors.neutral[200]}`,
+                padding: isMobile ? tokens.spacing[2] : tokens.spacing[3],
                 backgroundColor: day.isCurrentMonth
                   ? isSelected
                     ? tokens.colors.primary[50]
                     : day.isPast
-                    ? tokens.colors.background.tertiary
+                    ? tokens.colors.neutral[50]
                     : tokens.colors.background.primary
-                  : tokens.colors.background.secondary,
+                  : tokens.colors.neutral[50],
                 cursor: day.isCurrentMonth ? 'pointer' : 'default',
-                opacity: day.isCurrentMonth ? 1 : 0.5,
+                opacity: day.isCurrentMonth ? 1 : 0.4,
                 transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
                 overflow: 'hidden',
                 wordBreak: 'break-word',
@@ -171,16 +175,16 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               }}
               onMouseEnter={(e) => {
                 if (day.isCurrentMonth && !day.isPast && !isSelected) {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                  e.currentTarget.style.backgroundColor = tokens.colors.neutral[50];
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isSelected) {
                   e.currentTarget.style.backgroundColor = day.isCurrentMonth
                     ? day.isPast
-                      ? tokens.colors.background.tertiary
+                      ? tokens.colors.neutral[50]
                       : tokens.colors.background.primary
-                    : tokens.colors.background.secondary;
+                    : tokens.colors.neutral[50];
                 }
               }}
             >
@@ -269,10 +273,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                         padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
                         borderRadius: tokens.borderRadius.sm,
                         fontSize: tokens.typography.fontSize.xs[0],
-                        backgroundColor: tokens.colors.primary[100],
+                        backgroundColor: tokens.colors.primary[50],
                         color: tokens.colors.text.primary,
                         cursor: 'pointer',
                         borderLeft: `3px solid ${tokens.colors.primary.DEFAULT}`,
+                        fontWeight: tokens.typography.fontWeight.medium,
                       }}
                       title={`${renderEventLabel(event)} - ${event.service}`}
                     >
@@ -313,8 +318,8 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                       padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
                       borderRadius: tokens.borderRadius.sm,
                       fontSize: tokens.typography.fontSize.xs[0],
-                      backgroundColor: tokens.colors.primary[50],
-                      color: tokens.colors.primary.DEFAULT,
+                      backgroundColor: tokens.colors.neutral[100],
+                      color: tokens.colors.text.secondary,
                       border: 'none',
                       cursor: 'pointer',
                       fontWeight: tokens.typography.fontWeight.medium,
@@ -329,7 +334,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
           );
         })}
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

@@ -925,9 +925,9 @@ function SitterDashboardContent() {
 
             {/* Calendar View */}
             {viewMode === "calendar" && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: tokens.spacing[4] }}>
-                {/* Calendar Grid */}
-                <div style={{ minWidth: 0, width: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: tokens.spacing[4] }}>
+                {/* Calendar Grid - Primary focus, 70-75% width */}
+                <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
                     <SectionHeader title="Calendar" />
                     <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
@@ -1024,23 +1024,21 @@ function SitterDashboardContent() {
                     }
 
                     return (
-                      <div style={{ width: '100%' }}>
-                        <CalendarGrid
-                          days={calendarDays}
-                          selectedDate={selectedDate}
-                          onDateSelect={(date) => setSelectedDate(date)}
-                          monthName={new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long' })}
-                          year={selectedYear}
-                          formatTime={formatTime}
-                          renderEventLabel={(event) => event.clientName || event.service}
-                        />
-                      </div>
+                      <CalendarGrid
+                        days={calendarDays}
+                        selectedDate={selectedDate}
+                        onDateSelect={(date) => setSelectedDate(date)}
+                        monthName={new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long' })}
+                        year={selectedYear}
+                        formatTime={formatTime}
+                        renderEventLabel={(event) => event.clientName || event.service}
+                      />
                     );
                   })()}
                 </div>
 
-                {/* Agenda Panel */}
-                <div>
+                {/* Agenda Panel - Secondary sidebar, 25-30% width */}
+                <div style={{ minWidth: 0 }}>
                   <AgendaPanel
                     selectedDate={selectedDate}
                     bookings={dashboardData.jobs.accepted.map(job => ({
