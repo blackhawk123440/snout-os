@@ -925,9 +925,9 @@ function SitterDashboardContent() {
 
             {/* Calendar View */}
             {viewMode === "calendar" && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 200px', gap: tokens.spacing[4] }}>
-                {/* Calendar Grid - Primary focus, 70-75% width */}
-                <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 240px', gap: tokens.spacing[4], width: '100%' }}>
+                {/* Calendar Grid - Primary focus, dominant width */}
+                <div style={{ minWidth: 0, width: '100%', overflow: 'visible' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
                     <SectionHeader title="Calendar" />
                     <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
