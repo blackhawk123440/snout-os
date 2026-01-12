@@ -925,7 +925,7 @@ function SitterDashboardContent() {
 
             {/* Calendar View */}
             {viewMode === "calendar" && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 220px', gap: tokens.spacing[4] }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 200px', gap: tokens.spacing[4] }}>
                 {/* Calendar Grid - Primary focus, 70-75% width */}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
