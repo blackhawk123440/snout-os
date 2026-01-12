@@ -65,11 +65,9 @@ export const AgendaPanel: React.FC<AgendaPanelProps> = ({
 }) => {
   if (!selectedDate) {
     return (
-      <Card style={{ height: '100%', padding: tokens.spacing[3] }}>
-        <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: tokens.spacing[3] }}>
-          Agenda
-        </div>
-        <div style={{ padding: tokens.spacing[4], textAlign: 'center', color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+      <Card style={{ height: '100%' }}>
+        <SectionHeader title="Agenda" />
+        <div style={{ padding: tokens.spacing[6], textAlign: 'center', color: tokens.colors.text.secondary }}>
           Select a date to view bookings
         </div>
       </Card>
@@ -93,35 +91,29 @@ export const AgendaPanel: React.FC<AgendaPanelProps> = ({
   };
 
   return (
-    <Card style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: tokens.spacing[3] }}>
-      <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: tokens.spacing[3] }}>
-        Agenda
-      </div>
-      <div style={{ paddingBottom: tokens.spacing[2], borderBottom: `1px solid ${tokens.colors.border.default}`, marginBottom: tokens.spacing[3] }}>
-        <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+    <Card style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <SectionHeader title="Agenda" />
+      <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}` }}>
+        <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
           {formatDate(selectedDate)}
         </div>
-        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
           {dayBookings.length} {dayBookings.length === 1 ? 'booking' : 'bookings'}
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: tokens.spacing[4] }}>
         {dayBookings.length === 0 ? (
-          <div style={{ textAlign: 'center', color: tokens.colors.text.secondary, padding: tokens.spacing[4] }}>
-            No bookings scheduled
+          <div style={{ textAlign: 'center', color: tokens.colors.text.secondary, padding: tokens.spacing[6] }}>
+            No bookings scheduled for this date
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
             {dayBookings.map((booking) => (
-              <div
+              <Card
                 key={booking.id}
                 style={{
                   cursor: 'pointer',
                   transition: `all ${tokens.transitions.duration.DEFAULT}`,
-                  padding: tokens.spacing[2],
-                  borderRadius: tokens.borderRadius.sm,
-                  border: `1px solid ${tokens.colors.border.default}`,
-                  backgroundColor: tokens.colors.background.primary,
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
@@ -131,32 +123,39 @@ export const AgendaPanel: React.FC<AgendaPanelProps> = ({
                 }}
                 onClick={() => onBookingClick(booking)}
               >
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: tokens.spacing[1] }}>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.sm[0], flex: 1 }}>
-                    {booking.firstName} {booking.lastName}
+                <div style={{ padding: tokens.spacing[3] }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[2] }}>
+                    <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.base[0] }}>
+                      {booking.firstName} {booking.lastName}
+                    </div>
+                    <Badge variant={getStatusBadgeVariant(booking.status)}>
+                      {booking.status}
+                    </Badge>
                   </div>
-                  <Badge variant={getStatusBadgeVariant(booking.status)} style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
-                    {booking.status}
-                  </Badge>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+                    {booking.service}
+                  </div>
+                  {booking.timeSlots && booking.timeSlots.length > 0 ? (
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                      {booking.timeSlots.map((slot, idx) => (
+                        <div key={slot.id}>
+                          {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
+                          {slot.duration && ` (${slot.duration}m)`}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                      {formatTime(booking.startAt)} - {formatTime(booking.endAt)}
+                    </div>
+                  )}
+                  {booking.sitter && (
+                    <div style={{ marginTop: tokens.spacing[2], paddingTop: tokens.spacing[2], borderTop: `1px solid ${tokens.colors.border.default}` }}>
+                      <SitterAssignmentDisplay sitter={booking.sitter} showTierBadge compact />
+                    </div>
+                  )}
                 </div>
-                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                  {booking.service}
-                </div>
-                {booking.timeSlots && booking.timeSlots.length > 0 ? (
-                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
-                    {booking.timeSlots.map((slot, idx) => (
-                      <div key={slot.id}>
-                        {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
-                        {slot.duration && ` (${slot.duration}m)`}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
-                    {formatTime(booking.startAt)} - {formatTime(booking.endAt)}
-                  </div>
-                )}
-              </div>
+              </Card>
             ))}
           </div>
         )}
