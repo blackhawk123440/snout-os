@@ -13,58 +13,54 @@ import { prisma } from "./db";
  * Returns tier commission if available, otherwise falls back to sitter.commissionPercentage
  */
 export async function getSitterCommissionPercentage(sitterId: string): Promise<number> {
-  const sitter = await prisma.sitter.findUnique({
-    where: { id: sitterId },
-    include: {
-      currentTier: true,
-    },
-  });
-
-  if (!sitter) {
-    return 80.0; // Default fallback
+  const { getSitterTierPermissions } = await import('./tier-permissions');
+  const permissions = await getSitterTierPermissions(sitterId);
+  
+  if (permissions) {
+    // Tier-based commission takes precedence
+    return permissions.commissionSplit;
   }
 
-  // Phase 5.2: Check if tier has commission override
-  // For now, use sitter.commissionPercentage (tier-based commission can be added to tier model later)
-  // TODO: Add commissionPercentage field to SitterTier model if tier-based pay split is needed
-  
-  return sitter.commissionPercentage || 80.0;
+  // Fallback to sitter's individual commission
+  const sitter = await prisma.sitter.findUnique({
+    where: { id: sitterId },
+    select: { commissionPercentage: true },
+  });
+
+  return sitter?.commissionPercentage || 80.0;
 }
 
 /**
  * Check if sitter is eligible for a service type
  * Per Master Spec 7.2.2: Eligibility for complex routines, service types
+ * Now uses centralized tier permission engine
  */
 export async function isSitterEligibleForService(
   sitterId: string,
   service: string
 ): Promise<{ eligible: boolean; reason?: string }> {
-  const sitter = await prisma.sitter.findUnique({
-    where: { id: sitterId },
-    include: {
-      currentTier: true,
-    },
-  });
+  const { getSitterTierPermissions } = await import('./tier-permissions');
+  const permissions = await getSitterTierPermissions(sitterId);
 
-  if (!sitter) {
-    return { eligible: false, reason: "Sitter not found" };
+  if (!permissions) {
+    return { eligible: false, reason: "Sitter has no tier assigned" };
   }
 
-  // Phase 5.2: Check tier eligibility for complex services
+  // Check tier eligibility for complex services
   if (service === "Housesitting" || service === "House Sitting") {
-    if (sitter.currentTier && !sitter.currentTier.canTakeHouseSits) {
+    if (!permissions.canHouseSits) {
       return {
         eligible: false,
-        reason: `Sitter tier "${sitter.currentTier.name}" does not allow house sitting assignments`,
+        reason: "Sitter tier does not allow house sitting assignments",
       };
     }
   }
 
   if (service === "24/7 Care" || service === "24/7") {
-    if (sitter.currentTier && !sitter.currentTier.canTakeTwentyFourHourCare) {
+    if (!permissions.canTwentyFourHourCare) {
       return {
         eligible: false,
-        reason: `Sitter tier "${sitter.currentTier.name}" does not allow 24/7 care assignments`,
+        reason: "Sitter tier does not allow 24/7 care assignments",
       };
     }
   }

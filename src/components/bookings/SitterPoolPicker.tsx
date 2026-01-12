@@ -97,7 +97,14 @@ export const SitterPoolPicker: React.FC<SitterPoolPickerProps> = ({
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
-            {availableSitters.map(sitter => {
+            {[...availableSitters]
+              // Sort by tier priority (higher tier = higher priority)
+              .sort((a, b) => {
+                const aPriority = a.currentTier?.priorityLevel || 0;
+                const bPriority = b.currentTier?.priorityLevel || 0;
+                return bPriority - aPriority; // Descending order
+              })
+              .map(sitter => {
               const isSelected = selectedSitterIds.has(sitter.id);
               return (
                 <label

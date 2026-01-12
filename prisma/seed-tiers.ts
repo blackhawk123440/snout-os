@@ -1,52 +1,22 @@
-import { PrismaClient } from "@prisma/client";
+/**
+ * Seed Canonical Sitter Tiers
+ * 
+ * Creates the 4 canonical tiers as specified in the Enterprise Tier System:
+ * 1. Trainee - Risk containment
+ * 2. Certified - Reliable baseline labor
+ * 3. Trusted - Delegation without supervision
+ * 4. Elite - Retention, leadership, leverage
+ */
+
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding database...");
-
-  // Seed canonical tiers first
-  await seedTiers();
-
-  // Clear existing rates
-  await prisma.rate.deleteMany();
-
-  // Create standard rates
-  const rates = [
-    // Dog Walking - Base $20, +$12 for 60min, +$5 per pet, +$5 holiday
-    { service: "Dog Walking", duration: 30, baseRate: 20.0 },
-    { service: "Dog Walking", duration: 60, baseRate: 32.0 },
-
-    // Drop-ins - Base $20, +$12 for 60min, +$5 per pet, +$5 holiday
-    { service: "Drop-ins", duration: 30, baseRate: 20.0 },
-    { service: "Drop-ins", duration: 60, baseRate: 32.0 },
-
-    // House Sitting (per day) - Base $80, +$10 per pet, +$15 holiday
-    { service: "Housesitting", duration: 1440, baseRate: 80.0 }, // 24 hours in minutes
-    
-    // 24/7 Care (per day) - Base $120, +$10 per pet, +$15 holiday
-    { service: "24/7 Care", duration: 1440, baseRate: 120.0 }, // 24 hours in minutes
-
-    // Pet Taxi (per trip) - Base $20, +$5 per pet, +$5 holiday
-    { service: "Pet Taxi", duration: 60, baseRate: 20.0 }, // 1 hour trip
-  ];
-
-  for (const rate of rates) {
-    await prisma.rate.create({
-      data: rate,
-    });
-    console.log(
-      `✅ Created rate: ${rate.service}${
-        rate.duration ? ` (${rate.duration} min)` : ""
-      } - $${rate.baseRate}`
-    );
-  }
-
-  console.log("✨ Seed completed successfully");
-}
-
-async function seedTiers() {
   console.log("🌱 Seeding canonical sitter tiers...");
+
+  // Clear existing tiers (optional - comment out if you want to preserve existing data)
+  // await prisma.sitterTier.deleteMany();
 
   const tiers = [
     {
@@ -56,6 +26,7 @@ async function seedTiers() {
       minResponseRate: null,
       priorityLevel: 1,
       description: "New sitters. Unproven. Learning your standards.",
+      // Permissions - Risk containment
       canJoinPools: false,
       canAutoAssign: false,
       canOvernight: false,
@@ -66,15 +37,18 @@ async function seedTiers() {
       canOverrideDecline: false,
       canTakeHouseSits: false,
       canTakeTwentyFourHourCare: false,
-      commissionSplit: 65.0,
+      // Commission - Lowest split
+      commissionSplit: 65.0, // 65% to sitter, 35% to owner
+      // Visual
       badgeColor: "#F5F5F5",
       badgeStyle: "outline",
+      // Progression requirements
       progressionRequirements: JSON.stringify({
         bookings: "Complete X bookings with no issues",
         reliability: "No late arrivals or missed visits",
         training: "Complete training checklist",
       }),
-      isDefault: true,
+      isDefault: true, // New sitters start here
     },
     {
       name: "Certified",
@@ -83,19 +57,23 @@ async function seedTiers() {
       minResponseRate: 90.0,
       priorityLevel: 2,
       description: "Sitters who have proven basic reliability.",
+      // Permissions - Reliable baseline
       canJoinPools: true,
-      canAutoAssign: false,
+      canAutoAssign: false, // Still needs owner approval
       canOvernight: false,
       canSameDay: false,
       canHighValue: false,
       canRecurring: true,
       canLeadPool: false,
       canOverrideDecline: false,
-      canTakeHouseSits: false,
+      canTakeHouseSits: false, // Only short house sits
       canTakeTwentyFourHourCare: false,
-      commissionSplit: 75.0,
+      // Commission - Improved split
+      commissionSplit: 75.0, // 75% to sitter
+      // Visual
       badgeColor: "#8B6F47",
       badgeStyle: "outline",
+      // Progression requirements
       progressionRequirements: JSON.stringify({
         onTimeRate: "Consistent on-time rate",
         internalScore: "Positive internal score (no client complaints)",
@@ -110,19 +88,23 @@ async function seedTiers() {
       minResponseRate: 95.0,
       priorityLevel: 3,
       description: "Sitters you trust to operate independently.",
+      // Permissions - Delegation without supervision
       canJoinPools: true,
-      canAutoAssign: true,
+      canAutoAssign: true, // Can be assigned without owner approval
       canOvernight: true,
-      canSameDay: true,
+      canSameDay: true, // Can handle last-minute bookings
       canHighValue: true,
       canRecurring: true,
       canLeadPool: false,
       canOverrideDecline: false,
       canTakeHouseSits: true,
       canTakeTwentyFourHourCare: true,
-      commissionSplit: 80.0,
+      // Commission - High split
+      commissionSplit: 80.0, // 80% to sitter
+      // Visual
       badgeColor: "#8B6F47",
       badgeStyle: "filled",
+      // Progression requirements
       progressionRequirements: JSON.stringify({
         completionRate: "High completion rate",
         issues: "Zero unresolved issues",
@@ -138,19 +120,23 @@ async function seedTiers() {
       minResponseRate: 98.0,
       priorityLevel: 4,
       description: "Top performers. Brand protectors.",
+      // Permissions - Retention, leadership, leverage
       canJoinPools: true,
       canAutoAssign: true,
       canOvernight: true,
       canSameDay: true,
       canHighValue: true,
       canRecurring: true,
-      canLeadPool: true,
-      canOverrideDecline: true,
+      canLeadPool: true, // Can lead sitter pools
+      canOverrideDecline: true, // Can override certain decline rules
       canTakeHouseSits: true,
       canTakeTwentyFourHourCare: true,
-      commissionSplit: 85.0,
+      // Commission - Top split + bonuses
+      commissionSplit: 85.0, // 85% to sitter + bonuses
+      // Visual
       badgeColor: "#8B6F47",
-      badgeStyle: "accent",
+      badgeStyle: "accent", // Brown + pink accent
+      // Progression requirements
       progressionRequirements: JSON.stringify({
         ownerApproval: "Owner approval required",
         reliability: "Long-term reliability",
@@ -161,31 +147,35 @@ async function seedTiers() {
   ];
 
   for (const tierData of tiers) {
+    // Check if tier already exists
     const existing = await prisma.sitterTier.findUnique({
       where: { name: tierData.name },
     });
 
     if (existing) {
+      // Update existing tier
       await prisma.sitterTier.update({
         where: { name: tierData.name },
         data: tierData,
       });
       console.log(`✅ Updated tier: ${tierData.name}`);
     } else {
+      // Create new tier
       await prisma.sitterTier.create({
         data: tierData,
       });
       console.log(`✅ Created tier: ${tierData.name}`);
     }
   }
+
+  console.log("✨ Tier seeding completed successfully");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Seed failed:", e);
+    console.error("❌ Error seeding tiers:", e);
     process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();
   });
-

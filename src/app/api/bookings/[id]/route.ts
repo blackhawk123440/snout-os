@@ -202,6 +202,25 @@ export async function PATCH(
     // Phase 7.3: Get current user for status history logging (will be used after update)
     const currentUserForHistory = await getCurrentUserSafe(request);
 
+    // Tier-based permission check for sitter assignment
+    if (sitterId !== undefined && sitterId && sitterId !== "") {
+      const { canSitterTakeBooking } = await import('@/lib/tier-permissions');
+      const permissionCheck = await canSitterTakeBooking(sitterId, {
+        service: booking.service,
+        startAt: booking.startAt,
+        createdAt: booking.createdAt,
+        totalPrice: booking.totalPrice,
+        clientId: booking.clientId,
+      });
+
+      if (!permissionCheck.allowed) {
+        return NextResponse.json(
+          { error: `Cannot assign sitter: ${permissionCheck.reason}` },
+          { status: 400 }
+        );
+      }
+    }
+
     const updatedBooking = await prisma.booking.update({
       where: { id },
       data: {
