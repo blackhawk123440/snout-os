@@ -150,10 +150,10 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               key={index}
               onClick={() => day.isCurrentMonth && onDateSelect(day.date)}
               style={{
-                minHeight: isMobile ? '60px' : '150px',
+                minHeight: isMobile ? '60px' : '180px',
                 borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
                 borderBottom: `1px solid ${tokens.colors.border.default}`,
-                padding: isMobile ? tokens.spacing[1] : tokens.spacing[3],
+                padding: isMobile ? tokens.spacing[1] : tokens.spacing[4],
                 backgroundColor: day.isCurrentMonth
                   ? isSelected
                     ? tokens.colors.primary[50]
