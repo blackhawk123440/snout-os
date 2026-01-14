@@ -95,7 +95,9 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
       style={{
         width: '100%',
         padding: tokens.spacing[4],
-        backgroundColor: tokens.colors.background.primary,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)', // Very transparent for visible glassmorphism
+        backdropFilter: 'blur(30px) saturate(200%)', // Stronger frosted glass effect
+        WebkitBackdropFilter: 'blur(30px) saturate(200%)', // Safari support
         border: `1px solid ${tokens.colors.border.default}`,
         borderRadius: tokens.borderRadius.lg,
         cursor: onOpen ? 'pointer' : 'default',

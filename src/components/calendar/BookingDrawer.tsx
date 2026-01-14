@@ -89,7 +89,9 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
         top: 0,
         bottom: 0,
         width: '480px',
-        backgroundColor: tokens.colors.background.primary,
+        backgroundColor: 'rgba(255, 255, 255, 0.25)', // Very transparent for visible glassmorphism
+        backdropFilter: 'blur(30px) saturate(200%)', // Stronger frosted glass effect
+        WebkitBackdropFilter: 'blur(30px) saturate(200%)', // Safari support
         boxShadow: tokens.shadows.lg,
         zIndex: tokens.zIndex.modal,
         display: 'flex',
@@ -105,7 +107,9 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          backgroundColor: tokens.colors.background.primary,
+          backgroundColor: 'rgba(255, 255, 255, 0.3)', // Semi-transparent for glassmorphism
+          backdropFilter: 'blur(20px) saturate(180%)', // Frosted glass effect
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)', // Safari support
           position: 'sticky',
           top: 0,
           zIndex: tokens.zIndex.sticky,
