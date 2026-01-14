@@ -973,7 +973,7 @@ export default function CalendarPage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '320px 1fr 480px',
+            gridTemplateColumns: '260px 1fr 400px',
             gap: tokens.spacing[6],
             marginTop: tokens.spacing[6],
           }}
