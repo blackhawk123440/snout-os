@@ -93,9 +93,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
             padding: sizeStyle.padding,
             fontFamily: tokens.typography.fontFamily.sans.join(', '),
             color: tokens.colors.text.primary,
-            backgroundColor: 'rgba(255, 255, 255, 0.4)', // Semi-transparent for glassmorphism (slightly more opaque for readability)
-            backdropFilter: 'blur(20px) saturate(180%)', // Frosted glass effect
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)', // Safari support
+            backgroundColor: tokens.colors.background.primary,
             border: `1px solid ${error ? tokens.colors.error.DEFAULT : tokens.colors.border.default}`,
             borderRadius: tokens.borderRadius.md,
             outline: 'none',

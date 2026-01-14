@@ -1204,7 +1204,7 @@ function SitterPageContent() {
                 {tierProgress ? (
                   <>
                     {/* Current Tier */}
-                    {tierProgress.tier && (
+                    {sitterTier && (
                       <Card
                         style={{
                           marginBottom: tokens.spacing[6],
@@ -1212,36 +1212,70 @@ function SitterPageContent() {
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
-                          <div
-                            style={{
-                              width: '3rem',
-                              height: '3rem',
-                              borderRadius: tokens.borderRadius.md,
-                              backgroundColor: tokens.colors.primary[500],
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: tokens.colors.neutral[0],
-                              fontSize: tokens.typography.fontSize.xl[0],
-                            }}
-                          >
-                            <i className="fas fa-star" />
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.primary.DEFAULT }}>
-                              Current Tier: {tierProgress.tier.name}
+                          <SitterTierBadge tier={sitterTier} size="lg" />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.primary.DEFAULT, marginBottom: tokens.spacing[1] }}>
+                              {sitterTier.description || `Current Tier: ${sitterTier.name}`}
                             </div>
                             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              Priority Level: {tierProgress.tier.priorityLevel}
+                              Commission: {sitterTier.commissionSplit || commissionPercentage}% • Priority Level: {sitterTier.priorityLevel || 0}
                             </div>
-                            {tierProgress.tier.benefits && (
-                              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
-                                Benefits: {typeof tierProgress.tier.benefits === 'string' ? tierProgress.tier.benefits : JSON.stringify(tierProgress.tier.benefits)}
-                              </div>
-                            )}
                           </div>
                         </div>
                       </Card>
+                    )}
+                    
+                    {/* Locked/Unlocked Features */}
+                    {sitterTier && (
+                      <div style={{ marginBottom: tokens.spacing[6] }}>
+                        <SectionHeader title="Your Tier Capabilities" />
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: tokens.spacing[3], marginTop: tokens.spacing[4] }}>
+                          {[
+                            { key: 'canJoinPools', label: 'Join Sitter Pools', icon: 'fa-users' },
+                            { key: 'canAutoAssign', label: 'Auto-Assignment', icon: 'fa-magic' },
+                            { key: 'canOvernight', label: 'Overnight Bookings', icon: 'fa-moon' },
+                            { key: 'canSameDay', label: 'Same-Day Bookings', icon: 'fa-clock' },
+                            { key: 'canHighValue', label: 'High-Value Clients', icon: 'fa-star' },
+                            { key: 'canRecurring', label: 'Recurring Clients', icon: 'fa-repeat' },
+                            { key: 'canLeadPool', label: 'Lead Sitter Pools', icon: 'fa-crown' },
+                          ].map((feature) => {
+                            const isUnlocked = sitterTier[feature.key] === true;
+                            return (
+                              <Card
+                                key={feature.key}
+                                style={{
+                                  padding: tokens.spacing[4],
+                                  backgroundColor: isUnlocked ? tokens.colors.success[50] : tokens.colors.neutral[100],
+                                  borderColor: isUnlocked ? tokens.colors.success[200] : tokens.colors.neutral[300],
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                                  <i
+                                    className={`fas ${feature.icon}`}
+                                    style={{
+                                      color: isUnlocked ? tokens.colors.success.DEFAULT : tokens.colors.neutral[400],
+                                      fontSize: tokens.typography.fontSize.lg[0],
+                                    }}
+                                  />
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
+                                      {feature.label}
+                                    </div>
+                                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                                      {isUnlocked ? 'Available' : 'Locked'}
+                                    </div>
+                                  </div>
+                                  {isUnlocked ? (
+                                    <i className="fas fa-check-circle" style={{ color: tokens.colors.success.DEFAULT }} />
+                                  ) : (
+                                    <i className="fas fa-lock" style={{ color: tokens.colors.neutral[400] }} />
+                                  )}
+                                </div>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
 
                     {/* Performance Metrics */}
@@ -1338,6 +1372,79 @@ function SitterPageContent() {
                         </div>
                       </div>
                     )}
+                  </>
+                ) : sitterTier ? (
+                  <>
+                    {/* Current Tier */}
+                    <Card
+                      style={{
+                        marginBottom: tokens.spacing[6],
+                        backgroundColor: tokens.colors.primary[50],
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+                        <SitterTierBadge tier={sitterTier} size="lg" />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.primary.DEFAULT, marginBottom: tokens.spacing[1] }}>
+                            {sitterTier.description || `Current Tier: ${sitterTier.name}`}
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            Commission: {sitterTier.commissionSplit || commissionPercentage}% • Priority Level: {sitterTier.priorityLevel || 0}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                    
+                    {/* Locked/Unlocked Features */}
+                    <div style={{ marginBottom: tokens.spacing[6] }}>
+                      <SectionHeader title="Your Tier Capabilities" />
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: tokens.spacing[3], marginTop: tokens.spacing[4] }}>
+                        {[
+                          { key: 'canJoinPools', label: 'Join Sitter Pools', icon: 'fa-users' },
+                          { key: 'canAutoAssign', label: 'Auto-Assignment', icon: 'fa-magic' },
+                          { key: 'canOvernight', label: 'Overnight Bookings', icon: 'fa-moon' },
+                          { key: 'canSameDay', label: 'Same-Day Bookings', icon: 'fa-clock' },
+                          { key: 'canHighValue', label: 'High-Value Clients', icon: 'fa-star' },
+                          { key: 'canRecurring', label: 'Recurring Clients', icon: 'fa-repeat' },
+                          { key: 'canLeadPool', label: 'Lead Sitter Pools', icon: 'fa-crown' },
+                        ].map((feature) => {
+                          const isUnlocked = sitterTier[feature.key] === true;
+                          return (
+                            <Card
+                              key={feature.key}
+                              style={{
+                                padding: tokens.spacing[4],
+                                backgroundColor: isUnlocked ? tokens.colors.success[50] : tokens.colors.neutral[100],
+                                borderColor: isUnlocked ? tokens.colors.success[200] : tokens.colors.neutral[300],
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                                <i
+                                  className={`fas ${feature.icon}`}
+                                  style={{
+                                    color: isUnlocked ? tokens.colors.success.DEFAULT : tokens.colors.neutral[400],
+                                    fontSize: tokens.typography.fontSize.lg[0],
+                                  }}
+                                />
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
+                                    {feature.label}
+                                  </div>
+                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                                    {isUnlocked ? 'Available' : 'Locked'}
+                                  </div>
+                                </div>
+                                {isUnlocked ? (
+                                  <i className="fas fa-check-circle" style={{ color: tokens.colors.success.DEFAULT }} />
+                                ) : (
+                                  <i className="fas fa-lock" style={{ color: tokens.colors.neutral[400] }} />
+                                )}
+                              </div>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </>
                 ) : (
                   <EmptyState

@@ -32,9 +32,7 @@ export const Card: React.FC<CardProps> = ({
       {...props}
       className={className}
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.25)', // Very transparent for visible glassmorphism
-        backdropFilter: 'blur(30px) saturate(200%)', // Stronger frosted glass effect
-        WebkitBackdropFilter: 'blur(30px) saturate(200%)', // Safari support
+        backgroundColor: tokens.colors.background.primary, // White cards
         border: `1px solid ${tokens.colors.border.default}`, // Ultra light pink stroke
         borderRadius: tokens.borderRadius.lg,
         boxShadow: tokens.shadows.sm, // Subtle shadow for depth

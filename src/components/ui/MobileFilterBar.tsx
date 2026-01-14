@@ -39,9 +39,7 @@ export const MobileFilterBar: React.FC<MobileFilterBarProps> = ({
         position: sticky ? 'sticky' : 'relative',
         top: sticky ? 0 : 'auto',
         zIndex: sticky ? tokens.zIndex.sticky : 'auto',
-        backgroundColor: 'rgba(255, 255, 255, 0.25)', // Very transparent for visible glassmorphism
-        backdropFilter: 'blur(30px) saturate(200%)', // Stronger frosted glass effect
-        WebkitBackdropFilter: 'blur(30px) saturate(200%)', // Safari support
+        backgroundColor: tokens.colors.background.primary,
         borderBottom: `1px solid ${tokens.colors.border.default}`,
         paddingTop: tokens.spacing[3],
         paddingBottom: tokens.spacing[3],

@@ -120,7 +120,7 @@ export function Table<T extends Record<string, any>>({
                 }
               }}
               onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+                e.currentTarget.style.backgroundColor = tokens.colors.background.primary;
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
@@ -188,9 +188,7 @@ export function Table<T extends Record<string, any>>({
         border: `1px solid ${tokens.colors.border.default}`,
         borderRadius: tokens.borderRadius.lg,
         overflow: 'hidden',
-        backgroundColor: 'rgba(255, 255, 255, 0.25)', // Very transparent for visible glassmorphism
-        backdropFilter: 'blur(30px) saturate(200%)', // Stronger frosted glass effect
-        WebkitBackdropFilter: 'blur(30px) saturate(200%)', // Safari support
+        backgroundColor: tokens.colors.background.primary,
       }}
     >
       <div
@@ -219,9 +217,7 @@ export function Table<T extends Record<string, any>>({
               position: 'sticky',
               top: 0,
               zIndex: tokens.zIndex.sticky,
-              backgroundColor: 'rgba(254, 236, 244, 0.5)', // Semi-transparent pink for header
-              backdropFilter: 'blur(20px) saturate(180%)', // Frosted glass effect
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)', // Safari support
+              backgroundColor: tokens.colors.background.secondary,
               borderBottom: `2px solid ${tokens.colors.border.default}`,
             }}
           >

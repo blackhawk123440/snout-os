@@ -43,9 +43,7 @@ export const StatCard: React.FC<StatCardProps> = ({
     <div
       onClick={onClick}
       style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.25)', // Very transparent for visible glassmorphism
-        backdropFilter: 'blur(30px) saturate(200%)', // Stronger frosted glass effect
-        WebkitBackdropFilter: 'blur(30px) saturate(200%)', // Safari support
+        backgroundColor: tokens.colors.background.primary,
         border: `1px solid ${tokens.colors.border.default}`,
         borderRadius: tokens.borderRadius.lg,
         padding: useCompact ? tokens.spacing[3] : tokens.spacing[6],
