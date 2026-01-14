@@ -111,7 +111,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           top: 0,
           bottom: 0,
           width: tokens.layout.appShell.sidebarWidth,
-          backgroundColor: tokens.colors.background.primary,
+          backgroundColor: 'rgba(255, 255, 255, 0.3)', // Semi-transparent for glassmorphism
+          backdropFilter: 'blur(30px) saturate(200%)', // Frosted glass effect
+          WebkitBackdropFilter: 'blur(30px) saturate(200%)', // Safari support
           borderRight: `1px solid ${tokens.colors.border.default}`,
           zIndex: 1030, // Above backdrop (1020), below modals (1040+)
           display: 'flex',
@@ -268,7 +270,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <header
           style={{
             height: tokens.layout.appShell.topBarHeight,
-            backgroundColor: tokens.colors.background.primary,
+            backgroundColor: 'rgba(255, 255, 255, 0.3)', // Semi-transparent for glassmorphism
+            backdropFilter: 'blur(30px) saturate(200%)', // Frosted glass effect
+            WebkitBackdropFilter: 'blur(30px) saturate(200%)', // Safari support
             borderBottom: `1px solid ${tokens.colors.border.default}`,
             padding: `0 ${tokens.spacing[6]}`,
             display: 'flex',
