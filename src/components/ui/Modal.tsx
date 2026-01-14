@@ -102,9 +102,7 @@ export const Modal: React.FC<ModalProps> = ({
             width: '100%',
             maxHeight: '90vh',
             height: '90vh',
-            backgroundColor: 'rgba(255, 255, 255, 0.25)', // Very transparent for visible glassmorphism
-            backdropFilter: 'blur(30px) saturate(200%)', // Stronger frosted glass effect
-            WebkitBackdropFilter: 'blur(30px) saturate(200%)', // Safari support
+            backgroundColor: tokens.colors.background.primary,
             borderTopLeftRadius: tokens.borderRadius.xl,
             borderTopRightRadius: tokens.borderRadius.xl,
             boxShadow: tokens.shadows.xl,
@@ -253,9 +251,7 @@ export const Modal: React.FC<ModalProps> = ({
           position: 'relative',
           width: '100%',
           maxHeight: '90vh',
-          backgroundColor: 'rgba(255, 255, 255, 0.25)', // Very transparent for visible glassmorphism
-          backdropFilter: 'blur(30px) saturate(200%)', // Stronger frosted glass effect
-          WebkitBackdropFilter: 'blur(30px) saturate(200%)', // Safari support
+          backgroundColor: tokens.colors.background.primary,
           borderRadius: tokens.borderRadius.xl,
           boxShadow: tokens.shadows.xl,
           display: 'flex',

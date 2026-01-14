@@ -41,9 +41,7 @@ export const BookingsMobileControlBar: React.FC<BookingsMobileControlBarProps> =
         position: 'sticky',
         top: 0,
         zIndex: tokens.zIndex.sticky,
-        backgroundColor: 'rgba(255, 255, 255, 0.25)', // Very transparent for visible glassmorphism
-        backdropFilter: 'blur(30px) saturate(200%)', // Stronger frosted glass effect
-        WebkitBackdropFilter: 'blur(30px) saturate(200%)', // Safari support
+        backgroundColor: tokens.colors.background.primary,
         borderBottom: `1px solid ${tokens.colors.border.default}`,
         padding: tokens.spacing[3],
         display: 'flex',
