@@ -115,7 +115,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
             style={{
               padding: isMobile
                 ? `${tokens.spacing[2]} ${tokens.spacing[1]}`
-                : tokens.spacing[3],
+                : tokens.spacing[4],
               textAlign: 'center',
               fontSize: isMobile
                 ? tokens.typography.fontSize.xs[0]
@@ -150,10 +150,10 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               key={index}
               onClick={() => day.isCurrentMonth && onDateSelect(day.date)}
               style={{
-                minHeight: isMobile ? '60px' : '120px',
+                minHeight: isMobile ? '60px' : '140px',
                 borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
                 borderBottom: `1px solid ${tokens.colors.border.default}`,
-                padding: isMobile ? tokens.spacing[1] : tokens.spacing[2],
+                padding: isMobile ? tokens.spacing[1] : tokens.spacing[3],
                 backgroundColor: day.isCurrentMonth
                   ? isSelected
                     ? tokens.colors.primary[50]
@@ -190,15 +190,17 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: tokens.spacing[1],
+                  marginBottom: isMobile ? tokens.spacing[1] : tokens.spacing[2],
                 }}
               >
                 <span
                   style={{
-                    fontSize: tokens.typography.fontSize.sm[0],
+                    fontSize: isMobile 
+                      ? tokens.typography.fontSize.sm[0]
+                      : tokens.typography.fontSize.base[0],
                     fontWeight: day.isToday
                       ? tokens.typography.fontWeight.bold
-                      : tokens.typography.fontWeight.normal,
+                      : tokens.typography.fontWeight.medium,
                     color: day.isToday
                       ? tokens.colors.primary.DEFAULT
                       : tokens.colors.text.primary,
