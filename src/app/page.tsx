@@ -83,9 +83,9 @@ export default function DashboardHomePage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: tokens.spacing[6],
-          marginBottom: tokens.spacing[10],
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: tokens.spacing[5],
+          marginBottom: tokens.spacing[8],
         }}
       >
         {loading ? (
@@ -115,39 +115,53 @@ export default function DashboardHomePage() {
             <StatCard
               label="Happy Clients"
               value={stats.happyClients}
-              icon={<i className="fas fa-smile" />}
+              icon={<i className="fas fa-heart" />}
             />
           </>
         )}
       </div>
 
       {/* Quick Actions */}
-      <Card
-        header={
+      <Card>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: tokens.spacing[6],
+            paddingBottom: tokens.spacing[4],
+            borderBottom: `1px solid ${tokens.colors.border.default}`,
+          }}
+        >
           <div
             style={{
-              fontSize: tokens.typography.fontSize.xl[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
+              fontSize: tokens.typography.fontSize['2xl'][0],
+              fontWeight: tokens.typography.fontWeight.bold,
               color: tokens.colors.text.primary,
-              letterSpacing: '-0.01em',
+              letterSpacing: '-0.02em',
             }}
           >
             Quick Actions
           </div>
-        }
-      >
+        </div>
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: tokens.spacing[4],
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: tokens.spacing[3],
           }}
         >
           <Link href="/bookings" style={{ textDecoration: 'none' }}>
             <Button 
               variant="secondary" 
               leftIcon={<i className="fas fa-calendar-check" />}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              style={{ 
+                width: '100%', 
+                justifyContent: 'flex-start',
+                height: '52px',
+                fontSize: tokens.typography.fontSize.base[0],
+                fontWeight: tokens.typography.fontWeight.medium,
+              }}
             >
               View Bookings
             </Button>
@@ -156,7 +170,13 @@ export default function DashboardHomePage() {
             <Button 
               variant="secondary" 
               leftIcon={<i className="fas fa-users" />}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              style={{ 
+                width: '100%', 
+                justifyContent: 'flex-start',
+                height: '52px',
+                fontSize: tokens.typography.fontSize.base[0],
+                fontWeight: tokens.typography.fontWeight.medium,
+              }}
             >
               Manage Clients
             </Button>
@@ -165,7 +185,13 @@ export default function DashboardHomePage() {
             <Button 
               variant="secondary" 
               leftIcon={<i className="fas fa-user-friends" />}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              style={{ 
+                width: '100%', 
+                justifyContent: 'flex-start',
+                height: '52px',
+                fontSize: tokens.typography.fontSize.base[0],
+                fontWeight: tokens.typography.fontWeight.medium,
+              }}
             >
               Manage Sitters
             </Button>
@@ -174,7 +200,13 @@ export default function DashboardHomePage() {
             <Button 
               variant="secondary" 
               leftIcon={<i className="fas fa-credit-card" />}
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              style={{ 
+                width: '100%', 
+                justifyContent: 'flex-start',
+                height: '52px',
+                fontSize: tokens.typography.fontSize.base[0],
+                fontWeight: tokens.typography.fontWeight.medium,
+              }}
             >
               View Payments
             </Button>

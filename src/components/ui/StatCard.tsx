@@ -45,28 +45,30 @@ export const StatCard: React.FC<StatCardProps> = ({
       style={{
         backgroundColor: tokens.colors.background.primary,
         border: `1px solid ${tokens.colors.border.default}`,
-        borderRadius: tokens.borderRadius.lg,
-        padding: useCompact ? tokens.spacing[4] : tokens.spacing[6],
+        borderRadius: tokens.borderRadius.xl,
+        padding: useCompact ? tokens.spacing[5] : tokens.spacing[6],
         cursor: onClick ? 'pointer' : 'default',
         transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
-        minHeight: useCompact ? '100px' : '160px',
+        minHeight: useCompact ? '120px' : '180px',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: tokens.shadows.DEFAULT,
+        boxShadow: tokens.shadows.sm,
         position: 'relative',
         overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
         if (onClick) {
-          e.currentTarget.style.borderColor = tokens.colors.border.focus;
+          e.currentTarget.style.borderColor = tokens.colors.border.strong;
           e.currentTarget.style.boxShadow = tokens.shadows.md;
           e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
         }
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = tokens.colors.border.default;
-        e.currentTarget.style.boxShadow = tokens.shadows.DEFAULT;
+        e.currentTarget.style.boxShadow = tokens.shadows.sm;
         e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.backgroundColor = tokens.colors.background.primary;
       }}
     >
       <div
@@ -91,9 +93,9 @@ export const StatCard: React.FC<StatCardProps> = ({
         {icon && (
           <div
             style={{
-              color: tokens.colors.primary.DEFAULT,
-              fontSize: useCompact ? tokens.typography.fontSize.base[0] : tokens.typography.fontSize.lg[0],
-              opacity: 0.8,
+              color: tokens.colors.neutral[400],
+              fontSize: useCompact ? tokens.typography.fontSize.lg[0] : tokens.typography.fontSize.xl[0],
+              opacity: 0.6,
             }}
           >
             {icon}

@@ -91,13 +91,27 @@ export const AgendaPanel: React.FC<AgendaPanelProps> = ({
   };
 
   return (
-    <Card style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Card style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <SectionHeader title="Agenda" />
-      <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}` }}>
-        <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+      <div style={{ 
+        padding: `${tokens.spacing[4]} ${tokens.spacing[5]}`,
+        borderBottom: `1px solid ${tokens.colors.border.default}`,
+        backgroundColor: tokens.colors.background.tertiary,
+      }}>
+        <div style={{ 
+          fontSize: tokens.typography.fontSize.base[0], 
+          fontWeight: tokens.typography.fontWeight.bold,
+          color: tokens.colors.text.primary,
+          letterSpacing: '-0.01em',
+        }}>
           {formatDate(selectedDate)}
         </div>
-        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+        <div style={{ 
+          fontSize: tokens.typography.fontSize.sm[0], 
+          color: tokens.colors.text.secondary, 
+          marginTop: tokens.spacing[1],
+          fontWeight: tokens.typography.fontWeight.medium,
+        }}>
           {dayBookings.length} {dayBookings.length === 1 ? 'booking' : 'bookings'}
         </div>
       </div>
@@ -113,26 +127,39 @@ export const AgendaPanel: React.FC<AgendaPanelProps> = ({
                 key={booking.id}
                 style={{
                   cursor: 'pointer',
-                  transition: `all ${tokens.transitions.duration.DEFAULT}`,
+                  transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                  e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
+                  e.currentTarget.style.borderColor = tokens.colors.border.strong;
+                  e.currentTarget.style.transform = 'translateX(2px)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.backgroundColor = tokens.colors.background.primary;
+                  e.currentTarget.style.borderColor = tokens.colors.border.default;
+                  e.currentTarget.style.transform = 'translateX(0)';
                 }}
                 onClick={() => onBookingClick(booking)}
               >
-                <div style={{ padding: tokens.spacing[3] }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[2] }}>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.base[0] }}>
+                <div style={{ padding: tokens.spacing[4] }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[3] }}>
+                    <div style={{ 
+                      fontWeight: tokens.typography.fontWeight.bold, 
+                      fontSize: tokens.typography.fontSize.lg[0],
+                      letterSpacing: '-0.01em',
+                    }}>
                       {booking.firstName} {booking.lastName}
                     </div>
                     <Badge variant={getStatusBadgeVariant(booking.status)}>
                       {booking.status}
                     </Badge>
                   </div>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+                  <div style={{ 
+                    fontSize: tokens.typography.fontSize.base[0], 
+                    color: tokens.colors.text.secondary, 
+                    marginBottom: tokens.spacing[3],
+                    fontWeight: tokens.typography.fontWeight.medium,
+                  }}>
                     {booking.service}
                   </div>
                   {booking.timeSlots && booking.timeSlots.length > 0 ? (

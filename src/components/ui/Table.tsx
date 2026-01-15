@@ -217,9 +217,9 @@ export function Table<T extends Record<string, any>>({
               position: 'sticky',
               top: 0,
               zIndex: tokens.zIndex.sticky,
-              backgroundColor: tokens.colors.background.primary,
-              borderBottom: `1px solid ${tokens.colors.border.default}`,
-              boxShadow: tokens.shadows.xs,
+              backgroundColor: tokens.colors.background.tertiary,
+              borderBottom: `2px solid ${tokens.colors.border.strong}`,
+              boxShadow: tokens.shadows.sm,
             }}
           >
             <tr>
@@ -227,13 +227,13 @@ export function Table<T extends Record<string, any>>({
                 <th
                   key={column.key}
                   style={{
-                    padding: `${tokens.spacing[4]} ${tokens.spacing[5]}`,
+                    padding: `${tokens.spacing[4]} ${tokens.spacing[6]}`,
                     textAlign: column.align || 'left',
                     fontSize: tokens.typography.fontSize.xs[0],
-                    fontWeight: tokens.typography.fontWeight.semibold,
-                    color: tokens.colors.text.secondary,
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    color: tokens.colors.text.primary,
                     textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
+                    letterSpacing: '0.08em',
                     width: column.width,
                     minWidth: column.width,
                     whiteSpace: 'nowrap',
@@ -315,19 +315,19 @@ export function Table<T extends Record<string, any>>({
                   onClick={() => onRowClick?.(row, index)}
                   style={{
                     cursor: onRowClick ? 'pointer' : 'default',
-                    borderBottom: `1px solid ${tokens.colors.border.muted}`,
+                    borderBottom: `1px solid ${tokens.colors.border.default}`,
                     transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
                     backgroundColor: 'transparent',
                   }}
                   onMouseEnter={(e) => {
                     if (onRowClick) {
-                      e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                      e.currentTarget.style.boxShadow = tokens.shadows.xs;
+                      e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
+                      e.currentTarget.style.transform = 'translateX(2px)';
                     }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.transform = 'translateX(0)';
                   }}
                 >
                   {columns.map((column) => (
