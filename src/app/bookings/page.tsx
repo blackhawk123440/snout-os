@@ -107,6 +107,7 @@ export default function BookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showBookingDrawer, setShowBookingDrawer] = useState(false);
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
+  const [showSearchBar, setShowSearchBar] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -356,17 +357,20 @@ export default function BookingsPage() {
     return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   };
 
-  // Filters panel
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filterStatus !== 'all') count++;
+    if (filterService !== 'all') count++;
+    if (filterSitter !== 'all') count++;
+    if (filterPaidStatus !== 'all') count++;
+    if (showCompleted) count++;
+    return count;
+  }, [filterStatus, filterService, filterSitter, filterPaidStatus, showCompleted]);
+
+  // Filters panel (for drawer)
   const filtersPanel = (
     <Flex direction="column" gap={4}>
-      <Input
-        label="Search"
-        placeholder="Client name, pet name, address..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        leftIcon={<i className="fas fa-search" />}
-      />
-
       <Select
         label="Status"
         value={filterStatus}
@@ -428,28 +432,41 @@ export default function BookingsPage() {
     <PageShell>
       <TopBar
         title="Bookings"
-        leftActions={
-          isMobile ? (
-            <IconButton
-              icon={<i className="fas fa-filter" />}
-              onClick={() => setShowFiltersDrawer(true)}
-              aria-label="Open filters"
-            />
-          ) : undefined
-        }
         rightActions={
-          <>
+          <Flex align="center" gap={2}>
             <IconButton
               icon={<i className="fas fa-search" />}
-              onClick={openCommandPalette}
-              aria-label="Open command palette"
+              onClick={() => setShowSearchBar(!showSearchBar)}
+              aria-label="Toggle search"
             />
+            <Flex align="center" gap={1}>
+              <IconButton
+                icon={<i className="fas fa-filter" />}
+                onClick={() => setShowFiltersDrawer(true)}
+                aria-label="Open filters"
+              />
+              {activeFilterCount > 0 && (
+                <Badge variant="default">{activeFilterCount}</Badge>
+              )}
+            </Flex>
             <Button onClick={() => router.push('/bookings/new')}>
               New Booking
             </Button>
-          </>
+          </Flex>
         }
       />
+
+      {/* Inline Search Bar */}
+      {showSearchBar && (
+        <div style={{ padding: `${tokens.spacing[3]} ${tokens.spacing[4]}` }}>
+          <Input
+            placeholder="Search by name, phone, or service..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            autoFocus
+          />
+        </div>
+      )}
 
       {loading && bookings.length === 0 ? (
         <div style={{ padding: tokens.spacing[6] }}>
@@ -531,16 +548,6 @@ export default function BookingsPage() {
               </div>
             )}
 
-          {/* Filters Section */}
-          {!isMobile && (
-            <Section heading="Filters and Search">
-              <FrostedCard>
-                <div style={{ padding: tokens.spacing[4] }}>
-                  {filtersPanel}
-                </div>
-              </FrostedCard>
-            </Section>
-          )}
 
           {/* Bookings List Section */}
           <Section heading="Bookings List">
@@ -685,19 +692,41 @@ export default function BookingsPage() {
         </>
       )}
 
-      {/* Mobile Filters Drawer */}
-      {isMobile && (
-        <Drawer
-          isOpen={showFiltersDrawer}
-          onClose={() => setShowFiltersDrawer(false)}
-          placement="left"
-          title="Filters"
-        >
-          <div style={{ padding: tokens.spacing[4] }}>
-            {filtersPanel}
+      {/* Filters Drawer */}
+      <Drawer
+        isOpen={showFiltersDrawer}
+        onClose={() => setShowFiltersDrawer(false)}
+        placement={isMobile ? "left" : "right"}
+        title="Filters"
+      >
+        <div style={{ padding: tokens.spacing[4] }}>
+          {filtersPanel}
+          <div style={{ marginTop: tokens.spacing[4] }}>
+          <Flex direction="column" gap={2}>
+            <Button 
+              variant="primary" 
+              onClick={() => setShowFiltersDrawer(false)}
+            >
+              Apply Filters
+            </Button>
+            {activeFilterCount > 0 && (
+              <Button 
+                variant="ghost" 
+                onClick={() => {
+                  setFilterStatus('all');
+                  setFilterService('all');
+                  setFilterSitter('all');
+                  setFilterPaidStatus('all');
+                  setShowCompleted(false);
+                }}
+              >
+                Clear All Filters
+              </Button>
+            )}
+          </Flex>
           </div>
-        </Drawer>
-      )}
+        </div>
+      </Drawer>
 
       {/* Booking Details Drawer */}
       {isMobile ? (

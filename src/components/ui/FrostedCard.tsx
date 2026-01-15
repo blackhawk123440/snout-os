@@ -56,13 +56,13 @@ export function FrostedCard({
         }
       }}
       style={{
-        backgroundColor: tokens.colors.surface.frosted.mid, // Phase 8: Use frosted.mid
-        backdropFilter: `blur(${tokens.blur.md}) saturate(180%)`, // Phase 8: Enhanced blur with saturation
-        WebkitBackdropFilter: `blur(${tokens.blur.md}) saturate(180%)`,
+        backgroundColor: tokens.colors.surface.frosted.mid, // Phase B2: High opacity white
+        backdropFilter: `blur(${tokens.blur.md}) saturate(120%)`, // Phase B2: Subtle saturation
+        WebkitBackdropFilter: `blur(${tokens.blur.md}) saturate(120%)`,
         border: `1px solid ${tokens.colors.border.default}`,
-        borderRadius: tokens.radius.lg,
-        boxShadow: tokens.shadow.sm,
-        padding: tokens.spacing[6], // Phase 8: Refined padding
+        borderRadius: tokens.radius.md, // Phase B2: Tighter radius
+        boxShadow: tokens.shadow.md, // Phase B2: Moderate shadow for cards
+        padding: tokens.spacing[5], // Phase B2: Slightly tighter padding
         display: 'flex',
         flexDirection: 'column',
         gap: tokens.spacing[4],
