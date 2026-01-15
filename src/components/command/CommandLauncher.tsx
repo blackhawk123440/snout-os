@@ -9,7 +9,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Command, CommandContext } from '@/commands/types';
+import { Command, CommandContext, CommandCategory } from '@/commands/types';
 import { useCommands } from '@/hooks/useCommands';
 import { Button } from '@/components/ui/Button';
 import { Flex } from '@/components/ui/Flex';
@@ -32,8 +32,8 @@ export function CommandLauncher({
   const suggestedCommands = useMemo(() => {
     // Priority: entity-specific commands first
     if (context.selectedEntity) {
-      const entityType = context.selectedEntity.type;
-      const entityCommands = commandsByCategory[entityType as any] || [];
+      const entityType = context.selectedEntity.type as CommandCategory;
+      const entityCommands = commandsByCategory[entityType] || [];
       if (entityCommands.length > 0) {
         return entityCommands.slice(0, maxSuggestions);
       }
@@ -41,10 +41,10 @@ export function CommandLauncher({
 
     // Fallback to category-based suggestions
     if (context.currentRoute.includes('/bookings')) {
-      return commandsByCategory.Booking?.slice(0, maxSuggestions) || [];
+      return commandsByCategory[CommandCategory.Booking]?.slice(0, maxSuggestions) || [];
     }
     if (context.currentRoute.includes('/clients')) {
-      return commandsByCategory.Client?.slice(0, maxSuggestions) || [];
+      return commandsByCategory[CommandCategory.Client]?.slice(0, maxSuggestions) || [];
     }
 
     // Default to global commands
@@ -70,7 +70,7 @@ export function CommandLauncher({
         Quick Actions
       </div>
       <Flex gap={2} wrap>
-        {suggestedCommands.map(command => (
+        {suggestedCommands.map((command: Command) => (
           <Button
             key={command.id}
             variant="secondary"
