@@ -88,7 +88,7 @@ export function Drawer({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.4)', // Phase 8: Softer backdrop
+          backgroundColor: 'rgba(0, 0, 0, 0.3)', // Phase B2: Lighter backdrop
           zIndex: tokens.z.layer.overlay,
           transition: `opacity ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`, // Phase 8: Smooth fade
           opacity: isOpen ? 1 : 0,
@@ -111,8 +111,8 @@ export function Drawer({
           bottom: 0,
           width: drawerWidth,
           maxWidth: '90vw',
-          backgroundColor: tokens.colors.surface.primary,
-          boxShadow: tokens.shadow.lg,
+          backgroundColor: tokens.colors.surface.overlay, // Phase B2: Pure white
+          boxShadow: tokens.shadow.lg, // Phase B2: Strong shadow for drawer
           zIndex: tokens.z.layer.modal,
           display: 'flex',
           flexDirection: 'column',

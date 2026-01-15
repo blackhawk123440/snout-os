@@ -60,7 +60,7 @@ export const Badge: React.FC<BadgeProps> = ({
         fontSize: tokens.typography.fontSize.xs[0],
         fontWeight: tokens.typography.fontWeight.medium,
         lineHeight: '1',
-        borderRadius: tokens.radius.md, // Phase 8: Less rounded for modern feel
+        borderRadius: tokens.radius.sm, // Phase B2: Tighter radius for badges
         backgroundColor: style.background,
         color: style.color,
         border: style.border ? `1px solid ${style.border}` : 'none',
