@@ -131,7 +131,7 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
               width: '20px',
               height: '20px',
               cursor: 'pointer',
-              accentColor: tokens.colors.brand.pink,
+              accentColor: tokens.colors.primary.DEFAULT,
             }}
           />
         </div>

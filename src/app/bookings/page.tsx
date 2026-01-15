@@ -36,6 +36,7 @@ import {
   useToast,
 } from '@/components/ui';
 import { CommandLauncher } from '@/components/command';
+import { Command, CommandResult } from '@/commands/types';
 import { useCommands } from '@/hooks/useCommands';
 import { useMobile } from '@/lib/use-mobile';
 import { tokens } from '@/lib/design-tokens';
@@ -50,6 +51,7 @@ import {
   filterValidSuggestions,
 } from '@/lib/resonance';
 import { SignalStack, SuggestionsPanel } from '@/components/resonance';
+import { ENABLE_RESONANCE_V1, ENABLE_BOOKINGS_V2 } from '@/lib/flags';
 
 interface Booking {
   id: string;
@@ -93,12 +95,9 @@ interface OverviewStats {
 export default function BookingsPage() {
   const router = useRouter();
   const isMobile = useMobile();
-  const { toast } = useToast();
+  const { showToast } = useToast();
   const { context: commandContext } = useCommands();
   const { open: openCommandPalette } = useCommandPalette();
-
-  // Feature flag
-  const ENABLE_BOOKINGS_V2 = process.env.NEXT_PUBLIC_ENABLE_BOOKINGS_V2 === 'true';
 
   // State
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -469,10 +468,7 @@ export default function BookingsPage() {
       ) : (
         <>
           {/* Overview Section */}
-          <Section
-            heading="Overview"
-            style={{ marginTop: tokens.spacing[6] }}
-          >
+          <Section heading="Overview">
             <Grid>
               <GridCol span={isMobile ? 12 : 3}>
                 <StatCard
@@ -516,15 +512,15 @@ export default function BookingsPage() {
                     const { getCommand } = require('@/commands/registry');
                     const command = getCommand(suggestion.actionCommandId);
                     if (command) {
-                      command.execute(bookingCommandContext).then(result => {
+                      command.execute(bookingCommandContext).then((result: CommandResult) => {
                         if (result.status === 'success') {
-                          toast({ variant: 'success', message: result.message || 'Action completed' });
+                          showToast({ variant: 'success', message: result.message || 'Action completed' });
                           if (result.redirect) {
                             router.push(result.redirect);
                           }
                           fetchData();
                         } else {
-                          toast({ variant: 'error', message: result.message || 'Action failed' });
+                          showToast({ variant: 'error', message: result.message || 'Action failed' });
                         }
                       });
                     }
@@ -537,7 +533,7 @@ export default function BookingsPage() {
 
           {/* Filters Section */}
           {!isMobile && (
-            <Section heading="Filters and Search" style={{ marginTop: tokens.spacing[6] }}>
+            <Section heading="Filters and Search">
               <FrostedCard>
                 <div style={{ padding: tokens.spacing[4] }}>
                   {filtersPanel}
@@ -547,7 +543,7 @@ export default function BookingsPage() {
           )}
 
           {/* Bookings List Section */}
-          <Section heading="Bookings List" style={{ marginTop: tokens.spacing[6] }}>
+          <Section heading="Bookings List">
             <Panel>
               {loading ? (
                 <div style={{ padding: tokens.spacing[6] }}>
@@ -561,16 +557,15 @@ export default function BookingsPage() {
                       ? "Create your first booking to get started."
                       : "Try adjusting your filters or search terms."
                   }
-                  action={
-                    <Button onClick={() => router.push('/bookings/new')}>
-                      Create Booking
-                    </Button>
-                  }
+                  action={{
+                    label: 'Create Booking',
+                    onClick: () => router.push('/bookings/new'),
+                  }}
                 />
               ) : isMobile ? (
-                <CardList
-                  data={filteredBookings}
-                  renderItem={(booking) => (
+                <CardList<Booking>
+                  items={filteredBookings}
+                  renderCard={(booking: Booking) => (
                     <div
                       onClick={() => {
                         setSelectedBooking(booking);
@@ -592,7 +587,6 @@ export default function BookingsPage() {
                             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                               {booking.service}
                             </div>
-                          </div>
                             {ENABLE_RESONANCE_V1 && (
                               <div style={{ marginTop: tokens.spacing[2] }}>
                                 <SignalStack 
@@ -602,6 +596,7 @@ export default function BookingsPage() {
                                 />
                               </div>
                             )}
+                          </div>
                           <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'default'}>
                             {booking.status}
                           </Badge>
@@ -621,28 +616,27 @@ export default function BookingsPage() {
                   emptyMessage="No bookings"
                 />
               ) : (
-                <DataTable
+                <DataTable<Booking>
                   columns={[
                     {
                       key: 'date',
-                      label: 'Date/Time',
-                      render: (booking) => formatDateTime(booking.startAt),
+                      header: 'Date/Time',
+                      render: (booking: Booking) => formatDateTime(booking.startAt),
                     },
                     {
                       key: 'client',
-                      label: 'Client',
-                      render: (booking) => `${booking.firstName} ${booking.lastName}`,
+                      header: 'Client',
+                      render: (booking: Booking) => `${booking.firstName} ${booking.lastName}`,
                     },
                     {
                       key: 'service',
-                      label: 'Service',
-                      render: (booking) => booking.service,
+                      header: 'Service',
+                      render: (booking: Booking) => booking.service,
                     },
                     {
                       key: 'status',
-                      label: 'Status',
-                      render: (booking) => (
-                        <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'default'}>
+                      header: 'Status',
+                      render: (booking: Booking) => (
                         <Flex direction="column" gap={1}>
                           <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'default'}>
                             {booking.status}
@@ -655,21 +649,22 @@ export default function BookingsPage() {
                             />
                           )}
                         </Flex>
+                      ),
                     },
                     {
                       key: 'sitter',
-                      label: 'Sitter',
-                      render: (booking) => booking.sitter ? `${booking.sitter.firstName} ${booking.sitter.lastName}` : 'Unassigned',
+                      header: 'Sitter',
+                      render: (booking: Booking) => booking.sitter ? `${booking.sitter.firstName} ${booking.sitter.lastName}` : 'Unassigned',
                     },
                     {
                       key: 'total',
-                      label: 'Total',
-                      render: (booking) => `$${booking.totalPrice.toFixed(2)}`,
+                      header: 'Total',
+                      render: (booking: Booking) => `$${booking.totalPrice.toFixed(2)}`,
                     },
                     {
                       key: 'paid',
-                      label: 'Paid',
-                      render: (booking) => booking.paidStatus ? (
+                      header: 'Paid',
+                      render: (booking: Booking) => booking.paidStatus ? (
                         <Badge variant={booking.paidStatus === 'paid' ? 'success' : 'warning'}>
                           {booking.paidStatus}
                         </Badge>
@@ -719,16 +714,17 @@ export default function BookingsPage() {
             <BookingDetailsContent
               booking={selectedBooking}
               commandContext={bookingCommandContext}
-              onCommandSelect={(command) => {
-                command.execute(bookingCommandContext).then(result => {
+              getBookingSignals={getBookingSignals}
+              onCommandSelect={(command: Command) => {
+                command.execute(bookingCommandContext).then((result: CommandResult) => {
                   if (result.status === 'success') {
-                    toast({ variant: 'success', message: result.message || 'Command executed' });
+                    showToast({ variant: 'success', message: result.message || 'Command executed' });
                     if (result.redirect) {
                       router.push(result.redirect);
                     }
                     fetchData(); // Refresh data
                   } else {
-                    toast({ variant: 'error', message: result.message || 'Command failed' });
+                    showToast({ variant: 'error', message: result.message || 'Command failed' });
                   }
                 });
               }}
@@ -749,16 +745,17 @@ export default function BookingsPage() {
             <BookingDetailsContent
               booking={selectedBooking}
               commandContext={bookingCommandContext}
-              onCommandSelect={(command) => {
-                command.execute(bookingCommandContext).then(result => {
+              getBookingSignals={getBookingSignals}
+              onCommandSelect={(command: Command) => {
+                command.execute(bookingCommandContext).then((result: CommandResult) => {
                   if (result.status === 'success') {
-                    toast({ variant: 'success', message: result.message || 'Command executed' });
+                    showToast({ variant: 'success', message: result.message || 'Command executed' });
                     if (result.redirect) {
                       router.push(result.redirect);
                     }
                     fetchData(); // Refresh data
                   } else {
-                    toast({ variant: 'error', message: result.message || 'Command failed' });
+                    showToast({ variant: 'error', message: result.message || 'Command failed' });
                   }
                 });
               }}
@@ -775,9 +772,10 @@ interface BookingDetailsContentProps {
   booking: Booking;
   commandContext: any;
   onCommandSelect: (command: any) => void;
+  getBookingSignals?: (bookingId: string) => any[];
 }
 
-function BookingDetailsContent({ booking, commandContext, onCommandSelect }: BookingDetailsContentProps) {
+function BookingDetailsContent({ booking, commandContext, onCommandSelect, getBookingSignals }: BookingDetailsContentProps) {
   const { availableCommands } = useCommands();
 
   const formatTime = (date: Date | string) => {
@@ -822,12 +820,12 @@ function BookingDetailsContent({ booking, commandContext, onCommandSelect }: Boo
             </Flex>
           </Flex>
           <DataRow label="Date/Time" value={`${formatDate(booking.startAt)} ${formatTime(booking.startAt)} - ${formatTime(booking.endAt)}`} />
-        </Flex>
-          {ENABLE_RESONANCE_V1 && (
+          {ENABLE_RESONANCE_V1 && getBookingSignals && (
             <div style={{ marginTop: tokens.spacing[2] }}>
               <SignalStack signals={getBookingSignals(booking.id)} />
             </div>
           )}
+        </Flex>
 
         {/* Contact and Location */}
         <Flex direction="column" gap={3}>

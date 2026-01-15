@@ -24,7 +24,7 @@ export function RiskPill({ severity, label }: RiskPillProps) {
     : 'info';
 
   return (
-    <Badge variant={variant} size="sm">
+    <Badge variant={variant}>
       {label || severity.toUpperCase()}
     </Badge>
   );
