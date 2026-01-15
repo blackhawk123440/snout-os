@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader, StatCard, Card, Button, Skeleton } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
 import Link from 'next/link';
 
 interface DashboardStats {
@@ -21,6 +22,7 @@ interface DashboardStats {
 }
 
 export default function DashboardHomePage() {
+  const isMobile = useMobile();
   const [stats, setStats] = useState<DashboardStats>({
     totalBookings: 0,
     activeSitters: 0,
@@ -83,9 +85,9 @@ export default function DashboardHomePage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
           gap: tokens.spacing[5],
-          marginBottom: tokens.spacing[8],
+          marginBottom: tokens.spacing[10],
         }}
       >
         {loading ? (

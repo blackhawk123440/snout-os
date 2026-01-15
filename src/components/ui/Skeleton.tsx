@@ -39,13 +39,13 @@ export const Skeleton: React.FC<SkeletonProps> = ({
         style={{
           width: typeof defaultWidth === 'number' ? `${defaultWidth}px` : defaultWidth,
           height: typeof defaultHeight === 'number' ? `${defaultHeight}px` : defaultHeight,
-          backgroundColor: tokens.colors.neutral[200],
+          backgroundColor: tokens.colors.neutral[100],
           borderRadius,
           ...(animation === 'pulse' && {
             animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           }),
           ...(animation === 'wave' && {
-            background: `linear-gradient(90deg, ${tokens.colors.neutral[200]} 25%, ${tokens.colors.neutral[100]} 50%, ${tokens.colors.neutral[200]} 75%)`,
+            background: `linear-gradient(90deg, ${tokens.colors.neutral[100]} 25%, ${tokens.colors.neutral[50]} 50%, ${tokens.colors.neutral[100]} 75%)`,
             backgroundSize: '200% 100%',
             animation: 'wave 1.5s ease-in-out infinite',
           }),
