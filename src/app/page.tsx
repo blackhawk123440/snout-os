@@ -72,7 +72,7 @@ export default function DashboardHomePage() {
         description="Overview of your pet care business operations"
         actions={
           <Link href="/bookings">
-            <Button variant="primary">
+            <Button variant="primary" leftIcon={<i className="fas fa-arrow-right" />}>
               View All Bookings
             </Button>
           </Link>
@@ -83,9 +83,9 @@ export default function DashboardHomePage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: tokens.spacing[6],
-          marginBottom: tokens.spacing[8],
+          marginBottom: tokens.spacing[10],
         }}
       >
         {loading ? (
@@ -126,9 +126,10 @@ export default function DashboardHomePage() {
         header={
           <div
             style={{
-              fontSize: tokens.typography.fontSize.lg[0],
+              fontSize: tokens.typography.fontSize.xl[0],
               fontWeight: tokens.typography.fontWeight.semibold,
               color: tokens.colors.text.primary,
+              letterSpacing: '-0.01em',
             }}
           >
             Quick Actions
@@ -138,27 +139,43 @@ export default function DashboardHomePage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
             gap: tokens.spacing[4],
           }}
         >
-          <Link href="/bookings">
-            <Button variant="secondary" leftIcon={<i className="fas fa-calendar-check" />}>
+          <Link href="/bookings" style={{ textDecoration: 'none' }}>
+            <Button 
+              variant="secondary" 
+              leftIcon={<i className="fas fa-calendar-check" />}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            >
               View Bookings
             </Button>
           </Link>
-          <Link href="/clients">
-            <Button variant="secondary" leftIcon={<i className="fas fa-users" />}>
+          <Link href="/clients" style={{ textDecoration: 'none' }}>
+            <Button 
+              variant="secondary" 
+              leftIcon={<i className="fas fa-users" />}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            >
               Manage Clients
             </Button>
           </Link>
-          <Link href="/bookings/sitters">
-            <Button variant="secondary" leftIcon={<i className="fas fa-user-friends" />}>
+          <Link href="/bookings/sitters" style={{ textDecoration: 'none' }}>
+            <Button 
+              variant="secondary" 
+              leftIcon={<i className="fas fa-user-friends" />}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            >
               Manage Sitters
             </Button>
           </Link>
-          <Link href="/payments">
-            <Button variant="secondary" leftIcon={<i className="fas fa-credit-card" />}>
+          <Link href="/payments" style={{ textDecoration: 'none' }}>
+            <Button 
+              variant="secondary" 
+              leftIcon={<i className="fas fa-credit-card" />}
+              style={{ width: '100%', justifyContent: 'flex-start' }}
+            >
               View Payments
             </Button>
           </Link>

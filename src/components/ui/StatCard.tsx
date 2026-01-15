@@ -46,28 +46,27 @@ export const StatCard: React.FC<StatCardProps> = ({
         backgroundColor: tokens.colors.background.primary,
         border: `1px solid ${tokens.colors.border.default}`,
         borderRadius: tokens.borderRadius.lg,
-        padding: useCompact ? tokens.spacing[3] : tokens.spacing[6],
+        padding: useCompact ? tokens.spacing[4] : tokens.spacing[6],
         cursor: onClick ? 'pointer' : 'default',
-        transition: `all ${tokens.transitions.duration.DEFAULT}`,
-        minHeight: useCompact ? '80px' : '140px', // Reduced height on mobile
+        transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
+        minHeight: useCompact ? '100px' : '160px',
         display: 'flex',
         flexDirection: 'column',
-        ...(onClick && {
-          ':hover': {
-            borderColor: tokens.colors.border.focus,
-            boxShadow: tokens.shadows.md,
-          },
-        }),
+        boxShadow: tokens.shadows.DEFAULT,
+        position: 'relative',
+        overflow: 'hidden',
       }}
       onMouseEnter={(e) => {
         if (onClick) {
           e.currentTarget.style.borderColor = tokens.colors.border.focus;
           e.currentTarget.style.boxShadow = tokens.shadows.md;
+          e.currentTarget.style.transform = 'translateY(-2px)';
         }
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = tokens.colors.border.default;
-        e.currentTarget.style.boxShadow = tokens.shadows.sm;
+        e.currentTarget.style.boxShadow = tokens.shadows.DEFAULT;
+        e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
       <div
@@ -92,7 +91,9 @@ export const StatCard: React.FC<StatCardProps> = ({
         {icon && (
           <div
             style={{
-              color: tokens.colors.text.tertiary,
+              color: tokens.colors.primary.DEFAULT,
+              fontSize: useCompact ? tokens.typography.fontSize.base[0] : tokens.typography.fontSize.lg[0],
+              opacity: 0.8,
             }}
           >
             {icon}
@@ -101,17 +102,18 @@ export const StatCard: React.FC<StatCardProps> = ({
       </div>
       <div
         style={{
-          fontSize: useCompact ? tokens.typography.fontSize.xl[0] : tokens.typography.fontSize['3xl'][0],
+          fontSize: useCompact ? tokens.typography.fontSize['2xl'][0] : tokens.typography.fontSize['4xl'][0],
           fontWeight: tokens.typography.fontWeight.bold,
           color: tokens.colors.text.primary,
-          lineHeight: '1.2',
+          lineHeight: '1.1',
           marginBottom: change ? tokens.spacing[2] : 0,
-          minHeight: useCompact ? '1.5rem' : '3rem', // Reduced height on mobile
+          minHeight: useCompact ? '2rem' : '3.5rem',
           display: 'flex',
           alignItems: 'flex-start',
           flexWrap: 'wrap',
-          fontVariantNumeric: 'tabular-nums', // Tabular numerals for consistent width
-          wordBreak: 'break-word', // Allow wrapping if needed
+          fontVariantNumeric: 'tabular-nums',
+          wordBreak: 'break-word',
+          letterSpacing: '-0.02em', // Tighter letter spacing for large numbers
         }}
       >
         {value}

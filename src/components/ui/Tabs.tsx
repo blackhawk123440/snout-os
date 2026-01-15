@@ -68,18 +68,18 @@ export const Tabs: React.FC<TabsProps> = ({
           className="tabs-header"
           style={{
             display: 'flex',
-            gap: isMobile ? tokens.spacing[1] : tokens.spacing[2],
-            borderBottom: `2px solid ${tokens.colors.border.default}`,
-            marginBottom: isMobile ? tokens.spacing[3] : tokens.spacing[4],
+            gap: isMobile ? tokens.spacing[2] : tokens.spacing[3],
+            borderBottom: `1px solid ${tokens.colors.border.default}`,
+            marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[6],
             overflowX: 'auto',
             overflowY: 'hidden',
             flexShrink: 0,
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'thin',
-            paddingBottom: '2px',
+            paddingBottom: '0',
             ...(isMobile && {
-              paddingLeft: tokens.spacing[3],
-              paddingRight: tokens.spacing[3],
+              paddingLeft: tokens.spacing[4],
+              paddingRight: tokens.spacing[4],
             }),
           }}
         >
@@ -96,10 +96,10 @@ export const Tabs: React.FC<TabsProps> = ({
                   alignItems: 'center',
                   gap: tokens.spacing[2],
                   padding: isMobile
-                    ? `${tokens.spacing[2]} ${tokens.spacing[3]}`
-                    : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                    ? `${tokens.spacing[3]} ${tokens.spacing[4]}`
+                    : `${tokens.spacing[4]} ${tokens.spacing[5]}`,
                   borderBottom: `2px solid ${isActive ? tokens.colors.primary.DEFAULT : 'transparent'}`,
-                  marginBottom: '-2px',
+                  marginBottom: '-1px',
                   backgroundColor: 'transparent',
                   border: 'none',
                   borderTop: 'none',
@@ -112,15 +112,16 @@ export const Tabs: React.FC<TabsProps> = ({
                     : tokens.colors.text.secondary,
                   fontWeight: isActive
                     ? tokens.typography.fontWeight.semibold
-                    : tokens.typography.fontWeight.normal,
+                    : tokens.typography.fontWeight.medium,
                   fontSize: isMobile
                     ? tokens.typography.fontSize.sm[0]
                     : tokens.typography.fontSize.base[0],
                   cursor: tab.disabled ? 'not-allowed' : 'pointer',
-                  transition: `all ${tokens.transitions.duration.DEFAULT}`,
+                  transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
                   minHeight: isMobile ? '44px' : 'auto',
+                  position: 'relative',
                 }}
                 onMouseEnter={(e) => {
                   if (!tab.disabled && !isActive) {

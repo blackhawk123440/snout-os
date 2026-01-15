@@ -162,8 +162,8 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                     : tokens.colors.background.primary
                   : tokens.colors.background.secondary,
                 cursor: day.isCurrentMonth ? 'pointer' : 'default',
-                opacity: day.isCurrentMonth ? 1 : 0.5,
-                transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
+                opacity: day.isCurrentMonth ? 1 : 0.4,
+                transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
                 overflow: 'hidden',
                 wordBreak: 'break-word',
                 position: 'relative',
@@ -172,9 +172,13 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               onMouseEnter={(e) => {
                 if (day.isCurrentMonth && !day.isPast && !isSelected) {
                   e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                  e.currentTarget.style.transform = 'scale(1.02)';
+                  e.currentTarget.style.boxShadow = tokens.shadows.xs;
                 }
               }}
               onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
                 if (!isSelected) {
                   e.currentTarget.style.backgroundColor = day.isCurrentMonth
                     ? day.isPast

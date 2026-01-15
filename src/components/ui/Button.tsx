@@ -28,11 +28,13 @@ const getVariantStyles = (variant: ButtonVariant) => {
       backgroundColor: tokens.colors.primary.DEFAULT,
       color: tokens.colors.text.inverse,
       border: `1px solid ${tokens.colors.primary.DEFAULT}`,
+      boxShadow: tokens.shadows.sm,
     },
     secondary: {
       backgroundColor: tokens.colors.background.primary,
       color: tokens.colors.text.primary,
       border: `1px solid ${tokens.colors.border.default}`,
+      boxShadow: tokens.shadows.xs,
     },
     tertiary: {
       backgroundColor: 'transparent',
@@ -43,6 +45,7 @@ const getVariantStyles = (variant: ButtonVariant) => {
       backgroundColor: tokens.colors.error.DEFAULT,
       color: tokens.colors.text.inverse,
       border: `1px solid ${tokens.colors.error.DEFAULT}`,
+      boxShadow: tokens.shadows.sm,
     },
     ghost: {
       backgroundColor: 'transparent',
@@ -113,17 +116,25 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const isDisabled = disabled || isLoading;
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (!isDisabled && variant === 'primary') {
-        e.currentTarget.style.backgroundColor = tokens.colors.primary[700];
-      } else if (!isDisabled && variant === 'secondary') {
-        e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-      } else if (!isDisabled && variant === 'tertiary') {
-        e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-      } else if (!isDisabled && variant === 'danger') {
-        e.currentTarget.style.backgroundColor = tokens.colors.error[600];
-      } else if (!isDisabled && variant === 'ghost') {
-        e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-        e.currentTarget.style.color = tokens.colors.text.primary;
+      if (!isDisabled) {
+        if (variant === 'primary') {
+          e.currentTarget.style.backgroundColor = tokens.colors.primary[700];
+          e.currentTarget.style.boxShadow = tokens.shadows.md;
+          e.currentTarget.style.transform = 'translateY(-1px)';
+        } else if (variant === 'secondary') {
+          e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+          e.currentTarget.style.boxShadow = tokens.shadows.sm;
+          e.currentTarget.style.transform = 'translateY(-1px)';
+        } else if (variant === 'tertiary') {
+          e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+        } else if (variant === 'danger') {
+          e.currentTarget.style.backgroundColor = tokens.colors.error[600];
+          e.currentTarget.style.boxShadow = tokens.shadows.md;
+          e.currentTarget.style.transform = 'translateY(-1px)';
+        } else if (variant === 'ghost') {
+          e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+          e.currentTarget.style.color = tokens.colors.text.primary;
+        }
       }
       onMouseEnter?.(e);
     };
@@ -132,6 +143,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       if (!isDisabled) {
         e.currentTarget.style.backgroundColor = variantStyle.backgroundColor as string;
         e.currentTarget.style.color = variantStyle.color as string;
+        e.currentTarget.style.boxShadow = variantStyle.boxShadow as string || 'none';
+        e.currentTarget.style.transform = 'translateY(0)';
       }
       onMouseLeave?.(e);
     };
@@ -160,6 +173,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
           touchAction: 'manipulation',
           WebkitTapHighlightColor: 'transparent',
+          transform: 'translateY(0)',
+          willChange: 'transform, box-shadow',
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}

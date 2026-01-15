@@ -395,7 +395,7 @@ export default function CalendarPage() {
       {/* Filters and Navigation */}
       <Card
         style={{
-          marginBottom: tokens.spacing[6],
+          marginBottom: tokens.spacing[8],
         }}
       >
         <div
