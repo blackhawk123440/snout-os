@@ -25,7 +25,7 @@ export function SignalBadge({ signal, compact = false }: SignalBadgeProps) {
     : 'info';
 
   const badge = (
-    <Badge variant={variant} size={compact ? 'sm' : 'md'}>
+    <Badge variant={variant}>
       {compact ? (
         <i 
           className={
@@ -44,7 +44,7 @@ export function SignalBadge({ signal, compact = false }: SignalBadgeProps) {
 
   if (compact) {
     return (
-      <Tooltip content={signal.label} delay={tokens.motion.duration.fast}>
+      <Tooltip content={signal.label}>
         {badge}
       </Tooltip>
     );

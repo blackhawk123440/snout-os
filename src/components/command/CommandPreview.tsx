@@ -191,7 +191,7 @@ export function CommandPreview({
           Cancel
         </Button>
         <Button
-          variant={command.danger ? 'destructive' : 'primary'}
+          variant={command.danger ? 'danger' : 'primary'}
           onClick={onExecute}
           disabled={command.danger && !confirmed}
         >

@@ -101,7 +101,7 @@ export function DataTable<T>({
   }
 
   if (data.length === 0) {
-    return <EmptyState description={emptyMessage} />;
+    return <EmptyState title="No data" description={emptyMessage} />;
   }
 
   return (

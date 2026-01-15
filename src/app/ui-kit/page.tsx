@@ -176,7 +176,7 @@ function UIKitDemoContent() {
                 <Button variant="primary">Primary</Button>
                 <Button variant="secondary">Secondary</Button>
                 <Button variant="ghost">Ghost</Button>
-                <Button variant="destructive">Destructive</Button>
+                <Button variant="danger">Danger</Button>
                 <Button isLoading>Loading</Button>
                 <IconButton icon={<i className="fas fa-plus" />} aria-label="Add" />
                 <Tooltip content="This is a tooltip">
@@ -189,7 +189,7 @@ function UIKitDemoContent() {
               <h4>Input</h4>
               <Input
                 label="Email"
-                description="Enter your email address"
+                helperText="Enter your email address"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="example@email.com"
@@ -319,7 +319,7 @@ function UIKitDemoContent() {
               <EmptyState
                 title="No items"
                 description="Add your first item to get started"
-                action={<Button>Add Item</Button>}
+                action={{ label: 'Add Item', onClick: () => {} }}
               />
             </Grid.Col>
 
