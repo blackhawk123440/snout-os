@@ -88,7 +88,7 @@ export const Modal: React.FC<ModalProps> = ({
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.4)', // Phase 8: Softer backdrop
+            backgroundColor: 'rgba(0, 0, 0, 0.35)', // Phase B2: Slightly lighter backdrop
             cursor: closeOnBackdropClick ? 'pointer' : 'default',
             transition: `opacity ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`, // Phase 8: Smooth fade
           }}
@@ -238,7 +238,7 @@ export const Modal: React.FC<ModalProps> = ({
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: 'rgba(0, 0, 0, 0.35)', // Phase B2: Lighter backdrop
           cursor: closeOnBackdropClick ? 'pointer' : 'default',
         }}
         aria-hidden="true"
@@ -252,8 +252,9 @@ export const Modal: React.FC<ModalProps> = ({
           position: 'relative',
           width: '100%',
           maxHeight: '90vh',
-          backgroundColor: tokens.colors.background.primary,
-          boxShadow: tokens.shadows.xl,
+          backgroundColor: tokens.colors.surface.modal, // Phase B2: Pure white
+          boxShadow: tokens.shadow.xl, // Phase B2: Strongest shadow for modal
+          borderRadius: tokens.radius.lg, // Phase B2: Rounded modal
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',

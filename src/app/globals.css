@@ -2,20 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-/* UI Constitution V1 - Phase 8: Refined CSS Variables */
+/* UI Constitution V1 - Phase B2: Surface, Color, and Depth Sculpting */
 :root {
-  /* Color - Surface (Phase 8: Visual Depth System) */
-  --color-surface-base: #fafafa;
-  --color-surface-frosted-low: rgba(255, 255, 255, 0.6);
-  --color-surface-frosted-mid: rgba(255, 255, 255, 0.75);
-  --color-surface-frosted-high: rgba(255, 255, 255, 0.85);
-  --color-surface-overlay: rgba(255, 255, 255, 0.98);
+  /* Color - Surface (Phase B2: Reduced pink, stronger contrast) */
+  --color-surface-base: #f8f7f6;
+  --color-surface-frosted-low: rgba(255, 255, 255, 0.85);
+  --color-surface-frosted-mid: rgba(255, 255, 255, 0.92);
+  --color-surface-frosted-high: rgba(255, 255, 255, 0.96);
+  --color-surface-overlay: #ffffff;
   --color-surface-modal: #ffffff;
   
-  /* Legacy surface aliases */
+  /* Legacy surface aliases - neutralized */
   --color-surface-primary: #ffffff;
-  --color-surface-secondary: #feecf4;
-  --color-surface-tertiary: #fef7fb;
+  --color-surface-secondary: #faf9f8;
+  --color-surface-tertiary: #fcfbfa;
   --color-surface-inverse: #432f21;
   --color-surface-elevated: #ffffff;
   
@@ -27,17 +27,17 @@
   --color-text-inverse: #ffffff;
   --color-text-brand: #432f21;
   
-  /* Color - Border (Phase 8: Refined opacity) */
-  --color-border-default: rgba(67, 47, 33, 0.08);
-  --color-border-muted: rgba(67, 47, 33, 0.04);
-  --color-border-strong: rgba(67, 47, 33, 0.16);
+  /* Color - Border (Phase B2: Slightly more visible) */
+  --color-border-default: rgba(67, 47, 33, 0.12);
+  --color-border-muted: rgba(67, 47, 33, 0.06);
+  --color-border-strong: rgba(67, 47, 33, 0.20);
   --color-border-focus: rgba(67, 47, 33, 0.4);
-  --color-border-accent: rgba(252, 225, 239, 0.6);
+  --color-border-accent: rgba(245, 208, 227, 0.5);
   
-  /* Color - Accent */
-  --color-accent-primary: #fce1ef;
-  --color-accent-secondary: #feecf4;
-  --color-accent-tertiary: #fef7fb;
+  /* Color - Accent (Phase B2: Desaturated, reserved for highlights) */
+  --color-accent-primary: #f5d0e3;
+  --color-accent-secondary: #faf0f5;
+  --color-accent-tertiary: #fcf8fa;
   
   /* Spacing - Phase 8: Coherent rhythm */
   --spacing-0: 0;
@@ -57,14 +57,14 @@
   --spacing-12: 3rem;
   --spacing-16: 4rem;
   
-  /* Radius - Phase 8: Refined */
-  --radius: 0.5rem;
+  /* Radius - Phase B2: Tighter, less bubbly */
+  --radius: 0.375rem;
   --radius-none: 0;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
-  --radius-2xl: 1.5rem;
+  --radius-sm: 0.1875rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
   --radius-full: 9999px;
   
   /* Blur - Phase 8: Surface-specific */
@@ -74,13 +74,13 @@
   --blur-lg: 24px;
   --blur-xl: 40px;
   
-  /* Shadow - Phase 8: Soft, subtle */
+  /* Shadow - Phase B2: Layered elevation hierarchy */
   --shadow-none: none;
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 20px -4px rgba(0, 0, 0, 0.12), 0 4px 8px -4px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0 24px 32px -8px rgba(0, 0, 0, 0.16), 0 8px 16px -8px rgba(0, 0, 0, 0.08);
   
   /* Z-Index - UI Constitution z.layer.* */
   --z-layer-base: 0;

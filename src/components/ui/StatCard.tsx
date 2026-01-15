@@ -98,11 +98,11 @@ export function StatCard({
         }
       }}
       style={{
-        backgroundColor: tokens.colors.surface.frosted.low, // Phase 8: Use frosted surface
+        backgroundColor: tokens.colors.surface.primary, // Phase B2: Pure white for contrast
         border: `1px solid ${tokens.colors.border.default}`,
-        borderRadius: tokens.radius.lg,
-        boxShadow: tokens.shadow.xs, // Phase 8: Subtle shadow
-        padding: useCompact ? tokens.spacing[4] : tokens.spacing[6], // Phase 8: Refined padding
+        borderRadius: tokens.radius.md, // Phase B2: Tighter radius
+        boxShadow: tokens.shadow.sm, // Phase B2: Subtle lift
+        padding: useCompact ? tokens.spacing[3] : tokens.spacing[5], // Phase B2: Tighter padding
         cursor: onClick ? 'pointer' : 'default',
         transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`, // Phase 8: Faster transitions
         minHeight: useCompact ? '80px' : '140px',

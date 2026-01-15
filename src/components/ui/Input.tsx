@@ -127,7 +127,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               color: tokens.colors.text.primary,
               backgroundColor: tokens.colors.background.primary,
             border: `1px solid ${error ? tokens.colors.error.DEFAULT : tokens.colors.border.default}`,
-            borderRadius: tokens.radius.md, // Phase 8: Use refined radius
+            borderRadius: tokens.radius.DEFAULT, // Phase B2: Tighter radius
               outline: 'none',
               transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`, // Phase 8: Refined motion
               ...(props.disabled && {
