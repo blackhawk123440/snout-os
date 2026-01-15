@@ -122,17 +122,17 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           e.currentTarget.style.boxShadow = tokens.shadows.md;
           e.currentTarget.style.transform = 'translateY(-1px)';
         } else if (variant === 'secondary') {
-          e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+          e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
           e.currentTarget.style.boxShadow = tokens.shadows.sm;
           e.currentTarget.style.transform = 'translateY(-1px)';
         } else if (variant === 'tertiary') {
-          e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+          e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
         } else if (variant === 'danger') {
           e.currentTarget.style.backgroundColor = tokens.colors.error[600];
           e.currentTarget.style.boxShadow = tokens.shadows.md;
           e.currentTarget.style.transform = 'translateY(-1px)';
         } else if (variant === 'ghost') {
-          e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+          e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
           e.currentTarget.style.color = tokens.colors.text.primary;
         }
       }
@@ -160,7 +160,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           justifyContent: 'center',
           gap: tokens.spacing[2],
           borderRadius: tokens.borderRadius.full,
-          fontWeight: tokens.typography.fontWeight.medium,
+          fontWeight: tokens.typography.fontWeight.semibold,
+          letterSpacing: '-0.01em',
           fontFamily: tokens.typography.fontFamily.sans.join(', '),
           height: sizeStyle.height,
           minHeight: sizeStyle.minHeight || sizeStyle.height,

@@ -57,15 +57,15 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           <h1
             style={{
               fontSize: isMobile
-                ? tokens.typography.fontSize['2xl'][0]
-                : tokens.typography.fontSize['4xl'][0],
-              fontWeight: tokens.typography.fontWeight.bold,
-              lineHeight: isMobile ? '1.2' : '1.15',
+                ? tokens.typography.fontSize['3xl'][0]
+                : tokens.typography.fontSize['5xl'][0],
+              fontWeight: tokens.typography.fontWeight.extrabold,
+              lineHeight: isMobile ? '1.15' : '1.1',
               color: tokens.colors.text.primary,
               margin: 0,
-              marginBottom: description ? tokens.spacing[3] : 0,
+              marginBottom: description ? tokens.spacing[4] : 0,
               wordBreak: 'break-word',
-              letterSpacing: '-0.02em',
+              letterSpacing: '-0.04em',
             }}
           >
             {title}
@@ -74,13 +74,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             <p
               style={{
                 fontSize: isMobile
-                  ? tokens.typography.fontSize.sm[0]
-                  : tokens.typography.fontSize.lg[0],
+                  ? tokens.typography.fontSize.base[0]
+                  : tokens.typography.fontSize.xl[0],
                 lineHeight: isMobile ? '1.5' : '1.6',
                 color: tokens.colors.text.secondary,
                 margin: 0,
                 wordBreak: 'break-word',
                 fontWeight: tokens.typography.fontWeight.normal,
+                letterSpacing: '-0.01em',
               }}
             >
               {description}
