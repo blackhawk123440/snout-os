@@ -113,23 +113,31 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const isDisabled = disabled || isLoading;
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (!isDisabled && variant === 'primary') {
-        e.currentTarget.style.backgroundColor = tokens.colors.primary[700];
-      } else if (!isDisabled && variant === 'secondary') {
-        e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-      } else if (!isDisabled && variant === 'tertiary') {
-        e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-      } else if (!isDisabled && variant === 'danger') {
-        e.currentTarget.style.backgroundColor = tokens.colors.error[600];
-      } else if (!isDisabled && variant === 'ghost') {
-        e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-        e.currentTarget.style.color = tokens.colors.text.primary;
+      if (!isDisabled) {
+        // Phase B4: Subtle elevation on hover
+        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.boxShadow = tokens.shadow.sm;
+        if (variant === 'primary') {
+          e.currentTarget.style.backgroundColor = tokens.colors.primary[700];
+        } else if (variant === 'secondary') {
+          e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+        } else if (variant === 'tertiary') {
+          e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+        } else if (variant === 'danger') {
+          e.currentTarget.style.backgroundColor = tokens.colors.error[600];
+        } else if (variant === 'ghost') {
+          e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+          e.currentTarget.style.color = tokens.colors.text.primary;
+        }
       }
       onMouseEnter?.(e);
     };
 
     const handleMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!isDisabled) {
+        // Phase B4: Reset elevation
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = variantStyle.boxShadow as string || 'none';
         e.currentTarget.style.backgroundColor = variantStyle.backgroundColor as string;
         e.currentTarget.style.color = variantStyle.color as string;
       }
@@ -145,19 +153,20 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: tokens.spacing[2], // Phase 8: Refined gap
-          borderRadius: tokens.radius.DEFAULT, // Phase B2: Tighter radius
-          fontWeight: tokens.typography.fontWeight.semibold, // Phase 8: Bolder for authority
+          gap: tokens.spacing[2],
+          borderRadius: tokens.radius.DEFAULT,
+          fontWeight: tokens.typography.fontWeight.semibold,
           fontFamily: tokens.typography.fontFamily.sans.join(', '),
           height: sizeStyle.height,
           minHeight: sizeStyle.minHeight || sizeStyle.height,
           padding: sizeStyle.padding,
           fontSize: sizeStyle.fontSize,
-          lineHeight: '1.2', // Phase 8: Better line height
+          lineHeight: '1.2',
           ...variantStyle,
           cursor: isDisabled ? 'not-allowed' : 'pointer',
           opacity: isDisabled ? 0.5 : 1,
-          transition: `all ${tokens.motion.duration.instant} ${tokens.motion.easing.standard}`, // Phase 8: Instant feedback
+          transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`, // Phase B4: Smooth ease-out
+          transform: 'translateY(0)',
           touchAction: 'manipulation',
           WebkitTapHighlightColor: 'transparent',
         }}

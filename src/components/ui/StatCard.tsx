@@ -98,14 +98,14 @@ export function StatCard({
         }
       }}
       style={{
-        backgroundColor: tokens.colors.surface.primary, // Phase B2: Pure white for contrast
-        border: `1px solid ${tokens.colors.border.default}`,
-        borderRadius: tokens.radius.md, // Phase B2: Tighter radius
-        boxShadow: tokens.shadow.sm, // Phase B2: Subtle lift
-        padding: useCompact ? tokens.spacing[3] : tokens.spacing[5], // Phase B2: Tighter padding
+        backgroundColor: tokens.colors.surface.primary,
+        border: `1px solid ${tokens.colors.border.muted}`, // Phase B4: Softer border
+        borderRadius: tokens.radius.sm,
+        boxShadow: 'none', // Phase B4: Remove shadow, let border define
+        padding: useCompact ? tokens.spacing[3] : tokens.spacing[4],
         cursor: onClick ? 'pointer' : 'default',
-        transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`, // Phase 8: Faster transitions
-        minHeight: useCompact ? '80px' : '140px',
+        transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`, // Phase B4: Smooth ease-out
+        minHeight: useCompact ? '72px' : '100px',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -143,12 +143,13 @@ export function StatCard({
       >
         <div
           style={{
-            fontSize: tokens.typography.fontSize.xs[0], // Phase 8: Smaller label
+            fontSize: tokens.typography.fontSize.xs[0],
             fontWeight: tokens.typography.fontWeight.medium,
-            color: tokens.colors.text.secondary,
+            color: tokens.colors.text.tertiary, // Phase B3: Lower prominence
             textTransform: 'uppercase',
-            letterSpacing: tokens.typography.letterSpacing.wide,
-            lineHeight: tokens.typography.fontSize.xs[1].lineHeight, // Phase 8: Use token line height
+            letterSpacing: '0.05em', // Phase B3: Wider tracking
+            lineHeight: '1.2',
+            opacity: 0.8, // Phase B3: Reduced opacity
           }}
         >
           {label}
@@ -167,13 +168,13 @@ export function StatCard({
       </div>
       <div
         style={{
-          fontSize: useCompact ? tokens.typography.fontSize['2xl'][0] : tokens.typography.fontSize.stat[0], // Phase 8: Use stat size
-          fontWeight: tokens.typography.fontWeight.bold,
+          fontSize: useCompact ? '1.625rem' : '1.75rem', // Phase B4: 26-28px for glance authority
+          fontWeight: tokens.typography.fontWeight.semibold, // Phase B4: Medium weight
           color: tokens.colors.text.primary,
-          lineHeight: useCompact ? tokens.typography.fontSize['2xl'][1].lineHeight : tokens.typography.fontSize.stat[1].lineHeight,
-          letterSpacing: tokens.typography.letterSpacing.tight, // Phase 8: Tighter for numbers
-          marginBottom: delta ? tokens.spacing[2] : 0,
-          minHeight: useCompact ? '1.5rem' : '3rem',
+          lineHeight: '1.1',
+          letterSpacing: '-0.025em', // Phase B4: Tight but readable
+          marginBottom: delta ? tokens.spacing[1] : 0,
+          minHeight: useCompact ? '1.5rem' : '2rem',
           display: 'flex',
           alignItems: 'flex-start',
           flexWrap: 'wrap',

@@ -90,7 +90,7 @@ export function Drawer({
           bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.3)', // Phase B2: Lighter backdrop
           zIndex: tokens.z.layer.overlay,
-          transition: `opacity ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`, // Phase 8: Smooth fade
+          transition: `opacity ${tokens.motion.duration.normal} ${tokens.motion.easing.decelerated}`, // Phase B4: Slower fade
           opacity: isOpen ? 1 : 0,
         }}
       />
@@ -116,7 +116,7 @@ export function Drawer({
           zIndex: tokens.z.layer.modal,
           display: 'flex',
           flexDirection: 'column',
-          transition: `transform ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}`,
+          transition: `transform ${tokens.motion.duration.normal} ${tokens.motion.easing.decelerated}`, // Phase B4: Smooth ease-out
           overflowY: 'auto',
           overflowX: 'hidden',
         }}
