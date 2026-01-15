@@ -75,7 +75,7 @@ export default function NewBookingPage() {
         />
         <div style={{ 
           padding: tokens.spacing[4],
-          paddingBottom: tokens.spacing[24], // Space for bottom action bar
+          paddingBottom: tokens.spacing[16], // Space for bottom action bar
         }}>
           <BookingForm
             mode="create"

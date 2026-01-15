@@ -103,7 +103,7 @@ export const Modal: React.FC<ModalProps> = ({
             width: '100%',
             maxHeight: '90vh',
             height: '90vh',
-            backgroundColor: tokens.colors.surface.overlay, // Phase 8: Use overlay surface
+            backgroundColor: tokens.colors.background.primary,
             borderTopLeftRadius: tokens.borderRadius.xl,
             borderTopRightRadius: tokens.borderRadius.xl,
             boxShadow: tokens.shadows.xl,
@@ -238,9 +238,8 @@ export const Modal: React.FC<ModalProps> = ({
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.4)', // Phase 8: Softer backdrop
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
           cursor: closeOnBackdropClick ? 'pointer' : 'default',
-          transition: `opacity ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`, // Phase 8: Smooth fade
         }}
         aria-hidden="true"
       />
@@ -253,8 +252,8 @@ export const Modal: React.FC<ModalProps> = ({
           position: 'relative',
           width: '100%',
           maxHeight: '90vh',
+          backgroundColor: tokens.colors.background.primary,
           backgroundColor: tokens.colors.surface.modal, // Phase 8: Use modal surface
-          borderRadius: tokens.borderRadius.xl,
           boxShadow: tokens.shadows.xl,
           display: 'flex',
           flexDirection: 'column',

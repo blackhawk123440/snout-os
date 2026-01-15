@@ -97,9 +97,8 @@ export default function BookingsPage() {
   const { context: commandContext } = useCommands();
   const { open: openCommandPalette } = useCommandPalette();
 
-  // Feature flags
+  // Feature flag
   const ENABLE_BOOKINGS_V2 = process.env.NEXT_PUBLIC_ENABLE_BOOKINGS_V2 === 'true';
-  const ENABLE_RESONANCE_V1 = process.env.NEXT_PUBLIC_ENABLE_RESONANCE_V1 === 'true';
 
   // State
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -197,6 +196,7 @@ export default function BookingsPage() {
     };
   }, [bookings]);
 
+  // Filter bookings
   // Resonance: Detect signals for all bookings
   const allSignals = useMemo(() => {
     if (!ENABLE_RESONANCE_V1) return [];
@@ -230,7 +230,6 @@ export default function BookingsPage() {
     return detectBookingSignals(booking);
   }, [bookings, ENABLE_RESONANCE_V1]);
 
-  // Filter bookings
   const filteredBookings = useMemo(() => {
     return bookings.filter((booking) => {
       // Search
@@ -504,6 +503,7 @@ export default function BookingsPage() {
                 />
               </GridCol>
             </Grid>
+          </Section>
 
             {/* Resonance: Suggestions Panel */}
             {ENABLE_RESONANCE_V1 && !isMobile && (
@@ -534,7 +534,6 @@ export default function BookingsPage() {
                 />
               </div>
             )}
-          </Section>
 
           {/* Filters Section */}
           {!isMobile && (
@@ -593,6 +592,7 @@ export default function BookingsPage() {
                             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                               {booking.service}
                             </div>
+                          </div>
                             {ENABLE_RESONANCE_V1 && (
                               <div style={{ marginTop: tokens.spacing[2] }}>
                                 <SignalStack 
@@ -602,7 +602,6 @@ export default function BookingsPage() {
                                 />
                               </div>
                             )}
-                          </div>
                           <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'default'}>
                             {booking.status}
                           </Badge>
@@ -643,6 +642,7 @@ export default function BookingsPage() {
                       key: 'status',
                       label: 'Status',
                       render: (booking) => (
+                        <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'default'}>
                         <Flex direction="column" gap={1}>
                           <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'default'}>
                             {booking.status}
@@ -655,7 +655,6 @@ export default function BookingsPage() {
                             />
                           )}
                         </Flex>
-                      ),
                     },
                     {
                       key: 'sitter',
@@ -823,12 +822,12 @@ function BookingDetailsContent({ booking, commandContext, onCommandSelect }: Boo
             </Flex>
           </Flex>
           <DataRow label="Date/Time" value={`${formatDate(booking.startAt)} ${formatTime(booking.startAt)} - ${formatTime(booking.endAt)}`} />
+        </Flex>
           {ENABLE_RESONANCE_V1 && (
             <div style={{ marginTop: tokens.spacing[2] }}>
               <SignalStack signals={getBookingSignals(booking.id)} />
             </div>
           )}
-        </Flex>
 
         {/* Contact and Location */}
         <Flex direction="column" gap={3}>
