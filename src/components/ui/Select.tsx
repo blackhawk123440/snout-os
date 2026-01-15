@@ -107,7 +107,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             color: tokens.colors.text.primary,
             backgroundColor: tokens.colors.background.primary,
             border: `1px solid ${error ? tokens.colors.error.DEFAULT : tokens.colors.border.default}`,
-            borderRadius: tokens.borderRadius.md,
+            borderRadius: tokens.radius.DEFAULT, // Phase B2: Tighter radius
             outline: 'none',
             cursor: props.disabled ? 'not-allowed' : 'pointer',
             transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,

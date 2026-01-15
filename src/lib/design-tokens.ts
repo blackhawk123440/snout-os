@@ -100,28 +100,28 @@ export const tokens = {
     },
     
     // UI Constitution required: color.surface.*
-    // Phase 8: Visual depth system - explicit surface layers
+    // Phase B2: Reduced pink, stronger contrast, clearer depth hierarchy
     surface: {
-      // Base layer (PageShell background)
-      base: '#fafafa',
+      // Base layer (PageShell background) - near-neutral with subtle warmth
+      base: '#f8f7f6',
       
-      // Frosted layers (varying blur and opacity)
+      // Frosted layers (varying blur and opacity) - closer to white
       frosted: {
-        low: 'rgba(255, 255, 255, 0.6)',    // Panel, subtle elevation
-        mid: 'rgba(255, 255, 255, 0.75)',   // FrostedCard, medium elevation
-        high: 'rgba(255, 255, 255, 0.85)',  // High elevation cards
+        low: 'rgba(255, 255, 255, 0.85)',    // Panel, subtle elevation
+        mid: 'rgba(255, 255, 255, 0.92)',    // FrostedCard, medium elevation
+        high: 'rgba(255, 255, 255, 0.96)',   // High elevation cards
       },
       
-      // Overlay layers (Drawer, BottomSheet)
-      overlay: 'rgba(255, 255, 255, 0.98)',
+      // Overlay layers (Drawer, BottomSheet) - pure white
+      overlay: '#ffffff',
       
       // Modal layer (full opacity, highest elevation)
       modal: '#ffffff',
       
-      // Legacy aliases for backward compatibility
+      // Legacy aliases for backward compatibility - neutralized
       primary: '#ffffff',
-      secondary: '#feecf4',
-      tertiary: '#fef7fb',
+      secondary: '#faf9f8',   // Was pink #feecf4, now warm neutral
+      tertiary: '#fcfbfa',    // Was pink #fef7fb, now warm neutral  
       inverse: '#432f21',
       elevated: '#ffffff',
     },
@@ -137,29 +137,30 @@ export const tokens = {
     },
     
     // UI Constitution required: color.border.*
-    // Phase 8: Refined borders with opacity for subtlety
+    // Phase B2: Slightly more visible borders for surface separation
     border: {
-      default: 'rgba(67, 47, 33, 0.08)',      // Subtle default border
-      muted: 'rgba(67, 47, 33, 0.04)',        // Very subtle
-      strong: 'rgba(67, 47, 33, 0.16)',       // Visible border
-      focus: 'rgba(67, 47, 33, 0.4)',         // Focus ring (more visible)
-      accent: 'rgba(252, 225, 239, 0.6)',     // Accent border
+      default: 'rgba(67, 47, 33, 0.12)',      // More visible default border
+      muted: 'rgba(67, 47, 33, 0.06)',        // Subtle
+      strong: 'rgba(67, 47, 33, 0.20)',       // Strong visible border
+      focus: 'rgba(67, 47, 33, 0.4)',         // Focus ring
+      accent: 'rgba(245, 208, 227, 0.5)',     // Desaturated accent border
     },
     
     // UI Constitution required: color.accent.*
+    // Phase B2: Accent reserved for active states, selection, highlights only
     accent: {
-      primary: '#fce1ef',
-      secondary: '#feecf4',
-      tertiary: '#fef7fb',
+      primary: '#f5d0e3',     // Slightly desaturated pink for accents
+      secondary: '#faf0f5',   // Very subtle pink wash
+      tertiary: '#fcf8fa',    // Near-white with hint of warmth
     },
     
-    // Legacy aliases for backward compatibility
+    // Legacy aliases for backward compatibility - neutralized backgrounds
     background: {
       primary: '#ffffff',
-      secondary: '#feecf4',
-      tertiary: '#fef7fb',
+      secondary: '#faf9f8',   // Was pink, now warm neutral
+      tertiary: '#fcfbfa',    // Was pink, now warm neutral
       inverse: '#432f21',
-      accent: '#fce1ef',
+      accent: '#f5d0e3',      // Desaturated accent
     },
   },
   
@@ -239,27 +240,27 @@ export const tokens = {
   
   // ===== BORDER RADIUS =====
   // UI Constitution required: radius.sm md lg xl
-  // Phase 8: Refined radius for modern, polished feel
+  // Phase B2: Tighter radius - less bubbly, more professional
   radius: {
     none: '0',
-    sm: '0.25rem',      // 4px - Small elements (badges, pills)
-    DEFAULT: '0.5rem',  // 8px - Default (buttons, inputs)
-    md: '0.75rem',      // 12px - Cards, panels
-    lg: '1rem',         // 16px - Large cards
-    xl: '1.25rem',      // 20px - Extra large cards
-    '2xl': '1.5rem',    // 24px - Modal, drawer
+    sm: '0.1875rem',    // 3px - Small elements (badges, pills)
+    DEFAULT: '0.375rem', // 6px - Default (buttons, inputs)
+    md: '0.5rem',       // 8px - Cards, panels
+    lg: '0.75rem',      // 12px - Large cards
+    xl: '1rem',         // 16px - Extra large cards
+    '2xl': '1.25rem',   // 20px - Modal, drawer
     full: '9999px',
   },
   
   // Legacy alias for backward compatibility
   borderRadius: {
     none: '0',
-    sm: '0.125rem',
-    DEFAULT: '0.375rem',
-    md: '0.5rem',
-    lg: '0.75rem',
-    xl: '1rem',
-    '2xl': '1.5rem',
+    sm: '0.125rem',     // 2px
+    DEFAULT: '0.25rem', // 4px
+    md: '0.375rem',     // 6px
+    lg: '0.5rem',       // 8px
+    xl: '0.75rem',      // 12px
+    '2xl': '1rem',      // 16px
     full: '9999px',
   },
   
@@ -276,25 +277,25 @@ export const tokens = {
   
   // ===== SHADOWS =====
   // UI Constitution required: shadow.sm md lg
-  // Phase 8: Refined shadows - soft, subtle, no muddiness
+  // Phase B2: Layered elevation - Panel subtle, Card moderate, Drawer/Modal strong
   shadow: {
     none: 'none',
-    xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',                                    // Micro elevation
-    sm: '0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',   // Low elevation
-    md: '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06)', // Medium elevation
-    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.08)', // Large elevation
-    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08)', // Extra large
+    xs: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',                                      // Panel - very subtle
+    sm: '0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.04)',     // Card - subtle lift
+    md: '0 4px 8px -2px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04)', // FrostedCard - moderate
+    lg: '0 12px 20px -4px rgba(0, 0, 0, 0.12), 0 4px 8px -4px rgba(0, 0, 0, 0.06)', // Drawer - strong
+    xl: '0 24px 32px -8px rgba(0, 0, 0, 0.16), 0 8px 16px -8px rgba(0, 0, 0, 0.08)', // Modal - strongest
   },
   
   // Legacy alias
   shadows: {
-    xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-    sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
-    DEFAULT: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
-    md: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-    lg: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-    xl: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
+    xs: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+    sm: '0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04)',
+    DEFAULT: '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04)',
+    md: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.06)',
+    lg: '0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
+    xl: '0 25px 50px -12px rgba(0, 0, 0, 0.2)',
+    inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.04)',
     none: 'none',
   },
   
