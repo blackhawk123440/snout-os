@@ -833,7 +833,7 @@ Total: ${formatCurrency(booking.totalPrice)}`;
               display: 'flex',
               flexDirection: 'column',
               width: '100%',
-              paddingBottom: tokens.spacing[20], // Space for bottom action bar
+              paddingBottom: tokens.spacing[16], // Space for bottom action bar
             }}
           >
             {/* Summary Header - Card container */}
