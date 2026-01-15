@@ -105,13 +105,13 @@ export const tokens = {
       white: '#ffffff',
     },
     
-    // Semantic aliases - Snout brand theme
+    // Semantic aliases - Enterprise neutral theme with subtle pink accent
     background: {
       primary: '#ffffff', // White (cards, surfaces)
-      secondary: '#feecf4', // Snout pink - primary canvas background wash
-      tertiary: '#fef7fb', // Very light pink tint
+      secondary: '#fafafa', // Neutral off-white canvas background (was pink)
+      tertiary: '#f5f5f5', // Very light gray
       inverse: '#432f21', // Snout brown
-      accent: '#fce1ef', // Snout pink for badges, buttons, highlights only
+      accent: '#fce1ef', // Snout pink for badges, buttons, highlights only - use sparingly
     },
     
     text: {
@@ -124,11 +124,11 @@ export const tokens = {
     },
     
     border: {
-      default: '#f5d0e3', // Ultra light pink stroke - subtle borders, not fills
-      muted: '#f9e4f0', // Very light pink for muted borders
-      strong: '#432f21', // Snout brown for strong borders
-      focus: '#432f21', // Snout brown
-      accent: '#fce1ef', // Snout pink for accent borders
+      default: '#e5e7eb', // Neutral gray - subtle borders
+      muted: '#f3f4f6', // Very light gray for muted borders
+      strong: '#d1d5db', // Medium gray for strong borders
+      focus: '#432f21', // Snout brown for focus states
+      accent: '#fce1ef', // Snout pink for accent borders only
     },
   },
   
@@ -200,16 +200,18 @@ export const tokens = {
   
   // ===== SHADOWS =====
   shadows: {
-    xs: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
-    sm: '0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.04)',
-    DEFAULT: '0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 4px 12px -4px rgba(0, 0, 0, 0.06)',
-    md: '0 4px 16px -4px rgba(0, 0, 0, 0.1), 0 8px 24px -8px rgba(0, 0, 0, 0.08)',
-    lg: '0 12px 32px -8px rgba(0, 0, 0, 0.12), 0 16px 48px -12px rgba(0, 0, 0, 0.1)',
-    xl: '0 20px 64px -12px rgba(0, 0, 0, 0.16), 0 24px 80px -16px rgba(0, 0, 0, 0.12)',
-    inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.04)',
+    xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+    sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
+    DEFAULT: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
+    md: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
+    lg: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+    xl: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
     none: 'none',
     // Premium shadow for elevated surfaces
-    elevated: '0 8px 24px -4px rgba(67, 47, 33, 0.08), 0 4px 12px -2px rgba(67, 47, 33, 0.06)',
+    elevated: '0 12px 24px -6px rgba(0, 0, 0, 0.12), 0 6px 12px -3px rgba(0, 0, 0, 0.08)',
+    // Subtle shadow for cards
+    card: '0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 1px 2px 0 rgba(0, 0, 0, 0.24)',
   },
   
   // ===== LAYOUT =====

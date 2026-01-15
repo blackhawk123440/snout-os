@@ -27,7 +27,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <div
       style={{
-        marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[8],
+        marginBottom: isMobile ? tokens.spacing[6] : tokens.spacing[10],
       }}
     >
       {breadcrumbs && (

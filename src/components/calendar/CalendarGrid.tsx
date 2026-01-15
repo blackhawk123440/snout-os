@@ -122,8 +122,12 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 : tokens.typography.fontSize.sm[0],
               fontWeight: tokens.typography.fontWeight.semibold,
               color: tokens.colors.text.primary,
-              backgroundColor: tokens.colors.background.secondary,
+              backgroundColor: tokens.colors.background.tertiary,
               borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
+              fontWeight: tokens.typography.fontWeight.semibold,
+              color: tokens.colors.text.secondary,
+              fontSize: tokens.typography.fontSize.xs[0],
+              letterSpacing: '0.05em',
             }}
           >
             {day}
@@ -270,13 +274,15 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                         }
                       }}
                       style={{
-                        padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                        padding: `${tokens.spacing[2]} ${tokens.spacing[2]}`,
                         borderRadius: tokens.borderRadius.sm,
                         fontSize: tokens.typography.fontSize.xs[0],
-                        backgroundColor: tokens.colors.primary[100],
+                        backgroundColor: tokens.colors.background.tertiary,
                         color: tokens.colors.text.primary,
                         cursor: 'pointer',
                         borderLeft: `3px solid ${tokens.colors.primary.DEFAULT}`,
+                        border: `1px solid ${tokens.colors.border.default}`,
+                        fontWeight: tokens.typography.fontWeight.medium,
                       }}
                       title={`${renderEventLabel(event)} - ${event.service}`}
                     >

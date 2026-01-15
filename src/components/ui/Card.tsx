@@ -35,7 +35,7 @@ export const Card: React.FC<CardProps> = ({
         backgroundColor: tokens.colors.background.primary,
         border: `1px solid ${tokens.colors.border.default}`,
         borderRadius: tokens.borderRadius.lg,
-        boxShadow: tokens.shadows.DEFAULT,
+        boxShadow: tokens.shadows.sm,
         overflow: 'visible',
         transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
         ...props.style,
@@ -43,12 +43,14 @@ export const Card: React.FC<CardProps> = ({
       onMouseEnter={(e) => {
         if (props.onClick || props.style?.cursor === 'pointer') {
           e.currentTarget.style.boxShadow = tokens.shadows.md;
-          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.borderColor = tokens.colors.border.strong;
+          e.currentTarget.style.transform = 'translateY(-2px)';
         }
       }}
       onMouseLeave={(e) => {
         if (props.onClick || props.style?.cursor === 'pointer') {
-          e.currentTarget.style.boxShadow = tokens.shadows.DEFAULT;
+          e.currentTarget.style.boxShadow = tokens.shadows.sm;
+          e.currentTarget.style.borderColor = tokens.colors.border.default;
           e.currentTarget.style.transform = 'translateY(0)';
         }
       }}

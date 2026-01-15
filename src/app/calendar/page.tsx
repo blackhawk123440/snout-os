@@ -396,6 +396,7 @@ export default function CalendarPage() {
       <Card
         style={{
           marginBottom: tokens.spacing[8],
+          padding: `${tokens.spacing[5]} ${tokens.spacing[6]}`,
         }}
       >
         <div
@@ -431,9 +432,9 @@ export default function CalendarPage() {
               <h2
                 style={{
                   fontSize: isMobile 
-                    ? tokens.typography.fontSize.base[0]
-                    : tokens.typography.fontSize.xl[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
+                    ? tokens.typography.fontSize.lg[0]
+                    : tokens.typography.fontSize['2xl'][0],
+                  fontWeight: tokens.typography.fontWeight.bold,
                   color: tokens.colors.text.primary,
                   minWidth: 0,
                   flex: '1 1 auto',
@@ -441,6 +442,7 @@ export default function CalendarPage() {
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
+                  letterSpacing: '-0.02em',
                 }}
               >
                 {monthNames[currentMonth]} {currentYear}

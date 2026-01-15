@@ -25,17 +25,20 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         alignItems: 'flex-start',
         justifyContent: 'space-between',
         gap: tokens.spacing[4],
-        marginBottom: tokens.spacing[6],
+        marginBottom: tokens.spacing[5],
+        paddingBottom: tokens.spacing[3],
+        borderBottom: `1px solid ${tokens.colors.border.default}`,
       }}
     >
       <div>
         <h2
           style={{
-            fontSize: tokens.typography.fontSize.xl[0],
-            fontWeight: tokens.typography.fontWeight.semibold,
+            fontSize: tokens.typography.fontSize['2xl'][0],
+            fontWeight: tokens.typography.fontWeight.bold,
             color: tokens.colors.text.primary,
             margin: 0,
-            marginBottom: description ? tokens.spacing[1] : 0,
+            marginBottom: description ? tokens.spacing[2] : 0,
+            letterSpacing: '-0.02em',
           }}
         >
           {title}

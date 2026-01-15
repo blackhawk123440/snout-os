@@ -673,9 +673,9 @@ function BookingsPageContent() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
           gap: tokens.spacing[4],
-          marginBottom: tokens.spacing[6],
+          marginBottom: tokens.spacing[8],
         }}
       >
         <StatCard
@@ -846,13 +846,15 @@ function BookingsPageContent() {
             <Card
               style={{ 
                 marginBottom: tokens.spacing[6],
+                padding: tokens.spacing[5],
               }}
             >
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gridTemplateColumns: isMobile ? '1fr' : '1fr auto',
                   gap: tokens.spacing[4],
+                  alignItems: 'end',
                 }}
               >
                 <Input

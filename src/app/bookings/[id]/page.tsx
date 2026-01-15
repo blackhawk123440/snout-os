@@ -1130,13 +1130,15 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         ) : (
           <>
             {/* Desktop: Summary Header - Card container */}
-            <Card style={{ marginBottom: tokens.spacing[4], padding: tokens.spacing[6] }}>
+            <Card style={{ marginBottom: tokens.spacing[6], padding: `${tokens.spacing[6]} ${tokens.spacing[8]}` }}>
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: tokens.spacing[4],
+                  marginBottom: tokens.spacing[6],
+                  paddingBottom: tokens.spacing[5],
+                  borderBottom: `1px solid ${tokens.colors.border.default}`,
                 }}
               >
                 <div style={{ flex: 1 }}>
@@ -1155,10 +1157,12 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                     </Link>
                     <h1
                       style={{
-                        fontSize: tokens.typography.fontSize['2xl'][0],
+                        fontSize: tokens.typography.fontSize['3xl'][0],
                         fontWeight: tokens.typography.fontWeight.bold,
                         color: tokens.colors.text.primary,
                         margin: 0,
+                        letterSpacing: '-0.03em',
+                        lineHeight: '1.1',
                       }}
                     >
                       {booking.firstName} {booking.lastName}
@@ -1172,9 +1176,11 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   </div>
                   <div
                     style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
+                      fontSize: tokens.typography.fontSize.base[0],
                       color: tokens.colors.text.secondary,
                       marginLeft: tokens.spacing[10],
+                      marginTop: tokens.spacing[2],
+                      fontWeight: tokens.typography.fontWeight.medium,
                     }}
                   >
                     {formatDate(booking.startAt)} - {formatDate(booking.endAt)} • {booking.service}
@@ -1209,12 +1215,18 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 </div>
               </div>
 
-              {/* Desktop KPI Strip - Slimmed (Part D) */}
+              {/* Desktop KPI Strip - Professional Layout */}
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                  gap: tokens.spacing[3],
+                  gridTemplateColumns: booking.paymentStatus !== 'paid' && booking.pets.length > 0
+                    ? 'repeat(5, 1fr)'
+                    : booking.paymentStatus !== 'paid' || booking.pets.length > 0
+                    ? 'repeat(4, 1fr)'
+                    : 'repeat(3, 1fr)',
+                  gap: tokens.spacing[4],
+                  paddingTop: tokens.spacing[4],
+                  borderTop: `1px solid ${tokens.colors.border.default}`,
                 }}
               >
                 <StatCard
@@ -1301,28 +1313,44 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
+                      fontSize: tokens.typography.fontSize.xs[0],
                       color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
+                      marginBottom: tokens.spacing[2],
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
                     }}
                   >
                     Start Date & Time
                   </div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, wordBreak: 'break-word' }}>
+                  <div style={{ 
+                    fontWeight: tokens.typography.fontWeight.bold, 
+                    fontSize: tokens.typography.fontSize.base[0],
+                    wordBreak: 'break-word',
+                    color: tokens.colors.text.primary,
+                  }}>
                     {formatDateTime(booking.startAt)}
                   </div>
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
+                      fontSize: tokens.typography.fontSize.xs[0],
                       color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
+                      marginBottom: tokens.spacing[2],
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
                     }}
                   >
                     End Date & Time
                   </div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, wordBreak: 'break-word' }}>
+                  <div style={{ 
+                    fontWeight: tokens.typography.fontWeight.bold, 
+                    fontSize: tokens.typography.fontSize.base[0],
+                    wordBreak: 'break-word',
+                    color: tokens.colors.text.primary,
+                  }}>
                     {formatDateTime(booking.endAt)}
                   </div>
                 </div>
@@ -1332,9 +1360,12 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 <div>
                   <div
                     style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
+                      fontSize: tokens.typography.fontSize.xs[0],
                       color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[2],
+                      marginBottom: tokens.spacing[3],
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
                     }}
                   >
                     Time Slots
@@ -1350,10 +1381,13 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                       <div
                         key={slot.id}
                         style={{
-                          padding: tokens.spacing[3],
-                          backgroundColor: tokens.colors.background.secondary,
+                          padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
+                          backgroundColor: tokens.colors.background.tertiary,
+                          border: `1px solid ${tokens.colors.border.default}`,
                           borderRadius: tokens.borderRadius.md,
                           fontSize: tokens.typography.fontSize.sm[0],
+                          fontWeight: tokens.typography.fontWeight.medium,
+                          color: tokens.colors.text.primary,
                         }}
                       >
                         {formatTime(slot.startAt)} - {formatTime(slot.endAt)} ({slot.duration} min)
@@ -1367,14 +1401,22 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
+                      fontSize: tokens.typography.fontSize.xs[0],
                       color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
+                      marginBottom: tokens.spacing[2],
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
                     }}
                   >
                     Address
                   </div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, wordBreak: 'break-word' }}>
+                  <div style={{ 
+                    fontWeight: tokens.typography.fontWeight.medium, 
+                    fontSize: tokens.typography.fontSize.base[0],
+                    wordBreak: 'break-word',
+                    color: tokens.colors.text.primary,
+                  }}>
                     {booking.address}
                   </div>
                 </div>
@@ -1466,8 +1508,9 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: tokens.spacing[4],
+                  gap: tokens.spacing[5],
                   minWidth: 0, // Prevent flex child truncation
+                  paddingTop: tokens.spacing[2],
                 }}
               >
                 {booking.pets.map((pet) => (
@@ -1490,14 +1533,19 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                       }}
                     >
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                        <div style={{ 
+                          fontWeight: tokens.typography.fontWeight.bold, 
+                          fontSize: tokens.typography.fontSize.xl[0],
+                          letterSpacing: '-0.01em',
+                          marginBottom: tokens.spacing[2],
+                        }}>
                           {pet.name}
                         </div>
                         <div
                           style={{
-                            fontSize: tokens.typography.fontSize.sm[0],
+                            fontSize: tokens.typography.fontSize.base[0],
                             color: tokens.colors.text.secondary,
-                            marginTop: tokens.spacing[1],
+                            fontWeight: tokens.typography.fontWeight.medium,
                           }}
                         >
                           {pet.species}
@@ -1510,12 +1558,14 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                       <div
                         style={{
                           marginTop: tokens.spacing[2],
-                          padding: tokens.spacing[3],
-                          backgroundColor: tokens.colors.background.secondary,
-                          borderRadius: tokens.borderRadius.sm,
+                          padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                          backgroundColor: tokens.colors.background.tertiary,
+                          border: `1px solid ${tokens.colors.border.default}`,
+                          borderRadius: tokens.borderRadius.md,
                           fontSize: tokens.typography.fontSize.sm[0],
                           minWidth: 0,
                           wordBreak: 'break-word',
+                          color: tokens.colors.text.primary,
                         }}
                       >
                         {pet.notes}
@@ -1526,25 +1576,31 @@ Total: ${formatCurrency(booking.totalPrice)}`;
               </div>
             )}
             {booking.notes && (
-              <div style={{ marginTop: tokens.spacing[6] }}>
+              <div style={{ marginTop: tokens.spacing[8] }}>
                 <div
                   style={{
-                    fontSize: tokens.typography.fontSize.sm[0],
+                    fontSize: tokens.typography.fontSize.xs[0],
                     color: tokens.colors.text.secondary,
-                    marginBottom: tokens.spacing[2],
-                    fontWeight: tokens.typography.fontWeight.medium,
+                    marginBottom: tokens.spacing[3],
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
                   }}
                 >
                   Additional Notes
                 </div>
                 <div
                   style={{
-                    padding: tokens.spacing[4],
-                    backgroundColor: tokens.colors.background.secondary,
+                    padding: `${tokens.spacing[4]} ${tokens.spacing[5]}`,
+                    backgroundColor: tokens.colors.background.tertiary,
+                    border: `1px solid ${tokens.colors.border.default}`,
                     borderRadius: tokens.borderRadius.md,
                     whiteSpace: 'pre-wrap',
                     minWidth: 0,
                     wordBreak: 'break-word',
+                    fontSize: tokens.typography.fontSize.base[0],
+                    lineHeight: '1.6',
+                    color: tokens.colors.text.primary,
                   }}
                 >
                   {booking.notes}
@@ -1593,12 +1649,22 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                   borderTop: `1px solid ${tokens.colors.border.default}`,
                 }}
               >
-                <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
-                  Total
-                </div>
-                <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.bold }}>
-                  {formatCurrency(pricingDisplay.total)}
-                </div>
+                  <div style={{ 
+                    fontSize: tokens.typography.fontSize['2xl'][0], 
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    color: tokens.colors.text.primary,
+                    letterSpacing: '-0.02em',
+                  }}>
+                    Total
+                  </div>
+                  <div style={{ 
+                    fontSize: tokens.typography.fontSize['2xl'][0], 
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    color: tokens.colors.primary.DEFAULT,
+                    letterSpacing: '-0.02em',
+                  }}>
+                    {formatCurrency(pricingDisplay.total)}
+                  </div>
               </div>
               {booking.stripePaymentLinkUrl && (
                 <div style={{ marginTop: tokens.spacing[2] }}>
