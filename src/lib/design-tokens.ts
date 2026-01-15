@@ -1,10 +1,11 @@
 /**
- * Design Tokens
+ * Design Tokens - UI Constitution V1
  * 
- * Enterprise design system tokens. All colors, spacing, typography,
- * shadows, and radii must come from these tokens.
+ * Complete token system for UI Constitution enforcement.
+ * All colors, spacing, typography, shadows, radii, motion, and z-index
+ * must come from these tokens.
  * 
- * No raw hex values or px values allowed in components.
+ * No raw hex values, px, rem, %, vh, vw, rgba values allowed in components.
  */
 
 export const tokens = {
@@ -98,58 +99,103 @@ export const tokens = {
       DEFAULT: '#3b82f6',
     },
     
-    // Snout brand colors
-    brand: {
-      pink: '#fce1ef',
-      brown: '#432f21',
-      white: '#ffffff',
+    // UI Constitution required: color.surface.*
+    // Phase 8: Visual depth system - explicit surface layers
+    surface: {
+      // Base layer (PageShell background)
+      base: '#fafafa',
+      
+      // Frosted layers (varying blur and opacity)
+      frosted: {
+        low: 'rgba(255, 255, 255, 0.6)',    // Panel, subtle elevation
+        mid: 'rgba(255, 255, 255, 0.75)',   // FrostedCard, medium elevation
+        high: 'rgba(255, 255, 255, 0.85)',  // High elevation cards
+      },
+      
+      // Overlay layers (Drawer, BottomSheet)
+      overlay: 'rgba(255, 255, 255, 0.98)',
+      
+      // Modal layer (full opacity, highest elevation)
+      modal: '#ffffff',
+      
+      // Legacy aliases for backward compatibility
+      primary: '#ffffff',
+      secondary: '#feecf4',
+      tertiary: '#fef7fb',
+      inverse: '#432f21',
+      elevated: '#ffffff',
     },
     
-    // Semantic aliases - Enterprise neutral theme with subtle pink accent
-    background: {
-      primary: '#ffffff', // White (cards, surfaces)
-      secondary: '#ffffff', // Pure white canvas background (was pink)
-      tertiary: '#fafafa', // Very light gray for subtle backgrounds
-      inverse: '#432f21', // Snout brown
-      accent: '#fce1ef', // Snout pink for badges, buttons, highlights only - use sparingly
-    },
-    
+    // UI Constitution required: color.text.*
     text: {
-      primary: '#432f21', // Snout brown - primary text
-      secondary: '#525252', // Gray for secondary text (readable on pink)
-      tertiary: '#737373', // Lighter gray for tertiary
+      primary: '#432f21',
+      secondary: '#525252',
+      tertiary: '#737373',
       disabled: '#a3a3a3',
-      inverse: '#ffffff', // White text on brown
-      brand: '#432f21', // Snout brown
+      inverse: '#ffffff',
+      brand: '#432f21',
     },
     
+    // UI Constitution required: color.border.*
+    // Phase 8: Refined borders with opacity for subtlety
     border: {
-      default: '#e5e7eb', // Neutral gray - subtle borders
-      muted: '#f3f4f6', // Very light gray for muted borders
-      strong: '#d1d5db', // Medium gray for strong borders
-      focus: '#432f21', // Snout brown for focus states
-      accent: '#fce1ef', // Snout pink for accent borders only
+      default: 'rgba(67, 47, 33, 0.08)',      // Subtle default border
+      muted: 'rgba(67, 47, 33, 0.04)',        // Very subtle
+      strong: 'rgba(67, 47, 33, 0.16)',       // Visible border
+      focus: 'rgba(67, 47, 33, 0.4)',         // Focus ring (more visible)
+      accent: 'rgba(252, 225, 239, 0.6)',     // Accent border
+    },
+    
+    // UI Constitution required: color.accent.*
+    accent: {
+      primary: '#fce1ef',
+      secondary: '#feecf4',
+      tertiary: '#fef7fb',
+    },
+    
+    // Legacy aliases for backward compatibility
+    background: {
+      primary: '#ffffff',
+      secondary: '#feecf4',
+      tertiary: '#fef7fb',
+      inverse: '#432f21',
+      accent: '#fce1ef',
     },
   },
   
   // ===== SPACING =====
+  // UI Constitution required: spacing.0..12
+  // Phase 8: Coherent rhythm - tuned for breathing and hierarchy
   spacing: {
     0: '0',
-    1: '0.25rem',   // 4px
-    2: '0.5rem',    // 8px
-    3: '0.75rem',   // 12px
-    4: '1rem',      // 16px
-    5: '1.25rem',   // 20px
-    6: '1.5rem',    // 24px
-    8: '2rem',      // 32px
-    10: '2.5rem',   // 40px
-    12: '3rem',     // 48px
-    16: '4rem',     // 64px
-    20: '5rem',     // 80px
-    24: '6rem',     // 96px
+    0.5: '0.125rem',  // 2px - micro spacing (icon gaps, tight inline)
+    1: '0.25rem',     // 4px - micro spacing (small gaps)
+    1.5: '0.375rem',  // 6px - micro spacing (input padding tight)
+    2: '0.5rem',      // 8px - small spacing (field gaps, card padding tight)
+    3: '0.75rem',     // 12px - small spacing (component internal)
+    4: '1rem',        // 16px - medium spacing (field spacing, section gaps)
+    5: '1.25rem',     // 20px - medium spacing
+    6: '1.5rem',      // 24px - large spacing (section separation)
+    7: '1.75rem',     // 28px - large spacing
+    8: '2rem',        // 32px - extra large spacing (page separation)
+    9: '2.25rem',     // 36px
+    10: '2.5rem',     // 40px
+    11: '2.75rem',    // 44px
+    12: '3rem',       // 48px
+    16: '4rem',       // 64px - section separation large
+  },
+  
+  // Phase 8: Explicit spacing categories for semantic use
+  spacingRhythm: {
+    micro: '0.25rem',    // 4px - icon gaps, inline spacing
+    small: '0.5rem',     // 8px - field spacing, card padding
+    medium: '1rem',      // 16px - section spacing
+    large: '1.5rem',     // 24px - page separation
+    xlarge: '2rem',      // 32px - major separation
   },
   
   // ===== TYPOGRAPHY =====
+  // Phase 8: Tuned hierarchy for clarity and authority
   typography: {
     fontFamily: {
       sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
@@ -157,61 +203,172 @@ export const tokens = {
     },
     
     fontSize: {
-      xs: ['0.75rem', { lineHeight: '1.25rem' }],      // 12px - tighter line height
-      sm: ['0.875rem', { lineHeight: '1.375rem' }],    // 14px
-      base: ['1rem', { lineHeight: '1.625rem' }],      // 16px - improved readability
-      lg: ['1.125rem', { lineHeight: '1.75rem' }],     // 18px
-      xl: ['1.25rem', { lineHeight: '1.875rem' }],     // 20px
-      '2xl': ['1.5rem', { lineHeight: '2rem' }],       // 24px
-      '3xl': ['1.875rem', { lineHeight: '2.375rem' }], // 30px
-      '4xl': ['2.25rem', { lineHeight: '2.75rem' }],   // 36px
-      '5xl': ['3rem', { lineHeight: '3.5rem' }],       // 48px
-      '6xl': ['3.75rem', { lineHeight: '4.25rem' }],   // 60px
+      // Phase 8: Refined sizes with optical balance
+      xs: ['0.75rem', { lineHeight: '1.125rem', letterSpacing: '0.01em' }],      // 12px - Caption
+      sm: ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0' }],           // 14px - Small body
+      base: ['1rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],        // 16px - Body
+      lg: ['1.125rem', { lineHeight: '1.625rem', letterSpacing: '-0.015em' }],   // 18px - Subheading
+      xl: ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.02em' }],      // 20px - Section heading
+      '2xl': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.025em' }],      // 24px - Large heading
+      '3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.03em' }],  // 30px - Title
+      '4xl': ['2.25rem', { lineHeight: '2.75rem', letterSpacing: '-0.035em' }],  // 36px - Display
+      '5xl': ['3rem', { lineHeight: '3.5rem', letterSpacing: '-0.04em' }],       // 48px - Hero
+      
+      // Phase 8: Explicit semantic sizes
+      caption: ['0.75rem', { lineHeight: '1.125rem', letterSpacing: '0.01em' }],
+      body: ['1rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
+      subheading: ['1.125rem', { lineHeight: '1.625rem', letterSpacing: '-0.015em' }],
+      heading: ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.02em' }],
+      title: ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.03em' }],
+      stat: ['2rem', { lineHeight: '2.5rem', letterSpacing: '-0.035em' }],      // Numeric display
     },
     
     fontWeight: {
-      light: 300,
       normal: 400,
       medium: 500,
       semibold: 600,
       bold: 700,
-      extrabold: 800,
     },
     
     letterSpacing: {
-      tight: '-0.025em',
+      tight: '-0.03em',
       normal: '0',
       wide: '0.025em',
     },
   },
   
   // ===== BORDER RADIUS =====
-  borderRadius: {
+  // UI Constitution required: radius.sm md lg xl
+  // Phase 8: Refined radius for modern, polished feel
+  radius: {
     none: '0',
-    sm: '0.25rem',      // 4px
-    DEFAULT: '0.5rem',  // 8px - more refined
-    md: '0.625rem',     // 10px
-    lg: '0.875rem',     // 14px - refined for cards
-    xl: '1rem',         // 16px
-    '2xl': '1.25rem',   // 20px
-    '3xl': '1.5rem',    // 24px
+    sm: '0.25rem',      // 4px - Small elements (badges, pills)
+    DEFAULT: '0.5rem',  // 8px - Default (buttons, inputs)
+    md: '0.75rem',      // 12px - Cards, panels
+    lg: '1rem',         // 16px - Large cards
+    xl: '1.25rem',      // 20px - Extra large cards
+    '2xl': '1.5rem',    // 24px - Modal, drawer
     full: '9999px',
   },
   
+  // Legacy alias for backward compatibility
+  borderRadius: {
+    none: '0',
+    sm: '0.125rem',
+    DEFAULT: '0.375rem',
+    md: '0.5rem',
+    lg: '0.75rem',
+    xl: '1rem',
+    '2xl': '1.5rem',
+    full: '9999px',
+  },
+  
+  // ===== BLUR =====
+  // UI Constitution required: blur.none sm md
+  // Phase 8: Surface-specific blur strengths
+  blur: {
+    none: '0',
+    sm: '8px',      // Low frosted
+    md: '16px',     // Mid frosted (FrostedCard)
+    lg: '24px',     // High frosted
+    xl: '40px',     // Maximum blur
+  },
+  
   // ===== SHADOWS =====
+  // UI Constitution required: shadow.sm md lg
+  // Phase 8: Refined shadows - soft, subtle, no muddiness
+  shadow: {
+    none: 'none',
+    xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',                                    // Micro elevation
+    sm: '0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',   // Low elevation
+    md: '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06)', // Medium elevation
+    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.08)', // Large elevation
+    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08)', // Extra large
+  },
+  
+  // Legacy alias
   shadows: {
     xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-    sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
+    sm: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
     DEFAULT: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
     md: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
     lg: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
     xl: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
     inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
     none: 'none',
-    // Premium shadow for elevated surfaces
-    elevated: '0 12px 24px -6px rgba(0, 0, 0, 0.12), 0 6px 12px -3px rgba(0, 0, 0, 0.08)',
-    // Subtle shadow for cards
-    card: '0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 1px 2px 0 rgba(0, 0, 0, 0.24)',
+  },
+  
+  // ===== Z-INDEX =====
+  // UI Constitution required: z.layer.*
+  z: {
+    base: 0,
+    dropdown: 1000,
+    sticky: 1020,
+    fixed: 1030,
+    modalBackdrop: 1040,
+    modal: 1050,
+    popover: 1060,
+    tooltip: 1070,
+    layer: {
+      base: 0,
+      elevated: 10,
+      floating: 100,
+      overlay: 1000,
+      modal: 1050,
+      tooltip: 1070,
+    },
+  },
+  
+  // Legacy alias
+  zIndex: {
+    base: 0,
+    dropdown: 1000,
+    sticky: 1020,
+    fixed: 1030,
+    modalBackdrop: 1040,
+    modal: 1050,
+    popover: 1060,
+    tooltip: 1070,
+  },
+  
+  // ===== MOTION =====
+  // UI Constitution required: motion.duration.fast normal slow
+  // Phase 8: Tuned motion physics - iOS-class curves
+  motion: {
+    duration: {
+      instant: '100ms',    // Immediate feedback (hover, focus)
+      fast: '150ms',       // Small transitions (button hover)
+      normal: '250ms',     // Standard transitions (modal open, drawer)
+      slow: '350ms',       // Large transitions (page transitions)
+    },
+    // Phase 8: Refined easing curves for premium feel
+    easing: {
+      // Standard: Balanced, smooth (default for most interactions)
+      standard: 'cubic-bezier(0.2, 0, 0, 1)',
+      // Emphasized: Quick start, smooth end (important actions)
+      emphasized: 'cubic-bezier(0.2, 0, 0, 1)',
+      // Decelerated: Smooth deceleration (page transitions)
+      decelerated: 'cubic-bezier(0, 0, 0.2, 1)',
+      // Accelerated: Quick acceleration (dismissals)
+      accelerated: 'cubic-bezier(0.4, 0, 1, 1)',
+      // Spring: Natural feel (iOS-style spring animations)
+      spring: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+    },
+  },
+  
+  // Legacy alias
+  transitions: {
+    duration: {
+      fast: '150ms',
+      DEFAULT: '200ms',
+      slow: '300ms',
+    },
+    timingFunction: {
+      DEFAULT: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      in: 'cubic-bezier(0.4, 0, 1, 1)',
+      out: 'cubic-bezier(0, 0, 0.2, 1)',
+      inOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    },
   },
   
   // ===== LAYOUT =====
@@ -232,33 +389,6 @@ export const tokens = {
       '2xl': '1536px',
     },
   },
-  
-  // ===== Z-INDEX =====
-  zIndex: {
-    base: 0,
-    dropdown: 1000,
-    sticky: 1020,
-    fixed: 1030,
-    modalBackdrop: 1040,
-    modal: 1050,
-    popover: 1060,
-    tooltip: 1070,
-  },
-  
-  // ===== TRANSITIONS =====
-  transitions: {
-    duration: {
-      fast: '150ms',
-      DEFAULT: '200ms',
-      slow: '300ms',
-    },
-    timingFunction: {
-      DEFAULT: 'cubic-bezier(0.4, 0, 0.2, 1)',
-      in: 'cubic-bezier(0.4, 0, 1, 1)',
-      out: 'cubic-bezier(0, 0, 0.2, 1)',
-      inOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
-    },
-  },
 } as const;
 
 // Type-safe token access helpers
@@ -266,4 +396,83 @@ export type ColorToken = keyof typeof tokens.colors;
 export type SpacingToken = keyof typeof tokens.spacing;
 export type FontSizeToken = keyof typeof tokens.typography.fontSize;
 export type FontWeightToken = keyof typeof tokens.typography.fontWeight;
+export type RadiusToken = keyof typeof tokens.radius;
+export type ShadowToken = keyof typeof tokens.shadow;
+export type MotionDurationToken = keyof typeof tokens.motion.duration;
+export type MotionEasingToken = keyof typeof tokens.motion.easing;
+export type ZLayerToken = keyof typeof tokens.z.layer;
 
+/**
+ * Generate CSS variables from tokens
+ * This function creates CSS custom properties for use in globals.css
+ */
+export function generateCSSVariables(): string {
+  const vars: string[] = [];
+  
+  // Color tokens - Surface (Phase 8: Visual depth system)
+  vars.push(`  --color-surface-base: ${tokens.colors.surface.base};`);
+  Object.entries(tokens.colors.surface.frosted).forEach(([key, value]) => {
+    vars.push(`  --color-surface-frosted-${key}: ${value};`);
+  });
+  vars.push(`  --color-surface-overlay: ${tokens.colors.surface.overlay};`);
+  vars.push(`  --color-surface-modal: ${tokens.colors.surface.modal};`);
+  
+  // Legacy surface aliases
+  Object.entries(tokens.colors.surface).forEach(([key, value]) => {
+    if (typeof value === 'string' && !key.includes('frosted')) {
+      vars.push(`  --color-surface-${key}: ${value};`);
+    }
+  });
+  
+  Object.entries(tokens.colors.text).forEach(([key, value]) => {
+    vars.push(`  --color-text-${key}: ${value};`);
+  });
+  
+  Object.entries(tokens.colors.border).forEach(([key, value]) => {
+    vars.push(`  --color-border-${key}: ${value};`);
+  });
+  
+  Object.entries(tokens.colors.accent).forEach(([key, value]) => {
+    vars.push(`  --color-accent-${key}: ${value};`);
+  });
+  
+  // Spacing tokens (Phase 8: Includes new values)
+  Object.entries(tokens.spacing).forEach(([key, value]) => {
+    const safeKey = key.replace('.', '-');
+    vars.push(`  --spacing-${safeKey}: ${value};`);
+  });
+  
+  // Radius tokens
+  Object.entries(tokens.radius).forEach(([key, value]) => {
+    if (key !== 'DEFAULT') {
+      vars.push(`  --radius-${key}: ${value};`);
+    }
+  });
+  vars.push(`  --radius: ${tokens.radius.DEFAULT};`);
+  
+  // Blur tokens
+  Object.entries(tokens.blur).forEach(([key, value]) => {
+    vars.push(`  --blur-${key}: ${value};`);
+  });
+  
+  // Shadow tokens (Phase 8: Refined shadows)
+  Object.entries(tokens.shadow).forEach(([key, value]) => {
+    vars.push(`  --shadow-${key}: ${value};`);
+  });
+  
+  // Z-index tokens
+  Object.entries(tokens.z.layer).forEach(([key, value]) => {
+    vars.push(`  --z-layer-${key}: ${value};`);
+  });
+  
+  // Motion tokens (Phase 8: Includes instant and spring)
+  Object.entries(tokens.motion.duration).forEach(([key, value]) => {
+    vars.push(`  --motion-duration-${key}: ${value};`);
+  });
+  
+  Object.entries(tokens.motion.easing).forEach(([key, value]) => {
+    vars.push(`  --motion-easing-${key}: ${value};`);
+  });
+  
+  return `:root {\n${vars.join('\n')}\n}`;
+}

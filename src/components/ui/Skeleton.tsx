@@ -32,6 +32,13 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   const defaultHeight = variant === 'text' ? '1rem' : height || '1rem';
   const defaultWidth = variant === 'text' ? '100%' : width || '100%';
 
+  // Check for reduced motion preference
+  const prefersReducedMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const shouldAnimate = animation && !prefersReducedMotion;
+
   return (
     <>
       <div
@@ -39,13 +46,13 @@ export const Skeleton: React.FC<SkeletonProps> = ({
         style={{
           width: typeof defaultWidth === 'number' ? `${defaultWidth}px` : defaultWidth,
           height: typeof defaultHeight === 'number' ? `${defaultHeight}px` : defaultHeight,
-          backgroundColor: tokens.colors.neutral[100],
+          backgroundColor: tokens.colors.neutral[200],
           borderRadius,
-          ...(animation === 'pulse' && {
+          ...(shouldAnimate && animation === 'pulse' && {
             animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
           }),
-          ...(animation === 'wave' && {
-            background: `linear-gradient(90deg, ${tokens.colors.neutral[100]} 25%, ${tokens.colors.neutral[50]} 50%, ${tokens.colors.neutral[100]} 75%)`,
+          ...(shouldAnimate && animation === 'wave' && {
+            background: `linear-gradient(90deg, ${tokens.colors.neutral[200]} 25%, ${tokens.colors.neutral[100]} 50%, ${tokens.colors.neutral[200]} 75%)`,
             backgroundSize: '200% 100%',
             animation: 'wave 1.5s ease-in-out infinite',
           }),
@@ -53,7 +60,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
         }}
         aria-hidden="true"
       />
-      {animation && (
+      {shouldAnimate && (
         <style jsx>{`
           @keyframes pulse {
             0%, 100% {
@@ -69,6 +76,12 @@ export const Skeleton: React.FC<SkeletonProps> = ({
             }
             100% {
               background-position: -200% 0;
+            }
+          }
+          @media (prefers-reduced-motion: reduce) {
+            * {
+              animation-duration: 0.01ms !important;
+              animation-iteration-count: 1 !important;
             }
           }
         `}</style>

@@ -213,43 +213,53 @@ export default function ClientsPage() {
           ]}
         />
       ) : (
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr auto auto',
-              gap: tokens.spacing[4],
-              alignItems: 'end',
-            }}
-          >
-            <Input
-              placeholder="Search clients..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              leftIcon={<i className="fas fa-search" />}
-            />
-            <Select
-              label="Sort By"
-              options={[
-                { value: 'name', label: 'Name' },
-                { value: 'recent', label: 'Most Recent' },
-                { value: 'bookings', label: 'Most Bookings' },
-              ]}
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-            />
-            <Link href="/clients/new">
-              <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
-                New Client
-              </Button>
-            </Link>
-          </div>
-        </Card>
+        <div
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: tokens.zIndex.sticky,
+            backgroundColor: tokens.colors.background.primary,
+            marginBottom: tokens.spacing[4],
+          }}
+        >
+          <Card>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto auto',
+                gap: tokens.spacing[4],
+                alignItems: 'end',
+              }}
+            >
+              <Input
+                placeholder="Search clients..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                leftIcon={<i className="fas fa-search" />}
+              />
+              <Select
+                label="Sort By"
+                options={[
+                  { value: 'name', label: 'Name' },
+                  { value: 'recent', label: 'Most Recent' },
+                  { value: 'bookings', label: 'Most Bookings' },
+                ]}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+              />
+              <Link href="/clients/new">
+                <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+                  New Client
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        </div>
       )}
 
       {/* Mobile Search */}
       {isMobile && (
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
+        <Card style={{ marginBottom: tokens.spacing[4] }}>
           <Input
             placeholder="Search clients..."
             value={searchTerm}

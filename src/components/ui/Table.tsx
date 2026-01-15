@@ -116,7 +116,7 @@ export function Table<T extends Record<string, any>>({
               }}
               onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                 if (onRowClick) {
-                    e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
+                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
                 }
               }}
               onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
@@ -217,9 +217,8 @@ export function Table<T extends Record<string, any>>({
               position: 'sticky',
               top: 0,
               zIndex: tokens.zIndex.sticky,
-              backgroundColor: tokens.colors.background.tertiary,
-              borderBottom: `2px solid ${tokens.colors.border.strong}`,
-              boxShadow: tokens.shadows.sm,
+              backgroundColor: tokens.colors.background.secondary,
+              borderBottom: `2px solid ${tokens.colors.border.default}`,
             }}
           >
             <tr>
@@ -227,13 +226,13 @@ export function Table<T extends Record<string, any>>({
                 <th
                   key={column.key}
                   style={{
-                    padding: `${tokens.spacing[4]} ${tokens.spacing[6]}`,
+                    padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
                     textAlign: column.align || 'left',
-                    fontSize: tokens.typography.fontSize.xs[0],
-                    fontWeight: tokens.typography.fontWeight.bold,
+                    fontSize: tokens.typography.fontSize.sm[0],
+                    fontWeight: tokens.typography.fontWeight.semibold,
                     color: tokens.colors.text.primary,
                     textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
+                    letterSpacing: tokens.typography.letterSpacing.wide,
                     width: column.width,
                     minWidth: column.width,
                     whiteSpace: 'nowrap',
@@ -315,30 +314,31 @@ export function Table<T extends Record<string, any>>({
                   onClick={() => onRowClick?.(row, index)}
                   style={{
                     cursor: onRowClick ? 'pointer' : 'default',
-                    borderBottom: `1px solid ${tokens.colors.border.default}`,
-                    transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
-                    backgroundColor: 'transparent',
+                    borderBottom: `1px solid ${tokens.colors.border.muted}`,
+                    transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
+                    ...(onRowClick && {
+                      ':hover': {
+                        backgroundColor: tokens.colors.background.secondary,
+                      },
+                    }),
                   }}
                   onMouseEnter={(e) => {
                     if (onRowClick) {
-                      e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
-                      e.currentTarget.style.transform = 'translateX(2px)';
+                      e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
                     }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.transform = 'translateX(0)';
                   }}
                 >
                   {columns.map((column) => (
                     <td
                       key={column.key}
                       style={{
-                        padding: `${tokens.spacing[4]} ${tokens.spacing[5]}`,
+                        padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
                         textAlign: column.align || 'left',
-                        fontSize: tokens.typography.fontSize.sm[0],
+                        fontSize: tokens.typography.fontSize.base[0],
                         color: tokens.colors.text.primary,
-                        lineHeight: tokens.typography.fontSize.sm[1].lineHeight,
                       }}
                     >
                       {column.render ? column.render(row, index) : row[column.key]}

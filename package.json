@@ -13,6 +13,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:ui": "playwright test",
+    "test:ui:visual": "playwright test tests/visual",
+    "check:ui-constitution": "tsx scripts/check-ui-constitution.ts",
+    "lighthouse:ci": "lhci autorun",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
@@ -47,6 +50,7 @@
     "dotenv": "^16.0.0"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.12.0",
     "@playwright/test": "^1.51.1",
     "@types/node": "^20.0.0",
     "@vitest/ui": "^4.0.16",

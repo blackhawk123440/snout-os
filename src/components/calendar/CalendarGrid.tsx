@@ -122,12 +122,8 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                 : tokens.typography.fontSize.sm[0],
               fontWeight: tokens.typography.fontWeight.semibold,
               color: tokens.colors.text.primary,
-              backgroundColor: tokens.colors.background.tertiary,
+              backgroundColor: tokens.colors.background.secondary,
               borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
-              fontWeight: tokens.typography.fontWeight.semibold,
-              color: tokens.colors.text.secondary,
-              fontSize: tokens.typography.fontSize.xs[0],
-              letterSpacing: '0.05em',
             }}
           >
             {day}
@@ -164,10 +160,10 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                     : day.isPast
                     ? tokens.colors.background.tertiary
                     : tokens.colors.background.primary
-                  : tokens.colors.background.tertiary,
+                  : tokens.colors.background.secondary,
                 cursor: day.isCurrentMonth ? 'pointer' : 'default',
-                opacity: day.isCurrentMonth ? 1 : 0.4,
-                transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
+                opacity: day.isCurrentMonth ? 1 : 0.5,
+                transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
                 overflow: 'hidden',
                 wordBreak: 'break-word',
                 position: 'relative',
@@ -176,13 +172,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
               onMouseEnter={(e) => {
                 if (day.isCurrentMonth && !day.isPast && !isSelected) {
                   e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                  e.currentTarget.style.transform = 'scale(1.02)';
-                  e.currentTarget.style.boxShadow = tokens.shadows.xs;
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = 'none';
                 if (!isSelected) {
                   e.currentTarget.style.backgroundColor = day.isCurrentMonth
                     ? day.isPast
@@ -274,15 +266,13 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                         }
                       }}
                       style={{
-                        padding: `${tokens.spacing[2]} ${tokens.spacing[2]}`,
+                        padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
                         borderRadius: tokens.borderRadius.sm,
                         fontSize: tokens.typography.fontSize.xs[0],
-                        backgroundColor: tokens.colors.background.tertiary,
+                        backgroundColor: tokens.colors.primary[100],
                         color: tokens.colors.text.primary,
                         cursor: 'pointer',
                         borderLeft: `3px solid ${tokens.colors.primary.DEFAULT}`,
-                        border: `1px solid ${tokens.colors.border.default}`,
-                        fontWeight: tokens.typography.fontWeight.medium,
                       }}
                       title={`${renderEventLabel(event)} - ${event.service}`}
                     >

@@ -100,7 +100,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
       {/* Header */}
       <div
         style={{
-          padding: `${tokens.spacing[5]} ${tokens.spacing[6]}`,
+          padding: tokens.spacing[4],
           borderBottom: `1px solid ${tokens.colors.border.default}`,
           display: 'flex',
           alignItems: 'center',
@@ -109,17 +109,10 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           position: 'sticky',
           top: 0,
           zIndex: tokens.zIndex.sticky,
-          boxShadow: tokens.shadows.xs,
         }}
       >
-        <div style={{ flex: 1 }}>
-          <h2 style={{ 
-            fontSize: tokens.typography.fontSize['2xl'][0], 
-            fontWeight: tokens.typography.fontWeight.bold, 
-            margin: 0, 
-            marginBottom: tokens.spacing[2],
-            letterSpacing: '-0.02em',
-          }}>
+        <div>
+          <h2 style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold, margin: 0, marginBottom: tokens.spacing[1] }}>
             {booking.firstName} {booking.lastName}
           </h2>
           <Badge variant={getStatusBadgeVariant(booking.status)}>
@@ -132,12 +125,12 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: tokens.spacing[5] }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[5] }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: tokens.spacing[4] }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
           {/* Schedule */}
           <Card>
             <SectionHeader title="Schedule & Service" />
-            <div style={{ paddingTop: tokens.spacing[2], paddingBottom: tokens.spacing[4] }}>
+            <div style={{ padding: tokens.spacing[4] }}>
               <BookingScheduleDisplay
                 service={booking.service}
                 startAt={booking.startAt}
@@ -151,7 +144,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           {/* Client Info */}
           <Card>
             <SectionHeader title="Client" />
-            <div style={{ paddingTop: tokens.spacing[2], paddingBottom: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
               <div>
                 <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
                   Name
@@ -184,7 +177,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           {/* Assignment */}
           <Card>
             <SectionHeader title="Assignment" />
-            <div style={{ paddingTop: tokens.spacing[2], paddingBottom: tokens.spacing[4] }}>
+            <div style={{ padding: tokens.spacing[4] }}>
               {booking.sitter ? (
                 <SitterAssignmentDisplay sitter={booking.sitter} showTierBadge />
               ) : (
@@ -198,7 +191,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           {/* Pricing */}
           <Card>
             <SectionHeader title="Pricing" />
-            <div style={{ paddingTop: tokens.spacing[2], paddingBottom: tokens.spacing[4] }}>
+            <div style={{ padding: tokens.spacing[4] }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                   Total
@@ -217,13 +210,10 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           {booking.pets.length > 0 && (
             <Card>
               <SectionHeader title="Pets" />
-              <div style={{ paddingTop: tokens.spacing[2], paddingBottom: tokens.spacing[4] }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+              <div style={{ padding: tokens.spacing[4] }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
                   {booking.pets.map((pet, idx) => (
-                    <div key={idx} style={{ 
-                      fontSize: tokens.typography.fontSize.base[0],
-                      fontWeight: tokens.typography.fontWeight.medium,
-                    }}>
+                    <div key={idx} style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
                       {pet.name || 'Unnamed'} ({pet.species})
                     </div>
                   ))}
@@ -236,7 +226,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           {booking.notes && (
             <Card>
               <SectionHeader title="Notes" />
-              <div style={{ paddingTop: tokens.spacing[2], paddingBottom: tokens.spacing[4] }}>
+              <div style={{ padding: tokens.spacing[4] }}>
                 <div style={{ fontSize: tokens.typography.fontSize.sm[0], whiteSpace: 'pre-wrap' }}>
                   {booking.notes}
                 </div>

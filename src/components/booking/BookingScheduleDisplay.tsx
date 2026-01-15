@@ -125,24 +125,9 @@ export const BookingScheduleDisplay: React.FC<BookingScheduleDisplayProps> = ({
             <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{formatTime(endAt)}</div>
           </div>
         </div>
-        <div style={{ 
-          padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
-          backgroundColor: tokens.colors.background.tertiary,
-          border: `1px solid ${tokens.colors.border.default}`,
-          borderRadius: tokens.borderRadius.md,
-          marginBottom: tokens.spacing[4],
-        }}>
-          <div style={{ 
-            fontSize: tokens.typography.fontSize.xs[0], 
-            color: tokens.colors.text.secondary, 
-            marginBottom: tokens.spacing[2],
-            fontWeight: tokens.typography.fontWeight.medium,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-          }}>
-            Duration
-          </div>
-          <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+        <div style={{ padding: tokens.spacing[2], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm, marginBottom: tokens.spacing[3] }}>
+          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Duration</div>
+          <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
             {nights} {nights === 1 ? 'Night' : 'Nights'}
           </div>
         </div>
@@ -190,38 +175,17 @@ export const BookingScheduleDisplay: React.FC<BookingScheduleDisplayProps> = ({
       <div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
           {Object.entries(visitsByDate).map(([date, visits]) => (
-            <div key={date} style={{ 
-              padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
-              backgroundColor: tokens.colors.background.tertiary,
-              border: `1px solid ${tokens.colors.border.default}`,
-              borderRadius: tokens.borderRadius.md,
-            }}>
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.xs[0], 
-                fontWeight: tokens.typography.fontWeight.bold, 
-                color: tokens.colors.text.secondary, 
-                marginBottom: tokens.spacing[3], 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.08em' 
-              }}>
+            <div key={date} style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
+              <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {date}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
                 {visits.map((slot, index) => {
                   const duration = slot.duration || calculateDurationMinutes(slot.startAt, slot.endAt);
                   return (
-                    <div key={slot.id || index} style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'space-between', 
-                      gap: tokens.spacing[2],
-                      padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-                      backgroundColor: tokens.colors.background.primary,
-                      borderRadius: tokens.borderRadius.sm,
-                      border: `1px solid ${tokens.colors.border.muted}`,
-                    }}>
+                    <div key={slot.id || index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: tokens.spacing[2] }}>
                       <div>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
                           {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
                         </div>
                       </div>

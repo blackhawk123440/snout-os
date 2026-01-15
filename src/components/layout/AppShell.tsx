@@ -131,22 +131,20 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             alignItems: 'center',
             gap: tokens.spacing[3],
             height: tokens.layout.appShell.topBarHeight,
-            backgroundColor: tokens.colors.background.primary,
           }}
         >
           <div
             style={{
-              width: '2.5rem',
-              height: '2.5rem',
-              background: `linear-gradient(135deg, ${tokens.colors.primary.DEFAULT} 0%, ${tokens.colors.primary[700]} 100%)`,
-              borderRadius: tokens.borderRadius.lg,
+              width: '2rem',
+              height: '2rem',
+              backgroundColor: tokens.colors.primary.DEFAULT,
+              borderRadius: tokens.borderRadius.md,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: tokens.colors.text.inverse,
               fontSize: tokens.typography.fontSize.xl[0],
               fontWeight: tokens.typography.fontWeight.bold,
-              boxShadow: tokens.shadows.sm,
             }}
           >
             S
@@ -157,7 +155,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 fontSize: tokens.typography.fontSize.base[0],
                 fontWeight: tokens.typography.fontWeight.bold,
                 color: tokens.colors.text.primary,
-                letterSpacing: '-0.01em',
               }}
             >
               Snout OS
@@ -166,7 +163,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               style={{
                 fontSize: tokens.typography.fontSize.xs[0],
                 color: tokens.colors.text.secondary,
-                fontWeight: tokens.typography.fontWeight.medium,
               }}
             >
               Enterprise
@@ -199,26 +195,23 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   ? tokens.colors.primary.DEFAULT
                   : tokens.colors.text.primary,
                 backgroundColor: isActive(item.href)
-                  ? tokens.colors.primary[50]
+                  ? tokens.colors.primary[100]
                   : 'transparent',
                 fontWeight: isActive(item.href)
                   ? tokens.typography.fontWeight.semibold
-                  : tokens.typography.fontWeight.medium,
-                transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
+                  : tokens.typography.fontWeight.normal,
+                transition: `all ${tokens.transitions.duration.DEFAULT}`,
                 cursor: 'pointer',
-                pointerEvents: 'auto',
-                position: 'relative',
+                pointerEvents: 'auto', // Ensure links are clickable
               }}
               onMouseEnter={(e) => {
                 if (!isActive(item.href)) {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
-                  e.currentTarget.style.transform = 'translateX(2px)';
+                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isActive(item.href)) {
                   e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.transform = 'translateX(0)';
                 }
               }}
             >
@@ -285,9 +278,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             top: 0,
             zIndex: tokens.zIndex.sticky,
             width: '100%',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            boxShadow: tokens.shadows.xs,
           }}
         >
           {/* Hamburger Button - Always visible on all screen sizes */}
@@ -307,7 +297,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
+              e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';
