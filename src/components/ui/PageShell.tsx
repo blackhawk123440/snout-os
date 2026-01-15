@@ -77,9 +77,9 @@ export function PageShell({
           flexDirection: 'column',
           minHeight: 0,
           width: '100%',
-          maxWidth: maxWidth || tokens.layout.appShell.contentMaxWidth,
+          maxWidth: maxWidth || tokens.layout.page.maxWidth, // Phase B3: Constrained width
           margin: '0 auto',
-          padding: padding ? tokens.spacing[8] : 0, // Phase 8: Increased default padding
+          padding: padding ? `${tokens.spacing[5]} ${tokens.spacing[6]}` : 0, // Phase B3: Tighter padding
           overflowY: 'auto', // ONLY scroll surface allowed
           overflowX: 'hidden',
           WebkitOverflowScrolling: 'touch',

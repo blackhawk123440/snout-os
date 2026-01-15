@@ -484,35 +484,39 @@ export default function BookingsPage() {
         />
       ) : (
         <>
-          {/* Overview Section */}
+          {/* Overview Section - Phase B3: Tighter stats */}
           <Section heading="Overview">
-            <Grid>
-              <GridCol span={isMobile ? 12 : 3}>
+            <Grid gap={3}>
+              <GridCol span={isMobile ? 6 : 3}>
                 <StatCard
-                  label="Total Upcoming"
+                  label="Upcoming"
                   value={stats.totalUpcoming}
                   loading={loading}
+                  compact
                 />
               </GridCol>
-              <GridCol span={isMobile ? 12 : 3}>
+              <GridCol span={isMobile ? 6 : 3}>
                 <StatCard
                   label="Today"
                   value={stats.today}
                   loading={loading}
+                  compact
                 />
               </GridCol>
-              <GridCol span={isMobile ? 12 : 3}>
+              <GridCol span={isMobile ? 6 : 3}>
                 <StatCard
                   label="Unassigned"
                   value={stats.unassigned}
                   loading={loading}
+                  compact
                 />
               </GridCol>
-              <GridCol span={isMobile ? 12 : 3}>
+              <GridCol span={isMobile ? 6 : 3}>
                 <StatCard
                   label="Unpaid"
                   value={stats.unpaid}
                   loading={loading}
+                  compact
                 />
               </GridCol>
             </Grid>
@@ -520,7 +524,7 @@ export default function BookingsPage() {
 
             {/* Resonance: Suggestions Panel */}
             {ENABLE_RESONANCE_V1 && !isMobile && (
-              <div style={{ marginTop: tokens.spacing[6] }}>
+              <div style={{ marginTop: tokens.spacing[3] }}>
                 <SuggestionsPanel
                   suggestions={allSuggestions}
                   loading={loading}

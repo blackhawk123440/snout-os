@@ -32,16 +32,17 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: tokens.spacing[12],
+        padding: `${tokens.spacing[8]} ${tokens.spacing[6]}`, // Phase B3: Reduced padding
         textAlign: 'center',
       }}
     >
       {icon && (
         <div
           style={{
-            marginBottom: tokens.spacing[4],
-            fontSize: tokens.typography.fontSize['5xl'][0],
-            opacity: 0.5,
+            marginBottom: tokens.spacing[3], // Phase B3: Tighter
+            fontSize: tokens.typography.fontSize['3xl'][0], // Phase B3: Smaller icon
+            opacity: 0.35, // Phase B3: More subtle
+            color: tokens.colors.text.tertiary,
           }}
         >
           {typeof icon === 'string' ? icon : icon}
@@ -49,11 +50,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       )}
       <h3
         style={{
-          fontSize: tokens.typography.fontSize.xl[0],
-          fontWeight: tokens.typography.fontWeight.semibold,
-          color: tokens.colors.text.primary,
+          fontSize: tokens.typography.fontSize.base[0], // Phase B3: Smaller headline
+          fontWeight: tokens.typography.fontWeight.medium, // Phase B3: Lighter weight
+          color: tokens.colors.text.secondary, // Phase B3: Less prominent
           margin: 0,
-          marginBottom: description ? tokens.spacing[2] : tokens.spacing[4],
+          marginBottom: description ? tokens.spacing[1] : tokens.spacing[3],
         }}
       >
         {title}
@@ -61,18 +62,23 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       {description && (
         <p
           style={{
-            fontSize: tokens.typography.fontSize.base[0],
-            color: tokens.colors.text.secondary,
+            fontSize: tokens.typography.fontSize.sm[0], // Phase B3: Smaller
+            color: tokens.colors.text.tertiary, // Phase B3: Less prominent
             margin: 0,
-            marginBottom: action ? tokens.spacing[6] : 0,
-            maxWidth: '32rem',
+            marginBottom: action ? tokens.spacing[4] : 0,
+            maxWidth: '24rem', // Phase B3: Narrower
+            lineHeight: '1.5',
           }}
         >
           {description}
         </p>
       )}
       {action && (
-        <Button variant={action.variant || 'primary'} onClick={action.onClick}>
+        <Button 
+          variant={action.variant || 'secondary'} // Phase B3: Secondary by default
+          size="sm" // Phase B3: Smaller button
+          onClick={action.onClick}
+        >
           {action.label}
         </Button>
       )}
