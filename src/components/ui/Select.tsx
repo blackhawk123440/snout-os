@@ -111,6 +111,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             outline: 'none',
             cursor: props.disabled ? 'not-allowed' : 'pointer',
             transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
+            boxShadow: tokens.shadows.xs,
             appearance: 'none',
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='${encodeURIComponent(tokens.colors.text.tertiary)}' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
             backgroundRepeat: 'no-repeat',
@@ -124,14 +125,14 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           onFocus={(e) => {
             props.onFocus?.(e);
             if (!error) {
-              e.target.style.borderColor = tokens.colors.border.focus;
-              e.target.style.boxShadow = `0 0 0 3px ${tokens.colors.primary[100]}`;
+              e.target.style.borderColor = tokens.colors.primary.DEFAULT;
+              e.target.style.boxShadow = `0 0 0 3px ${tokens.colors.primary[50]}, ${tokens.shadows.sm}`;
             }
           }}
           onBlur={(e) => {
             props.onBlur?.(e);
             e.target.style.borderColor = error ? tokens.colors.error.DEFAULT : tokens.colors.border.default;
-            e.target.style.boxShadow = 'none';
+            e.target.style.boxShadow = tokens.shadows.xs;
           }}
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={

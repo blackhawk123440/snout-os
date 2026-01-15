@@ -130,6 +130,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               borderRadius: tokens.borderRadius.md,
               outline: 'none',
               transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
+              boxShadow: tokens.shadows.xs,
               ...(props.disabled && {
                 backgroundColor: tokens.colors.background.tertiary,
                 color: tokens.colors.text.disabled,
@@ -139,14 +140,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             onFocus={(e) => {
               props.onFocus?.(e);
               if (!error) {
-                e.target.style.borderColor = tokens.colors.border.focus;
-                e.target.style.boxShadow = `0 0 0 3px ${tokens.colors.primary[100]}`;
+                e.target.style.borderColor = tokens.colors.primary.DEFAULT;
+                e.target.style.boxShadow = `0 0 0 3px ${tokens.colors.primary[50]}, ${tokens.shadows.sm}`;
               }
             }}
             onBlur={(e) => {
               props.onBlur?.(e);
               e.target.style.borderColor = error ? tokens.colors.error.DEFAULT : tokens.colors.border.default;
-              e.target.style.boxShadow = 'none';
+              e.target.style.boxShadow = tokens.shadows.xs;
             }}
             aria-invalid={error ? 'true' : undefined}
             aria-describedby={

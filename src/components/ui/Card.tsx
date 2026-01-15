@@ -32,12 +32,25 @@ export const Card: React.FC<CardProps> = ({
       {...props}
       className={className}
       style={{
-        backgroundColor: tokens.colors.background.primary, // White cards
-        border: `1px solid ${tokens.colors.border.default}`, // Ultra light pink stroke
+        backgroundColor: tokens.colors.background.primary,
+        border: `1px solid ${tokens.colors.border.default}`,
         borderRadius: tokens.borderRadius.lg,
-        boxShadow: tokens.shadows.sm, // Subtle shadow for depth
-        overflow: 'visible', // Changed from 'hidden' to allow content to be visible - only clip if explicitly needed
+        boxShadow: tokens.shadows.DEFAULT,
+        overflow: 'visible',
+        transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
         ...props.style,
+      }}
+      onMouseEnter={(e) => {
+        if (props.onClick || props.style?.cursor === 'pointer') {
+          e.currentTarget.style.boxShadow = tokens.shadows.md;
+          e.currentTarget.style.transform = 'translateY(-1px)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (props.onClick || props.style?.cursor === 'pointer') {
+          e.currentTarget.style.boxShadow = tokens.shadows.DEFAULT;
+          e.currentTarget.style.transform = 'translateY(0)';
+        }
       }}
     >
       {header && (

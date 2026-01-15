@@ -217,8 +217,9 @@ export function Table<T extends Record<string, any>>({
               position: 'sticky',
               top: 0,
               zIndex: tokens.zIndex.sticky,
-              backgroundColor: tokens.colors.background.secondary,
-              borderBottom: `2px solid ${tokens.colors.border.default}`,
+              backgroundColor: tokens.colors.background.primary,
+              borderBottom: `1px solid ${tokens.colors.border.default}`,
+              boxShadow: tokens.shadows.xs,
             }}
           >
             <tr>
@@ -226,13 +227,13 @@ export function Table<T extends Record<string, any>>({
                 <th
                   key={column.key}
                   style={{
-                    padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                    padding: `${tokens.spacing[4]} ${tokens.spacing[5]}`,
                     textAlign: column.align || 'left',
-                    fontSize: tokens.typography.fontSize.sm[0],
+                    fontSize: tokens.typography.fontSize.xs[0],
                     fontWeight: tokens.typography.fontWeight.semibold,
-                    color: tokens.colors.text.primary,
+                    color: tokens.colors.text.secondary,
                     textTransform: 'uppercase',
-                    letterSpacing: tokens.typography.letterSpacing.wide,
+                    letterSpacing: '0.05em',
                     width: column.width,
                     minWidth: column.width,
                     whiteSpace: 'nowrap',
@@ -315,30 +316,29 @@ export function Table<T extends Record<string, any>>({
                   style={{
                     cursor: onRowClick ? 'pointer' : 'default',
                     borderBottom: `1px solid ${tokens.colors.border.muted}`,
-                    transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
-                    ...(onRowClick && {
-                      ':hover': {
-                        backgroundColor: tokens.colors.background.secondary,
-                      },
-                    }),
+                    transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
+                    backgroundColor: 'transparent',
                   }}
                   onMouseEnter={(e) => {
                     if (onRowClick) {
                       e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                      e.currentTarget.style.boxShadow = tokens.shadows.xs;
                     }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
                   {columns.map((column) => (
                     <td
                       key={column.key}
                       style={{
-                        padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
+                        padding: `${tokens.spacing[4]} ${tokens.spacing[5]}`,
                         textAlign: column.align || 'left',
-                        fontSize: tokens.typography.fontSize.base[0],
+                        fontSize: tokens.typography.fontSize.sm[0],
                         color: tokens.colors.text.primary,
+                        lineHeight: tokens.typography.fontSize.sm[1].lineHeight,
                       }}
                     >
                       {column.render ? column.render(row, index) : row[column.key]}

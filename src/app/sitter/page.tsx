@@ -796,7 +796,7 @@ function SitterPageContent() {
 
   return (
     <AppShell>
-      <div style={{ marginBottom: tokens.spacing[6] }}>
+      <div style={{ marginBottom: tokens.spacing[8] }}>
         <PageHeader
           title="Sitter Dashboard"
           description="Your pet care assignments and earnings"
@@ -821,13 +821,14 @@ function SitterPageContent() {
         />
       </div>
 
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div style={{ padding: tokens.spacing[0] }}>
         {/* Tier Badge - Prominent Display */}
         {sitterTier && (
           <Card
             style={{
-              marginBottom: tokens.spacing[6],
+              marginBottom: tokens.spacing[8],
               backgroundColor: tokens.colors.primary[50],
+              borderColor: tokens.colors.primary[200],
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
@@ -848,9 +849,9 @@ function SitterPageContent() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
+            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(240px, 1fr))',
             gap: tokens.spacing[6],
-            marginBottom: tokens.spacing[6],
+            marginBottom: tokens.spacing[8],
           }}
         >
           <StatCard
