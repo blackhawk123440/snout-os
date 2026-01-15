@@ -88,11 +88,9 @@ export const Modal: React.FC<ModalProps> = ({
           style={{
             position: 'absolute',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)', // Phase 8: Softer backdrop
             cursor: closeOnBackdropClick ? 'pointer' : 'default',
-            transition: `opacity ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
+            transition: `opacity ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`, // Phase 8: Smooth fade
           }}
           aria-hidden="true"
         />
@@ -105,15 +103,14 @@ export const Modal: React.FC<ModalProps> = ({
             width: '100%',
             maxHeight: '90vh',
             height: '90vh',
-            backgroundColor: tokens.colors.background.primary,
-            borderTopLeftRadius: tokens.borderRadius['2xl'],
-            borderTopRightRadius: tokens.borderRadius['2xl'],
+            backgroundColor: tokens.colors.surface.overlay, // Phase 8: Use overlay surface
+            borderTopLeftRadius: tokens.borderRadius.xl,
+            borderTopRightRadius: tokens.borderRadius.xl,
             boxShadow: tokens.shadows.xl,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
             marginTop: 'auto',
-            animation: 'slideUp 0.3s ease-out',
           }}
           role="dialog"
           aria-modal="true"
@@ -146,11 +143,10 @@ export const Modal: React.FC<ModalProps> = ({
                 <h2
                   id="modal-title"
                   style={{
-                    fontSize: tokens.typography.fontSize['2xl'][0],
-                    fontWeight: tokens.typography.fontWeight.bold,
+                    fontSize: tokens.typography.fontSize.xl[0],
+                    fontWeight: tokens.typography.fontWeight.semibold,
                     color: tokens.colors.text.primary,
                     margin: 0,
-                    letterSpacing: '-0.01em',
                   }}
                 >
                   {title}
@@ -242,11 +238,9 @@ export const Modal: React.FC<ModalProps> = ({
         style={{
           position: 'absolute',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.4)', // Phase 8: Softer backdrop
           cursor: closeOnBackdropClick ? 'pointer' : 'default',
-          transition: `opacity ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
+          transition: `opacity ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`, // Phase 8: Smooth fade
         }}
         aria-hidden="true"
       />
@@ -259,13 +253,12 @@ export const Modal: React.FC<ModalProps> = ({
           position: 'relative',
           width: '100%',
           maxHeight: '90vh',
-          backgroundColor: tokens.colors.background.primary,
-          borderRadius: tokens.borderRadius['2xl'],
+          backgroundColor: tokens.colors.surface.modal, // Phase 8: Use modal surface
+          borderRadius: tokens.borderRadius.xl,
           boxShadow: tokens.shadows.xl,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          animation: 'scaleIn 0.2s ease-out',
         }}
         role="dialog"
         aria-modal="true"
@@ -286,11 +279,10 @@ export const Modal: React.FC<ModalProps> = ({
               <h2
                 id="modal-title"
                 style={{
-                  fontSize: tokens.typography.fontSize['2xl'][0],
-                  fontWeight: tokens.typography.fontWeight.bold,
+                  fontSize: tokens.typography.fontSize.xl[0],
+                  fontWeight: tokens.typography.fontWeight.semibold,
                   color: tokens.colors.text.primary,
                   margin: 0,
-                  letterSpacing: '-0.01em',
                 }}
               >
                 {title}

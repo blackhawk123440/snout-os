@@ -126,11 +126,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               fontFamily: tokens.typography.fontFamily.sans.join(', '),
               color: tokens.colors.text.primary,
               backgroundColor: tokens.colors.background.primary,
-              border: `1px solid ${error ? tokens.colors.error.DEFAULT : tokens.colors.border.default}`,
-              borderRadius: tokens.borderRadius.md,
+            border: `1px solid ${error ? tokens.colors.error.DEFAULT : tokens.colors.border.default}`,
+            borderRadius: tokens.radius.md, // Phase 8: Use refined radius
               outline: 'none',
-              transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
-              boxShadow: tokens.shadows.xs,
+              transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`, // Phase 8: Refined motion
               ...(props.disabled && {
                 backgroundColor: tokens.colors.background.tertiary,
                 color: tokens.colors.text.disabled,
@@ -140,14 +139,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             onFocus={(e) => {
               props.onFocus?.(e);
               if (!error) {
-                e.target.style.borderColor = tokens.colors.primary.DEFAULT;
-                e.target.style.boxShadow = `0 0 0 3px ${tokens.colors.primary[50]}, ${tokens.shadows.sm}`;
+                e.target.style.borderColor = tokens.colors.border.focus;
+                e.target.style.boxShadow = `0 0 0 3px ${tokens.colors.primary[100]}`;
               }
             }}
             onBlur={(e) => {
               props.onBlur?.(e);
               e.target.style.borderColor = error ? tokens.colors.error.DEFAULT : tokens.colors.border.default;
-              e.target.style.boxShadow = tokens.shadows.xs;
+              e.target.style.boxShadow = 'none';
             }}
             aria-invalid={error ? 'true' : undefined}
             aria-describedby={

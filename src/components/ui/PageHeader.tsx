@@ -27,7 +27,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <div
       style={{
-        marginBottom: isMobile ? tokens.spacing[6] : tokens.spacing[10],
+        marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[8],
       }}
     >
       {breadcrumbs && (
@@ -57,15 +57,16 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           <h1
             style={{
               fontSize: isMobile
-                ? tokens.typography.fontSize['3xl'][0]
-                : tokens.typography.fontSize['5xl'][0],
-              fontWeight: tokens.typography.fontWeight.extrabold,
-              lineHeight: isMobile ? '1.15' : '1.1',
+                ? tokens.typography.fontSize.xl[0]
+                : tokens.typography.fontSize['3xl'][0],
+              fontWeight: tokens.typography.fontWeight.bold,
+              lineHeight: isMobile
+                ? tokens.typography.fontSize.xl[1].lineHeight
+                : tokens.typography.fontSize['3xl'][1].lineHeight,
               color: tokens.colors.text.primary,
               margin: 0,
-              marginBottom: description ? tokens.spacing[4] : 0,
+              marginBottom: description ? tokens.spacing[2] : 0,
               wordBreak: 'break-word',
-              letterSpacing: '-0.04em',
             }}
           >
             {title}
@@ -74,14 +75,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             <p
               style={{
                 fontSize: isMobile
-                  ? tokens.typography.fontSize.base[0]
-                  : tokens.typography.fontSize.xl[0],
-                lineHeight: isMobile ? '1.5' : '1.6',
+                  ? tokens.typography.fontSize.sm[0]
+                  : tokens.typography.fontSize.base[0],
+                lineHeight: isMobile
+                  ? tokens.typography.fontSize.sm[1].lineHeight
+                  : tokens.typography.fontSize.base[1].lineHeight,
                 color: tokens.colors.text.secondary,
                 margin: 0,
                 wordBreak: 'break-word',
-                fontWeight: tokens.typography.fontWeight.normal,
-                letterSpacing: '-0.01em',
               }}
             >
               {description}

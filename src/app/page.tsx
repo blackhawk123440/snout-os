@@ -11,7 +11,6 @@ import { useState, useEffect } from 'react';
 import { PageHeader, StatCard, Card, Button, Skeleton } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
-import { useMobile } from '@/lib/use-mobile';
 import Link from 'next/link';
 
 interface DashboardStats {
@@ -22,7 +21,6 @@ interface DashboardStats {
 }
 
 export default function DashboardHomePage() {
-  const isMobile = useMobile();
   const [stats, setStats] = useState<DashboardStats>({
     totalBookings: 0,
     activeSitters: 0,
@@ -74,7 +72,7 @@ export default function DashboardHomePage() {
         description="Overview of your pet care business operations"
         actions={
           <Link href="/bookings">
-            <Button variant="primary" leftIcon={<i className="fas fa-arrow-right" />}>
+            <Button variant="primary">
               View All Bookings
             </Button>
           </Link>
@@ -85,9 +83,9 @@ export default function DashboardHomePage() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
-          gap: tokens.spacing[5],
-          marginBottom: tokens.spacing[10],
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: tokens.spacing[6],
+          marginBottom: tokens.spacing[8],
         }}
       >
         {loading ? (
@@ -117,99 +115,50 @@ export default function DashboardHomePage() {
             <StatCard
               label="Happy Clients"
               value={stats.happyClients}
-              icon={<i className="fas fa-heart" />}
+              icon={<i className="fas fa-smile" />}
             />
           </>
         )}
       </div>
 
       {/* Quick Actions */}
-      <Card>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: tokens.spacing[6],
-            paddingBottom: tokens.spacing[4],
-            borderBottom: `1px solid ${tokens.colors.border.default}`,
-          }}
-        >
+      <Card
+        header={
           <div
             style={{
-              fontSize: tokens.typography.fontSize['2xl'][0],
-              fontWeight: tokens.typography.fontWeight.bold,
+              fontSize: tokens.typography.fontSize.lg[0],
+              fontWeight: tokens.typography.fontWeight.semibold,
               color: tokens.colors.text.primary,
-              letterSpacing: '-0.02em',
             }}
           >
             Quick Actions
           </div>
-        </div>
+        }
+      >
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: tokens.spacing[3],
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: tokens.spacing[4],
           }}
         >
-          <Link href="/bookings" style={{ textDecoration: 'none' }}>
-            <Button 
-              variant="secondary" 
-              leftIcon={<i className="fas fa-calendar-check" />}
-              style={{ 
-                width: '100%', 
-                justifyContent: 'flex-start',
-                height: '52px',
-                fontSize: tokens.typography.fontSize.base[0],
-                fontWeight: tokens.typography.fontWeight.medium,
-              }}
-            >
+          <Link href="/bookings">
+            <Button variant="secondary" leftIcon={<i className="fas fa-calendar-check" />}>
               View Bookings
             </Button>
           </Link>
-          <Link href="/clients" style={{ textDecoration: 'none' }}>
-            <Button 
-              variant="secondary" 
-              leftIcon={<i className="fas fa-users" />}
-              style={{ 
-                width: '100%', 
-                justifyContent: 'flex-start',
-                height: '52px',
-                fontSize: tokens.typography.fontSize.base[0],
-                fontWeight: tokens.typography.fontWeight.medium,
-              }}
-            >
+          <Link href="/clients">
+            <Button variant="secondary" leftIcon={<i className="fas fa-users" />}>
               Manage Clients
             </Button>
           </Link>
-          <Link href="/bookings/sitters" style={{ textDecoration: 'none' }}>
-            <Button 
-              variant="secondary" 
-              leftIcon={<i className="fas fa-user-friends" />}
-              style={{ 
-                width: '100%', 
-                justifyContent: 'flex-start',
-                height: '52px',
-                fontSize: tokens.typography.fontSize.base[0],
-                fontWeight: tokens.typography.fontWeight.medium,
-              }}
-            >
+          <Link href="/bookings/sitters">
+            <Button variant="secondary" leftIcon={<i className="fas fa-user-friends" />}>
               Manage Sitters
             </Button>
           </Link>
-          <Link href="/payments" style={{ textDecoration: 'none' }}>
-            <Button 
-              variant="secondary" 
-              leftIcon={<i className="fas fa-credit-card" />}
-              style={{ 
-                width: '100%', 
-                justifyContent: 'flex-start',
-                height: '52px',
-                fontSize: tokens.typography.fontSize.base[0],
-                fontWeight: tokens.typography.fontWeight.medium,
-              }}
-            >
+          <Link href="/payments">
+            <Button variant="secondary" leftIcon={<i className="fas fa-credit-card" />}>
               View Payments
             </Button>
           </Link>

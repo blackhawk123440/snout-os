@@ -49,12 +49,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       )}
       <h3
         style={{
-          fontSize: tokens.typography.fontSize['2xl'][0],
-          fontWeight: tokens.typography.fontWeight.bold,
+          fontSize: tokens.typography.fontSize.xl[0],
+          fontWeight: tokens.typography.fontWeight.semibold,
           color: tokens.colors.text.primary,
           margin: 0,
-          marginBottom: description ? tokens.spacing[3] : tokens.spacing[6],
-          letterSpacing: '-0.02em',
+          marginBottom: description ? tokens.spacing[2] : tokens.spacing[4],
         }}
       >
         {title}
@@ -62,12 +61,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       {description && (
         <p
           style={{
-            fontSize: tokens.typography.fontSize.lg[0],
+            fontSize: tokens.typography.fontSize.base[0],
             color: tokens.colors.text.secondary,
             margin: 0,
-            marginBottom: action ? tokens.spacing[8] : 0,
+            marginBottom: action ? tokens.spacing[6] : 0,
             maxWidth: '32rem',
-            lineHeight: '1.6',
           }}
         >
           {description}

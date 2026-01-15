@@ -56,16 +56,14 @@ export const Badge: React.FC<BadgeProps> = ({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        padding: `${tokens.spacing[1.5] || tokens.spacing[2]} ${tokens.spacing[3]}`,
+        padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
         fontSize: tokens.typography.fontSize.xs[0],
-        fontWeight: tokens.typography.fontWeight.bold,
-        lineHeight: '1.2',
-        borderRadius: tokens.borderRadius.full,
+        fontWeight: tokens.typography.fontWeight.medium,
+        lineHeight: '1',
+        borderRadius: tokens.radius.md, // Phase 8: Less rounded for modern feel
         backgroundColor: style.background,
         color: style.color,
         border: style.border ? `1px solid ${style.border}` : 'none',
-        letterSpacing: '0.03em',
-        whiteSpace: 'nowrap',
         ...props.style,
       }}
     >
