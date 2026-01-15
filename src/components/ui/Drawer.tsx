@@ -99,9 +99,6 @@ export function Drawer({
       <div
         ref={drawerRef}
         data-testid={testId || 'drawer'}
-        style={{
-          transition: `transform ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}`, // Phase 8: Refined motion
-        }}
         className={cn('drawer', className)}
         role="dialog"
         aria-modal="true"
@@ -114,12 +111,12 @@ export function Drawer({
           bottom: 0,
           width: drawerWidth,
           maxWidth: '90vw',
-          backgroundColor: tokens.colors.surface.overlay, // Phase 8: Use overlay surface
-          boxShadow: tokens.shadow.xl, // Phase 8: Stronger shadow for depth
+          backgroundColor: tokens.colors.surface.primary,
+          boxShadow: tokens.shadow.lg,
           zIndex: tokens.z.layer.modal,
           display: 'flex',
           flexDirection: 'column',
-          transition: `transform ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}`, // Phase 8: Refined motion
+          transition: `transform ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}`,
           overflowY: 'auto',
           overflowX: 'hidden',
         }}

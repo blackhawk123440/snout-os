@@ -5,6 +5,7 @@
  * Register all commands here.
  */
 
+import React from 'react';
 import { Command, CommandCategory, CommandContext, CommandResult } from './types';
 import {
   availableOnRoute,
@@ -25,7 +26,7 @@ const navigationCommands: Command[] = [
     label: 'Go to Dashboard',
     description: 'Navigate to the dashboard',
     category: CommandCategory.Navigation,
-    icon: React.createElement('i', { className: 'fas fa-home' }),
+    icon: <i className="fas fa-home" />,
     shortcut: 'cmd+1',
     availability: (ctx) => ctx.currentRoute !== '/dashboard',
     permission: alwaysAllowed,
@@ -45,7 +46,7 @@ const navigationCommands: Command[] = [
     label: 'Go to Bookings',
     description: 'Navigate to bookings page',
     category: CommandCategory.Navigation,
-    icon: React.createElement('i', { className: 'fas fa-calendar' }),
+    icon: <i className="fas fa-calendar" />,
     shortcut: 'cmd+2',
     availability: (ctx) => ctx.currentRoute !== '/bookings',
     permission: alwaysAllowed,
@@ -65,7 +66,7 @@ const navigationCommands: Command[] = [
     label: 'Go to Calendar',
     description: 'Navigate to calendar view',
     category: CommandCategory.Navigation,
-    icon: React.createElement('i', { className: 'fas fa-table' }),
+    icon: <i className="fas fa-table" />,
     shortcut: 'cmd+3',
     availability: (ctx) => ctx.currentRoute !== '/calendar',
     permission: alwaysAllowed,
@@ -85,7 +86,7 @@ const navigationCommands: Command[] = [
     label: 'Go to Clients',
     description: 'Navigate to clients page',
     category: CommandCategory.Navigation,
-    icon: React.createElement('i', { className: 'fas fa-users' }),
+    icon: <i className="fas fa-users" />,
     shortcut: 'cmd+4',
     availability: (ctx) => ctx.currentRoute !== '/clients',
     permission: alwaysAllowed,
@@ -105,7 +106,7 @@ const navigationCommands: Command[] = [
     label: 'Go to Sitters',
     description: 'Navigate to sitters page',
     category: CommandCategory.Navigation,
-    icon: React.createElement('i', { className: 'fas fa-user-tie' }),
+    icon: <i className="fas fa-user-tie" />,
     shortcut: 'cmd+5',
     availability: (ctx) => ctx.currentRoute !== '/bookings/sitters',
     permission: alwaysAllowed,
@@ -125,7 +126,7 @@ const navigationCommands: Command[] = [
     label: 'Go to Automations',
     description: 'Navigate to automations page',
     category: CommandCategory.Navigation,
-    icon: React.createElement('i', { className: 'fas fa-magic' }),
+    icon: <i className="fas fa-magic" />,
     shortcut: 'cmd+6',
     availability: (ctx) => ctx.currentRoute !== '/automation',
     permission: alwaysAllowed,
@@ -151,7 +152,7 @@ const bookingCommands: Command[] = [
     label: 'Send Confirmation Message',
     description: 'Send confirmation message to client for selected booking',
     category: CommandCategory.Booking,
-    icon: React.createElement('i', { className: 'fas fa-envelope' }),
+    icon: <i className="fas fa-envelope" />,
     availability: hasBookingEntity,
     permission: defaultPermission,
     preview: (ctx) => {
@@ -188,7 +189,7 @@ const bookingCommands: Command[] = [
     label: 'Collect Payment',
     description: 'Generate payment link for selected booking',
     category: CommandCategory.Booking,
-    icon: React.createElement('i', { className: 'fas fa-dollar-sign' }),
+    icon: <i className="fas fa-dollar-sign" />,
     availability: hasBookingEntity,
     permission: defaultPermission,
     preview: (ctx) => {
@@ -225,7 +226,7 @@ const bookingCommands: Command[] = [
     label: 'Assign Sitter',
     description: 'Assign a sitter to the selected booking',
     category: CommandCategory.Booking,
-    icon: React.createElement('i', { className: 'fas fa-user-check' }),
+    icon: <i className="fas fa-user-check" />,
     availability: hasBookingEntity,
     permission: defaultPermission,
     preview: (ctx) => {
@@ -265,7 +266,7 @@ const bookingCommands: Command[] = [
     label: 'Trigger Automation Pack',
     description: 'Trigger automation pack for selected booking',
     category: CommandCategory.Booking,
-    icon: React.createElement('i', { className: 'fas fa-magic' }),
+    icon: <i className="fas fa-magic" />,
     availability: hasBookingEntity,
     permission: defaultPermission,
     preview: (ctx) => {
@@ -302,7 +303,7 @@ const bookingCommands: Command[] = [
     label: 'Open Booking in New Tab',
     description: 'Open the selected booking in a new browser tab',
     category: CommandCategory.Booking,
-    icon: React.createElement('i', { className: 'fas fa-external-link-alt' }),
+    icon: <i className="fas fa-external-link-alt" />,
     availability: hasBookingEntity,
     permission: alwaysAllowed,
     preview: (ctx) => {
@@ -338,7 +339,7 @@ const clientCommands: Command[] = [
     label: 'Message Client',
     description: 'Send a message to the selected client',
     category: CommandCategory.Client,
-    icon: React.createElement('i', { className: 'fas fa-comment' }),
+    icon: <i className="fas fa-comment" />,
     availability: hasClientEntity,
     permission: defaultPermission,
     preview: (ctx) => {
@@ -375,7 +376,7 @@ const clientCommands: Command[] = [
     label: 'View Booking History',
     description: 'View booking history for the selected client',
     category: CommandCategory.Client,
-    icon: React.createElement('i', { className: 'fas fa-history' }),
+    icon: <i className="fas fa-history" />,
     availability: hasClientEntity,
     permission: defaultPermission,
     preview: (ctx) => {
@@ -403,7 +404,7 @@ const clientCommands: Command[] = [
     label: 'Create New Booking',
     description: 'Create a new booking for the selected client',
     category: CommandCategory.Client,
-    icon: React.createElement('i', { className: 'fas fa-plus-circle' }),
+    icon: <i className="fas fa-plus-circle" />,
     availability: hasClientEntity,
     permission: defaultPermission,
     preview: (ctx) => {
@@ -449,7 +450,7 @@ const systemCommands: Command[] = [
     label: 'Toggle Dark Mode',
     description: 'Toggle dark mode theme',
     category: CommandCategory.System,
-    icon: React.createElement('i', { className: 'fas fa-moon' }),
+    icon: <i className="fas fa-moon" />,
     availability: alwaysAllowed,
     permission: alwaysAllowed,
     preview: () => (
@@ -475,7 +476,7 @@ const systemCommands: Command[] = [
     label: 'Open UI Kit Demo',
     description: 'Navigate to the UI kit demo page',
     category: CommandCategory.System,
-    icon: React.createElement('i', { className: 'fas fa-palette' }),
+    icon: <i className="fas fa-palette" />,
     availability: (ctx) => ctx.currentRoute !== '/ui-kit',
     permission: alwaysAllowed,
     preview: () => (

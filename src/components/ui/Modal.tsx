@@ -253,7 +253,6 @@ export const Modal: React.FC<ModalProps> = ({
           width: '100%',
           maxHeight: '90vh',
           backgroundColor: tokens.colors.background.primary,
-          backgroundColor: tokens.colors.surface.modal, // Phase 8: Use modal surface
           boxShadow: tokens.shadows.xl,
           display: 'flex',
           flexDirection: 'column',
