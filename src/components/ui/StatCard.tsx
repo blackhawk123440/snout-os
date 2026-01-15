@@ -93,9 +93,9 @@ export const StatCard: React.FC<StatCardProps> = ({
         {icon && (
           <div
             style={{
-              color: tokens.colors.neutral[400],
+              color: tokens.colors.primary.DEFAULT,
               fontSize: useCompact ? tokens.typography.fontSize.lg[0] : tokens.typography.fontSize.xl[0],
-              opacity: 0.6,
+              opacity: 0.7,
             }}
           >
             {icon}

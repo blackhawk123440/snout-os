@@ -108,8 +108,8 @@ export const tokens = {
     // Semantic aliases - Enterprise neutral theme with subtle pink accent
     background: {
       primary: '#ffffff', // White (cards, surfaces)
-      secondary: '#fafafa', // Neutral off-white canvas background (was pink)
-      tertiary: '#f5f5f5', // Very light gray
+      secondary: '#ffffff', // Pure white canvas background (was pink)
+      tertiary: '#fafafa', // Very light gray for subtle backgrounds
       inverse: '#432f21', // Snout brown
       accent: '#fce1ef', // Snout pink for badges, buttons, highlights only - use sparingly
     },
