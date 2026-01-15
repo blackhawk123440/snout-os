@@ -174,14 +174,10 @@ export function detectCalendarSignals(
   // Check for clusters
   for (let i = 0; i < upcomingEvents.length; i++) {
     const cluster: CalendarEventData[] = [upcomingEvents[i]];
-    const clusterStart = typeof upcomingEvents[i].startAt === 'string' 
-      ? new Date(upcomingEvents[i].startAt) 
-      : upcomingEvents[i].startAt;
+    const clusterStart = new Date(upcomingEvents[i].startAt);
 
     for (let j = i + 1; j < upcomingEvents.length; j++) {
-      const eventStart = typeof upcomingEvents[j].startAt === 'string'
-        ? new Date(upcomingEvents[j].startAt)
-        : upcomingEvents[j].startAt;
+      const eventStart = new Date(upcomingEvents[j].startAt);
       const hoursDiff = (eventStart.getTime() - clusterStart.getTime()) / (1000 * 60 * 60);
 
       if (hoursDiff <= clusterWindowHours) {

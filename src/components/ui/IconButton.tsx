@@ -71,6 +71,26 @@ export function IconButton({
       color: tokens.colors.text.inverse,
       border: `1px solid ${tokens.colors.error.DEFAULT}`,
     },
+    error: {
+      backgroundColor: tokens.colors.error.DEFAULT,
+      color: tokens.colors.text.inverse,
+      border: `1px solid ${tokens.colors.error.DEFAULT}`,
+    },
+    success: {
+      backgroundColor: tokens.colors.success.DEFAULT,
+      color: tokens.colors.text.inverse,
+      border: `1px solid ${tokens.colors.success.DEFAULT}`,
+    },
+    warning: {
+      backgroundColor: tokens.colors.warning.DEFAULT,
+      color: tokens.colors.text.inverse,
+      border: `1px solid ${tokens.colors.warning.DEFAULT}`,
+    },
+    info: {
+      backgroundColor: tokens.colors.info.DEFAULT,
+      color: tokens.colors.text.inverse,
+      border: `1px solid ${tokens.colors.info.DEFAULT}`,
+    },
   };
 
   const sizeStyles = {

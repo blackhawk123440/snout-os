@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import {
   PageShell,
   TopBar,
+  Section,
   Grid,
   GridCol,
   FrostedCard,
@@ -19,7 +20,6 @@ import {
   Button,
   IconButton,
   Tabs,
-  TabPanel,
   Select,
   Switch,
   DataTable,
@@ -33,6 +33,7 @@ import {
   useToast,
 } from '@/components/ui';
 import { CommandLauncher } from '@/components/command';
+import { Command, CommandResult } from '@/commands/types';
 import { useCommands } from '@/hooks/useCommands';
 import { useMobile } from '@/lib/use-mobile';
 import { tokens } from '@/lib/design-tokens';
@@ -80,7 +81,7 @@ type CalendarView = 'day' | 'week' | 'month';
 export default function CalendarPage() {
   const router = useRouter();
   const isMobile = useMobile();
-  const { toast } = useToast();
+  const { showToast } = useToast();
   const { context: commandContext } = useCommands();
   const { open: openCommandPalette } = useCommandPalette();
 
@@ -417,13 +418,19 @@ export default function CalendarPage() {
   // Filters panel
   const filtersPanel = (
     <>
-      <Tabs value={viewMode} onChange={(val) => setViewMode(val as CalendarView)}>
-        <TabPanel id="day" label="Day" />
-        <TabPanel id="week" label="Week" />
-        <TabPanel id="month" label="Month" />
+      <Tabs 
+        tabs={[
+          { id: 'day', label: 'Day' },
+          { id: 'week', label: 'Week' },
+          { id: 'month', label: 'Month' },
+        ]}
+        activeTab={viewMode}
+        onTabChange={(tabId: string) => setViewMode(tabId as CalendarView)}
+      >
+        <div />
       </Tabs>
 
-      <Flex direction="column" gap={4} style={{ marginTop: tokens.spacing[4] }}>
+      <Section>
         <Select
           label="Service Type"
           value={filterService}
@@ -489,7 +496,7 @@ export default function CalendarPage() {
             onChange={setShowConflicts}
           />
         </Flex>
-      </Flex>
+      </Section>
     </>
   );
 
@@ -647,12 +654,12 @@ export default function CalendarPage() {
                       onCommandSelect={(command) => {
                         command.execute(calendarCommandContext).then(result => {
                           if (result.status === 'success') {
-                            toast({ variant: 'success', message: result.message || 'Command executed' });
+                            showToast({ variant: 'success', message: result.message || 'Command executed' });
                             if (result.redirect) {
                               router.push(result.redirect);
                             }
                           } else {
-                            toast({ variant: 'error', message: result.message || 'Command failed' });
+                            showToast({ variant: 'error', message: result.message || 'Command failed' });
                           }
                         });
                       }}
@@ -677,15 +684,15 @@ export default function CalendarPage() {
                             data: filteredBookings.find(b => b.id === suggestion.entityId),
                           },
                         };
-                        command.execute(context).then(result => {
+                        command.execute(context).then((result: CommandResult) => {
                           if (result.status === 'success') {
-                            toast({ variant: 'success', message: result.message || 'Action completed' });
+                            showToast({ variant: 'success', message: result.message || 'Action completed' });
                             if (result.redirect) {
                               router.push(result.redirect);
                             }
                             fetchData();
                           } else {
-                            toast({ variant: 'error', message: result.message || 'Action failed' });
+                            showToast({ variant: 'error', message: result.message || 'Action failed' });
                           }
                         });
                       }
@@ -701,14 +708,13 @@ export default function CalendarPage() {
           <GridCol span={isMobile ? 12 : 9}>
             <Panel>
               {/* Calendar Header */}
-              <Flex
-                align="center"
-                justify="space-between"
+              <div
                 style={{
                   padding: tokens.spacing[4],
                   borderBottom: `1px solid ${tokens.colors.border.default}`,
                 }}
               >
+                <Flex align="center" justify="space-between">
                 <Flex align="center" gap={4}>
                   <IconButton
                     icon={<i className="fas fa-chevron-left" />}
@@ -754,10 +760,16 @@ export default function CalendarPage() {
 
                 <Flex align="center" gap={2}>
                   {!isMobile && (
-                    <Tabs value={viewMode} onChange={(val) => setViewMode(val as CalendarView)}>
-                      <TabPanel id="day" label="Day" />
-                      <TabPanel id="week" label="Week" />
-                      <TabPanel id="month" label="Month" />
+                    <Tabs
+                      tabs={[
+                        { id: 'day', label: 'Day' },
+                        { id: 'week', label: 'Week' },
+                        { id: 'month', label: 'Month' },
+                      ]}
+                      activeTab={viewMode}
+                      onTabChange={(tabId: string) => setViewMode(tabId as CalendarView)}
+                    >
+                      <div />
                     </Tabs>
                   )}
                   <Button
@@ -771,7 +783,8 @@ export default function CalendarPage() {
                     Today
                   </Button>
                 </Flex>
-              </Flex>
+                </Flex>
+              </div>
 
               {/* Calendar Body */}
               {viewMode === 'month' ? renderCalendarGrid() : (
@@ -784,7 +797,8 @@ export default function CalendarPage() {
 
             {/* Event List */}
             {selectedDate && (
-              <Panel style={{ marginTop: tokens.spacing[4] }}>
+              <div style={{ marginTop: tokens.spacing[4] }}>
+              <Panel>
                 <div style={{ padding: tokens.spacing[4] }}>
                   <div
                     style={{
@@ -797,9 +811,9 @@ export default function CalendarPage() {
                   </div>
 
                   {isMobile ? (
-                    <CardList
-                      data={selectedBookings}
-                      renderItem={(booking) => (
+                    <CardList<Booking>
+                      items={selectedBookings}
+                      renderCard={(booking: Booking) => (
                         <div
                           onClick={() => {
                             setSelectedBooking(booking);
@@ -827,10 +841,10 @@ export default function CalendarPage() {
                   ) : (
                     <DataTable
                       columns={[
-                        { key: 'time', label: 'Time', render: (booking) => `${formatTime(booking.startAt)} - ${formatTime(booking.endAt)}` },
-                        { key: 'client', label: 'Client', render: (booking) => `${booking.firstName} ${booking.lastName}` },
-                        { key: 'service', label: 'Service', render: (booking) => booking.service },
-                        { key: 'status', label: 'Status', render: (booking) => booking.status },
+                        { key: 'time', header: 'Time', render: (booking) => `${formatTime(booking.startAt)} - ${formatTime(booking.endAt)}` },
+                        { key: 'client', header: 'Client', render: (booking) => `${booking.firstName} ${booking.lastName}` },
+                        { key: 'service', header: 'Service', render: (booking) => booking.service },
+                        { key: 'status', header: 'Status', render: (booking) => booking.status },
                       ]}
                       data={selectedBookings}
                       onRowClick={(booking) => {
@@ -843,6 +857,7 @@ export default function CalendarPage() {
                   )}
                 </div>
               </Panel>
+              </div>
             )}
           </GridCol>
         </Grid>
@@ -913,24 +928,26 @@ export default function CalendarPage() {
                 </div>
               )}
 
-              <Flex direction="column" gap={2} style={{ marginTop: tokens.spacing[4] }}>
+              <div style={{ marginTop: tokens.spacing[4] }}>
+              <Flex direction="column" gap={2}>
                 <CommandLauncher
                   context={calendarCommandContext}
                   maxSuggestions={3}
                   onCommandSelect={(command) => {
                     command.execute(calendarCommandContext).then(result => {
                       if (result.status === 'success') {
-                        toast({ variant: 'success', message: result.message || 'Command executed' });
+                        showToast({ variant: 'success', message: result.message || 'Command executed' });
                         if (result.redirect) {
                           router.push(result.redirect);
                         }
                       } else {
-                        toast({ variant: 'error', message: result.message || 'Command failed' });
+                        showToast({ variant: 'error', message: result.message || 'Command failed' });
                       }
                     });
                   }}
                 />
               </Flex>
+              </div>
             </Flex>
           </div>
         )}

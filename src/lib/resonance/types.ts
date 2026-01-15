@@ -38,6 +38,7 @@ export interface Suggestion {
     commandAvailable?: boolean;
     entityExists?: boolean;
   };
+  metadata?: Record<string, any>;
 }
 
 /**
@@ -50,6 +51,7 @@ export interface BookingData {
   startAt: Date | string;
   endAt: Date | string;
   status: string;
+  service?: string;
   paidStatus?: 'paid' | 'unpaid' | 'partial';
   sitter?: {
     id: string;

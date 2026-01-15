@@ -244,7 +244,7 @@ export function createCalendarEventCommands(eventData?: {
       description: 'Assign a sitter to this booking',
       category: CommandCategory.Booking,
       icon: <i className="fas fa-user-check" />,
-      availability: (ctx) => !!ctx.selectedEntity?.id && !eventData.hasSitter,
+      availability: (ctx) => !!ctx.selectedEntity?.id && !eventData?.hasSitter,
       permission: defaultPermission,
       preview: () => (
         <div style={{ padding: tokens.spacing[4] }}>
@@ -255,7 +255,7 @@ export function createCalendarEventCommands(eventData?: {
         return {
           status: 'success' as const,
           message: 'Sitter assignment dialog opened',
-          telemetry: { bookingId: eventData.bookingId, action: 'assign-sitter' },
+          telemetry: { bookingId: eventData?.bookingId, action: 'assign-sitter' },
         };
       },
     });
@@ -268,7 +268,7 @@ export function createCalendarEventCommands(eventData?: {
       description: 'Generate payment link for this booking',
       category: CommandCategory.Booking,
       icon: <i className="fas fa-dollar-sign" />,
-      availability: (ctx) => !!ctx.selectedEntity?.id && !eventData.isPaid,
+      availability: (ctx) => !!ctx.selectedEntity?.id && !eventData?.isPaid,
       permission: defaultPermission,
       preview: () => (
         <div style={{ padding: tokens.spacing[4] }}>
@@ -279,7 +279,7 @@ export function createCalendarEventCommands(eventData?: {
         return {
           status: 'success' as const,
           message: 'Payment link generated',
-          telemetry: { bookingId: eventData.bookingId, action: 'collect-payment' },
+          telemetry: { bookingId: eventData?.bookingId, action: 'collect-payment' },
         };
       },
     });

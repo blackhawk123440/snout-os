@@ -46,21 +46,18 @@ function GridCol({ children, span = 12, md, lg, className, 'data-testid': testId
   const tabletSpan = md || span;
   const desktopSpan = lg || md || span;
 
+  // Determine column span based on screen width
+  const columnSpan = typeof window !== 'undefined' && window.innerWidth >= 1024
+    ? desktopSpan
+    : isMobile ? mobileSpan : tabletSpan;
+
   return (
     <div
       data-testid={testId || 'grid-col'}
       className={cn('grid-col', className)}
       style={{
-        gridColumn: `span ${isMobile ? mobileSpan : tabletSpan} / span ${isMobile ? mobileSpan : tabletSpan}`,
+        gridColumn: `span ${columnSpan} / span ${columnSpan}`,
       }}
-      // Desktop styles applied via media query equivalent
-      {...(typeof window !== 'undefined' && window.innerWidth >= 1024
-        ? {
-            style: {
-              gridColumn: `span ${desktopSpan} / span ${desktopSpan}`,
-            },
-          }
-        : {})}
     >
       {children}
     </div>
