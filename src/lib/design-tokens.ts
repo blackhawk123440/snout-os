@@ -373,13 +373,29 @@ export const tokens = {
   },
   
   // ===== LAYOUT =====
+  // Phase B3: Structural authority - constrained, centered, professional
   layout: {
     appShell: {
       sidebarWidth: '16rem',    // 256px
       sidebarWidthCollapsed: '4rem', // 64px
-      topBarHeight: '4rem',     // 64px
-      contentMaxWidth: '1400px',
+      topBarHeight: '3.5rem',   // 56px - slightly reduced
+      contentMaxWidth: '1240px', // Phase B3: Constrained for authority
       contentPadding: '1.5rem', // 24px
+    },
+    
+    // Phase B3: Page content constraints
+    page: {
+      maxWidth: '1240px',       // Centered content max
+      padding: '1.5rem',        // Horizontal padding
+      paddingMobile: '1rem',    // Mobile padding
+    },
+    
+    // Phase B3: Section spacing - tighter, denser
+    section: {
+      gap: '1.25rem',           // 20px between sections (was 24px)
+      headerGap: '0.75rem',     // 12px between header and content
+      titleSize: '1.5rem',      // 24px page title
+      subtitleSize: '0.875rem', // 14px subtitle
     },
     
     breakpoints: {

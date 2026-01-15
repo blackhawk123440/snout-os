@@ -50,12 +50,12 @@ export function Section({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: tokens.spacing[6], // Phase 8: Increased gap for breathing room
-        paddingBottom: divider ? tokens.spacing[8] : 0, // Phase 8: More separation
+        gap: tokens.spacing[3], // Phase B3: Tighter header-to-content gap
+        paddingBottom: divider ? tokens.spacing[5] : 0, // Phase B3: Reduced separation
         borderBottom: divider
           ? `1px solid ${tokens.colors.border.default}`
           : 'none',
-        marginBottom: divider ? tokens.spacing[8] : tokens.spacing[6], // Phase 8: Consistent spacing
+        marginBottom: divider ? tokens.spacing[5] : tokens.spacing[4], // Phase B3: Tighter section spacing
       }}
     >
       {/* Header */}
@@ -87,12 +87,12 @@ export function Section({
               {heading && (
                 <h2
                   style={{
-                    fontSize: tokens.typography.fontSize['2xl'][0], // Phase 8: Larger heading
-                    fontWeight: tokens.typography.fontWeight.bold,
+                    fontSize: '1.0625rem', // Phase B4: 17px - refined presence
+                    fontWeight: tokens.typography.fontWeight.semibold,
                     color: tokens.colors.text.primary,
                     margin: 0,
-                    letterSpacing: tokens.typography.letterSpacing.tight, // Phase 8: Tighter tracking
-                    lineHeight: tokens.typography.fontSize['2xl'][1].lineHeight,
+                    letterSpacing: '-0.01em', // Phase B4: Tighter tracking
+                    lineHeight: '1.25',
                   }}
                 >
                   {heading}
@@ -101,10 +101,10 @@ export function Section({
               {subheading && (
                 <p
                   style={{
-                    fontSize: tokens.typography.fontSize.base[0], // Phase 8: Larger subheading
-                    color: tokens.colors.text.secondary,
+                    fontSize: tokens.typography.fontSize.sm[0], // Phase B3: Reduced subtitle
+                    color: tokens.colors.text.tertiary, // Phase B3: Less prominent
                     margin: 0,
-                    lineHeight: tokens.typography.fontSize.base[1].lineHeight,
+                    lineHeight: '1.4',
                   }}
                 >
                   {subheading}
