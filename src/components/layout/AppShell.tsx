@@ -211,7 +211,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               }}
               onMouseEnter={(e) => {
                 if (!isActive(item.href)) {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                  e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
                   e.currentTarget.style.transform = 'translateX(2px)';
                 }
               }}
@@ -307,7 +307,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+              e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';

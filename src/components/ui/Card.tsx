@@ -85,7 +85,7 @@ export const Card: React.FC<CardProps> = ({
                 : `${tokens.spacing[3]} ${tokens.spacing[4]} ${tokens.spacing[4]}`
               : 0,
             borderTop: footer ? `1px solid ${tokens.colors.border.default}` : 'none',
-            backgroundColor: tokens.colors.background.secondary,
+            backgroundColor: tokens.colors.background.tertiary,
           }}
         >
           {footer}

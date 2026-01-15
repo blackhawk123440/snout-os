@@ -164,7 +164,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({
                     : day.isPast
                     ? tokens.colors.background.tertiary
                     : tokens.colors.background.primary
-                  : tokens.colors.background.secondary,
+                  : tokens.colors.background.tertiary,
                 cursor: day.isCurrentMonth ? 'pointer' : 'default',
                 opacity: day.isCurrentMonth ? 1 : 0.4,
                 transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,

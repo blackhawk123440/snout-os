@@ -116,7 +116,7 @@ export function Table<T extends Record<string, any>>({
               }}
               onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                 if (onRowClick) {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                    e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
                 }
               }}
               onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {

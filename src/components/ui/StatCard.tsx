@@ -45,11 +45,11 @@ export const StatCard: React.FC<StatCardProps> = ({
       style={{
         backgroundColor: tokens.colors.background.primary,
         border: `1px solid ${tokens.colors.border.default}`,
-        borderRadius: tokens.borderRadius.xl,
-        padding: useCompact ? tokens.spacing[5] : tokens.spacing[6],
+        borderRadius: tokens.borderRadius['2xl'],
+        padding: useCompact ? tokens.spacing[6] : tokens.spacing[8],
         cursor: onClick ? 'pointer' : 'default',
         transition: `all ${tokens.transitions.duration.DEFAULT} ${tokens.transitions.timingFunction.DEFAULT}`,
-        minHeight: useCompact ? '120px' : '180px',
+        minHeight: useCompact ? '140px' : '200px',
         display: 'flex',
         flexDirection: 'column',
         boxShadow: tokens.shadows.sm,
@@ -81,11 +81,12 @@ export const StatCard: React.FC<StatCardProps> = ({
       >
         <div
           style={{
-            fontSize: tokens.typography.fontSize.sm[0],
-            fontWeight: tokens.typography.fontWeight.medium,
+            fontSize: tokens.typography.fontSize.xs[0],
+            fontWeight: tokens.typography.fontWeight.bold,
             color: tokens.colors.text.secondary,
             textTransform: 'uppercase',
-            letterSpacing: tokens.typography.letterSpacing.wide,
+            letterSpacing: '0.08em',
+            opacity: 0.7,
           }}
         >
           {label}
@@ -104,18 +105,18 @@ export const StatCard: React.FC<StatCardProps> = ({
       </div>
       <div
         style={{
-          fontSize: useCompact ? tokens.typography.fontSize['2xl'][0] : tokens.typography.fontSize['4xl'][0],
-          fontWeight: tokens.typography.fontWeight.bold,
+          fontSize: useCompact ? tokens.typography.fontSize['3xl'][0] : tokens.typography.fontSize['5xl'][0],
+          fontWeight: tokens.typography.fontWeight.extrabold,
           color: tokens.colors.text.primary,
-          lineHeight: '1.1',
+          lineHeight: '1',
           marginBottom: change ? tokens.spacing[2] : 0,
-          minHeight: useCompact ? '2rem' : '3.5rem',
+          minHeight: useCompact ? '2.5rem' : '4rem',
           display: 'flex',
           alignItems: 'flex-start',
           flexWrap: 'wrap',
           fontVariantNumeric: 'tabular-nums',
           wordBreak: 'break-word',
-          letterSpacing: '-0.02em', // Tighter letter spacing for large numbers
+          letterSpacing: '-0.04em',
         }}
       >
         {value}
