@@ -27,7 +27,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <div
       style={{
-        marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[8],
+        marginBottom: isMobile ? tokens.spacing[3] : tokens.spacing[5], // Phase B4: Tighter
       }}
     >
       {breadcrumbs && (
@@ -43,7 +43,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         style={{
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
-          alignItems: isMobile ? 'stretch' : 'flex-start',
+          alignItems: isMobile ? 'stretch' : 'center', // Phase B4: Center align
           justifyContent: 'space-between',
           gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
         }}
@@ -58,14 +58,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             style={{
               fontSize: isMobile
                 ? tokens.typography.fontSize.xl[0]
-                : tokens.typography.fontSize['3xl'][0],
+                : tokens.typography.fontSize['2xl'][0], // Phase B4: Slightly smaller
               fontWeight: tokens.typography.fontWeight.bold,
-              lineHeight: isMobile
-                ? tokens.typography.fontSize.xl[1].lineHeight
-                : tokens.typography.fontSize['3xl'][1].lineHeight,
+              lineHeight: '1.2', // Phase B4: Tighter
+              letterSpacing: '-0.02em', // Phase B4: Tight tracking
               color: tokens.colors.text.primary,
               margin: 0,
-              marginBottom: description ? tokens.spacing[2] : 0,
+              marginBottom: description ? tokens.spacing[1] : 0, // Phase B4: Tighter
               wordBreak: 'break-word',
             }}
           >
@@ -74,13 +73,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           {description && (
             <p
               style={{
-                fontSize: isMobile
-                  ? tokens.typography.fontSize.sm[0]
-                  : tokens.typography.fontSize.base[0],
-                lineHeight: isMobile
-                  ? tokens.typography.fontSize.sm[1].lineHeight
-                  : tokens.typography.fontSize.base[1].lineHeight,
-                color: tokens.colors.text.secondary,
+                fontSize: tokens.typography.fontSize.sm[0], // Phase B4: Smaller
+                lineHeight: '1.4',
+                color: tokens.colors.text.tertiary, // Phase B4: Less prominent
                 margin: 0,
                 wordBreak: 'break-word',
               }}

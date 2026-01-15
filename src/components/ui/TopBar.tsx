@@ -55,11 +55,12 @@ export function TopBar({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: `0 ${tokens.spacing[4]}`,
-        backgroundColor: tokens.colors.surface.primary,
-        borderBottom: `1px solid ${tokens.colors.border.default}`,
+        padding: `0 ${tokens.spacing[2]}`, // Phase B3: Tighter padding
+        backgroundColor: 'transparent', // Phase B3: No background
+        borderBottom: 'none', // Phase B3: No border, cleaner
         flexShrink: 0,
         width: '100%',
+        marginBottom: tokens.spacing[2], // Phase B3: Small gap before content
       }}
     >
       {/* Left Section */}
@@ -147,14 +148,16 @@ export function TopBar({
           </nav>
         )}
         
-        {/* Title */}
+        {/* Title - Phase B3: Authoritative page title */}
         {title && !breadcrumb && (
           <h1
             style={{
-              fontSize: tokens.typography.fontSize.xl[0],
+              fontSize: tokens.typography.fontSize['2xl'][0], // Phase B3: Larger
               fontWeight: tokens.typography.fontWeight.bold,
               color: tokens.colors.text.primary,
               margin: 0,
+              letterSpacing: '-0.02em', // Phase B3: Tight tracking
+              lineHeight: '1.2',
             }}
           >
             {title}

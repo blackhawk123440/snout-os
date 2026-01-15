@@ -320,15 +320,15 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </div>
         </header>
 
-        {/* Content */}
+        {/* Content - Phase B4: Constrained centered layout */}
         <main
           style={{
             flex: 1,
-            padding: tokens.layout.appShell.contentPadding,
-            maxWidth: isMobile ? '100vw' : tokens.layout.appShell.contentMaxWidth, // Part A: Zero horizontal scroll enforcement
+            padding: `${tokens.spacing[5]} ${tokens.spacing[6]}`, // Phase B4: Tighter padding
+            maxWidth: isMobile ? '100vw' : tokens.layout.page.maxWidth, // Phase B4: Use page maxWidth
             width: '100%',
             margin: '0 auto',
-            overflowX: 'hidden', // Part A: Zero horizontal scroll enforcement
+            overflowX: 'hidden',
           }}
         >
           {children}
