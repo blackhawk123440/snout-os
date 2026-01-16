@@ -433,7 +433,7 @@ export default function BookingsPage() {
       <TopBar
         title="Bookings"
         rightActions={
-          <Flex align="center" gap={2}>
+          <Flex align="center" gap={1.5}> {/* Phase C: Tighter gap - more deliberate alignment */}
             <IconButton
               icon={<i className="fas fa-search" />}
               onClick={() => setShowSearchBar(!showSearchBar)}
@@ -456,9 +456,9 @@ export default function BookingsPage() {
         }
       />
 
-      {/* Inline Search Bar */}
+      {/* Inline Search Bar - Phase C: Tighter, more operational */}
       {showSearchBar && (
-        <div style={{ padding: `${tokens.spacing[3]} ${tokens.spacing[4]}` }}>
+        <div style={{ padding: `${tokens.spacing[2]} ${tokens.spacing[4]}` }}> {/* Phase C: Reduced vertical padding */}
           <Input
             placeholder="Search by name, phone, or service..."
             value={searchTerm}
@@ -484,9 +484,9 @@ export default function BookingsPage() {
         />
       ) : (
         <>
-          {/* Overview Section - Phase B6: Secondary to list */}
+          {/* Overview Section - Phase D: Operational instrument */}
           <Section heading="Overview">
-            <Grid gap={3}>
+            <Grid gap={2}> {/* Phase D: Minimal gap - disciplined spacing */}
               <GridCol span={isMobile ? 6 : 3}>
                 <StatCard
                   label="Upcoming"
@@ -522,9 +522,9 @@ export default function BookingsPage() {
             </Grid>
           </Section>
 
-            {/* Resonance: Suggestions Panel */}
+            {/* Resonance: Suggestions Panel - Phase D: Subordinate to list */}
             {ENABLE_RESONANCE_V1 && !isMobile && (
-              <div style={{ marginTop: tokens.spacing[3] }}>
+              <div style={{ marginTop: tokens.spacing[1] }}> {/* Phase D: Minimal separation - anchored feel */}
                 <SuggestionsPanel
                   suggestions={allSuggestions}
                   loading={loading}
@@ -553,7 +553,7 @@ export default function BookingsPage() {
             )}
 
 
-          {/* Bookings List Section - Phase B6: Primary anchor surface */}
+          {/* Bookings List Section - Phase D: Primary control surface */}
           <Section heading="Bookings List">
             <Panel>
               {loading ? (
@@ -565,8 +565,8 @@ export default function BookingsPage() {
                   title={bookings.length === 0 ? "No bookings" : "No matches"}
                   description={
                     bookings.length === 0
-                      ? "Ready for new bookings."
-                      : "Adjust filters or search."
+                      ? undefined // Phase D: Operational neutrality - no guidance text
+                      : undefined // Phase D: Remove helper text - direct, neutral
                   }
                   action={{
                     label: 'Create Booking',
