@@ -28,26 +28,31 @@ const getVariantStyles = (variant: ButtonVariant) => {
       backgroundColor: tokens.colors.primary.DEFAULT,
       color: tokens.colors.text.inverse,
       border: `1px solid ${tokens.colors.primary.DEFAULT}`,
+      boxShadow: 'none', // Phase B5: Remove shadow for embedded feel
     },
     secondary: {
-      backgroundColor: tokens.colors.background.primary,
+      backgroundColor: tokens.colors.surface.primary, // Phase B5: Match surface
       color: tokens.colors.text.primary,
-      border: `1px solid ${tokens.colors.border.default}`,
+      border: `1px solid ${tokens.colors.border.default}`, // Phase B5: Subtle border
+      boxShadow: 'none', // Phase B5: No shadow
     },
     tertiary: {
       backgroundColor: 'transparent',
       color: tokens.colors.text.primary,
       border: '1px solid transparent',
+      boxShadow: 'none',
     },
     danger: {
       backgroundColor: tokens.colors.error.DEFAULT,
       color: tokens.colors.text.inverse,
       border: `1px solid ${tokens.colors.error.DEFAULT}`,
+      boxShadow: 'none', // Phase B5: Remove shadow
     },
     ghost: {
       backgroundColor: 'transparent',
       color: tokens.colors.text.secondary,
       border: '1px solid transparent',
+      boxShadow: 'none',
     },
   };
   return styles[variant];
@@ -69,11 +74,11 @@ const getSizeStyles = (size: ButtonSize, isMobile: boolean) => {
     md: {
       padding: isMobile
         ? `${tokens.spacing[3]} ${tokens.spacing[4]}`
-        : `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+        : `0.625rem ${tokens.spacing[5]}`, // Phase B7: Tighter vertical ~10px (was 12px)
       fontSize: isMobile
         ? tokens.typography.fontSize.base[0]
         : tokens.typography.fontSize.base[0],
-      height: isMobile ? '44px' : '2.5rem',
+      height: isMobile ? '44px' : '2.25rem', // Phase B7: Slightly tighter ~36px (was 38px)
       minHeight: isMobile ? '44px' : undefined,
     },
     lg: {
@@ -114,13 +119,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!isDisabled) {
-        // Phase B4: Subtle elevation on hover
-        e.currentTarget.style.transform = 'translateY(-1px)';
-        e.currentTarget.style.boxShadow = tokens.shadow.sm;
+        // Phase B5: Minimal hover feedback, no elevation for embedded feel
         if (variant === 'primary') {
           e.currentTarget.style.backgroundColor = tokens.colors.primary[700];
         } else if (variant === 'secondary') {
           e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+          e.currentTarget.style.borderColor = tokens.colors.border.strong;
         } else if (variant === 'tertiary') {
           e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
         } else if (variant === 'danger') {
@@ -135,10 +139,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const handleMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (!isDisabled) {
-        // Phase B4: Reset elevation
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = variantStyle.boxShadow as string || 'none';
+        // Phase B5: Reset to embedded state
         e.currentTarget.style.backgroundColor = variantStyle.backgroundColor as string;
+        e.currentTarget.style.borderColor = variantStyle.border as string || 'transparent';
         e.currentTarget.style.color = variantStyle.color as string;
       }
       onMouseLeave?.(e);

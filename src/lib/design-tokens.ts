@@ -127,20 +127,21 @@ export const tokens = {
     },
     
     // UI Constitution required: color.text.*
+    // Phase B7: Micro contrast polish - clearer hierarchy through subtle contrast adjustment
     text: {
       primary: '#432f21',
       secondary: '#525252',
-      tertiary: '#737373',
+      tertiary: '#6b6b6b',  // Phase B7: Slightly darker for better contrast (was #737373)
       disabled: '#a3a3a3',
       inverse: '#ffffff',
       brand: '#432f21',
     },
     
     // UI Constitution required: color.border.*
-    // Phase B2: Slightly more visible borders for surface separation
+    // Phase B7: Micro contrast tuning - sharper, more intentional edges
     border: {
-      default: 'rgba(67, 47, 33, 0.12)',      // More visible default border
-      muted: 'rgba(67, 47, 33, 0.06)',        // Subtle
+      default: 'rgba(67, 47, 33, 0.17)',      // Phase B7: Increased 5% for sharper definition (was 0.12)
+      muted: 'rgba(67, 47, 33, 0.08)',        // Phase B7: Slightly more intentional (was 0.06)
       strong: 'rgba(67, 47, 33, 0.20)',       // Strong visible border
       focus: 'rgba(67, 47, 33, 0.4)',         // Focus ring
       accent: 'rgba(245, 208, 227, 0.5)',     // Desaturated accent border
@@ -240,11 +241,11 @@ export const tokens = {
   
   // ===== BORDER RADIUS =====
   // UI Constitution required: radius.sm md lg xl
-  // Phase B2: Tighter radius - less bubbly, more professional
+  // Phase B7: Mechanical tightening - more precise, system-like feel
   radius: {
     none: '0',
     sm: '0.1875rem',    // 3px - Small elements (badges, pills)
-    DEFAULT: '0.375rem', // 6px - Default (buttons, inputs)
+    DEFAULT: '0.3125rem', // Phase B7: 5px - Slightly tighter for precision (was 6px)
     md: '0.5rem',       // 8px - Cards, panels
     lg: '0.75rem',      // 12px - Large cards
     xl: '1rem',         // 16px - Extra large cards

@@ -50,12 +50,12 @@ export function Section({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: tokens.spacing[3], // Phase B3: Tighter header-to-content gap
-        paddingBottom: divider ? tokens.spacing[5] : 0, // Phase B3: Reduced separation
+        gap: tokens.spacing[2], // Phase B5: Tighter header-to-content gap for density
+        paddingBottom: divider ? tokens.spacing[4] : 0, // Phase B5: Reduced separation
         borderBottom: divider
           ? `1px solid ${tokens.colors.border.default}`
           : 'none',
-        marginBottom: divider ? tokens.spacing[5] : tokens.spacing[4], // Phase B3: Tighter section spacing
+        marginBottom: divider ? tokens.spacing[4] : tokens.spacing[3], // Phase B5: Tighter section spacing
       }}
     >
       {/* Header */}
@@ -87,12 +87,12 @@ export function Section({
               {heading && (
                 <h2
                   style={{
-                    fontSize: '1.0625rem', // Phase B4: 17px - refined presence
-                    fontWeight: tokens.typography.fontWeight.semibold,
+                    fontSize: '1.0625rem',
+                    fontWeight: tokens.typography.fontWeight.bold, // Phase B6: Slightly stronger for hierarchy
                     color: tokens.colors.text.primary,
                     margin: 0,
-                    letterSpacing: '-0.01em', // Phase B4: Tighter tracking
-                    lineHeight: '1.25',
+                    letterSpacing: '-0.015em', // Phase B6: Tighter tracking for authority
+                    lineHeight: '1.2', // Phase B6: Tighter line height
                   }}
                 >
                   {heading}

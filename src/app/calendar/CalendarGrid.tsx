@@ -70,7 +70,7 @@ export function CalendarGrid({
         </div>
       ))}
 
-      {/* Calendar days */}
+      {/* Calendar days - Phase B6: Improved clarity and hierarchy */}
       {days.map((day, idx) => {
         const isSelected = selectedDate && day.date.getTime() === selectedDate.getTime();
         return (
@@ -80,10 +80,16 @@ export function CalendarGrid({
             style={{
               minHeight: '80px',
               padding: tokens.spacing[2],
-              border: `1px solid ${tokens.colors.border.default}`,
+              border: isSelected
+                ? `2px solid ${tokens.colors.primary.DEFAULT}` // Phase B6: Stronger border for selection
+                : day.isToday
+                ? `2px solid ${tokens.colors.border.strong}` // Phase B6: Stronger border for today
+                : `1px solid ${tokens.colors.border.default}`,
               borderRadius: tokens.radius.md,
               backgroundColor: isSelected
                 ? tokens.colors.accent.primary
+                : day.isToday
+                ? tokens.colors.surface.frosted.low // Phase B6: Subtle background for today
                 : day.isCurrentMonth
                 ? tokens.colors.surface.primary
                 : tokens.colors.surface.secondary,
@@ -92,6 +98,7 @@ export function CalendarGrid({
                 : tokens.colors.text.tertiary,
               cursor: 'pointer',
               textAlign: 'left',
+              boxShadow: day.isToday && !isSelected ? tokens.shadow.xs : 'none', // Phase B6: Subtle shadow for today
             }}
             onFocus={(e) => {
               e.currentTarget.style.outline = `2px solid ${tokens.colors.border.focus}`;
@@ -104,11 +111,15 @@ export function CalendarGrid({
             <Flex direction="column" gap={1}>
               <span
                 style={{
-                  fontSize: tokens.typography.fontSize.sm[0],
+                  fontSize: day.isToday ? '0.9375rem' : tokens.typography.fontSize.sm[0], // Phase B6: Slightly larger for today
                   fontWeight: day.isToday
                     ? tokens.typography.fontWeight.bold
-                    : tokens.typography.fontWeight.normal,
-                  color: day.isToday ? tokens.colors.primary.DEFAULT : 'inherit',
+                    : tokens.typography.fontWeight.medium, // Phase B6: Medium weight for non-today
+                  color: day.isToday 
+                    ? tokens.colors.primary.DEFAULT 
+                    : day.isCurrentMonth
+                    ? tokens.colors.text.primary
+                    : tokens.colors.text.tertiary,
                 }}
               >
                 {day.date.getDate()}
