@@ -43,11 +43,11 @@ export function Panel({
       data-testid={testId || 'panel'}
       className={cn('panel', className)}
       style={{
-        backgroundColor: tokens.colors.surface.primary, // Phase B2: Pure white for contrast
+        backgroundColor: tokens.colors.surface.primary,
         border: `1px solid ${tokens.colors.border.default}`,
-        borderRadius: tokens.radius.md, // Phase B2: Tighter radius
-        boxShadow: tokens.shadow.xs, // Phase B2: Very subtle shadow for panels
-        padding: paddingValue || tokens.spacing[5], // Phase B2: Tighter padding
+        borderRadius: tokens.radius.md,
+        boxShadow: tokens.shadow.md, // Phase B6: Stronger shadow for primary operational surface dominance
+        padding: paddingValue || tokens.spacing[4],
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
