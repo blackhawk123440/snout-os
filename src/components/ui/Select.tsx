@@ -25,20 +25,23 @@ export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectE
   placeholder?: string;
 }
 
-const sizeStyles: Record<SelectSize, { height: string; fontSize: string; padding: string }> = {
+const sizeStyles: Record<SelectSize, { minHeight: string; fontSize: string; lineHeight: string; padding: string }> = {
   sm: {
-    height: '2rem',
+    minHeight: '2.5rem', // 40px - ensures no clipping
     fontSize: tokens.typography.fontSize.sm[0],
+    lineHeight: 'normal',
     padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
   },
   md: {
-    height: '2.5rem',
+    minHeight: '2.75rem', // 44px - prevents text clipping, matches recommended touch target
     fontSize: tokens.typography.fontSize.base[0],
+    lineHeight: 'normal',
     padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
   },
   lg: {
-    height: '3rem',
+    minHeight: '3rem', // 48px
     fontSize: tokens.typography.fontSize.lg[0],
+    lineHeight: 'normal',
     padding: `${tokens.spacing[4]} ${tokens.spacing[5]}`,
   },
 };
@@ -99,8 +102,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           {...props}
           style={{
             width: '100%',
-            height: sizeStyle.height,
+            minHeight: sizeStyle.minHeight,
             fontSize: sizeStyle.fontSize,
+            lineHeight: sizeStyle.lineHeight,
             padding: sizeStyle.padding,
             paddingRight: '2.5rem',
             fontFamily: tokens.typography.fontFamily.sans.join(', '),
