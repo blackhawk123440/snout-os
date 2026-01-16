@@ -79,13 +79,13 @@ export default function DashboardHomePage() {
         }
       />
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Phase B6: Hierarchy with Active Bookings as heartbeat */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: tokens.spacing[6],
-          marginBottom: tokens.spacing[8],
+          gap: tokens.spacing[4], // Phase B6: Tighter gap to reduce equality
+          marginBottom: tokens.spacing[6], // Phase B6: Reduced margin
         }}
       >
         {loading ? (
@@ -97,11 +97,19 @@ export default function DashboardHomePage() {
           </>
         ) : (
           <>
-            <StatCard
-              label="Active Bookings"
-              value={stats.totalBookings}
-              icon={<i className="fas fa-calendar-check" />}
-            />
+            {/* Active Bookings - Primary heartbeat */}
+            <div style={{ 
+              border: `1px solid ${tokens.colors.border.default}`, // Phase B6: Slight emphasis
+              borderRadius: tokens.radius.sm,
+              padding: tokens.spacing[1],
+              boxShadow: tokens.shadow.xs, // Phase B6: Subtle depth
+            }}>
+              <StatCard
+                label="Active Bookings"
+                value={stats.totalBookings}
+                icon={<i className="fas fa-calendar-check" />}
+              />
+            </div>
             <StatCard
               label="Active Sitters"
               value={stats.activeSitters}
@@ -121,14 +129,14 @@ export default function DashboardHomePage() {
         )}
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Phase B6: Secondary to stats */}
       <Card
         header={
           <div
             style={{
-              fontSize: tokens.typography.fontSize.lg[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-              color: tokens.colors.text.primary,
+              fontSize: tokens.typography.fontSize.base[0], // Phase B6: Smaller heading
+              fontWeight: tokens.typography.fontWeight.medium, // Phase B6: Lighter weight
+              color: tokens.colors.text.secondary, // Phase B6: Less prominent
             }}
           >
             Quick Actions

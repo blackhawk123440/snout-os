@@ -484,7 +484,7 @@ export default function BookingsPage() {
         />
       ) : (
         <>
-          {/* Overview Section - Phase B3: Tighter stats */}
+          {/* Overview Section - Phase B6: Secondary to list */}
           <Section heading="Overview">
             <Grid gap={3}>
               <GridCol span={isMobile ? 6 : 3}>
@@ -553,20 +553,20 @@ export default function BookingsPage() {
             )}
 
 
-          {/* Bookings List Section */}
+          {/* Bookings List Section - Phase B6: Primary anchor surface */}
           <Section heading="Bookings List">
             <Panel>
               {loading ? (
-                <div style={{ padding: tokens.spacing[6] }}>
+                <div style={{ padding: tokens.spacing[4] }}> {/* Phase B5: Tighter padding */}
                   <Skeleton height="400px" />
                 </div>
               ) : filteredBookings.length === 0 ? (
                 <EmptyState
-                  title={bookings.length === 0 ? "No bookings yet" : "No bookings match filters"}
+                  title={bookings.length === 0 ? "No bookings" : "No matches"}
                   description={
                     bookings.length === 0
-                      ? "Create your first booking to get started."
-                      : "Try adjusting your filters or search terms."
+                      ? "Ready for new bookings."
+                      : "Adjust filters or search."
                   }
                   action={{
                     label: 'Create Booking',

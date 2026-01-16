@@ -15,31 +15,31 @@ jobs:
         node-version: [20.x]
 
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Run TypeScript type check
-      run: npm run typecheck
-    
-    - name: Check UI Constitution violations
-      run: npx tsx scripts/check-ui-constitution.ts
-    
-    - name: Build application
-      run: npm run build
-      env:
-        DATABASE_URL: "file:./test.db"
-        OPENPHONE_API_KEY: "test_key"
-        OPENPHONE_NUMBER_ID: "test_number_id"
-        NEXTAUTH_SECRET: "test_secret"
-        NEXTAUTH_URL: "http://localhost:3000"
+      - uses: actions/checkout@v4
+      
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run TypeScript type check
+        run: npm run typecheck
+      
+      - name: Check UI Constitution violations
+        run: npx tsx scripts/check-ui-constitution.ts
+      
+      - name: Build application
+        run: npm run build
+        env:
+          DATABASE_URL: "file:./test.db"
+          OPENPHONE_API_KEY: "test_key"
+          OPENPHONE_NUMBER_ID: "test_number_id"
+          NEXTAUTH_SECRET: "test_secret"
+          NEXTAUTH_URL: "http://localhost:3000"
 
   visual-regression:
     runs-on: ubuntu-latest

@@ -99,15 +99,16 @@ export function StatCard({
       }}
       style={{
         backgroundColor: tokens.colors.surface.primary,
-        border: `1px solid ${tokens.colors.border.muted}`, // Phase B4: Softer border
+        border: `1px solid ${tokens.colors.border.muted}`, // Phase B6: Softer border for secondary panels
         borderRadius: tokens.radius.sm,
-        boxShadow: 'none', // Phase B4: Remove shadow, let border define
+        boxShadow: 'none', // Phase B6: No shadow - reduce prominence for secondary use
         padding: useCompact ? tokens.spacing[3] : tokens.spacing[4],
         cursor: onClick ? 'pointer' : 'default',
-        transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`, // Phase B4: Smooth ease-out
+        transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`,
         minHeight: useCompact ? '72px' : '100px',
         display: 'flex',
         flexDirection: 'column',
+        position: 'relative',
       }}
       onMouseEnter={(e) => {
         if (onClick) {
@@ -145,11 +146,11 @@ export function StatCard({
           style={{
             fontSize: tokens.typography.fontSize.xs[0],
             fontWeight: tokens.typography.fontWeight.medium,
-            color: tokens.colors.text.tertiary, // Phase B3: Lower prominence
+            color: tokens.colors.text.tertiary,
             textTransform: 'uppercase',
-            letterSpacing: '0.05em', // Phase B3: Wider tracking
+            letterSpacing: '0.06em', // Phase B5: Slightly wider for minimalism
             lineHeight: '1.2',
-            opacity: 0.8, // Phase B3: Reduced opacity
+            opacity: 0.65, // Phase B5: Further reduce label prominence
           }}
         >
           {label}
@@ -168,15 +169,15 @@ export function StatCard({
       </div>
       <div
         style={{
-          fontSize: useCompact ? '1.625rem' : '1.75rem', // Phase B4: 26-28px for glance authority
-          fontWeight: tokens.typography.fontWeight.semibold, // Phase B4: Medium weight
+          fontSize: useCompact ? '1.625rem' : '1.75rem',
+          fontWeight: tokens.typography.fontWeight.bold, // Phase B5: Stronger weight for instrument authority
           color: tokens.colors.text.primary,
-          lineHeight: '1.1',
-          letterSpacing: '-0.025em', // Phase B4: Tight but readable
+          lineHeight: '1.0', // Phase B5: Tighter line height for precise alignment
+          letterSpacing: '-0.03em', // Phase B5: Tighter tracking for numbers
           marginBottom: delta ? tokens.spacing[1] : 0,
           minHeight: useCompact ? '1.5rem' : '2rem',
           display: 'flex',
-          alignItems: 'flex-start',
+          alignItems: 'baseline', // Phase B5: Baseline alignment for instrument feel
           flexWrap: 'wrap',
           fontVariantNumeric: 'tabular-nums',
           wordBreak: 'break-word',
