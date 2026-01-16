@@ -12,26 +12,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
+import { navigation, type NavItem } from '@/lib/navigation';
 
-export interface NavItem {
-  label: string;
-  href: string;
-  icon?: string;
-  badge?: number;
-}
-
-const navigation: NavItem[] = [
-  { label: 'Dashboard', href: '/', icon: 'fas fa-tachometer-alt' },
-  { label: 'Bookings', href: '/bookings', icon: 'fas fa-calendar-check' },
-  { label: 'Calendar', href: '/calendar', icon: 'fas fa-calendar' },
-  { label: 'Clients', href: '/clients', icon: 'fas fa-users' },
-  { label: 'Sitters', href: '/bookings/sitters', icon: 'fas fa-user-friends' },
-  { label: 'Automations', href: '/automation', icon: 'fas fa-robot' },
-  { label: 'Payments', href: '/payments', icon: 'fas fa-credit-card' },
-  { label: 'Payroll', href: '/payroll', icon: 'fas fa-money-bill-wave' },
-  { label: 'Messages', href: '/messages', icon: 'fas fa-comments' },
-  { label: 'Settings', href: '/settings', icon: 'fas fa-cog' },
-];
+export type { NavItem } from '@/lib/navigation';
 
 export interface AppShellProps {
   children: React.ReactNode;
