@@ -6,7 +6,7 @@
       "startServerReadyPattern": "ready on",
       "startServerReadyTimeout": 60000,
       "url": [
-        "http://localhost:3000/dashboard",
+        "http://localhost:3000/",
         "http://localhost:3000/bookings",
         "http://localhost:3000/calendar"
       ]
