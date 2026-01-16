@@ -116,11 +116,12 @@ export const Tabs: React.FC<TabsProps> = ({
                   fontSize: isMobile
                     ? tokens.typography.fontSize.sm[0]
                     : tokens.typography.fontSize.base[0],
+                  lineHeight: 'normal',
                   cursor: tab.disabled ? 'not-allowed' : 'pointer',
                   transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`, // Phase 8: Refined motion
                   whiteSpace: 'nowrap',
                   flexShrink: 0,
-                  minHeight: isMobile ? '44px' : 'auto',
+                  minHeight: '2.75rem', // 44px - consistent across mobile and desktop to prevent clipping
                 }}
                 onMouseEnter={(e) => {
                   if (!tab.disabled && !isActive) {
@@ -135,8 +136,8 @@ export const Tabs: React.FC<TabsProps> = ({
                   }
                 }}
               >
-                {tab.icon && <span>{tab.icon}</span>}
-                <span>{tab.label}</span>
+                {tab.icon && <span style={{ display: 'flex', alignItems: 'center' }}>{tab.icon}</span>}
+                <span style={{ lineHeight: 'normal' }}>{tab.label}</span>
                 {tab.badge !== undefined && tab.badge > 0 && (
                   <span
                     style={{

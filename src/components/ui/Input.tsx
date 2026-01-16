@@ -19,20 +19,23 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   fullWidth?: boolean;
 }
 
-const sizeStyles: Record<InputSize, { height: string; fontSize: string; padding: string }> = {
+const sizeStyles: Record<InputSize, { minHeight: string; fontSize: string; lineHeight: string; padding: string }> = {
   sm: {
-    height: '2rem',
+    minHeight: '2.5rem', // 40px - ensures no clipping
     fontSize: tokens.typography.fontSize.sm[0],
+    lineHeight: 'normal',
     padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
   },
   md: {
-    height: '2.5rem',
+    minHeight: '2.75rem', // 44px - prevents text clipping, matches recommended touch target
     fontSize: tokens.typography.fontSize.base[0],
+    lineHeight: 'normal',
     padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
   },
   lg: {
-    height: '3rem',
+    minHeight: '3rem', // 48px
     fontSize: tokens.typography.fontSize.lg[0],
+    lineHeight: 'normal',
     padding: `${tokens.spacing[4]} ${tokens.spacing[5]}`,
   },
 };
@@ -116,8 +119,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {...props}
             style={{
               width: '100%',
-              height: sizeStyle.height,
+              minHeight: sizeStyle.minHeight,
               fontSize: sizeStyle.fontSize,
+              lineHeight: sizeStyle.lineHeight,
               padding: hasIcon
                 ? `${sizeStyle.padding.split(' ')[0]} ${leftIcon ? '2.5rem' : sizeStyle.padding.split(' ')[1]} ${rightIcon ? '2.5rem' : sizeStyle.padding.split(' ')[1]} ${sizeStyle.padding.split(' ')[0]}`
                 : sizeStyle.padding,
