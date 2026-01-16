@@ -79,13 +79,13 @@ export default function DashboardHomePage() {
         }
       />
 
-      {/* Stats Grid - Phase B6: Hierarchy with Active Bookings as heartbeat */}
+      {/* Stats Grid - Phase D: Command surface hierarchy */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: tokens.spacing[4], // Phase B6: Tighter gap to reduce equality
-          marginBottom: tokens.spacing[6], // Phase B6: Reduced margin
+          gap: '0.625rem', // Phase D: 10px - slightly tighter than spacing[3], more disciplined
+          marginBottom: tokens.spacing[4], // Phase D: Minimal separation - anchored feel
         }}
       >
         {loading ? (
@@ -97,12 +97,12 @@ export default function DashboardHomePage() {
           </>
         ) : (
           <>
-            {/* Active Bookings - Primary heartbeat */}
+            {/* Active Bookings - Phase D: Command center focus */}
             <div style={{ 
-              border: `1px solid ${tokens.colors.border.default}`, // Phase B6: Slight emphasis
+              border: `1px solid ${tokens.colors.border.default}`,
               borderRadius: tokens.radius.sm,
               padding: tokens.spacing[1],
-              boxShadow: tokens.shadow.xs, // Phase B6: Subtle depth
+              boxShadow: tokens.shadow.md, // Phase D: Stronger emphasis - operational anchor
             }}>
               <StatCard
                 label="Active Bookings"
@@ -120,10 +120,11 @@ export default function DashboardHomePage() {
               value={`$${stats.totalRevenue.toFixed(2)}`}
               icon={<i className="fas fa-dollar-sign" />}
             />
+            {/* Phase D: Neutral, operational - remove "Happy" */}
             <StatCard
-              label="Happy Clients"
+              label="Active Clients"
               value={stats.happyClients}
-              icon={<i className="fas fa-smile" />}
+              icon={<i className="fas fa-users" />}
             />
           </>
         )}
