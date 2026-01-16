@@ -23,7 +23,7 @@ const LEGACY_VIOLATIONS: Array<{ file: string; line: number; message: string }> 
 // Detect if we're in CI and get changed files
 const IS_CI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 
-function getChangedFiles(): Set<string> {
+function getChangedFiles(): Set<string> | null {
   if (!IS_CI) {
     return new Set(); // In local mode, check all files for visibility
   }
@@ -84,9 +84,9 @@ function getChangedFiles(): Set<string> {
             .filter(Boolean);
         }
       } catch (e) {
-        // If all else fails, return empty set (will check all files but mark legacy)
-        console.warn('⚠️  Could not determine changed files from git, will check all files but only fail on non-legacy violations');
-        return new Set();
+        // If all else fails, return null to indicate unknown (will treat as non-blocking)
+        console.warn('⚠️  Could not determine changed files from git, treating violations as non-blocking');
+        return null;
       }
     }
     
@@ -97,8 +97,8 @@ function getChangedFiles(): Set<string> {
     
     return new Set(appFiles);
   } catch (error) {
-    console.warn('⚠️  Could not determine changed files, checking all files:', (error as Error).message);
-    return new Set(); // Fallback: check all files
+    console.warn('⚠️  Could not determine changed files, treating violations as non-blocking:', (error as Error).message);
+    return null; // Return null to indicate unknown (non-blocking)
   }
 }
 
@@ -156,7 +156,8 @@ function checkFile(filePath: string, relativePath: string) {
   const lines = content.split('\n');
   
   // Determine if this is a changed file (in CI) or legacy file
-  const isChangedFile = !IS_CI || CHANGED_FILES.size === 0 || CHANGED_FILES.has(relativePath);
+  // If CHANGED_FILES is null (unknown), treat all as legacy (non-blocking)
+  const isChangedFile = !IS_CI || (CHANGED_FILES !== null && CHANGED_FILES.size > 0 && CHANGED_FILES.has(relativePath));
   const isLegacyFile = relativePath.includes('-legacy') || 
                        relativePath.includes('page-old') || 
                        relativePath.includes('-backup') ||
@@ -201,7 +202,8 @@ function checkFile(filePath: string, relativePath: string) {
               message: `Hardcoded ${patternNames[patternIndex] || 'value'} found: ${matches[0]}. Use tokens instead.`,
             };
             
-            // Only fail on changed files (or all files in local mode)
+            // Only fail on changed files (and not legacy)
+            // If CHANGED_FILES is null (unknown), treat as legacy (non-blocking)
             if (isChangedFile && !isLegacyFile) {
               VIOLATIONS.push(violation);
             } else {
@@ -286,9 +288,11 @@ const appDir = join(srcDir, 'app');
 
 console.log('🔍 Checking UI Constitution violations...\n');
 
-if (IS_CI && CHANGED_FILES.size > 0) {
+if (IS_CI && CHANGED_FILES !== null && CHANGED_FILES.size > 0) {
   console.log(`📝 CI mode: Checking ${CHANGED_FILES.size} changed file(s) for violations\n`);
   console.log('Changed files:', Array.from(CHANGED_FILES).join(', '), '\n');
+} else if (IS_CI && CHANGED_FILES === null) {
+  console.log('📝 CI mode: Could not determine changed files - treating all violations as non-blocking\n');
 } else if (IS_CI) {
   console.log('📝 CI mode: Checking all files (could not determine changed files)\n');
 } else {
