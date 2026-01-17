@@ -479,10 +479,12 @@ export default function PaymentsPage() {
           }}
         >
           <Flex align="center" justify="space-between">
-            <Flex align="center" gap={3} style={{ color: tokens.colors.error.DEFAULT }}>
+            <div style={{ color: tokens.colors.error.DEFAULT }}>
+              <Flex align="center" gap={3}>
               <i className="fas fa-exclamation-circle" />
-              <span>{error}</span>
-            </Flex>
+                <span>{error}</span>
+              </Flex>
+            </div>
             <Button variant="secondary" size="sm" onClick={fetchAnalytics}>
               Retry
             </Button>
