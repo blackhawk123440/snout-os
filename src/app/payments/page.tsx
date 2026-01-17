@@ -22,6 +22,9 @@ import {
   Skeleton,
   EmptyState,
   MobileFilterBar,
+  Flex,
+  Grid,
+  GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -426,19 +429,22 @@ export default function PaymentsPage() {
           title="Payments"
           description="Payment transactions and revenue overview"
         />
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: tokens.spacing[6],
-            marginBottom: tokens.spacing[6],
-          }}
-        >
-          <Skeleton height="120px" />
-          <Skeleton height="120px" />
-          <Skeleton height="120px" />
-          <Skeleton height="120px" />
-                            </div>
+        <div style={{ marginBottom: tokens.spacing[4] }}>
+          <Grid gap={2}> {/* Batch 5: UI Constitution compliance */}
+            <GridCol span={12} md={6} lg={3}>
+              <Skeleton height="120px" />
+            </GridCol>
+            <GridCol span={12} md={6} lg={3}>
+              <Skeleton height="120px" />
+            </GridCol>
+            <GridCol span={12} md={6} lg={3}>
+              <Skeleton height="120px" />
+            </GridCol>
+            <GridCol span={12} md={6} lg={3}>
+              <Skeleton height="120px" />
+            </GridCol>
+          </Grid>
+        </div>
         <Card>
           <Skeleton height="400px" />
         </Card>
@@ -472,35 +478,23 @@ export default function PaymentsPage() {
             backgroundColor: tokens.colors.error[50],
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: tokens.spacing[3],
-                color: tokens.colors.error.DEFAULT,
-              }}
-            >
+          <Flex align="center" justify="space-between">
+            <Flex align="center" gap={3} style={{ color: tokens.colors.error.DEFAULT }}>
               <i className="fas fa-exclamation-circle" />
               <span>{error}</span>
-            </div>
+            </Flex>
             <Button variant="secondary" size="sm" onClick={fetchAnalytics}>
               Retry
             </Button>
-          </div>
+          </Flex>
         </Card>
       )}
 
       {/* Comparison Banner */}
       {comparison && !isMobile && (
         <Card style={{ marginBottom: tokens.spacing[4], backgroundColor: comparison.isPositive ? tokens.colors.success[50] : tokens.colors.error[50] }}>
-          <div style={{ padding: tokens.spacing[4], display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ padding: tokens.spacing[4] }}>
+            <Flex align="center" justify="space-between">
             <div>
               <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
                 {selectedTimeRange.label} vs Previous Period
@@ -515,39 +509,43 @@ export default function PaymentsPage() {
             <div style={{ fontSize: '2rem' }}>
               {comparison.isPositive ? '📈' : '📉'}
             </div>
+            </Flex>
           </div>
         </Card>
       )}
 
-      {/* KPI Summary Row */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: isMobile ? tokens.spacing[3] : tokens.spacing[6],
-          marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[6],
-        }}
-      >
-        <StatCard
-          label="Total Collected"
-          value={formatCurrency(kpis.totalCollected)}
-          icon={<i className="fas fa-dollar-sign" />}
-        />
-        <StatCard
-          label="Pending Payments"
-          value={`${kpis.pendingCount} (${formatCurrency(kpis.pendingAmount)})`}
-          icon={<i className="fas fa-clock" />}
-        />
-        <StatCard
-          label="Failed Payments"
-          value={`${kpis.failedCount} (${formatCurrency(kpis.failedAmount)})`}
-          icon={<i className="fas fa-exclamation-triangle" />}
-        />
-        <StatCard
-          label="Refunded"
-          value={formatCurrency(kpis.refundedAmount || 0)}
-          icon={<i className="fas fa-undo" />}
-        />
+      {/* KPI Summary Row - Phase E: Match Dashboard density */}
+      <div style={{ marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[4] }}>
+        <Grid gap={isMobile ? 3 : 2}> {/* Batch 5: UI Constitution compliance */}
+          <GridCol span={12} md={6} lg={3}>
+            <StatCard
+              label="Total Collected"
+              value={formatCurrency(kpis.totalCollected)}
+              icon={<i className="fas fa-dollar-sign" />}
+            />
+          </GridCol>
+          <GridCol span={12} md={6} lg={3}>
+            <StatCard
+              label="Pending Payments"
+              value={`${kpis.pendingCount} (${formatCurrency(kpis.pendingAmount)})`}
+              icon={<i className="fas fa-clock" />}
+            />
+          </GridCol>
+          <GridCol span={12} md={6} lg={3}>
+            <StatCard
+              label="Failed Payments"
+              value={`${kpis.failedCount} (${formatCurrency(kpis.failedAmount)})`}
+              icon={<i className="fas fa-exclamation-triangle" />}
+            />
+          </GridCol>
+          <GridCol span={12} md={6} lg={3}>
+            <StatCard
+              label="Refunded"
+              value={formatCurrency(kpis.refundedAmount || 0)}
+              icon={<i className="fas fa-undo" />}
+            />
+          </GridCol>
+        </Grid>
       </div>
 
       {/* Mobile Export Button */}
@@ -564,18 +562,14 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* Filters */}
+      {/* Filters - Phase E: Match Bookings density */}
       <Card
         style={{
-          marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[6],
+          marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[4], // Phase E: Tighter spacing to match Bookings
           padding: isMobile ? tokens.spacing[3] : undefined,
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
+        <Flex direction={isMobile ? 'column' : 'row'} gap={isMobile ? 3 : 4}> {/* Batch 5: UI Constitution compliance */}
           }}
         >
           <Input
@@ -624,8 +618,8 @@ export default function PaymentsPage() {
             title="No payments found"
             description={
               searchTerm || statusFilter !== 'all'
-                ? 'No payments match your filters. Try adjusting your search or filters.'
-                : 'Payment transactions will appear here once customers make payments.'
+                ? undefined // Phase E: Neutral, operational - no friendly guidance
+                : undefined // Phase E: Neutral, operational - remove onboarding tone
             }
           />
         ) : (

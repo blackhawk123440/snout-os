@@ -28,6 +28,9 @@ import {
   Tabs,
   TabPanel,
   MobileFilterBar,
+  Flex,
+  Grid,
+  GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -267,11 +270,11 @@ export default function MessagesPage() {
                 )}
 
                 {loading ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <Flex direction="column" gap={4}> {/* Batch 4: UI Constitution compliance */}
                     <Skeleton height={200} />
                     <Skeleton height={200} />
                     <Skeleton height={200} />
-                  </div>
+                  </Flex>
                 ) : templates.length === 0 ? (
                   <EmptyState
                     title="No message templates"
@@ -282,22 +285,24 @@ export default function MessagesPage() {
                       onClick: () => {
                         resetForm();
                         setShowAddForm(true);
-                      },
-                    }}
-                  />
+                    },
+                  }}
+                />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <Flex direction="column" gap={4}> {/* Batch 4: UI Constitution compliance */}
                     {templates.map((template) => {
                       const fields = extractFields(template.content);
                       return (
                         <Card key={template.id}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                          <Flex align="flex-start" justify="space-between" gap={4}>
                             <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.text.primary }}>
-                                  {template.name}
-                                </div>
-                                {getTypeBadge(template.type)}
+                              <div style={{ marginBottom: tokens.spacing[3] }}>
+                                <Flex align="center" gap={3}>
+                                  <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.text.primary }}>
+                                    {template.name}
+                                  </div>
+                                  {getTypeBadge(template.type)}
+                                </Flex>
                               </div>
                               
                               <div style={{ marginBottom: tokens.spacing[3] }}>
@@ -316,18 +321,18 @@ export default function MessagesPage() {
                                   <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                                     Available Fields:
                                   </div>
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
+                                  <Flex wrap gap={2}>
                                     {fields.map((field) => (
                                       <Badge key={field} variant="info">
                                         {`{{${field}}}`}
                                       </Badge>
                                     ))}
-                                  </div>
+                                  </Flex>
                                 </div>
                               )}
                             </div>
                             
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                            <Flex align="center" gap={2}>
                               <Button
                                 variant="tertiary"
                                 size="sm"
@@ -335,12 +340,12 @@ export default function MessagesPage() {
                               >
                                 Edit
                               </Button>
-                            </div>
-                          </div>
+                            </Flex>
+                          </Flex>
                         </Card>
                       );
                     })}
-                  </div>
+                  </Flex>
                 )}
               </>
             )}
@@ -398,11 +403,11 @@ export default function MessagesPage() {
               )}
 
               {loading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                <Flex direction="column" gap={4}> {/* Batch 4: UI Constitution compliance */}
                   <Skeleton height={200} />
                   <Skeleton height={200} />
                   <Skeleton height={200} />
-                </div>
+                </Flex>
               ) : templates.length === 0 ? (
                 <EmptyState
                   title="No message templates"
@@ -417,18 +422,20 @@ export default function MessagesPage() {
                   }}
                 />
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                <Flex direction="column" gap={4}> {/* Batch 4: UI Constitution compliance */}
                   {templates.map((template) => {
                     const fields = extractFields(template.content);
                     return (
                       <Card key={template.id}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                        <Flex align="flex-start" justify="space-between" gap={4}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
-                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.text.primary }}>
-                                {template.name}
-                              </div>
-                              {getTypeBadge(template.type)}
+                            <div style={{ marginBottom: tokens.spacing[3] }}>
+                              <Flex align="center" gap={3}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.text.primary }}>
+                                  {template.name}
+                                </div>
+                                {getTypeBadge(template.type)}
+                              </Flex>
                             </div>
                             
                             <div style={{ marginBottom: tokens.spacing[3] }}>
@@ -447,18 +454,18 @@ export default function MessagesPage() {
                                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                                   Available Fields:
                                 </div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
+                                <Flex wrap gap={2}>
                                   {fields.map((field) => (
                                     <Badge key={field} variant="info">
                                       {`{{${field}}}`}
                                     </Badge>
                                   ))}
-                                </div>
+                                </Flex>
                               </div>
                             )}
                           </div>
                           
-                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                          <Flex align="center" gap={2}>
                             <Button
                               variant="tertiary"
                               size="sm"
@@ -466,12 +473,12 @@ export default function MessagesPage() {
                             >
                               Edit
                             </Button>
-                          </div>
-                        </div>
+                          </Flex>
+                        </Flex>
                       </Card>
                     );
                   })}
-                </div>
+                </Flex>
               )}
             </TabPanel>
           </Tabs>
@@ -486,8 +493,9 @@ export default function MessagesPage() {
         size="lg"
       >
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4] }}>
+          <Flex direction="column" gap={6}> {/* Batch 4: UI Constitution compliance */}
+            <div>
+              <Grid gap={4}> {/* Batch 4: UI Constitution compliance */}
               <FormRow
                 label="Template Name"
                 required
@@ -512,6 +520,7 @@ export default function MessagesPage() {
                   required
                 />
               </FormRow>
+              </Grid>
             </div>
             
             <FormRow
@@ -535,13 +544,13 @@ export default function MessagesPage() {
                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                   Detected Fields:
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
+                <Flex wrap gap={2}>
                   {extractFields(formData.content).map((field) => (
                     <Badge key={field} variant="info">
                       {`{{${field}}}`}
                     </Badge>
                   ))}
-                </div>
+                </Flex>
               </Card>
             )}
             
@@ -553,24 +562,26 @@ export default function MessagesPage() {
               </Card>
             )}
             
-            <div style={{ display: 'flex', gap: tokens.spacing[3], paddingTop: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}` }}>
-              <Button
-                type="submit"
-                variant="primary"
-                style={{ flex: 1 }}
-              >
-                {editingTemplate ? "Update" : "Create"} Template
-              </Button>
-              <Button
-                type="button"
-                variant="tertiary"
-                onClick={resetForm}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </Button>
+            <div style={{ paddingTop: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}` }}>
+              <Flex gap={3}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  style={{ flex: 1 }}
+                >
+                  {editingTemplate ? "Update" : "Create"} Template
+                </Button>
+                <Button
+                  type="button"
+                  variant="tertiary"
+                  onClick={resetForm}
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </Button>
+              </Flex>
             </div>
-          </div>
+          </Flex>
         </form>
       </Modal>
     </AppShell>

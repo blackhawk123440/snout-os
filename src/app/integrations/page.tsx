@@ -17,6 +17,9 @@ import {
   Badge,
   Skeleton,
   SectionHeader,
+  Flex,
+  Grid,
+  GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -408,95 +411,77 @@ export default function IntegrationsPage() {
         {/* Stripe Product IDs Reference */}
         <Card style={{ marginBottom: tokens.spacing[6] }}>
           <SectionHeader title="Stripe Product IDs Reference" />
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: tokens.spacing[4],
-            }}
-          >
-            {stripeProductIds.map((product) => (
-              <div
-                key={product.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: tokens.spacing[2],
-                }}
-              >
-                <code
-                  style={{
-                    padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                    backgroundColor: tokens.colors.neutral[100],
-                    borderRadius: tokens.borderRadius.sm,
-                    fontSize: tokens.typography.fontSize.sm[0],
-                    fontFamily: tokens.typography.fontFamily.mono.join(', '),
-                  }}
-                >
-                  {product.id}
-                </code>
-                <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                  {product.name}
-                </span>
-              </div>
-            ))}
+          <div>
+            <Grid gap={4}> {/* Batch 4: UI Constitution compliance */}
+              {stripeProductIds.map((product) => (
+                <GridCol key={product.id} span={12} md={6} lg={4}>
+                  <Flex align="center" gap={2}>
+                    <code
+                      style={{
+                        padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                        backgroundColor: tokens.colors.neutral[100],
+                        borderRadius: tokens.borderRadius.sm,
+                        fontSize: tokens.typography.fontSize.sm[0],
+                        fontFamily: tokens.typography.fontFamily.mono.join(', '),
+                      }}
+                    >
+                      {product.id}
+                    </code>
+                    <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                      {product.name}
+                    </span>
+                  </Flex>
+                </GridCol>
+              ))}
+            </Grid>
           </div>
         </Card>
 
         {/* Integrations List */}
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <Flex direction="column" gap={4}> {/* Batch 4: UI Constitution compliance */}
             <Skeleton height={400} />
             <Skeleton height={400} />
-          </div>
+          </Flex>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}>
+          <Flex direction="column" gap={6}> {/* Batch 4: UI Constitution compliance */}
             {integrations.map((integration) => (
               <Card key={integration.name}>
                 {/* Integration Header */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: tokens.spacing[4],
-                    marginBottom: tokens.spacing[4],
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
-                    <div
-                      style={{
-                        width: '48px',
-                        height: '48px',
-                        borderRadius: tokens.borderRadius.md,
-                        backgroundColor: integration.color,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: tokens.typography.fontSize.xl[0],
-                      }}
-                    >
-                      <i className={`fas ${integration.icon}`} />
-                    </div>
-                    <div>
+                <div style={{ marginBottom: tokens.spacing[4] }}>
+                  <Flex align="center" justify="space-between" gap={4} wrap>
+                    <Flex align="center" gap={4}>
                       <div
                         style={{
-                          fontWeight: tokens.typography.fontWeight.bold,
-                          fontSize: tokens.typography.fontSize.lg[0],
-                          color: tokens.colors.text.primary,
-                          marginBottom: tokens.spacing[1],
+                          width: '48px',
+                          height: '48px',
+                          borderRadius: tokens.borderRadius.md,
+                          backgroundColor: integration.color,
+                          color: 'white',
+                          fontSize: tokens.typography.fontSize.xl[0],
                         }}
                       >
-                        {integration.name}
+                        <Flex align="center" justify="center">
+                          <i className={`fas ${integration.icon}`} />
+                        </Flex>
                       </div>
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                        {integration.message}
+                      <div>
+                        <div
+                          style={{
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            fontSize: tokens.typography.fontSize.lg[0],
+                            color: tokens.colors.text.primary,
+                            marginBottom: tokens.spacing[1],
+                          }}
+                        >
+                          {integration.name}
+                        </div>
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          {integration.message}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3] }}>
+                    </Flex>
+                    <Flex align="center" gap={3}>
                     {getStatusBadge(integration.status)}
                     <Button
                       variant={testing[integration.name] ? "secondary" : "primary"}
@@ -506,13 +491,14 @@ export default function IntegrationsPage() {
                     >
                       {testing[integration.name] ? 'Testing...' : 'Test Connection'}
                     </Button>
-                  </div>
+                    </Flex>
+                  </Flex>
                 </div>
 
                 {/* Credentials */}
                 <div style={{ marginBottom: tokens.spacing[4] }}>
                   <SectionHeader title="Required Credentials" />
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                  <Flex direction="column" gap={3}> {/* Batch 4: UI Constitution compliance */}
                     {integration.credentials.map((cred) => {
                       const isEditing = editing[integration.name]?.[cred.key] !== undefined;
                       const editValue = editing[integration.name]?.[cred.key] || "";
@@ -525,8 +511,8 @@ export default function IntegrationsPage() {
                             borderColor: cred.required ? tokens.colors.primary[200] : tokens.colors.neutral[200],
                           }}
                         >
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                          <Flex direction="column" gap={3}> {/* Batch 4: UI Constitution compliance */}
+                            <Flex align="center" gap={2}>
                               <code
                                 style={{
                                   fontSize: tokens.typography.fontSize.sm[0],
@@ -540,7 +526,7 @@ export default function IntegrationsPage() {
                               {cred.required && (
                                 <Badge variant="error">Required</Badge>
                               )}
-                            </div>
+                            </Flex>
                             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                               {cred.description}
                             </div>
@@ -549,7 +535,7 @@ export default function IntegrationsPage() {
                               Where to get: {cred.whereToGet}
                             </div>
                             {isEditing ? (
-                              <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+                              <Flex align="center" gap={2}>
                                 <Input
                                   type={cred.key.toLowerCase().includes("secret") || cred.key.toLowerCase().includes("key") ? "password" : "text"}
                                   value={editValue}
@@ -576,9 +562,9 @@ export default function IntegrationsPage() {
                                 >
                                   Cancel
                                 </Button>
-                              </div>
+                              </Flex>
                             ) : (
-                              <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+                              <Flex align="center" gap={2}>
                                 <div
                                   style={{
                                     flex: 1,
@@ -591,15 +577,15 @@ export default function IntegrationsPage() {
                                   }}
                                 >
                                   {cred.value.includes("✅") ? (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                                    <Flex align="center" gap={2}>
                                       <i className="fas fa-check-circle" />
                                       <span>Set (hidden for security)</span>
-                                    </span>
+                                    </Flex>
                                   ) : (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                                    <Flex align="center" gap={2}>
                                       <i className="fas fa-times-circle" />
                                       <span>Not set</span>
-                                    </span>
+                                    </Flex>
                                   )}
                                 </div>
                                 <Button
@@ -610,13 +596,13 @@ export default function IntegrationsPage() {
                                 >
                                   Edit
                                 </Button>
-                              </div>
+                              </Flex>
                             )}
-                          </div>
+                          </Flex>
                         </Card>
                       );
                     })}
-                  </div>
+                  </Flex>
                 </div>
 
                 {/* Webhook URL */}
@@ -634,7 +620,6 @@ export default function IntegrationsPage() {
                         fontFamily: tokens.typography.fontFamily.mono.join(', '),
                         color: tokens.colors.text.primary,
                         wordBreak: 'break-all',
-                        display: 'block',
                         marginBottom: tokens.spacing[2],
                       }}
                     >
@@ -649,7 +634,8 @@ export default function IntegrationsPage() {
                 {/* Setup Steps */}
                 <div>
                   <SectionHeader title="Setup Instructions" />
-                  <ol style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], paddingLeft: tokens.spacing[4] }}>
+                  <ol style={{ paddingLeft: tokens.spacing[4] }}>
+                    <Flex direction="column" gap={2}> {/* Batch 4: UI Constitution compliance */}
                     {integration.setupSteps.map((step, index) => (
                       <li key={index} style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                         <span style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text.primary }}>
@@ -659,122 +645,134 @@ export default function IntegrationsPage() {
                         {step.substring(step.indexOf(" ") + 1)}
                       </li>
                     ))}
+                    </Flex>
                   </ol>
                 </div>
               </Card>
             ))}
-          </div>
+          </Flex>
         )}
 
         {/* Quick Links */}
         <Card style={{ marginTop: tokens.spacing[8] }}>
           <SectionHeader title="Quick Links" />
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: tokens.spacing[4],
-            }}
-          >
-            <a
-              href="https://dashboard.stripe.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                padding: tokens.spacing[4],
-                borderRadius: tokens.borderRadius.md,
-                border: `2px solid ${tokens.colors.border.default}`,
-                textAlign: 'center',
-                textDecoration: 'none',
-                color: tokens.colors.text.primary,
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = tokens.shadows.md;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <i className="fas fa-credit-card" style={{ fontSize: tokens.typography.fontSize['2xl'][0], color: "#635BFF", marginBottom: tokens.spacing[2], display: 'block' }} />
-              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.sm[0] }}>
-                Stripe Dashboard
-              </div>
-            </a>
-            <a
-              href="https://app.openphone.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                padding: tokens.spacing[4],
-                borderRadius: tokens.borderRadius.md,
-                border: `2px solid ${tokens.colors.border.default}`,
-                textAlign: 'center',
-                textDecoration: 'none',
-                color: tokens.colors.text.primary,
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = tokens.shadows.md;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <i className="fas fa-phone" style={{ fontSize: tokens.typography.fontSize['2xl'][0], color: "#00D9FF", marginBottom: tokens.spacing[2], display: 'block' }} />
-              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.sm[0] }}>
-                OpenPhone Dashboard
-              </div>
-            </a>
-            <a
-              href="https://console.cloud.google.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                padding: tokens.spacing[4],
-                borderRadius: tokens.borderRadius.md,
-                border: `2px solid ${tokens.colors.border.default}`,
-                textAlign: 'center',
-                textDecoration: 'none',
-                color: tokens.colors.text.primary,
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = tokens.shadows.md;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <i className="fas fa-calendar" style={{ fontSize: tokens.typography.fontSize['2xl'][0], color: "#4285F4", marginBottom: tokens.spacing[2], display: 'block' }} />
-              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.sm[0] }}>
-                Google Cloud Console
-              </div>
-            </a>
-            <Link
-              href="/settings"
-              style={{
-                padding: tokens.spacing[4],
-                borderRadius: tokens.borderRadius.md,
-                border: `2px solid ${tokens.colors.border.default}`,
-                textAlign: 'center',
-                textDecoration: 'none',
-                color: tokens.colors.text.primary,
-                transition: 'all 0.2s',
-                display: 'block',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = tokens.shadows.md;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <i className="fas fa-cog" style={{ fontSize: tokens.typography.fontSize['2xl'][0], color: tokens.colors.primary.DEFAULT, marginBottom: tokens.spacing[2], display: 'block' }} />
-              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.sm[0] }}>
-                System Settings
-              </div>
-            </Link>
+          <div>
+            <Grid gap={4}> {/* Batch 4: UI Constitution compliance */}
+              <GridCol span={12} md={6} lg={3}>
+                <a
+                  href="https://dashboard.stripe.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    padding: tokens.spacing[4],
+                    borderRadius: tokens.borderRadius.md,
+                    border: `2px solid ${tokens.colors.border.default}`,
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                    color: tokens.colors.text.primary,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = tokens.shadows.md;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div style={{ marginBottom: tokens.spacing[2] }}>
+                    <i className="fas fa-credit-card" style={{ fontSize: tokens.typography.fontSize['2xl'][0], color: "#635BFF" }} />
+                  </div>
+                  <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.sm[0] }}>
+                    Stripe Dashboard
+                  </div>
+                </a>
+              </GridCol>
+              <GridCol span={12} md={6} lg={3}>
+                <a
+                  href="https://app.openphone.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    padding: tokens.spacing[4],
+                    borderRadius: tokens.borderRadius.md,
+                    border: `2px solid ${tokens.colors.border.default}`,
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                    color: tokens.colors.text.primary,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = tokens.shadows.md;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div style={{ marginBottom: tokens.spacing[2] }}>
+                    <i className="fas fa-phone" style={{ fontSize: tokens.typography.fontSize['2xl'][0], color: "#00D9FF" }} />
+                  </div>
+                  <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.sm[0] }}>
+                    OpenPhone Dashboard
+                  </div>
+                </a>
+              </GridCol>
+              <GridCol span={12} md={6} lg={3}>
+                <a
+                  href="https://console.cloud.google.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    padding: tokens.spacing[4],
+                    borderRadius: tokens.borderRadius.md,
+                    border: `2px solid ${tokens.colors.border.default}`,
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                    color: tokens.colors.text.primary,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = tokens.shadows.md;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div style={{ marginBottom: tokens.spacing[2] }}>
+                    <i className="fas fa-calendar" style={{ fontSize: tokens.typography.fontSize['2xl'][0], color: "#4285F4" }} />
+                  </div>
+                  <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.sm[0] }}>
+                    Google Cloud Console
+                  </div>
+                </a>
+              </GridCol>
+              <GridCol span={12} md={6} lg={3}>
+                <Link
+                  href="/settings"
+                  style={{
+                    padding: tokens.spacing[4],
+                    borderRadius: tokens.borderRadius.md,
+                    border: `2px solid ${tokens.colors.border.default}`,
+                    textAlign: 'center',
+                    textDecoration: 'none',
+                    color: tokens.colors.text.primary,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = tokens.shadows.md;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div style={{ marginBottom: tokens.spacing[2] }}>
+                    <i className="fas fa-cog" style={{ fontSize: tokens.typography.fontSize['2xl'][0], color: tokens.colors.primary.DEFAULT }} />
+                  </div>
+                  <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.sm[0] }}>
+                    System Settings
+                  </div>
+                </Link>
+              </GridCol>
+            </Grid>
           </div>
         </Card>
       </div>

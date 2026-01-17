@@ -210,7 +210,7 @@ function SitterDetailContent() {
     return (
       <AppShell>
         <PageHeader title="Sitter Details" />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div style={{ padding: tokens.spacing[4] }}> {/* Phase E: Tighter density to match Dashboard */}
           <Skeleton height={400} />
         </div>
       </AppShell>
@@ -221,10 +221,10 @@ function SitterDetailContent() {
     return (
       <AppShell>
         <PageHeader title="Sitter Not Found" />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div style={{ padding: tokens.spacing[4] }}> {/* Phase E: Tighter density to match Dashboard */}
           <EmptyState
             title="Sitter not found"
-            description="The sitter you're looking for doesn't exist."
+            description={undefined} // Phase E: Neutral, operational
           />
         </div>
       </AppShell>
@@ -247,7 +247,7 @@ function SitterDetailContent() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div style={{ padding: tokens.spacing[4] }}> {/* Phase E: Tighter density to match Dashboard */}
         {isMobile ? (
           <>
             {/* Mobile: Stats Cards */}
@@ -336,14 +336,14 @@ function SitterDetailContent() {
               style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 400px',
-                gap: tokens.spacing[6],
+                gap: tokens.spacing[4], // Phase E: Tighter density to match Dashboard
               }}
             >
               {/* Left Column: Upcoming Bookings */}
               <div>
                 {/* Stats Row */}
                 {stats && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: tokens.spacing[4], marginBottom: tokens.spacing[6] }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: tokens.spacing[2], marginBottom: tokens.spacing[4] }}> {/* Phase E: Token-only - disciplined spacing */}
                     <StatCard label="Total Bookings" value={stats.totalBookings} />
                     <StatCard label="Completed" value={stats.completedBookings} />
                     <StatCard label="Total Earnings" value={formatCurrency(stats.totalEarnings)} />
@@ -520,7 +520,7 @@ export default function SitterDetailPage() {
     <Suspense fallback={
       <AppShell>
         <PageHeader title="Sitter Details" />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div style={{ padding: tokens.spacing[4] }}> {/* Phase E: Tighter density to match Dashboard */}
           <Skeleton height={400} />
         </div>
       </AppShell>
