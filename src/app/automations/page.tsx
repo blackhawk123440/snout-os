@@ -21,6 +21,9 @@ import {
   MobileFilterBar,
   Tabs,
   TabPanel,
+  Flex,
+  Grid,
+  GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -186,57 +189,51 @@ export default function AutomationsPage() {
 
       <div style={{ padding: tokens.spacing[6] }}>
         {/* Stats Cards */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
-            gap: tokens.spacing[4],
-            marginBottom: tokens.spacing[6],
-          }}
-        >
-          <Card>
-            <div style={{ padding: tokens.spacing[4] }}>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                Enabled Automations
-              </div>
-              <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold }}>
-                {stats.totalEnabled}
-              </div>
-            </div>
-          </Card>
-          <Card>
-            <div style={{ padding: tokens.spacing[4] }}>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                Runs Today
-              </div>
-              <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold }}>
-                {stats.runsToday}
-              </div>
-            </div>
-          </Card>
-          <Card>
-            <div style={{ padding: tokens.spacing[4] }}>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                Failures Today
-              </div>
-              <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.error.DEFAULT }}>
-                {stats.failuresToday}
-              </div>
-            </div>
-          </Card>
+        <div style={{ marginBottom: tokens.spacing[6] }}>
+          <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
+            <GridCol span={12} md={4}>
+              <Card>
+                <div style={{ padding: tokens.spacing[4] }}>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Enabled Automations
+                  </div>
+                  <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold }}>
+                    {stats.totalEnabled}
+                  </div>
+                </div>
+              </Card>
+            </GridCol>
+            <GridCol span={12} md={4}>
+              <Card>
+                <div style={{ padding: tokens.spacing[4] }}>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Runs Today
+                  </div>
+                  <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold }}>
+                    {stats.runsToday}
+                  </div>
+                </div>
+              </Card>
+            </GridCol>
+            <GridCol span={12} md={4}>
+              <Card>
+                <div style={{ padding: tokens.spacing[4] }}>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Failures Today
+                  </div>
+                  <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.error.DEFAULT }}>
+                    {stats.failuresToday}
+                  </div>
+                </div>
+              </Card>
+            </GridCol>
+          </Grid>
         </div>
 
         {/* Filters */}
         <Card style={{ marginBottom: tokens.spacing[4] }}>
           <div style={{ padding: tokens.spacing[4] }}>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
-                gap: tokens.spacing[4],
-                alignItems: isMobile ? 'stretch' : 'center',
-              }}
-            >
+            <Flex direction={isMobile ? 'column' : 'row'} gap={4} align={isMobile ? 'stretch' : 'center'}> {/* Batch 5: UI Constitution compliance */}
               <Input
                 placeholder="Search automations..."
                 value={searchTerm}
@@ -266,7 +263,7 @@ export default function AutomationsPage() {
                 ]}
                 style={{ minWidth: isMobile ? '100%' : '150px' }}
               />
-            </div>
+            </Flex>
           </div>
         </Card>
 
@@ -290,58 +287,63 @@ export default function AutomationsPage() {
             />
           </Card>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <Flex direction="column" gap={4}> {/* Batch 5: UI Constitution compliance */}
             {filteredAutomations.map((automation) => {
               const lastRun = getLastRunStatus(automation);
               const trigger = automation.trigger ? getTriggerById(automation.trigger.triggerType) : null;
 
               return (
                 <Card key={automation.id}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: isMobile ? 'column' : 'row',
-                      alignItems: isMobile ? 'stretch' : 'center',
-                      justifyContent: 'space-between',
-                      gap: tokens.spacing[4],
-                    }}
+                  <Flex
+                    direction={isMobile ? 'column' : 'row'}
+                    align={isMobile ? 'stretch' : 'center'}
+                    justify="space-between"
+                    gap={4}
                   >
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[2] }}>
-                        <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, margin: 0 }}>
-                          {automation.name}
-                        </h3>
-                        <Badge variant={automation.status === 'active' ? 'success' : automation.status === 'paused' ? 'warning' : 'neutral'}>
-                          {automation.status}
-                        </Badge>
-                        {trigger && (
-                          <Badge variant="info">
-                            {trigger.name}
+                      <div style={{ marginBottom: tokens.spacing[2] }}>
+                        <Flex align="center" gap={2}>
+                          <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, margin: 0 }}>
+                            {automation.name}
+                          </h3>
+                          <Badge variant={automation.status === 'active' ? 'success' : automation.status === 'paused' ? 'warning' : 'neutral'}>
+                            {automation.status}
                           </Badge>
-                        )}
+                          {trigger && (
+                            <Badge variant="info">
+                              {trigger.name}
+                            </Badge>
+                          )}
+                        </Flex>
                       </div>
                       {automation.description && (
                         <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, margin: 0, marginBottom: tokens.spacing[2] }}>
                           {automation.description}
                         </p>
                       )}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                        <span>Last run: {lastRun.label}</span>
+                      <Flex align="center" gap={3}>
+                        <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          Last run: {lastRun.label}
+                        </span>
                         {automation._count && (
-                          <span>• {automation._count.runs} total runs</span>
+                          <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            • {automation._count.runs} total runs
+                          </span>
                         )}
-                      </div>
+                      </Flex>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                      <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <Flex align="center" gap={2}>
+                      <label style={{ cursor: 'pointer' }}>
+                        <Flex align="center">
                         <input
                           type="checkbox"
                           checked={automation.isEnabled}
                           onChange={(e) => toggleEnabled(automation.id, e.target.checked)}
                         />
-                        <span style={{ marginLeft: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
-                          Enabled
-                        </span>
+                          <span style={{ marginLeft: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
+                            Enabled
+                          </span>
+                        </Flex>
                       </label>
                       <Link href={`/automations/${automation.id}`}>
                         <Button variant="secondary" size="sm">
@@ -353,12 +355,12 @@ export default function AutomationsPage() {
                           Test
                         </Button>
                       </Link>
-                    </div>
-                  </div>
+                    </Flex>
+                  </Flex>
                 </Card>
               );
             })}
-          </div>
+          </Flex>
         )}
       </div>
     </AppShell>

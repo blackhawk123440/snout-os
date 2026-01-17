@@ -18,6 +18,9 @@ import {
   FormRow,
   Skeleton,
   MobileFilterBar,
+  Flex,
+  Grid,
+  GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -277,54 +280,39 @@ export default function SettingsPage() {
               Automation Settings
             </h3>
             <FormRow>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: tokens.spacing[3],
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={settings.automation.smsEnabled}
-                  onChange={(e) => handleInputChange('automation.smsEnabled', e.target.checked)}
-                />
-                <span>Enable SMS Notifications</span>
+              <label style={{ cursor: 'pointer' }}>
+                <Flex align="center" gap={3}> {/* Batch 5: UI Constitution compliance */}
+                  <input
+                    type="checkbox"
+                    checked={settings.automation.smsEnabled}
+                    onChange={(e) => handleInputChange('automation.smsEnabled', e.target.checked)}
+                  />
+                  <span>Enable SMS Notifications</span>
+                </Flex>
               </label>
             </FormRow>
             <FormRow>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: tokens.spacing[3],
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={settings.automation.emailEnabled}
-                  onChange={(e) => handleInputChange('automation.emailEnabled', e.target.checked)}
-                />
-                <span>Enable Email Notifications</span>
+              <label style={{ cursor: 'pointer' }}>
+                <Flex align="center" gap={3}> {/* Batch 5: UI Constitution compliance */}
+                  <input
+                    type="checkbox"
+                    checked={settings.automation.emailEnabled}
+                    onChange={(e) => handleInputChange('automation.emailEnabled', e.target.checked)}
+                  />
+                  <span>Enable Email Notifications</span>
+                </Flex>
               </label>
             </FormRow>
             <FormRow>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: tokens.spacing[3],
-                  cursor: 'pointer',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={settings.automation.autoConfirm}
-                  onChange={(e) => handleInputChange('automation.autoConfirm', e.target.checked)}
-                />
-                <span>Auto-confirm Bookings</span>
+              <label style={{ cursor: 'pointer' }}>
+                <Flex align="center" gap={3}> {/* Batch 5: UI Constitution compliance */}
+                  <input
+                    type="checkbox"
+                    checked={settings.automation.autoConfirm}
+                    onChange={(e) => handleInputChange('automation.autoConfirm', e.target.checked)}
+                  />
+                  <span>Auto-confirm Bookings</span>
+                </Flex>
               </label>
             </FormRow>
             <FormRow label="Reminder Timing">

@@ -17,12 +17,15 @@ import {
   Card,
   EmptyState,
   Skeleton,
+  MobileFilterBar,
+  Flex,
+  Grid,
+  GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { TableColumn } from '@/components/ui/Table';
-import { MobileFilterBar } from '@/components/ui';
 
 interface Client {
   id: string;
@@ -213,45 +216,38 @@ export default function ClientsPage() {
           ]}
         />
       ) : (
-        <div
-          style={{
-            position: 'sticky',
-            top: 0,
-            zIndex: tokens.zIndex.sticky,
-            backgroundColor: tokens.colors.background.primary,
-            marginBottom: tokens.spacing[4],
-          }}
-        >
+        <div style={{ marginBottom: tokens.spacing[4] }}>
           <Card>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr auto auto',
-                gap: tokens.spacing[4],
-                alignItems: 'end',
-              }}
-            >
-              <Input
-                placeholder="Search clients..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                leftIcon={<i className="fas fa-search" />}
-              />
-              <Select
-                label="Sort By"
-                options={[
-                  { value: 'name', label: 'Name' },
-                  { value: 'recent', label: 'Most Recent' },
-                  { value: 'bookings', label: 'Most Bookings' },
-                ]}
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-              />
-              <Link href="/clients/new">
-                <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
-                  New Client
-                </Button>
-              </Link>
+            <div>
+              <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
+                <GridCol span={12} md={6}>
+                  <Input
+                    placeholder="Search clients..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    leftIcon={<i className="fas fa-search" />}
+                  />
+                </GridCol>
+                <GridCol span={12} md={3}>
+                  <Select
+                    label="Sort By"
+                    options={[
+                      { value: 'name', label: 'Name' },
+                      { value: 'recent', label: 'Most Recent' },
+                      { value: 'bookings', label: 'Most Bookings' },
+                    ]}
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                  />
+                </GridCol>
+                <GridCol span={12} md={3}>
+                  <Link href="/clients/new">
+                    <Button variant="primary" leftIcon={<i className="fas fa-plus" />} style={{ width: '100%' }}>
+                      New Client
+                    </Button>
+                  </Link>
+                </GridCol>
+              </Grid>
             </div>
           </Card>
         </div>
