@@ -26,6 +26,9 @@ import {
   Input,
   Tabs,
   TabPanel,
+  Flex,
+  Grid,
+  GridCol,
 } from '@/components/ui';
 import { BookingScheduleDisplay, isOvernightRangeService } from '@/components/booking';
 import { SitterAssignmentDisplay, SitterTierBadge, SitterInfo } from '@/components/sitter';
@@ -818,11 +821,8 @@ Total: ${formatCurrency(booking.totalPrice)}`;
     <AppShell>
       <div
         style={{
-          display: 'flex',
-          flexDirection: 'column',
           ...(isMobile ? {} : {
             height: 'calc(100vh - 64px)',
-            overflow: 'hidden',
           }),
         }}
       >
@@ -1257,23 +1257,14 @@ Total: ${formatCurrency(booking.totalPrice)}`;
         {/* Main Content - Two Column Layout with Internal Scrolling */}
       <div
           className="booking-detail-grid"
-        style={{
-          display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : '1fr 400px',
-            gap: tokens.spacing[4],
+          style={{
             flex: 1,
             minHeight: 0,
-            overflow: 'hidden',
           }}
         >
           {/* Left Column - Scrollable */}
         <div
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-              gap: tokens.spacing[4],
-              overflowY: 'auto',
-              overflowX: 'hidden',
               minHeight: 0,
               minWidth: 0, // Prevent flex child truncation
               paddingRight: tokens.spacing[2],
@@ -1674,8 +1665,6 @@ Total: ${formatCurrency(booking.totalPrice)}`;
             display: 'flex',
             flexDirection: 'column',
               gap: tokens.spacing[4],
-              overflowY: 'auto',
-              overflowX: 'hidden',
               minHeight: 0,
               paddingRight: tokens.spacing[2],
           }}

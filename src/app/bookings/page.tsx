@@ -10,8 +10,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  PageShell,
-  TopBar,
+  PageHeader,
   Section,
   Grid,
   GridCol,
@@ -40,6 +39,7 @@ import { Command, CommandResult } from '@/commands/types';
 import { useCommands } from '@/hooks/useCommands';
 import { useMobile } from '@/lib/use-mobile';
 import { tokens } from '@/lib/design-tokens';
+import { AppShell } from '@/components/layout/AppShell';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { registerCommand } from '@/commands/registry';
 import { createCalendarEventCommands } from '@/commands/calendar-commands';
@@ -429,11 +429,11 @@ export default function BookingsPage() {
   );
 
   return (
-    <PageShell>
-      <TopBar
+    <AppShell>
+      <PageHeader
         title="Bookings"
-        rightActions={
-          <Flex align="center" gap={1.5}> {/* Phase C: Tighter gap - more deliberate alignment */}
+        actions={
+          <Flex align="center" gap={1.5}> {/* Phase E: Migrated to AppShell - actions preserved */}
             <IconButton
               icon={<i className="fas fa-search" />}
               onClick={() => setShowSearchBar(!showSearchBar)}
@@ -796,7 +796,7 @@ export default function BookingsPage() {
           )}
         </Drawer>
       )}
-    </PageShell>
+    </AppShell>
   );
 }
 

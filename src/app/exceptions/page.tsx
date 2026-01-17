@@ -20,6 +20,9 @@ import {
   StatCard,
   EmptyState,
   Skeleton,
+  Flex,
+  Grid,
+  GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -180,40 +183,43 @@ export default function ExceptionsPage() {
 
         {/* Summary Cards */}
         {summary && (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: tokens.spacing[4],
-              marginBottom: tokens.spacing[6],
-            }}
-          >
-            <StatCard
-              label="Total Exceptions"
-              value={summary.total}
-              icon={<i className="fas fa-exclamation-triangle" />}
-            />
-            <StatCard
-              label="High Severity"
-              value={summary.bySeverity?.high || 0}
-              icon={<i className="fas fa-exclamation-circle" />}
-            />
-            <StatCard
-              label="Medium Severity"
-              value={summary.bySeverity?.medium || 0}
-              icon={<i className="fas fa-exclamation-triangle" />}
-            />
-            <StatCard
-              label="Low Severity"
-              value={summary.bySeverity?.low || 0}
-              icon={<i className="fas fa-info-circle" />}
-            />
+          <div style={{ marginBottom: tokens.spacing[6] }}>
+            <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
+              <GridCol span={12} md={6} lg={3}>
+                <StatCard
+                  label="Total Exceptions"
+                  value={summary.total}
+                  icon={<i className="fas fa-exclamation-triangle" />}
+                />
+              </GridCol>
+              <GridCol span={12} md={6} lg={3}>
+                <StatCard
+                  label="High Severity"
+                  value={summary.bySeverity?.high || 0}
+                  icon={<i className="fas fa-exclamation-circle" />}
+                />
+              </GridCol>
+              <GridCol span={12} md={6} lg={3}>
+                <StatCard
+                  label="Medium Severity"
+                  value={summary.bySeverity?.medium || 0}
+                  icon={<i className="fas fa-exclamation-triangle" />}
+                />
+              </GridCol>
+              <GridCol span={12} md={6} lg={3}>
+                <StatCard
+                  label="Low Severity"
+                  value={summary.bySeverity?.low || 0}
+                  icon={<i className="fas fa-info-circle" />}
+                />
+              </GridCol>
+            </Grid>
           </div>
         )}
 
         {/* Type Filter */}
         <Card style={{ marginBottom: tokens.spacing[6] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+          <Flex align="center" gap={4}> {/* Batch 5: UI Constitution compliance */}
             <label
               style={{
                 fontSize: tokens.typography.fontSize.sm[0],
@@ -229,7 +235,7 @@ export default function ExceptionsPage() {
               options={typeOptions}
               style={{ minWidth: '200px' }}
             />
-          </div>
+          </Flex>
         </Card>
 
         {/* Exceptions List */}
@@ -283,35 +289,36 @@ export default function ExceptionsPage() {
                       borderBottom: `1px solid ${tokens.colors.border.default}`,
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[3], flex: 1 }}>
+                    <Flex align="flex-start" justify="space-between" gap={4}>
+                      <Flex align="flex-start" gap={3} style={{ flex: 1 }}>
                         <div
                           style={{
                             width: '40px',
                             height: '40px',
                             borderRadius: tokens.borderRadius.md,
                             backgroundColor: tokens.colors.neutral[100],
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
                             color: tokens.colors.text.primary,
                           }}
                         >
-                          <i className={`${getTypeIcon(exception.type)} ${tokens.typography.fontSize.lg[0]}`} />
+                          <Flex align="center" justify="center">
+                            <i className={`${getTypeIcon(exception.type)} ${tokens.typography.fontSize.lg[0]}`} />
+                          </Flex>
                         </div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[1], flexWrap: 'wrap' }}>
-                            <div
-                              style={{
-                                fontWeight: tokens.typography.fontWeight.bold,
-                                fontSize: tokens.typography.fontSize.lg[0],
-                                color: tokens.colors.text.primary,
-                              }}
-                            >
-                              {exception.title}
-                            </div>
-                            {getSeverityBadge(exception.severity)}
-                            <Badge variant="neutral">{getTypeLabel(exception.type)}</Badge>
+                          <div style={{ marginBottom: tokens.spacing[1] }}>
+                            <Flex align="center" gap={2} wrap>
+                              <div
+                                style={{
+                                  fontWeight: tokens.typography.fontWeight.bold,
+                                  fontSize: tokens.typography.fontSize.lg[0],
+                                  color: tokens.colors.text.primary,
+                                }}
+                              >
+                                {exception.title}
+                              </div>
+                              {getSeverityBadge(exception.severity)}
+                              <Badge variant="neutral">{getTypeLabel(exception.type)}</Badge>
+                            </Flex>
                           </div>
                           <div
                             style={{
@@ -327,12 +334,10 @@ export default function ExceptionsPage() {
                               style={{
                                 fontSize: tokens.typography.fontSize.sm[0],
                                 color: tokens.colors.text.secondary,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: tokens.spacing[1],
                                 marginBottom: tokens.spacing[2],
                               }}
                             >
+                              <Flex direction="column" gap={1}>
                               <div>
                                 <strong>Booking:</strong> {exception.booking.firstName} {exception.booking.lastName} - {exception.booking.service}
                               </div>

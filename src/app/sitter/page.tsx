@@ -23,6 +23,9 @@ import {
   Modal,
   SectionHeader,
   MobileFilterBar,
+  Flex,
+  Grid,
+  GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -264,7 +267,7 @@ function SitterPageContent() {
                   icon={<i className="fas fa-calendar" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                 />
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                <Flex direction="column" gap={4}> {/* Batch 3: UI Constitution compliance */}
                   {todayBookings.map((booking, index) => {
                     const previousBooking = index > 0 ? todayBookings[index - 1] : null;
                     const travelTime = calculateTravelTime(previousBooking, booking);
@@ -278,16 +281,10 @@ function SitterPageContent() {
                           backgroundColor: overdue ? tokens.colors.error[50] : undefined,
                         }}
                       >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            justifyContent: 'space-between',
-                            gap: tokens.spacing[4],
-                          }}
-                        >
+                        <Flex align="flex-start" justify="space-between" gap={4}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
+                            <div style={{ marginBottom: tokens.spacing[2] }}>
+                              <Flex align="center" gap={3}>
                               <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
                                 {booking.firstName} {booking.lastName.charAt(0)}.
                               </div>
@@ -295,30 +292,35 @@ function SitterPageContent() {
                                 <Badge variant="error">OVERDUE</Badge>
                               )}
                               {getStatusBadge(booking.status)}
+                              </Flex>
                             </div>
                             
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              <BookingScheduleDisplay
-                                service={booking.service}
-                                startAt={booking.startAt}
-                                endAt={booking.endAt}
-                                timeSlots={booking.timeSlots}
-                                address={booking.address}
-                              />
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], marginTop: tokens.spacing[2] }}>
-                                <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
-                                {formatPetsByQuantity(booking.pets)}
-                              </div>
-                              {previousBooking && (
-                                <div style={{ color: tokens.colors.info.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }}>
-                                  <i className="fas fa-route" style={{ marginRight: tokens.spacing[1] }} />
-                                  ~{travelTime} min travel from previous visit
+                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                              <Flex direction="column" gap={1}>
+                                <BookingScheduleDisplay
+                                  service={booking.service}
+                                  startAt={booking.startAt}
+                                  endAt={booking.endAt}
+                                  timeSlots={booking.timeSlots}
+                                  address={booking.address}
+                                />
+                                <div style={{ marginTop: tokens.spacing[2] }}>
+                                  <Flex align="center" gap={4}>
+                                    <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
+                                    {formatPetsByQuantity(booking.pets)}
+                                  </Flex>
                                 </div>
-                              )}
+                                {previousBooking && (
+                                  <div style={{ color: tokens.colors.info.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }}>
+                                    <i className="fas fa-route" style={{ marginRight: tokens.spacing[1] }} />
+                                    ~{travelTime} min travel from previous visit
+                                  </div>
+                                )}
+                              </Flex>
                             </div>
                           </div>
                           
-                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                          <Flex align="center" gap={2}>
                             <Button
                               variant="tertiary"
                               size="sm"
@@ -333,12 +335,12 @@ function SitterPageContent() {
                             >
                               Check In
                             </Button>
-                          </div>
-                        </div>
+                          </Flex>
+                        </Flex>
                       </Card>
                     );
                   })}
-                </div>
+                </Flex>
               )}
             </div>
           </Card>
@@ -349,11 +351,11 @@ function SitterPageContent() {
             <SectionHeader title={`Upcoming Bookings (${upcomingBookings.length})`} />
             <div style={{ padding: tokens.spacing[6] }}>
               {loading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                <Flex direction="column" gap={4}> {/* Batch 3: UI Constitution compliance */}
                   <Skeleton height={100} />
                   <Skeleton height={100} />
                   <Skeleton height={100} />
-                </div>
+                </Flex>
               ) : upcomingBookings.length === 0 ? (
                 <EmptyState
                   title="No upcoming bookings"
@@ -361,38 +363,44 @@ function SitterPageContent() {
                   icon={<i className="fas fa-calendar" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                 />
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                <Flex direction="column" gap={4}> {/* Batch 3: UI Constitution compliance */}
                   {upcomingBookings.map((booking) => (
                     <Card key={booking.id} style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Flex align="center" justify="space-between">
                         <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                            <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
-                              {booking.firstName} {booking.lastName}
-                            </div>
-                            {getStatusBadge(booking.status)}
+                          <div style={{ marginBottom: tokens.spacing[2] }}>
+                            <Flex align="center" gap={3}>
+                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                                {booking.firstName} {booking.lastName}
+                              </div>
+                              {getStatusBadge(booking.status)}
+                            </Flex>
                           </div>
                           
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                            <BookingScheduleDisplay
-                              service={booking.service}
-                              startAt={booking.startAt}
-                              endAt={booking.endAt}
-                              timeSlots={booking.timeSlots}
-                              address={booking.address}
-                            />
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], marginTop: tokens.spacing[2] }}>
-                              <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
-                              {formatPetsByQuantity(booking.pets)}
-                              <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
-                              ${booking.totalPrice.toFixed(2)}
-                            </div>
+                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            <Flex direction="column" gap={1}>
+                              <BookingScheduleDisplay
+                                service={booking.service}
+                                startAt={booking.startAt}
+                                endAt={booking.endAt}
+                                timeSlots={booking.timeSlots}
+                                address={booking.address}
+                              />
+                              <div style={{ marginTop: tokens.spacing[2] }}>
+                                <Flex align="center" gap={4}>
+                                  <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
+                                  {formatPetsByQuantity(booking.pets)}
+                                  <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                  ${booking.totalPrice.toFixed(2)}
+                                </Flex>
+                              </div>
+                            </Flex>
                           </div>
                         </div>
-                      </div>
+                      </Flex>
                     </Card>
                   ))}
-                </div>
+                </Flex>
               )}
             </div>
           </Card>
@@ -409,16 +417,18 @@ function SitterPageContent() {
                   icon={<i className="fas fa-check-circle" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                 />
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                <Flex direction="column" gap={4}> {/* Batch 3: UI Constitution compliance */}
                   {completedBookings.slice(0, 20).map((booking) => (
                     <Card key={booking.id} style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Flex align="center" justify="space-between">
                         <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                            <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
-                              {booking.firstName} {booking.lastName}
-                            </div>
-                            {getStatusBadge(booking.status)}
+                          <div style={{ marginBottom: tokens.spacing[2] }}>
+                            <Flex align="center" gap={3}>
+                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                                {booking.firstName} {booking.lastName}
+                              </div>
+                              {getStatusBadge(booking.status)}
+                            </Flex>
                           </div>
                           
                           <BookingScheduleDisplay
@@ -427,14 +437,16 @@ function SitterPageContent() {
                             endAt={booking.endAt}
                             timeSlots={booking.timeSlots}
                           />
-                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                            <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
-                            {formatPetsByQuantity(booking.pets)}
-                            <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
-                            ${booking.totalPrice.toFixed(2)}
+                          <div style={{ marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            <Flex align="center" gap={4}>
+                              <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
+                              {formatPetsByQuantity(booking.pets)}
+                              <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                              ${booking.totalPrice.toFixed(2)}
+                            </Flex>
                           </div>
                         </div>
-                      </div>
+                      </Flex>
                     </Card>
                   ))}
                   {completedBookings.length > 20 && (
@@ -442,7 +454,7 @@ function SitterPageContent() {
                       +{completedBookings.length - 20} more completed bookings
                     </div>
                   )}
-                </div>
+                </Flex>
               )}
             </div>
           </Card>
@@ -454,88 +466,94 @@ function SitterPageContent() {
             <div style={{ padding: tokens.spacing[6] }}>
               {earningsData ? (
                 <>
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                      gap: tokens.spacing[4],
-                      marginBottom: tokens.spacing[6],
-                    }}
-                  >
-                    <Card style={{ padding: tokens.spacing[6] }}>
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase' }}>
-                        Total Earnings
-                      </div>
-                      <div style={{ fontSize: tokens.typography.fontSize['3xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text.primary, marginBottom: tokens.spacing[1] }}>
-                        ${earningsData.summary.totalEarnings.toFixed(2)}
-                      </div>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
-                        {earningsData.summary.totalBookings} bookings ({earningsData.summary.commissionPercentage}% commission)
-                      </div>
-                    </Card>
-                    <StatCard
-                      label="Last 30 Days"
-                      value={`$${earningsData.summary.earningsLast30Days.toFixed(2)}`}
-                    />
-                    <StatCard
-                      label="Last 90 Days"
-                      value={`$${earningsData.summary.earningsLast90Days.toFixed(2)}`}
-                    />
+                  <div style={{ marginBottom: tokens.spacing[6] }}>
+                    <Grid gap={4}> {/* Batch 3: UI Constitution compliance */}
+                      <GridCol span={12} md={6} lg={4}>
+                        <Card style={{ padding: tokens.spacing[6] }}>
+                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase' }}>
+                            Total Earnings
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize['3xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text.primary, marginBottom: tokens.spacing[1] }}>
+                            ${earningsData.summary.totalEarnings.toFixed(2)}
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                            {earningsData.summary.totalBookings} bookings ({earningsData.summary.commissionPercentage}% commission)
+                          </div>
+                        </Card>
+                      </GridCol>
+                      <GridCol span={12} md={6} lg={4}>
+                        <StatCard
+                          label="Last 30 Days"
+                          value={`$${earningsData.summary.earningsLast30Days.toFixed(2)}`}
+                        />
+                      </GridCol>
+                      <GridCol span={12} md={6} lg={4}>
+                        <StatCard
+                          label="Last 90 Days"
+                          value={`$${earningsData.summary.earningsLast90Days.toFixed(2)}`}
+                        />
+                      </GridCol>
+                    </Grid>
                   </div>
                   {earningsData.earningsByService && earningsData.earningsByService.length > 0 && (
                     <div style={{ marginBottom: tokens.spacing[6] }}>
                       <SectionHeader title="Earnings by Service Type" />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4] }}>
-                        {earningsData.earningsByService.map((service: any, idx: number) => (
-                          <Card key={idx}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <div>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
-                                  {service.service}
+                      <div style={{ marginTop: tokens.spacing[4] }}> {/* Batch 3: UI Constitution compliance */}
+                        <Flex direction="column" gap={2}>
+                          {earningsData.earningsByService.map((service: any, idx: number) => (
+                            <Card key={idx}>
+                              <Flex align="center" justify="space-between">
+                                <div>
+                                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                                    {service.service}
+                                  </div>
+                                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                    {service.bookingCount} booking{service.bookingCount !== 1 ? 's' : ''}
+                                  </div>
                                 </div>
-                                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                                  {service.bookingCount} booking{service.bookingCount !== 1 ? 's' : ''}
+                                <div style={{ textAlign: 'right' }}>
+                                  <div style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
+                                    ${service.totalEarnings.toFixed(2)}
+                                  </div>
+                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                                    from ${service.totalRevenue.toFixed(2)}
+                                  </div>
                                 </div>
-                              </div>
-                              <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
-                                  ${service.totalEarnings.toFixed(2)}
-                                </div>
-                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
-                                  from ${service.totalRevenue.toFixed(2)}
-                                </div>
-                              </div>
-                            </div>
-                          </Card>
-                        ))}
+                              </Flex>
+                            </Card>
+                          ))}
+                        </Flex>
                       </div>
                     </div>
                   )}
                   <div>
                     <SectionHeader title="Earnings by Booking" />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4], maxHeight: '24rem', overflowY: 'auto' }}>
-                      {earningsData.earningsByBooking.map((item: any) => (
-                        <Card key={item.bookingId}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div>
-                              <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
-                                {item.clientName}
+                    {/* Batch 3: Removed overflowY - single scroll surface only */}
+                    <div style={{ marginTop: tokens.spacing[4] }}>
+                      <Flex direction="column" gap={2}>
+                        {earningsData.earningsByBooking.map((item: any) => (
+                          <Card key={item.bookingId}>
+                            <Flex align="center" justify="space-between">
+                              <div>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                                  {item.clientName}
+                                </div>
+                                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                  {formatDate(item.date)} - {item.service}
+                                </div>
                               </div>
-                              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                                {formatDate(item.date)} - {item.service}
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
+                                  ${item.earnings.toFixed(2)}
+                                </div>
+                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                                  from ${item.totalPrice.toFixed(2)}
+                                </div>
                               </div>
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
-                                ${item.earnings.toFixed(2)}
-                              </div>
-                              <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
-                                from ${item.totalPrice.toFixed(2)}
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
+                            </Flex>
+                          </Card>
+                        ))}
+                      </Flex>
                     </div>
                   </div>
                 </>
@@ -562,7 +580,7 @@ function SitterPageContent() {
                         backgroundColor: tokens.colors.primary[50],
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+                      <Flex align="center" gap={4}>
                         <SitterTierBadge tier={sitterTier} size="lg" />
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.primary.DEFAULT, marginBottom: tokens.spacing[1] }}>
@@ -572,7 +590,7 @@ function SitterPageContent() {
                             Commission: {sitterTier.commissionSplit || commissionPercentage}% • Priority Level: {sitterTier.priorityLevel || 0}
                           </div>
                         </div>
-                      </div>
+                      </Flex>
                     </Card>
                   )}
                   
@@ -580,7 +598,8 @@ function SitterPageContent() {
                   {sitterTier && (
                     <div style={{ marginBottom: tokens.spacing[6] }}>
                       <SectionHeader title="Your Tier Capabilities" />
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: tokens.spacing[3], marginTop: tokens.spacing[4] }}>
+                      <div style={{ marginTop: tokens.spacing[4] }}>
+                        <Grid gap={3}> {/* Batch 3: UI Constitution compliance */}
                         {[
                           { key: 'canJoinPools', label: 'Join Sitter Pools', icon: 'fa-users' },
                           { key: 'canAutoAssign', label: 'Auto-Assignment', icon: 'fa-magic' },
@@ -592,68 +611,71 @@ function SitterPageContent() {
                         ].map((feature) => {
                           const isUnlocked = sitterTier[feature.key] === true;
                           return (
-                            <Card
-                              key={feature.key}
-                              style={{
-                                padding: tokens.spacing[4],
-                                backgroundColor: isUnlocked ? tokens.colors.success[50] : tokens.colors.neutral[100],
-                                borderColor: isUnlocked ? tokens.colors.success[200] : tokens.colors.neutral[300],
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                                <i
-                                  className={`fas ${feature.icon}`}
-                                  style={{
-                                    color: isUnlocked ? tokens.colors.success.DEFAULT : tokens.colors.neutral[400],
-                                    fontSize: tokens.typography.fontSize.lg[0],
-                                  }}
-                                />
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
-                                    {feature.label}
+                            <GridCol key={feature.key} span={12} md={6} lg={4}>
+                              <Card
+                                style={{
+                                  padding: tokens.spacing[4],
+                                  backgroundColor: isUnlocked ? tokens.colors.success[50] : tokens.colors.neutral[100],
+                                  borderColor: isUnlocked ? tokens.colors.success[200] : tokens.colors.neutral[300],
+                                }}
+                              >
+                                <Flex align="center" gap={2}>
+                                  <i
+                                    className={`fas ${feature.icon}`}
+                                    style={{
+                                      color: isUnlocked ? tokens.colors.success.DEFAULT : tokens.colors.neutral[400],
+                                      fontSize: tokens.typography.fontSize.lg[0],
+                                    }}
+                                  />
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
+                                      {feature.label}
+                                    </div>
+                                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                                      {isUnlocked ? 'Available' : 'Locked'}
+                                    </div>
                                   </div>
-                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
-                                    {isUnlocked ? 'Available' : 'Locked'}
-                                  </div>
-                                </div>
-                                {isUnlocked ? (
-                                  <i className="fas fa-check-circle" style={{ color: tokens.colors.success.DEFAULT }} />
-                                ) : (
-                                  <i className="fas fa-lock" style={{ color: tokens.colors.neutral[400] }} />
-                                )}
-                              </div>
-                            </Card>
+                                  {isUnlocked ? (
+                                    <i className="fas fa-check-circle" style={{ color: tokens.colors.success.DEFAULT }} />
+                                  ) : (
+                                    <i className="fas fa-lock" style={{ color: tokens.colors.neutral[400] }} />
+                                  )}
+                                </Flex>
+                              </Card>
+                            </GridCol>
                           );
                         })}
+                      </Grid>
                       </div>
                     </div>
                   )}
                   {tierProgress.performance && (
                     <div style={{ marginBottom: tokens.spacing[6] }}>
                       <SectionHeader title="Performance Metrics" />
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                          gap: tokens.spacing[4],
-                          marginTop: tokens.spacing[4],
-                        }}
-                      >
-                        <StatCard
-                          label="Points"
-                          value={tierProgress.performance.points || 0}
-                        />
-                        <StatCard
-                          label="Completion Rate"
-                          value={`${tierProgress.performance.completionRate?.toFixed(1) || '0.0'}%`}
-                        />
-                        <StatCard
-                          label="Response Rate"
-                          value={`${tierProgress.performance.responseRate?.toFixed(1) || '0.0'}%`}
-                        />
+                      <div style={{ marginTop: tokens.spacing[4] }}>
+                        <Grid gap={4}> {/* Batch 3: UI Constitution compliance */}
+                        <GridCol span={12} md={6} lg={4}>
+                          <StatCard
+                            label="Points"
+                            value={tierProgress.performance.points || 0}
+                          />
+                        </GridCol>
+                        <GridCol span={12} md={6} lg={4}>
+                          <StatCard
+                            label="Completion Rate"
+                            value={`${tierProgress.performance.completionRate?.toFixed(1) || '0.0'}%`}
+                          />
+                        </GridCol>
+                        <GridCol span={12} md={6} lg={4}>
+                          <StatCard
+                            label="Response Rate"
+                            value={`${tierProgress.performance.responseRate?.toFixed(1) || '0.0'}%`}
+                          />
+                        </GridCol>
+                        </Grid>
                       </div>
-                    </div>
-                  )}
+                      </div>
+                    )}
                   {tierProgress.nextTier && (
                     <Card
                       style={{
@@ -665,23 +687,26 @@ function SitterPageContent() {
                       <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], marginBottom: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
                         Next Tier: {tierProgress.nextTier.name}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                        {tierProgress.nextTier.pointTarget && (
-                          <div>Point Target: {tierProgress.nextTier.pointTarget}</div>
-                        )}
-                        {tierProgress.nextTier.minCompletionRate && (
-                          <div>Min Completion Rate: {tierProgress.nextTier.minCompletionRate}%</div>
-                        )}
-                        {tierProgress.nextTier.minResponseRate && (
-                          <div>Min Response Rate: {tierProgress.nextTier.minResponseRate}%</div>
-                        )}
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                        <Flex direction="column" gap={1}>
+                          {tierProgress.nextTier.pointTarget && (
+                            <div>Point Target: {tierProgress.nextTier.pointTarget}</div>
+                          )}
+                          {tierProgress.nextTier.minCompletionRate && (
+                            <div>Min Completion Rate: {tierProgress.nextTier.minCompletionRate}%</div>
+                          )}
+                          {tierProgress.nextTier.minResponseRate && (
+                            <div>Min Response Rate: {tierProgress.nextTier.minResponseRate}%</div>
+                          )}
+                        </Flex>
                       </div>
                     </Card>
                   )}
                   {tierProgress.improvementAreas && tierProgress.improvementAreas.length > 0 && (
                     <div>
                       <SectionHeader title="Areas to Improve" />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], marginTop: tokens.spacing[4] }}>
+                      <div style={{ marginTop: tokens.spacing[4] }}> {/* Batch 3: UI Constitution compliance */}
+                        <Flex direction="column" gap={3}>
                         {tierProgress.improvementAreas.map((area: string, idx: number) => (
                           <Card
                             key={idx}
@@ -690,7 +715,7 @@ function SitterPageContent() {
                               borderColor: tokens.colors.warning[200],
                             }}
                           >
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[2] }}>
+                            <Flex align="flex-start" gap={2}>
                               <div
                                 style={{
                                   width: '1.5rem',
@@ -698,22 +723,22 @@ function SitterPageContent() {
                                   borderRadius: tokens.borderRadius.full,
                                   backgroundColor: tokens.colors.warning[200],
                                   color: tokens.colors.warning[700],
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
                                   flexShrink: 0,
                                   fontSize: tokens.typography.fontSize.xs[0],
                                   fontWeight: tokens.typography.fontWeight.bold,
                                 }}
                               >
-                                {idx + 1}
+                                <Flex align="center" justify="center">
+                                  {idx + 1}
+                                </Flex>
                               </div>
                               <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary }}>
                                 {area}
                               </div>
-                            </div>
+                            </Flex>
                           </Card>
                         ))}
+                        </Flex>
                       </div>
                     </div>
                   )}
@@ -732,7 +757,7 @@ function SitterPageContent() {
           <Card>
             <SectionHeader title="Personal Settings" />
             <div style={{ padding: tokens.spacing[6] }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+              <Flex direction="column" gap={4}> {/* Batch 3: UI Constitution compliance */}
                 <div>
                   <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
                     Commission Percentage
@@ -760,7 +785,7 @@ function SitterPageContent() {
                     </div>
                   </div>
                 )}
-              </div>
+              </Flex>
             </div>
           </Card>
         );
@@ -830,7 +855,7 @@ function SitterPageContent() {
               backgroundColor: tokens.colors.primary[50],
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+            <Flex align="center" gap={4}>
               <SitterTierBadge tier={sitterTier} size="lg" />
               <div>
                 <div style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
@@ -840,34 +865,35 @@ function SitterPageContent() {
                   Priority Level: {sitterTier.priorityLevel}
                 </div>
               </div>
-            </div>
+            </Flex>
           </Card>
         )}
 
         {/* Stats Cards */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: tokens.spacing[6],
-            marginBottom: tokens.spacing[6],
-          }}
-        >
-          <StatCard
-            label="Upcoming"
-            value={upcomingBookings.length}
-            icon={<i className="fas fa-calendar" />}
-          />
-          <StatCard
-            label="Completed"
-            value={completedBookings.length}
-            icon={<i className="fas fa-check-circle" />}
-          />
-          <StatCard
-            label={`Total Earnings (${commissionPercentage}%)`}
-            value={`$${totalEarnings.toFixed(2)}`}
-            icon={<i className="fas fa-dollar-sign" />}
-          />
+        <div style={{ marginBottom: tokens.spacing[6] }}>
+          <Grid gap={6}> {/* Batch 3: UI Constitution compliance */}
+            <GridCol span={12} md={isMobile ? 12 : 4}>
+              <StatCard
+                label="Upcoming"
+                value={upcomingBookings.length}
+                icon={<i className="fas fa-calendar" />}
+              />
+            </GridCol>
+            <GridCol span={12} md={isMobile ? 12 : 4}>
+              <StatCard
+                label="Completed"
+                value={completedBookings.length}
+                icon={<i className="fas fa-check-circle" />}
+              />
+            </GridCol>
+            <GridCol span={12} md={isMobile ? 12 : 4}>
+              <StatCard
+                label={`Total Earnings (${commissionPercentage}%)`}
+                value={`$${totalEarnings.toFixed(2)}`}
+                icon={<i className="fas fa-dollar-sign" />}
+              />
+            </GridCol>
+          </Grid>
         </div>
 
         {/* Tabs - Mobile vs Desktop */}
@@ -903,7 +929,7 @@ function SitterPageContent() {
                     icon={<i className="fas fa-calendar" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                   />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <Flex direction="column" gap={4}> {/* Batch 3: UI Constitution compliance */}
                     {todayBookings.map((booking, index) => {
                       const previousBooking = index > 0 ? todayBookings[index - 1] : null;
                       const travelTime = calculateTravelTime(previousBooking, booking);
@@ -917,44 +943,41 @@ function SitterPageContent() {
                             backgroundColor: overdue ? tokens.colors.error[50] : undefined,
                           }}
                         >
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              justifyContent: 'space-between',
-                              gap: tokens.spacing[4],
-                            }}
-                          >
+                          <Flex align="flex-start" justify="space-between" gap={4}>
                             <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
-                                  {booking.firstName} {booking.lastName.charAt(0)}.
-                                </div>
-                                {overdue && (
-                                  <Badge variant="error">OVERDUE</Badge>
-                                )}
-                                {getStatusBadge(booking.status)}
+                              <div style={{ marginBottom: tokens.spacing[2] }}>
+                                <Flex align="center" gap={3}>
+                                  <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                                    {booking.firstName} {booking.lastName.charAt(0)}.
+                                  </div>
+                                  {overdue && (
+                                    <Badge variant="error">OVERDUE</Badge>
+                                  )}
+                                  {getStatusBadge(booking.status)}
+                                </Flex>
                               </div>
                               
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
-                                  <span><i className="fas fa-clock" style={{ marginRight: tokens.spacing[1] }} /></span>
-                                  {formatTime(booking.startAt)}
-                                  <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
-                                  {formatPetsByQuantity(booking.pets)}
-                                  <span><i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
-                                  {booking.address}
-                                </div>
-                                {previousBooking && (
-                                  <div style={{ color: tokens.colors.info.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }}>
-                                    <i className="fas fa-route" style={{ marginRight: tokens.spacing[1] }} />
-                                    ~{travelTime} min travel from previous visit
-                                  </div>
-                                )}
+                              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                <Flex direction="column" gap={1}>
+                                  <Flex align="center" gap={4}>
+                                    <span><i className="fas fa-clock" style={{ marginRight: tokens.spacing[1] }} /></span>
+                                    {formatTime(booking.startAt)}
+                                    <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                    {formatPetsByQuantity(booking.pets)}
+                                    <span><i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                    {booking.address}
+                                  </Flex>
+                                  {previousBooking && (
+                                    <div style={{ color: tokens.colors.info.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }}>
+                                      <i className="fas fa-route" style={{ marginRight: tokens.spacing[1] }} />
+                                      ~{travelTime} min travel from previous visit
+                                    </div>
+                                  )}
+                                </Flex>
                               </div>
                             </div>
                             
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                            <Flex align="center" gap={2}>
                               <Button
                                 variant="tertiary"
                                 size="sm"
@@ -969,12 +992,12 @@ function SitterPageContent() {
                               >
                                 Check In
                               </Button>
-                            </div>
-                          </div>
+                            </Flex>
+                          </Flex>
                         </Card>
                       );
                     })}
-                  </div>
+                  </Flex>
                 )}
               </div>
             </Card>
@@ -985,12 +1008,12 @@ function SitterPageContent() {
             <Card>
               <SectionHeader title={`Upcoming Bookings (${upcomingBookings.length})`} />
               <div style={{ padding: tokens.spacing[6] }}>
-                {loading ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-                    <Skeleton height={100} />
-                    <Skeleton height={100} />
-                    <Skeleton height={100} />
-                  </div>
+              {loading ? (
+                <Flex direction="column" gap={4}> {/* Batch 3: UI Constitution compliance */}
+                  <Skeleton height={100} />
+                  <Skeleton height={100} />
+                  <Skeleton height={100} />
+                </Flex>
                 ) : upcomingBookings.length === 0 ? (
                   <EmptyState
                     title="No upcoming bookings"
@@ -998,41 +1021,47 @@ function SitterPageContent() {
                     icon={<i className="fas fa-calendar" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                   />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <Flex direction="column" gap={4}> {/* Batch 3: UI Constitution compliance */}
                     {upcomingBookings.map((booking) => (
                       <Card key={booking.id} style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Flex align="center" justify="space-between">
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
+                            <div style={{ marginBottom: tokens.spacing[2] }}>
+                              <Flex align="center" gap={3}>
                               <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
                                 {booking.firstName} {booking.lastName}
                               </div>
                               {getStatusBadge(booking.status)}
+                              </Flex>
                             </div>
                             
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              <BookingScheduleDisplay
-                                service={booking.service}
-                                startAt={booking.startAt}
-                                endAt={booking.endAt}
-                                timeSlots={booking.timeSlots}
-                              />
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], marginTop: tokens.spacing[2] }}>
-                                <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
-                                {formatPetsByQuantity(booking.pets)}
-                                <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
-                                ${booking.totalPrice.toFixed(2)}
-                              </div>
-                              <div>
-                                <span><i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[1] }} /></span>
-                                {booking.address}
-                              </div>
+                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                              <Flex direction="column" gap={1}>
+                                <BookingScheduleDisplay
+                                  service={booking.service}
+                                  startAt={booking.startAt}
+                                  endAt={booking.endAt}
+                                  timeSlots={booking.timeSlots}
+                                />
+                                <div style={{ marginTop: tokens.spacing[2] }}>
+                                  <Flex align="center" gap={4}>
+                                    <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
+                                    {formatPetsByQuantity(booking.pets)}
+                                    <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                    ${booking.totalPrice.toFixed(2)}
+                                  </Flex>
+                                </div>
+                                <div>
+                                  <span><i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[1] }} /></span>
+                                  {booking.address}
+                                </div>
+                              </Flex>
                             </div>
                           </div>
-                        </div>
+                        </Flex>
                       </Card>
                     ))}
-                  </div>
+                  </Flex>
                 )}
               </div>
             </Card>
@@ -1050,16 +1079,18 @@ function SitterPageContent() {
                     icon={<i className="fas fa-check-circle" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                   />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <Flex direction="column" gap={4}> {/* Batch 3: UI Constitution compliance */}
                     {completedBookings.slice(0, 20).map((booking) => (
                       <Card key={booking.id} style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Flex align="center" justify="space-between">
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
-                                {booking.firstName} {booking.lastName}
-                              </div>
-                              {getStatusBadge(booking.status)}
+                            <div style={{ marginBottom: tokens.spacing[2] }}>
+                              <Flex align="center" gap={3}>
+                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                                  {booking.firstName} {booking.lastName}
+                                </div>
+                                {getStatusBadge(booking.status)}
+                              </Flex>
                             </div>
                             
                             <BookingScheduleDisplay
@@ -1068,14 +1099,16 @@ function SitterPageContent() {
                               endAt={booking.endAt}
                               timeSlots={booking.timeSlots}
                             />
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
-                              {formatPetsByQuantity(booking.pets)}
-                              <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
-                              ${booking.totalPrice.toFixed(2)}
+                            <div style={{ marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                              <Flex align="center" gap={4}>
+                                <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1] }} /></span>
+                                {formatPetsByQuantity(booking.pets)}
+                                <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                ${booking.totalPrice.toFixed(2)}
+                              </Flex>
                             </div>
                           </div>
-                        </div>
+                        </Flex>
                       </Card>
                     ))}
                     {completedBookings.length > 20 && (
@@ -1083,7 +1116,7 @@ function SitterPageContent() {
                         +{completedBookings.length - 20} more completed bookings
                       </div>
                     )}
-                  </div>
+                  </Flex>
                 )}
               </div>
             </Card>
@@ -1097,43 +1130,45 @@ function SitterPageContent() {
                 {earningsData ? (
                   <>
                     {/* Summary Cards */}
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: tokens.spacing[4],
-                        marginBottom: tokens.spacing[6],
-                      }}
-                    >
-                      <Card style={{ padding: tokens.spacing[6] }}>
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase' }}>
-                          Total Earnings
-                        </div>
-                        <div style={{ fontSize: tokens.typography.fontSize['3xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text.primary, marginBottom: tokens.spacing[1] }}>
-                          ${earningsData.summary.totalEarnings.toFixed(2)}
-                        </div>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
-                          {earningsData.summary.totalBookings} bookings ({earningsData.summary.commissionPercentage}% commission)
-                        </div>
-                      </Card>
-                      <StatCard
-                        label="Last 30 Days"
-                        value={`$${earningsData.summary.earningsLast30Days.toFixed(2)}`}
-                      />
-                      <StatCard
-                        label="Last 90 Days"
-                        value={`$${earningsData.summary.earningsLast90Days.toFixed(2)}`}
-                      />
+                    <div style={{ marginBottom: tokens.spacing[6] }}>
+                      <Grid gap={4}> {/* Batch 3: UI Constitution compliance */}
+                        <GridCol span={12} md={6} lg={4}>
+                          <Card style={{ padding: tokens.spacing[6] }}>
+                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase' }}>
+                              Total Earnings
+                            </div>
+                            <div style={{ fontSize: tokens.typography.fontSize['3xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text.primary, marginBottom: tokens.spacing[1] }}>
+                              ${earningsData.summary.totalEarnings.toFixed(2)}
+                            </div>
+                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                              {earningsData.summary.totalBookings} bookings ({earningsData.summary.commissionPercentage}% commission)
+                            </div>
+                          </Card>
+                        </GridCol>
+                        <GridCol span={12} md={6} lg={4}>
+                          <StatCard
+                            label="Last 30 Days"
+                            value={`$${earningsData.summary.earningsLast30Days.toFixed(2)}`}
+                          />
+                        </GridCol>
+                        <GridCol span={12} md={6} lg={4}>
+                          <StatCard
+                            label="Last 90 Days"
+                            value={`$${earningsData.summary.earningsLast90Days.toFixed(2)}`}
+                          />
+                        </GridCol>
+                      </Grid>
                     </div>
 
                     {/* Earnings by Service Type */}
                     {earningsData.earningsByService && earningsData.earningsByService.length > 0 && (
                       <div style={{ marginBottom: tokens.spacing[6] }}>
                         <SectionHeader title="Earnings by Service Type" />
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4] }}>
-                          {earningsData.earningsByService.map((service: any, idx: number) => (
+                        <div style={{ marginTop: tokens.spacing[4] }}>
+                          <Flex direction="column" gap={2}>
+                            {earningsData.earningsByService.map((service: any, idx: number) => (
                             <Card key={idx}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <Flex align="center" justify="space-between">
                                 <div>
                                   <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
                                     {service.service}
@@ -1150,9 +1185,10 @@ function SitterPageContent() {
                                     from ${service.totalRevenue.toFixed(2)}
                                   </div>
                                 </div>
-                              </div>
+                              </Flex>
                             </Card>
                           ))}
+                          </Flex>
                         </div>
                       </div>
                     )}
@@ -1160,10 +1196,11 @@ function SitterPageContent() {
                     {/* Earnings by Booking */}
                     <div>
                       <SectionHeader title="Earnings by Booking" />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4], maxHeight: '24rem', overflowY: 'auto' }}>
+                      <div style={{ marginTop: tokens.spacing[4] }}> {/* Batch 3: Removed overflowY - single scroll surface only */}
+                        <Flex direction="column" gap={2}>
                         {earningsData.earningsByBooking.map((item: any) => (
                           <Card key={item.bookingId}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Flex align="center" justify="space-between">
                               <div>
                                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
                                   {item.clientName}
@@ -1180,9 +1217,10 @@ function SitterPageContent() {
                                   from ${item.totalPrice.toFixed(2)}
                                 </div>
                               </div>
-                            </div>
+                            </Flex>
                           </Card>
                         ))}
+                        </Flex>
                       </div>
                     </div>
                   </>
@@ -1211,7 +1249,7 @@ function SitterPageContent() {
                           backgroundColor: tokens.colors.primary[50],
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+                        <Flex align="center" gap={4}>
                           <SitterTierBadge tier={sitterTier} size="lg" />
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.primary.DEFAULT, marginBottom: tokens.spacing[1] }}>
@@ -1221,7 +1259,7 @@ function SitterPageContent() {
                               Commission: {sitterTier.commissionSplit || commissionPercentage}% • Priority Level: {sitterTier.priorityLevel || 0}
                             </div>
                           </div>
-                        </div>
+                        </Flex>
                       </Card>
                     )}
                     
@@ -1229,51 +1267,54 @@ function SitterPageContent() {
                     {sitterTier && (
                       <div style={{ marginBottom: tokens.spacing[6] }}>
                         <SectionHeader title="Your Tier Capabilities" />
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: tokens.spacing[3], marginTop: tokens.spacing[4] }}>
-                          {[
-                            { key: 'canJoinPools', label: 'Join Sitter Pools', icon: 'fa-users' },
-                            { key: 'canAutoAssign', label: 'Auto-Assignment', icon: 'fa-magic' },
-                            { key: 'canOvernight', label: 'Overnight Bookings', icon: 'fa-moon' },
-                            { key: 'canSameDay', label: 'Same-Day Bookings', icon: 'fa-clock' },
-                            { key: 'canHighValue', label: 'High-Value Clients', icon: 'fa-star' },
-                            { key: 'canRecurring', label: 'Recurring Clients', icon: 'fa-repeat' },
-                            { key: 'canLeadPool', label: 'Lead Sitter Pools', icon: 'fa-crown' },
-                          ].map((feature) => {
-                            const isUnlocked = sitterTier[feature.key] === true;
-                            return (
-                              <Card
-                                key={feature.key}
-                                style={{
-                                  padding: tokens.spacing[4],
-                                  backgroundColor: isUnlocked ? tokens.colors.success[50] : tokens.colors.neutral[100],
-                                  borderColor: isUnlocked ? tokens.colors.success[200] : tokens.colors.neutral[300],
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                                  <i
-                                    className={`fas ${feature.icon}`}
+                        <div style={{ marginTop: tokens.spacing[4] }}>
+                          <Grid gap={3}> {/* Batch 3: UI Constitution compliance */}
+                            {[
+                              { key: 'canJoinPools', label: 'Join Sitter Pools', icon: 'fa-users' },
+                              { key: 'canAutoAssign', label: 'Auto-Assignment', icon: 'fa-magic' },
+                              { key: 'canOvernight', label: 'Overnight Bookings', icon: 'fa-moon' },
+                              { key: 'canSameDay', label: 'Same-Day Bookings', icon: 'fa-clock' },
+                              { key: 'canHighValue', label: 'High-Value Clients', icon: 'fa-star' },
+                              { key: 'canRecurring', label: 'Recurring Clients', icon: 'fa-repeat' },
+                              { key: 'canLeadPool', label: 'Lead Sitter Pools', icon: 'fa-crown' },
+                            ].map((feature) => {
+                              const isUnlocked = sitterTier[feature.key] === true;
+                              return (
+                                <GridCol key={feature.key} span={12} md={6} lg={4}>
+                                  <Card
                                     style={{
-                                      color: isUnlocked ? tokens.colors.success.DEFAULT : tokens.colors.neutral[400],
-                                      fontSize: tokens.typography.fontSize.lg[0],
+                                      padding: tokens.spacing[4],
+                                      backgroundColor: isUnlocked ? tokens.colors.success[50] : tokens.colors.neutral[100],
+                                      borderColor: isUnlocked ? tokens.colors.success[200] : tokens.colors.neutral[300],
                                     }}
-                                  />
-                                  <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
-                                      {feature.label}
-                                    </div>
-                                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
-                                      {isUnlocked ? 'Available' : 'Locked'}
-                                    </div>
-                                  </div>
-                                  {isUnlocked ? (
-                                    <i className="fas fa-check-circle" style={{ color: tokens.colors.success.DEFAULT }} />
-                                  ) : (
-                                    <i className="fas fa-lock" style={{ color: tokens.colors.neutral[400] }} />
-                                  )}
-                                </div>
-                              </Card>
-                            );
-                          })}
+                                  >
+                                    <Flex align="center" gap={2}>
+                                      <i
+                                        className={`fas ${feature.icon}`}
+                                        style={{
+                                          color: isUnlocked ? tokens.colors.success.DEFAULT : tokens.colors.neutral[400],
+                                          fontSize: tokens.typography.fontSize.lg[0],
+                                        }}
+                                      />
+                                      <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
+                                          {feature.label}
+                                        </div>
+                                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                                          {isUnlocked ? 'Available' : 'Locked'}
+                                        </div>
+                                      </div>
+                                      {isUnlocked ? (
+                                        <i className="fas fa-check-circle" style={{ color: tokens.colors.success.DEFAULT }} />
+                                      ) : (
+                                        <i className="fas fa-lock" style={{ color: tokens.colors.neutral[400] }} />
+                                      )}
+                                    </Flex>
+                                  </Card>
+                                </GridCol>
+                              );
+                            })}
+                          </Grid>
                         </div>
                       </div>
                     )}
@@ -1283,26 +1324,29 @@ function SitterPageContent() {
                       <div style={{ marginBottom: tokens.spacing[6] }}>
                         <SectionHeader title="Performance Metrics" />
                         <div
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                            gap: tokens.spacing[4],
-                            marginTop: tokens.spacing[4],
-                          }}
-                        >
-                          <StatCard
-                            label="Points"
-                            value={tierProgress.performance.points || 0}
-                          />
-                          <StatCard
-                            label="Completion Rate"
-                            value={`${tierProgress.performance.completionRate?.toFixed(1) || '0.0'}%`}
-                          />
-                          <StatCard
-                            label="Response Rate"
-                            value={`${tierProgress.performance.responseRate?.toFixed(1) || '0.0'}%`}
-                          />
-                        </div>
+                        style={{ marginTop: tokens.spacing[4] }}
+                      >
+                        <Grid gap={4}> {/* Batch 3: UI Constitution compliance */}
+                          <GridCol span={12} md={6} lg={4}>
+                            <StatCard
+                              label="Points"
+                              value={tierProgress.performance.points || 0}
+                            />
+                          </GridCol>
+                          <GridCol span={12} md={6} lg={4}>
+                            <StatCard
+                              label="Completion Rate"
+                              value={`${tierProgress.performance.completionRate?.toFixed(1) || '0.0'}%`}
+                            />
+                          </GridCol>
+                          <GridCol span={12} md={6} lg={4}>
+                            <StatCard
+                              label="Response Rate"
+                              value={`${tierProgress.performance.responseRate?.toFixed(1) || '0.0'}%`}
+                            />
+                          </GridCol>
+                        </Grid>
+                      </div>
                       </div>
                     )}
 
@@ -1318,16 +1362,18 @@ function SitterPageContent() {
                         <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], marginBottom: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
                           Next Tier: {tierProgress.nextTier.name}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                          {tierProgress.nextTier.pointTarget && (
-                            <div>Point Target: {tierProgress.nextTier.pointTarget}</div>
-                          )}
-                          {tierProgress.nextTier.minCompletionRate && (
-                            <div>Min Completion Rate: {tierProgress.nextTier.minCompletionRate}%</div>
-                          )}
-                          {tierProgress.nextTier.minResponseRate && (
-                            <div>Min Response Rate: {tierProgress.nextTier.minResponseRate}%</div>
-                          )}
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          <Flex direction="column" gap={1}>
+                            {tierProgress.nextTier.pointTarget && (
+                              <div>Point Target: {tierProgress.nextTier.pointTarget}</div>
+                            )}
+                            {tierProgress.nextTier.minCompletionRate && (
+                              <div>Min Completion Rate: {tierProgress.nextTier.minCompletionRate}%</div>
+                            )}
+                            {tierProgress.nextTier.minResponseRate && (
+                              <div>Min Response Rate: {tierProgress.nextTier.minResponseRate}%</div>
+                            )}
+                          </Flex>
                         </div>
                       </Card>
                     )}
@@ -1336,43 +1382,44 @@ function SitterPageContent() {
                     {tierProgress.improvementAreas && tierProgress.improvementAreas.length > 0 && (
                       <div>
                         <SectionHeader title="Areas to Improve" />
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], marginTop: tokens.spacing[4] }}>
-                          {tierProgress.improvementAreas.map((area: string, idx: number) => (
-                            <Card
-                              key={idx}
-                              style={{
-                                backgroundColor: tokens.colors.warning[50],
-                                borderColor: tokens.colors.warning[200],
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[2] }}>
-                                <div
-                                  style={{
-                                    width: '1.5rem',
-                                    height: '1.5rem',
-                                    borderRadius: tokens.borderRadius.full,
-                                    backgroundColor: tokens.colors.warning[200],
-                                    color: tokens.colors.warning[700],
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0,
-                                    fontSize: tokens.typography.fontSize.xs[0],
-                                    fontWeight: tokens.typography.fontWeight.bold,
-                                  }}
-                                >
-                                  {idx + 1}
-                                </div>
-                                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary }}>
-                                  {area}
-                                </div>
+                        <div style={{ marginTop: tokens.spacing[4] }}>
+                          <Flex direction="column" gap={3}>
+                            {tierProgress.improvementAreas.map((area: string, idx: number) => (
+                              <Card
+                                key={idx}
+                                style={{
+                                  backgroundColor: tokens.colors.warning[50],
+                                  borderColor: tokens.colors.warning[200],
+                                }}
+                              >
+                                <Flex align="flex-start" gap={2}>
+                                  <div
+                                    style={{
+                                      width: '1.5rem',
+                                      height: '1.5rem',
+                                      borderRadius: tokens.borderRadius.full,
+                                      backgroundColor: tokens.colors.warning[200],
+                                      color: tokens.colors.warning[700],
+                                      flexShrink: 0,
+                                      fontSize: tokens.typography.fontSize.xs[0],
+                                      fontWeight: tokens.typography.fontWeight.bold,
+                                    }}
+                                  >
+                                    <Flex align="center" justify="center">
+                                      {idx + 1}
+                                    </Flex>
+                                  </div>
+                              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary }}>
+                                {area}
                               </div>
-                            </Card>
-                          ))}
-                        </div>
+                            </Flex>
+                          </Card>
+                        ))}
+                      </Flex>
+                      </div>
                       </div>
                     )}
-                  </>
+                </>
                 ) : sitterTier ? (
                   <>
                     {/* Current Tier */}
@@ -1382,7 +1429,7 @@ function SitterPageContent() {
                         backgroundColor: tokens.colors.primary[50],
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+                      <Flex align="center" gap={4}>
                         <SitterTierBadge tier={sitterTier} size="lg" />
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.primary.DEFAULT, marginBottom: tokens.spacing[1] }}>
@@ -1392,59 +1439,64 @@ function SitterPageContent() {
                             Commission: {sitterTier.commissionSplit || commissionPercentage}% • Priority Level: {sitterTier.priorityLevel || 0}
                           </div>
                         </div>
-                      </div>
+                      </Flex>
                     </Card>
                     
                     {/* Locked/Unlocked Features */}
-                    <div style={{ marginBottom: tokens.spacing[6] }}>
-                      <SectionHeader title="Your Tier Capabilities" />
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: tokens.spacing[3], marginTop: tokens.spacing[4] }}>
-                        {[
-                          { key: 'canJoinPools', label: 'Join Sitter Pools', icon: 'fa-users' },
-                          { key: 'canAutoAssign', label: 'Auto-Assignment', icon: 'fa-magic' },
-                          { key: 'canOvernight', label: 'Overnight Bookings', icon: 'fa-moon' },
-                          { key: 'canSameDay', label: 'Same-Day Bookings', icon: 'fa-clock' },
-                          { key: 'canHighValue', label: 'High-Value Clients', icon: 'fa-star' },
-                          { key: 'canRecurring', label: 'Recurring Clients', icon: 'fa-repeat' },
-                          { key: 'canLeadPool', label: 'Lead Sitter Pools', icon: 'fa-crown' },
-                        ].map((feature) => {
-                          const isUnlocked = sitterTier[feature.key] === true;
-                          return (
-                            <Card
-                              key={feature.key}
-                              style={{
-                                padding: tokens.spacing[4],
-                                backgroundColor: isUnlocked ? tokens.colors.success[50] : tokens.colors.neutral[100],
-                                borderColor: isUnlocked ? tokens.colors.success[200] : tokens.colors.neutral[300],
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                                <i
-                                  className={`fas ${feature.icon}`}
-                                  style={{
-                                    color: isUnlocked ? tokens.colors.success.DEFAULT : tokens.colors.neutral[400],
-                                    fontSize: tokens.typography.fontSize.lg[0],
-                                  }}
-                                />
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
-                                    {feature.label}
-                                  </div>
-                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
-                                    {isUnlocked ? 'Available' : 'Locked'}
-                                  </div>
-                                </div>
-                                {isUnlocked ? (
-                                  <i className="fas fa-check-circle" style={{ color: tokens.colors.success.DEFAULT }} />
-                                ) : (
-                                  <i className="fas fa-lock" style={{ color: tokens.colors.neutral[400] }} />
-                                )}
-                              </div>
-                            </Card>
-                          );
-                        })}
+                    {sitterTier && (
+                      <div style={{ marginBottom: tokens.spacing[6] }}>
+                        <SectionHeader title="Your Tier Capabilities" />
+                        <div style={{ marginTop: tokens.spacing[4] }}>
+                          <Grid gap={3}> {/* Batch 3: UI Constitution compliance */}
+                            {[
+                              { key: 'canJoinPools', label: 'Join Sitter Pools', icon: 'fa-users' },
+                              { key: 'canAutoAssign', label: 'Auto-Assignment', icon: 'fa-magic' },
+                              { key: 'canOvernight', label: 'Overnight Bookings', icon: 'fa-moon' },
+                              { key: 'canSameDay', label: 'Same-Day Bookings', icon: 'fa-clock' },
+                              { key: 'canHighValue', label: 'High-Value Clients', icon: 'fa-star' },
+                              { key: 'canRecurring', label: 'Recurring Clients', icon: 'fa-repeat' },
+                              { key: 'canLeadPool', label: 'Lead Sitter Pools', icon: 'fa-crown' },
+                            ].map((feature) => {
+                              const isUnlocked = sitterTier[feature.key] === true;
+                              return (
+                                <GridCol key={feature.key} span={12} md={6} lg={4}>
+                                  <Card
+                                    style={{
+                                      padding: tokens.spacing[4],
+                                      backgroundColor: isUnlocked ? tokens.colors.success[50] : tokens.colors.neutral[100],
+                                      borderColor: isUnlocked ? tokens.colors.success[200] : tokens.colors.neutral[300],
+                                    }}
+                                  >
+                                    <Flex align="center" gap={2}>
+                                      <i
+                                        className={`fas ${feature.icon}`}
+                                        style={{
+                                          color: isUnlocked ? tokens.colors.success.DEFAULT : tokens.colors.neutral[400],
+                                          fontSize: tokens.typography.fontSize.lg[0],
+                                        }}
+                                      />
+                                      <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
+                                          {feature.label}
+                                        </div>
+                                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                                          {isUnlocked ? 'Available' : 'Locked'}
+                                        </div>
+                                      </div>
+                                      {isUnlocked ? (
+                                        <i className="fas fa-check-circle" style={{ color: tokens.colors.success.DEFAULT }} />
+                                      ) : (
+                                        <i className="fas fa-lock" style={{ color: tokens.colors.neutral[400] }} />
+                                      )}
+                                    </Flex>
+                                  </Card>
+                                </GridCol>
+                              );
+                            })}
+                          </Grid>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </>
                 ) : (
                   <EmptyState
@@ -1461,7 +1513,7 @@ function SitterPageContent() {
               <Card>
                 <SectionHeader title="Personal Settings" />
                 <div style={{ padding: tokens.spacing[6] }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <Flex direction="column" gap={4}> {/* Batch 3: UI Constitution compliance */}
                     <div>
                       <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
                         Commission Percentage
@@ -1482,7 +1534,7 @@ function SitterPageContent() {
                         </div>
                       </div>
                     )}
-                  </div>
+                  </Flex>
                 </div>
               </Card>
             </TabPanel>
@@ -1500,7 +1552,7 @@ function SitterPageContent() {
         title="Visit Details"
       >
         {selectedBooking && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <Flex direction="column" gap={4}> {/* Batch 3: UI Constitution compliance */}
             <div>
               <div style={{ fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>Client</div>
               <p>{selectedBooking.firstName} {selectedBooking.lastName.charAt(0)}.</p>
@@ -1535,7 +1587,7 @@ function SitterPageContent() {
             
             <div>
               <div style={{ fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>Pets</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+              <Flex direction="column" gap={2}>
                 {selectedBooking.pets.map((pet, idx) => (
                   <Card key={idx} style={{ backgroundColor: tokens.colors.neutral[50] }}>
                     <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
@@ -1551,7 +1603,7 @@ function SitterPageContent() {
                     )}
                   </Card>
                 ))}
-              </div>
+              </Flex>
             </div>
             
             {selectedBooking.notes && (
@@ -1563,7 +1615,8 @@ function SitterPageContent() {
               </div>
             )}
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], paddingTop: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}` }}>
+            <div style={{ paddingTop: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}` }}>
+              <Flex align="center" gap={2}>
               <Button
                 variant="primary"
                 onClick={() => checkIn(selectedBooking.id)}
@@ -1580,8 +1633,9 @@ function SitterPageContent() {
               >
                 Close
               </Button>
+              </Flex>
             </div>
-          </div>
+          </Flex>
         )}
       </Modal>
     </AppShell>
