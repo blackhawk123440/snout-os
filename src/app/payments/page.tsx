@@ -430,8 +430,8 @@ export default function PaymentsPage() {
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: tokens.spacing[6],
-            marginBottom: tokens.spacing[6],
+            gap: tokens.spacing[2], // Phase E: Token-only - disciplined spacing (8px)
+            marginBottom: tokens.spacing[4], // Phase E: Match Dashboard - minimal separation
           }}
         >
           <Skeleton height="120px" />
@@ -519,13 +519,13 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* KPI Summary Row */}
+      {/* KPI Summary Row - Phase E: Match Dashboard density */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: isMobile ? tokens.spacing[3] : tokens.spacing[6],
-          marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[6],
+          gap: isMobile ? tokens.spacing[3] : tokens.spacing[2], // Phase E: Token-only - disciplined spacing
+          marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[4], // Phase E: Match Dashboard - minimal separation
         }}
       >
         <StatCard
@@ -564,10 +564,10 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* Filters */}
+      {/* Filters - Phase E: Match Bookings density */}
       <Card
         style={{
-          marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[6],
+          marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[4], // Phase E: Tighter spacing to match Bookings
           padding: isMobile ? tokens.spacing[3] : undefined,
         }}
       >
@@ -624,8 +624,8 @@ export default function PaymentsPage() {
             title="No payments found"
             description={
               searchTerm || statusFilter !== 'all'
-                ? 'No payments match your filters. Try adjusting your search or filters.'
-                : 'Payment transactions will appear here once customers make payments.'
+                ? undefined // Phase E: Neutral, operational - no friendly guidance
+                : undefined // Phase E: Neutral, operational - remove onboarding tone
             }
           />
         ) : (
