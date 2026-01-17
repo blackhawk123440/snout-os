@@ -32,6 +32,7 @@ import {
   BottomSheet,
   Flex,
   DataRow,
+  Tooltip,
   useToast,
 } from '@/components/ui';
 import { CommandLauncher } from '@/components/command';
@@ -460,15 +461,18 @@ export default function BookingsPage() {
         }
       />
 
-      {/* Inline Search Bar - Phase F2: Premium feel - tighter, operational */}
+      {/* Inline Search Bar - Phase F2.1: Premium feel - clear text, high contrast */}
       {showSearchBar && (
-        <div style={{ padding: `${tokens.spacing[2]} ${tokens.spacing[4]}` }}> {/* Phase F2: Tighter vertical padding for command bar feel (using spacing[2] instead of spacing[1.5] for consistency) */}
+        <div style={{ padding: `${tokens.spacing[2]} ${tokens.spacing[4]}` }}> {/* Phase F2.1: Tighter vertical padding */}
           <Input
             placeholder="Search by name, phone, or service..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             autoFocus
             size="md"
+            style={{ 
+              color: tokens.colors.text.primary, // Phase F2.1: Ensure primary text color for readability
+            }}
           />
         </div>
       )}
@@ -489,7 +493,7 @@ export default function BookingsPage() {
         />
       ) : (
         <>
-          {/* Overview Section - Phase F2: Secondary to bookings list, tighter spacing */}
+          {/* Overview Section - Phase F2.1: Secondary - reduced visual weight */}
           <Section heading="Overview">
             <Grid gap={2}> {/* Phase F2: Maintain disciplined spacing */}
               <GridCol span={isMobile ? 6 : 3}>
@@ -558,9 +562,15 @@ export default function BookingsPage() {
             )}
 
 
-          {/* Bookings List Section - Phase F2: Primary anchor, strengthened hierarchy */}
+          {/* Bookings List Section - Phase F2.1: Primary anchor - strongest visual hierarchy */}
           <Section heading="Bookings List">
-            <Panel>
+            <div style={{ 
+            border: `1px solid ${tokens.colors.border.default}`, 
+            boxShadow: tokens.shadow.lg,
+            borderRadius: tokens.radius.md,
+            backgroundColor: tokens.colors.surface.primary // Phase F2.1: Neutral white primary surface
+          }}> {/* Phase F2.1: Stronger border and shadow for primary surface dominance - DataTable handles its own overflow */}
+            <Panel padding={false}>
               {loading ? (
                 <div style={{ padding: tokens.spacing[3] }}> {/* Phase F2: Tighter padding for density */}
                   <Skeleton height="400px" />
@@ -594,26 +604,57 @@ export default function BookingsPage() {
                         border: `1px solid ${tokens.colors.border.default}`,
                         borderRadius: tokens.radius.md,
                         cursor: 'pointer',
-                        transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`, // Phase F2: Add interaction polish
+                        transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`, // Phase F2.1: Smooth interaction states
+                        backgroundColor: tokens.colors.surface.primary,
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = tokens.colors.border.focus;
-                        e.currentTarget.style.boxShadow = tokens.shadow.sm;
+                        e.currentTarget.style.borderColor = tokens.colors.border.strong;
+                        e.currentTarget.style.boxShadow = tokens.shadow.md;
+                        e.currentTarget.style.backgroundColor = tokens.colors.accent.tertiary;
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.borderColor = tokens.colors.border.default;
                         e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.backgroundColor = tokens.colors.surface.primary;
+                      }}
+                      onTouchStart={(e) => {
+                        e.currentTarget.style.backgroundColor = tokens.colors.accent.secondary;
+                      }}
+                      onTouchEnd={(e) => {
+                        e.currentTarget.style.backgroundColor = tokens.colors.surface.primary;
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.outline = `2px solid ${tokens.colors.border.focus}`;
+                        e.currentTarget.style.outlineOffset = '2px';
+                        e.currentTarget.style.borderColor = tokens.colors.border.strong;
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.outline = 'none';
+                        e.currentTarget.style.borderColor = tokens.colors.border.default;
                       }}
                     >
                       <Flex direction="column" gap={2}>
                         <Flex justify="space-between" align="center">
-                          <div>
-                            <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
-                              {booking.firstName} {booking.lastName}
-                            </div>
-                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              {booking.service}
-                            </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <Tooltip content={`${booking.firstName} ${booking.lastName}`} placement="top">
+                              <div style={{ 
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {booking.firstName} {booking.lastName}
+                              </div>
+                            </Tooltip>
+                            <Tooltip content={booking.service} placement="top">
+                              <div style={{ 
+                                fontSize: tokens.typography.fontSize.sm[0], 
+                                color: tokens.colors.text.secondary,
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {booking.service}
+                              </div>
+                            </Tooltip>
                             {ENABLE_RESONANCE_V1 && (
                               <div style={{ marginTop: tokens.spacing[2] }}>
                                 <SignalStack 
@@ -649,17 +690,48 @@ export default function BookingsPage() {
                     {
                       key: 'date',
                       header: 'Date/Time',
-                      render: (booking: Booking) => formatDateTime(booking.startAt),
+                      render: (booking: Booking) => (
+                        <div style={{ 
+                          textOverflow: 'ellipsis', 
+                          whiteSpace: 'nowrap',
+                          maxWidth: '200px'
+                        }} title={formatDateTime(booking.startAt)}>
+                          {formatDateTime(booking.startAt)}
+                        </div>
+                      ),
                     },
                     {
                       key: 'client',
                       header: 'Client',
-                      render: (booking: Booking) => `${booking.firstName} ${booking.lastName}`,
+                      render: (booking: Booking) => {
+                        const clientName = `${booking.firstName} ${booking.lastName}`;
+                        return (
+                          <Tooltip content={clientName} placement="top">
+                            <div style={{ 
+                              textOverflow: 'ellipsis', 
+                              whiteSpace: 'nowrap',
+                              maxWidth: '180px'
+                            }}>
+                              {clientName}
+                            </div>
+                          </Tooltip>
+                        );
+                      },
                     },
                     {
                       key: 'service',
                       header: 'Service',
-                      render: (booking: Booking) => booking.service,
+                      render: (booking: Booking) => (
+                        <Tooltip content={booking.service} placement="top">
+                          <div style={{ 
+                            textOverflow: 'ellipsis', 
+                            whiteSpace: 'nowrap',
+                            maxWidth: '150px'
+                          }}>
+                            {booking.service}
+                          </div>
+                        </Tooltip>
+                      ),
                     },
                     {
                       key: 'status',
@@ -682,12 +754,34 @@ export default function BookingsPage() {
                     {
                       key: 'sitter',
                       header: 'Sitter',
-                      render: (booking: Booking) => booking.sitter ? `${booking.sitter.firstName} ${booking.sitter.lastName}` : 'Unassigned',
+                      render: (booking: Booking) => {
+                        const sitterName = booking.sitter ? `${booking.sitter.firstName} ${booking.sitter.lastName}` : 'Unassigned';
+                        return (
+                          <Tooltip content={sitterName} placement="top">
+                          <div style={{ 
+                            textOverflow: 'ellipsis', 
+                            whiteSpace: 'nowrap',
+                            maxWidth: '150px',
+                            color: booking.sitter ? tokens.colors.text.primary : tokens.colors.text.secondary
+                          }}>
+                              {sitterName}
+                            </div>
+                          </Tooltip>
+                        );
+                      },
                     },
                     {
                       key: 'total',
                       header: 'Total',
-                      render: (booking: Booking) => `$${booking.totalPrice.toFixed(2)}`,
+                      render: (booking: Booking) => (
+                        <div style={{ 
+                          fontVariantNumeric: 'tabular-nums',
+                          fontWeight: tokens.typography.fontWeight.medium,
+                          color: tokens.colors.text.primary
+                        }}>
+                          ${booking.totalPrice.toFixed(2)}
+                        </div>
+                      ),
                     },
                     {
                       key: 'paid',
@@ -709,6 +803,7 @@ export default function BookingsPage() {
                 />
               )}
             </Panel>
+          </div>
           </Section>
         </>
       )}
@@ -854,23 +949,39 @@ function BookingDetailsContent({ booking, commandContext, onCommandSelect, getBo
   return (
     <div style={{ padding: tokens.spacing[3] }}> {/* Phase F2: Tighter drawer content padding */}
       <Flex direction="column" gap={4}> {/* Phase F2: Reduced gap for density */}
-        {/* Summary Header */}
-        <Flex direction="column" gap={2}>
-          <Flex justify="space-between" align="center">
-            <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
-              {booking.service}
-            </div>
-            <Flex gap={2}>
-              <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'default'}>
-                {booking.status}
-              </Badge>
-              {booking.paidStatus && (
-                <Badge variant={booking.paidStatus === 'paid' ? 'success' : 'warning'}>
-                  {booking.paidStatus}
+        {/* Summary Header - Phase F2.1: Instrument panel style */}
+        <Flex direction="column" gap={3}>
+          <div style={{ 
+            borderBottom: `1px solid ${tokens.colors.border.muted}`, 
+            paddingBottom: tokens.spacing[3],
+            marginBottom: tokens.spacing[2]
+          }}> {/* Phase F2.1: Intentional divider */}
+            <Flex justify="space-between" align="center" gap={3}>
+              <div style={{ 
+                fontSize: tokens.typography.fontSize.xl[0], 
+                fontWeight: tokens.typography.fontWeight.bold,
+                color: tokens.colors.text.primary,
+                flex: 1,
+                minWidth: 0,
+                // Phase F2.1: Text truncation with title attribute (no overflow property)
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: '100%'
+              }} title={booking.service}>
+                {booking.service}
+              </div>
+              <Flex gap={2}> {/* Phase F2.1: Badge container */}
+                <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'default'}>
+                  {booking.status}
                 </Badge>
-              )}
+                {booking.paidStatus && (
+                  <Badge variant={booking.paidStatus === 'paid' ? 'success' : 'warning'}>
+                    {booking.paidStatus}
+                  </Badge>
+                )}
+              </Flex>
             </Flex>
-          </Flex>
+          </div>
           <DataRow label="Date/Time" value={`${formatDate(booking.startAt)} ${formatTime(booking.startAt)} - ${formatTime(booking.endAt)}`} />
           {ENABLE_RESONANCE_V1 && getBookingSignals && (
             <div style={{ marginTop: tokens.spacing[2] }}>
@@ -879,25 +990,36 @@ function BookingDetailsContent({ booking, commandContext, onCommandSelect, getBo
           )}
         </Flex>
 
-        {/* Contact and Location */}
-        <Flex direction="column" gap={3}>
-          <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
-            Contact & Location
-          </div>
+        {/* Contact and Location - Phase F2.1: Section with divider */}
+        <div style={{ borderTop: `1px solid ${tokens.colors.border.muted}`, paddingTop: tokens.spacing[3] }}>
+          <Flex direction="column" gap={3}>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.base[0], 
+              fontWeight: tokens.typography.fontWeight.semibold,
+              color: tokens.colors.text.primary // Phase F2.1: Ensure primary color for section headers
+            }}>
+              Contact & Location
+            </div>
           {booking.address && <DataRow label="Address" value={booking.address} copyable />}
           {booking.entryInstructions && <DataRow label="Entry Instructions" value={booking.entryInstructions} />}
           {booking.lockboxCode && <DataRow label="Lockbox Code" value={booking.lockboxCode} copyable />}
           {booking.emergencyContact && <DataRow label="Emergency Contact" value={booking.emergencyContact} />}
           {booking.phone && <DataRow label="Phone" value={booking.phone} copyable />}
           {booking.email && <DataRow label="Email" value={booking.email} copyable />}
-        </Flex>
+          </Flex>
+        </div>
 
-        {/* Schedule */}
+        {/* Schedule - Phase F2.1: Section with divider */}
         {booking.timeSlots && booking.timeSlots.length > 0 && (
-          <Flex direction="column" gap={3}>
-            <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
-              Schedule
-            </div>
+          <div style={{ borderTop: `1px solid ${tokens.colors.border.muted}`, paddingTop: tokens.spacing[3] }}>
+            <Flex direction="column" gap={3}>
+              <div style={{ 
+                fontSize: tokens.typography.fontSize.base[0], 
+                fontWeight: tokens.typography.fontWeight.semibold,
+                color: tokens.colors.text.primary // Phase F2.1: Ensure primary color
+              }}>
+                Schedule
+              </div>
             {booking.timeSlots.map((slot, idx) => (
               <DataRow
                 key={idx}
@@ -905,15 +1027,21 @@ function BookingDetailsContent({ booking, commandContext, onCommandSelect, getBo
                 value={`${formatTime(slot.startAt)} - ${formatTime(slot.endAt)}`}
               />
             ))}
-          </Flex>
+            </Flex>
+          </div>
         )}
 
-        {/* Pets */}
+        {/* Pets - Phase F2.1: Section with divider */}
         {booking.pets && booking.pets.length > 0 && (
-          <Flex direction="column" gap={3}>
-            <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
-              Pets
-            </div>
+          <div style={{ borderTop: `1px solid ${tokens.colors.border.muted}`, paddingTop: tokens.spacing[3] }}>
+            <Flex direction="column" gap={3}>
+              <div style={{ 
+                fontSize: tokens.typography.fontSize.base[0], 
+                fontWeight: tokens.typography.fontWeight.semibold,
+                color: tokens.colors.text.primary // Phase F2.1: Ensure primary color
+              }}>
+                Pets
+              </div>
             {booking.pets.map((pet, idx) => (
               <DataRow
                 key={idx}
@@ -921,40 +1049,59 @@ function BookingDetailsContent({ booking, commandContext, onCommandSelect, getBo
                 value={`${pet.species}${pet.notes ? ` - ${pet.notes}` : ''}`}
               />
             ))}
-          </Flex>
+            </Flex>
+          </div>
         )}
 
-        {/* Sitter Assignment */}
-        <Flex direction="column" gap={3}>
-          <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
-            Sitter Assignment
-          </div>
+        {/* Sitter Assignment - Phase F2.1: Section with divider */}
+        <div style={{ borderTop: `1px solid ${tokens.colors.border.muted}`, paddingTop: tokens.spacing[3] }}>
+          <Flex direction="column" gap={3}>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.base[0], 
+              fontWeight: tokens.typography.fontWeight.semibold,
+              color: tokens.colors.text.primary // Phase F2.1: Ensure primary color
+            }}>
+              Sitter Assignment
+            </div>
           <DataRow
             label="Assigned Sitter"
             value={booking.sitter ? `${booking.sitter.firstName} ${booking.sitter.lastName}` : 'Unassigned'}
           />
-        </Flex>
+          </Flex>
+        </div>
 
-        {/* Payments */}
-        <Flex direction="column" gap={3}>
-          <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
-            Payments
-          </div>
+        {/* Payments - Phase F2.1: Section with divider */}
+        <div style={{ borderTop: `1px solid ${tokens.colors.border.muted}`, paddingTop: tokens.spacing[3] }}>
+          <Flex direction="column" gap={3}>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.base[0], 
+              fontWeight: tokens.typography.fontWeight.semibold,
+              color: tokens.colors.text.primary // Phase F2.1: Ensure primary color
+            }}>
+              Payments
+            </div>
           <DataRow label="Total" value={`$${booking.totalPrice.toFixed(2)}`} />
           <DataRow label="Paid Status" value={booking.paidStatus || 'Unknown'} />
-        </Flex>
+          </Flex>
+        </div>
 
-        {/* Quick Actions */}
-        <Flex direction="column" gap={3}>
-          <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
-            Quick Actions
-          </div>
+        {/* Quick Actions - Phase F2.1: Section with divider */}
+        <div style={{ borderTop: `1px solid ${tokens.colors.border.muted}`, paddingTop: tokens.spacing[3] }}>
+          <Flex direction="column" gap={3}>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.base[0], 
+              fontWeight: tokens.typography.fontWeight.semibold,
+              color: tokens.colors.text.primary // Phase F2.1: Ensure primary color
+            }}>
+              Quick Actions
+            </div>
           <CommandLauncher
             context={commandContext}
             maxSuggestions={5}
             onCommandSelect={onCommandSelect}
           />
-        </Flex>
+          </Flex>
+        </div>
       </Flex>
     </div>
   );
