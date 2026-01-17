@@ -570,8 +570,6 @@ export default function PaymentsPage() {
         }}
       >
         <Flex direction={isMobile ? 'column' : 'row'} gap={isMobile ? 3 : 4}> {/* Batch 5: UI Constitution compliance */}
-          }}
-        >
           <Input
             placeholder="Search by client, email, or invoice..."
             value={searchTerm}
@@ -605,7 +603,7 @@ export default function PaymentsPage() {
               style={{ width: 'auto', minWidth: '200px' }}
             />
           )}
-        </div>
+        </Flex>
       </Card>
 
       {/* Payments Table */}
