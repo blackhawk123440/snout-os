@@ -351,6 +351,7 @@ export default function ExceptionsPage() {
                                   <strong>Amount:</strong> ${exception.booking.totalPrice.toFixed(2)}
                                 </div>
                               )}
+                              </Flex>
                             </div>
                           )}
                           <div
@@ -363,7 +364,7 @@ export default function ExceptionsPage() {
                             Created: {formatDate(exception.createdAt)}
                           </div>
                         </div>
-                      </div>
+                      </Flex>
                       {exception.bookingId && (
                         <Link href={`/bookings/${exception.bookingId}`}>
                           <Button variant="secondary" size="sm">
@@ -371,7 +372,7 @@ export default function ExceptionsPage() {
                           </Button>
                         </Link>
                       )}
-                    </div>
+                    </Flex>
                   </div>
                 );
               })}
