@@ -233,7 +233,11 @@ export default function AutomationsPage() {
         {/* Filters */}
         <Card style={{ marginBottom: tokens.spacing[4] }}>
           <div style={{ padding: tokens.spacing[4] }}>
-            <Flex direction={isMobile ? 'column' : 'row'} gap={4} align={isMobile ? 'stretch' : 'center'}> {/* Batch 5: UI Constitution compliance */}
+            <Flex direction={isMobile ? 'column' : 'row'} gap={4}> {/* Batch 5: UI Constitution compliance */}
+                gap: tokens.spacing[4],
+                alignItems: isMobile ? 'stretch' : 'center',
+              }}
+            >
               <Input
                 placeholder="Search automations..."
                 value={searchTerm}
@@ -263,7 +267,7 @@ export default function AutomationsPage() {
                 ]}
                 style={{ minWidth: isMobile ? '100%' : '150px' }}
               />
-            </Flex>
+            </div>
           </div>
         </Card>
 
