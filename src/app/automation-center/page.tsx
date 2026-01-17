@@ -17,6 +17,9 @@ import {
   EmptyState,
   Skeleton,
   Modal,
+  Flex,
+  Grid,
+  GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -259,11 +262,11 @@ export default function AutomationCenterPage() {
         )}
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <Flex direction="column" gap={4}>
             <Skeleton height={150} />
             <Skeleton height={150} />
             <Skeleton height={150} />
-          </div>
+          </Flex>
         ) : automations.length === 0 ? (
           <EmptyState
             title="No Automations Yet"
@@ -275,12 +278,13 @@ export default function AutomationCenterPage() {
             }}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <Flex direction="column" gap={4}>
             {automations.map((automation) => (
               <Card key={automation.id}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
+                <Flex align="flex-start" justify="space-between" gap={4}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[2], flexWrap: 'wrap' }}>
+                    <div style={{ marginBottom: tokens.spacing[2] }}>
+                      <Flex align="center" gap={2} wrap>
                       <div
                         style={{
                           fontWeight: tokens.typography.fontWeight.bold,
@@ -294,6 +298,7 @@ export default function AutomationCenterPage() {
                         {automation.enabled ? "Active" : "Inactive"}
                       </Badge>
                       <Badge variant="info">Priority: {automation.priority}</Badge>
+                    </Flex>
                     </div>
                     {automation.description && (
                       <div
@@ -306,15 +311,8 @@ export default function AutomationCenterPage() {
                         {automation.description}
                       </div>
                     )}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: tokens.spacing[4],
-                        fontSize: tokens.typography.fontSize.sm[0],
-                        color: tokens.colors.text.secondary,
-                      }}
-                    >
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                      <Flex align="center" gap={4}>
                       <div>
                         <strong>Trigger:</strong> {automation.trigger}
                       </div>
@@ -329,9 +327,10 @@ export default function AutomationCenterPage() {
                           <strong>Executions:</strong> {automation._count.logs}
                         </div>
                       )}
+                      </Flex>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Flex gap={2} align="center" wrap>
                     <Button
                       variant="secondary"
                       size="sm"
@@ -365,11 +364,11 @@ export default function AutomationCenterPage() {
                     >
                       Delete
                     </Button>
-                  </div>
-                </div>
+                  </Flex>
+                </Flex>
               </Card>
             ))}
-          </div>
+          </Flex>
         )}
       </div>
 
@@ -394,7 +393,8 @@ export default function AutomationCenterPage() {
           </div>
 
           {/* Category Filter */}
-          <div style={{ display: 'flex', gap: tokens.spacing[2], marginBottom: tokens.spacing[6], flexWrap: 'wrap' }}>
+          <div style={{ marginBottom: tokens.spacing[6] }}>
+            <Flex gap={2} wrap>
             <Button
               variant={selectedCategory === null ? "primary" : "tertiary"}
               size="sm"
@@ -418,6 +418,7 @@ export default function AutomationCenterPage() {
                 {cat.charAt(0).toUpperCase() + cat.slice(1)}
               </Button>
             ))}
+          </Flex>
           </div>
 
           {/* Templates Grid */}
@@ -434,30 +435,27 @@ export default function AutomationCenterPage() {
               </div>
             </div>
           ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                gap: tokens.spacing[4],
-              }}
-            >
+            <Grid gap={4}>
               {templates.map((template) => (
-                <Card key={template.id}>
-                  <div style={{ marginBottom: tokens.spacing[3] }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[2] }}>
-                      <div
-                        style={{
-                          fontWeight: tokens.typography.fontWeight.bold,
-                          fontSize: tokens.typography.fontSize.lg[0],
-                          color: tokens.colors.text.primary,
-                        }}
-                      >
-                        {template.name}
+                <GridCol span={12} md={6} lg={4} key={template.id}>
+                  <Card>
+                    <div style={{ marginBottom: tokens.spacing[3] }}>
+                      <div style={{ marginBottom: tokens.spacing[2] }}>
+                        <Flex align="center" justify="space-between">
+                          <div
+                            style={{
+                              fontWeight: tokens.typography.fontWeight.bold,
+                              fontSize: tokens.typography.fontSize.lg[0],
+                              color: tokens.colors.text.primary,
+                            }}
+                          >
+                            {template.name}
+                          </div>
+                          <Badge variant="info" style={{ textTransform: 'capitalize' }}>
+                            {template.category}
+                          </Badge>
+                        </Flex>
                       </div>
-                      <Badge variant="info" style={{ textTransform: 'capitalize' }}>
-                        {template.category}
-                      </Badge>
-                    </div>
                     <div
                       style={{
                         fontSize: tokens.typography.fontSize.sm[0],
@@ -469,16 +467,8 @@ export default function AutomationCenterPage() {
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: tokens.spacing[2],
-                      marginBottom: tokens.spacing[4],
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                    }}
-                  >
+                  <div style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    <Flex direction="column" gap={2}>
                     <div>
                       <strong>Trigger:</strong> {template.trigger}
                     </div>
@@ -488,6 +478,7 @@ export default function AutomationCenterPage() {
                     <div>
                       <strong>Actions:</strong> {template.actions.length}
                     </div>
+                    </Flex>
                   </div>
 
                   <Button
@@ -498,8 +489,9 @@ export default function AutomationCenterPage() {
                     Use This Template
                   </Button>
                 </Card>
+                </GridCol>
               ))}
-            </div>
+            </Grid>
           )}
         </div>
       </Modal>
@@ -510,7 +502,7 @@ export default function AutomationCenterPage() {
         onClose={() => setShowLogs(false)}
         title="Automation Logs"
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+        <Flex direction="column" gap={2}>
           {logs.length === 0 ? (
             <div style={{ color: tokens.colors.text.secondary }}>
               No logs yet
@@ -525,13 +517,15 @@ export default function AutomationCenterPage() {
                 }}
               >
                 <div style={{ padding: tokens.spacing[3] }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[2] }}>
+                  <div style={{ marginBottom: tokens.spacing[2] }}>
+                    <Flex align="center" justify="space-between">
                     <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.primary }}>
                       {log.trigger}
                     </div>
                     <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                       {new Date(log.executedAt).toLocaleString()}
                     </div>
+                  </Flex>
                   </div>
                   {log.error && (
                     <div style={{ color: tokens.colors.error[700], fontSize: tokens.typography.fontSize.sm[0], marginTop: tokens.spacing[2] }}>
@@ -542,7 +536,7 @@ export default function AutomationCenterPage() {
               </Card>
             ))
           )}
-        </div>
+        </Flex>
       </Modal>
     </AppShell>
   );
