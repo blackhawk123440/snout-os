@@ -52,7 +52,7 @@ function LoginContent() {
     <div style={{ minHeight: '100vh', padding: tokens.spacing[6], backgroundColor: tokens.colors.neutral[50] }}>
       <div style={{ minHeight: '100vh' }}>
         <Flex align="center" justify="center">
-        <div style={{ maxWidth: '28rem', width: '100%' }}>
+          <div style={{ maxWidth: '28rem', width: '100%' }}>
           <div style={{ marginBottom: tokens.spacing[8] }}>
             <h2 style={{ marginTop: tokens.spacing[6], textAlign: 'center', fontSize: tokens.typography.fontSize['3xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text.primary }}>
               Sign in to Snout OS
@@ -110,8 +110,9 @@ function LoginContent() {
               </Button>
             </div>
           </form>
-        </div>
-      </Flex>
+          </div>
+        </Flex>
+      </div>
     </div>
   );
 }
@@ -120,9 +121,11 @@ export default function LoginPage() {
   return (
     <Suspense fallback={
       <div style={{ minHeight: '100vh' }}>
-        <Flex align="center" justify="center" style={{ minHeight: '100vh' }}>
-          <div>Loading...</div>
-        </Flex>
+        <div style={{ minHeight: '100vh' }}>
+          <Flex align="center" justify="center">
+            <div>Loading...</div>
+          </Flex>
+        </div>
       </div>
     }>
       <LoginContent />
