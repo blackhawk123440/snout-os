@@ -368,13 +368,14 @@ export default function BookingsPage() {
     return count;
   }, [filterStatus, filterService, filterSitter, filterPaidStatus, showCompleted]);
 
-  // Filters panel (for drawer)
+  // Filters panel (for drawer) - Phase F2: Tighter spacing for premium feel
   const filtersPanel = (
-    <Flex direction="column" gap={4}>
+    <Flex direction="column" gap={3}> {/* Phase F2: Reduced gap from 4 to 3 for density */}
       <Select
         label="Status"
         value={filterStatus}
         onChange={(e) => setFilterStatus(e.target.value)}
+        size="md"
         options={[
           { value: 'all', label: 'All Statuses' },
           { value: 'pending', label: 'Pending' },
@@ -389,6 +390,7 @@ export default function BookingsPage() {
         label="Service Type"
         value={filterService}
         onChange={(e) => setFilterService(e.target.value)}
+        size="md"
         options={[
           { value: 'all', label: 'All Services' },
           { value: 'Dog Walking', label: 'Dog Walking' },
@@ -402,6 +404,7 @@ export default function BookingsPage() {
         label="Sitter"
         value={filterSitter}
         onChange={(e) => setFilterSitter(e.target.value)}
+        size="md"
         options={[
           { value: 'all', label: 'All Sitters' },
           ...sitters.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })),
@@ -412,6 +415,7 @@ export default function BookingsPage() {
         label="Paid Status"
         value={filterPaidStatus}
         onChange={(e) => setFilterPaidStatus(e.target.value)}
+        size="md"
         options={[
           { value: 'all', label: 'All' },
           { value: 'paid', label: 'Paid' },
@@ -433,13 +437,13 @@ export default function BookingsPage() {
       <PageHeader
         title="Bookings"
         actions={
-          <Flex align="center" gap={1.5}> {/* Phase E: Migrated to AppShell - actions preserved */}
+          <Flex align="center" gap={1}> {/* Phase F2: Tighter control bar spacing for command feel */}
             <IconButton
               icon={<i className="fas fa-search" />}
               onClick={() => setShowSearchBar(!showSearchBar)}
               aria-label="Toggle search"
             />
-            <Flex align="center" gap={1}>
+            <Flex align="center" gap={0.5}> {/* Phase F2: Tighter badge integration */}
               <IconButton
                 icon={<i className="fas fa-filter" />}
                 onClick={() => setShowFiltersDrawer(true)}
@@ -449,21 +453,22 @@ export default function BookingsPage() {
                 <Badge variant="default">{activeFilterCount}</Badge>
               )}
             </Flex>
-            <Button onClick={() => router.push('/bookings/new')}>
+            <Button size="md" onClick={() => router.push('/bookings/new')}>
               New Booking
             </Button>
           </Flex>
         }
       />
 
-      {/* Inline Search Bar - Phase C: Tighter, more operational */}
+      {/* Inline Search Bar - Phase F2: Premium feel - tighter, operational */}
       {showSearchBar && (
-        <div style={{ padding: `${tokens.spacing[2]} ${tokens.spacing[4]}` }}> {/* Phase C: Reduced vertical padding */}
+        <div style={{ padding: `${tokens.spacing[2]} ${tokens.spacing[4]}` }}> {/* Phase F2: Tighter vertical padding for command bar feel (using spacing[2] instead of spacing[1.5] for consistency) */}
           <Input
             placeholder="Search by name, phone, or service..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             autoFocus
+            size="md"
           />
         </div>
       )}
@@ -484,9 +489,9 @@ export default function BookingsPage() {
         />
       ) : (
         <>
-          {/* Overview Section - Phase D: Operational instrument */}
+          {/* Overview Section - Phase F2: Secondary to bookings list, tighter spacing */}
           <Section heading="Overview">
-            <Grid gap={2}> {/* Phase D: Minimal gap - disciplined spacing */}
+            <Grid gap={2}> {/* Phase F2: Maintain disciplined spacing */}
               <GridCol span={isMobile ? 6 : 3}>
                 <StatCard
                   label="Upcoming"
@@ -522,9 +527,9 @@ export default function BookingsPage() {
             </Grid>
           </Section>
 
-            {/* Resonance: Suggestions Panel - Phase D: Subordinate to list */}
+            {/* Resonance: Suggestions Panel - Phase F2: Subordinate, minimal separation */}
             {ENABLE_RESONANCE_V1 && !isMobile && (
-              <div style={{ marginTop: tokens.spacing[1] }}> {/* Phase D: Minimal separation - anchored feel */}
+              <div style={{ marginTop: tokens.spacing[1] }}> {/* Phase F2: Maintain minimal separation */}
                 <SuggestionsPanel
                   suggestions={allSuggestions}
                   loading={loading}
@@ -553,26 +558,28 @@ export default function BookingsPage() {
             )}
 
 
-          {/* Bookings List Section - Phase D: Primary control surface */}
+          {/* Bookings List Section - Phase F2: Primary anchor, strengthened hierarchy */}
           <Section heading="Bookings List">
             <Panel>
               {loading ? (
-                <div style={{ padding: tokens.spacing[4] }}> {/* Phase B5: Tighter padding */}
+                <div style={{ padding: tokens.spacing[3] }}> {/* Phase F2: Tighter padding for density */}
                   <Skeleton height="400px" />
                 </div>
               ) : filteredBookings.length === 0 ? (
-                <EmptyState
-                  title={bookings.length === 0 ? "No bookings" : "No matches"}
-                  description={
-                    bookings.length === 0
-                      ? undefined // Phase D: Operational neutrality - no guidance text
-                      : undefined // Phase D: Remove helper text - direct, neutral
-                  }
-                  action={{
-                    label: 'Create Booking',
-                    onClick: () => router.push('/bookings/new'),
-                  }}
-                />
+                <div style={{ padding: tokens.spacing[5] }}> {/* Phase F2: Balanced empty state padding */}
+                  <EmptyState
+                    title={bookings.length === 0 ? "No bookings" : "No matches"}
+                    description={
+                      bookings.length === 0
+                        ? undefined // Phase F2: Operational neutrality
+                        : undefined // Phase F2: Direct, neutral
+                    }
+                    action={{
+                      label: 'Create Booking',
+                      onClick: () => router.push('/bookings/new'),
+                    }}
+                  />
+                </div>
               ) : isMobile ? (
                 <CardList<Booking>
                   items={filteredBookings}
@@ -583,10 +590,19 @@ export default function BookingsPage() {
                         setShowBookingDrawer(true);
                       }}
                       style={{
-                        padding: tokens.spacing[4],
+                        padding: tokens.spacing[3], // Phase F2: Tighter mobile card padding for density
                         border: `1px solid ${tokens.colors.border.default}`,
                         borderRadius: tokens.radius.md,
                         cursor: 'pointer',
+                        transition: `all ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`, // Phase F2: Add interaction polish
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = tokens.colors.border.focus;
+                        e.currentTarget.style.boxShadow = tokens.shadow.sm;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = tokens.colors.border.default;
+                        e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
                       <Flex direction="column" gap={2}>
@@ -615,6 +631,7 @@ export default function BookingsPage() {
                         <DataRow label="Date" value={formatDateTime(booking.startAt)} />
                         <DataRow label="Sitter" value={booking.sitter ? `${booking.sitter.firstName} ${booking.sitter.lastName}` : 'Unassigned'} />
                         <DataRow label="Total" value={`$${booking.totalPrice.toFixed(2)}`} />
+                        {/* Phase F2: Ensure all mobile card text is readable and not clipped */}
                         {booking.paidStatus && (
                           <Badge variant={booking.paidStatus === 'paid' ? 'success' : 'warning'}>
                             {booking.paidStatus}
@@ -696,19 +713,20 @@ export default function BookingsPage() {
         </>
       )}
 
-      {/* Filters Drawer */}
+      {/* Filters Drawer - Phase F2: Premium feel, compact spacing */}
       <Drawer
         isOpen={showFiltersDrawer}
         onClose={() => setShowFiltersDrawer(false)}
         placement={isMobile ? "left" : "right"}
         title="Filters"
       >
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div style={{ padding: tokens.spacing[3] }}> {/* Phase F2: Tighter drawer padding */}
           {filtersPanel}
-          <div style={{ marginTop: tokens.spacing[4] }}>
+          <div style={{ marginTop: tokens.spacing[3] }}> {/* Phase F2: Reduced spacing */}
           <Flex direction="column" gap={2}>
             <Button 
               variant="primary" 
+              size="md"
               onClick={() => setShowFiltersDrawer(false)}
             >
               Apply Filters
@@ -716,6 +734,7 @@ export default function BookingsPage() {
             {activeFilterCount > 0 && (
               <Button 
                 variant="ghost" 
+                size="md"
                 onClick={() => {
                   setFilterStatus('all');
                   setFilterService('all');
@@ -833,8 +852,8 @@ function BookingDetailsContent({ booking, commandContext, onCommandSelect, getBo
   }, [availableCommands, commandContext]);
 
   return (
-    <div style={{ padding: tokens.spacing[4] }}>
-      <Flex direction="column" gap={6}>
+    <div style={{ padding: tokens.spacing[3] }}> {/* Phase F2: Tighter drawer content padding */}
+      <Flex direction="column" gap={4}> {/* Phase F2: Reduced gap for density */}
         {/* Summary Header */}
         <Flex direction="column" gap={2}>
           <Flex justify="space-between" align="center">
