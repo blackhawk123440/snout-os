@@ -481,7 +481,7 @@ export default function PaymentsPage() {
           <Flex align="center" justify="space-between">
             <div style={{ color: tokens.colors.error.DEFAULT }}>
               <Flex align="center" gap={3}>
-              <i className="fas fa-exclamation-circle" />
+                <i className="fas fa-exclamation-circle" />
                 <span>{error}</span>
               </Flex>
             </div>
@@ -603,7 +603,7 @@ export default function PaymentsPage() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               style={{ width: 'auto', minWidth: '200px' }}
-              />
+            />
           )}
         </Flex>
       </Card>

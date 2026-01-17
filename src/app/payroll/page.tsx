@@ -376,23 +376,21 @@ export default function PayrollPage() {
                 ]}
               />
             ) : (
-              <div>
-                <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
-                  <GridCol span={12} md={4}>
-                    <Select
-                      label="Status"
-                      options={[
-                        { value: 'all', label: 'All Statuses' },
-                        { value: 'pending', label: 'Pending' },
-                        { value: 'approved', label: 'Approved' },
-                        { value: 'paid', label: 'Paid' },
-                      ]}
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                    />
-                  </GridCol>
-                </Grid>
-              </div>
+              <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
+                <GridCol span={12} md={4}>
+                  <Select
+                    label="Status"
+                    options={[
+                      { value: 'all', label: 'All Statuses' },
+                      { value: 'pending', label: 'Pending' },
+                      { value: 'approved', label: 'Approved' },
+                      { value: 'paid', label: 'Paid' },
+                    ]}
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  />
+                </GridCol>
+              </Grid>
             )}
             <Select
               label="Pay Period"
@@ -473,7 +471,7 @@ export default function PayrollPage() {
                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[3] }}>
                   Booking Breakdown ({selectedBookings.length} bookings)
                 </div>
-                <div>
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   {selectedBookings.map((booking) => (
                     <Card key={booking.bookingId} style={{ marginBottom: tokens.spacing[2] }}>
                       <Flex justify="space-between" align="center">

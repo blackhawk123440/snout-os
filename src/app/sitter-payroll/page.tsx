@@ -15,9 +15,6 @@ import {
   StatCard,
   Skeleton,
   EmptyState,
-  Flex,
-  Grid,
-  GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -167,37 +164,34 @@ export default function SitterPayrollPage() {
 
       <div style={{ padding: tokens.spacing[6] }}>
         {/* Current Period Stats */}
-        <div style={{ marginBottom: tokens.spacing[6] }}>
-          <Grid gap={4}> {/* Batch 6: UI Constitution compliance */}
-            <GridCol span={12} md={6} lg={3}>
-              <StatCard
-                label="Current Period Earnings"
-                value={formatCurrency(payrollData.currentPeriod.totalEarnings)}
-                icon={<i className="fas fa-dollar-sign" />}
-              />
-            </GridCol>
-            <GridCol span={12} md={6} lg={3}>
-              <StatCard
-                label="Commission"
-                value={formatCurrency(payrollData.currentPeriod.commissionAmount)}
-                icon={<i className="fas fa-percent" />}
-              />
-            </GridCol>
-            <GridCol span={12} md={6} lg={3}>
-              <StatCard
-                label="Net Payout"
-                value={formatCurrency(payrollData.currentPeriod.netPayout)}
-                icon={<i className="fas fa-money-bill-wave" />}
-              />
-            </GridCol>
-            <GridCol span={12} md={6} lg={3}>
-              <StatCard
-                label="Bookings"
-                value={payrollData.currentPeriod.bookingCount}
-                icon={<i className="fas fa-calendar-check" />}
-              />
-            </GridCol>
-          </Grid>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: tokens.spacing[4],
+            marginBottom: tokens.spacing[6],
+          }}
+        >
+          <StatCard
+            label="Current Period Earnings"
+            value={formatCurrency(payrollData.currentPeriod.totalEarnings)}
+            icon={<i className="fas fa-dollar-sign" />}
+          />
+          <StatCard
+            label="Commission"
+            value={formatCurrency(payrollData.currentPeriod.commissionAmount)}
+            icon={<i className="fas fa-percent" />}
+          />
+          <StatCard
+            label="Net Payout"
+            value={formatCurrency(payrollData.currentPeriod.netPayout)}
+            icon={<i className="fas fa-money-bill-wave" />}
+          />
+          <StatCard
+            label="Bookings"
+            value={payrollData.currentPeriod.bookingCount}
+            icon={<i className="fas fa-calendar-check" />}
+          />
         </div>
 
         {/* Current Period Details */}
@@ -222,94 +216,91 @@ export default function SitterPayrollPage() {
             {formatDate(payrollData.currentPeriod.endDate)}
           </div>
 
-          <div style={{ marginBottom: tokens.spacing[4] }}>
-            <Grid gap={4}> {/* Batch 6: UI Constitution compliance */}
-              <GridCol span={12} md={6} lg={3}>
-                <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
-                    Total Earnings
-                  </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.xl[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                    }}
-                  >
-                    {formatCurrency(payrollData.currentPeriod.totalEarnings)}
-                  </div>
-                </div>
-              </GridCol>
-              <GridCol span={12} md={6} lg={3}>
-                <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
-                    Commission ({payrollData.sitter.commissionPercentage}%)
-                  </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.xl[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                    }}
-                  >
-                    {formatCurrency(payrollData.currentPeriod.commissionAmount)}
-                  </div>
-                </div>
-              </GridCol>
-              <GridCol span={12} md={6} lg={3}>
-                <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
-                    Fees
-                  </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.xl[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                    }}
-                  >
-                    {formatCurrency(payrollData.currentPeriod.fees)}
-                  </div>
-                </div>
-              </GridCol>
-              <GridCol span={12} md={6} lg={3}>
-                <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
-                    Net Payout
-                  </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.xl[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                      color: tokens.colors.success.DEFAULT,
-                    }}
-                  >
-                    {formatCurrency(payrollData.currentPeriod.netPayout)}
-                  </div>
-                </div>
-              </GridCol>
-            </Grid>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: tokens.spacing[4],
+              marginBottom: tokens.spacing[4],
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.sm[0],
+                  color: tokens.colors.text.secondary,
+                  marginBottom: tokens.spacing[1],
+                }}
+              >
+                Total Earnings
+              </div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.xl[0],
+                  fontWeight: tokens.typography.fontWeight.bold,
+                }}
+              >
+                {formatCurrency(payrollData.currentPeriod.totalEarnings)}
+              </div>
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.sm[0],
+                  color: tokens.colors.text.secondary,
+                  marginBottom: tokens.spacing[1],
+                }}
+              >
+                Commission ({payrollData.sitter.commissionPercentage}%)
+              </div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.xl[0],
+                  fontWeight: tokens.typography.fontWeight.bold,
+                }}
+              >
+                {formatCurrency(payrollData.currentPeriod.commissionAmount)}
+              </div>
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.sm[0],
+                  color: tokens.colors.text.secondary,
+                  marginBottom: tokens.spacing[1],
+                }}
+              >
+                Fees
+              </div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.xl[0],
+                  fontWeight: tokens.typography.fontWeight.bold,
+                }}
+              >
+                {formatCurrency(payrollData.currentPeriod.fees)}
+              </div>
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.sm[0],
+                  color: tokens.colors.text.secondary,
+                  marginBottom: tokens.spacing[1],
+                }}
+              >
+                Net Payout
+              </div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.xl[0],
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  color: tokens.colors.success.DEFAULT,
+                }}
+              >
+                {formatCurrency(payrollData.currentPeriod.netPayout)}
+              </div>
+            </div>
           </div>
 
           {/* Booking Breakdown */}
@@ -323,10 +314,16 @@ export default function SitterPayrollPage() {
               >
                 Booking Breakdown ({payrollData.currentPeriod.bookings.length} bookings)
               </div>
-              <Flex direction="column" gap={2}> {/* Batch 6: UI Constitution compliance */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
                 {payrollData.currentPeriod.bookings.map((booking) => (
                   <Card key={booking.bookingId}>
-                    <Flex justify="space-between" align="center">
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
                       <div>
                         <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
                           {booking.service}
@@ -352,10 +349,10 @@ export default function SitterPayrollPage() {
                           {booking.commissionPercentage}%)
                         </div>
                       </div>
-                    </Flex>
+                    </div>
                   </Card>
                 ))}
-              </Flex>
+              </div>
             </div>
           )}
         </Card>
@@ -382,80 +379,78 @@ export default function SitterPayrollPage() {
             {formatDate(payrollData.previousPeriod.endDate)}
           </div>
 
-          <div>
-            <Grid gap={4}> {/* Batch 6: UI Constitution compliance */}
-              <GridCol span={12} md={6} lg={3}>
-                <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
-                    Previous Earnings
-                  </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.lg[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                    }}
-                  >
-                    {formatCurrency(payrollData.previousPeriod.totalEarnings)}
-                  </div>
-                </div>
-              </GridCol>
-              <GridCol span={12} md={6} lg={3}>
-                <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
-                    Previous Payout
-                  </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.lg[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                    }}
-                  >
-                    {formatCurrency(payrollData.previousPeriod.netPayout)}
-                  </div>
-                </div>
-              </GridCol>
-              <GridCol span={12} md={6} lg={3}>
-                <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
-                    Change
-                  </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.lg[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                      color:
-                        payrollData.currentPeriod.netPayout >=
-                        payrollData.previousPeriod.netPayout
-                          ? tokens.colors.success.DEFAULT
-                          : tokens.colors.error.DEFAULT,
-                    }}
-                  >
-                    {formatCurrency(
-                      payrollData.currentPeriod.netPayout -
-                        payrollData.previousPeriod.netPayout
-                    )}
-                  </div>
-                </div>
-              </GridCol>
-            </Grid>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: tokens.spacing[4],
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.sm[0],
+                  color: tokens.colors.text.secondary,
+                  marginBottom: tokens.spacing[1],
+                }}
+              >
+                Previous Earnings
+              </div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.lg[0],
+                  fontWeight: tokens.typography.fontWeight.bold,
+                }}
+              >
+                {formatCurrency(payrollData.previousPeriod.totalEarnings)}
+              </div>
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.sm[0],
+                  color: tokens.colors.text.secondary,
+                  marginBottom: tokens.spacing[1],
+                }}
+              >
+                Previous Payout
+              </div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.lg[0],
+                  fontWeight: tokens.typography.fontWeight.bold,
+                }}
+              >
+                {formatCurrency(payrollData.previousPeriod.netPayout)}
+              </div>
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.sm[0],
+                  color: tokens.colors.text.secondary,
+                  marginBottom: tokens.spacing[1],
+                }}
+              >
+                Change
+              </div>
+              <div
+                style={{
+                  fontSize: tokens.typography.fontSize.lg[0],
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  color:
+                    payrollData.currentPeriod.netPayout >=
+                    payrollData.previousPeriod.netPayout
+                      ? tokens.colors.success.DEFAULT
+                      : tokens.colors.error.DEFAULT,
+                }}
+              >
+                {formatCurrency(
+                  payrollData.currentPeriod.netPayout -
+                    payrollData.previousPeriod.netPayout
+                )}
+              </div>
+            </div>
           </div>
         </Card>
       </div>
