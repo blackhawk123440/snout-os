@@ -1,0 +1,1088 @@
+/**
+ * Calendar Page - Enterprise Rebuild
+ * 
+ * Complete rebuild using design system and components.
+ * Zero legacy styling - all through components and tokens.
+ */
+
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import {
+  PageHeader,
+  Card,
+  Button,
+  Select,
+  Badge,
+  Modal,
+  Skeleton,
+  EmptyState,
+} from '@/components/ui';
+import { AppShell } from '@/components/layout/AppShell';
+import { tokens } from '@/lib/design-tokens';
+import { useMobile } from '@/lib/use-mobile';
+import { BookingScheduleDisplay } from '@/components/booking';
+import { SitterAssignmentDisplay } from '@/components/sitter';
+import { CalendarGrid, AgendaPanel, BookingDrawer, type CalendarDay as CalendarGridDay, type AgendaBooking, type BookingDrawerBooking } from '@/components/calendar';
+
+interface Booking {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  address: string;
+  service: string;
+  startAt: string | Date;
+  endAt: string | Date;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  totalPrice: number;
+  pets: Array<{ species: string }>;
+  sitter?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  timeSlots?: Array<{
+    startAt: string | Date;
+    endAt: string | Date;
+  }>;
+}
+
+interface CalendarDay {
+  date: Date;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  isPast: boolean;
+  bookings: Booking[];
+}
+
+interface Sitter {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
+export default function CalendarPage() {
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [sitters, setSitters] = useState<Sitter[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedSitterFilter, setSelectedSitterFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'month' | 'agenda'>('month');
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [drawerBooking, setDrawerBooking] = useState<BookingDrawerBooking | null>(null);
+  const [showBookingDrawer, setShowBookingDrawer] = useState(false);
+  const isMobile = useMobile();
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Default to Agenda view on mobile (only on initial load)
+  useEffect(() => {
+    if (!hasInitialized && isMobile) {
+      setViewMode('agenda');
+      setHasInitialized(true);
+    } else if (!hasInitialized) {
+      setHasInitialized(true);
+    }
+  }, [isMobile, hasInitialized]);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (selectedDate && viewMode !== 'month') {
+      setSelectedDate(null);
+    }
+  }, [viewMode]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [bookingsRes, sittersRes] = await Promise.all([
+        fetch('/api/bookings').catch(() => null),
+        fetch('/api/sitters').catch(() => null),
+      ]);
+
+      if (bookingsRes?.ok) {
+        const data = await bookingsRes.json();
+      setBookings(data.bookings || []);
+      } else if (bookingsRes && !bookingsRes.ok) {
+        throw new Error('Failed to fetch bookings');
+      }
+
+      if (sittersRes?.ok) {
+        const data = await sittersRes.json();
+        setSitters(data.sitters || []);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load calendar data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((booking) => {
+      if (selectedSitterFilter !== 'all') {
+      return booking.sitter?.id === selectedSitterFilter;
+    }
+    return true;
+  });
+  }, [bookings, selectedSitterFilter]);
+
+  const agendaBookings = useMemo(() => {
+    const now = new Date();
+    return [...filteredBookings]
+      .filter((booking) => new Date(booking.endAt) >= now)
+      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+  }, [filteredBookings]);
+
+  const agendaGrouped = useMemo(() => {
+    const groups = new Map<string, Booking[]>();
+    agendaBookings.forEach((booking) => {
+      const dateKey = new Date(booking.startAt).toISOString().split('T')[0];
+      if (!groups.has(dateKey)) {
+        groups.set(dateKey, []);
+      }
+      groups.get(dateKey)!.push(booking);
+    });
+
+    return Array.from(groups.entries()).map(([date, items]) => ({
+      date,
+      bookings: items.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()),
+    }));
+  }, [agendaBookings]);
+
+  const getBookingsForDate = (date: Date): Booking[] => {
+    const dateStr = date.toISOString().split('T')[0];
+    const bookings = filteredBookings.filter((booking) => {
+      const startAt = new Date(booking.startAt);
+      const startDateStr = startAt.toISOString().split('T')[0];
+
+      if (booking.timeSlots && booking.timeSlots.length > 0) {
+        return booking.timeSlots.some((slot) => {
+          const slotDate = new Date(slot.startAt);
+          return slotDate.toISOString().split('T')[0] === dateStr;
+        });
+      }
+
+      if (booking.service === 'Housesitting' || booking.service === '24/7 Care') {
+        const endAt = new Date(booking.endAt);
+        const dateOnly = new Date(date);
+        dateOnly.setHours(0, 0, 0, 0);
+        const startOnly = new Date(startAt);
+        startOnly.setHours(0, 0, 0, 0);
+        const endOnly = new Date(endAt);
+        endOnly.setHours(0, 0, 0, 0);
+        return dateOnly >= startOnly && dateOnly <= endOnly;
+      }
+
+      return startDateStr === dateStr;
+    });
+
+    return bookings.sort((a, b) => {
+      const aTime =
+        a.timeSlots && a.timeSlots.length > 0
+          ? Math.min(...a.timeSlots.map((s: any) => new Date(s.startAt).getTime()))
+          : new Date(a.startAt).getTime();
+      const bTime =
+        b.timeSlots && b.timeSlots.length > 0
+          ? Math.min(...b.timeSlots.map((s: any) => new Date(s.startAt).getTime()))
+          : new Date(b.startAt).getTime();
+      return aTime - bTime;
+    });
+  };
+
+  const calendarDays = useMemo((): CalendarDay[] => {
+    const year = currentYear;
+    const month = currentMonth;
+
+    const firstDay = new Date(year, month, 1);
+    const firstDayOfWeek = firstDay.getDay();
+    const lastDay = new Date(year, month + 1, 0);
+    const lastDate = lastDay.getDate();
+    const prevMonthLastDay = new Date(year, month, 0);
+    const prevMonthLastDate = prevMonthLastDay.getDate();
+
+    const days: CalendarDay[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const date = new Date(year, month - 1, prevMonthLastDate - i);
+      const dateOnly = new Date(date);
+      dateOnly.setHours(0, 0, 0, 0);
+      days.push({
+        date: dateOnly,
+        isCurrentMonth: false,
+        isToday: false,
+        isPast: dateOnly < today,
+        bookings: getBookingsForDate(dateOnly),
+      });
+    }
+
+    for (let day = 1; day <= lastDate; day++) {
+      const date = new Date(year, month, day);
+      const dateOnly = new Date(date);
+      dateOnly.setHours(0, 0, 0, 0);
+      const isToday = dateOnly.getTime() === today.getTime();
+      days.push({
+        date: dateOnly,
+        isCurrentMonth: true,
+        isToday,
+        isPast: dateOnly < today && !isToday,
+        bookings: getBookingsForDate(dateOnly),
+      });
+    }
+
+    const remainingDays = 42 - days.length;
+    for (let day = 1; day <= remainingDays; day++) {
+      const date = new Date(year, month + 1, day);
+      const dateOnly = new Date(date);
+      dateOnly.setHours(0, 0, 0, 0);
+      days.push({
+        date: dateOnly,
+        isCurrentMonth: false,
+        isToday: false,
+        isPast: dateOnly < today,
+        bookings: getBookingsForDate(dateOnly),
+      });
+    }
+
+    return days;
+  }, [currentMonth, currentYear, filteredBookings]);
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      if (currentMonth === 0) {
+        setCurrentMonth(11);
+        setCurrentYear(currentYear - 1);
+      } else {
+        setCurrentMonth(currentMonth - 1);
+      }
+    } else {
+      if (currentMonth === 11) {
+        setCurrentMonth(0);
+        setCurrentYear(currentYear + 1);
+      } else {
+        setCurrentMonth(currentMonth + 1);
+      }
+    }
+  };
+
+  const goToToday = () => {
+    const today = new Date();
+    setCurrentMonth(today.getMonth());
+    setCurrentYear(today.getFullYear());
+    setSelectedDate(null);
+  };
+
+  const formatPetsByQuantity = (pets: Array<{ species: string }>): string => {
+    const counts: Record<string, number> = {};
+    pets.forEach((pet) => {
+      counts[pet.species] = (counts[pet.species] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([species, count]) => `${count} ${species}${count > 1 ? 's' : ''}`)
+      .join(', ');
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const formatTime = (date: Date | string) => {
+    return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const monthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const getStatusBadgeVariant = (status: string): 'default' | 'success' | 'warning' | 'error' => {
+    switch (status) {
+      case 'pending':
+        return 'warning';
+      case 'confirmed':
+        return 'success';
+      case 'completed':
+        return 'default';
+      case 'cancelled':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const selectedDateBookings = selectedDate ? getBookingsForDate(selectedDate) : [];
+
+  if (loading) {
+    return (
+      <AppShell>
+        <PageHeader title="Calendar" description="View bookings in calendar format" />
+        <Card>
+          <Skeleton height="600px" />
+        </Card>
+      </AppShell>
+    );
+  }
+
+  if (error && bookings.length === 0) {
+    return (
+      <AppShell>
+        <PageHeader title="Calendar" description="View bookings in calendar format" />
+        <Card>
+          <EmptyState
+            icon="⚠️"
+            title="Failed to Load Calendar"
+            description={error}
+            action={{
+              label: 'Retry',
+              onClick: fetchData,
+              variant: 'primary',
+            }}
+          />
+        </Card>
+      </AppShell>
+    );
+  }
+
+  return (
+    <AppShell>
+      <PageHeader
+        title="Calendar"
+        description="View bookings in calendar format"
+        actions={
+          <>
+            <Link href="/calendar/accounts">
+              <Button variant="secondary" leftIcon={<i className="fas fa-cog" />}>
+                Calendar Settings
+              </Button>
+            </Link>
+            <Link href="/bookings">
+              <Button variant="secondary" leftIcon={<i className="fas fa-arrow-left" />}>
+                Back to Bookings
+              </Button>
+            </Link>
+          </>
+        }
+      />
+
+      {/* Filters and Navigation */}
+      <Card
+        style={{
+          marginBottom: tokens.spacing[6],
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
+          }}
+        >
+          {/* Month Navigation */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
+              justifyContent: 'space-between',
+              gap: isMobile ? tokens.spacing[3] : tokens.spacing[4],
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: tokens.spacing[2],
+                flex: 1,
+                minWidth: 0,
+                justifyContent: isMobile ? 'space-between' : 'flex-start',
+              }}
+            >
+              <Button variant="ghost" size="sm" onClick={() => navigateMonth('prev')}>
+                <i className="fas fa-chevron-left" />
+              </Button>
+              <h2
+                style={{
+                  fontSize: isMobile 
+                    ? tokens.typography.fontSize.base[0]
+                    : tokens.typography.fontSize.xl[0],
+                  fontWeight: tokens.typography.fontWeight.semibold,
+                  color: tokens.colors.text.primary,
+                  minWidth: 0,
+                  flex: '1 1 auto',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {monthNames[currentMonth]} {currentYear}
+              </h2>
+              <Button variant="ghost" size="sm" onClick={() => navigateMonth('next')}>
+                <i className="fas fa-chevron-right" />
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                onClick={goToToday}
+                style={{
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Today
+              </Button>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: tokens.spacing[2],
+                width: isMobile ? '100%' : 'auto',
+              }}
+            >
+              <Button
+                variant={viewMode === 'month' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => setViewMode('month')}
+                leftIcon={<i className="fas fa-table" />}
+                style={{
+                  flex: isMobile ? 1 : 'none',
+                }}
+              >
+                Month
+              </Button>
+              <Button
+                variant={viewMode === 'agenda' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => setViewMode('agenda')}
+                leftIcon={<i className="fas fa-list" />}
+                style={{
+                  flex: isMobile ? 1 : 'none',
+                }}
+              >
+                Agenda
+              </Button>
+        </div>
+      </div>
+
+          {/* Sitter Filter */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
+              gap: isMobile ? tokens.spacing[2] : tokens.spacing[3],
+            }}
+          >
+            <label
+              style={{
+                fontSize: tokens.typography.fontSize.sm[0],
+                fontWeight: tokens.typography.fontWeight.medium,
+                color: tokens.colors.text.primary,
+                width: isMobile ? '100%' : 'auto',
+              }}
+            >
+              Sitter:
+            </label>
+            <Select
+              options={[
+                { value: 'all', label: 'All Sitters' },
+                ...sitters.map((s) => ({
+                  value: s.id,
+                  label: `${s.firstName} ${s.lastName}`,
+                })),
+              ]}
+                value={selectedSitterFilter}
+                onChange={(e) => setSelectedSitterFilter(e.target.value)}
+              style={{ 
+                minWidth: isMobile ? '100%' : '200px',
+                width: isMobile ? '100%' : 'auto',
+              }}
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Calendar View */}
+      {isMobile ? (
+        viewMode === 'month' ? (
+          <CalendarGrid
+            days={calendarDays.map(day => ({
+              ...day,
+              events: day.bookings.map(booking => ({
+                id: booking.id,
+                firstName: booking.firstName,
+                lastName: booking.lastName,
+                service: booking.service,
+                startAt: booking.startAt,
+                endAt: booking.endAt,
+                timeSlots: booking.timeSlots,
+              })),
+            })) as CalendarGridDay[]}
+            selectedDate={selectedDate}
+            onDateSelect={(date) => {
+              setSelectedDate(date);
+              const dayBookings = getBookingsForDate(date);
+              if (dayBookings.length > 0) {
+                setSelectedBooking(dayBookings[0]);
+                setShowDetailModal(true);
+              }
+            }}
+            onEventClick={(event, date) => {
+              const booking = bookings.find(b => b.id === event.id);
+              if (booking) {
+                setSelectedBooking(booking);
+                setShowDetailModal(true);
+              }
+            }}
+            monthName={monthNames[currentMonth]}
+            year={currentYear}
+            formatTime={formatTime}
+          />
+        ) : (
+        /* Agenda View */
+        <Card>
+          {agendaGrouped.length === 0 ? (
+            <EmptyState
+              icon="📅"
+              title="No Upcoming Bookings"
+              description="Adjust your filters or switch back to month view to see more bookings."
+            />
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: tokens.spacing[4],
+              }}
+            >
+              {agendaGrouped.map((group) => {
+                const dateObj = new Date(group.date);
+                return (
+                  <Card key={group.date} padding={false}>
+                    <div
+                      style={{
+                        padding: tokens.spacing[4],
+                        borderBottom: `1px solid ${tokens.colors.border.default}`,
+                        backgroundColor: tokens.colors.background.secondary,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: tokens.typography.fontSize.base[0],
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.text.primary,
+                        }}
+                      >
+                        {dateObj.toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </div>
+                      <Badge variant="default">{group.bookings.length} booking{group.bookings.length > 1 ? 's' : ''}</Badge>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                      }}
+                    >
+                      {group.bookings.map((booking) => {
+                        const start = new Date(booking.startAt);
+                        const end = new Date(booking.endAt);
+                        return (
+                          <div
+                            key={booking.id}
+                            style={{
+                              padding: tokens.spacing[4],
+                              borderBottom: `1px solid ${tokens.colors.border.muted}`,
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'space-between',
+                              gap: tokens.spacing[4],
+                            }}
+                          >
+                            <div style={{ flex: 1 }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: tokens.spacing[2],
+                                  marginBottom: tokens.spacing[2],
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontSize: tokens.typography.fontSize.base[0],
+                                    fontWeight: tokens.typography.fontWeight.semibold,
+                                    color: tokens.colors.text.primary,
+                                  }}
+                                >
+                                  {booking.service}
+                                </span>
+                                <Badge variant={getStatusBadgeVariant(booking.status)}>
+                                  {booking.status}
+                                </Badge>
+                              </div>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: tokens.spacing[1],
+                                  fontSize: tokens.typography.fontSize.sm[0],
+                                  color: tokens.colors.text.secondary,
+                                }}
+                              >
+                                <div>
+                                  <i className="fas fa-clock" style={{ marginRight: tokens.spacing[2] }} />
+                                  {formatTime(start)} - {formatTime(end)}
+                                </div>
+                                <div>
+                                  <i className="fas fa-user" style={{ marginRight: tokens.spacing[2] }} />
+                                  {booking.firstName} {booking.lastName}
+                                </div>
+                                {booking.sitter && (
+                                  <div>
+                                    <i className="fas fa-user-check" style={{ marginRight: tokens.spacing[2] }} />
+                                    Sitter: <SitterAssignmentDisplay sitter={booking.sitter} showTierBadge compact />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-end',
+                                gap: tokens.spacing[1],
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: tokens.typography.fontSize.base[0],
+                                  fontWeight: tokens.typography.fontWeight.bold,
+                                  color: tokens.colors.text.primary,
+                                }}
+                              >
+                                ${booking.totalPrice.toFixed(2)}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: tokens.typography.fontSize.sm[0],
+                                  color: tokens.colors.text.secondary,
+                                }}
+                              >
+                                {formatPetsByQuantity(booking.pets)}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+        )
+      ) : null}
+
+      {/* Selected Date Modal - Mobile Only */}
+      {isMobile && viewMode === 'month' && selectedDate && (
+        <Modal
+          isOpen={!!selectedDate}
+          onClose={() => setSelectedDate(null)}
+          title={`Bookings for ${formatDate(selectedDate)}`}
+          size="lg"
+        >
+          {selectedDateBookings.length === 0 ? (
+            <EmptyState
+              icon="📅"
+              title="No Bookings"
+              description="No bookings scheduled for this date."
+            />
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: tokens.spacing[4],
+              }}
+            >
+              {selectedDateBookings.map((booking) => {
+                const dateStr = selectedDate.toISOString().split('T')[0];
+                const dayTimeSlots =
+                  booking.timeSlots && booking.timeSlots.length > 0
+                    ? booking.timeSlots
+                        .filter((slot) => {
+                          const slotDate = new Date(slot.startAt).toISOString().split('T')[0];
+                          return slotDate === dateStr;
+                        })
+                        .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
+                    : [];
+
+                return (
+                  <Card key={booking.id}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'space-between',
+                        marginBottom: tokens.spacing[4],
+                      }}
+                    >
+                      <div>
+                        <h3
+                          style={{
+                            fontSize: tokens.typography.fontSize.xl[0],
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            color: tokens.colors.text.primary,
+                            margin: 0,
+                            marginBottom: tokens.spacing[1],
+                          }}
+                        >
+                            {booking.firstName} {booking.lastName}
+                          </h3>
+                        <p
+                          style={{
+                            fontSize: tokens.typography.fontSize.base[0],
+                            color: tokens.colors.text.secondary,
+                            margin: 0,
+                          }}
+                        >
+                          {booking.service}
+                        </p>
+                      </div>
+                      <Badge variant={getStatusBadgeVariant(booking.status)}>
+                            {booking.status}
+                      </Badge>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: tokens.spacing[4],
+                        marginBottom: tokens.spacing[4],
+                      }}
+                    >
+                      {dayTimeSlots.length > 0 ? (
+                        <div>
+                          <div
+                            style={{
+                              fontSize: tokens.typography.fontSize.sm[0],
+                              color: tokens.colors.text.secondary,
+                              marginBottom: tokens.spacing[1],
+                            }}
+                          >
+                            Time Slots
+                          </div>
+                          {dayTimeSlots.map((slot, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                fontSize: tokens.typography.fontSize.base[0],
+                                fontWeight: tokens.typography.fontWeight.medium,
+                              }}
+                            >
+                              {formatTime(new Date(slot.startAt))} - {formatTime(new Date(slot.endAt))}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div>
+                          <div
+                            style={{
+                              fontSize: tokens.typography.fontSize.sm[0],
+                              color: tokens.colors.text.secondary,
+                              marginBottom: tokens.spacing[1],
+                            }}
+                          >
+                            Time
+                          </div>
+                          <div
+                            style={{
+                              fontSize: tokens.typography.fontSize.base[0],
+                              fontWeight: tokens.typography.fontWeight.medium,
+                            }}
+                          >
+                            {formatTime(new Date(booking.startAt))} - {formatTime(new Date(booking.endAt))}
+                          </div>
+                        </div>
+                      )}
+
+                      {booking.sitter ? (
+                        <div>
+                          <div
+                            style={{
+                              fontSize: tokens.typography.fontSize.sm[0],
+                              color: tokens.colors.text.secondary,
+                              marginBottom: tokens.spacing[1],
+                            }}
+                          >
+                            Assigned Sitter
+                          </div>
+                          <div
+                            style={{
+                              fontSize: tokens.typography.fontSize.base[0],
+                              fontWeight: tokens.typography.fontWeight.semibold,
+                              color: tokens.colors.text.primary,
+                            }}
+                          >
+                            <SitterAssignmentDisplay sitter={booking.sitter} showTierBadge compact />
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div
+                            style={{
+                              fontSize: tokens.typography.fontSize.sm[0],
+                              color: tokens.colors.text.secondary,
+                              marginBottom: tokens.spacing[1],
+                            }}
+                          >
+                            Assigned Sitter
+                          </div>
+                          <div
+                            style={{
+                              fontSize: tokens.typography.fontSize.base[0],
+                              color: tokens.colors.text.tertiary,
+                            }}
+                          >
+                            Not Assigned
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <div
+                          style={{
+                            fontSize: tokens.typography.fontSize.sm[0],
+                            color: tokens.colors.text.secondary,
+                            marginBottom: tokens.spacing[1],
+                          }}
+                        >
+                          Pets
+                        </div>
+                        <div
+                          style={{
+                            fontSize: tokens.typography.fontSize.base[0],
+                            fontWeight: tokens.typography.fontWeight.medium,
+                          }}
+                        >
+                          {formatPetsByQuantity(booking.pets)}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div
+                          style={{
+                            fontSize: tokens.typography.fontSize.sm[0],
+                            color: tokens.colors.text.secondary,
+                            marginBottom: tokens.spacing[1],
+                          }}
+                        >
+                          Total Price
+                        </div>
+                        <div
+                          style={{
+                            fontSize: tokens.typography.fontSize.base[0],
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            color: tokens.colors.text.primary,
+                          }}
+                        >
+                          ${booking.totalPrice.toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {(booking.email || booking.phone) && (
+                      <div
+                        style={{
+                          paddingTop: tokens.spacing[4],
+                          borderTop: `1px solid ${tokens.colors.border.default}`,
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                          gap: tokens.spacing[3],
+                          fontSize: tokens.typography.fontSize.sm[0],
+                        }}
+                      >
+                        {booking.phone && (
+                          <div>
+                            <i className="fas fa-phone" style={{ marginRight: tokens.spacing[2] }} />
+                            <a href={`tel:${booking.phone}`} style={{ color: tokens.colors.primary.DEFAULT }}>
+                              {booking.phone}
+                            </a>
+                  </div>
+                        )}
+                        {booking.email && (
+                          <div>
+                            <i className="fas fa-envelope" style={{ marginRight: tokens.spacing[2] }} />
+                            <a href={`mailto:${booking.email}`} style={{ color: tokens.colors.primary.DEFAULT }}>
+                              {booking.email}
+                            </a>
+              </div>
+            )}
+          </div>
+                    )}
+                  </Card>
+                );
+              })}
+        </div>
+          )}
+        </Modal>
+      )}
+
+      {/* Desktop Layout with Agenda Panel and Drawer */}
+      {!isMobile && viewMode === 'month' && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '260px 1fr 400px',
+            gap: tokens.spacing[6],
+            marginTop: tokens.spacing[6],
+          }}
+        >
+          {/* Left: Agenda Panel */}
+          <AgendaPanel
+            selectedDate={selectedDate}
+            bookings={filteredBookings.map(b => ({
+              id: b.id,
+              firstName: b.firstName,
+              lastName: b.lastName,
+              service: b.service,
+              startAt: b.startAt,
+              endAt: b.endAt,
+              status: b.status,
+              totalPrice: b.totalPrice,
+              sitter: b.sitter ? {
+                id: b.sitter.id,
+                firstName: b.sitter.firstName,
+                lastName: b.sitter.lastName,
+                currentTier: null,
+              } : null,
+              timeSlots: b.timeSlots?.map((ts: any) => ({
+                id: ts.id || `${b.id}-${ts.startAt}`,
+                startAt: ts.startAt,
+                endAt: ts.endAt,
+                duration: ts.duration,
+              })),
+            }))}
+            onBookingClick={(booking) => {
+              const fullBooking = bookings.find(b => b.id === booking.id);
+              if (fullBooking) {
+                setDrawerBooking({
+                  ...fullBooking,
+                  paymentStatus: 'unknown',
+                  pets: fullBooking.pets || [],
+                  timeSlots: fullBooking.timeSlots?.map((ts: any) => ({
+                    id: ts.id || `${fullBooking.id}-${ts.startAt}`,
+                    startAt: ts.startAt,
+                    endAt: ts.endAt,
+                    duration: ts.duration,
+                  })),
+                });
+                setShowBookingDrawer(true);
+              }
+            }}
+            formatTime={formatTime}
+          />
+
+          {/* Center: Calendar Grid */}
+          <div style={{ minWidth: 0 }}>
+            <CalendarGrid
+              days={calendarDays.map(day => ({
+                ...day,
+                events: day.bookings.map(booking => ({
+                  id: booking.id,
+                  firstName: booking.firstName,
+                  lastName: booking.lastName,
+                  service: booking.service,
+                  startAt: booking.startAt,
+                  endAt: booking.endAt,
+                  timeSlots: booking.timeSlots,
+                })),
+              })) as CalendarGridDay[]}
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              onEventClick={(event, date) => {
+                const booking = bookings.find(b => b.id === event.id);
+                if (booking) {
+                  setDrawerBooking({
+                    ...booking,
+                    paymentStatus: 'unknown',
+                    pets: booking.pets || [],
+                    timeSlots: booking.timeSlots?.map((ts: any) => ({
+                      id: ts.id || `${booking.id}-${ts.startAt}`,
+                      startAt: ts.startAt,
+                      endAt: ts.endAt,
+                      duration: ts.duration,
+                    })),
+                  });
+                  setShowBookingDrawer(true);
+                }
+              }}
+              monthName={monthNames[currentMonth]}
+              year={currentYear}
+              formatTime={formatTime}
+            />
+          </div>
+
+          {/* Right: Booking Drawer */}
+          {showBookingDrawer && drawerBooking && (
+            <BookingDrawer
+              isOpen={showBookingDrawer}
+              booking={drawerBooking}
+              onClose={() => {
+                setShowBookingDrawer(false);
+                setDrawerBooking(null);
+              }}
+              onViewFull={() => {
+                window.location.href = `/bookings/${drawerBooking.id}`;
+              }}
+              onEdit={() => {
+                window.location.href = `/bookings/${drawerBooking.id}`;
+              }}
+            />
+          )}
+        </div>
+      )}
+    </AppShell>
+  );
+}
+
