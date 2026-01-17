@@ -199,7 +199,6 @@ export default function SitterPayrollPage() {
             </GridCol>
             </Grid>
           </div>
-        </div>
 
         {/* Current Period Details */}
         <Card style={{ marginBottom: tokens.spacing[6] }}>
