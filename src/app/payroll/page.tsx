@@ -532,8 +532,8 @@ export default function PayrollPage() {
               >
                 Cancel
               </Button>
-            </div>
-          </div>
+            </Flex>
+          </Flex>
         )}
       </Modal>
     </AppShell>
