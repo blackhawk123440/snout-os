@@ -186,13 +186,15 @@ export default function SitterPayrollPage() {
             <GridCol span={12} md={4}>
               <StatCard
                 label="Net Payout"
-            value={formatCurrency(payrollData.currentPeriod.netPayout)}
-            icon={<i className="fas fa-money-bill-wave" />}
-          />
-          <StatCard
-            label="Bookings"
-            value={payrollData.currentPeriod.bookingCount}
-            icon={<i className="fas fa-calendar-check" />}
+                value={formatCurrency(payrollData.currentPeriod.netPayout)}
+                icon={<i className="fas fa-money-bill-wave" />}
+              />
+            </GridCol>
+            <GridCol span={12} md={4}>
+              <StatCard
+                label="Bookings"
+                value={payrollData.currentPeriod.bookingCount}
+                icon={<i className="fas fa-calendar-check" />}
               />
             </GridCol>
             </Grid>
