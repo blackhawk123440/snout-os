@@ -17,6 +17,9 @@ import {
   Badge,
   EmptyState,
   Skeleton,
+  Flex,
+  Grid,
+  GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -136,14 +139,7 @@ export default function TemplatesPage() {
 
         {/* Filters */}
         <Card style={{ marginBottom: tokens.spacing[6] }}>
-          <div
-            style={{
-              display: 'flex',
-              gap: tokens.spacing[4],
-              alignItems: 'center',
-              flexWrap: 'wrap',
-            }}
-          >
+          <Flex gap={4} align="center" wrap> {/* Batch 6: UI Constitution compliance */}
             <Select
               label="Category"
               value={filter.category}
@@ -158,15 +154,15 @@ export default function TemplatesPage() {
               options={typeOptions}
               style={{ minWidth: '150px' }}
             />
-          </div>
+          </Flex>
         </Card>
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <Flex direction="column" gap={4}> {/* Batch 6: UI Constitution compliance */}
             <Skeleton height={200} />
             <Skeleton height={200} />
             <Skeleton height={200} />
-          </div>
+          </Flex>
         ) : templates.length === 0 ? (
           <EmptyState
             title="No Templates Yet"
@@ -180,27 +176,13 @@ export default function TemplatesPage() {
             }}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <Flex direction="column" gap={4}> {/* Batch 6: UI Constitution compliance */}
             {templates.map((template) => (
               <Card key={template.id}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    gap: tokens.spacing[4],
-                  }}
-                >
+                <Flex align="flex-start" justify="space-between" gap={4}>
                   <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: tokens.spacing[3],
-                        marginBottom: tokens.spacing[3],
-                        flexWrap: 'wrap',
-                      }}
-                    >
+                    <div style={{ marginBottom: tokens.spacing[3] }}>
+                      <Flex align="center" gap={3} wrap>
                       <div
                         style={{
                           fontWeight: tokens.typography.fontWeight.bold,
@@ -219,6 +201,7 @@ export default function TemplatesPage() {
                       ) : (
                         <Badge variant="neutral">Inactive</Badge>
                       )}
+                      </Flex>
                     </div>
                     <div style={{ marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                       Key: {template.templateKey}
@@ -239,23 +222,18 @@ export default function TemplatesPage() {
                           fontSize: tokens.typography.fontSize.sm[0],
                           color: tokens.colors.text.secondary,
                           whiteSpace: 'pre-wrap',
-                          overflow: 'hidden',
                           display: '-webkit-box',
                           WebkitLineClamp: 3,
                           WebkitBoxOrient: 'vertical',
+                          maxHeight: '4.5rem',
+                          textOverflow: 'ellipsis',
                         }}
                       >
                         {template.body}
                       </div>
                     </div>
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: tokens.spacing[2],
-                      alignItems: 'center',
-                    }}
-                  >
+                  <Flex gap={2} align="center"> {/* Batch 6: UI Constitution compliance */}
                     <Link href={`/templates/${template.id}`}>
                       <Button variant="primary" size="sm">
                         Edit
@@ -268,11 +246,11 @@ export default function TemplatesPage() {
                     >
                       Delete
                     </Button>
-                  </div>
-                </div>
+                  </Flex>
+                </Flex>
               </Card>
             ))}
-          </div>
+          </Flex>
         )}
       </div>
     </AppShell>

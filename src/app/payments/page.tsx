@@ -479,10 +479,12 @@ export default function PaymentsPage() {
           }}
         >
           <Flex align="center" justify="space-between">
-            <Flex align="center" gap={3} style={{ color: tokens.colors.error.DEFAULT }}>
+            <div style={{ color: tokens.colors.error.DEFAULT }}>
+              <Flex align="center" gap={3}>
               <i className="fas fa-exclamation-circle" />
-              <span>{error}</span>
-            </Flex>
+                <span>{error}</span>
+              </Flex>
+            </div>
             <Button variant="secondary" size="sm" onClick={fetchAnalytics}>
               Retry
             </Button>
@@ -570,8 +572,6 @@ export default function PaymentsPage() {
         }}
       >
         <Flex direction={isMobile ? 'column' : 'row'} gap={isMobile ? 3 : 4}> {/* Batch 5: UI Constitution compliance */}
-          }}
-        >
           <Input
             placeholder="Search by client, email, or invoice..."
             value={searchTerm}
@@ -603,9 +603,9 @@ export default function PaymentsPage() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               style={{ width: 'auto', minWidth: '200px' }}
-            />
+              />
           )}
-        </div>
+        </Flex>
       </Card>
 
       {/* Payments Table */}
