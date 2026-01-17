@@ -53,6 +53,7 @@ export default defineConfig({
       OPENPHONE_NUMBER_ID: process.env.OPENPHONE_NUMBER_ID || 'test_number_id',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test_secret',
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+      AUTH_TRUST_HOST: 'true', // Phase F1: Fix UntrustedHost errors in Playwright
     },
   },
 });
