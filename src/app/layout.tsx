@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { BuildHash } from "@/components/ui/BuildHash";
+import { tokens } from '@/lib/design-tokens';
 
 export const metadata: Metadata = {
   title: "Snout OS - Pet Care Management System",
@@ -33,23 +34,23 @@ export default function RootLayout({
             width: 100%;
             margin: 0;
             padding: 0;
-            max-width: 100vw;
+            max-width: 100%;
             overflow-x: hidden;
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
           }
           #__next, [data-nextjs-scroll-focus-boundary] {
             width: 100%;
-            max-width: 100vw;
+            max-width: 100%;
             overflow-x: hidden;
           }
           body > * {
             width: 100%;
-            max-width: 100vw;
+            max-width: 100%;
           }
-          @media (max-width: 640px) {
+          @media (max-width: ${tokens.layout.breakpoints.sm}) {
             input, select, textarea {
-              font-size: 16px !important;
+              font-size: ${tokens.typography.fontSize.base[0]} !important;
             }
           }
         `}} />

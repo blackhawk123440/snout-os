@@ -63,10 +63,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   return (
     <div
       style={{
+        position: 'fixed', // Phase E: Enforce single scroll surface - prevent body scroll
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         display: 'flex',
-        minHeight: '100vh',
         backgroundColor: tokens.colors.background.secondary,
         width: '100%',
+        height: '100vh',
+        overflow: 'hidden', // Phase E: Prevent body scroll - main content area is the only scroll container
       }}
     >
       {/* Blurred Backdrop - Only show when sidebar is open */}
@@ -243,8 +249,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           width: '100%',
           display: 'flex',
           flexDirection: 'column',
-          minHeight: '100vh',
+          minHeight: 0, // Phase E: Allow flex to constrain height for scroll container
           marginLeft: 0, // Never push content
+          overflow: 'hidden', // Phase E: Contain scroll to main element only
         }}
       >
         {/* Top Bar */}
@@ -303,7 +310,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           </div>
         </header>
 
-        {/* Content - Phase B4: Constrained centered layout */}
+        {/* Content - Phase B4: Constrained centered layout, Phase E: Single scroll surface */}
         <main
           style={{
             flex: 1,
@@ -312,6 +319,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             width: '100%',
             margin: '0 auto',
             overflowX: 'hidden',
+            overflowY: 'auto', // Phase E: Single scroll surface - main content area is the ONLY scroll container
+            WebkitOverflowScrolling: 'touch', // Phase E: Smooth scrolling on iOS
+            scrollBehavior: 'smooth', // Phase E: Smooth scrolling
+            minHeight: 0, // Phase E: Allow flex to constrain height for proper scrolling
           }}
         >
           {children}
