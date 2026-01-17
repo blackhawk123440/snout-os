@@ -38,6 +38,7 @@ export function Tooltip({
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const touchTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Phase F2.1: Touch support
   const triggerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -97,10 +98,37 @@ export function Tooltip({
     }
   }, [isVisible]);
 
+  // Phase F2.1: Touch support for mobile accessibility - long press to reveal
+  const handleTouchStart = () => {
+    // Long press: show tooltip after delay (500ms total = 200ms delay + 300ms touch delay)
+    if (touchTimeoutRef.current) {
+      clearTimeout(touchTimeoutRef.current);
+    }
+    touchTimeoutRef.current = setTimeout(() => {
+      setIsVisible(true);
+      updatePosition();
+    }, delay + 300); // Slightly longer delay for touch to distinguish from tap
+  };
+
+  const handleTouchEnd = () => {
+    // Cancel tooltip if tap (quick touch)
+    if (touchTimeoutRef.current) {
+      clearTimeout(touchTimeoutRef.current);
+      touchTimeoutRef.current = null;
+    }
+    // Keep tooltip visible briefly on long press release
+    if (isVisible) {
+      setTimeout(() => hideTooltip(), 2000); // Auto-hide after 2s
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (touchTimeoutRef.current) {
+        clearTimeout(touchTimeoutRef.current);
       }
     };
   }, []);
@@ -113,6 +141,8 @@ export function Tooltip({
       onMouseLeave={hideTooltip}
       onFocus={showTooltip}
       onBlur={hideTooltip}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       style={{ display: 'inline-block', position: 'relative' }}
     >
       {children}
