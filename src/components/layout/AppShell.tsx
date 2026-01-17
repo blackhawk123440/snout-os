@@ -41,21 +41,27 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     return () => window.removeEventListener('keydown', handleEscape);
   }, [sidebarOpen]);
 
-  // Prevent body scroll when sidebar is open on mobile
+  // Prevent body scroll - AppShell owns all scrolling
   useEffect(() => {
-    if (sidebarOpen && typeof window !== 'undefined' && window.innerWidth < 1024) {
+    if (typeof window !== 'undefined') {
+      // Always prevent body scroll when AppShell is mounted
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
+      document.body.style.height = '100%';
+      
+      // Additional prevention when sidebar is open on mobile
+      if (sidebarOpen && window.innerWidth < 1024) {
+        // Already set above, no additional changes needed
+      }
     }
     return () => {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
+      if (typeof window !== 'undefined') {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
+      }
     };
   }, [sidebarOpen]);
 
@@ -75,9 +81,11 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         right: 0,
         bottom: 0,
         display: 'flex',
+        flexDirection: 'column',
         backgroundColor: tokens.colors.background.secondary,
         width: '100%',
-        height: '100vh',
+        height: '100%', // Use 100% instead of 100vh for better mobile Safari support
+        maxHeight: '100vh', // Fallback for browsers that don't support 100%
         overflow: 'hidden', // Phase E: Prevent body scroll - main content area is the only scroll container
       }}
     >
@@ -319,7 +327,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         {/* Content - Phase B4: Constrained centered layout, Phase E: Single scroll surface */}
         <main
           style={{
-            flex: 1,
+            flex: '1 1 0', // Explicit flex basis 0 to allow proper flex constraint
             padding: `${tokens.spacing[5]} ${tokens.spacing[6]}`, // Phase B4: Tighter padding
             maxWidth: isMobile ? '100vw' : tokens.layout.page.maxWidth, // Phase B4: Use page maxWidth
             width: '100%',
@@ -329,8 +337,10 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             WebkitOverflowScrolling: 'touch', // Phase E: Smooth scrolling on iOS
             scrollBehavior: 'smooth', // Phase E: Smooth scrolling
             minHeight: 0, // Phase E: Allow flex to constrain height for proper scrolling
-            touchAction: 'pan-y', // Allow vertical scrolling on touch devices
+            maxHeight: '100%', // Ensure it doesn't exceed container
+            touchAction: 'pan-y pinch-zoom', // Allow vertical scrolling and pinch-to-zoom on touch devices
             WebkitTapHighlightColor: 'transparent', // Remove tap highlight on iOS
+            position: 'relative', // Establish stacking context
           }}
         >
           {children}
