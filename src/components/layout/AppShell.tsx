@@ -45,11 +45,17 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   useEffect(() => {
     if (sidebarOpen && typeof window !== 'undefined' && window.innerWidth < 1024) {
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
     } else {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
     }
     return () => {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
     };
   }, [sidebarOpen]);
 
@@ -323,6 +329,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             WebkitOverflowScrolling: 'touch', // Phase E: Smooth scrolling on iOS
             scrollBehavior: 'smooth', // Phase E: Smooth scrolling
             minHeight: 0, // Phase E: Allow flex to constrain height for proper scrolling
+            touchAction: 'pan-y', // Allow vertical scrolling on touch devices
+            WebkitTapHighlightColor: 'transparent', // Remove tap highlight on iOS
           }}
         >
           {children}

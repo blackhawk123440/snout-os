@@ -36,8 +36,10 @@ export default function RootLayout({
             padding: 0;
             max-width: 100%;
             overflow-x: hidden;
+            overflow-y: auto; /* Allow body scroll as fallback if AppShell isn't used */
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
+            height: 100%; /* Ensure body has height for scrolling */
           }
           #__next, [data-nextjs-scroll-focus-boundary] {
             width: 100%;
