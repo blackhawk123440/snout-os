@@ -10,8 +10,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  PageShell,
-  TopBar,
+  PageHeader,
   Section,
   Grid,
   GridCol,
@@ -37,6 +36,7 @@ import { Command, CommandResult } from '@/commands/types';
 import { useCommands } from '@/hooks/useCommands';
 import { useMobile } from '@/lib/use-mobile';
 import { tokens } from '@/lib/design-tokens';
+import { AppShell } from '@/components/layout/AppShell';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { createCalendarEventCommands } from '@/commands/calendar-commands';
 import { registerCommand } from '@/commands/registry';
@@ -531,20 +531,18 @@ export default function CalendarPage() {
   }), [commandContext, selectedBooking]);
 
   return (
-    <PageShell>
-      <TopBar
+    <AppShell>
+      <PageHeader
         title="Calendar"
-        leftActions={
-          isMobile ? (
-            <IconButton
-              icon={<i className="fas fa-filter" />}
-              onClick={() => setShowFiltersDrawer(true)}
-              aria-label="Open filters"
-            />
-          ) : undefined
-        }
-        rightActions={
-          <>
+        actions={
+          <Flex align="center" gap={1.5}> {/* Phase E: Migrated to AppShell - combined left/right actions */}
+            {isMobile && (
+              <IconButton
+                icon={<i className="fas fa-filter" />}
+                onClick={() => setShowFiltersDrawer(true)}
+                aria-label="Open filters"
+              />
+            )}
             <IconButton
               icon={<i className="fas fa-search" />}
               onClick={openCommandPalette}
@@ -553,7 +551,7 @@ export default function CalendarPage() {
             <Button onClick={() => router.push('/bookings/new')}>
               New Booking
             </Button>
-          </>
+          </Flex>
         }
       />
 
@@ -952,6 +950,6 @@ export default function CalendarPage() {
           </div>
         )}
       </Drawer>
-    </PageShell>
+    </AppShell>
   );
 }

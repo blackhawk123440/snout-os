@@ -24,6 +24,10 @@ import {
   EmptyState,
   Modal,
   MobileFilterBar,
+  Flex,
+  Grid,
+  GridCol,
+  Section,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -330,17 +334,11 @@ export default function AutomationPage() {
     }
 
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: tokens.spacing[6],
-        }}
-      >
+      <Flex direction="column" gap={6}>
         {filteredAutomations.map((automation) => {
           return renderAutomationCard(automation);
         })}
-      </div>
+      </Flex>
     );
   };
 
@@ -350,59 +348,37 @@ export default function AutomationPage() {
     const isExpanded = expandedAutomation === automation.id;
 
     return (
-      <Card key={automation.id} style={{ overflow: 'visible' }}>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            alignItems: isMobile ? 'stretch' : 'flex-start',
-            justifyContent: 'space-between',
-            gap: tokens.spacing[4],
-            width: '100%',
-            maxWidth: '100%',
-            overflow: 'visible', // Part G: Fix clipping - no overflow hidden
-          }}
+      <Card key={automation.id} padding>
+        <Flex
+          direction={isMobile ? 'column' : 'row'}
+          align={isMobile ? 'stretch' : 'flex-start'}
+          justify="space-between"
+          gap={4}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: tokens.spacing[4],
-              flex: 1,
-              minWidth: 0, // Allow flex item to shrink
-              width: '100%',
-            }}
-          >
+          <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
+            <Flex align="flex-start" gap={4}>
             <div
               style={{
                 width: '3rem',
                 height: '3rem',
                 borderRadius: tokens.borderRadius.md,
                 backgroundColor: tokens.colors.primary[100],
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              <i
-                className="fas fa-robot"
-                style={{
-                  fontSize: tokens.typography.fontSize.xl[0],
-                  color: tokens.colors.primary.DEFAULT,
-                }}
-              />
+              <Flex align="center" justify="center">
+                <i
+                  className="fas fa-robot"
+                  style={{
+                    fontSize: tokens.typography.fontSize.xl[0],
+                    color: tokens.colors.primary.DEFAULT,
+                  }}
+                />
+              </Flex>
             </div>
             <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: tokens.spacing[2],
-                  marginBottom: tokens.spacing[1],
-                }}
-              >
+              <div style={{ marginBottom: tokens.spacing[1] }}>
+                <Flex wrap align="center" gap={2}>
                 <h3
                   style={{
                     fontSize: tokens.typography.fontSize.lg[0],
@@ -422,6 +398,7 @@ export default function AutomationPage() {
                 <Badge variant={config.enabled ? 'success' : 'neutral'}>
                   {config.enabled ? 'Enabled' : 'Disabled'}
                 </Badge>
+              </Flex>
               </div>
               <p
                 style={{
@@ -429,7 +406,7 @@ export default function AutomationPage() {
                   color: tokens.colors.text.secondary,
                   margin: 0,
                   marginBottom: tokens.spacing[3],
-                  overflow: 'hidden',
+                  // Phase E: Removed overflow property - UI Constitution compliant
                   display: '-webkit-box',
                   WebkitLineClamp: 2, // Clamp to 2 lines
                   WebkitBoxOrient: 'vertical',
@@ -439,33 +416,25 @@ export default function AutomationPage() {
                 {automation.description}
               </p>
             </div>
+            </Flex>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: isMobile ? 'row' : 'row',
-              alignItems: 'center',
-              gap: tokens.spacing[2],
-              flexShrink: 0,
-              width: isMobile ? '100%' : 'auto', // Full width on mobile
-              justifyContent: isMobile ? 'space-between' : 'flex-end',
-            }}
-          >
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
+          <div style={{ flexShrink: 0, width: isMobile ? '100%' : 'auto' }}>
+            <Flex
+              direction="row"
+              align="center"
+              gap={2}
+              justify={isMobile ? 'space-between' : 'flex-end'}
             >
-              <input
+            <label style={{ cursor: 'pointer', flexShrink: 0 }}>
+              <Flex align="center">
+                <input
                 type="checkbox"
                 checked={config.enabled}
                 onChange={(e) =>
                   updateAutomation(automation.id, { enabled: e.target.checked })
                 }
               />
+              </Flex>
             </label>
             <Button
               variant="ghost"
@@ -480,8 +449,9 @@ export default function AutomationPage() {
             >
               {isExpanded ? 'Collapse' : 'Configure'}
             </Button>
+            </Flex>
           </div>
-        </div>
+        </Flex>
 
         {/* Expanded Configuration */}
         {config.enabled && isExpanded && (
@@ -497,24 +467,13 @@ export default function AutomationPage() {
           >
             {/* Booking Confirmation Config */}
             {automation.id === 'bookingConfirmation' && (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
-                  gap: tokens.spacing[4],
-                }}
-              >
+              <Grid gap={4}>
+                <GridCol span={isMobile ? 12 : undefined} md={6} lg={4}>
                 <FormRow>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: tokens.spacing[2],
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
+                  <label style={{ cursor: 'pointer' }}>
+                    <Flex align="center" gap={2}>
+                      <input
+                        type="checkbox"
                       checked={(config as AutomationSettings['bookingConfirmation']).sendToClient}
                       onChange={(e) =>
                         updateAutomation('bookingConfirmation', {
@@ -522,20 +481,15 @@ export default function AutomationPage() {
                         } as any)
                       }
                     />
-                    <span>Send to Client</span>
+                      <span>Send to Client</span>
+                    </Flex>
                   </label>
                 </FormRow>
                 <FormRow>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: tokens.spacing[2],
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
+                  <label style={{ cursor: 'pointer' }}>
+                    <Flex align="center" gap={2}>
+                      <input
+                        type="checkbox"
                       checked={(config as AutomationSettings['bookingConfirmation']).sendToSitter}
                       onChange={(e) =>
                         updateAutomation('bookingConfirmation', {
@@ -543,20 +497,15 @@ export default function AutomationPage() {
                         } as any)
                       }
                     />
-                    <span>Send to Sitter</span>
+                      <span>Send to Sitter</span>
+                    </Flex>
                   </label>
                 </FormRow>
                 <FormRow>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: tokens.spacing[2],
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
+                  <label style={{ cursor: 'pointer' }}>
+                    <Flex align="center" gap={2}>
+                      <input
+                        type="checkbox"
                       checked={(config as AutomationSettings['bookingConfirmation']).sendToOwner}
                       onChange={(e) =>
                         updateAutomation('bookingConfirmation', {
@@ -564,21 +513,18 @@ export default function AutomationPage() {
                         } as any)
                       }
                     />
-                    <span>Send to Owner</span>
+                      <span>Send to Owner</span>
+                    </Flex>
                   </label>
                 </FormRow>
-              </div>
+                </GridCol>
+              </Grid>
             )}
 
             {/* Night Before Reminder Config */}
             {automation.id === 'nightBeforeReminder' && 'reminderTime' in config && (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
-                  gap: tokens.spacing[4],
-                }}
-              >
+              <Grid gap={4}>
+                <GridCol span={isMobile ? 12 : undefined} md={6} lg={4}>
                 <FormRow label="Reminder Time">
                   <Input
                     type="time"
@@ -591,16 +537,10 @@ export default function AutomationPage() {
                   />
                 </FormRow>
                 <FormRow>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: tokens.spacing[2],
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
+                  <label style={{ cursor: 'pointer' }}>
+                    <Flex align="center" gap={2}>
+                      <input
+                        type="checkbox"
                       checked={(config as AutomationSettings['nightBeforeReminder']).sendToClient}
                       onChange={(e) =>
                         updateAutomation('nightBeforeReminder', {
@@ -608,20 +548,15 @@ export default function AutomationPage() {
                         })
                       }
                     />
-                    <span>Send to Client</span>
+                      <span>Send to Client</span>
+                    </Flex>
                   </label>
                 </FormRow>
                 <FormRow>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: tokens.spacing[2],
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
+                  <label style={{ cursor: 'pointer' }}>
+                    <Flex align="center" gap={2}>
+                      <input
+                        type="checkbox"
                       checked={(config as AutomationSettings['nightBeforeReminder']).sendToSitter}
                       onChange={(e) =>
                         updateAutomation('nightBeforeReminder', {
@@ -629,21 +564,18 @@ export default function AutomationPage() {
                         })
                       }
                     />
-                    <span>Send to Sitter</span>
+                      <span>Send to Sitter</span>
+                    </Flex>
                   </label>
                 </FormRow>
-              </div>
+                </GridCol>
+              </Grid>
             )}
 
             {/* Payment Reminder Config */}
             {automation.id === 'paymentReminder' && 'reminderDelay' in config && (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(300px, 1fr))',
-                  gap: tokens.spacing[4],
-                }}
-              >
+              <Grid gap={4}>
+                <GridCol span={isMobile ? 12 : undefined} md={6} lg={4}>
                 <FormRow label="Reminder Delay (hours)">
                   <Input
                     type="number"
@@ -656,16 +588,10 @@ export default function AutomationPage() {
                   />
                 </FormRow>
                 <FormRow>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: tokens.spacing[2],
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
+                  <label style={{ cursor: 'pointer' }}>
+                    <Flex align="center" gap={2}>
+                      <input
+                        type="checkbox"
                       checked={config.sendToClient}
                       onChange={(e) =>
                         updateAutomation('paymentReminder', {
@@ -673,20 +599,15 @@ export default function AutomationPage() {
                         })
                       }
                     />
-                    <span>Send to Client</span>
+                      <span>Send to Client</span>
+                    </Flex>
                   </label>
                 </FormRow>
                 <FormRow>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: tokens.spacing[2],
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
+                  <label style={{ cursor: 'pointer' }}>
+                    <Flex align="center" gap={2}>
+                      <input
+                        type="checkbox"
                       checked={config.repeatReminder}
                       onChange={(e) =>
                         updateAutomation('paymentReminder', {
@@ -694,23 +615,19 @@ export default function AutomationPage() {
                         })
                       }
                     />
-                    <span>Repeat Reminder</span>
+                      <span>Repeat Reminder</span>
+                    </Flex>
                   </label>
                 </FormRow>
-              </div>
+                </GridCol>
+              </Grid>
             )}
 
             {/* Generic message template fields */}
             {'messageTemplateClient' in config && (
               <FormRow>
-                <div
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: tokens.spacing[4],
-                  }}
-                >
+                <div style={{ width: '100%' }}>
+                  <Flex direction="column" gap={4}>
                   <MessageTemplatePreview
                     template={(config as any).messageTemplateClient || ''}
                     label="Client Message Template"
@@ -747,6 +664,7 @@ export default function AutomationPage() {
                   >
                     {testingMessage ? 'Sending...' : 'Test Message'}
                   </Button>
+                  </Flex>
                 </div>
               </FormRow>
             )}
@@ -819,16 +737,11 @@ export default function AutomationPage() {
             backgroundColor: tokens.colors.error[50],
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: tokens.spacing[2],
-              color: tokens.colors.error.DEFAULT,
-            }}
-          >
-            <i className="fas fa-exclamation-circle" />
-            <span>{error}</span>
+          <div style={{ color: tokens.colors.error.DEFAULT }}>
+            <Flex align="center" gap={2}>
+              <i className="fas fa-exclamation-circle" />
+              <span>{error}</span>
+            </Flex>
           </div>
         </Card>
       )}
@@ -841,16 +754,11 @@ export default function AutomationPage() {
             backgroundColor: tokens.colors.success[50],
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: tokens.spacing[2],
-              color: tokens.colors.success.DEFAULT,
-            }}
-          >
-            <i className="fas fa-check-circle" />
-            <span>Settings saved successfully!</span>
+          <div style={{ color: tokens.colors.success.DEFAULT }}>
+            <Flex align="center" gap={2}>
+              <i className="fas fa-check-circle" />
+              <span>Settings saved successfully!</span>
+            </Flex>
           </div>
         </Card>
       )}
