@@ -290,7 +290,8 @@ export default function ExceptionsPage() {
                     }}
                   >
                     <Flex align="flex-start" justify="space-between" gap={4}>
-                      <Flex align="flex-start" gap={3} style={{ flex: 1 }}>
+                      <div style={{ flex: 1 }}>
+                        <Flex align="flex-start" gap={3}>
                         <div
                           style={{
                             width: '40px',
@@ -351,6 +352,7 @@ export default function ExceptionsPage() {
                                   <strong>Amount:</strong> ${exception.booking.totalPrice.toFixed(2)}
                                 </div>
                               )}
+                              </Flex>
                             </div>
                           )}
                           <div
@@ -363,6 +365,7 @@ export default function ExceptionsPage() {
                             Created: {formatDate(exception.createdAt)}
                           </div>
                         </div>
+                        </Flex>
                       </div>
                       {exception.bookingId && (
                         <Link href={`/bookings/${exception.bookingId}`}>
@@ -371,7 +374,7 @@ export default function ExceptionsPage() {
                           </Button>
                         </Link>
                       )}
-                    </div>
+                    </Flex>
                   </div>
                 );
               })}

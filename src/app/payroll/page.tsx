@@ -378,17 +378,20 @@ export default function PayrollPage() {
             ) : (
               <div>
                 <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
-                <Select
-                  label="Status"
-                  options={[
-                    { value: 'all', label: 'All Statuses' },
-                    { value: 'pending', label: 'Pending' },
-                    { value: 'approved', label: 'Approved' },
-                    { value: 'paid', label: 'Paid' },
-                  ]}
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                />
+                  <GridCol span={12} md={4}>
+                    <Select
+                      label="Status"
+                      options={[
+                        { value: 'all', label: 'All Statuses' },
+                        { value: 'pending', label: 'Pending' },
+                        { value: 'approved', label: 'Approved' },
+                        { value: 'paid', label: 'Paid' },
+                      ]}
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                    />
+                  </GridCol>
+                </Grid>
               </div>
             )}
             <Select
@@ -401,7 +404,7 @@ export default function PayrollPage() {
               value={filterPayPeriod}
               onChange={(e) => setFilterPayPeriod(e.target.value)}
             />
-          </div>
+          </Flex>
         </Card>
 
         {/* Pay Periods Table */}
@@ -470,7 +473,7 @@ export default function PayrollPage() {
                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[3] }}>
                   Booking Breakdown ({selectedBookings.length} bookings)
                 </div>
-                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                <div>
                   {selectedBookings.map((booking) => (
                     <Card key={booking.bookingId} style={{ marginBottom: tokens.spacing[2] }}>
                       <Flex justify="space-between" align="center">
@@ -494,7 +497,7 @@ export default function PayrollPage() {
                 </div>
               </div>
             )}
-          </div>
+          </Flex>
         </Modal>
       )}
 
@@ -532,8 +535,8 @@ export default function PayrollPage() {
               >
                 Cancel
               </Button>
-            </div>
-          </div>
+            </Flex>
+          </Flex>
         )}
       </Modal>
     </AppShell>

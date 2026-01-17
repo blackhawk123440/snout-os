@@ -306,13 +306,13 @@ export default function SettingsPage() {
             <FormRow>
               <label style={{ cursor: 'pointer' }}>
                 <Flex align="center" gap={3}> {/* Batch 5: UI Constitution compliance */}
-              >
-                <input
-                  type="checkbox"
-                  checked={settings.automation.autoConfirm}
-                  onChange={(e) => handleInputChange('automation.autoConfirm', e.target.checked)}
-                />
-                <span>Auto-confirm Bookings</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.automation.autoConfirm}
+                    onChange={(e) => handleInputChange('automation.autoConfirm', e.target.checked)}
+                  />
+                  <span>Auto-confirm Bookings</span>
+                </Flex>
               </label>
             </FormRow>
             <FormRow label="Reminder Timing">
