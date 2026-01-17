@@ -9,6 +9,8 @@
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { Flex, Card, Input, Button } from '@/components/ui';
+import { tokens } from '@/lib/design-tokens';
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -47,72 +49,106 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to Snout OS
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your credentials to access the dashboard
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
-                </div>
+    <div style={{ minHeight: '100vh', backgroundColor: tokens.colors.background.secondary, padding: tokens.spacing[6] }}>
+      <div style={{ minHeight: '100vh' }}>
+        <Flex align="center" justify="center">
+        <div style={{ maxWidth: '28rem', width: '100%' }}>
+          <Card style={{ padding: tokens.spacing[8] }}>
+            <Flex direction="column" gap={6}>
+              <div>
+                <h2 style={{ 
+                  textAlign: 'center',
+                  fontSize: tokens.typography.fontSize['3xl'][0],
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  color: tokens.colors.text.primary,
+                  marginTop: tokens.spacing[6],
+                  marginBottom: 0,
+                }}>
+                  Sign in to Snout OS
+                </h2>
+                <p style={{
+                  textAlign: 'center',
+                  fontSize: tokens.typography.fontSize.sm[0],
+                  color: tokens.colors.text.secondary,
+                  marginTop: tokens.spacing[2],
+                  marginBottom: 0,
+                }}>
+                  Enter your credentials to access the dashboard
+                </p>
               </div>
-            </div>
-          )}
+              <form onSubmit={handleSubmit} style={{ marginTop: tokens.spacing[8] }}>
+                <Flex direction="column" gap={6}>
+                  <div>
+                    <label htmlFor="email" style={{ width: '1px', height: '1px', padding: 0, margin: '-1px', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0, opacity: 0, pointerEvents: 'none' }}>
+                      Email address
+                    </label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email address"
+                      aria-label="Email address"
+                      style={{ borderTopLeftRadius: tokens.borderRadius.md, borderTopRightRadius: tokens.borderRadius.md, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="password" style={{ width: '1px', height: '1px', padding: 0, margin: '-1px', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0, opacity: 0, pointerEvents: 'none' }}>
+                      Password
+                    </label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Password"
+                      style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0, borderBottomLeftRadius: tokens.borderRadius.md, borderBottomRightRadius: tokens.borderRadius.md, marginTop: `-${tokens.spacing[0.5]}` }}
+                    />
+                  </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "Signing in..." : "Sign in"}
-            </button>
-          </div>
-        </form>
+                  {error && (
+                    <div style={{
+                      borderRadius: tokens.borderRadius.md,
+                      backgroundColor: tokens.colors.error[50],
+                      padding: tokens.spacing[4],
+                    }}>
+                      <Flex align="center" gap={3}>
+                        <div>
+                          <h3 style={{
+                            fontSize: tokens.typography.fontSize.sm[0],
+                            fontWeight: tokens.typography.fontWeight.medium,
+                            color: tokens.colors.error[800],
+                            margin: 0,
+                          }}>
+                            {error}
+                          </h3>
+                        </div>
+                      </Flex>
+                    </div>
+                  )}
+
+                  <div>
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      disabled={loading}
+                      style={{ width: '100%' }}
+                    >
+                      {loading ? "Signing in..." : "Sign in"}
+                    </Button>
+                  </div>
+                </Flex>
+              </form>
+            </Flex>
+          </Card>
+        </div>
+        </Flex>
       </div>
     </div>
   );
@@ -121,8 +157,12 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div>Loading...</div>
+      <div style={{ minHeight: '100vh' }}>
+        <div style={{ minHeight: '100vh' }}>
+          <Flex align="center" justify="center">
+            <div>Loading...</div>
+          </Flex>
+        </div>
       </div>
     }>
       <LoginContent />
