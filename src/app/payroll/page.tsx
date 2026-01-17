@@ -376,20 +376,21 @@ export default function PayrollPage() {
                 ]}
               />
             ) : (
-              <div>
-                <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
-                <Select
-                  label="Status"
-                  options={[
-                    { value: 'all', label: 'All Statuses' },
-                    { value: 'pending', label: 'Pending' },
-                    { value: 'approved', label: 'Approved' },
-                    { value: 'paid', label: 'Paid' },
-                  ]}
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                />
-              </div>
+              <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
+                <GridCol span={12} md={4}>
+                  <Select
+                    label="Status"
+                    options={[
+                      { value: 'all', label: 'All Statuses' },
+                      { value: 'pending', label: 'Pending' },
+                      { value: 'approved', label: 'Approved' },
+                      { value: 'paid', label: 'Paid' },
+                    ]}
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  />
+                </GridCol>
+              </Grid>
             )}
             <Select
               label="Pay Period"
@@ -401,7 +402,7 @@ export default function PayrollPage() {
               value={filterPayPeriod}
               onChange={(e) => setFilterPayPeriod(e.target.value)}
             />
-          </div>
+          </Flex>
         </Card>
 
         {/* Pay Periods Table */}
@@ -494,7 +495,7 @@ export default function PayrollPage() {
                 </div>
               </div>
             )}
-          </div>
+          </Flex>
         </Modal>
       )}
 
