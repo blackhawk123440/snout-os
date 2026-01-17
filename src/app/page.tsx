@@ -84,7 +84,7 @@ export default function DashboardHomePage() {
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '0.625rem', // Phase D: 10px - slightly tighter than spacing[3], more disciplined
+          gap: tokens.spacing[2], // Phase E: Token-only - disciplined spacing (8px)
           marginBottom: tokens.spacing[4], // Phase D: Minimal separation - anchored feel
         }}
       >
