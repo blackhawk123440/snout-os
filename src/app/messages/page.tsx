@@ -94,9 +94,21 @@ export default function MessagesPage() {
   const showOwnerInbox = messagingV1Enabled && role === 'owner';
   const showConversations = messagingV1Enabled && (role === 'owner' || (role === 'sitter' && sitterMessagesEnabled));
 
-  const [activeTab, setActiveTab] = useState<'conversations' | 'templates' | 'inbox'>(
-    showConversations ? 'conversations' : 'templates'
-  );
+  // Default to conversations tab (will show empty state if messaging disabled)
+  const [activeTab, setActiveTab] = useState<'conversations' | 'templates' | 'inbox'>('conversations');
+  
+  // Update active tab when messaging status is determined
+  useEffect(() => {
+    console.log('[MessagesPage] Messaging status:', { messagingV1Enabled, showConversations, role });
+    if (showConversations) {
+      // Conversations available - switch to conversations tab
+      setActiveTab('conversations');
+    } else if (!messagingV1Enabled) {
+      // Messaging disabled - stay on conversations tab to show disabled message
+      setActiveTab('conversations');
+    }
+    // If messaging enabled but conversations not available (e.g., sitter without flag), stay on current tab
+  }, [showConversations, messagingV1Enabled, role]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   
   // Templates state
@@ -259,7 +271,8 @@ export default function MessagesPage() {
               }}
               sticky
               options={[
-                ...(showConversations ? [{ id: 'conversations', label: 'Conversations' }] : []),
+                // Always show Conversations tab
+                { id: 'conversations', label: 'Conversations' },
                 ...(showOwnerInbox ? [{ id: 'inbox', label: 'Owner Inbox' }] : []),
                 { id: 'templates', label: 'Templates' },
               ]}
@@ -274,11 +287,19 @@ export default function MessagesPage() {
                 onBack={() => setSelectedConversation(null)}
               />
             ) : activeTab === 'conversations' ? (
-              <ConversationList
-                role={role}
-                onSelectConversation={setSelectedConversation}
-                scope="all"
-              />
+              !messagingV1Enabled ? (
+                <EmptyState
+                  title="Messaging is disabled"
+                  description="Enable ENABLE_MESSAGING_V1 to use messaging features."
+                  icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                />
+              ) : (
+                <ConversationList
+                  role={role}
+                  onSelectConversation={setSelectedConversation}
+                  scope="all"
+                />
+              )
             ) : activeTab === 'inbox' ? (
               <ConversationList
                 role="owner"
@@ -393,36 +414,42 @@ export default function MessagesPage() {
         ) : (
           <Tabs
             tabs={[
-              ...(showConversations ? [{ id: 'conversations' as const, label: 'Conversations' }] : []),
+              // Always show Conversations tab (will show disabled message if flag off)
+              { id: 'conversations' as const, label: 'Conversations' },
               ...(showOwnerInbox ? [{ id: 'inbox' as const, label: 'Owner Inbox' }] : []),
               { id: 'templates' as const, label: 'Templates' },
             ]}
             activeTab={activeTab}
             onTabChange={(id) => {
+              console.log('[MessagesPage] Tab changed to:', id);
               setActiveTab(id as 'conversations' | 'templates' | 'inbox');
               setSelectedConversation(null);
             }}
           >
-            {showConversations && (
-              <TabPanel id="conversations">
-                {selectedConversation ? (
-                  <ConversationView
-                    threadId={selectedConversation.id}
-                    participantPhone={selectedConversation.participantPhone}
-                    participantName={selectedConversation.participantName}
-                    bookingId={selectedConversation.bookingId}
-                    role={role}
-                    onBack={() => setSelectedConversation(null)}
-                  />
-                ) : (
-                  <ConversationList
-                    role={role}
-                    onSelectConversation={setSelectedConversation}
-                    scope="all"
-                  />
-                )}
-              </TabPanel>
-            )}
+            <TabPanel id="conversations">
+              {!messagingV1Enabled ? (
+                <EmptyState
+                  title="Messaging is disabled"
+                  description="Enable ENABLE_MESSAGING_V1 to use messaging features."
+                  icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                />
+              ) : selectedConversation ? (
+                <ConversationView
+                  threadId={selectedConversation.id}
+                  participantPhone={selectedConversation.participantPhone}
+                  participantName={selectedConversation.participantName}
+                  bookingId={selectedConversation.bookingId}
+                  role={role}
+                  onBack={() => setSelectedConversation(null)}
+                />
+              ) : (
+                <ConversationList
+                  role={role}
+                  onSelectConversation={setSelectedConversation}
+                  scope="all"
+                />
+              )}
+            </TabPanel>
             {showOwnerInbox && (
               <TabPanel id="inbox">
                 {selectedConversation ? (
