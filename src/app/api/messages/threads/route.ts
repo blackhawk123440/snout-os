@@ -26,9 +26,11 @@ import { env } from "@/lib/env";
  * - limit: Items per page (default: 50)
  */
 export async function GET(request: NextRequest) {
+  console.log('[api/messages/threads] GET request received');
   try {
     // Phase 4.1: Check feature flag
     if (!env.ENABLE_MESSAGING_V1) {
+      console.log('[api/messages/threads] ENABLE_MESSAGING_V1 is false, returning 404');
       return NextResponse.json(
         { error: "Messaging V1 not enabled" },
         { status: 404 }
@@ -38,11 +40,13 @@ export async function GET(request: NextRequest) {
     // Authenticate user
     const currentUser = await getCurrentUserSafe(request);
     if (!currentUser) {
+      console.log('[api/messages/threads] Unauthorized - no user');
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
+    console.log('[api/messages/threads] User authenticated:', currentUser.id);
 
     // Phase 4.1: Determine role (owner vs sitter)
     const currentSitterId = await getCurrentSitterId(request);

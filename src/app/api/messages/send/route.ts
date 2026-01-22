@@ -31,15 +31,18 @@ const twilioProvider = new TwilioProvider();
  * Body: { threadId, text, media (optional) }
  */
 export async function POST(request: NextRequest) {
+  console.log('[api/messages/send] POST request received');
   try {
     // Authenticate user
     const currentUser = await getCurrentUserSafe(request);
     if (!currentUser) {
+      console.log('[api/messages/send] Unauthorized - no user');
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
+    console.log('[api/messages/send] User authenticated:', currentUser.id);
 
     // Get orgId from context
     const orgId = await getOrgIdFromContext(currentUser.id);
@@ -47,6 +50,7 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const body = await request.json();
     const { threadId, text, media } = body;
+    console.log('[api/messages/send] Request body:', { threadId, textLength: text?.length, hasMedia: !!media });
 
     // Validate required fields
     if (!threadId || !text) {

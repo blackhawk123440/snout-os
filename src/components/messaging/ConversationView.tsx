@@ -107,7 +107,9 @@ export default function ConversationView({
     try {
       // Use new messaging endpoints if threadId is available (Gate 1)
       if (threadId) {
-        const response = await fetch(`/api/messages/threads/${threadId}`);
+        const endpoint = `/api/messages/threads/${threadId}`;
+        console.log('[ConversationView] Fetching thread from:', endpoint);
+        const response = await fetch(endpoint);
         if (!response.ok) {
           throw new Error('Failed to fetch messages');
         }
@@ -172,13 +174,13 @@ export default function ConversationView({
     setError(null);
 
     try {
-      const response = await fetch(`/api/messages/send`, {
+      const endpoint = `/api/messages/send`;
+      const payload = { threadId, text: messageText };
+      console.log('[ConversationView] Sending message to:', endpoint, payload);
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          threadId,
-          text: messageText,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

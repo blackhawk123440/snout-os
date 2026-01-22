@@ -24,9 +24,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: threadId } = await params;
+  console.log('[api/messages/threads/[id]] GET request received for threadId:', threadId);
   try {
     // Phase 4.1: Check feature flag
     if (!env.ENABLE_MESSAGING_V1) {
+      console.log('[api/messages/threads/[id]] ENABLE_MESSAGING_V1 is false, returning 404');
       return NextResponse.json(
         { error: "Messaging V1 not enabled" },
         { status: 404 }
@@ -36,11 +39,13 @@ export async function GET(
     // Authenticate user
     const currentUser = await getCurrentUserSafe(request);
     if (!currentUser) {
+      console.log('[api/messages/threads/[id]] Unauthorized - no user');
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
+    console.log('[api/messages/threads/[id]] User authenticated:', currentUser.id);
 
     // Phase 4.1: Determine role
     const currentSitterId = await getCurrentSitterId(request);
@@ -56,8 +61,6 @@ export async function GET(
 
     // Get orgId from context
     const orgId = await getOrgIdFromContext(currentUser.id);
-
-    const { id: threadId } = await params;
 
     // Parse query params
     const { searchParams } = new URL(request.url);

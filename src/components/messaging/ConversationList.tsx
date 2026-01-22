@@ -71,7 +71,9 @@ export default function ConversationList({
         params.append('scope', 'internal');
       }
 
-      const response = await fetch(`/api/messages/threads?${params}`);
+      const endpoint = `/api/messages/threads?${params}`;
+      console.log('[ConversationList] Fetching threads from:', endpoint);
+      const response = await fetch(endpoint);
       if (!response.ok) {
         // Fallback to old endpoint if new one fails (backward compatibility)
         if (response.status === 404) {

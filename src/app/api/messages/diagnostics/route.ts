@@ -218,6 +218,13 @@ export async function GET(request: NextRequest) {
         ENABLE_PROACTIVE_THREAD_CREATION: env.ENABLE_PROACTIVE_THREAD_CREATION,
         ENABLE_SITTER_MESSAGES_V1: env.ENABLE_SITTER_MESSAGES_V1,
       },
+      runtimeConfig: {
+        PUBLIC_BASE_URL: env.PUBLIC_BASE_URL,
+        WEBHOOK_BASE_URL: env.WEBHOOK_BASE_URL,
+        TWILIO_PHONE_NUMBER: env.TWILIO_PHONE_NUMBER ? redactPhoneNumber(env.TWILIO_PHONE_NUMBER) : null,
+        TWILIO_PROXY_SERVICE_SID: env.TWILIO_PROXY_SERVICE_SID ? `${env.TWILIO_PROXY_SERVICE_SID.substring(0, 4)}...` : null,
+        providerSelected: env.ENABLE_MESSAGING_V1 ? 'TwilioProvider' : 'none',
+      },
     });
   } catch (error) {
     console.error('[messages/diagnostics] Error:', error);
