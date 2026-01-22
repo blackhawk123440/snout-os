@@ -4,6 +4,8 @@ import { logBookingStatusChange } from "@/lib/booking-status-history";
 import { getCurrentUserSafe } from "@/lib/auth-helpers";
 // Phase 3.4: Removed unused booking utility imports - no longer needed after moving to automation queue
 import { emitBookingUpdated, emitSitterAssigned, emitSitterUnassigned } from "@/lib/event-emitter";
+import { findOrCreateAssignmentWindow, closeAllBookingWindows, updateAssignmentWindow } from "@/lib/messaging/window-helpers";
+import { getDefaultOrgId } from "@/lib/messaging/org-helpers";
 
 export async function GET(
   request: NextRequest,
@@ -471,10 +473,46 @@ export async function PATCH(
             { bookingId: finalBooking.id, sitterId },
             `sitterAssignment:client:${finalBooking.id}:${sitterId}`
           );
+
+          // Phase 4.3: Proactive thread creation for weekly clients
+          try {
+            const { ensureProactiveThreadCreation, handleBookingReassignment } = await import("@/lib/messaging/proactive-thread-creation");
+            const orgId = await getDefaultOrgId();
+            
+            // If previous sitter existed, this is a reassignment
+            if (previousSitterId && previousSitterId !== sitterId) {
+              // Handle reassignment: update existing thread with new sitter
+              await handleBookingReassignment(finalBooking.id, sitterId, orgId);
+              console.log(`[booking/${id}] Thread reassigned from sitter ${previousSitterId} to ${sitterId}`);
+            } else {
+              // New assignment: create thread proactively
+              const result = await ensureProactiveThreadCreation(finalBooking.id, sitterId, orgId);
+              if (result) {
+                console.log(`[booking/${id}] Proactive thread created: threadId=${result.threadId}, windowId=${result.windowId}, numberClass=${result.numberClass}`);
+              }
+            }
+          } catch (error) {
+            console.error(`[booking/${id}] Failed to create/update proactive thread:`, error);
+            // Don't fail the booking update if thread creation fails
+          }
         }
       } else if (!sitterId && previousSitterId) {
         // Sitter was unassigned
         await emitSitterUnassigned(finalBooking, previousSitterId);
+
+        // Phase 4.3: Handle reassignment (unassign from thread)
+        try {
+          const { handleBookingReassignment } = await import("@/lib/messaging/proactive-thread-creation");
+          const orgId = await getDefaultOrgId();
+          await handleBookingReassignment(finalBooking.id, null, orgId);
+        } catch (error) {
+          console.error(`[booking/${id}] Failed to handle booking reassignment:`, error);
+          // Don't fail the booking update if thread update fails
+        }
+      } else if (sitterId && sitterId === previousSitterId && previousSitterId) {
+        // Sitter unchanged, but booking may have been updated (times, etc.)
+        // This is a no-op for proactive creation, but windows may need updating
+        // Window updates are handled by existing Phase 2 logic in thread assignment endpoint
       }
     }
 

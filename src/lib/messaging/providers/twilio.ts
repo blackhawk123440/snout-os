@@ -1,0 +1,385 @@
+/**
+ * Twilio Messaging Provider
+ * 
+ * Implementation of MessagingProvider for Twilio SMS.
+ * 
+ * NOTE: Requires twilio package to be installed:
+ *   npm install twilio
+ */
+
+import type {
+  MessagingProvider,
+  InboundMessage,
+  StatusCallback,
+  SendMessageOptions,
+  SendMessageResult,
+  CreateSessionOptions,
+  CreateSessionResult,
+  CreateParticipantOptions,
+  CreateParticipantResult,
+  SendViaProxyOptions,
+  SendViaProxyResult,
+  UpdateSessionParticipantsOptions,
+} from '../provider';
+
+// Twilio SDK is optional - type only imported when available
+let twilioClient: any = null;
+let twilioLib: any = null;
+
+// Lazy load Twilio SDK
+function getTwilioClient() {
+  if (twilioClient) {
+    return twilioClient;
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const twilio = require('twilio');
+    twilioLib = twilio;
+    
+    // Import env to use validated env vars
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { env } = require('@/lib/env');
+    
+    const accountSid = env.TWILIO_ACCOUNT_SID;
+    const authToken = env.TWILIO_AUTH_TOKEN;
+    
+    if (!accountSid || !authToken) {
+      throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set');
+    }
+    
+    twilioClient = twilio(accountSid, authToken);
+    return twilioClient;
+  } catch (error) {
+    throw new Error(`Twilio SDK not available: ${error instanceof Error ? error.message : String(error)}. Install with: npm install twilio`);
+  }
+}
+
+export class TwilioProvider implements MessagingProvider {
+  private webhookAuthToken: string;
+
+  constructor(webhookAuthToken?: string) {
+    // Use provided token or fall back to env var
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { env } = require('@/lib/env');
+    this.webhookAuthToken = webhookAuthToken || env.TWILIO_WEBHOOK_AUTH_TOKEN || '';
+  }
+
+  verifyWebhook(rawBody: string, signature: string, webhookUrl: string): boolean {
+    if (!this.webhookAuthToken) {
+      console.warn('[TwilioProvider] TWILIO_WEBHOOK_AUTH_TOKEN not configured, skipping webhook verification');
+      return true; // Allow if not configured (for development)
+    }
+
+    if (!signature) {
+      console.warn('[TwilioProvider] No signature provided in request headers');
+      return false;
+    }
+
+    try {
+      getTwilioClient();
+      // Twilio webhook signature verification uses crypto
+      // Use Twilio's validateRequest method from twilio library
+      if (twilioLib && twilioLib.validateRequest) {
+        try {
+          return twilioLib.validateRequest(
+            this.webhookAuthToken,
+            signature,
+            webhookUrl,
+            rawBody
+          );
+        } catch (validationError) {
+          console.error('[TwilioProvider] validateRequest error:', validationError);
+          return false;
+        }
+      }
+
+      // Fallback: If Twilio SDK validateRequest not available, log warning
+      // This should not happen if twilio package is installed
+      console.warn('[TwilioProvider] Twilio validateRequest not available, using fallback');
+      // Note: Simple token comparison is NOT secure - this is a fallback only
+      return signature === this.webhookAuthToken;
+    } catch (error) {
+      console.error('[TwilioProvider] Webhook verification error:', error);
+      return false;
+    }
+  }
+
+  parseInbound(payload: any): InboundMessage {
+    // Twilio webhook format:
+    // From: "From" (E.164)
+    // To: "To" (E.164)
+    // Body: "Body"
+    // MessageSid: "MessageSid"
+    // NumMedia: number (count of media)
+    // MediaUrl0, MediaUrl1, ... (media URLs)
+
+    const from = payload.From || payload.from || '';
+    const to = payload.To || payload.to || '';
+    const body = payload.Body || payload.body || '';
+    const messageSid = payload.MessageSid || payload.messageSid || '';
+    
+    // Parse media URLs if present
+    const mediaUrls: string[] = [];
+    const numMedia = parseInt(payload.NumMedia || payload.numMedia || '0', 10);
+    for (let i = 0; i < numMedia; i++) {
+      const mediaUrl = payload[`MediaUrl${i}`] || payload[`mediaUrl${i}`];
+      if (mediaUrl) {
+        mediaUrls.push(mediaUrl);
+      }
+    }
+
+    return {
+      from,
+      to,
+      body,
+      messageSid,
+      mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+      timestamp: new Date(),
+    };
+  }
+
+  parseStatusCallback(payload: any): StatusCallback {
+    // Twilio status callback format:
+    // MessageSid: "MessageSid"
+    // MessageStatus: "queued" | "sent" | "delivered" | "failed" | "undelivered"
+    // ErrorCode: optional error code
+    // ErrorMessage: optional error message
+
+    const messageSid = payload.MessageSid || payload.messageSid || '';
+    const statusStr = payload.MessageStatus || payload.messageStatus || '';
+    
+    // Map Twilio statuses to our normalized statuses
+    const statusMap: Record<string, StatusCallback['status']> = {
+      'queued': 'queued',
+      'sent': 'sent',
+      'delivered': 'delivered',
+      'failed': 'failed',
+      'undelivered': 'failed', // Map undelivered to failed
+    };
+
+    const status = statusMap[statusStr] || 'failed';
+
+    return {
+      messageSid,
+      status,
+      errorCode: payload.ErrorCode || payload.errorCode,
+      errorMessage: payload.ErrorMessage || payload.errorMessage,
+    };
+  }
+
+  async sendMessage(options: SendMessageOptions): Promise<SendMessageResult> {
+    try {
+      const client = getTwilioClient();
+      
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { env } = require('@/lib/env');
+      
+      // Determine from number - prefer messaging service SID, then phone number
+      const fromNumber = options.fromNumberSid || 
+                         env.TWILIO_MESSAGING_SERVICE_SID || 
+                         env.TWILIO_PHONE_NUMBER;
+      if (!fromNumber) {
+        return {
+          success: false,
+          errorCode: 'NO_FROM_NUMBER',
+          errorMessage: 'TWILIO_PHONE_NUMBER or TWILIO_MESSAGING_SERVICE_SID must be configured',
+        };
+      }
+
+      // Send message via Twilio API
+      const message = await client.messages.create({
+        body: options.body,
+        from: fromNumber,
+        to: options.to,
+        // Media URLs would go here if Twilio supports it for SMS
+        // For MMS: statusCallback can be set for delivery status
+      });
+
+      return {
+        success: true,
+        messageSid: message.sid,
+      };
+    } catch (error: any) {
+      console.error('[TwilioProvider] Send message error:', error);
+      return {
+        success: false,
+        errorCode: error.code || 'UNKNOWN_ERROR',
+        errorMessage: error.message || String(error),
+      };
+    }
+  }
+
+  async createSession(options: CreateSessionOptions): Promise<CreateSessionResult> {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { env } = require('@/lib/env');
+      const client = getTwilioClient();
+
+      // For Twilio, we use Proxy API for masking
+      // Create a Proxy Service Session
+      const proxyServiceSid = env.TWILIO_PROXY_SERVICE_SID;
+      
+      if (!proxyServiceSid) {
+        // Fallback: Use phone number directly (no masking yet)
+        // In production, Proxy Service should be configured
+        return {
+          success: true,
+          sessionSid: `session-${Date.now()}`, // Placeholder session ID
+          maskedNumberE164: env.TWILIO_PHONE_NUMBER || undefined,
+        };
+      }
+
+      // Create Proxy Session
+      const session = await client.proxy.v1
+        .services(proxyServiceSid)
+        .sessions.create({
+          uniqueName: `thread-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        });
+
+      // Use the proxy service's phone number as the masked number
+      const maskedNumber = env.TWILIO_PHONE_NUMBER || options.maskedNumberE164;
+
+      return {
+        success: true,
+        sessionSid: session.sid,
+        maskedNumberE164: maskedNumber,
+      };
+    } catch (error: any) {
+      console.error('[TwilioProvider] Create session error:', error);
+      return {
+        success: false,
+        errorCode: error.code || 'UNKNOWN_ERROR',
+        errorMessage: error.message || String(error),
+      };
+    }
+  }
+
+  async createParticipant(options: CreateParticipantOptions): Promise<CreateParticipantResult> {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { env } = require('@/lib/env');
+      const client = getTwilioClient();
+      const proxyServiceSid = env.TWILIO_PROXY_SERVICE_SID;
+
+      if (!proxyServiceSid) {
+        return {
+          success: false,
+          errorCode: 'NO_PROXY_SERVICE',
+          errorMessage: 'TWILIO_PROXY_SERVICE_SID must be configured for masking',
+        };
+      }
+
+      // Create participant in Proxy session
+      const participant = await client.proxy.v1
+        .services(proxyServiceSid)
+        .sessions(options.sessionSid)
+        .participants.create({
+          identifier: options.identifier,
+          friendlyName: options.friendlyName,
+        });
+
+      // Get proxy identifier (the masked number for this participant)
+      // Twilio Proxy assigns a proxyIdentifier to each participant
+      // Note: proxyIdentifier may not be available immediately, use phone number as fallback
+      const proxyIdentifier = (participant as any).proxyIdentifier || env.TWILIO_PHONE_NUMBER;
+
+      return {
+        success: true,
+        participantSid: participant.sid,
+        proxyIdentifier,
+      };
+    } catch (error: any) {
+      console.error('[TwilioProvider] Create participant error:', error);
+      return {
+        success: false,
+        errorCode: error.code || 'UNKNOWN_ERROR',
+        errorMessage: error.message || String(error),
+      };
+    }
+  }
+
+  async sendViaProxy(options: SendViaProxyOptions): Promise<SendViaProxyResult> {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { env } = require('@/lib/env');
+      const client = getTwilioClient();
+      const proxyServiceSid = env.TWILIO_PROXY_SERVICE_SID;
+
+      if (!proxyServiceSid) {
+        return {
+          success: false,
+          errorCode: 'NO_PROXY_SERVICE',
+          errorMessage: 'TWILIO_PROXY_SERVICE_SID must be configured for masking',
+        };
+      }
+
+      // Create Message Interaction in Proxy session
+      // This routes the message through Proxy, maintaining masking
+      const interaction = await client.proxy.v1
+        .services(proxyServiceSid)
+        .sessions(options.sessionSid)
+        .participants(options.fromParticipantSid)
+        .messageInteractions.create({
+          body: options.body,
+        });
+
+      return {
+        success: true,
+        interactionSid: interaction.sid,
+      };
+    } catch (error: any) {
+      console.error('[TwilioProvider] Send via proxy error:', error);
+      return {
+        success: false,
+        errorCode: error.code || 'UNKNOWN_ERROR',
+        errorMessage: error.message || String(error),
+      };
+    }
+  }
+
+  async updateSessionParticipants(options: UpdateSessionParticipantsOptions): Promise<{ success: boolean; error?: string }> {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { env } = require('@/lib/env');
+      const client = getTwilioClient();
+      const proxyServiceSid = env.TWILIO_PROXY_SERVICE_SID;
+
+      if (!proxyServiceSid) {
+        // No proxy service - session updates not supported
+        // Return success for now (phone number routing without masking)
+        console.warn('[TwilioProvider] No proxy service configured, skipping participant update');
+        return { success: true };
+      }
+
+      // Get current participants in session
+      const session = client.proxy.v1.services(proxyServiceSid).sessions(options.sessionSid);
+      const participants = await session.participants.list();
+
+      // Remove all sitter participants (keep client)
+      for (const participant of participants) {
+        if (participant.sid !== options.clientParticipantSid) {
+          await participant.remove();
+        }
+      }
+
+      // Add new sitter participants
+      for (const sitterParticipantSid of options.sitterParticipantSids) {
+        // Note: sitterParticipantSid should be a phone number for Twilio Proxy
+        // In a real implementation, you'd need to map participant SIDs to phone numbers
+        await session.participants.create({
+          identifier: sitterParticipantSid, // Assuming this is E.164 format
+          friendlyName: 'Sitter',
+        });
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('[TwilioProvider] Update session participants error:', error);
+      return {
+        success: false,
+        error: error.message || String(error),
+      };
+    }
+  }
+}

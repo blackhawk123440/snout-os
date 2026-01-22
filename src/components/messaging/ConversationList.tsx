@@ -21,18 +21,29 @@ interface Conversation {
   lastMessageAt: Date | string;
   unreadCount: number;
   messageCount: number;
+  // Phase 4.1: Enhanced fields
+  numberClass?: 'front_desk' | 'sitter' | 'pool';
+  assignedSitterId?: string | null;
+  assignedSitterName?: string | null;
+  hasActiveWindow?: boolean;
+  scope?: string;
+  hasAntiPoachingFlag?: boolean;
+  isBlocked?: boolean;
+  blockedEventId?: string | null;
 }
 
 interface ConversationListProps {
   role?: 'owner' | 'sitter';
   sitterId?: string;
   onSelectConversation?: (conversation: Conversation) => void;
+  scope?: 'internal' | 'all'; // Phase 4.1: Filter by scope (internal = owner inbox)
 }
 
 export default function ConversationList({ 
   role = 'owner', 
   sitterId,
-  onSelectConversation 
+  onSelectConversation,
+  scope = 'all', // Phase 4.1: Default to all threads
 }: ConversationListProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,24 +51,47 @@ export default function ConversationList({
 
   useEffect(() => {
     fetchConversations();
-  }, [role, sitterId]);
+  }, [role, sitterId, scope]);
 
   const fetchConversations = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ role });
+      // Phase 4.1: Use new messaging endpoints with scope filtering
+      // Feature flag is checked server-side in the API route
+      const params = new URLSearchParams();
+      
+      // Add filters if provided
       if (sitterId) {
-        params.append('sitterId', sitterId);
+        params.append('assignedSitterId', sitterId);
       }
 
-      const response = await fetch(`/api/conversations?${params}`);
+      // Phase 4.1: Filter by scope for owner inbox
+      if (scope === 'internal') {
+        params.append('scope', 'internal');
+      }
+
+      const response = await fetch(`/api/messages/threads?${params}`);
       if (!response.ok) {
+        // Fallback to old endpoint if new one fails (backward compatibility)
+        if (response.status === 404) {
+          const oldParams = new URLSearchParams({ role });
+          if (sitterId) {
+            oldParams.append('sitterId', sitterId);
+          }
+          const oldResponse = await fetch(`/api/conversations?${oldParams}`);
+          if (oldResponse.ok) {
+            const oldData = await oldResponse.json();
+            setConversations(oldData.conversations || []);
+            setLoading(false);
+            return;
+          }
+        }
         throw new Error('Failed to fetch conversations');
       }
 
       const data = await response.json();
-      setConversations(data.conversations || []);
+      setConversations(data.threads || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversations');
     } finally {
@@ -158,7 +192,7 @@ export default function ConversationList({
               {conversation.participantName.charAt(0).toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[1] }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[1], flexWrap: 'wrap' }}>
                 <div
                   style={{
                     fontWeight: tokens.typography.fontWeight.semibold,
@@ -168,9 +202,36 @@ export default function ConversationList({
                 >
                   {conversation.participantName}
                 </div>
-                <Badge variant={conversation.participantType === 'sitter' ? 'info' : 'default'}>
-                  {conversation.participantType}
-                </Badge>
+                {/* Phase 4.1: Number class badge */}
+                {conversation.numberClass && (
+                  <Badge 
+                    variant={
+                      conversation.numberClass === 'front_desk' ? 'default' :
+                      conversation.numberClass === 'sitter' ? 'info' :
+                      'default'
+                    }
+                  >
+                    {conversation.numberClass === 'front_desk' ? 'Front Desk' :
+                     conversation.numberClass === 'sitter' ? 'Sitter' :
+                     'Pool'}
+                  </Badge>
+                )}
+                {/* Phase 4.1: Assignment status */}
+                {conversation.assignedSitterName && (
+                  <Badge variant="info" style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
+                    {conversation.assignedSitterName}
+                  </Badge>
+                )}
+                {/* Phase 4.1: Anti-poaching flag */}
+                {conversation.hasAntiPoachingFlag && (
+                  <Badge variant="error" title="Anti-poaching violation detected">
+                    ⚠️
+                  </Badge>
+                )}
+                {/* Phase 4.1: Owner inbox indicator */}
+                {conversation.scope === 'internal' && (
+                  <Badge variant="warning">Owner Inbox</Badge>
+                )}
                 {conversation.unreadCount > 0 && (
                   <Badge variant="warning">{conversation.unreadCount}</Badge>
                 )}

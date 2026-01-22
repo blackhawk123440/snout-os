@@ -6,7 +6,6 @@
 
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./db";
 import { env } from "./env";
 import * as bcrypt from "bcryptjs";
@@ -15,12 +14,9 @@ import * as bcrypt from "bcryptjs";
  * NextAuth configuration with credentials provider
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // Use Prisma adapter for session management
-  adapter: PrismaAdapter(prisma) as any,
-  
-  // Session strategy
+  // Session strategy - JWT required for Credentials provider
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
 
   // Custom pages
@@ -76,14 +72,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   // Callbacks
   callbacks: {
-    async session({ session, user }: any) {
-      // Add user ID to session
-      if (session.user) {
-        session.user.id = user?.id || session.user.id;
+    async session({ session, token }: any) {
+      // Add user ID to session from JWT token
+      if (session.user && token) {
+        session.user.id = token.id;
+        session.user.email = token.email;
+        
         // Get user from database to include sitterId
-        if (session.user.id) {
+        if (token.id) {
           const dbUser = await prisma.user.findUnique({
-            where: { id: session.user.id },
+            where: { id: token.id },
             select: { id: true, email: true, name: true, sitterId: true },
           });
           if (dbUser) {
@@ -100,6 +98,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        token.name = user.name;
       }
       return token;
     },

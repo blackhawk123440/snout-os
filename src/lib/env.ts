@@ -35,6 +35,23 @@ const optionalEnvVars = {
   ENABLE_FORM_MAPPER_V1: process.env.ENABLE_FORM_MAPPER_V1 === "true",
   // Phase 2: Pricing engine v1 (default to false for zero-risk deployment)
   USE_PRICING_ENGINE_V1: process.env.USE_PRICING_ENGINE_V1 === "true",
+  // Messaging Master Spec V1 (default to false for zero-risk deployment)
+  ENABLE_MESSAGING_V1: process.env.ENABLE_MESSAGING_V1 === "true",
+  // Phase 4.3: Proactive thread creation (default to false for zero-risk deployment)
+  ENABLE_PROACTIVE_THREAD_CREATION: process.env.ENABLE_PROACTIVE_THREAD_CREATION === "true",
+  // Phase 4.2: Sitter messages UI (default to false for zero-risk deployment)
+  ENABLE_SITTER_MESSAGES_V1: process.env.ENABLE_SITTER_MESSAGES_V1 === "true",
+  // Twilio configuration (required when ENABLE_MESSAGING_V1 is true)
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+  TWILIO_WEBHOOK_AUTH_TOKEN: process.env.TWILIO_WEBHOOK_AUTH_TOKEN,
+  TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
+  TWILIO_MESSAGING_SERVICE_SID: process.env.TWILIO_MESSAGING_SERVICE_SID,
+  TWILIO_PROXY_SERVICE_SID: process.env.TWILIO_PROXY_SERVICE_SID, // Gate 2: For masking/routing
+  TWILIO_WEBHOOK_URL: process.env.TWILIO_WEBHOOK_URL,
+  // Base URL for webhooks (falls back to NEXT_PUBLIC_APP_URL)
+  WEBHOOK_BASE_URL: process.env.WEBHOOK_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   // Auth configuration (optional until flags enabled)
   NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,

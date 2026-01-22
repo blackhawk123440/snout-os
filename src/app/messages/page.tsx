@@ -63,7 +63,40 @@ interface Conversation {
 
 export default function MessagesPage() {
   const isMobile = useMobile();
-  const [activeTab, setActiveTab] = useState<'conversations' | 'templates'>('conversations');
+  // Phase 4.1 / 4.2: Messaging context (role, flags)
+  const [messagingV1Enabled, setMessagingV1Enabled] = useState(false);
+  const [role, setRole] = useState<'owner' | 'sitter'>('owner');
+  const [sitterMessagesEnabled, setSitterMessagesEnabled] = useState(false);
+  useEffect(() => {
+    fetch('/api/messages/me')
+      .then(async res => {
+        if (!res.ok) {
+          setMessagingV1Enabled(false);
+          setRole('owner');
+          setSitterMessagesEnabled(false);
+          return null;
+        }
+        return res.json();
+      })
+      .then((data: { role?: 'owner' | 'sitter'; messagingV1Enabled?: boolean; sitterMessagesEnabled?: boolean } | null) => {
+        if (!data) return;
+        setMessagingV1Enabled(!!data.messagingV1Enabled);
+        setRole(data.role || 'owner');
+        setSitterMessagesEnabled(!!data.sitterMessagesEnabled);
+      })
+      .catch(() => {
+        setMessagingV1Enabled(false);
+        setRole('owner');
+        setSitterMessagesEnabled(false);
+      });
+  }, []);
+
+  const showOwnerInbox = messagingV1Enabled && role === 'owner';
+  const showConversations = messagingV1Enabled && (role === 'owner' || (role === 'sitter' && sitterMessagesEnabled));
+
+  const [activeTab, setActiveTab] = useState<'conversations' | 'templates' | 'inbox'>(
+    showConversations ? 'conversations' : 'templates'
+  );
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   
   // Templates state
@@ -221,30 +254,37 @@ export default function MessagesPage() {
             <MobileFilterBar
               activeFilter={activeTab}
               onFilterChange={(filterId) => {
-                setActiveTab(filterId as 'conversations' | 'templates');
+                setActiveTab(filterId as 'conversations' | 'templates' | 'inbox');
                 setSelectedConversation(null);
               }}
               sticky
               options={[
-                { id: 'conversations', label: 'Conversations' },
+                ...(showConversations ? [{ id: 'conversations', label: 'Conversations' }] : []),
+                ...(showOwnerInbox ? [{ id: 'inbox', label: 'Owner Inbox' }] : []),
                 { id: 'templates', label: 'Templates' },
               ]}
             />
-            {activeTab === 'conversations' ? (
-              selectedConversation ? (
-                <ConversationView
-                  participantPhone={selectedConversation.participantPhone}
-                  participantName={selectedConversation.participantName}
-                  bookingId={selectedConversation.bookingId}
-                  role="owner"
-                  onBack={() => setSelectedConversation(null)}
-                />
-              ) : (
-                <ConversationList
-                  role="owner"
-                  onSelectConversation={setSelectedConversation}
-                />
-              )
+            {(activeTab === 'conversations' || activeTab === 'inbox') && selectedConversation ? (
+              <ConversationView
+                threadId={selectedConversation.id}
+                participantPhone={selectedConversation.participantPhone}
+                participantName={selectedConversation.participantName}
+                bookingId={selectedConversation.bookingId}
+                role={activeTab === 'inbox' ? 'owner' : role}
+                onBack={() => setSelectedConversation(null)}
+              />
+            ) : activeTab === 'conversations' ? (
+              <ConversationList
+                role={role}
+                onSelectConversation={setSelectedConversation}
+                scope="all"
+              />
+            ) : activeTab === 'inbox' ? (
+              <ConversationList
+                role="owner"
+                onSelectConversation={setSelectedConversation}
+                scope="internal"
+              />
             ) : (
               <>
                 {error && (
@@ -353,32 +393,56 @@ export default function MessagesPage() {
         ) : (
           <Tabs
             tabs={[
-              { id: 'conversations', label: 'Conversations' },
-              { id: 'templates', label: 'Templates' },
+              ...(showConversations ? [{ id: 'conversations' as const, label: 'Conversations' }] : []),
+              ...(showOwnerInbox ? [{ id: 'inbox' as const, label: 'Owner Inbox' }] : []),
+              { id: 'templates' as const, label: 'Templates' },
             ]}
             activeTab={activeTab}
             onTabChange={(id) => {
-              setActiveTab(id as 'conversations' | 'templates');
+              setActiveTab(id as 'conversations' | 'templates' | 'inbox');
               setSelectedConversation(null);
             }}
           >
-            <TabPanel id="conversations">
-              {selectedConversation ? (
-                <ConversationView
-                  participantPhone={selectedConversation.participantPhone}
-                  participantName={selectedConversation.participantName}
-                  bookingId={selectedConversation.bookingId}
-                  role="owner"
-                  onBack={() => setSelectedConversation(null)}
-                />
-              ) : (
-                <ConversationList
-                  role="owner"
-                  onSelectConversation={setSelectedConversation}
-                />
-              )}
-            </TabPanel>
-            
+            {showConversations && (
+              <TabPanel id="conversations">
+                {selectedConversation ? (
+                  <ConversationView
+                    threadId={selectedConversation.id}
+                    participantPhone={selectedConversation.participantPhone}
+                    participantName={selectedConversation.participantName}
+                    bookingId={selectedConversation.bookingId}
+                    role={role}
+                    onBack={() => setSelectedConversation(null)}
+                  />
+                ) : (
+                  <ConversationList
+                    role={role}
+                    onSelectConversation={setSelectedConversation}
+                    scope="all"
+                  />
+                )}
+              </TabPanel>
+            )}
+            {showOwnerInbox && (
+              <TabPanel id="inbox">
+                {selectedConversation ? (
+                  <ConversationView
+                    threadId={selectedConversation.id}
+                    participantPhone={selectedConversation.participantPhone}
+                    participantName={selectedConversation.participantName}
+                    bookingId={selectedConversation.bookingId}
+                    role="owner"
+                    onBack={() => setSelectedConversation(null)}
+                  />
+                ) : (
+                  <ConversationList
+                    role="owner"
+                    onSelectConversation={setSelectedConversation}
+                    scope="internal"
+                  />
+                )}
+              </TabPanel>
+            )}
             <TabPanel id="templates">
               {error && (
                 <Card

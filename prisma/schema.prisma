@@ -49,6 +49,8 @@ model Booking {
   timeSlots            TimeSlot[]
   messages             Message[]
   reports              Report[]
+  // Phase 2: Assignment windows (prepared for Phase 2)
+  assignmentWindows    AssignmentWindow[]
   sitterPoolOffers     SitterPoolOffer[]
   sitterPool           BookingSitterPool[]    @relation("BookingSitterPool")
   client               Client?                @relation(fields: [clientId], references: [id])
@@ -116,6 +118,10 @@ model Sitter {
   user                 User?
   PayrollLineItem      PayrollLineItem[]
   PayrollAdjustment    PayrollAdjustment[]
+  // Phase 1: Messaging number infrastructure
+  maskedNumber         SitterMaskedNumber?
+  // Phase 2: Assignment windows (prepared for Phase 2)
+  assignmentWindows    AssignmentWindow[]
 
   @@index([active])
   @@index([currentTierId])
@@ -215,25 +221,25 @@ model GoogleCalendarAccount {
 // ============================================
 
 model Automation {
-  id          String                    @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   description String?
-  isEnabled   Boolean                   @default(true)
-  scope       String                    @default("global") // global, org, sitter, client
-  createdAt   DateTime                  @default(now())
-  updatedAt   DateTime                  @updatedAt
-  createdBy  String? // User ID or system
-  updatedBy  String? // User ID or system
-  version    Int                        @default(1)
-  status     String                     @default("draft") // draft, active, paused, archived
-  
+  isEnabled   Boolean  @default(true)
+  scope       String   @default("global") // global, org, sitter, client
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String? // User ID or system
+  updatedBy   String? // User ID or system
+  version     Int      @default(1)
+  status      String   @default("draft") // draft, active, paused, archived
+
   // Relations
-  trigger     AutomationTrigger?
+  trigger         AutomationTrigger?
   conditionGroups AutomationConditionGroup[]
-  actions     AutomationAction[]
-  templates  AutomationTemplate[]
-  runs       AutomationRun[]
-  
+  actions         AutomationAction[]
+  templates       AutomationTemplate[]
+  runs            AutomationRun[]
+
   @@index([isEnabled])
   @@index([status])
   @@index([scope])
@@ -246,30 +252,30 @@ model AutomationTrigger {
   automation    Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
   triggerType   String // e.g., "booking.created", "booking.statusChanged", "time.scheduled"
   triggerConfig String     @db.Text // JSON string with trigger-specific configuration
-  
+
   @@index([triggerType])
 }
 
 model AutomationConditionGroup {
-  id            String                @id @default(uuid())
-  automationId  String
-  automation    Automation            @relation(fields: [automationId], references: [id], onDelete: Cascade)
-  operator      String                @default("all") // "all" or "any"
-  order         Int                   @default(0)
-  conditions    AutomationCondition[]
-  
+  id           String                @id @default(uuid())
+  automationId String
+  automation   Automation            @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  operator     String                @default("all") // "all" or "any"
+  order        Int                   @default(0)
+  conditions   AutomationCondition[]
+
   @@index([automationId])
   @@index([order])
 }
 
 model AutomationCondition {
-  id            String                  @id @default(uuid())
-  groupId       String
-  group          AutomationConditionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  conditionType String // e.g., "booking.service", "booking.status", "client.isNew"
-  conditionConfig String                @db.Text // JSON string with condition-specific configuration
-  order         Int                     @default(0)
-  
+  id              String                   @id @default(uuid())
+  groupId         String
+  group           AutomationConditionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  conditionType   String // e.g., "booking.service", "booking.status", "client.isNew"
+  conditionConfig String                   @db.Text // JSON string with condition-specific configuration
+  order           Int                      @default(0)
+
   @@index([groupId])
   @@index([order])
 }
@@ -281,7 +287,7 @@ model AutomationAction {
   actionType   String // e.g., "sendSMS", "sendEmail", "updateBookingStatus", "assignSitter"
   actionConfig String     @db.Text // JSON string with action-specific configuration
   order        Int        @default(0)
-  
+
   @@index([automationId])
   @@index([order])
 }
@@ -297,27 +303,27 @@ model AutomationTemplate {
   previewText   String?    @db.Text
   updatedAt     DateTime   @updatedAt
   updatedBy     String? // User ID
-  
+
   @@index([automationId])
   @@index([templateType])
 }
 
 model AutomationRun {
-  id                String            @id @default(uuid())
-  automationId      String
-  automation         Automation        @relation(fields: [automationId], references: [id], onDelete: Cascade)
-  triggeredAt       DateTime          @default(now())
-  status            String            @default("queued") // queued, running, success, failed, skipped, test
-  reason            String?           @db.Text // If skipped
-  targetEntityType  String? // booking, client, sitter, payrollRun, payment, messageThread
-  targetEntityId    String?
-  idempotencyKey    String?           @unique
-  metadata          String?           @db.Text // JSON string
-  correlationId     String? // For EventLog correlation
-  
+  id               String     @id @default(uuid())
+  automationId     String
+  automation       Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  triggeredAt      DateTime   @default(now())
+  status           String     @default("queued") // queued, running, success, failed, skipped, test
+  reason           String?    @db.Text // If skipped
+  targetEntityType String? // booking, client, sitter, payrollRun, payment, messageThread
+  targetEntityId   String?
+  idempotencyKey   String?    @unique
+  metadata         String?    @db.Text // JSON string
+  correlationId    String? // For EventLog correlation
+
   // Relations
-  steps             AutomationRunStep[]
-  
+  steps AutomationRunStep[]
+
   @@index([automationId])
   @@index([status])
   @@index([triggeredAt])
@@ -327,16 +333,16 @@ model AutomationRun {
 }
 
 model AutomationRunStep {
-  id            String        @id @default(uuid())
+  id              String        @id @default(uuid())
   automationRunId String
   automationRun   AutomationRun @relation(fields: [automationRunId], references: [id], onDelete: Cascade)
-  stepType       String // "conditionCheck", "actionExecute"
-  status         String // "success", "failed", "skipped"
-  input          String?       @db.Text // JSON string
-  output         String?       @db.Text // JSON string
-  error          String?       @db.Text // JSON string
-  createdAt      DateTime      @default(now())
-  
+  stepType        String // "conditionCheck", "actionExecute"
+  status          String // "success", "failed", "skipped"
+  input           String?       @db.Text // JSON string
+  output          String?       @db.Text // JSON string
+  error           String?       @db.Text // JSON string
+  createdAt       DateTime      @default(now())
+
   @@index([automationRunId])
   @@index([stepType])
   @@index([status])
@@ -1008,4 +1014,299 @@ model PayrollAdjustment {
 
   @@index([payrollRunId])
   @@index([sitterId])
+}
+
+// ============================================
+// MESSAGING SYSTEM (Messaging Master Spec V1)
+// ============================================
+
+model MessageAccount {
+  id                 String   @id @default(uuid())
+  orgId              String
+  provider           String // e.g., "twilio"
+  providerConfigJson String?  @db.Text // JSON string with provider-specific config
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([orgId])
+  @@index([provider])
+}
+
+model MessageNumber {
+  id                 String              @id @default(uuid())
+  orgId              String
+  provider           String // e.g., "twilio"
+  providerNumberSid  String // Provider's number identifier
+  e164               String // E.164 format phone number
+  market             String? // e.g., "US"
+  status             String              @default("active") // active, disabled
+  // Phase 1: Number class infrastructure
+  numberClass        String              @default("pool") // "front_desk" | "sitter" | "pool"
+  assignedSitterId   String? // For sitter numbers
+  ownerId            String? // For front desk numbers
+  isRotating         Boolean             @default(false) // For pool numbers
+  rotationPriority   Int? // For pool number rotation
+  lastAssignedAt     DateTime? // For pool rotation tracking
+  // Relations
+  sitterMaskedNumber SitterMaskedNumber?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  MessageThread      MessageThread[]
+
+  @@index([orgId])
+  @@index([provider])
+  @@index([e164])
+  @@index([status])
+  @@index([numberClass])
+  @@index([assignedSitterId])
+}
+
+model MessageThread {
+  id                     String    @id @default(uuid())
+  orgId                  String
+  scope                  String // client_booking, client_general, owner_sitter, internal
+  bookingId              String?
+  clientId               String?
+  assignedSitterId       String?
+  status                 String    @default("open") // open, closed, archived
+  providerSessionSid     String? // Provider's session identifier for masking
+  maskedNumberE164       String? // Masked phone number visible to client
+  // Phase 1: Number class infrastructure
+  numberClass            String? // "front_desk" | "sitter" | "pool" (inherited from assigned number)
+  messageNumberId        String? // FK to MessageNumber (optional for backward compatibility)
+  isOneTimeClient        Boolean   @default(false)
+  isMeetAndGreet         Boolean   @default(false)
+  meetAndGreetApprovedAt DateTime?
+  // Phase 2: Assignment window (will be added in Phase 2)
+  assignmentWindowId     String?
+  lastMessageAt          DateTime?
+  lastInboundAt          DateTime?
+  lastOutboundAt         DateTime?
+  ownerUnreadCount       Int       @default(0)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  // Relations
+  participants        MessageParticipant[]
+  events              MessageEvent[]
+  assignmentAudits    ThreadAssignmentAudit[]
+  responseRecords     ResponseRecord[]
+  messageNumber       MessageNumber?          @relation(fields: [messageNumberId], references: [id], onDelete: SetNull)
+  assignmentWindows   AssignmentWindow[]
+  AntiPoachingAttempt AntiPoachingAttempt[]
+
+  @@index([orgId])
+  @@index([bookingId])
+  @@index([clientId])
+  @@index([assignedSitterId])
+  @@index([status])
+  @@index([lastMessageAt])
+  @@index([numberClass])
+  @@index([messageNumberId])
+  @@index([assignmentWindowId])
+}
+
+model MessageParticipant {
+  id                     String   @id @default(uuid())
+  threadId               String
+  orgId                  String
+  role                   String // client, sitter, owner, system
+  userId                 String? // User ID if role is sitter/owner
+  clientId               String? // Client ID if role is client
+  displayName            String
+  realE164               String // Real phone number (stored securely)
+  providerParticipantSid String? // Provider's participant identifier
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  // Relations
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@index([orgId])
+  @@index([role])
+  @@index([userId])
+  @@index([clientId])
+}
+
+model MessageEvent {
+  id                          String   @id @default(uuid())
+  threadId                    String
+  orgId                       String
+  direction                   String // inbound, outbound
+  actorType                   String // client, sitter, owner, system
+  actorUserId                 String?
+  actorClientId               String?
+  providerMessageSid          String? // Provider's message identifier
+  body                        String   @db.Text
+  mediaJson                   String?  @db.Text // JSON array of media URLs
+  createdAt                   DateTime @default(now())
+  deliveryStatus              String   @default("queued") // queued, sent, delivered, failed, received
+  failureCode                 String?
+  failureDetail               String?  @db.Text
+  requiresResponse            Boolean  @default(false)
+  responseSlaSeconds          Int?
+  responsibleSitterIdSnapshot String?
+  promptId                    String?
+  metadataJson                String?  @db.Text // JSON object
+
+  // Relations
+  thread              MessageThread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  AntiPoachingAttempt AntiPoachingAttempt?
+
+  @@index([threadId])
+  @@index([orgId])
+  @@index([direction])
+  @@index([actorType])
+  @@index([deliveryStatus])
+  @@index([createdAt])
+  @@index([providerMessageSid])
+}
+
+model ThreadAssignmentAudit {
+  id           String   @id @default(uuid())
+  orgId        String
+  threadId     String
+  fromSitterId String?
+  toSitterId   String?
+  actorUserId  String // User ID who made the change
+  reason       String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  // Relations
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([threadId])
+  @@index([actorUserId])
+  @@index([createdAt])
+}
+
+model OptOutState {
+  id        String   @id @default(uuid())
+  orgId     String
+  clientId  String?
+  phoneE164 String
+  state     String // opted_in, opted_out
+  source    String // inbound_keyword, admin_override, import
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, phoneE164])
+  @@index([orgId])
+  @@index([phoneE164])
+  @@index([state])
+}
+
+model ResponseRecord {
+  id                       String    @id @default(uuid())
+  orgId                    String
+  threadId                 String
+  bookingId                String?
+  inboundMessageEventId    String // ID of the inbound MessageEvent that triggered this
+  responsibleSitterId      String?
+  slaSeconds               Int?
+  inboundAt                DateTime
+  resolutionStatus         String    @default("pending") // pending, replied, escalated, expired, ignored
+  resolvedAt               DateTime?
+  resolvedByMessageEventId String?
+  responseSeconds          Int?
+  escalationReason         String?   @db.Text
+  ignoreReason             String?   @db.Text
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  // Relations
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([threadId])
+  @@index([bookingId])
+  @@index([responsibleSitterId])
+  @@index([resolutionStatus])
+  @@index([inboundAt])
+}
+
+// ============================================
+// PHASE 1: NUMBER INFRASTRUCTURE
+// ============================================
+
+model SitterMaskedNumber {
+  id                     String    @id @default(uuid())
+  orgId                  String
+  sitterId               String    @unique
+  messageNumberId        String    @unique // FK to MessageNumber (unique for one-to-one relation)
+  providerParticipantSid String? // Provider's participant ID
+  status                 String    @default("active") // active, deactivated, reassigned
+  assignedAt             DateTime  @default(now())
+  deactivatedAt          DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  // Relations
+  sitter        Sitter        @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+  messageNumber MessageNumber @relation(fields: [messageNumberId], references: [id], onDelete: Restrict)
+
+  @@index([orgId])
+  @@index([sitterId])
+  @@index([status])
+}
+
+// ============================================
+// PHASE 2: ASSIGNMENT WINDOW (prepared for Phase 2)
+// ============================================
+
+model AssignmentWindow {
+  id        String   @id @default(uuid())
+  orgId     String
+  threadId  String
+  bookingId String
+  sitterId  String
+  startAt   DateTime
+  endAt     DateTime
+  status    String   @default("active") // active, expired, closed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  thread  MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  booking Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sitter  Sitter        @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([threadId])
+  @@index([bookingId])
+  @@index([sitterId])
+  @@index([status])
+  @@index([startAt, endAt])
+}
+
+// ============================================
+// PHASE 3: ANTI-POACHING (prepared for Phase 3)
+// ============================================
+
+model AntiPoachingAttempt {
+  id               String    @id @default(uuid())
+  orgId            String
+  threadId         String
+  eventId          String    @unique // FK to MessageEvent
+  actorType        String // client | sitter
+  actorId          String?
+  violationType    String // phone_number | email | url | social_media
+  detectedContent  String    @db.Text // The flagged content
+  action           String    @default("blocked") // blocked | warned | flagged
+  ownerNotifiedAt  DateTime?
+  resolvedAt       DateTime?
+  resolvedByUserId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  event  MessageEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([threadId])
+  @@index([eventId])
+  @@index([action])
 }
