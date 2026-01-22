@@ -33,31 +33,12 @@ async function seedMessagingThread() {
           e164: '+12562039373', // Your Twilio number
           provider: 'twilio',
           providerNumberSid: 'test-front-desk-sid',
-          isActive: true,
+          status: 'active',
         },
       });
     }
 
-    // Create test client participant
-    const clientPhone = '+15551234567';
-    const clientParticipant = await prisma.messageParticipant.upsert({
-      where: {
-        orgId_realE164_role: {
-          orgId,
-          realE164: clientPhone,
-          role: 'client',
-        },
-      },
-      create: {
-        orgId,
-        realE164: clientPhone,
-        role: 'client',
-        displayName: 'Test Client',
-      },
-      update: {},
-    });
-
-    // Create thread
+    // Create thread first (participant requires threadId)
     const thread = await prisma.messageThread.create({
       data: {
         orgId,
@@ -70,13 +51,28 @@ async function seedMessagingThread() {
       },
     });
 
-    // Link client participant to thread
-    await prisma.messageParticipant.update({
-      where: { id: clientParticipant.id },
-      data: {
+    // Create test client participant (linked to thread)
+    const clientPhone = '+15551234567';
+    let clientParticipant = await prisma.messageParticipant.findFirst({
+      where: {
+        orgId,
+        realE164: clientPhone,
+        role: 'client',
         threadId: thread.id,
       },
     });
+
+    if (!clientParticipant) {
+      clientParticipant = await prisma.messageParticipant.create({
+        data: {
+          orgId,
+          threadId: thread.id,
+          realE164: clientPhone,
+          role: 'client',
+          displayName: 'Test Client',
+        },
+      });
+    }
 
     // Create inbound message event
     const inboundEvent = await prisma.messageEvent.create({
@@ -85,9 +81,9 @@ async function seedMessagingThread() {
         threadId: thread.id,
         direction: 'inbound',
         actorType: 'client',
-        content: 'Hello, this is a test message from the client.',
-        providerMessageId: 'test-inbound-msg-1',
-        providerStatus: 'delivered',
+        body: 'Hello, this is a test message from the client.',
+        providerMessageSid: 'test-inbound-msg-1',
+        deliveryStatus: 'delivered',
         responsibleSitterIdSnapshot: null,
       },
     });
@@ -99,9 +95,9 @@ async function seedMessagingThread() {
         threadId: thread.id,
         direction: 'outbound',
         actorType: 'owner',
-        content: 'Hi! Thanks for reaching out. How can I help you today?',
-        providerMessageId: 'test-outbound-msg-1',
-        providerStatus: 'delivered',
+        body: 'Hi! Thanks for reaching out. How can I help you today?',
+        providerMessageSid: 'test-outbound-msg-1',
+        deliveryStatus: 'delivered',
         responsibleSitterIdSnapshot: null,
       },
     });
