@@ -3,7 +3,44 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { NextRequest } from 'next/server';
+
+// Mock Next.js modules before importing
+vi.mock('next/server', () => ({
+  NextRequest: class MockNextRequest {
+    url: string;
+    headers: Map<string, string>;
+    constructor(url: string, init?: any) {
+      this.url = url;
+      this.headers = new Map();
+      if (init?.headers) {
+        Object.entries(init.headers).forEach(([key, value]) => {
+          this.headers.set(key, value as string);
+        });
+      }
+    }
+    headers = {
+      get: (name: string) => {
+        return this.headers.get(name) || null;
+      },
+    } as any;
+  },
+  NextResponse: {
+    json: (body: any, init?: any) => ({
+      json: async () => body,
+      status: init?.status || 200,
+    }),
+  },
+}));
+
+// Mock auth helpers
+vi.mock('@/lib/auth-helpers', () => ({
+  getCurrentUserSafe: vi.fn(),
+}));
+
+vi.mock('@/lib/messaging/org-helpers', () => ({
+  getOrgIdFromContext: vi.fn(),
+}));
+
 import { GET } from '../route';
 
 // Mock dependencies
