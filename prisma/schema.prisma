@@ -1083,6 +1083,8 @@ model MessageThread {
   lastInboundAt          DateTime?
   lastOutboundAt         DateTime?
   ownerUnreadCount       Int       @default(0)
+  // Legacy field for backward compatibility
+  threadType             String? // RELATIONSHIP, JOB, BROADCAST_INTERNAL (deprecated, use scope)
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
@@ -1116,6 +1118,9 @@ model MessageParticipant {
   displayName            String
   realE164               String // Real phone number (stored securely)
   providerParticipantSid String? // Provider's participant identifier
+  // Legacy fields for backward compatibility
+  entityType             String? // USER, CLIENT (deprecated, use role + userId/clientId)
+  entityId               String? // ID of the entity (deprecated, use userId/clientId)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
@@ -1149,6 +1154,11 @@ model MessageEvent {
   responsibleSitterIdSnapshot String?
   promptId                    String?
   metadataJson                String?  @db.Text // JSON object
+  // Legacy fields for backward compatibility (delivery retry)
+  attemptCount                Int?
+  lastAttemptAt               DateTime?
+  providerErrorCode           String?
+  providerErrorMessage        String?
 
   // Relations
   thread              MessageThread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
