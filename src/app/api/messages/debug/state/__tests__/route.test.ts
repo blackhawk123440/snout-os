@@ -5,25 +5,27 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock Next.js modules before importing
-vi.mock('next/server', () => ({
-  NextRequest: class MockNextRequest {
-    url: string;
-    headers: Map<string, string>;
-    constructor(url: string, init?: any) {
-      this.url = url;
-      this.headers = new Map();
-      if (init?.headers) {
-        Object.entries(init.headers).forEach(([key, value]) => {
-          this.headers.set(key, value as string);
-        });
-      }
+class MockNextRequest {
+  url: string;
+  headers: Map<string, string>;
+  constructor(url: string, init?: any) {
+    this.url = url;
+    this.headers = new Map();
+    if (init?.headers) {
+      Object.entries(init.headers).forEach(([key, value]) => {
+        this.headers.set(key, value as string);
+      });
     }
-    headers = {
-      get: (name: string) => {
-        return this.headers.get(name) || null;
-      },
-    } as any;
-  },
+  }
+  headers = {
+    get: (name: string) => {
+      return this.headers.get(name) || null;
+    },
+  } as any;
+}
+
+vi.mock('next/server', () => ({
+  NextRequest: MockNextRequest,
   NextResponse: {
     json: (body: any, init?: any) => ({
       json: async () => body,
@@ -41,6 +43,7 @@ vi.mock('@/lib/messaging/org-helpers', () => ({
   getOrgIdFromContext: vi.fn(),
 }));
 
+import { NextRequest } from 'next/server';
 import { GET } from '../route';
 
 // Mock dependencies
