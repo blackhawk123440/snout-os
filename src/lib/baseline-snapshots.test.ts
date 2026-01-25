@@ -82,7 +82,9 @@ describe("findMismatches", () => {
     };
 
     const mismatches = findMismatches(snapshot);
-    expect(mismatches).toHaveLength(1); // Only storedTotalPrice should be checked
+    // When all view totals are null, only storedTotalPrice is checked
+    // Since storedTotalPrice (100.0) matches calculatedBreakdown.total (100.0), there's no mismatch
+    expect(mismatches).toHaveLength(0);
   });
 
   it("should use storedTotalPrice when calculatedBreakdown is null", () => {
