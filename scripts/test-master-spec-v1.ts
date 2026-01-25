@@ -96,19 +96,8 @@ async function testAntiPoaching() {
   console.log('\n=== 6. ANTI-POACHING ENFORCEMENT ===\n');
 
   try {
-    // Try multiple import paths
-    let scanMessage: any;
-    try {
-      const module = await import('../src/lib/messaging/anti-poaching');
-      scanMessage = module.scanMessage;
-    } catch (e1) {
-      try {
-        const module = await import('../src/lib/messaging/anti-poaching-detection');
-        scanMessage = module.detectAntiPoachingViolations;
-      } catch (e2) {
-        throw new Error('Anti-poaching module not found');
-      }
-    }
+    // Import anti-poaching detection
+    const { detectAntiPoachingViolations } = await import('../src/lib/messaging/anti-poaching-detection');
     
     const testCases = [
       { text: 'Text me at 555-123-4567', shouldBlock: true, reason: 'phone number' },
@@ -120,21 +109,11 @@ async function testAntiPoaching() {
 
     for (const testCase of testCases) {
       try {
-        let result: any;
-        if (typeof scanMessage === 'function') {
-          result = scanMessage(testCase.text);
-          // Normalize result format
-          if (result.violations && result.violations.length > 0) {
-            result = { allowed: false, reasons: result.violations };
-          } else if (result.allowed === undefined) {
-            result = { allowed: true };
-          }
-        } else {
-          throw new Error('scanMessage is not a function');
-        }
-        
-        const isBlocked = !result.allowed || (result.reasons && result.reasons.length > 0);
+        const detectionResult = detectAntiPoachingViolations(testCase.text);
+        const hasViolations = detectionResult.violations && detectionResult.violations.length > 0;
+        const isBlocked = hasViolations;
         const expectedBlocked = testCase.shouldBlock;
+        
         if (isBlocked === expectedBlocked) {
           recordTest(`6.1 Block ${testCase.reason}`, 'PASS', `Correctly ${isBlocked ? 'blocked' : 'allowed'}: "${testCase.text}"`);
         } else {
@@ -145,7 +124,7 @@ async function testAntiPoaching() {
       }
     }
   } catch (error: any) {
-    recordTest('6.1 Anti-Poaching Scan', 'SKIP', `scanMessage not available: ${error?.message || error}`);
+    recordTest('6.1 Anti-Poaching Scan', 'SKIP', `Anti-poaching detection not available: ${error?.message || error}`);
   }
 }
 
