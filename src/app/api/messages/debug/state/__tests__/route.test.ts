@@ -5,34 +5,36 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock Next.js modules before importing
-class MockNextRequest {
-  url: string;
-  headers: Map<string, string>;
-  constructor(url: string, init?: any) {
-    this.url = url;
-    this.headers = new Map();
-    if (init?.headers) {
-      Object.entries(init.headers).forEach(([key, value]) => {
-        this.headers.set(key, value as string);
-      });
+vi.mock('next/server', () => {
+  class MockNextRequest {
+    url: string;
+    private _headers: Map<string, string>;
+    constructor(url: string, init?: any) {
+      this.url = url;
+      this._headers = new Map();
+      if (init?.headers) {
+        Object.entries(init.headers).forEach(([key, value]) => {
+          this._headers.set(key, value as string);
+        });
+      }
     }
+    headers = {
+      get: (name: string) => {
+        return this._headers.get(name) || null;
+      },
+    } as any;
   }
-  headers = {
-    get: (name: string) => {
-      return this.headers.get(name) || null;
+  
+  return {
+    NextRequest: MockNextRequest,
+    NextResponse: {
+      json: (body: any, init?: any) => ({
+        json: async () => body,
+        status: init?.status || 200,
+      }),
     },
-  } as any;
-}
-
-vi.mock('next/server', () => ({
-  NextRequest: MockNextRequest,
-  NextResponse: {
-    json: (body: any, init?: any) => ({
-      json: async () => body,
-      status: init?.status || 200,
-    }),
-  },
-}));
+  };
+});
 
 // Mock auth helpers
 vi.mock('@/lib/auth-helpers', () => ({
