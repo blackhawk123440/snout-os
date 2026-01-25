@@ -180,11 +180,10 @@ export async function resolveInboundSms(
   }
 
   // Check for active assignment window
-  const sitter = await prisma.sitter.findUnique({
-    where: { id: activeBooking.sitterId },
-    select: {
-      userId: true,
-    },
+  // Sitter model doesn't have userId - need to find via User relation
+  const user = await prisma.user.findFirst({
+    where: { sitterId: activeBooking.sitterId },
+    select: { id: true },
   });
 
   const sitterUserId = user?.id || null;
