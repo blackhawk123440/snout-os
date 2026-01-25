@@ -10,8 +10,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { env } from '@/lib/env';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getCurrentUserSafe } from '@/lib/auth-helpers';
+import { getOrgIdFromContext } from '@/lib/messaging/org-helpers';
 
 export async function GET(request: NextRequest) {
   // Hardened safety checks
@@ -31,17 +31,16 @@ export async function GET(request: NextRequest) {
   }
 
   // Require authentication and owner role
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  const user = await getCurrentUserSafe();
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Get orgId from user or default
-  const orgId = (session.user as any).orgId || 'default';
-  const userRole = (session.user as any).role || 'sitter';
+  // Get orgId
+  const orgId = await getOrgIdFromContext(user);
 
   // Only owners can access debug endpoints
-  if (userRole !== 'owner' && userRole !== 'admin') {
+  if (user.role !== 'owner' && user.role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
