@@ -134,10 +134,11 @@ async function testAntiPoaching() {
         }
         
         const isBlocked = !result.allowed || (result.reasons && result.reasons.length > 0);
-        if (isBlocked === testCase.shouldBlock) {
+        const expectedBlocked = testCase.shouldBlock;
+        if (isBlocked === expectedBlocked) {
           recordTest(`6.1 Block ${testCase.reason}`, 'PASS', `Correctly ${isBlocked ? 'blocked' : 'allowed'}: "${testCase.text}"`);
         } else {
-          recordTest(`6.1 Block ${testCase.reason}`, 'FAIL', `Incorrectly ${isBlocked ? 'blocked' : 'allowed'}: "${testCase.text}"`);
+          recordTest(`6.1 Block ${testCase.reason}`, 'FAIL', `Expected ${expectedBlocked ? 'blocked' : 'allowed'}, got ${isBlocked ? 'blocked' : 'allowed'}: "${testCase.text}"`);
         }
       } catch (error: any) {
         recordTest(`6.1 Block ${testCase.reason}`, 'FAIL', `Error testing: ${error?.message || error}`);
