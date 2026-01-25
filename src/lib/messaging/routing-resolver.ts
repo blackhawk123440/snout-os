@@ -133,7 +133,7 @@ export async function resolveInboundSms(
       where: {
         orgId,
         clientId: client.id,
-        threadType: 'RELATIONSHIP',
+        scope: 'internal',
       },
     });
 
@@ -142,7 +142,6 @@ export async function resolveInboundSms(
         data: {
           orgId,
           clientId: client.id,
-          threadType: 'RELATIONSHIP',
           scope: 'internal',
           status: 'open',
         },
@@ -165,7 +164,6 @@ export async function resolveInboundSms(
       orgId,
       clientId: client.id,
       bookingId: activeBooking.id,
-      threadType: 'JOB',
     },
   });
 
@@ -175,7 +173,6 @@ export async function resolveInboundSms(
         orgId,
         clientId: client.id,
         bookingId: activeBooking.id,
-        threadType: 'JOB',
         scope: 'client_general',
         assignedSitterId: activeBooking.sitterId,
         status: 'open',
