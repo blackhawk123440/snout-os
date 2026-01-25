@@ -187,7 +187,7 @@ export async function resolveInboundSms(
     },
   });
 
-  const sitterUserId = sitter?.userId || null;
+  const sitterUserId = user?.id || null;
 
   if (sitterUserId) {
     const activeAssignment = await getActiveAssignment(
