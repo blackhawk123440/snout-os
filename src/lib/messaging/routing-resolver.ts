@@ -21,10 +21,9 @@ async function getActiveBookingForClient(
   
   if (!client) return null;
   
-  // Find booking by phone number (Booking model doesn't have clientId)
+  // Find booking by phone number (Booking model doesn't have clientId or orgId)
   const booking = await prisma.booking.findFirst({
     where: {
-      orgId: orgId || undefined,
       phone: client.phone,
       startAt: { lte: now },
       endAt: { gte: now },
