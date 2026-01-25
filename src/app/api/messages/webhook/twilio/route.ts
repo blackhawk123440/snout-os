@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
         // Note: orgId not yet available at this point, will be derived from number below
         console.warn(
           createWebhookLogEntry('Signature verification failed', {
+            orgId: 'unknown', // orgId not available before message parsing
             routingDecision: 'rejected_invalid_signature',
           })
         );
