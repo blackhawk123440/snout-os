@@ -13,10 +13,19 @@ async function getActiveBookingForClient(
   clientId: string,
   now: Date
 ): Promise<{ id: string; sitterId: string | null } | null> {
+  // First get client to find phone number
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: { phone: true },
+  });
+  
+  if (!client) return null;
+  
+  // Find booking by phone number (Booking model doesn't have clientId)
   const booking = await prisma.booking.findFirst({
     where: {
-      orgId,
-      clientId,
+      orgId: orgId || undefined,
+      phone: client.phone,
       startAt: { lte: now },
       endAt: { gte: now },
       status: { notIn: ['cancelled', 'completed'] },
