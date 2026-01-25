@@ -33,7 +33,11 @@ async function testNumberAllocation() {
   if (frontDeskNumber) {
     recordTest('1.1 Front Desk Number Exists', 'PASS', `Found: ${frontDeskNumber.e164}`);
   } else {
-    recordTest('1.1 Front Desk Number Exists', 'FAIL', 'Front desk number not found');
+    const setupCmd = 'npm run setup:master-spec -- --orgId=default --frontDeskE164=+1XXXXXXXXXX --poolNumbers=+1AAA,+1BBB,+1CCC';
+    recordTest('1.1 Front Desk Number Exists', 'FAIL', `Front desk number not found. Run: ${setupCmd}`);
+    console.error(`\n❌ SETUP REQUIRED: Front desk number missing.`);
+    console.error(`   Run: ${setupCmd}`);
+    console.error(`   Replace +1XXXXXXXXXX with your actual front desk number\n`);
   }
 
   // 1.2 Sitter Masked Numbers
@@ -72,7 +76,11 @@ async function testSitterOnboarding() {
   if (sitterMaskedNumber) {
     recordTest('2.1 Sitter Has Masked Number', 'PASS', `Sitter ${testSitter.id} has number ${sitterMaskedNumber.messageNumber.e164}`);
   } else {
-    recordTest('2.1 Sitter Has Masked Number', 'FAIL', `Sitter ${testSitter.id} does not have masked number`);
+    const setupCmd = 'npm run setup:master-spec -- --orgId=default --frontDeskE164=+1XXXXXXXXXX --poolNumbers=+1AAA,+1BBB';
+    recordTest('2.1 Sitter Has Masked Number', 'FAIL', `Sitter ${testSitter.id} does not have masked number. Run: ${setupCmd}`);
+    console.error(`\n❌ SETUP REQUIRED: Sitter ${testSitter.id} missing masked number.`);
+    console.error(`   Run: ${setupCmd}`);
+    console.error(`   This will allocate numbers to all active sitters\n`);
   }
 }
 

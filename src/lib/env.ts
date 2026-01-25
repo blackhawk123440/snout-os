@@ -41,6 +41,8 @@ const optionalEnvVars = {
   ENABLE_PROACTIVE_THREAD_CREATION: process.env.ENABLE_PROACTIVE_THREAD_CREATION === "true",
   // Phase 4.2: Sitter messages UI (default to false for zero-risk deployment)
   ENABLE_SITTER_MESSAGES_V1: process.env.ENABLE_SITTER_MESSAGES_V1 === "true",
+  // Debug endpoints (default to false for security)
+  ENABLE_DEBUG_ENDPOINTS: process.env.ENABLE_DEBUG_ENDPOINTS === "true",
   // Twilio configuration (required when ENABLE_MESSAGING_V1 is true)
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
   TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
