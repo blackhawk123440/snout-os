@@ -9,8 +9,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { requireMessagingAuth } from '@/lib/auth-enforcement';
 import { env } from '@/lib/env';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function GET(request: NextRequest) {
   // Hardened safety checks
@@ -30,15 +31,17 @@ export async function GET(request: NextRequest) {
   }
 
   // Require authentication and owner role
-  const authResult = await requireMessagingAuth(request);
-  if (!authResult.success || !authResult.context) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { user, orgId } = authResult.context;
+  // Get orgId from user or default
+  const orgId = (session.user as any).orgId || 'default';
+  const userRole = (session.user as any).role || 'sitter';
 
   // Only owners can access debug endpoints
-  if (user.role !== 'owner' && user.role !== 'admin') {
+  if (userRole !== 'owner' && userRole !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -51,17 +54,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Fetch thread with all relations
+    // Fetch thread with participants
     const thread = await prisma.messageThread.findUnique({
       where: { id: threadId, orgId },
       include: {
-        participants: {
-          include: {
-            user: true,
-            client: true,
-          },
-        },
-        messageNumber: true,
+        participants: true,
       },
     });
 
@@ -117,15 +114,13 @@ export async function GET(request: NextRequest) {
         bookingId: thread.bookingId,
         assignedSitterId: thread.assignedSitterId,
         status: thread.status,
-        messageNumber: thread.messageNumber,
+        messageNumberId: thread.messageNumberId,
       },
       participants: thread.participants.map((p: any) => ({
         id: p.id,
         role: p.role,
         userId: p.userId,
         clientId: p.clientId,
-        user: p.user ? { id: p.user.id, email: p.user.email, name: p.user.name } : null,
-        client: p.client ? { id: p.client.id, phone: p.client.phone } : null,
       })),
       assignmentWindows: assignmentWindows.map((w: any) => ({
         id: w.id,
