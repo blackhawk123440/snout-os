@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     
     // Verify webhook signature first (before parsing message)
     // Phase 1.5: In production, invalid signature MUST return 401 and store nothing
-    const hasAuthToken = twilioProvider.hasWebhookAuthToken();
+    const hasAuthToken = !!env.TWILIO_WEBHOOK_AUTH_TOKEN;
     
     // Debug logging
     console.log('[webhook/twilio] Signature verification check:', {
@@ -212,7 +212,6 @@ export async function POST(request: NextRequest) {
         thread = await prisma.messageThread.create({
           data: {
             orgId,
-            threadType: routingResult.threadType,
             scope: routingResult.threadType === "JOB" ? "client_general" : "internal",
             clientId: client?.id || null,
             status: "open",
@@ -432,9 +431,8 @@ export async function POST(request: NextRequest) {
         data: {
           threadId: thread.id,
           orgId,
-          entityType: 'CLIENT',
-          entityId: client?.id || inboundMessage.from, // Use client ID or phone as fallback
-          role: 'CLIENT',
+          clientId: client?.id || null,
+          role: 'client',
           displayName: client ? `${client.firstName} ${client.lastName}` : inboundMessage.from,
           realE164: inboundMessage.from,
           providerParticipantSid: null, // Will be set when session is created
