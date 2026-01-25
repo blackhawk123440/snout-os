@@ -5,12 +5,70 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import Module from 'module';
+
+// Mock env module - intercept require() calls for @/lib/env
+const mockEnv = {
+  TWILIO_WEBHOOK_AUTH_TOKEN: 'test-webhook-token',
+  TWILIO_ACCOUNT_SID: 'TEST_ACCOUNT_SID_FOR_UNIT_TESTS_ONLY', // Test-only value, not a real SID
+  TWILIO_AUTH_TOKEN: 'test-auth-token',
+  TWILIO_PHONE_NUMBER: '+15551234567',
+  TWILIO_PROXY_SERVICE_SID: 'TEST_PROXY_SERVICE_SID_FOR_UNIT_TESTS_ONLY',
+};
+
+// Intercept require() calls for @/lib/env
+const originalRequire = Module.prototype.require;
+Module.prototype.require = function(id: string) {
+  if (id === '@/lib/env') {
+    return { env: mockEnv };
+  }
+  return originalRequire.apply(this, arguments as any);
+};
+
+vi.mock('@/lib/env', () => ({
+  env: mockEnv,
+}));
+
+// Mock twilio SDK
+const mockValidateRequest = vi.fn((token: string, signature: string, url: string, body: string) => {
+  // Simple mock: return true if signature matches token (for testing)
+  return signature === token;
+});
+
+const mockTwilioClient = {
+  messages: {
+    create: vi.fn(),
+  },
+  proxy: {
+    v1: {
+      services: vi.fn(() => ({
+        sessions: {
+          create: vi.fn().mockResolvedValue({ sid: 'session-123' }),
+        },
+      })),
+    },
+  },
+};
+
+vi.mock('twilio', () => {
+  const twilioFn = vi.fn((accountSid: string, authToken: string) => {
+    return mockTwilioClient;
+  });
+  twilioFn.validateRequest = mockValidateRequest;
+  return {
+    default: twilioFn,
+    __esModule: true,
+  };
+});
+
+// Import after mocks are set up
 import { TwilioProvider } from '../providers/twilio';
 
 describe('TwilioProvider', () => {
   let provider: TwilioProvider;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     provider = new TwilioProvider('test-auth-token');
   });
 

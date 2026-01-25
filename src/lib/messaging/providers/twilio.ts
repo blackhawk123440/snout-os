@@ -48,7 +48,13 @@ function getTwilioClient() {
       throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set');
     }
     
-    twilioClient = twilio(accountSid, authToken);
+    // In test environment, allow test SIDs to pass through
+    // Real Twilio SDK will validate format, but we allow test values for unit tests
+    if (accountSid.startsWith('TEST_') || accountSid.startsWith('AC')) {
+      twilioClient = twilio(accountSid, authToken);
+    } else {
+      throw new Error('TWILIO_ACCOUNT_SID must start with AC or TEST_');
+    }
     return twilioClient;
   } catch (error) {
     throw new Error(`Twilio SDK not available: ${error instanceof Error ? error.message : String(error)}. Install with: npm install twilio`);
