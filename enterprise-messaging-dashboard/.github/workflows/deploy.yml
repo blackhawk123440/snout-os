@@ -80,12 +80,12 @@ jobs:
       - name: Deploy to production
         working-directory: apps/web
         run: |
-          echo "🚀 Deployment steps:"
-          echo "1. Build completed"
-          echo "2. Start Next.js server: pnpm start"
-          echo ""
-          echo "⚠️  Configure your deployment platform (Vercel, Netlify, etc.)"
-          echo "   to run these commands after deployment"
+          echo "✅ Web build complete"
+          echo "📋 Next steps:"
+          echo "   1. Configure your deployment platform (Vercel, Netlify, etc.)"
+          echo "   2. Set environment variables (see DEPLOYMENT.md)"
+          echo "   3. Set NEXT_PUBLIC_API_URL to your API URL"
+          echo "   4. Deploy will happen automatically on push to main"
       
       # Add your deployment platform steps here
       # Example for Vercel:
