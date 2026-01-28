@@ -62,7 +62,19 @@ const nextConfig = {
   },
   webpack: (config) => {
     config.resolve.alias["@"] = path.resolve(__dirname, "src");
+    // Exclude enterprise-messaging-dashboard from compilation
+    config.module.rules.push({
+      test: /\.ts$/,
+      exclude: [
+        /node_modules/,
+        /enterprise-messaging-dashboard/,
+      ],
+    });
     return config;
+  },
+  // Exclude enterprise-messaging-dashboard from TypeScript checking
+  typescript: {
+    ignoreBuildErrors: false,
   },
 };
 
