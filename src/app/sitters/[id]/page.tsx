@@ -35,6 +35,8 @@ interface Sitter {
   email: string;
   isActive: boolean;
   commissionPercentage: number;
+  maskedNumber?: string;
+  activeAssignmentWindowsCount?: number;
   currentTier?: {
     id: string;
     name: string;
@@ -305,6 +307,48 @@ function SitterDetailContent() {
               </div>
             </Card>
 
+            {/* Mobile: Messaging Section */}
+            <Card style={{ marginBottom: tokens.spacing[4] }}>
+              <SectionHeader title="Messaging" />
+              <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                <div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Status
+                  </div>
+                  <Badge variant={sitter.isActive ? "success" : "error"}>
+                    {sitter.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                <div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Business Number
+                  </div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontFamily: 'monospace', color: tokens.colors.text.primary }}>
+                    {sitter.maskedNumber || 'Not assigned'}
+                  </div>
+                </div>
+                {sitter.activeAssignmentWindowsCount !== undefined && (
+                  <div>
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                      Active Windows
+                    </div>
+                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+                      {sitter.activeAssignmentWindowsCount}
+                    </div>
+                  </div>
+                )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  style={{ width: '100%', marginTop: tokens.spacing[2] }}
+                  leftIcon={<i className="fas fa-comments" />}
+                  onClick={() => window.location.href = `/messages?sitterId=${sitter.id}`}
+                >
+                  Open Inbox
+                </Button>
+              </div>
+            </Card>
+
             {/* Mobile: Upcoming Bookings */}
             <Card>
               <SectionHeader title="Upcoming Bookings" />
@@ -448,6 +492,48 @@ function SitterDetailContent() {
                   </div>
                 </Card>
 
+                {/* Messaging Section */}
+                <Card>
+                  <SectionHeader title="Messaging" />
+                  <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Status
+                      </div>
+                      <Badge variant={sitter.isActive ? "success" : "error"}>
+                        {sitter.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Business Number
+                      </div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontFamily: 'monospace', color: tokens.colors.text.primary }}>
+                        {sitter.maskedNumber || 'Not assigned'}
+                      </div>
+                    </div>
+                    {sitter.activeAssignmentWindowsCount !== undefined && (
+                      <div>
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                          Active Windows
+                        </div>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+                          {sitter.activeAssignmentWindowsCount}
+                        </div>
+                      </div>
+                    )}
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      style={{ width: '100%', marginTop: tokens.spacing[2] }}
+                      leftIcon={<i className="fas fa-comments" />}
+                      onClick={() => window.location.href = `/messages?sitterId=${sitter.id}`}
+                    >
+                      Open Inbox
+                    </Button>
+                  </div>
+                </Card>
+
                 {/* Quick Actions */}
                 <Card>
                   <SectionHeader title="Quick Actions" />
@@ -460,15 +546,6 @@ function SitterDetailContent() {
                       onClick={() => window.open(`/sitter-dashboard?id=${sitter.id}&admin=true`, '_blank')}
                     >
                       View Dashboard
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      style={{ width: '100%' }}
-                      leftIcon={<i className="fas fa-envelope" />}
-                      onClick={() => window.location.href = `/messages?sitterId=${sitter.id}`}
-                    >
-                      Send Message
                     </Button>
                   </div>
                 </Card>

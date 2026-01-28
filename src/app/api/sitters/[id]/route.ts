@@ -55,8 +55,57 @@ export async function GET(
       .filter(b => b.status === 'completed')
       .reduce((sum, b) => sum + ((b.totalPrice * (sitter.commissionPercentage || 80)) / 100), 0);
 
+    // Get messaging data (masked number, assignment windows)
+    const activeAssignmentWindows = await prisma.assignmentWindow.findMany({
+      where: {
+        sitterId: id,
+        startAt: { lte: now },
+        endAt: { gte: now },
+        status: 'active',
+      },
+    });
+
+    // Get sitter's assigned masked number (business number)
+    // Check SitterMaskedNumber first, then fallback to MessageNumber
+    let assignedNumberE164: string | null = null;
+    
+    try {
+      const sitterMaskedNumber = await (prisma as any).sitterMaskedNumber?.findUnique({
+        where: { sitterId: id },
+        include: {
+          messageNumber: {
+            select: { e164: true },
+          },
+        },
+      });
+      
+      if (sitterMaskedNumber?.messageNumber?.e164) {
+        assignedNumberE164 = sitterMaskedNumber.messageNumber.e164;
+      } else {
+        // Fallback to MessageNumber with assignedSitterId
+        const messageNumber = await (prisma as any).messageNumber?.findFirst({
+          where: {
+            assignedSitterId: id,
+            numberClass: 'sitter',
+            status: 'active',
+          },
+          select: {
+            e164: true,
+          },
+        });
+        assignedNumberE164 = messageNumber?.e164 || null;
+      }
+    } catch (error) {
+      // Silently fail if messaging tables don't exist
+      console.warn('[sitters/[id]] Could not fetch masked number:', error);
+    }
+
     return NextResponse.json({ 
-      sitter,
+      sitter: {
+        ...sitter,
+        maskedNumber: assignedNumberE164,
+        activeAssignmentWindowsCount: activeAssignmentWindows.length,
+      },
       upcomingBookings,
       stats: {
         totalBookings,

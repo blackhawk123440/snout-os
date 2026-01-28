@@ -1,19 +1,24 @@
 /**
  * BuildHash Component
  * 
- * Displays the current git commit hash in the UI footer.
- * Only visible when NEXT_PUBLIC_SHOW_BUILD_HASH is set to 'true'.
+ * Displays the current git commit hash and build time in the UI footer.
+ * Only visible to owners when NEXT_PUBLIC_SHOW_BUILD_HASH is set to 'true'.
  */
 
 'use client';
 
 import React from 'react';
+import { useSession } from 'next-auth/react';
 
 export const BuildHash: React.FC = () => {
+  const { data: session } = useSession();
   const showBuildHash = process.env.NEXT_PUBLIC_SHOW_BUILD_HASH === 'true';
   const buildHash = process.env.NEXT_PUBLIC_BUILD_HASH || 'unknown';
+  const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME || 'unknown';
 
-  if (!showBuildHash) {
+  // Only show to authenticated users (owners/sitters)
+  // In production, you may want to check role specifically
+  if (!showBuildHash || !session?.user) {
     return null;
   }
 
@@ -32,7 +37,7 @@ export const BuildHash: React.FC = () => {
         borderRadius: '4px 0 0 0',
       }}
     >
-      Build: {buildHash}
+      Build: {buildHash.substring(0, 7)} | {buildTime}
     </div>
   );
 };

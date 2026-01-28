@@ -37,6 +37,7 @@ import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import ConversationList from '@/components/messaging/ConversationList';
 import ConversationView from '@/components/messaging/ConversationView';
+import InboxView from '@/components/messaging/InboxView';
 
 interface MessageTemplate {
   id: string;
@@ -277,16 +278,7 @@ export default function MessagesPage() {
                 { id: 'templates', label: 'Templates' },
               ]}
             />
-            {(activeTab === 'conversations' || activeTab === 'inbox') && selectedConversation ? (
-              <ConversationView
-                threadId={selectedConversation.id}
-                participantPhone={selectedConversation.participantPhone}
-                participantName={selectedConversation.participantName}
-                bookingId={selectedConversation.bookingId}
-                role={activeTab === 'inbox' ? 'owner' : role}
-                onBack={() => setSelectedConversation(null)}
-              />
-            ) : activeTab === 'conversations' ? (
+            {activeTab === 'conversations' ? (
               !messagingV1Enabled ? (
                 <EmptyState
                   title="Messaging is disabled"
@@ -294,18 +286,18 @@ export default function MessagesPage() {
                   icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                 />
               ) : (
-                <ConversationList
-                  role={role}
-                  onSelectConversation={setSelectedConversation}
-                  scope="all"
-                />
+                <InboxView role={role} initialThreadId={selectedConversation?.id} />
               )
             ) : activeTab === 'inbox' ? (
-              <ConversationList
-                role="owner"
-                onSelectConversation={setSelectedConversation}
-                scope="internal"
-              />
+              !messagingV1Enabled ? (
+                <EmptyState
+                  title="Messaging is disabled"
+                  description="Enable ENABLE_MESSAGING_V1 to use messaging features."
+                  icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                />
+              ) : (
+                <InboxView role="owner" initialThreadId={selectedConversation?.id} />
+              )
             ) : (
               <>
                 {error && (
@@ -433,40 +425,20 @@ export default function MessagesPage() {
                   description="Enable ENABLE_MESSAGING_V1 to use messaging features."
                   icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                 />
-              ) : selectedConversation ? (
-                <ConversationView
-                  threadId={selectedConversation.id}
-                  participantPhone={selectedConversation.participantPhone}
-                  participantName={selectedConversation.participantName}
-                  bookingId={selectedConversation.bookingId}
-                  role={role}
-                  onBack={() => setSelectedConversation(null)}
-                />
               ) : (
-                <ConversationList
-                  role={role}
-                  onSelectConversation={setSelectedConversation}
-                  scope="all"
-                />
+                <InboxView role={role} initialThreadId={selectedConversation?.id} />
               )}
             </TabPanel>
             {showOwnerInbox && (
               <TabPanel id="inbox">
-                {selectedConversation ? (
-                  <ConversationView
-                    threadId={selectedConversation.id}
-                    participantPhone={selectedConversation.participantPhone}
-                    participantName={selectedConversation.participantName}
-                    bookingId={selectedConversation.bookingId}
-                    role="owner"
-                    onBack={() => setSelectedConversation(null)}
+                {!messagingV1Enabled ? (
+                  <EmptyState
+                    title="Messaging is disabled"
+                    description="Enable ENABLE_MESSAGING_V1 to use messaging features."
+                    icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                   />
                 ) : (
-                  <ConversationList
-                    role="owner"
-                    onSelectConversation={setSelectedConversation}
-                    scope="internal"
-                  />
+                  <InboxView role="owner" initialThreadId={selectedConversation?.id} />
                 )}
               </TabPanel>
             )}
