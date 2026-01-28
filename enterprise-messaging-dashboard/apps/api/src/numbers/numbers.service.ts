@@ -14,6 +14,18 @@ export class NumbersService {
     @Inject('PROVIDER') private provider: IProvider,
   ) {}
 
+  async getSitters(orgId: string) {
+    return this.prisma.sitter.findMany({
+      where: { orgId, active: true },
+      select: {
+        id: true,
+        name: true,
+        userId: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async getInventory(orgId: string, filters?: any) {
     const where: any = { orgId };
 

@@ -276,7 +276,7 @@ export class MessagingService {
 
     // Step 10: Update number last used
     await this.prisma.messageNumber.update({
-      where: { id: thread.messageNumberId },
+      where: { id: thread.numberId },
       data: { lastUsedAt: new Date() },
     });
 

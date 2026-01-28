@@ -6,6 +6,7 @@ import { AuditModule } from '../audit/audit.module';
 import { ProviderModule } from '../provider/provider.module';
 import { AlertsModule } from '../alerts/alerts.module';
 import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
 
 @Global()
 @Module({
@@ -22,14 +23,16 @@ import { Queue } from 'bullmq';
       provide: 'MESSAGE_RETRY_QUEUE',
       useFactory: () => {
         const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-        return new Queue('message-retry', { connection: redisUrl });
+        const connection = new IORedis(redisUrl);
+        return new Queue('message-retry', { connection });
       },
     },
     {
       provide: 'AUTOMATION_QUEUE',
       useFactory: () => {
         const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-        return new Queue('automation', { connection: redisUrl });
+        const connection = new IORedis(redisUrl);
+        return new Queue('automation', { connection });
       },
     },
   ],

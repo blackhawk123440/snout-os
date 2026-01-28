@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { Inject, forwardRef } from '@nestjs/common';
 import type { IProvider } from '../provider/provider.interface';
 import { AlertsService } from '../alerts/alerts.service';
+import IORedis from 'ioredis';
 
 /**
  * Message Retry Worker - Handles automatic retries with exponential backoff
@@ -28,20 +29,22 @@ export class MessageRetryWorker implements OnModuleInit {
     @Inject('PROVIDER') private provider: IProvider,
   ) {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-    this.queue = new Queue('message-retry', { connection: redisUrl });
+    const connection = new IORedis(redisUrl);
+    this.queue = new Queue('message-retry', { connection });
   }
 
   async onModuleInit() {
     // Only start worker if Redis is available
     try {
       const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+      const connection = new IORedis(redisUrl);
       this.worker = new Worker(
         'message-retry',
         async (job) => {
           return this.processRetry(job.data);
         },
         {
-          connection: redisUrl,
+          connection,
           limiter: {
             max: 10,
             duration: 1000,

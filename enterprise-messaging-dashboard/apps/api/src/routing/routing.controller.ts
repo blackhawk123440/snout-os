@@ -56,12 +56,14 @@ export class RoutingController {
       limit: limit ? parseInt(limit) : 50,
     });
 
-    let events = result.events.map((e) => ({
-      decision: e.payload.decision as RoutingDecision,
-      timestamp: e.ts,
-      eventId: e.id,
-      overrideId: e.payload.overrideId as string | undefined,
-    }));
+    let events = result.events
+      .filter((e) => e.payload !== null)
+      .map((e) => ({
+        decision: (e.payload as any).decision as RoutingDecision,
+        timestamp: e.ts,
+        eventId: e.id,
+        overrideId: (e.payload as any).overrideId as string | undefined,
+      }));
 
     // Filter by target if specified
     if (target) {
@@ -96,6 +98,7 @@ export class RoutingController {
         startsAt,
         endsAt,
         reason: params.reason,
+        createdByUserId: user.id,
       },
     });
 

@@ -158,13 +158,10 @@ export class OpsService {
    */
   async getHealth(orgId: string) {
     try {
-      // Provider status (from last check or config)
-      const providerConfig = await this.prisma.organization.findUnique({
-        where: { id: orgId },
-        select: {
-          providerType: true,
-          providerConfig: true,
-        },
+      // Provider status (from message numbers - check if any numbers exist)
+      const hasNumbers = await this.prisma.messageNumber.findFirst({
+        where: { orgId },
+        select: { providerType: true },
       });
 
       // Queue health (with error handling)
@@ -208,8 +205,8 @@ export class OpsService {
 
       return {
         provider: {
-          type: providerConfig?.providerType || 'none',
-          connected: !!providerConfig?.providerConfig,
+          type: hasNumbers?.providerType || 'none',
+          connected: !!hasNumbers,
           lastCheck: null, // Would be stored in a health check table
         },
         webhooks: {

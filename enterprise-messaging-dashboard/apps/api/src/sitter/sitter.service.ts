@@ -76,7 +76,6 @@ export class SitterService {
                 messages: {
                   where: {
                     direction: 'inbound',
-                    readAt: null,
                   },
                 },
               },
@@ -211,7 +210,6 @@ export class SitterService {
         // Use redactedBody if available (for policy violations)
         redactedBody: true,
         createdAt: true,
-        readAt: true,
         hasPolicyViolation: true,
         // DO NOT include providerMessageSid or any external identifiers
       },
@@ -224,7 +222,6 @@ export class SitterService {
       senderType: m.senderType,
       body: m.redactedBody || m.body, // Use redacted if available
       createdAt: m.createdAt,
-      readAt: m.readAt,
       hasPolicyViolation: m.hasPolicyViolation,
       // Map senderType to display label
       senderLabel: this.getSenderLabel(m.senderType, m.direction),
@@ -316,10 +313,9 @@ export class SitterService {
         threadId,
         orgId,
         direction: 'inbound',
-        readAt: null,
       },
       data: {
-        readAt: new Date(),
+        // Note: readAt field not in schema - using ownerUnreadCount on thread instead
       },
     });
 

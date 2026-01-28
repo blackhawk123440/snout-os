@@ -57,7 +57,7 @@ describe('WebhooksService - Idempotency', () => {
       verifyWebhook: vi.fn(() => Promise.resolve({ valid: true })),
     };
 
-    service = new WebhooksService(prisma, audit, routing, policy, provider);
+    service = new WebhooksService(prisma as any, audit as any, routing as any, policy as any, provider as any);
   });
 
   it('should reject duplicate webhooks (idempotency)', async () => {
@@ -161,7 +161,7 @@ describe('WebhooksService - Pool Leakage Prevention', () => {
     const policy = { detectViolations: vi.fn(() => []) };
     const provider = { verifyWebhook: vi.fn(() => Promise.resolve({ valid: true })) };
 
-    service = new WebhooksService(prisma, audit, routing, policy, provider);
+    service = new WebhooksService(prisma as any, audit as any, routing as any, policy as any, provider as any);
 
     // This should trigger handleUnmappedInbound
     // Implementation would need to handle the case where resolveThreadForInbound returns null

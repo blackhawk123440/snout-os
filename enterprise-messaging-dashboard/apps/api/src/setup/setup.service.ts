@@ -368,7 +368,7 @@ export class SetupService {
     checks.push({
       name: 'Webhook Installation',
       passed: webhookStatus.verified,
-      error: webhookStatus.error || (!webhookStatus.verified ? 'Webhooks not verified' : undefined),
+      error: (!webhookStatus.verified ? 'Webhooks not verified' : undefined),
     });
 
     const allPassed = checks.every((c) => c.passed);

@@ -20,6 +20,7 @@ export class AnalyticsService {
         },
       },
       include: {
+        client: true,
         sitter: true,
         messages: {
           where: {

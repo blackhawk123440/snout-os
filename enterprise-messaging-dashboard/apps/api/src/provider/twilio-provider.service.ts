@@ -99,7 +99,6 @@ export class TwilioProviderService implements IProvider {
       return {
         success: false,
         error: this.translateTwilioError(error),
-        errorCode: error.code?.toString(),
       };
     }
   }
@@ -158,7 +157,6 @@ export class TwilioProviderService implements IProvider {
       return {
         success: false,
         error: this.translateTwilioError(error),
-        errorCode: error.code?.toString(),
       };
     }
   }
@@ -189,7 +187,6 @@ export class TwilioProviderService implements IProvider {
       return {
         messageSid,
         status: 'failed',
-        errorCode: error.code?.toString(),
         errorMessage: this.translateTwilioError(error),
       };
     }
@@ -210,7 +207,7 @@ export class TwilioProviderService implements IProvider {
         this.config.webhookAuthToken,
         signature,
         url,
-        rawBody,
+        rawBody as any,
       );
 
       return { valid: isValid };
@@ -244,6 +241,9 @@ export class TwilioProviderService implements IProvider {
 
     try {
       // Test by fetching account info
+      if (!this.config.accountSid) {
+        return { success: false, error: 'Account SID not configured' };
+      }
       await this.client.api.accounts(this.config.accountSid).fetch();
       return { success: true };
     } catch (error: any) {

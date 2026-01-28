@@ -42,7 +42,7 @@ export class AuditService {
         entityId: params.entityId || null,
         eventType: params.eventType,
         correlationIds: params.correlationIds || {},
-        payload: params.payload,
+        payload: params.payload as any,
         schemaVersion: params.schemaVersion || 1,
         ts: new Date(),
       },

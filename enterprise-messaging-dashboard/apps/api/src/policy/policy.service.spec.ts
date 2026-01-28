@@ -1,8 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { PolicyService } from './policy.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 
 describe('PolicyService', () => {
-  const service = new PolicyService();
+  const prisma = {} as PrismaService;
+  const audit = {} as AuditService;
+  const service = new PolicyService(prisma, audit);
 
   it('should detect phone numbers', () => {
     const violations = service.detectViolations('Call me at 555-123-4567');

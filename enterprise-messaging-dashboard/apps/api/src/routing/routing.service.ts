@@ -297,7 +297,7 @@ export class RoutingService {
         rulesetVersion: this.RULESET_VERSION,
         evaluatedAt: new Date(),
         inputsSnapshot: {
-          clientId,
+          threadId: '', // Preview mode - no thread exists yet
           timestamp,
         },
       };

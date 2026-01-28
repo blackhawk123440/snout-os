@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { Inject, forwardRef } from '@nestjs/common';
 import type { IProvider } from '../provider/provider.interface';
 import { AlertsService } from '../alerts/alerts.service';
+import IORedis from 'ioredis';
 
 /**
  * Automation Worker - Executes automations
@@ -29,18 +30,20 @@ export class AutomationWorker implements OnModuleInit {
     @Inject('PROVIDER') private provider: IProvider,
   ) {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-    this.queue = new Queue('automation', { connection: redisUrl });
+    const connection = new IORedis(redisUrl);
+    this.queue = new Queue('automation', { connection });
   }
 
   async onModuleInit() {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    const connection = new IORedis(redisUrl);
     this.worker = new Worker(
       'automation',
       async (job) => {
         return this.processAutomation(job.data);
       },
       {
-        connection: redisUrl,
+        connection,
       },
     );
 
@@ -115,7 +118,7 @@ export class AutomationWorker implements OnModuleInit {
       try {
         const result = await this.executeAction(action, triggerContext, isTest);
         actionResults.push({ action, result });
-        if (result.error || (result.success === false)) {
+        if ((result as any).error || (result.success === false)) {
           hasFailures = true;
         }
       } catch (error: any) {
@@ -243,9 +246,9 @@ export class AutomationWorker implements OnModuleInit {
         orgId,
         automationId,
         status: data.status,
-        triggerContext: data.triggerContext,
-        conditionResults: data.conditionResults || null,
-        actionResults: data.actionResults || null,
+        triggerContext: data.triggerContext as any,
+        conditionResults: (data.conditionResults || null) as any,
+        actionResults: (data.actionResults || null) as any,
         error: data.error || data.reason || null,
       },
     });

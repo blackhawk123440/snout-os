@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { ThrottlerGuard } from '@nestjs/throttler';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -39,7 +38,7 @@ async function bootstrap() {
 
   // Apply global throttler guard (rate limiting)
   // Note: Individual endpoints can override with @Throttle decorator
-  app.useGlobalGuards(new ThrottlerGuard());
+  // ThrottlerGuard is configured in AppModule, so we don't need to instantiate it here
 
   const port = process.env.PORT || 3001;
   await app.listen(port);

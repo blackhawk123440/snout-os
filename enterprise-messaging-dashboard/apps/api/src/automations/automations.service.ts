@@ -298,7 +298,7 @@ export class AutomationsService {
         orgId,
         automationId,
         status: 'test',
-        triggerContext: testContext,
+        triggerContext: testContext as any,
         conditionResults: conditionResults,
         actionResults: { simulated: true, actions: actionPlan },
       },
