@@ -19,7 +19,7 @@ services:
     plan: starter
     region: oregon
     rootDir: enterprise-messaging-dashboard
-    buildCommand: pnpm install && pnpm --filter @snoutos/api build
+    buildCommand: pnpm install && pnpm --filter @snoutos/shared build && pnpm --filter @snoutos/api build
     startCommand: pnpm --filter @snoutos/api start
     envVars:
       - key: NODE_ENV
