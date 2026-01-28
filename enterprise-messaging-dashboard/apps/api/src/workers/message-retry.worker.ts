@@ -37,7 +37,10 @@ export class MessageRetryWorker implements OnModuleInit {
     // Only start worker if Redis is available
     try {
       const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-      const connection = new IORedis(redisUrl);
+      const connection = new IORedis(redisUrl, {
+        maxRetriesPerRequest: null, // Required by BullMQ
+      });
+      
       this.worker = new Worker(
         'message-retry',
         async (job) => {
@@ -59,8 +62,9 @@ export class MessageRetryWorker implements OnModuleInit {
       this.worker.on('failed', (job, err) => {
         this.logger.error(`Retry job failed: ${job?.id}`, err);
       });
-    } catch (error) {
-      this.logger.warn('Redis not available, retry worker disabled');
+    } catch (error: any) {
+      this.logger.warn('Redis not available, retry worker disabled', error?.message);
+      // Worker will be null, but app can still run
     }
   }
 

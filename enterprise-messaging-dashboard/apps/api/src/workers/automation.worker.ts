@@ -37,7 +37,10 @@ export class AutomationWorker implements OnModuleInit {
   async onModuleInit() {
     try {
       const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-      const connection = new IORedis(redisUrl);
+      const connection = new IORedis(redisUrl, {
+        maxRetriesPerRequest: null, // Required by BullMQ
+      });
+      
       this.worker = new Worker(
         'automation',
         async (job) => {
@@ -47,17 +50,18 @@ export class AutomationWorker implements OnModuleInit {
           connection,
         },
       );
-    } catch (error) {
-      this.logger.warn('Redis not available, automation worker disabled', error);
+
+      this.worker.on('completed', (job) => {
+        this.logger.log(`Automation job completed: ${job.id}`);
+      });
+
+      this.worker.on('failed', (job, err) => {
+        this.logger.error(`Automation job failed: ${job?.id}`, err);
+      });
+    } catch (error: any) {
+      this.logger.warn('Redis not available, automation worker disabled', error?.message);
+      // Worker will be null, but app can still run
     }
-
-    this.worker.on('completed', (job) => {
-      this.logger.log(`Automation job completed: ${job.id}`);
-    });
-
-    this.worker.on('failed', (job, err) => {
-      this.logger.error(`Automation job failed: ${job?.id}`, err);
-    });
   }
 
   /**
