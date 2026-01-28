@@ -114,29 +114,31 @@ export function RequireAuth({
     if (!loading) {
       if (!user && pathname !== '/login' && pathname !== '/setup') {
         router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
-      } else if (requireOwner && user && user.role !== 'owner') {
-        // Redirect sitters to their inbox
-        if (user.role === 'sitter') {
-          router.push('/sitter/inbox');
-        } else {
+      } else if (user) {
+        if (requireOwner && user.role !== 'owner') {
+          // Redirect sitters to their inbox
+          if (user.role === 'sitter') {
+            router.push('/sitter/inbox');
+          } else {
+            router.push('/dashboard');
+          }
+        } else if (pathname?.startsWith('/sitter') && user.role !== 'sitter') {
+          // Owner trying to access sitter pages
           router.push('/dashboard');
+        } else if (
+          !pathname?.startsWith('/sitter') &&
+          user.role === 'sitter' &&
+          (pathname?.startsWith('/numbers') ||
+            pathname?.startsWith('/routing') ||
+            pathname?.startsWith('/audit') ||
+            pathname?.startsWith('/automations') ||
+            pathname?.startsWith('/alerts') ||
+            pathname?.startsWith('/settings') ||
+            pathname?.startsWith('/setup'))
+        ) {
+          // Sitter trying to access owner-only pages
+          router.push('/sitter/inbox');
         }
-      } else if (pathname?.startsWith('/sitter') && user.role !== 'sitter') {
-        // Owner trying to access sitter pages
-        router.push('/dashboard');
-      } else if (
-        !pathname?.startsWith('/sitter') &&
-        user.role === 'sitter' &&
-        (pathname?.startsWith('/numbers') ||
-          pathname?.startsWith('/routing') ||
-          pathname?.startsWith('/audit') ||
-          pathname?.startsWith('/automations') ||
-          pathname?.startsWith('/alerts') ||
-          pathname?.startsWith('/settings') ||
-          pathname?.startsWith('/setup'))
-      ) {
-        // Sitter trying to access owner-only pages
-        router.push('/sitter/inbox');
       }
     }
   }, [user, loading, router, pathname, requireOwner]);
