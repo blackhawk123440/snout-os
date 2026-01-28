@@ -98,6 +98,7 @@ model Sitter {
   assignedNumbers    MessageNumber[]
   assignmentWindows  AssignmentWindow[]
   routingOverrides   RoutingOverride[]
+  threads            Thread[]
 
   @@index([orgId])
   @@index([active])
@@ -159,6 +160,7 @@ model Thread {
   assignmentWindows  AssignmentWindow[]
   routingOverrides   RoutingOverride[]
   messages           Message[]
+  policyViolations   PolicyViolation[]
 
   @@index([orgId])
   @@index([clientId])
@@ -193,7 +195,7 @@ model Message {
   redactedBody        String?  @db.Text
   hasPolicyViolation  Boolean  @default(false)
   createdAt           DateTime @default(now())
-  providerMessageSid  String?  @unique
+  providerMessageSid  String?
 
   organization    Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
   thread          Thread          @relation(fields: [threadId], references: [id], onDelete: Cascade)
@@ -303,7 +305,6 @@ model PolicyViolation {
   @@index([status])
   @@index([createdAt])
   @@index([orgId, status, createdAt(sort: Desc)]) // Performance: violations by org + status, most recent first
-  @@index([entityType, entityId]) // Performance: lookups by entity
 }
 
 // ============================================
