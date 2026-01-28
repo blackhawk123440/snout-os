@@ -74,12 +74,12 @@ function bootInfrastructure() {
     if (retries === 0) {
       throw new Error('Services did not become ready in time');
     }
-      // Wait 1 second (cross-platform)
-      if (process.platform === 'win32') {
-        execSync('timeout /t 1 /nobreak', { stdio: 'pipe' });
-      } else {
-        execSync('sleep 1', { stdio: 'pipe' });
-      }
+    // Wait 1 second (cross-platform)
+    if (process.platform === 'win32') {
+      execSync('timeout /t 1 /nobreak >nul 2>&1', { stdio: 'pipe', shell: 'cmd.exe' });
+    } else {
+      execSync('sleep 1', { stdio: 'pipe' });
+    }
   }
   log('Services are ready');
 }
