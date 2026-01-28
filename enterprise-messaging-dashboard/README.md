@@ -385,10 +385,24 @@ pnpm test:ui
 
 ### Database Migrations
 
+**Development:**
 ```bash
 cd apps/api
 pnpm db:migrate
 ```
+
+**Production:**
+```bash
+cd apps/api
+pnpm prisma migrate deploy
+```
+
+**Important:** The performance indexes migration (`add_performance_indexes`) is **required for scale assumptions**. Ensure all migrations are applied in production before handling production traffic.
+
+**Migration Files:**
+- Migrations are stored in `apps/api/prisma/migrations/`
+- Each migration includes SQL for schema changes and indexes
+- Never edit existing migrations - create new ones for changes
 
 ### Viewing Database
 
