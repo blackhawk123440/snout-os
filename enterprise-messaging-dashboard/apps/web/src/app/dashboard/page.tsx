@@ -41,7 +41,7 @@ function MessagesTab() {
   const markRead = useMarkThreadRead();
 
   // Mark thread as read when selected
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedThreadId) {
       markRead.mutate(selectedThreadId);
     }
