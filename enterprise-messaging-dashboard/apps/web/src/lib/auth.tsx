@@ -112,9 +112,9 @@ export function RequireAuth({
 
   useEffect(() => {
     if (!loading) {
-      if (!user) {
+      if (!user && pathname !== '/login' && pathname !== '/setup') {
         router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
-      } else if (requireOwner && user.role !== 'owner') {
+      } else if (requireOwner && user && user.role !== 'owner') {
         // Redirect sitters to their inbox
         if (user.role === 'sitter') {
           router.push('/sitter/inbox');
