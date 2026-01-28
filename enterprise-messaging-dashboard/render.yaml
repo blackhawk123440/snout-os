@@ -18,9 +18,9 @@ services:
     env: node
     plan: starter
     region: oregon
-    rootDir: enterprise-messaging-dashboard
-    buildCommand: pnpm install && cd apps/api && pnpm build
-    startCommand: cd apps/api && pnpm start
+    rootDir: enterprise-messaging-dashboard/apps/api
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
     envVars:
       - key: NODE_ENV
         value: production
@@ -49,9 +49,9 @@ services:
     env: node
     plan: starter
     region: oregon
-    rootDir: enterprise-messaging-dashboard
-    buildCommand: pnpm install && cd apps/web && pnpm build
-    startCommand: cd apps/web && pnpm start
+    rootDir: enterprise-messaging-dashboard/apps/web
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
     envVars:
       - key: NODE_ENV
         value: production
