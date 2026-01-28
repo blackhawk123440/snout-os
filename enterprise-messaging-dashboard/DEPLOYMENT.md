@@ -10,9 +10,38 @@ The application consists of:
 - **PostgreSQL** - Database
 - **Redis** - BullMQ queue backend
 
+## Quick Deploy to Render (Recommended)
+
+**One-click deployment using `render.yaml`:**
+
+1. **Push to GitHub** (already done ✅)
+2. **Go to Render Dashboard**: https://dashboard.render.com
+3. **Click "New" → "Blueprint"**
+4. **Connect your GitHub repository**: `blackhawk123440/snout-os`
+5. **Select the `render.yaml` file** in `enterprise-messaging-dashboard/` directory
+6. **Click "Apply"**
+
+Render will automatically:
+- ✅ Create PostgreSQL database
+- ✅ Create Redis instance
+- ✅ Deploy API server
+- ✅ Deploy Web dashboard
+- ✅ Set up environment variables (you'll add Twilio credentials)
+- ✅ Enable auto-deploy on push to main
+
+**After deployment, add these environment variables in Render:**
+- `TWILIO_ACCOUNT_SID` - Your Twilio Account SID
+- `TWILIO_AUTH_TOKEN` - Your Twilio Auth Token
+- `TWILIO_WEBHOOK_AUTH_TOKEN` - For webhook verification
+- `CORS_ORIGINS` - Your frontend URL (auto-set by Render)
+
+**Initialize database:**
+1. Go to API service → Shell
+2. Run: `cd enterprise-messaging-dashboard/apps/api && pnpm prisma migrate deploy && pnpm db:seed`
+
 ## Deployment Options
 
-### Option 1: Vercel (Web) + Render/Railway (API + DB + Redis)
+### Option 1: Render (Full Stack - Recommended)
 
 **Recommended for:**
 - Quick setup
