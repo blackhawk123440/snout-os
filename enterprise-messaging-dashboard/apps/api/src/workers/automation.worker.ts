@@ -35,17 +35,21 @@ export class AutomationWorker implements OnModuleInit {
   }
 
   async onModuleInit() {
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-    const connection = new IORedis(redisUrl);
-    this.worker = new Worker(
-      'automation',
-      async (job) => {
-        return this.processAutomation(job.data);
-      },
-      {
-        connection,
-      },
-    );
+    try {
+      const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+      const connection = new IORedis(redisUrl);
+      this.worker = new Worker(
+        'automation',
+        async (job) => {
+          return this.processAutomation(job.data);
+        },
+        {
+          connection,
+        },
+      );
+    } catch (error) {
+      this.logger.warn('Redis not available, automation worker disabled', error);
+    }
 
     this.worker.on('completed', (job) => {
       this.logger.log(`Automation job completed: ${job.id}`);
