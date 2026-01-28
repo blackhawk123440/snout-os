@@ -413,6 +413,23 @@ pnpm db:studio
 
 Opens Prisma Studio at http://localhost:5555
 
+### Pilot Smoke Test
+
+Run the complete setup and verification:
+
+```bash
+pnpm pilot:smoke
+```
+
+This command:
+- Boots Docker Compose (Postgres + Redis)
+- Applies database migrations (including performance indexes)
+- Seeds demo data
+- Runs audit completeness and invariant tests
+- Prints success message with next steps
+
+**Note for Windows:** The script uses cross-platform commands, but ensure Docker Desktop is running.
+
 ## 🚀 Production Notes
 
 ### Required Environment Variables
