@@ -188,7 +188,7 @@ export async function apiRequest<T>(
 
     if (error instanceof z.ZodError) {
       throw new ApiError(
-        `Invalid response format: ${error.errors.map((e) => e.message).join(', ')}`,
+        `Invalid response format: ${error.issues.map((e) => e.message).join(', ')}`,
         500,
         'VALIDATION_ERROR',
       );
