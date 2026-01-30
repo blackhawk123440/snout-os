@@ -105,5 +105,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 
   // Security
-  secret: env.NEXTAUTH_SECRET,
+  secret: env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-secret-key-change-in-production' : undefined),
 });
