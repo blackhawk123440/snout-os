@@ -28,6 +28,19 @@ While you're there, also add:
 - **Value:** `https://snout-os-staging.onrender.com` (or your actual Render URL)
 
 ## Verify It Works
+
+### Step 1: Check Configuration
+Visit this diagnostic endpoint:
+```
+https://snout-os-staging.onrender.com/api/auth/config-check
+```
+
+This will show you:
+- ✅ Which environment variables are set
+- ❌ Which ones are missing
+- 📋 Exact values to add
+
+### Step 2: Test Login
 After deployment completes:
 1. Go to: `https://snout-os-staging.onrender.com/login`
 2. Try to log in
