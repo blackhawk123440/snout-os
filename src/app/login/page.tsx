@@ -15,7 +15,7 @@ import { tokens } from '@/lib/design-tokens';
 function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,9 +38,13 @@ function LoginContent() {
         setError("Invalid email or password");
         setLoading(false);
       } else if (result?.ok) {
-        // Redirect to callback URL or home
-        router.push(callbackUrl);
-        router.refresh();
+        // Wait a moment for session to be established, then redirect
+        setTimeout(() => {
+          router.push(callbackUrl);
+          router.refresh();
+        }, 100);
+      } else {
+        setLoading(false);
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
