@@ -28,11 +28,13 @@ TWILIO_WEBHOOK_URL=https://snout-os-staging.onrender.com/api/messages/webhook/tw
 WEBHOOK_BASE_URL=https://snout-os-staging.onrender.com
 ```
 
-### NextAuth Configuration
+### NextAuth Configuration (REQUIRED)
 ```bash
 NEXTAUTH_URL=https://snout-os-staging.onrender.com
-NEXTAUTH_SECRET=...
+NEXTAUTH_SECRET=KKHCGgsajwdE5jkpbJj6I9zX3r/qwb9ScqLHN1pcf9I=
 ```
+
+**⚠️ CRITICAL:** Without `NEXTAUTH_SECRET`, the login page will show 500 errors. This must be set in Render's Environment tab.
 
 ### Other Required Variables
 Check your `.env.example` file for the complete list.

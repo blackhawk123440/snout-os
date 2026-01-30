@@ -85,6 +85,8 @@ See `.env.example` for all required environment variables.
 
 **Required:**
 - `DATABASE_URL` - Database connection string
+- `NEXTAUTH_SECRET` - NextAuth.js secret key (generate with: `openssl rand -base64 32`)
+- `NEXTAUTH_URL` - Your app URL (e.g., `https://snout-os-staging.onrender.com` or `http://localhost:3000`)
 - `OPENPHONE_API_KEY` - OpenPhone API key
 - `OPENPHONE_NUMBER_ID` - OpenPhone number ID
 
