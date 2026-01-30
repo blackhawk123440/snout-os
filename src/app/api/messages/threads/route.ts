@@ -259,17 +259,21 @@ export async function GET(request: NextRequest) {
       .map(t => t.clientId)
       .filter((id): id is string => !!id);
     
+    // Note: Root schema Client model doesn't have 'contacts' relation
+    // This route requires messaging schema to function properly
     const clients = clientIds.length > 0 ? await prisma.client.findMany({
       where: {
         id: { in: clientIds },
       },
-      include: {
-        contacts: {
-          select: {
-            e164: true,
-          },
-        },
-      },
+      // Root schema Client doesn't have contacts relation
+      // Only include if messaging schema is available
+      // include: {
+      //   contacts: {
+      //     select: {
+      //       e164: true,
+      //     },
+      //   },
+      // },
     }) : [];
 
     const clientMap = new Map(clients.map(c => [c.id, c]));
@@ -290,10 +294,13 @@ export async function GET(request: NextRequest) {
 
       // Get client data
       const client = thread.clientId ? clientMap.get(thread.clientId) : null;
+      // Root schema Client doesn't have 'contacts' relation - use phone field or participant data
       const clientData = client ? {
         id: client.id,
-        name: client.name,
-        contacts: client.contacts.map(c => ({ e164: c.e164 })),
+        name: (client as any).name || `${(client as any).firstName || ''} ${(client as any).lastName || ''}`.trim(),
+        contacts: (client as any).contacts ? 
+          (client as any).contacts.map((c: any) => ({ e164: c.e164 })) : 
+          (client as any).phone ? [{ e164: (client as any).phone }] : [],
       } : {
         id: thread.clientId || '',
         name: clientParticipant?.displayName || 'Unknown',
