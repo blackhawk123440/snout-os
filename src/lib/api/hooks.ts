@@ -204,7 +204,7 @@ const routingDecisionSchema = z.object({
   evaluationTrace: z.array(routingEvaluationStepSchema),
   rulesetVersion: z.string(),
   evaluatedAt: z.string().transform((s) => new Date(s)),
-  inputsSnapshot: z.record(z.unknown()),
+  inputsSnapshot: z.record(z.string(), z.unknown()),
 });
 
 export type RoutingDecision = z.infer<typeof routingDecisionSchema>;
