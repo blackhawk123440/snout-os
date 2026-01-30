@@ -330,14 +330,11 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                     : "Start a conversation to see threads here"}
                   icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                   action={
-                    (process.env.NODE_ENV === 'development' || process.env.ALLOW_DEV_SEED === 'true') ? (
-                      <Button
-                        variant="primary"
-                        onClick={handleSeed}
-                      >
-                        Create Demo Data
-                      </Button>
-                    ) : null
+                    (process.env.NODE_ENV === 'development' || process.env.ALLOW_DEV_SEED === 'true') ? {
+                      label: "Create Demo Data",
+                      onClick: handleSeed,
+                      variant: "primary" as const,
+                    } : undefined
                   }
                 />
               ) : (
