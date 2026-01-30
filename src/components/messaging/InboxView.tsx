@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   useThreads,
@@ -22,14 +22,18 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { Card, Button, Badge, EmptyState, Skeleton } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
+import { useAuth } from '@/lib/auth-client';
+import { isMessagingEnabled } from '@/lib/flags';
+import { DiagnosticsPanel } from './DiagnosticsPanel';
 
 interface InboxViewProps {
   role?: 'owner' | 'sitter';
   sitterId?: string;
   initialThreadId?: string;
+  inbox?: 'all' | 'owner'; // Filter by inbox type
 }
 
-function InboxViewContent({ role = 'owner', sitterId, initialThreadId }: InboxViewProps) {
+function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = 'all' }: InboxViewProps) {
   const searchParams = useSearchParams();
   const threadParam = searchParams.get('thread');
   const sitterParam = searchParams.get('sitterId');
@@ -51,13 +55,31 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId }: InboxVi
   const [showPolicyOverride, setShowPolicyOverride] = useState<string | null>(null);
   const [overrideReason, setOverrideReason] = useState('');
 
-  const { data: threads = [], isLoading: threadsLoading } = useThreads(filters);
+  const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useThreads({
+    ...filters,
+    inbox, // Pass inbox filter to hook
+  });
   const { data: selectedThread } = useThread(selectedThreadId);
   const { data: messages = [], isLoading: messagesLoading } = useMessages(selectedThreadId);
   const { data: routingHistory } = useRoutingHistory(selectedThreadId);
   const sendMessage = useSendMessage();
   const retryMessage = useRetryMessage();
   const markRead = useMarkThreadRead();
+  const { user } = useAuth();
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [lastFetch, setLastFetch] = useState<{ url?: string; status?: number; responseSize?: number; error?: string } | null>(null);
+
+  // Poll window.__lastThreadsFetch for diagnostics (set by apiRequest in client.ts)
+  useEffect(() => {
+    const checkFetch = () => {
+      if (typeof window !== 'undefined' && (window as any).__lastThreadsFetch) {
+        setLastFetch((window as any).__lastThreadsFetch);
+      }
+    };
+    checkFetch();
+    const interval = setInterval(checkFetch, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Update filters when sitterId changes
   useEffect(() => {
@@ -65,6 +87,14 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId }: InboxVi
       setFilters({ ...filters, sitterId: sitterId || sitterParam || undefined });
     }
   }, [sitterId, sitterParam]);
+
+  // Auto-select most recent thread when sitter filter is applied
+  useEffect(() => {
+    if ((sitterId || sitterParam) && threads.length > 0 && !selectedThreadId) {
+      // Select the most recent thread (first in list, sorted by lastActivityAt desc)
+      setSelectedThreadId(threads[0].id);
+    }
+  }, [sitterId, sitterParam, threads, selectedThreadId]);
 
   // Mark thread as read when selected
   useEffect(() => {
@@ -128,6 +158,41 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId }: InboxVi
     }
   };
 
+  const handleSeed = async () => {
+    try {
+      const response = await fetch('/api/messages/seed', { method: 'POST' });
+      const data = await response.json();
+      if (data.success) {
+        alert(`Demo data created! ${data.threads} threads and ${data.messages} messages. Refreshing...`);
+        window.location.reload();
+      } else {
+        alert(data.message || 'Failed to create demo data');
+      }
+    } catch (error: any) {
+      alert(`Failed to create demo data: ${error.message}. Try running: npx tsx scripts/seed-messaging-data.ts`);
+    }
+  };
+
+  // Update lastFetch when window.__lastThreadsFetch changes (lastFetch already declared above at line 70)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const checkFetchData = () => {
+      const fetchData = (window as any).__lastThreadsFetch;
+      if (fetchData) {
+        setLastFetch(fetchData);
+      }
+    };
+    
+    // Check immediately
+    checkFetchData();
+    
+    // Also check periodically (in case fetch completes outside React cycle)
+    const interval = setInterval(checkFetchData, 1000);
+    
+    return () => clearInterval(interval);
+  }, [threadsLoading, threadsError, threads.length]); // Update when fetch state or data changes
+
   const getDeliveryStatus = (message: Message) => {
     if (message.direction === 'inbound') {
       return { status: 'delivered', label: 'Received' };
@@ -172,7 +237,18 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId }: InboxVi
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 200px)', minHeight: '600px' }}>
+    <div style={{ display: 'flex', height: 'calc(100vh - 200px)', minHeight: '600px', position: 'relative' }}>
+      {/* Diagnostics Panel (dev + owner-only) */}
+      <DiagnosticsPanel
+        threadsCount={threads.length}
+        threadsLoading={threadsLoading}
+        threadsError={threadsError || null}
+        lastFetchUrl={lastFetch?.url}
+        lastFetchStatus={lastFetch?.status}
+        lastFetchResponseSize={lastFetch?.responseSize}
+        onSeed={handleSeed}
+      />
+
       {/* Left: Thread List */}
       <div style={{ width: '33%', borderRight: `1px solid ${tokens.colors.border.default}`, backgroundColor: tokens.colors.neutral[50], display: 'flex', flexDirection: 'column' }}>
         {/* Filters */}
@@ -246,7 +322,37 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId }: InboxVi
             </div>
           ) : filteredThreads.length === 0 ? (
             <div style={{ padding: tokens.spacing[4], textAlign: 'center', color: tokens.colors.text.secondary }}>
-              No threads found
+              {threads.length === 0 ? (
+                <EmptyState
+                  title="No threads yet"
+                  description={process.env.NODE_ENV === 'development' || process.env.ALLOW_DEV_SEED === 'true'
+                    ? "Create demo data to get started with messaging"
+                    : "Start a conversation to see threads here"}
+                  icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                  action={
+                    (process.env.NODE_ENV === 'development' || process.env.ALLOW_DEV_SEED === 'true') ? (
+                      <Button
+                        variant="primary"
+                        onClick={handleSeed}
+                      >
+                        Create Demo Data
+                      </Button>
+                    ) : null
+                  }
+                />
+              ) : (
+                <div>
+                  {filters.sitterId ? (
+                    <EmptyState
+                      title="No active conversations for this sitter"
+                      description="Create an assignment window and thread to enable messaging for this sitter."
+                      icon={<i className="fas fa-user-friends" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                    />
+                  ) : (
+                    <div>No threads match your filters</div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             filteredThreads.map((thread) => (

@@ -38,6 +38,9 @@ import { useMobile } from '@/lib/use-mobile';
 import ConversationList from '@/components/messaging/ConversationList';
 import ConversationView from '@/components/messaging/ConversationView';
 import InboxView from '@/components/messaging/InboxView';
+import { DiagnosticsPanel } from '@/components/messaging/DiagnosticsPanel';
+import { isMessagingEnabled } from '@/lib/flags';
+import { useAuth } from '@/lib/auth-client';
 
 interface MessageTemplate {
   id: string;
@@ -64,36 +67,29 @@ interface Conversation {
 
 export default function MessagesPage() {
   const isMobile = useMobile();
-  // Phase 4.1 / 4.2: Messaging context (role, flags)
-  const [messagingV1Enabled, setMessagingV1Enabled] = useState(false);
-  const [role, setRole] = useState<'owner' | 'sitter'>('owner');
-  const [sitterMessagesEnabled, setSitterMessagesEnabled] = useState(false);
-  useEffect(() => {
-    fetch('/api/messages/me')
-      .then(async res => {
-        if (!res.ok) {
-          setMessagingV1Enabled(false);
-          setRole('owner');
-          setSitterMessagesEnabled(false);
-          return null;
-        }
-        return res.json();
-      })
-      .then((data: { role?: 'owner' | 'sitter'; messagingV1Enabled?: boolean; sitterMessagesEnabled?: boolean } | null) => {
-        if (!data) return;
-        setMessagingV1Enabled(!!data.messagingV1Enabled);
-        setRole(data.role || 'owner');
-        setSitterMessagesEnabled(!!data.sitterMessagesEnabled);
-      })
-      .catch(() => {
-        setMessagingV1Enabled(false);
-        setRole('owner');
-        setSitterMessagesEnabled(false);
-      });
-  }, []);
+  
+  // Use ONLY client-side flag (NEXT_PUBLIC_ENABLE_MESSAGING_V1)
+  // Do NOT use server-side env vars for client gating
+  const messagingV1Enabled = isMessagingEnabled();
+  
+  // Get role from auth (client-side)
+  const { user } = useAuth();
+  const role = (user?.role === 'sitter' ? 'sitter' : 'owner') as 'owner' | 'sitter';
+  const sitterMessagesEnabled = false; // Phase 4.2: Not implemented yet
 
   const showOwnerInbox = messagingV1Enabled && role === 'owner';
   const showConversations = messagingV1Enabled && (role === 'owner' || (role === 'sitter' && sitterMessagesEnabled));
+
+  // Update active tab when messaging status is determined
+  useEffect(() => {
+    if (showConversations) {
+      // Conversations available - switch to conversations tab
+      setActiveTab('conversations');
+    } else if (!messagingV1Enabled) {
+      // Messaging disabled - stay on conversations tab to show disabled message
+      setActiveTab('conversations');
+    }
+  }, [showConversations, messagingV1Enabled, role]);
 
   // Default to conversations tab (will show empty state if messaging disabled)
   const [activeTab, setActiveTab] = useState<'conversations' | 'templates' | 'inbox'>('conversations');
@@ -230,13 +226,26 @@ export default function MessagesPage() {
     return <Badge variant={variantMap[type] || 'default'}>{typeConfig.label}</Badge>;
   };
 
+  // Show flag status indicator (owner-only)
+  const isOwner = role === 'owner';
+  const flagStatusBadge = isOwner ? (
+    <Badge 
+      variant={messagingV1Enabled ? "success" : "error"}
+      style={{ fontSize: tokens.typography.fontSize.xs[0], padding: `${tokens.spacing[1]} ${tokens.spacing[2]}` }}
+    >
+      Messaging: {messagingV1Enabled ? 'ON' : 'OFF'}
+    </Badge>
+  ) : null;
+
   return (
     <AppShell>
       <PageHeader
         title="Messages"
         description={activeTab === 'conversations' ? "View and manage conversations" : "Manage automated message templates"}
         actions={
-          activeTab === 'templates' ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3] }}>
+            {flagStatusBadge}
+            {activeTab === 'templates' ? (
             <>
               <Button
                 variant="primary"
@@ -257,7 +266,8 @@ export default function MessagesPage() {
                 Refresh
               </Button>
             </>
-          ) : null
+          ) : null}
+          </div>
         }
       />
 
@@ -280,13 +290,26 @@ export default function MessagesPage() {
             />
             {activeTab === 'conversations' ? (
               !messagingV1Enabled ? (
-                <EmptyState
-                  title="Messaging is disabled"
-                  description="Enable ENABLE_MESSAGING_V1 to use messaging features."
-                  icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
-                />
+                <div style={{ position: 'relative' }}>
+                  <EmptyState
+                    title="Messaging is disabled"
+                    description="Enable NEXT_PUBLIC_ENABLE_MESSAGING_V1=true to use messaging features."
+                    icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                  />
+                  {/* Show diagnostics even when disabled */}
+                  {isOwner && (
+                    <DiagnosticsPanel
+                      threadsCount={0}
+                      threadsLoading={false}
+                      threadsError={null}
+                      lastFetchUrl={undefined}
+                      lastFetchStatus={undefined}
+                      lastFetchResponseSize={undefined}
+                    />
+                  )}
+                </div>
               ) : (
-                <InboxView role={role} initialThreadId={selectedConversation?.id} />
+                <InboxView role={role} initialThreadId={selectedConversation?.id} inbox="all" />
               )
             ) : activeTab === 'inbox' ? (
               !messagingV1Enabled ? (
@@ -296,7 +319,7 @@ export default function MessagesPage() {
                   icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                 />
               ) : (
-                <InboxView role="owner" initialThreadId={selectedConversation?.id} />
+                <InboxView role="owner" initialThreadId={selectedConversation?.id} inbox="owner" />
               )
             ) : (
               <>
@@ -420,13 +443,26 @@ export default function MessagesPage() {
           >
             <TabPanel id="conversations">
               {!messagingV1Enabled ? (
-                <EmptyState
-                  title="Messaging is disabled"
-                  description="Enable ENABLE_MESSAGING_V1 to use messaging features."
-                  icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
-                />
+                <div style={{ position: 'relative' }}>
+                  <EmptyState
+                    title="Messaging is disabled"
+                    description="Enable NEXT_PUBLIC_ENABLE_MESSAGING_V1=true to use messaging features."
+                    icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                  />
+                  {/* Show diagnostics even when disabled */}
+                  {isOwner && (
+                    <DiagnosticsPanel
+                      threadsCount={0}
+                      threadsLoading={false}
+                      threadsError={null}
+                      lastFetchUrl={undefined}
+                      lastFetchStatus={undefined}
+                      lastFetchResponseSize={undefined}
+                    />
+                  )}
+                </div>
               ) : (
-                <InboxView role={role} initialThreadId={selectedConversation?.id} />
+                <InboxView role={role} initialThreadId={selectedConversation?.id} inbox="all" />
               )}
             </TabPanel>
             {showOwnerInbox && (
@@ -438,7 +474,7 @@ export default function MessagesPage() {
                     icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                   />
                 ) : (
-                  <InboxView role="owner" initialThreadId={selectedConversation?.id} />
+                  <InboxView role="owner" initialThreadId={selectedConversation?.id} inbox="owner" />
                 )}
               </TabPanel>
             )}

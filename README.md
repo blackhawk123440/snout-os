@@ -42,6 +42,30 @@ A comprehensive dashboard for managing pet care services, bookings, sitters, and
    
    Edit `.env.local` and fill in your configuration values.
 
+### Local Messaging Setup
+
+To enable the new messaging inbox UI in local development:
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. In `.env.local`, ensure these variables are set:
+   ```bash
+   NEXT_PUBLIC_ENABLE_MESSAGING_V1=true
+   NEXT_PUBLIC_API_URL=http://localhost:3001
+   ```
+
+3. Restart the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Navigate to `/messages` - you should see the new inbox UI with the "Messaging: ON" badge (owner-only).
+
+**Note**: The messaging feature flag can be toggled by setting `NEXT_PUBLIC_ENABLE_MESSAGING_V1=true` (enabled) or `false` (disabled) in `.env.local`.
+
 4. Set up the database:
    ```bash
    npm run db:push
@@ -74,6 +98,8 @@ See `.env.example` for all required environment variables.
 - `REDIS_URL` - Redis connection URL (default: redis://localhost:6379)
 - `GOOGLE_CLIENT_ID` - For Google Calendar integration
 - `GOOGLE_CLIENT_SECRET` - For Google Calendar integration
+- `NEXT_PUBLIC_ENABLE_MESSAGING_V1` - Enable new messaging inbox UI (default: false)
+- `NEXT_PUBLIC_API_URL` - API server URL (default: http://localhost:3001)
 
 ## Scripts
 

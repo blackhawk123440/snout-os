@@ -82,7 +82,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         bottom: 0,
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: tokens.colors.background.secondary,
+        backgroundColor: tokens.colors.background.primary,
         width: '100%',
         height: '100%', // Use 100% instead of 100vh for better mobile Safari support
         maxHeight: '100vh', // Fallback for browsers that don't support 100%

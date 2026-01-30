@@ -8,17 +8,15 @@
 'use client';
 
 import React from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/lib/auth-client';
 
 export const BuildHash: React.FC = () => {
-  const { data: session } = useSession();
-  const showBuildHash = process.env.NEXT_PUBLIC_SHOW_BUILD_HASH === 'true';
-  const buildHash = process.env.NEXT_PUBLIC_BUILD_HASH || 'unknown';
+  const { isOwner } = useAuth();
+  const buildHash = process.env.NEXT_PUBLIC_GIT_SHA || process.env.NEXT_PUBLIC_BUILD_HASH || 'unknown';
   const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME || 'unknown';
 
-  // Only show to authenticated users (owners/sitters)
-  // In production, you may want to check role specifically
-  if (!showBuildHash || !session?.user) {
+  // Always show to owners (no flag required)
+  if (!isOwner) {
     return null;
   }
 

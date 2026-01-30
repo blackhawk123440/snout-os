@@ -101,7 +101,6 @@ export const Tabs: React.FC<TabsProps> = ({
                   borderBottom: `2px solid ${isActive ? tokens.colors.primary.DEFAULT : 'transparent'}`,
                   marginBottom: '-2px',
                   backgroundColor: 'transparent',
-                  border: 'none',
                   borderTop: 'none',
                   borderLeft: 'none',
                   borderRight: 'none',

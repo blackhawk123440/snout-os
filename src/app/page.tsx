@@ -8,9 +8,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageHeader, StatCard, Card, Button, Skeleton } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
 
 interface DashboardStats {
@@ -21,6 +23,8 @@ interface DashboardStats {
 }
 
 export default function DashboardHomePage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     totalBookings: 0,
     activeSitters: 0,
@@ -29,9 +33,18 @@ export default function DashboardHomePage() {
   });
   const [loading, setLoading] = useState(true);
 
+  // Redirect to login if not authenticated
   useEffect(() => {
-    fetchStats();
-  }, []);
+    if (!authLoading && !user) {
+      router.push('/login?redirect=/');
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    if (user) {
+      fetchStats();
+    }
+  }, [user]);
 
   const fetchStats = async () => {
     try {
@@ -64,6 +77,20 @@ export default function DashboardHomePage() {
       setLoading(false);
     }
   };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: tokens.colors.text.secondary }}>Loading...</div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated (handled by useEffect, but show nothing while redirecting)
+  if (!user) {
+    return null;
+  }
 
   return (
     <AppShell>

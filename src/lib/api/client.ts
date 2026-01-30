@@ -10,7 +10,9 @@
 
 import { z } from 'zod';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Use NEXT_PUBLIC_API_URL if set, otherwise use relative URLs (same origin)
+// This allows Next.js API routes to work without a separate API server
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export class ApiError extends Error {
   constructor(
@@ -91,7 +93,16 @@ export async function apiRequest<T>(
   schema?: z.ZodSchema<T>,
 ): Promise<T> {
   const token = getAuthToken();
-  const url = `${API_BASE_URL}${endpoint}`;
+  // If API_BASE_URL is empty, use relative URL (same origin for Next.js API routes)
+  // If API_BASE_URL is set, use it (for separate API server)
+  const url = API_BASE_URL ? `${API_BASE_URL}${endpoint}` : endpoint;
+
+  // Check if this is the threads LIST endpoint (for diagnostics tracking)
+  // Match: /api/messages/threads or /api/messages/threads?params
+  // Don't match: /api/messages/threads/:id
+  const isThreadsListEndpoint = endpoint === '/api/messages/threads' || 
+    endpoint.startsWith('/api/messages/threads?') || 
+    (endpoint.startsWith('/api/messages/threads') && !endpoint.match(/\/api\/messages\/threads\/[^?]/));
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -107,6 +118,21 @@ export async function apiRequest<T>(
       ...options,
       headers,
     });
+
+    // Store fetch metadata for diagnostics (only for threads LIST endpoint, not detail)
+    if (typeof window !== 'undefined' && isThreadsListEndpoint) {
+      const responseClone = response.clone();
+      responseClone.text().then((text) => {
+        (window as any).__lastThreadsFetch = {
+          url,
+          status: response.status,
+          responseSize: text.length,
+          timestamp: new Date().toISOString(),
+        };
+      }).catch(() => {
+        // Ignore errors reading response
+      });
+    }
 
     // Handle non-JSON responses
     const contentType = response.headers.get('content-type');
@@ -125,7 +151,19 @@ export async function apiRequest<T>(
     if (!response.ok) {
       const errorMessage =
         data.message || data.error || `Request failed: ${response.statusText}`;
-      throw new ApiError(errorMessage, response.status, data.code);
+      const apiError = new ApiError(errorMessage, response.status, data.code);
+      
+      // Store error details for diagnostics
+      if (typeof window !== 'undefined' && isThreadsListEndpoint) {
+        (window as any).__lastThreadsFetch = {
+          url,
+          status: response.status,
+          error: errorMessage,
+          timestamp: new Date().toISOString(),
+        };
+      }
+      
+      throw apiError;
     }
 
     // Validate response with Zod schema if provided
@@ -136,6 +174,15 @@ export async function apiRequest<T>(
     return data as T;
   } catch (error) {
     if (error instanceof ApiError) {
+      // Store error details for diagnostics
+      if (typeof window !== 'undefined' && isThreadsListEndpoint) {
+        (window as any).__lastThreadsFetch = {
+          url,
+          status: error.statusCode || 0,
+          error: error.message,
+          timestamp: new Date().toISOString(),
+        };
+      }
       throw error;
     }
 

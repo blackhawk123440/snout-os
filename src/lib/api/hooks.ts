@@ -54,6 +54,7 @@ export function useThreads(filters?: {
   hasPolicyViolation?: boolean;
   hasDeliveryFailure?: boolean;
   search?: string;
+  inbox?: 'all' | 'owner'; // Filter by inbox type: 'all' = all threads, 'owner' = owner inbox only
 }) {
   const queryParams = new URLSearchParams();
   if (filters?.clientId) queryParams.set('clientId', filters.clientId);
@@ -62,13 +63,25 @@ export function useThreads(filters?: {
   if (filters?.unreadOnly) queryParams.set('unreadOnly', 'true');
   if (filters?.hasPolicyViolation) queryParams.set('hasPolicyViolation', 'true');
   if (filters?.hasDeliveryFailure) queryParams.set('hasDeliveryFailure', 'true');
+  if (filters?.inbox) {
+    if (filters.inbox === 'owner') {
+      queryParams.set('scope', 'internal'); // Owner inbox uses scope='internal'
+    }
+    // 'all' means no scope filter
+  }
 
   const queryString = queryParams.toString();
-  const endpoint = `/api/threads${queryString ? `?${queryString}` : ''}`;
+  const endpoint = `/api/messages/threads${queryString ? `?${queryString}` : ''}`;
 
   return useQuery({
     queryKey: ['threads', filters],
-    queryFn: () => apiGet<Thread[]>(endpoint, z.array(threadSchema)),
+    queryFn: async () => {
+      // apiGet will store fetch metadata in window.__lastThreadsFetch
+      const response = await apiGet<{ threads: Thread[] }>(endpoint, z.object({
+        threads: z.array(threadSchema),
+      }));
+      return response.threads;
+    },
     refetchInterval: 5000, // Poll every 5s when page is visible
   });
 }
@@ -76,7 +89,7 @@ export function useThreads(filters?: {
 export function useThread(threadId: string | null) {
   return useQuery({
     queryKey: ['thread', threadId],
-    queryFn: () => apiGet<Thread>(`/api/threads/${threadId}`, threadSchema),
+    queryFn: () => apiGet<Thread>(`/api/messages/threads/${threadId}`, threadSchema),
     enabled: !!threadId,
   });
 }

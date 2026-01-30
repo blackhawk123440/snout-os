@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get("clientId");
     const bookingId = searchParams.get("bookingId");
     const unreadOnly = searchParams.get("unreadOnly") === "true";
+    const inbox = searchParams.get("inbox"); // 'all' | 'owner'
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
 
@@ -120,11 +121,15 @@ export async function GET(request: NextRequest) {
         ];
       }
     } else {
-      // Owner: Can see all threads, but can filter by scope
+      // Owner: Can see all threads, but can filter by scope or inbox type
       const scope = searchParams.get("scope");
       if (scope) {
         where.scope = scope;
+      } else if (inbox === 'owner') {
+        // Filter to owner inbox (scope='internal')
+        where.scope = 'internal';
       }
+      // If inbox='all' or not specified, no scope filter (show all threads)
     }
 
     if (status) {
@@ -200,8 +205,10 @@ export async function GET(request: NextRequest) {
         },
         messageNumber: {
           select: {
+            id: true,
             numberClass: true,
             e164: true,
+            status: true,
           },
         },
         assignmentWindows: isSitterWithMessages && currentSitterId
@@ -245,9 +252,29 @@ export async function GET(request: NextRequest) {
       },
     }) : [];
 
-    const sitterMap = new Map(sitters.map(s => [s.id, `${s.firstName} ${s.lastName}`]));
+    const sitterMap = new Map(sitters.map(s => [s.id, { id: s.id, name: `${s.firstName} ${s.lastName}` }]));
 
-    // Phase 4.1: Format threads with enhanced metadata
+    // Get client data for all threads
+    const clientIds = threads
+      .map(t => t.clientId)
+      .filter((id): id is string => !!id);
+    
+    const clients = clientIds.length > 0 ? await prisma.client.findMany({
+      where: {
+        id: { in: clientIds },
+      },
+      include: {
+        contacts: {
+          select: {
+            e164: true,
+          },
+        },
+      },
+    }) : [];
+
+    const clientMap = new Map(clients.map(c => [c.id, c]));
+
+    // Phase 4.1: Format threads with enhanced metadata to match Zod schema
     const formattedThreads = threads.map((thread) => {
       const clientParticipant = thread.participants[0];
       const lastEvent = thread.events[0];
@@ -259,11 +286,22 @@ export async function GET(request: NextRequest) {
 
       // Phase 4.1: Number class from MessageNumber (derived, not stored on thread)
       const numberClass = thread.messageNumber?.numberClass || thread.numberClass || 'front_desk';
+      const threadType = numberClass === 'front_desk' ? 'front_desk' : numberClass === 'sitter' ? 'assignment' : 'pool';
 
-      // Phase 4.1: Assignment status
-      const assignedSitter = thread.assignedSitterId 
-        ? sitterMap.get(thread.assignedSitterId) || null
-        : null;
+      // Get client data
+      const client = thread.clientId ? clientMap.get(thread.clientId) : null;
+      const clientData = client ? {
+        id: client.id,
+        name: client.name,
+        contacts: client.contacts.map(c => ({ e164: c.e164 })),
+      } : {
+        id: thread.clientId || '',
+        name: clientParticipant?.displayName || 'Unknown',
+        contacts: clientParticipant?.realE164 ? [{ e164: clientParticipant.realE164 }] : [],
+      };
+
+      // Get sitter data
+      const sitterData = thread.assignedSitterId ? sitterMap.get(thread.assignedSitterId) || null : null;
 
       // Phase 4.1: Active window status
       const hasActiveWindow = thread.assignmentWindows.length > 0;
@@ -285,25 +323,40 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Format to match Zod schema
       return {
         id: thread.id,
+        orgId: thread.orgId,
+        clientId: thread.clientId || '',
+        sitterId: thread.assignedSitterId || null,
+        numberId: thread.messageNumberId || '',
+        threadType,
+        status: thread.status === 'open' ? 'active' : 'inactive',
+        ownerUnreadCount: thread.ownerUnreadCount,
+        lastActivityAt: thread.lastMessageAt || thread.createdAt,
+        client: clientData,
+        sitter: sitterData,
+        messageNumber: {
+          id: thread.messageNumber?.id || thread.messageNumberId || '',
+          e164: thread.messageNumber?.e164 || clientParticipant?.realE164 || '',
+          class: numberClass,
+          status: thread.messageNumber?.status || 'active',
+        },
+        assignmentWindows: thread.assignmentWindows.map(w => ({
+          id: w.id,
+          startsAt: w.startAt.toISOString(),
+          endsAt: w.endAt.toISOString(),
+        })),
+        // Additional metadata for UI
         participantName: clientParticipant?.displayName || 'Unknown',
         participantPhone: clientParticipant?.realE164 || '',
-        participantType: 'client' as const,
-        bookingId: thread.bookingId,
-        bookingTitle: thread.bookingId ? `Booking ${thread.bookingId.substring(0, 8)}` : null,
         lastMessage: lastEvent?.body || '',
         lastMessageAt: lastEvent?.createdAt || thread.lastMessageAt || thread.createdAt,
-        unreadCount: thread.ownerUnreadCount,
-        messageCount: 0, // TODO: Calculate actual count if needed
-        // Phase 4.1: Enhanced fields
-        numberClass,
-        assignedSitterId: thread.assignedSitterId,
-        assignedSitterName: assignedSitter,
+        bookingId: thread.bookingId,
         hasActiveWindow,
         scope: thread.scope,
         hasAntiPoachingFlag,
-        isBlocked: isBlocked && lastEvent?.id, // Include event ID if blocked for force send
+        isBlocked: isBlocked && lastEvent?.id,
         blockedEventId: isBlocked ? lastEvent?.id : null,
         // Phase 4.2: Sitter window status
         ...(isSitterWithMessages && { activeWindow, nextUpcomingWindow }),
