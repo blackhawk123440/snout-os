@@ -26,3 +26,17 @@ export function isMessagingEnabled(): boolean {
     process.env.ENABLE_MESSAGING_V1 === 'true'
   );
 }
+
+/**
+ * Check if bookings V2 is enabled
+ */
+export const ENABLE_BOOKINGS_V2 = 
+  process.env.NEXT_PUBLIC_ENABLE_BOOKINGS_V2 === 'true' ||
+  process.env.ENABLE_BOOKINGS_V2 === 'true';
+
+/**
+ * Check if resonance V1 is enabled
+ */
+export const ENABLE_RESONANCE_V1 = 
+  process.env.NEXT_PUBLIC_ENABLE_RESONANCE_V1 === 'true' ||
+  process.env.ENABLE_RESONANCE_V1 === 'true';

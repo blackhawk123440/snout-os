@@ -62,12 +62,13 @@ const nextConfig = {
   },
   webpack: (config) => {
     config.resolve.alias["@"] = path.resolve(__dirname, "src");
-    // Exclude enterprise-messaging-dashboard from compilation
+    // Exclude enterprise-messaging-dashboard and scripts from compilation
     config.module.rules.push({
       test: /\.ts$/,
       exclude: [
         /node_modules/,
         /enterprise-messaging-dashboard/,
+        /scripts/,
       ],
     });
     return config;
