@@ -256,3 +256,33 @@ curl -b cookies.txt -c cookies.txt https://snout-os-web.onrender.com/api/auth/se
 - `/api/auth/health` - Auth configuration
 - `/api/auth/session` - Current session
 - `/api/messages/threads` - Messaging API connectivity
+
+## E2E Testing
+
+Run the Playwright E2E test to verify staging deployment:
+
+```bash
+# Set environment variables
+export STAGING_WEB_URL=https://snout-os-web.onrender.com
+export STAGING_API_URL=https://snout-os-api.onrender.com
+export TEST_EMAIL=owner@example.com
+export TEST_PASSWORD=password
+
+# Run test
+npx playwright test tests/e2e/staging-auth.spec.ts
+```
+
+**Test Coverage:**
+- ✅ Auth health check
+- ✅ Login flow
+- ✅ Session persistence
+- ✅ Messages page loads
+- ✅ Threads API connectivity (not 401/404)
+- ✅ API service health check
+
+**Expected Results:**
+- All tests pass
+- No 401 (unauthorized) errors
+- No 404 (not found) errors
+- Session cookie present
+- Threads endpoint accessible
