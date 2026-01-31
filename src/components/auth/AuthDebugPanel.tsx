@@ -13,6 +13,13 @@ import { Card } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 
+// Type declaration for window property
+declare global {
+  interface Window {
+    __lastSignInResult?: { ok: boolean; error: string | null } | null;
+  }
+}
+
 interface AuthHealth {
   status: string;
   env: {
