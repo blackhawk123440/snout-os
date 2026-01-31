@@ -692,3 +692,17 @@ function MessagesPageContent() {
   );
 }
 
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <AppShell>
+        <PageHeader title="Messages" />
+        <div style={{ padding: tokens.spacing[4] }}>
+          <Skeleton height={400} />
+        </div>
+      </AppShell>
+    }>
+      <MessagesPageContent />
+    </Suspense>
+  );
+}
