@@ -11,7 +11,7 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -692,7 +692,7 @@ function MessagesPageContent() {
   );
 }
 
-export default function MessagesPage() {
+export default function MessagesPage(): React.ReactElement {
   return (
     <Suspense fallback={
       <AppShell>
