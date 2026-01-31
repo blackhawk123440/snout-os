@@ -82,44 +82,70 @@ export async function GET(
       }
     }
 
-    // Fetch messages with deliveries and policy violations
-    const messages = await prisma.message.findMany({
+    // Fetch messages (using MessageEvent in root schema)
+    const messages = await prisma.messageEvent.findMany({
       where: { threadId },
       include: {
-        deliveries: {
-          orderBy: { attemptNo: 'desc' },
+        AntiPoachingAttempt: {
+          select: {
+            id: true,
+            violationType: true,
+            detectedContent: true,
+            action: true,
+            resolvedAt: true,
+            resolvedByUserId: true,
+          },
         },
-        policyViolations: true,
       },
       orderBy: { createdAt: 'asc' },
     });
 
     // Format messages to match Zod schema
-    const formattedMessages = messages.map((msg) => ({
-      id: msg.id,
-      threadId: msg.threadId,
-      direction: msg.direction === 'inbound' ? 'inbound' as const : 'outbound' as const,
-      senderType: msg.senderType as 'client' | 'sitter' | 'owner' | 'system' | 'automation',
-      senderId: msg.senderId,
-      body: msg.body,
-      redactedBody: msg.redactedBody,
-      hasPolicyViolation: msg.hasPolicyViolation,
-      createdAt: msg.createdAt.toISOString(),
-      deliveries: msg.deliveries.map((delivery) => ({
-        id: delivery.id,
-        attemptNo: delivery.attemptNo,
-        status: delivery.status as 'queued' | 'sent' | 'delivered' | 'failed',
-        providerErrorCode: delivery.providerErrorCode,
-        providerErrorMessage: delivery.providerErrorMessage,
-        createdAt: delivery.createdAt.toISOString(),
-      })),
-      policyViolations: msg.policyViolations.map((pv) => ({
-        id: pv.id,
-        violationType: pv.violationType,
-        detectedSummary: pv.detectedSummary || '',
-        actionTaken: pv.actionTaken || '',
-      })),
-    }));
+    // MessageEvent has deliveryStatus directly, not in a deliveries table
+    // We create a delivery object from the MessageEvent fields
+    const formattedMessages = messages.map((msg) => {
+      const metadata = msg.metadataJson ? JSON.parse(msg.metadataJson) : {};
+      const hasPolicyViolation = !!msg.AntiPoachingAttempt || metadata.antiPoachingFlagged === true;
+      
+      // Create delivery object from MessageEvent fields
+      const delivery = {
+        id: msg.id, // Use message ID as delivery ID (single delivery per message in MessageEvent)
+        attemptNo: msg.attemptCount || 1,
+        status: (msg.deliveryStatus === 'delivered' ? 'delivered' :
+                 msg.deliveryStatus === 'sent' ? 'sent' :
+                 msg.deliveryStatus === 'failed' ? 'failed' :
+                 'queued') as 'queued' | 'sent' | 'delivered' | 'failed',
+        providerErrorCode: msg.providerErrorCode || msg.failureCode,
+        providerErrorMessage: msg.providerErrorMessage || msg.failureDetail,
+        createdAt: msg.createdAt.toISOString(),
+      };
+
+      // Map actorType to senderType
+      const senderType = msg.actorType === 'client' ? 'client' :
+                        msg.actorType === 'sitter' ? 'sitter' :
+                        msg.actorType === 'owner' ? 'owner' :
+                        msg.actorType === 'system' ? 'system' :
+                        'automation' as 'client' | 'sitter' | 'owner' | 'system' | 'automation';
+
+      return {
+        id: msg.id,
+        threadId: msg.threadId,
+        direction: msg.direction === 'inbound' ? 'inbound' as const : 'outbound' as const,
+        senderType,
+        senderId: msg.actorUserId || msg.actorClientId || null,
+        body: msg.body,
+        redactedBody: metadata.wasBlocked ? (metadata.redactedContent || msg.body) : null,
+        hasPolicyViolation,
+        createdAt: msg.createdAt.toISOString(),
+        deliveries: [delivery], // Single delivery object from MessageEvent
+        policyViolations: msg.AntiPoachingAttempt ? [{
+          id: msg.AntiPoachingAttempt.id,
+          violationType: msg.AntiPoachingAttempt.violationType,
+          detectedSummary: msg.AntiPoachingAttempt.detectedContent || '',
+          actionTaken: msg.AntiPoachingAttempt.action || '',
+        }] : [],
+      };
+    });
 
     return NextResponse.json(formattedMessages);
   } catch (error) {
