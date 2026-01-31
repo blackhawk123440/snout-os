@@ -11,7 +11,8 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   PageHeader,
@@ -65,8 +66,9 @@ interface Conversation {
   messageCount: number;
 }
 
-export default function MessagesPage() {
+function MessagesPageContent() {
   const isMobile = useMobile();
+  const searchParams = useSearchParams();
   
   // Use ONLY client-side flag (NEXT_PUBLIC_ENABLE_MESSAGING_V1)
   // Do NOT use server-side env vars for client gating
@@ -79,6 +81,9 @@ export default function MessagesPage() {
 
   const showOwnerInbox = messagingV1Enabled && role === 'owner';
   const showConversations = messagingV1Enabled && (role === 'owner' || (role === 'sitter' && sitterMessagesEnabled));
+
+  // Get sitterId from URL params for deep-linking
+  const sitterIdParam = searchParams.get('sitterId');
 
   // Update active tab when messaging status is determined
   useEffect(() => {
@@ -319,7 +324,7 @@ export default function MessagesPage() {
                   icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                 />
               ) : (
-                <InboxView role="owner" initialThreadId={selectedConversation?.id} inbox="owner" />
+                <InboxView role="owner" initialThreadId={selectedConversation?.id} sitterId={sitterIdParam || undefined} inbox="owner" />
               )
             ) : (
               <>
@@ -473,9 +478,9 @@ export default function MessagesPage() {
                     description="Enable ENABLE_MESSAGING_V1 to use messaging features."
                     icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                   />
-                ) : (
-                  <InboxView role="owner" initialThreadId={selectedConversation?.id} inbox="owner" />
-                )}
+              ) : (
+                <InboxView role="owner" initialThreadId={selectedConversation?.id} sitterId={sitterIdParam || undefined} inbox="owner" />
+              )}
               </TabPanel>
             )}
             <TabPanel id="templates">

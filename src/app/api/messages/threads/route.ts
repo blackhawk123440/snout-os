@@ -155,6 +155,36 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    // Filter by policy violations
+    const hasPolicyViolation = searchParams.get("hasPolicyViolation") === "true";
+    if (hasPolicyViolation) {
+      where.messages = {
+        some: {
+          hasPolicyViolation: true,
+        },
+      };
+    }
+
+    // Filter by delivery failures
+    const hasDeliveryFailure = searchParams.get("hasDeliveryFailure") === "true";
+    if (hasDeliveryFailure) {
+      where.messages = {
+        some: {
+          deliveries: {
+            some: {
+              status: 'failed',
+            },
+          },
+        },
+      };
+    }
+
+    // Filter by sitterId (assignedSitterId)
+    const sitterIdParam = searchParams.get("sitterId");
+    if (sitterIdParam && isOwner) {
+      where.assignedSitterId = sitterIdParam;
+    }
+
     // Search by participant name or phone (if search term provided)
     if (search) {
       // This is a simplified search - in production, might want more sophisticated search

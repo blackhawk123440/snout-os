@@ -375,18 +375,34 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[1] }}>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>{thread.client.name}</div>
+                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
+                    {thread.client.name || 'Unknown'}
+                  </div>
                   {thread.ownerUnreadCount > 0 && (
                     <Badge variant="info">{thread.ownerUnreadCount}</Badge>
                   )}
                 </div>
-                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                  {thread.messageNumber.e164} • {thread.messageNumber.class}
+                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[1], marginBottom: tokens.spacing[1] }}>
+                  <Badge 
+                    variant={
+                      thread.messageNumber.class === 'front_desk' ? 'default' :
+                      thread.messageNumber.class === 'pool' ? 'info' :
+                      thread.messageNumber.class === 'sitter' ? 'success' : 'default'
+                    }
+                    style={{ fontSize: tokens.typography.fontSize.xs[0] }}
+                  >
+                    {thread.messageNumber.class}
+                  </Badge>
+                  <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                    {thread.messageNumber.e164}
+                  </span>
                 </div>
                 {thread.sitter && (
-                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>Assigned to {thread.sitter.name}</div>
+                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Assigned to {thread.sitter.name}
+                  </div>
                 )}
-                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginTop: tokens.spacing[1] }}>
+                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>
                   {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
                 </div>
               </div>
@@ -402,18 +418,42 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
             {/* Thread Header */}
             <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>{selectedThread?.client.name}</h3>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
-                    <div>
-                      Number: {selectedThread?.messageNumber.e164} ({selectedThread?.messageNumber.class})
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+                    {selectedThread?.client.name || 'Unknown'}
+                  </h3>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                      <span>Business Number:</span>
+                      <span style={{ fontFamily: 'monospace' }}>{selectedThread?.messageNumber.e164}</span>
+                      <Badge 
+                        variant={
+                          selectedThread?.messageNumber.class === 'front_desk' ? 'default' :
+                          selectedThread?.messageNumber.class === 'pool' ? 'info' :
+                          selectedThread?.messageNumber.class === 'sitter' ? 'success' : 'default'
+                        }
+                        style={{ fontSize: tokens.typography.fontSize.xs[0] }}
+                      >
+                        {selectedThread?.messageNumber.class}
+                      </Badge>
                     </div>
                     {selectedThread?.sitter && (
-                      <div>Assigned to: {selectedThread.sitter.name}</div>
+                      <div>
+                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Assigned Sitter:</span> {selectedThread.sitter.name}
+                      </div>
                     )}
                     {selectedThread?.assignmentWindows?.[0] && (
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.primary.DEFAULT, marginTop: tokens.spacing[1] }}>
-                        Active window: {formatDistanceToNow(selectedThread.assignmentWindows[0].endsAt, { addSuffix: true })}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Window Status:</span>
+                        <Badge variant="success">Active</Badge>
+                        <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>
+                          (ends {formatDistanceToNow(selectedThread.assignmentWindows[0].endsAt, { addSuffix: true })})
+                        </span>
+                      </div>
+                    )}
+                    {selectedThread?.assignmentWindows && selectedThread.assignmentWindows.length === 0 && (
+                      <div>
+                        <Badge variant="default">No active window</Badge>
                       </div>
                     )}
                   </div>
@@ -422,6 +462,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                   variant="secondary"
                   size="sm"
                   onClick={() => setShowRoutingDrawer(true)}
+                  leftIcon={<i className="fas fa-question-circle" />}
                 >
                   Why routed here?
                 </Button>
@@ -453,24 +494,15 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                           padding: tokens.spacing[3],
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[1] }}>
-                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium }}>{senderLabel}</div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
-                            {formatDistanceToNow(message.createdAt, { addSuffix: true })}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[2] }}>
+                          <div>
+                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[0.5] }}>
+                              {senderLabel}
+                            </div>
+                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                              {formatDistanceToNow(message.createdAt, { addSuffix: true })}
+                            </div>
                           </div>
-                        </div>
-
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[2] }}>
-                          {message.redactedBody || message.body}
-                        </div>
-
-                        {message.hasPolicyViolation && (
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.error.DEFAULT, marginBottom: tokens.spacing[2] }}>
-                            ⚠️ Policy violation detected
-                          </div>
-                        )}
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
                           <Badge
                             variant={
                               delivery.status === 'delivered'
@@ -481,24 +513,59 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                                     ? 'info'
                                     : 'default'
                             }
+                            style={{ fontSize: tokens.typography.fontSize.xs[0] }}
                           >
                             {delivery.label}
                           </Badge>
+                        </div>
 
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[2], lineHeight: 1.5 }}>
+                          {message.redactedBody || message.body}
+                        </div>
+
+                        {message.hasPolicyViolation && (
+                          <div style={{ 
+                            fontSize: tokens.typography.fontSize.xs[0], 
+                            color: tokens.colors.error.DEFAULT, 
+                            backgroundColor: tokens.colors.error[50],
+                            padding: tokens.spacing[2],
+                            borderRadius: tokens.radius.sm,
+                            marginBottom: tokens.spacing[2]
+                          }}>
+                            ⚠️ Policy violation detected
+                            {message.policyViolations?.[0] && (
+                              <div style={{ marginTop: tokens.spacing[1], fontSize: tokens.typography.fontSize.xs[0] }}>
+                                {message.policyViolations[0].detectedSummary}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
                           {delivery.status === 'failed' && message.direction === 'outbound' && (
                             <Button
                               variant="tertiary"
                               size="sm"
                               onClick={() => handleRetry(message.id)}
+                              disabled={retryMessage.isPending}
+                              leftIcon={<i className="fas fa-redo" />}
                             >
-                              Retry
+                              {retryMessage.isPending ? 'Retrying...' : 'Retry'}
                             </Button>
                           )}
 
                           {delivery.error && (
-                            <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.error.DEFAULT }} title={delivery.error}>
-                              {delivery.error.substring(0, 50)}...
-                            </span>
+                            <div style={{ 
+                              fontSize: tokens.typography.fontSize.xs[0], 
+                              color: tokens.colors.error.DEFAULT,
+                              backgroundColor: tokens.colors.error[50],
+                              padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                              borderRadius: tokens.radius.sm,
+                              maxWidth: '100%',
+                              wordBreak: 'break-word'
+                            }} title={delivery.error}>
+                              Error: {delivery.error}
+                            </div>
                           )}
                         </div>
                       </Card>

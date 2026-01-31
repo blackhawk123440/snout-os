@@ -82,7 +82,13 @@ export function useThreads(filters?: {
       }));
       return response.threads;
     },
-    refetchInterval: 5000, // Poll every 5s when page is visible
+    refetchInterval: (query) => {
+      // Only poll when tab is visible
+      if (typeof document !== 'undefined' && document.hidden) {
+        return false;
+      }
+      return 5000; // Poll every 5s when page is visible
+    },
   });
 }
 
@@ -147,11 +153,17 @@ export function useMessages(threadId: string | null) {
     queryKey: ['messages', threadId],
     queryFn: () =>
       apiGet<Message[]>(
-        `/api/messages/threads/${threadId}`,
+        `/api/messages/threads/${threadId}/messages`,
         z.array(messageSchema),
       ),
     enabled: !!threadId,
-    refetchInterval: 3000, // Poll every 3s for delivery status updates
+    refetchInterval: (query) => {
+      // Only poll when tab is visible
+      if (typeof document !== 'undefined' && document.hidden) {
+        return false;
+      }
+      return 3000; // Poll every 3s for delivery status updates
+    },
   });
 }
 
