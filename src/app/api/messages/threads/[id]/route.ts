@@ -124,67 +124,10 @@ export async function GET(
       }
     }
 
-    // Phase 4.1: Fetch messages with anti-poaching data
-    const messages = await prisma.messageEvent.findMany({
-      where: {
-        threadId: thread.id,
-      },
-      include: {
-        AntiPoachingAttempt: {
-          select: {
-            id: true,
-            violationType: true,
-            detectedContent: true,
-            action: true,
-            resolvedAt: true,
-            resolvedByUserId: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
-    // Get total count for pagination
-    const totalCount = await prisma.messageEvent.count({
-      where: {
-        threadId: thread.id,
-      },
-    });
-
-    // Phase 4.1: Format messages with anti-poaching flags
-    const formattedMessages = messages.map((msg) => {
-      const metadata = msg.metadataJson ? JSON.parse(msg.metadataJson) : {};
-      const antiPoachingAttempt = msg.AntiPoachingAttempt;
-
-      return {
-        id: msg.id,
-        direction: msg.direction,
-        actorType: msg.actorType,
-        body: msg.body,
-        mediaUrls: msg.mediaJson ? JSON.parse(msg.mediaJson) : [],
-        createdAt: msg.createdAt,
-        deliveryStatus: msg.deliveryStatus,
-        failureCode: msg.failureCode,
-        failureDetail: msg.failureDetail,
-        // Phase 4.1: Anti-poaching flags
-        wasBlocked: metadata.wasBlocked === true,
-        antiPoachingFlagged: metadata.antiPoachingFlagged === true || !!antiPoachingAttempt,
-        antiPoachingAttempt: antiPoachingAttempt ? {
-          id: antiPoachingAttempt.id,
-          violationType: antiPoachingAttempt.violationType,
-          detectedContent: antiPoachingAttempt.detectedContent,
-          action: antiPoachingAttempt.action,
-          resolvedAt: antiPoachingAttempt.resolvedAt,
-          resolvedByUserId: antiPoachingAttempt.resolvedByUserId,
-        } : null,
-        // Phase 4.1: Redacted content for blocked messages
-        redactedBody: metadata.wasBlocked ? metadata.redactedContent || msg.body : null,
-      };
-    });
+    // Note: Messages are fetched via separate /api/messages/threads/[id]/messages endpoint
+    // This endpoint only returns thread metadata
+    const formattedMessages: any[] = [];
+    const totalCount = 0;
 
     // Phase 4.1: Fetch assignment audit history
     const assignmentAudits = await prisma.threadAssignmentAudit.findMany({
@@ -289,13 +232,6 @@ export async function GET(
 
     return NextResponse.json({
       thread: formattedThread,
-      messages: formattedMessages.reverse(), // Reverse to show oldest first
-      pagination: {
-        page,
-        limit,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-      },
     });
   } catch (error) {
     console.error("[messages/threads/[id]] Error fetching thread:", error);
