@@ -44,21 +44,12 @@ export function DiagnosticsPanel({
     setApiBaseUrl(resolvedUrl || '(relative - same origin)');
   }, []);
 
-  // Fetch user info from /api/auth/me
+  // Get user info from NextAuth session (already available via useAuth hook)
   useEffect(() => {
-    const fetchUserInfo = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        if (response.ok) {
-          const data = await response.json();
-          setUserInfo({ email: data.email, role: data.role });
-        }
-      } catch (error) {
-        // Ignore errors
-      }
-    };
-    fetchUserInfo();
-  }, []);
+    if (user) {
+      setUserInfo({ email: user.email, role: user.role });
+    }
+  }, [user]);
 
   // Always show to owners (dev + staging) - check AFTER all hooks
   if (!isOwner) {
