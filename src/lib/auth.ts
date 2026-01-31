@@ -45,9 +45,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         // Find user by email
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-        });
+        let user;
+        try {
+          user = await prisma.user.findUnique({
+            where: { email: credentials.email as string },
+            select: { id: true, email: true, name: true, passwordHash: true, sitterId: true },
+          });
+        } catch (error) {
+          console.error('[NextAuth] Database error during authorize:', error);
+          return null;
+        }
 
         if (!user) {
           return null;
@@ -71,6 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
+          sitterId: user.sitterId, // Include sitterId in token
         };
       },
     }),
@@ -79,30 +87,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // Callbacks
   callbacks: {
     async session({ session, token }: any) {
-      // Add user ID to session from JWT token
+      // Add user ID to session from JWT token (no database query to avoid failures)
       if (session.user && token) {
-        session.user.id = token.id;
-        session.user.email = token.email;
-        session.user.name = token.name;
-        
-        // Get user from database to include sitterId (with error handling)
-        if (token.id) {
-          try {
-            const dbUser = await prisma.user.findUnique({
-              where: { id: token.id },
-              select: { id: true, email: true, name: true, sitterId: true },
-            });
-            if (dbUser) {
-              session.user.id = dbUser.id;
-              session.user.email = dbUser.email;
-              session.user.name = dbUser.name;
-              (session.user as any).sitterId = dbUser.sitterId;
-            }
-          } catch (error) {
-            // If database query fails, use token data (graceful degradation)
-            console.error('[NextAuth] Session callback database error:', error);
-            // Continue with token data only
-          }
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        // sitterId is stored in token during jwt callback, no DB query needed
+        if (token.sitterId) {
+          (session.user as any).sitterId = token.sitterId;
         }
       }
       return session;
@@ -112,6 +104,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
+        // Store sitterId in token so we don't need DB query in session callback
+        token.sitterId = (user as any).sitterId;
       }
       return token;
     },
