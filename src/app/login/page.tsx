@@ -22,33 +22,70 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [lastSignInResult, setLastSignInResult] = useState<{ ok: boolean; error: string | null } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    setLastSignInResult(null);
 
     try {
       const result = await signIn("credentials", {
         email,
         password,
         redirect: false,
+        callbackUrl: callbackUrl,
       });
+
+      // Store result for debug panel
+      const signInResult = {
+        ok: result?.ok || false,
+        error: result?.error || null,
+      };
+      setLastSignInResult(signInResult);
+      if (typeof window !== 'undefined') {
+        (window as any).__lastSignInResult = signInResult;
+      }
 
       if (result?.error) {
         setError("Invalid email or password");
         setLoading(false);
       } else if (result?.ok) {
-        // Wait a moment for session to be established, then redirect
-        setTimeout(() => {
-          router.push(callbackUrl);
-          router.refresh();
-        }, 100);
+        // Verify session exists before redirecting
+        const sessionCheck = await fetch('/api/auth/session');
+        const sessionData = await sessionCheck.json();
+        
+        if (sessionData?.user) {
+          // Session confirmed - use hard redirect
+          window.location.href = callbackUrl;
+        } else {
+          // Session not established - wait and retry
+          setTimeout(async () => {
+            const retryCheck = await fetch('/api/auth/session');
+            const retryData = await retryCheck.json();
+            if (retryData?.user) {
+              window.location.href = callbackUrl;
+            } else {
+              setError("Login succeeded but session not established. Check debug panel for details.");
+              setLoading(false);
+            }
+          }, 500);
+        }
       } else {
+        setError("Login failed. Please try again.");
         setLoading(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       setError("An error occurred. Please try again.");
+      const errorResult = {
+        ok: false,
+        error: err?.message || 'Unknown error',
+      };
+      setLastSignInResult(errorResult);
+      if (typeof window !== 'undefined') {
+        (window as any).__lastSignInResult = errorResult;
+      }
       setLoading(false);
     }
   };
