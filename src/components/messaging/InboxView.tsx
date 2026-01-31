@@ -55,8 +55,13 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   const [showPolicyOverride, setShowPolicyOverride] = useState<string | null>(null);
   const [overrideReason, setOverrideReason] = useState('');
 
+  // Apply filters to API call - explicitly pass each filter
   const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useThreads({
-    ...filters,
+    unreadOnly: filters.unreadOnly,
+    hasPolicyViolation: filters.hasPolicyViolation,
+    hasDeliveryFailure: filters.hasDeliveryFailure,
+    sitterId: filters.sitterId,
+    search: filters.search,
     inbox, // Pass inbox filter to hook
   });
   const { data: selectedThread } = useThread(selectedThreadId);
