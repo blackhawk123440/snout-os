@@ -161,7 +161,7 @@ export function DiagnosticsPanel({
               {/* User Info */}
               <div>
                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
-                  User (from /api/auth/me):
+                  User (from session):
                 </div>
                 <div>
                   {userInfo?.email || user?.email || 'Not logged in'} ({userInfo?.role || user?.role || 'unknown'})
