@@ -74,8 +74,18 @@ export async function GET(
         participants: true,
         messageNumber: {
           select: {
+            id: true,
             numberClass: true,
             e164: true,
+            status: true,
+          },
+        },
+        assignmentWindows: {
+          where: {
+            status: 'active',
+          },
+          orderBy: {
+            startAt: 'asc',
           },
         },
       },
@@ -242,41 +252,43 @@ export async function GET(
     const sitterMap = new Map(sitters.map(s => [s.id, `${s.firstName} ${s.lastName}`]));
     const assignedSitter = thread.assignedSitterId ? sitterMap.get(thread.assignedSitterId) : null;
 
-    return NextResponse.json({
-      thread: {
-        id: thread.id,
-        participantName: clientParticipant?.displayName || 'Unknown',
-        participantPhone: clientParticipant?.realE164 || '',
-        participantType: 'client' as const,
-        bookingId: thread.bookingId,
-        status: thread.status,
-        assignedSitterId: thread.assignedSitterId,
-        assignedSitterName: assignedSitter,
-        numberClass: thread.messageNumber?.numberClass || thread.numberClass || 'front_desk',
-        scope: thread.scope,
-        // Phase 4.1: Assignment history with sitter names
-        assignmentHistory: assignmentAudits.map((audit) => ({
-          id: audit.id,
-          fromSitterId: audit.fromSitterId,
-          fromSitterName: audit.fromSitterId ? sitterMap.get(audit.fromSitterId) : null,
-          toSitterId: audit.toSitterId,
-          toSitterName: audit.toSitterId ? sitterMap.get(audit.toSitterId) : null,
-          actorUserId: audit.actorUserId,
-          reason: audit.reason,
-          createdAt: audit.createdAt,
-        })),
-        // Phase 4.1: Window status
-        activeWindow: activeWindow ? {
-          id: activeWindow.id,
-          startAt: activeWindow.startAt,
-          endAt: activeWindow.endAt,
-          sitterId: activeWindow.sitterId,
-        } : null,
-        sitterHasActiveWindow, // For Phase 4.2
-        nextUpcomingWindow: nextUpcomingWindow
-          ? { startAt: nextUpcomingWindow.startAt.toISOString(), endAt: nextUpcomingWindow.endAt.toISOString() }
-          : null,
+    // Format thread to match Zod schema
+    const formattedThread = {
+      id: thread.id,
+      orgId: thread.orgId,
+      clientId: thread.clientId || '',
+      sitterId: thread.assignedSitterId || null,
+      numberId: thread.messageNumberId || thread.messageNumber?.id || '',
+      threadType: (thread.numberClass === 'front_desk' ? 'front_desk' :
+                   thread.numberClass === 'pool' ? 'pool' :
+                   thread.numberClass === 'sitter' ? 'assignment' : 'other') as 'front_desk' | 'assignment' | 'pool' | 'other',
+      status: (thread.status === 'open' ? 'active' : 'inactive') as 'active' | 'inactive',
+      ownerUnreadCount: thread.ownerUnreadCount,
+      lastActivityAt: (thread.lastMessageAt || thread.createdAt).toISOString(),
+      client: {
+        id: thread.clientId || '',
+        name: clientParticipant?.displayName || 'Unknown',
+        contacts: clientParticipant?.realE164 ? [{ e164: clientParticipant.realE164 }] : [],
       },
+      sitter: thread.assignedSitterId && assignedSitter ? {
+        id: thread.assignedSitterId,
+        name: assignedSitter,
+      } : null,
+      messageNumber: {
+        id: thread.messageNumber?.id || '',
+        e164: thread.messageNumber?.e164 || '',
+        class: thread.messageNumber?.numberClass || thread.numberClass || 'front_desk',
+        status: thread.messageNumber?.status || 'active',
+      },
+      assignmentWindows: thread.assignmentWindows.map(w => ({
+        id: w.id,
+        startsAt: w.startAt.toISOString(),
+        endsAt: w.endAt.toISOString(),
+      })),
+    };
+
+    return NextResponse.json({
+      thread: formattedThread,
       messages: formattedMessages.reverse(), // Reverse to show oldest first
       pagination: {
         page,
