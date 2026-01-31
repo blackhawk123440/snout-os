@@ -95,7 +95,13 @@ export function useThreads(filters?: {
 export function useThread(threadId: string | null) {
   return useQuery({
     queryKey: ['thread', threadId],
-    queryFn: () => apiGet<Thread>(`/api/messages/threads/${threadId}`, threadSchema),
+    queryFn: async () => {
+      const response = await apiGet<{ thread: Thread }>(
+        `/api/messages/threads/${threadId}`,
+        z.object({ thread: threadSchema })
+      );
+      return response.thread;
+    },
     enabled: !!threadId,
   });
 }
