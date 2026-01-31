@@ -13,6 +13,12 @@ import * as bcrypt from "bcryptjs";
 /**
  * NextAuth configuration with credentials provider
  */
+// Log secret status (without exposing the actual secret)
+const secretValue = env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-secret-key-change-in-production' : 'fallback-secret-for-staging-please-set-nexauth-secret');
+if (!env.NEXTAUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
+  console.warn('[NextAuth] WARNING: NEXTAUTH_SECRET not set, using fallback. This may cause issues in production.');
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Session strategy - JWT required for Credentials provider
   session: {
@@ -112,5 +118,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 
   // Security - ensure secret is always defined
-  secret: env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-secret-key-change-in-production' : 'fallback-secret-for-staging-please-set-nexauth-secret'),
+  secret: secretValue,
 });
