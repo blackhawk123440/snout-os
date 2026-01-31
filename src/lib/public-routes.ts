@@ -36,6 +36,7 @@ export function isPublicRoute(pathname: string): boolean {
     
     // NextAuth routes (must be public for auth to work)
     "/api/auth/",
+    "/login",
   ];
 
   // Exact match
@@ -50,8 +51,13 @@ export function isPublicRoute(pathname: string): boolean {
     }
   }
 
-  // NextAuth routes pattern
+  // NextAuth routes pattern (CRITICAL - must be public)
   if (pathname.startsWith("/api/auth/")) {
+    return true;
+  }
+  
+  // Login page must be public
+  if (pathname === "/login") {
     return true;
   }
 

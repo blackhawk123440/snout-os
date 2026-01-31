@@ -11,6 +11,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Flex, Input, Button } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
+import { AuthDebugPanel } from '@/components/auth/AuthDebugPanel';
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -114,6 +115,9 @@ function LoginContent() {
               </Button>
             </div>
           </form>
+          
+          {/* Auth Debug Panel (dev/owner only) */}
+          <AuthDebugPanel />
           </div>
         </Flex>
       </div>
