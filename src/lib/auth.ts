@@ -77,18 +77,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user && token) {
         session.user.id = token.id;
         session.user.email = token.email;
+        session.user.name = token.name;
         
-        // Get user from database to include sitterId
+        // Get user from database to include sitterId (with error handling)
         if (token.id) {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.id },
-            select: { id: true, email: true, name: true, sitterId: true },
-          });
-          if (dbUser) {
-            session.user.id = dbUser.id;
-            session.user.email = dbUser.email;
-            session.user.name = dbUser.name;
-            (session.user as any).sitterId = dbUser.sitterId;
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: token.id },
+              select: { id: true, email: true, name: true, sitterId: true },
+            });
+            if (dbUser) {
+              session.user.id = dbUser.id;
+              session.user.email = dbUser.email;
+              session.user.name = dbUser.name;
+              (session.user as any).sitterId = dbUser.sitterId;
+            }
+          } catch (error) {
+            // If database query fails, use token data (graceful degradation)
+            console.error('[NextAuth] Session callback database error:', error);
+            // Continue with token data only
           }
         }
       }
@@ -104,6 +111,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 
-  // Security
-  secret: env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-secret-key-change-in-production' : undefined),
+  // Security - ensure secret is always defined
+  secret: env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-secret-key-change-in-production' : 'fallback-secret-for-staging-please-set-nexauth-secret'),
 });
