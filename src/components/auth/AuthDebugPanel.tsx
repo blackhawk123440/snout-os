@@ -66,8 +66,8 @@ export function AuthDebugPanel() {
     
     // Poll for lastSignInResult from login page
     const interval = setInterval(() => {
-      if (window.__lastSignInResult) {
-        setLastSignInResult(window.__lastSignInResult);
+      if (typeof window !== 'undefined' && (window as any).__lastSignInResult) {
+        setLastSignInResult((window as any).__lastSignInResult);
       }
     }, 500);
     
