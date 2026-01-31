@@ -143,4 +143,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
   // Security - ensure secret is always defined
   secret: secretValue,
+  
+  // Trust proxy for Render (HTTPS behind proxy)
+  trustHost: true,
 });
