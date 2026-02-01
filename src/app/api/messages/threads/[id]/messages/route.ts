@@ -82,44 +82,77 @@ export async function GET(
       }
     }
 
-    // Fetch messages with deliveries and policy violations
-    const messages = await prisma.message.findMany({
+    // Fetch MessageEvent records with AntiPoachingAttempt (policy violations)
+    const messageEvents = await prisma.messageEvent.findMany({
       where: { threadId },
       include: {
-        deliveries: {
-          orderBy: { attemptNo: 'desc' },
-        },
-        policyViolations: true,
+        AntiPoachingAttempt: true,
       },
       orderBy: { createdAt: 'asc' },
     });
 
-    // Format messages to match Zod schema
-    const formattedMessages = messages.map((msg) => ({
-      id: msg.id,
-      threadId: msg.threadId,
-      direction: msg.direction === 'inbound' ? 'inbound' as const : 'outbound' as const,
-      senderType: msg.senderType as 'client' | 'sitter' | 'owner' | 'system' | 'automation',
-      senderId: msg.senderId,
-      body: msg.body,
-      redactedBody: msg.redactedBody,
-      hasPolicyViolation: msg.hasPolicyViolation,
-      createdAt: msg.createdAt.toISOString(),
-      deliveries: msg.deliveries.map((delivery) => ({
-        id: delivery.id,
-        attemptNo: delivery.attemptNo,
-        status: delivery.status as 'queued' | 'sent' | 'delivered' | 'failed',
-        providerErrorCode: delivery.providerErrorCode,
-        providerErrorMessage: delivery.providerErrorMessage,
-        createdAt: delivery.createdAt.toISOString(),
-      })),
-      policyViolations: msg.policyViolations.map((pv) => ({
-        id: pv.id,
-        violationType: pv.violationType,
-        detectedSummary: pv.detectedSummary || '',
-        actionTaken: pv.actionTaken || '',
-      })),
-    }));
+    // Format MessageEvent to match UI Zod schema
+    const formattedMessages = messageEvents.map((event) => {
+      // Parse metadataJson for redactedBody
+      let redactedBody: string | null = null;
+      let hasPolicyViolation = false;
+      try {
+        if (event.metadataJson) {
+          const metadata = JSON.parse(event.metadataJson);
+          redactedBody = metadata.redactedBody || null;
+          hasPolicyViolation = metadata.hasPolicyViolation === true || !!event.AntiPoachingAttempt;
+        }
+      } catch (e) {
+        // Invalid JSON, ignore
+      }
+
+      // Map actorType to senderType
+      const senderTypeMap: Record<string, 'client' | 'sitter' | 'owner' | 'system' | 'automation'> = {
+        'client': 'client',
+        'sitter': 'sitter',
+        'owner': 'owner',
+        'system': 'system',
+        'automation': 'automation',
+      };
+      const senderType = senderTypeMap[event.actorType] || 'system';
+
+      // Create delivery object from MessageEvent fields (no separate Delivery table)
+      // Use attemptCount or default to 1
+      const attemptNo = event.attemptCount || 1;
+      const delivery = {
+        id: `${event.id}-delivery`,
+        attemptNo,
+        status: (event.deliveryStatus === 'delivered' ? 'delivered' :
+                 event.deliveryStatus === 'sent' ? 'sent' :
+                 event.deliveryStatus === 'failed' ? 'failed' :
+                 'queued') as 'queued' | 'sent' | 'delivered' | 'failed',
+        providerErrorCode: event.providerErrorCode || event.failureCode || null,
+        providerErrorMessage: event.providerErrorMessage || event.failureDetail || null,
+        createdAt: (event.lastAttemptAt || event.createdAt).toISOString(),
+      };
+
+      // Map AntiPoachingAttempt to policyViolations format
+      const policyViolations = event.AntiPoachingAttempt ? [{
+        id: event.AntiPoachingAttempt.id,
+        violationType: event.AntiPoachingAttempt.violationType,
+        detectedSummary: event.AntiPoachingAttempt.detectedContent || '',
+        actionTaken: event.AntiPoachingAttempt.action || '',
+      }] : [];
+
+      return {
+        id: event.id,
+        threadId: event.threadId,
+        direction: event.direction === 'inbound' ? 'inbound' as const : 'outbound' as const,
+        senderType,
+        senderId: event.actorUserId || event.actorClientId || null,
+        body: event.body,
+        redactedBody,
+        hasPolicyViolation: hasPolicyViolation || policyViolations.length > 0,
+        createdAt: event.createdAt.toISOString(),
+        deliveries: [delivery], // Single delivery object from MessageEvent
+        policyViolations,
+      };
+    });
 
     return NextResponse.json(formattedMessages);
   } catch (error) {

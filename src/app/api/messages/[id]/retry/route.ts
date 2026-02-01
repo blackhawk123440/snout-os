@@ -38,8 +38,8 @@ export async function POST(
 
     const orgId = await getOrgIdFromContext(currentUser.id);
 
-    // Find message and verify it belongs to org
-    const message = await prisma.message.findUnique({
+    // Find MessageEvent and verify it belongs to org
+    const messageEvent = await prisma.messageEvent.findUnique({
       where: { id: messageId },
       include: {
         thread: {
@@ -54,21 +54,17 @@ export async function POST(
             },
           },
         },
-        deliveries: {
-          orderBy: { attemptNo: 'desc' },
-          take: 1,
-        },
       },
     });
 
-    if (!message) {
+    if (!messageEvent) {
       return NextResponse.json(
         { error: "Message not found" },
         { status: 404 }
       );
     }
 
-    if (message.orgId !== orgId) {
+    if (messageEvent.orgId !== orgId) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 403 }
@@ -76,15 +72,14 @@ export async function POST(
     }
 
     // Only retry failed outbound messages
-    if (message.direction !== 'outbound') {
+    if (messageEvent.direction !== 'outbound') {
       return NextResponse.json(
         { error: "Can only retry outbound messages" },
         { status: 400 }
       );
     }
 
-    const latestDelivery = message.deliveries[0];
-    if (!latestDelivery || latestDelivery.status !== 'failed') {
+    if (messageEvent.deliveryStatus !== 'failed') {
       return NextResponse.json(
         { error: "Message does not have a failed delivery to retry" },
         { status: 400 }
@@ -92,7 +87,7 @@ export async function POST(
     }
 
     // Get client participant for sending
-    const clientParticipant = message.thread.participants[0];
+    const clientParticipant = messageEvent.thread.participants[0];
     if (!clientParticipant) {
       return NextResponse.json(
         { error: "No client participant found" },
@@ -100,17 +95,17 @@ export async function POST(
       );
     }
 
-    // Create new delivery attempt
-    const newAttemptNo = latestDelivery.attemptNo + 1;
+    // Calculate new attempt number
+    const newAttemptNo = (messageEvent.attemptCount || 1) + 1;
 
     // Send message via provider
     let sendResult;
     try {
-      if (message.thread.messageNumber?.providerNumberSid) {
+      if (messageEvent.thread.messageNumber?.providerNumberSid) {
         sendResult = await twilioProvider.sendMessage({
           to: clientParticipant.realE164 || clientParticipant.displayName,
-          from: message.thread.messageNumber.e164,
-          body: message.body,
+          from: messageEvent.thread.messageNumber.e164,
+          body: messageEvent.body,
         });
       } else {
         return NextResponse.json(
@@ -119,14 +114,17 @@ export async function POST(
         );
       }
     } catch (error: any) {
-      // Create failed delivery record
-      await prisma.messageDelivery.create({
+      // Update MessageEvent with failed retry attempt
+      await prisma.messageEvent.update({
+        where: { id: messageEvent.id },
         data: {
-          messageId: message.id,
-          attemptNo: newAttemptNo,
-          status: 'failed',
+          attemptCount: newAttemptNo,
+          lastAttemptAt: new Date(),
+          deliveryStatus: 'failed',
           providerErrorCode: error.code || 'UNKNOWN',
           providerErrorMessage: error.message || 'Failed to send message',
+          failureCode: error.code || 'UNKNOWN',
+          failureDetail: error.message || 'Failed to send message',
         },
       });
 
@@ -136,29 +134,26 @@ export async function POST(
       );
     }
 
-    // Create successful delivery record
-    const newDelivery = await prisma.messageDelivery.create({
+    // Update MessageEvent with successful retry
+    await prisma.messageEvent.update({
+      where: { id: messageEvent.id },
       data: {
-        messageId: message.id,
-        attemptNo: newAttemptNo,
-        status: 'sent',
+        attemptCount: newAttemptNo,
+        lastAttemptAt: new Date(),
+        deliveryStatus: 'sent',
         providerErrorCode: null,
         providerErrorMessage: null,
+        failureCode: null,
+        failureDetail: null,
+        // Update provider SID if this is the first successful attempt
+        providerMessageSid: messageEvent.providerMessageSid || sendResult.messageSid || null,
       },
     });
-
-    // Update message provider SID if this is the first successful attempt
-    if (!message.providerMessageSid && sendResult.messageSid) {
-      await prisma.message.update({
-        where: { id: message.id },
-        data: { providerMessageSid: sendResult.messageSid },
-      });
-    }
 
     return NextResponse.json({
       success: true,
       attemptNo: newAttemptNo,
-      deliveryId: newDelivery.id,
+      messageId: messageEvent.id,
     });
   } catch (error) {
     console.error("[messages/[id]/retry] Error:", error);

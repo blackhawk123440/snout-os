@@ -155,26 +155,24 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Filter by policy violations
+    // Filter by policy violations (check for AntiPoachingAttempt on events)
     const hasPolicyViolation = searchParams.get("hasPolicyViolation") === "true";
     if (hasPolicyViolation) {
-      where.messages = {
+      where.events = {
         some: {
-          hasPolicyViolation: true,
+          AntiPoachingAttempt: {
+            isNot: null,
+          },
         },
       };
     }
 
-    // Filter by delivery failures
+    // Filter by delivery failures (check deliveryStatus on events)
     const hasDeliveryFailure = searchParams.get("hasDeliveryFailure") === "true";
     if (hasDeliveryFailure) {
-      where.messages = {
+      where.events = {
         some: {
-          deliveries: {
-            some: {
-              status: 'failed',
-            },
-          },
+          deliveryStatus: 'failed',
         },
       };
     }

@@ -138,6 +138,54 @@ async function seedMessagingData() {
 
     console.log('✅ Created threads');
 
+    // Get or create a sitter for assignment window
+    let sitter = await prisma.sitter.findFirst({
+      where: { orgId: org.id },
+    });
+    if (!sitter) {
+      sitter = await prisma.sitter.create({
+        data: {
+          orgId: org.id,
+          firstName: 'Demo',
+          lastName: 'Sitter',
+          email: 'sitter@example.com',
+          phone: '+15551111111',
+        },
+      });
+    }
+
+    // Create a booking for assignment window
+    let booking = await prisma.booking.findFirst({
+      where: { orgId: org.id },
+    });
+    if (!booking) {
+      booking = await prisma.booking.create({
+        data: {
+          orgId: org.id,
+          clientId: client1.id,
+          sitterId: sitter.id,
+          status: 'confirmed',
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
+    }
+
+    // Create assignment window for thread1 (active now)
+    const windowStart = new Date();
+    const windowEnd = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours from now
+    await prisma.assignmentWindow.create({
+      data: {
+        orgId: org.id,
+        threadId: thread1.id,
+        bookingId: booking.id,
+        sitterId: sitter.id,
+        startAt: windowStart,
+        endAt: windowEnd,
+        status: 'active',
+      },
+    });
+
     // Create messages for thread1
     const now = new Date();
     const msg1 = await prisma.messageEvent.create({
@@ -176,7 +224,7 @@ async function seedMessagingData() {
       },
     });
 
-    // Create a failed delivery message
+    // Create a failed delivery message (for Retry button)
     const msg4 = await prisma.messageEvent.create({
       data: {
         orgId: org.id,
@@ -188,49 +236,84 @@ async function seedMessagingData() {
         deliveryStatus: 'failed',
         failureCode: '30008',
         failureDetail: 'Unknown destination number',
+        providerErrorCode: '30008',
+        providerErrorMessage: 'Unknown destination number',
+        attemptCount: 1,
+        lastAttemptAt: new Date(),
       },
     });
 
-    // Create messages for thread2
+    // Create a message with policy violation (for thread2)
     const msg5 = await prisma.messageEvent.create({
       data: {
         orgId: org.id,
         threadId: thread2.id,
         direction: 'inbound',
         actorType: 'client',
-        body: 'This message routes to owner inbox',
+        body: 'Contact me at 555-1234 or email@example.com',
         providerMessageSid: 'mock-msg-5',
         deliveryStatus: 'delivered',
+        metadataJson: JSON.stringify({
+          hasPolicyViolation: true,
+          redactedBody: 'Contact me at [REDACTED] or [REDACTED]',
+        }),
+      },
+    });
+
+    // Create AntiPoachingAttempt (policy violation) for msg5
+    await prisma.antiPoachingAttempt.create({
+      data: {
+        orgId: org.id,
+        threadId: thread2.id,
+        eventId: msg5.id,
+        actorType: 'client',
+        violationType: 'phone_number',
+        detectedContent: '555-1234',
+        action: 'blocked',
       },
     });
 
     console.log('✅ Created messages');
 
     // Update thread timestamps
+    // Update thread1: unread count > 0, latest activity
     await prisma.messageThread.update({
       where: { id: thread1.id },
       data: {
         lastInboundAt: msg3.createdAt,
         lastOutboundAt: msg2.createdAt,
         lastMessageAt: msg3.createdAt,
-        ownerUnreadCount: 1,
+        ownerUnreadCount: 2, // Unread count > 0 for filter
+        assignedSitterId: sitter.id, // Assign sitter for assignment window
       },
     });
 
+    // Update thread2: unread count > 0, policy violation
     await prisma.messageThread.update({
       where: { id: thread2.id },
       data: {
         lastInboundAt: msg5.createdAt,
         lastMessageAt: msg5.createdAt,
-        ownerUnreadCount: 1,
+        ownerUnreadCount: 1, // Unread count > 0 for filter
       },
     });
 
     console.log('\n🎉 Seeding complete!');
     console.log('\n📋 Created:');
-    console.log(`  - Thread 1: ${thread1.id} (3 messages, 1 failed delivery)`);
-    console.log(`  - Thread 2: ${thread2.id} (1 message)`);
-    console.log('\n📝 Refresh /messages to see the threads.');
+    console.log(`  - Thread 1: ${thread1.id}`);
+    console.log(`    * 4 messages (1 failed delivery - Retry button visible)`);
+    console.log(`    * Unread count: 2 (Unread filter works)`);
+    console.log(`    * Active assignment window (Window badge shows)`);
+    console.log(`  - Thread 2: ${thread2.id}`);
+    console.log(`    * 1 message with policy violation (Policy banner visible)`);
+    console.log(`    * Unread count: 1 (Unread filter works)`);
+    console.log('\n📝 Refresh /messages to see:');
+    console.log('  ✓ Unread filter shows both threads');
+    console.log('  ✓ Policy Issues filter shows thread2');
+    console.log('  ✓ Delivery Failures filter shows thread1');
+    console.log('  ✓ Retry button on failed message in thread1');
+    console.log('  ✓ Policy violation banner in thread2');
+    console.log('  ✓ Assignment window badge in thread1');
 
   } catch (error) {
     console.error('❌ Error seeding:', error);
