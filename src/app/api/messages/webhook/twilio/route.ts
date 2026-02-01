@@ -73,7 +73,9 @@ export async function POST(request: NextRequest) {
       console.warn('[webhook/twilio] TWILIO_WEBHOOK_AUTH_TOKEN not configured, skipping signature verification (dev mode)');
     } else {
       // Auth token is set, verify signature
-      const isValid = twilioProvider.verifyWebhook(rawBody, signature, webhookUrl);
+      // Create temporary provider for verification (doesn't need orgId)
+      const verifyProvider = new TwilioProvider();
+      const isValid = verifyProvider.verifyWebhook(rawBody, signature, webhookUrl);
       if (!isValid) {
         // Phase 1.5: Return 401 for invalid signature
         // Note: orgId not yet available at this point, will be derived from number below

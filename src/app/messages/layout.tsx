@@ -2,29 +2,15 @@
  * Messages Layout - Server-side route protection
  * 
  * Redirects sitters to /sitter/inbox
+ * Note: Client-side redirect also exists in page.tsx as fallback
  */
 
-import { redirect } from 'next/navigation';
-import { getSessionSafe } from '@/lib/auth-helpers';
-import { getCurrentSitterId } from '@/lib/sitter-helpers';
-import { headers } from 'next/headers';
-
-export default async function MessagesLayout({
+export default function MessagesLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const headersList = await headers();
-  const request = new Request('http://localhost', {
-    headers: headersList,
-  });
-  
-  // Check if user is a sitter
-  const sitterId = await getCurrentSitterId(request);
-  
-  if (sitterId) {
-    redirect('/sitter/inbox');
-  }
-  
+  // Server-side redirect is handled by middleware
+  // Client-side redirect is handled in page.tsx
   return <>{children}</>;
 }
