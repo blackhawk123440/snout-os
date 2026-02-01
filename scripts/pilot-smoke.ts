@@ -27,14 +27,13 @@ async function main() {
     
     if (existsSync(dockerComposePath) || existsSync(enterpriseDockerComposePath)) {
       console.log('📦 Booting infrastructure (Postgres + Redis)...');
-      const composeFile = existsSync(dockerComposePath) 
-        ? dockerComposePath 
-        : enterpriseDockerComposePath;
       const composeDir = existsSync(dockerComposePath) 
         ? process.cwd() 
         : join(process.cwd(), 'enterprise-messaging-dashboard');
       
-      execSync(`docker-compose -f ${composeFile} up -d`, { 
+      // Use 'docker compose' (space) instead of 'docker-compose' (hyphen)
+      // Change to compose directory and run from there
+      execSync('docker compose up -d', { 
         stdio: 'inherit',
         cwd: composeDir,
       });
