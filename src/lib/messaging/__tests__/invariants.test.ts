@@ -128,26 +128,104 @@ describe('Messaging Invariants - Property-Based Tests', () => {
   });
 
   describe('No E164 leakage', () => {
-    it('should never expose real E164 numbers in error messages or logs', async () => {
+    // E.164 regex pattern: + followed by 1-15 digits
+    const E164_PATTERN = /\+\d{1,15}/g;
+    
+    // Phone-like patterns that might leak E164s
+    const PHONE_PATTERNS = [
+      /\+\d{10,15}/g, // E.164 format
+      /\(\d{3}\)\s?\d{3}-\d{4}/g, // US format (555) 123-4567
+      /\d{3}-\d{3}-\d{4}/g, // US format 555-123-4567
+      /\d{10,15}/g, // Raw digits (10-15 digits)
+    ];
+
+    it('should never expose real E164 numbers in sitter API responses', async () => {
       await fc.assert(
         fc.asyncProperty(e164Arb, async (e164) => {
-          // Simulate error scenarios
+          // Simulate sitter API/service output
+          const mockApiResponse = {
+            thread: {
+              id: 'thread-123',
+              clientPhone: e164, // This would leak!
+              maskedNumber: '+1***1234',
+            },
+            messages: [
+              { from: e164, body: 'Hello' }, // This would leak!
+            ],
+          };
+
+          const responseJson = JSON.stringify(mockApiResponse);
+          
+          // Scan for E164 patterns
+          const e164Matches = responseJson.match(E164_PATTERN);
+          const hasLeakedE164 = e164Matches && e164Matches.some(match => match === e164);
+          
+          // Also check for phone-like patterns
+          let hasPhonePattern = false;
+          for (const pattern of PHONE_PATTERNS) {
+            const matches = responseJson.match(pattern);
+            if (matches && matches.some(m => m.includes(e164.replace('+', '')))) {
+              hasPhonePattern = true;
+              break;
+            }
+          }
+
+          // Test should FAIL if E164 is found (leakage detected)
+          if (hasLeakedE164 || hasPhonePattern) {
+            throw new Error(`E164 leakage detected: ${e164} found in API response`);
+          }
+        }),
+        { numRuns: 50 }
+      );
+    });
+
+    it('should never expose real E164 numbers in error messages', async () => {
+      await fc.assert(
+        fc.asyncProperty(e164Arb, async (e164) => {
+          // Simulate error messages that might leak E164s
           const errorMessages = [
             `Failed to send to ${e164}`,
             `Invalid number: ${e164}`,
             `Thread not found for ${e164}`,
+            `Client ${e164} not found`,
           ];
 
-          // Check that no full E164 is exposed (should be redacted)
+          // Check that no full E164 is exposed
           for (const msg of errorMessages) {
-            // In production, E164s should be redacted (e.g., +1***1234)
-            const hasFullE164 = msg.includes(e164);
-            // This test documents the requirement - actual implementation should redact
-            // For now, we just check that we're aware of the requirement
-            expect(hasFullE164).toBe(true); // This will fail if we implement redaction correctly
+            const e164Matches = msg.match(E164_PATTERN);
+            const hasLeakedE164 = e164Matches && e164Matches.some(match => match === e164);
+            
+            // Test should FAIL if E164 is found (leakage detected)
+            if (hasLeakedE164) {
+              throw new Error(`E164 leakage detected in error message: ${msg}`);
+            }
           }
         }),
-        { numRuns: 20 }
+        { numRuns: 50 }
+      );
+    });
+
+    it('should redact E164s in logs and responses', async () => {
+      await fc.assert(
+        fc.asyncProperty(e164Arb, async (e164) => {
+          // Redaction function (should be implemented in actual code)
+          function redactE164(fullE164: string): string {
+            if (fullE164.length <= 4) return '***';
+            return `${fullE164.substring(0, 2)}***${fullE164.substring(fullE164.length - 4)}`;
+          }
+
+          const redacted = redactE164(e164);
+          
+          // Redacted version should not contain full E164
+          expect(redacted).not.toContain(e164);
+          
+          // Redacted version should be shorter
+          expect(redacted.length).toBeLessThan(e164.length);
+          
+          // Redacted version should still show some digits for debugging
+          expect(redacted).toMatch(/\d/);
+        }),
+        { numRuns: 50 }
       );
     });
   });

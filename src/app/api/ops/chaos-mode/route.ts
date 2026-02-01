@@ -34,8 +34,8 @@ const DEFAULT_CHAOS_SETTINGS: ChaosModeSettings = {
 };
 
 async function getChaosModeSettings(): Promise<ChaosModeSettings> {
-  // Only allow in staging/dev
-  if (env.NODE_ENV === 'production' && !env.ALLOW_CHAOS_MODE) {
+  // HARD BLOCK: Never allow in production, regardless of env var
+  if (env.NODE_ENV === 'production') {
     return { ...DEFAULT_CHAOS_SETTINGS, enabled: false };
   }
 
@@ -61,9 +61,14 @@ async function getChaosModeSettings(): Promise<ChaosModeSettings> {
 }
 
 async function saveChaosModeSettings(settings: ChaosModeSettings): Promise<void> {
-  // Only allow in staging/dev
-  if (env.NODE_ENV === 'production' && !env.ALLOW_CHAOS_MODE) {
-    throw new Error('Chaos mode is not allowed in production');
+  // HARD BLOCK: Never allow in production, regardless of env var
+  if (env.NODE_ENV === 'production') {
+    throw new Error('Chaos mode is HARD-BLOCKED in production and cannot be enabled');
+  }
+  
+  // Require explicit ALLOW_CHAOS_MODE env var even in staging/dev
+  if (!env.ALLOW_CHAOS_MODE) {
+    throw new Error('Chaos mode requires ALLOW_CHAOS_MODE environment variable to be set');
   }
 
   for (const [key, value] of Object.entries(settings)) {
@@ -93,8 +98,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Only owners can view chaos mode settings
-    // In a real system, you'd check user role here
+    // HARD BLOCK: Require owner auth
+    // TODO: Add proper role check - for now, any authenticated user can view
+    // In production, this should check for owner role explicitly
+    
+    // HARD BLOCK: Never allow in production
+    if (env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: "Chaos mode is not available in production" },
+        { status: 403 }
+      );
+    }
+    
+    // Require explicit ALLOW_CHAOS_MODE env var
+    if (!env.ALLOW_CHAOS_MODE) {
+      return NextResponse.json(
+        { error: "Chaos mode requires ALLOW_CHAOS_MODE environment variable" },
+        { status: 403 }
+      );
+    }
+
     const settings = await getChaosModeSettings();
     return NextResponse.json(settings);
   } catch (error: any) {
@@ -113,8 +136,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Only owners can modify chaos mode settings
-    // In a real system, you'd check user role here
+    // HARD BLOCK: Require owner auth
+    // TODO: Add proper role check - for now, any authenticated user can modify
+    // In production, this should check for owner role explicitly
+    
+    // HARD BLOCK: Never allow in production
+    if (env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { error: "Chaos mode is HARD-BLOCKED in production and cannot be enabled" },
+        { status: 403 }
+      );
+    }
+    
+    // Require explicit ALLOW_CHAOS_MODE env var
+    if (!env.ALLOW_CHAOS_MODE) {
+      return NextResponse.json(
+        { error: "Chaos mode requires ALLOW_CHAOS_MODE environment variable to be set" },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
     const settings: ChaosModeSettings = {

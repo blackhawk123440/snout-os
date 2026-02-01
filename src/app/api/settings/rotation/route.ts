@@ -12,12 +12,14 @@ import { getCurrentUserSafe } from "@/lib/auth-helpers";
 const SETTINGS_KEY_PREFIX = 'rotation.';
 
 interface RotationSettings {
-  poolSelectionStrategy: 'LRU' | 'FIFO' | 'RANDOM';
+  poolSelectionStrategy: 'LRU' | 'FIFO' | 'HASH_SHUFFLE';
   stickyReuseDays: number;
   postBookingGraceHours: number;
   inactivityReleaseDays: number;
   maxPoolThreadLifetimeDays: number;
   minPoolReserve: number;
+  maxConcurrentThreadsPerPoolNumber: number;
+  stickyReuseKey: 'clientId' | 'threadId';
 }
 
 const DEFAULT_SETTINGS: RotationSettings = {
@@ -27,6 +29,8 @@ const DEFAULT_SETTINGS: RotationSettings = {
   inactivityReleaseDays: 7,
   maxPoolThreadLifetimeDays: 30,
   minPoolReserve: 3,
+  maxConcurrentThreadsPerPoolNumber: 1,
+  stickyReuseKey: 'clientId',
 };
 
 async function getRotationSettings(): Promise<RotationSettings> {
@@ -42,10 +46,12 @@ async function getRotationSettings(): Promise<RotationSettings> {
   for (const setting of settings) {
     const key = setting.key.replace(SETTINGS_KEY_PREFIX, '') as keyof RotationSettings;
     if (key === 'poolSelectionStrategy') {
-      result[key] = setting.value as 'LRU' | 'FIFO' | 'RANDOM';
+      result[key] = setting.value as 'LRU' | 'FIFO' | 'HASH_SHUFFLE';
+    } else if (key === 'stickyReuseKey') {
+      result[key] = setting.value as 'clientId' | 'threadId';
     } else if (key === 'stickyReuseDays' || key === 'postBookingGraceHours' || 
                key === 'inactivityReleaseDays' || key === 'maxPoolThreadLifetimeDays' || 
-               key === 'minPoolReserve') {
+               key === 'minPoolReserve' || key === 'maxConcurrentThreadsPerPoolNumber') {
       result[key] = parseInt(setting.value, 10) || DEFAULT_SETTINGS[key];
     }
   }
@@ -108,19 +114,28 @@ export async function POST(request: NextRequest) {
       inactivityReleaseDays: body.inactivityReleaseDays ?? DEFAULT_SETTINGS.inactivityReleaseDays,
       maxPoolThreadLifetimeDays: body.maxPoolThreadLifetimeDays ?? DEFAULT_SETTINGS.maxPoolThreadLifetimeDays,
       minPoolReserve: body.minPoolReserve ?? DEFAULT_SETTINGS.minPoolReserve,
+      maxConcurrentThreadsPerPoolNumber: body.maxConcurrentThreadsPerPoolNumber ?? DEFAULT_SETTINGS.maxConcurrentThreadsPerPoolNumber,
+      stickyReuseKey: body.stickyReuseKey || DEFAULT_SETTINGS.stickyReuseKey,
     };
 
     // Validate
-    if (!['LRU', 'FIFO', 'RANDOM'].includes(settings.poolSelectionStrategy)) {
+    if (!['LRU', 'FIFO', 'HASH_SHUFFLE'].includes(settings.poolSelectionStrategy)) {
       return NextResponse.json(
         { error: "Invalid poolSelectionStrategy" },
         { status: 400 }
       );
     }
 
+    if (!['clientId', 'threadId'].includes(settings.stickyReuseKey)) {
+      return NextResponse.json(
+        { error: "Invalid stickyReuseKey" },
+        { status: 400 }
+      );
+    }
+
     if (settings.stickyReuseDays < 0 || settings.postBookingGraceHours < 0 || 
         settings.inactivityReleaseDays < 0 || settings.maxPoolThreadLifetimeDays < 1 || 
-        settings.minPoolReserve < 0) {
+        settings.minPoolReserve < 0 || settings.maxConcurrentThreadsPerPoolNumber < 1) {
       return NextResponse.json(
         { error: "Invalid numeric values" },
         { status: 400 }

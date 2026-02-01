@@ -164,19 +164,43 @@ export async function assignSitterMaskedNumber(
 /**
  * Get pool number for assignment
  * 
- * Selects a pool number from the rotating pool.
+ * Selects a pool number from the rotating pool using configured strategy.
  * Used for:
  * - One-time bookings or overflow before sitter assignment
  * - Temporary coverage for short jobs
  * 
- * Pool number rotation:
- * - Prefer numbers not recently assigned (30-day preference)
- * - If pool is tight, can reuse immediately (routing safeguard prevents leakage)
+ * Pool number rotation strategies:
+ * - LRU: Least Recently Used (minimizes churn)
+ * - FIFO: First In First Out (oldest first)
+ * - HASH_SHUFFLE: Deterministic hash-based selection (same input = same output)
  */
 export async function getPoolNumber(
   orgId: string,
-  excludeNumberIds?: string[]
+  excludeNumberIds?: string[],
+  context?: {
+    clientId?: string | null;
+    threadId?: string;
+    stickyReuseKey?: 'clientId' | 'threadId';
+  }
 ): Promise<{ numberId: string; e164: string } | null> {
+  // Get rotation settings
+  const rotationSettings = await prisma.setting.findMany({
+    where: {
+      key: {
+        startsWith: 'rotation.',
+      },
+    },
+  });
+
+  const settings: Record<string, string> = {};
+  for (const setting of rotationSettings) {
+    const key = setting.key.replace('rotation.', '');
+    settings[key] = setting.value;
+  }
+
+  const strategy = (settings.poolSelectionStrategy as 'LRU' | 'FIFO' | 'HASH_SHUFFLE') || 'LRU';
+  const stickyReuseKey = (settings.stickyReuseKey as 'clientId' | 'threadId') || 'clientId';
+
   // Find available pool numbers
   const whereClause: any = {
     orgId,
@@ -190,14 +214,9 @@ export async function getPoolNumber(
     };
   }
 
-  // Prefer numbers not recently assigned (30-day preference)
-  const poolNumbers = await prisma.messageNumber.findMany({
+  // Get all available pool numbers
+  let poolNumbers = await prisma.messageNumber.findMany({
     where: whereClause,
-    orderBy: [
-      { lastAssignedAt: 'asc' }, // Least recently assigned first
-      { createdAt: 'asc' }, // Fallback to oldest first
-    ],
-    take: 1,
   });
 
   if (poolNumbers.length === 0) {
@@ -205,7 +224,50 @@ export async function getPoolNumber(
     return null;
   }
 
-  const selected = poolNumbers[0];
+  // Apply selection strategy
+  let selected: typeof poolNumbers[0];
+
+  if (strategy === 'HASH_SHUFFLE') {
+    // Deterministic hash-based selection
+    // Same input (clientId/threadId) always produces same pool number
+    const hashKey = stickyReuseKey === 'clientId' 
+      ? (context?.clientId || context?.threadId || 'default')
+      : (context?.threadId || context?.clientId || 'default');
+    
+    // Simple hash function for deterministic selection
+    let hash = 0;
+    for (let i = 0; i < hashKey.length; i++) {
+      const char = hashKey.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    // Use hash to select from available pool numbers
+    const index = Math.abs(hash) % poolNumbers.length;
+    selected = poolNumbers[index];
+  } else if (strategy === 'FIFO') {
+    // First In First Out - oldest first
+    poolNumbers.sort((a, b) => {
+      const aTime = a.createdAt?.getTime() || 0;
+      const bTime = b.createdAt?.getTime() || 0;
+      return aTime - bTime;
+    });
+    selected = poolNumbers[0];
+  } else {
+    // LRU: Least Recently Used (default)
+    poolNumbers.sort((a, b) => {
+      const aTime = a.lastAssignedAt?.getTime() || 0;
+      const bTime = b.lastAssignedAt?.getTime() || 0;
+      if (aTime !== bTime) {
+        return aTime - bTime;
+      }
+      // Fallback to creation time
+      const aCreated = a.createdAt?.getTime() || 0;
+      const bCreated = b.createdAt?.getTime() || 0;
+      return aCreated - bCreated;
+    });
+    selected = poolNumbers[0];
+  }
 
   // Update lastAssignedAt for rotation tracking
   await prisma.messageNumber.update({

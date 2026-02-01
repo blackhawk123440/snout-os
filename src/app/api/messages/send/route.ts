@@ -96,12 +96,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // INVARIANT ENFORCEMENT: Thread-bound sending
+    // INVARIANT ENFORCEMENT: Thread-bound sending + from_number validation
     
-    // Get the from number from thread's messageNumber
+    // HARDENED: Thread must have assigned number - fail with explicit business error
     if (!thread.messageNumber) {
+      await logInvariantViolation({
+        invariant: 'thread-bound-sending',
+        violation: 'Thread has no assigned message number',
+        context: { threadId, orgId },
+      }, orgId);
+      
       return NextResponse.json(
-        { error: "Thread has no assigned message number", errorCode: 'NO_THREAD_NUMBER' },
+        { 
+          error: "This conversation cannot send messages because no phone number is assigned. Please contact support to assign a number to this thread.", 
+          errorCode: 'NO_THREAD_NUMBER',
+          userMessage: "Unable to send message. This conversation needs a phone number assigned. Please contact support.",
+        },
         { status: 400 }
       );
     }
@@ -115,10 +125,26 @@ export async function POST(request: NextRequest) {
       for (const violation of invariantCheck.violations) {
         await logInvariantViolation(violation, orgId);
       }
+      
+      // HARDENED: Return explicit business error for UI
+      const hasFromNumberMismatch = invariantCheck.violations.some(v => v.invariant === 'from-number-matches-thread');
+      if (hasFromNumberMismatch) {
+        return NextResponse.json(
+          { 
+            error: "Message sending failed: phone number mismatch. Please refresh and try again.", 
+            errorCode: 'INVARIANT_VIOLATION',
+            userMessage: "Unable to send message due to a configuration error. Please refresh the page and try again.",
+            violations: invariantCheck.violations.map(v => v.violation),
+          },
+          { status: 500 }
+        );
+      }
+      
       return NextResponse.json(
         { 
           error: "Invariant violation detected", 
           errorCode: 'INVARIANT_VIOLATION',
+          userMessage: "Unable to send message. Please try again or contact support.",
           violations: invariantCheck.violations.map(v => v.violation),
         },
         { status: 500 }

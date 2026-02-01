@@ -21,12 +21,14 @@ import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 
 interface RotationSettings {
-  poolSelectionStrategy: 'LRU' | 'FIFO' | 'RANDOM';
+  poolSelectionStrategy: 'LRU' | 'FIFO' | 'HASH_SHUFFLE';
   stickyReuseDays: number;
   postBookingGraceHours: number;
   inactivityReleaseDays: number;
   maxPoolThreadLifetimeDays: number;
   minPoolReserve: number;
+  maxConcurrentThreadsPerPoolNumber: number;
+  stickyReuseKey: 'clientId' | 'threadId';
 }
 
 const DEFAULT_SETTINGS: RotationSettings = {
@@ -36,6 +38,8 @@ const DEFAULT_SETTINGS: RotationSettings = {
   inactivityReleaseDays: 7,
   maxPoolThreadLifetimeDays: 30,
   minPoolReserve: 3,
+  maxConcurrentThreadsPerPoolNumber: 1,
+  stickyReuseKey: 'clientId',
 };
 
 export default function RotationSettingsPage() {
@@ -135,15 +139,41 @@ export default function RotationSettingsPage() {
         <FormRow label="Selection Strategy" required>
           <Select
             value={settings.poolSelectionStrategy}
-            onChange={(e) => setSettings({ ...settings, poolSelectionStrategy: e.target.value as 'LRU' | 'FIFO' | 'RANDOM' })}
+            onChange={(e) => setSettings({ ...settings, poolSelectionStrategy: e.target.value as 'LRU' | 'FIFO' | 'HASH_SHUFFLE' })}
             options={[
               { value: 'LRU', label: 'Least Recently Used (LRU)' },
               { value: 'FIFO', label: 'First In First Out (FIFO)' },
-              { value: 'RANDOM', label: 'Random' },
+              { value: 'HASH_SHUFFLE', label: 'Hash Shuffle (Deterministic)' },
             ]}
           />
           <p style={{ marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-            How pool numbers are selected when assigning to new threads. LRU minimizes number churn.
+            How pool numbers are selected when assigning to new threads. LRU minimizes number churn. Hash Shuffle provides deterministic random-like distribution.
+          </p>
+        </FormRow>
+
+        <FormRow label="Max Concurrent Threads Per Pool Number" required>
+          <Input
+            type="number"
+            min="1"
+            value={settings.maxConcurrentThreadsPerPoolNumber}
+            onChange={(e) => setSettings({ ...settings, maxConcurrentThreadsPerPoolNumber: parseInt(e.target.value) || 1 })}
+          />
+          <p style={{ marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+            Maximum number of threads that can share a single pool number simultaneously (default: 1).
+          </p>
+        </FormRow>
+
+        <FormRow label="Sticky Reuse Key" required>
+          <Select
+            value={settings.stickyReuseKey}
+            onChange={(e) => setSettings({ ...settings, stickyReuseKey: e.target.value as 'clientId' | 'threadId' })}
+            options={[
+              { value: 'clientId', label: 'Client ID' },
+              { value: 'threadId', label: 'Thread ID' },
+            ]}
+          />
+          <p style={{ marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+            Key used for sticky reuse: clientId (same client reuses same number) or threadId (same thread keeps same number).
           </p>
         </FormRow>
 
