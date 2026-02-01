@@ -104,9 +104,8 @@ export async function POST(request: NextRequest) {
           e164: actualE164,
           numberClass: numberClass as 'front_desk' | 'sitter' | 'pool',
           status: 'active',
-          providerType: 'twilio',
+          provider: 'twilio',
           providerNumberSid: actualSid,
-          purchaseDate: new Date(),
         },
       });
 

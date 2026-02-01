@@ -84,9 +84,8 @@ export async function POST(request: NextRequest) {
               e164: available.phoneNumber,
               numberClass: numberClass as 'front_desk' | 'sitter' | 'pool',
               status: 'active',
-              providerType: 'twilio',
+              provider: 'twilio',
               providerNumberSid: phoneNumber.sid,
-              purchaseDate: new Date(),
             },
           });
 

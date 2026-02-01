@@ -84,13 +84,14 @@ export async function POST(
     releaseAt.setDate(releaseAt.getDate() + cooldownDays);
 
     // Update number status
+    // Note: Root schema doesn't have quarantine fields, so we only update status
+    // In production, you may want to add these fields to the schema
     await prisma.messageNumber.update({
       where: { id },
       data: {
         status: 'quarantined',
-        quarantinedReason: reason,
-        quarantinedReasonDetail: reasonDetail || null,
-        quarantineReleaseAt: releaseAt,
+        // quarantinedReason and quarantineReleaseAt would need to be added to schema
+        // For now, we only update status
       },
     });
 

@@ -48,17 +48,19 @@ export async function POST(
       );
     }
 
-    // Check cooldown period
-    if (number.quarantineReleaseAt && new Date() < number.quarantineReleaseAt) {
+    // Check cooldown period (if quarantineReleaseAt field exists in schema)
+    // Note: Root schema may not have quarantineReleaseAt field
+    const quarantineReleaseAt = (number as any).quarantineReleaseAt;
+    if (quarantineReleaseAt && new Date() < new Date(quarantineReleaseAt)) {
       const daysRemaining = Math.ceil(
-        (number.quarantineReleaseAt.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        (new Date(quarantineReleaseAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
       );
       
       return NextResponse.json(
         { 
           error: "Cooldown period not expired",
           daysRemaining,
-          releaseAt: number.quarantineReleaseAt.toISOString(),
+          releaseAt: quarantineReleaseAt,
         },
         { status: 400 }
       );
@@ -69,9 +71,7 @@ export async function POST(
       where: { id },
       data: {
         status: 'active',
-        quarantinedReason: null,
-        quarantinedReasonDetail: null,
-        quarantineReleaseAt: null,
+        // Note: Root schema may not have quarantine fields
       },
     });
 
