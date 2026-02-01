@@ -29,6 +29,11 @@ export async function middleware(request: NextRequest) {
     if (currentSitterId) {
       // Per Master Spec 7.1.2: Sitters cannot access restricted routes
       if (isSitterRestrictedRoute(pathname)) {
+        // Redirect /messages to /sitter/inbox (UI route)
+        if (pathname.startsWith('/messages')) {
+          return NextResponse.redirect(new URL('/sitter/inbox', request.url));
+        }
+        // Other restricted routes return 403
         return NextResponse.json(
           { error: "Access denied: This route is not available to sitters" },
           { status: 403 }
