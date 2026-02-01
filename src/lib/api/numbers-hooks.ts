@@ -19,6 +19,10 @@ const numberSchema = z.object({
   providerType: z.string(),
   purchaseDate: z.string().nullable(),
   lastUsedAt: z.string().nullable(),
+  // Pool state
+  activeThreadCount: z.number().nullable().optional(),
+  capacityStatus: z.string().nullable().optional(),
+  maxConcurrentThreads: z.number().nullable().optional(),
 });
 
 export type Number = z.infer<typeof numberSchema>;

@@ -116,3 +116,69 @@ jobs:
           OPENPHONE_NUMBER_ID: "test_number_id"
           NEXTAUTH_SECRET: "test_secret"
           NEXTAUTH_URL: "http://localhost:3000"
+
+  proof-pack:
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      
+      - name: Build application
+        run: npm run build
+        env:
+          DATABASE_URL: "file:./test.db"
+          OPENPHONE_API_KEY: "test_key"
+          OPENPHONE_NUMBER_ID: "test_number_id"
+          NEXTAUTH_SECRET: "test_secret"
+          NEXTAUTH_URL: "http://localhost:3000"
+      
+      - name: Start application
+        run: npm start &
+        env:
+          DATABASE_URL: "file:./test.db"
+          OPENPHONE_API_KEY: "test_key"
+          OPENPHONE_NUMBER_ID: "test_number_id"
+          NEXTAUTH_SECRET: "test_secret"
+          NEXTAUTH_URL: "http://localhost:3000"
+      
+      - name: Wait for application
+        run: npx wait-on http://localhost:3000 --timeout 60000
+      
+      - name: Run proof-pack tests
+        run: |
+          mkdir -p proof-pack
+          npm run test:ui -- tests/e2e/rotation-settings-persistence.spec.ts tests/e2e/pool-exhausted-integration.spec.ts --reporter=html --output-dir=proof-pack/playwright-report
+          npm run test -- src/lib/messaging/__tests__/pool-capacity.test.ts src/lib/messaging/__tests__/pool-release.test.ts src/lib/messaging/__tests__/invariants.test.ts --reporter=json --outputFile=proof-pack/test-output.json
+        env:
+          CI: true
+          BASE_URL: "http://localhost:3000"
+          OWNER_EMAIL: "owner@example.com"
+          OWNER_PASSWORD: "password"
+      
+      - name: Capture screenshots
+        run: |
+          npm run test:ui -- tests/e2e/rotation-settings-persistence.spec.ts --screenshot=only-on-failure
+          mkdir -p proof-pack/screenshots
+          cp -r test-results/*/screenshots/* proof-pack/screenshots/ 2>/dev/null || true
+        continue-on-error: true
+      
+      - name: Upload proof-pack artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: proof-pack
+          path: proof-pack/
+          retention-days: 90

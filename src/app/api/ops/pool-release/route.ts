@@ -8,25 +8,22 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserSafe } from "@/lib/auth-helpers";
-import { getCurrentSitterId } from "@/lib/sitter-helpers";
+import { requireOwner } from "@/lib/owner-helpers";
 import { releasePoolNumbers } from "@/lib/messaging/pool-release-job";
-import { env } from "@/lib/env";
 
 export async function POST(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUserSafe(request);
-    if (!currentUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     // Owner-only endpoint
-    const sitterId = await getCurrentSitterId(request);
-    if (sitterId) {
-      return NextResponse.json(
-        { error: "Access denied: Pool release job is owner-only" },
-        { status: 403 }
-      );
+    try {
+      await requireOwner(request);
+    } catch (error: any) {
+      if (error.name === 'OwnerAuthError') {
+        return NextResponse.json(
+          { error: error.message || "Access denied: Owner authentication required" },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get orgId from context (optional - if not provided, runs for all orgs)

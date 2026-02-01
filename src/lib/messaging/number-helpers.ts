@@ -255,7 +255,43 @@ export async function getPoolNumber(
   });
 
   if (availableNumbers.length === 0) {
-    // All pool numbers are at capacity
+    // All pool numbers are at capacity - pool exhausted
+    // Create alert and log audit event
+    const { createAlert } = await import('./alert-helpers');
+    const { logMessagingEvent } = await import('./audit-trail');
+    
+    const activeThreadCount = Array.from(countMap.values()).reduce((sum, count) => sum + count, 0);
+    const minPoolReserve = parseInt(settings.minPoolReserve || '3', 10) || 3;
+    const recommendedMinPoolSize = Math.max(minPoolReserve, Math.ceil(activeThreadCount / maxConcurrent) + 2);
+
+    await createAlert({
+      orgId,
+      severity: 'critical',
+      type: 'pool.exhausted',
+      title: 'Pool Numbers Exhausted',
+      description: `All pool numbers are at capacity. Inbound messages will be routed to owner inbox.`,
+      entityType: 'pool',
+      metadata: {
+        currentPoolSize: poolNumbers.length,
+        activeThreadCount,
+        maxConcurrentThreadsPerPoolNumber: maxConcurrent,
+        settings: {
+          poolSelectionStrategy: strategy,
+          maxConcurrentThreadsPerPoolNumber: maxConcurrent,
+          minPoolReserve,
+        },
+        recommendedMinimumPoolSize: recommendedMinPoolSize,
+      },
+    });
+
+    await logMessagingEvent(orgId, 'pool.exhausted', {
+      currentPoolSize: poolNumbers.length,
+      activeThreadCount,
+      maxConcurrent,
+      recommendedMinPoolSize,
+    });
+
+    // Return null to signal pool exhausted
     return null;
   }
 
@@ -412,9 +448,33 @@ export async function assignNumberToThread(
       break;
 
     case 'pool':
-      const poolNumber = await getPoolNumber(orgId);
+      const poolNumber = await getPoolNumber(orgId, undefined, {
+        clientId: context?.isOneTimeClient ? 'one-time' : null,
+        threadId: threadId,
+      });
       if (!poolNumber) {
-        throw new Error('No pool numbers available');
+        // Pool exhausted - fallback to front desk and route to owner inbox
+        // This is a safe fallback that ensures messages are never lost
+        console.warn(`[assignNumberToThread] Pool exhausted for thread ${threadId}, falling back to front desk`);
+        
+        const frontDesk = await getOrCreateFrontDeskNumber(orgId, provider);
+        numberId = frontDesk.numberId;
+        e164 = frontDesk.e164;
+        
+        // Log that we fell back due to pool exhaustion
+        const { logMessagingEvent } = await import('./audit-trail');
+        await logMessagingEvent(orgId, 'pool.exhausted.fallback', {
+          threadId,
+          fallbackTo: 'front_desk',
+          reason: 'Pool numbers exhausted',
+        });
+        
+        // Return front desk number (not pool)
+        return {
+          numberId,
+          e164,
+          numberClass: 'front_desk', // Changed from 'pool' to 'front_desk'
+        };
       }
       numberId = poolNumber.numberId;
       e164 = poolNumber.e164;

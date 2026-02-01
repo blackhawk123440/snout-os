@@ -66,21 +66,83 @@ export async function GET(request: NextRequest) {
     }) : [];
     const sitterMap = new Map(sitters.map(s => [s.id, s]));
 
-    return NextResponse.json(numbers.map(n => ({
-      id: n.id,
-      e164: n.e164,
-      class: n.numberClass,
-      status: n.status,
-      assignedSitterId: n.assignedSitterId,
-      assignedSitter: n.assignedSitterId ? (sitterMap.get(n.assignedSitterId) ? {
-        id: sitterMap.get(n.assignedSitterId)!.id,
-        name: `${sitterMap.get(n.assignedSitterId)!.firstName} ${sitterMap.get(n.assignedSitterId)!.lastName}`,
-      } : null) : null,
-      providerType: n.provider,
-      providerNumberSid: n.providerNumberSid,
-      purchaseDate: null, // Not in root schema
-      lastUsedAt: n.lastAssignedAt?.toISOString() || null,
-    })));
+    // Get rotation settings for capacity check
+    const rotationSettings = await prisma.setting.findMany({
+      where: {
+        key: {
+          startsWith: 'rotation.',
+        },
+      },
+    });
+    const settings: Record<string, string> = {};
+    for (const setting of rotationSettings) {
+      const key = setting.key.replace('rotation.', '');
+      settings[key] = setting.value;
+    }
+    const maxConcurrent = parseInt(settings.maxConcurrentThreadsPerPoolNumber || '1', 10) || 1;
+
+    // Get thread counts for each number
+    const numberIds = numbers.map(n => n.id);
+    const threadCounts = await prisma.messageThread.groupBy({
+      by: ['messageNumberId'],
+      where: {
+        orgId,
+        messageNumberId: { in: numberIds },
+        status: { not: 'archived' },
+      },
+      _count: {
+        id: true,
+      },
+    });
+    const countMap = new Map<string, number>();
+    for (const tc of threadCounts) {
+      if (tc.messageNumberId) {
+        countMap.set(tc.messageNumberId, tc._count.id);
+      }
+    }
+
+    // Check for pool exhausted alerts
+    const poolExhaustedAlerts = await prisma.setting.findMany({
+      where: {
+        key: {
+          startsWith: 'alert.pool.exhausted.',
+        },
+        category: 'alert',
+      },
+    });
+    const hasPoolExhaustedAlert = poolExhaustedAlerts.length > 0;
+
+    return NextResponse.json(numbers.map(n => {
+      const activeThreadCount = countMap.get(n.id) || 0;
+      const isAtCapacity = n.numberClass === 'pool' && activeThreadCount >= maxConcurrent;
+      const capacityStatus = n.numberClass === 'pool' 
+        ? (isAtCapacity ? 'At Capacity' : 'OK')
+        : null;
+
+      return {
+        id: n.id,
+        e164: n.e164,
+        class: n.numberClass,
+        status: n.status,
+        assignedSitterId: n.assignedSitterId,
+        assignedSitter: n.assignedSitterId ? (sitterMap.get(n.assignedSitterId) ? {
+          id: sitterMap.get(n.assignedSitterId)!.id,
+          name: `${sitterMap.get(n.assignedSitterId)!.firstName} ${sitterMap.get(n.assignedSitterId)!.lastName}`,
+        } : null) : null,
+        providerType: n.provider,
+        providerNumberSid: n.providerNumberSid,
+        purchaseDate: null, // Not in root schema
+        lastUsedAt: n.lastAssignedAt?.toISOString() || null,
+        // Pool state
+        activeThreadCount: n.numberClass === 'pool' ? activeThreadCount : null,
+        capacityStatus,
+        maxConcurrentThreads: n.numberClass === 'pool' ? maxConcurrent : null,
+      };
+    }), {
+      headers: {
+        'X-Pool-Exhausted': hasPoolExhaustedAlert ? 'true' : 'false',
+      },
+    });
   } catch (error: any) {
     console.error("[numbers] Error:", error);
     return NextResponse.json(

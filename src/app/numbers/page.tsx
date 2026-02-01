@@ -151,7 +151,7 @@ export default function NumbersPage() {
     }
   };
 
-  const numberColumns: TableColumn<Number>[] = [
+  const numberColumns: TableColumn<Number & { activeThreadCount?: number | null; capacityStatus?: string | null; maxConcurrentThreads?: number | null }>[] = [
     { key: 'e164', header: 'Number', render: (n) => n.e164 },
     { key: 'class', header: 'Class', render: (n) => (
       <Badge variant={n.class === 'front_desk' ? 'default' : n.class === 'sitter' ? 'info' : 'neutral'}>
@@ -163,6 +163,20 @@ export default function NumbersPage() {
         {n.status}
       </Badge>
     )},
+    { key: 'activeThreadCount', header: 'Active Threads', render: (n) => {
+      if (n.class !== 'pool') return '-';
+      return n.activeThreadCount !== null && n.activeThreadCount !== undefined 
+        ? `${n.activeThreadCount}${n.maxConcurrentThreads ? ` / ${n.maxConcurrentThreads}` : ''}`
+        : '-';
+    }},
+    { key: 'capacityStatus', header: 'Capacity', render: (n) => {
+      if (n.class !== 'pool' || !n.capacityStatus) return '-';
+      return (
+        <Badge variant={n.capacityStatus === 'At Capacity' ? 'warning' : 'success'}>
+          {n.capacityStatus}
+        </Badge>
+      );
+    }},
     { key: 'assignedSitter', header: 'Assigned To', render: (n) => n.assignedSitter?.name || 'Unassigned' },
     { key: 'lastUsedAt', header: 'Last Used', render: (n) => n.lastUsedAt ? new Date(n.lastUsedAt).toLocaleDateString() : 'Never' },
     { 

@@ -8,8 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserSafe } from "@/lib/auth-helpers";
-import { getCurrentSitterId } from "@/lib/sitter-helpers";
+import { requireOwner } from "@/lib/owner-helpers";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 
@@ -94,18 +93,17 @@ async function saveChaosModeSettings(settings: ChaosModeSettings): Promise<void>
 
 export async function GET(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUserSafe(request);
-    if (!currentUser) {
+    // HARD BLOCK: Require owner auth
+    try {
+      await requireOwner(request);
+    } catch (error: any) {
+      if (error.name === 'OwnerAuthError') {
+        return NextResponse.json(
+          { error: error.message || "Access denied: Owner authentication required" },
+          { status: 403 }
+        );
+      }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // HARD BLOCK: Require owner auth (non-sitter = owner)
-    const sitterId = await getCurrentSitterId(request);
-    if (sitterId) {
-      return NextResponse.json(
-        { error: "Access denied: Chaos mode is owner-only" },
-        { status: 403 }
-      );
     }
     
     // HARD BLOCK: Never allow in production
@@ -137,18 +135,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUserSafe(request);
-    if (!currentUser) {
+    // HARD BLOCK: Require owner auth
+    try {
+      await requireOwner(request);
+    } catch (error: any) {
+      if (error.name === 'OwnerAuthError') {
+        return NextResponse.json(
+          { error: error.message || "Access denied: Owner authentication required" },
+          { status: 403 }
+        );
+      }
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // HARD BLOCK: Require owner auth (non-sitter = owner)
-    const sitterId = await getCurrentSitterId(request);
-    if (sitterId) {
-      return NextResponse.json(
-        { error: "Access denied: Chaos mode is owner-only" },
-        { status: 403 }
-      );
     }
     
     // HARD BLOCK: Never allow in production

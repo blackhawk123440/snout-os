@@ -97,6 +97,11 @@ export async function initializeQueues() {
     // Per Master Spec Line 259: "Move every automation execution to the worker queue"
     const { initializeAutomationWorker } = await import("./automation-queue");
     initializeAutomationWorker();
+
+    // Initialize pool release worker (runs every 5 minutes)
+    const { initializePoolReleaseWorker, schedulePoolRelease } = await import("./pool-release-queue");
+    initializePoolReleaseWorker();
+    await schedulePoolRelease();
   } catch (error) {
     console.error("Failed to initialize queues:", error);
   }

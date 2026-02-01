@@ -330,8 +330,9 @@ export async function POST(request: NextRequest) {
         });
 
         // Phase 1.2: Assign number to thread based on number class
+        let assignedNumberClass = numberClass;
         try {
-          await assignNumberToThread(
+          const assignmentResult = await assignNumberToThread(
             thread.id,
             numberClass,
             orgId,
@@ -341,10 +342,19 @@ export async function POST(request: NextRequest) {
               isMeetAndGreet: false,
             }
           );
+          assignedNumberClass = assignmentResult.numberClass;
+          
+          // If pool exhausted and fell back to front_desk, route to owner inbox
+          if (numberClass === 'pool' && assignedNumberClass === 'front_desk') {
+            shouldRouteToOwner = true;
+            // Message will be stored in thread but routed to owner inbox
+          }
         } catch (error) {
           console.error("[webhook/twilio] Failed to assign number to thread:", error);
-          // Continue - number assignment failure shouldn't block message storage
-          // In production, you may want to alert on this
+          // If pool assignment failed, route to owner inbox as safe fallback
+          if (numberClass === 'pool') {
+            shouldRouteToOwner = true;
+          }
         }
       } else {
         // Phase 1.3.1: Validate pool number routing if thread uses pool number
@@ -485,6 +495,23 @@ export async function POST(request: NextRequest) {
       // Continue - session creation failure shouldn't block message storage
       // In production, you may want to alert on this, but for now allow messages through
       // TODO: Fix Proxy Session authentication to enable masking (Gate 2 requirement)
+    }
+
+    // If shouldRouteToOwner is true (pool exhausted or other routing reason), route to owner inbox
+    if (shouldRouteToOwner) {
+      try {
+        const routingReason = assignedNumberClass === 'front_desk' && numberClass === 'pool'
+          ? 'Pool numbers exhausted - routed to owner inbox'
+          : autoResponseText || 'Routed to owner inbox';
+        
+        await routeToOwnerInbox(inboundMessage, orgId, routingReason);
+        
+        // Return early - message has been routed to owner inbox
+        return NextResponse.json({ received: true, routedToOwner: true });
+      } catch (error) {
+        console.error('[webhook/twilio] Failed to route to owner inbox:', error);
+        // Continue - fallback to storing in thread
+      }
     }
 
     // Phase 3.2: Anti-poaching detection and enforcement for inbound messages
