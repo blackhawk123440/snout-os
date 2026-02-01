@@ -43,7 +43,6 @@ import { DiagnosticsPanel } from '@/components/messaging/DiagnosticsPanel';
 import { isMessagingEnabled } from '@/lib/flags';
 import { useAuth } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 interface MessageTemplate {
   id: string;
