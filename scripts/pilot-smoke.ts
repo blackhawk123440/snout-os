@@ -47,7 +47,8 @@ async function main() {
 
     // Step 2: Migrate + seed
     console.log('🗄️  Running migrations...');
-    execSync('pnpm db:push', { stdio: 'inherit' });
+    // Use --accept-data-loss for non-interactive mode (smoke test environment)
+    execSync('npx prisma db push --accept-data-loss --skip-generate', { stdio: 'inherit' });
     console.log('✅ Migrations complete\n');
 
     console.log('🌱 Seeding database...');
