@@ -29,10 +29,12 @@ test.describe('Messaging Features', () => {
     await page.goto(`${BASE_URL}/messages`);
     
     // Wait for threads to load
-    await page.waitForSelector('[data-testid="thread-list"]', { timeout: 10000 }).catch(() => {
+    try {
+      await page.waitForSelector('[data-testid="thread-list"]', { timeout: 10000 });
+    } catch {
       // If no testid, wait for thread list to appear
       await page.waitForSelector('text=Threads', { timeout: 10000 });
-    });
+    }
     
     // Click first thread
     const firstThread = page.locator('[data-testid="thread-item"]').first().or(page.locator('text=/John|Jane/').first());
