@@ -165,16 +165,16 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
 
   const handleSeed = async () => {
     try {
-      const response = await fetch('/api/messages/seed', { method: 'POST' });
+      const response = await fetch('/api/ops/seed-messaging', { method: 'POST' });
       const data = await response.json();
       if (data.success) {
-        alert(`Demo data created! ${data.threads} threads and ${data.messages} messages. Refreshing...`);
+        alert(`Demo data created! Thread A (failed delivery + active window) and Thread B (policy violation). Refreshing...`);
         window.location.reload();
       } else {
-        alert(data.message || 'Failed to create demo data');
+        alert(data.error || 'Failed to create demo data');
       }
     } catch (error: any) {
-      alert(`Failed to create demo data: ${error.message}. Try running: npx tsx scripts/seed-messaging-data.ts`);
+      alert(`Failed to create demo data: ${error.message}`);
     }
   };
 
