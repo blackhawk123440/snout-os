@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
-import { PageHeader, Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Select, Textarea } from '@/components/ui';
+import { PageHeader, Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Textarea } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import {
@@ -325,15 +325,15 @@ export default function NumbersPage() {
                 <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
                   Number Class
                 </label>
-                <Select
+                <select
                   value={buyForm.class}
                   onChange={(e) => setBuyForm({ ...buyForm, class: e.target.value as any })}
-                  options={[
-                    { value: 'front_desk', label: 'Front Desk' },
-                    { value: 'pool', label: 'Pool' },
-                    { value: 'sitter', label: 'Sitter' },
-                  ]}
-                />
+                  style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}`, width: '100%' }}
+                >
+                  <option value="front_desk">Front Desk</option>
+                  <option value="pool">Pool</option>
+                  <option value="sitter">Sitter</option>
+                </select>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
@@ -375,15 +375,15 @@ export default function NumbersPage() {
                 <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
                   Number Class
                 </label>
-                <Select
+                <select
                   value={importForm.class}
                   onChange={(e) => setImportForm({ ...importForm, class: e.target.value as any })}
-                  options={[
-                    { value: 'front_desk', label: 'Front Desk' },
-                    { value: 'pool', label: 'Pool' },
-                    { value: 'sitter', label: 'Sitter' },
-                  ]}
-                />
+                  style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}`, width: '100%' }}
+                >
+                  <option value="front_desk">Front Desk</option>
+                  <option value="pool">Pool</option>
+                  <option value="sitter">Sitter</option>
+                </select>
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
@@ -482,11 +482,16 @@ export default function NumbersPage() {
                 <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
                   Sitter
                 </label>
-                <Select
+                <select
                   value={assignForm.sitterId}
                   onChange={(e) => setAssignForm({ sitterId: e.target.value })}
-                  options={sitters.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName}` }))}
-                />
+                  style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}`, width: '100%' }}
+                >
+                  <option value="">Select sitter...</option>
+                  {sitters.map(s => (
+                    <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>
+                  ))}
+                </select>
               </div>
               <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
                 <Button onClick={() => setShowAssignModal(null)} variant="secondary">Cancel</Button>

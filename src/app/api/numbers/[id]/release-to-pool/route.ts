@@ -32,12 +32,6 @@ export async function POST(
     // Find number
     const number = await prisma.messageNumber.findFirst({
       where: { id, orgId },
-      include: {
-        threads: {
-          where: { status: 'active' },
-          select: { id: true },
-        },
-      },
     });
 
     if (!number) {
@@ -54,8 +48,14 @@ export async function POST(
       );
     }
 
-    // Impact preview
-    const affectedThreads = number.threads.length;
+    // Find threads using this number
+    const affectedThreads = await prisma.messageThread.count({
+      where: {
+        orgId,
+        messageNumberId: id,
+        status: { not: 'archived' },
+      },
+    });
 
     // Release to pool (change class and remove sitter assignment)
     await prisma.messageNumber.update({

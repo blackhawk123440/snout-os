@@ -42,12 +42,6 @@ export async function POST(
     // Find number
     const number = await prisma.messageNumber.findFirst({
       where: { id, orgId },
-      include: {
-        threads: {
-          where: { status: 'active' },
-          select: { id: true },
-        },
-      },
     });
 
     if (!number) {
@@ -56,6 +50,15 @@ export async function POST(
         { status: 404 }
       );
     }
+
+    // Find threads using this number
+    const affectedThreads = await prisma.messageThread.count({
+      where: {
+        orgId,
+        messageNumberId: id,
+        status: { not: 'archived' },
+      },
+    });
 
     // Guardrail: Cannot quarantine last front desk number
     if (number.numberClass === 'front_desk') {
@@ -68,7 +71,7 @@ export async function POST(
           { 
             error: "Cannot quarantine last front desk number",
             impact: {
-              affectedThreads: number.threads.length,
+              affectedThreads,
               message: "This is the only active front desk number. Please add another front desk number before quarantining this one.",
             },
           },
@@ -76,9 +79,6 @@ export async function POST(
         );
       }
     }
-
-    // Calculate impact
-    const affectedThreads = number.threads.length;
     const cooldownDays = 90; // Default cooldown period
     const releaseAt = new Date();
     releaseAt.setDate(releaseAt.getDate() + cooldownDays);
