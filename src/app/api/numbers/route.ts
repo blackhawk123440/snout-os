@@ -49,19 +49,22 @@ export async function GET(request: NextRequest) {
 
     const numbers = await prisma.messageNumber.findMany({
       where,
-      include: {
-        assignedSitter: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
       orderBy: {
         createdAt: 'desc',
       },
     });
+
+    // Fetch sitters separately
+    const sitterIds = numbers.map(n => n.assignedSitterId).filter((id): id is string => !!id);
+    const sitters = sitterIds.length > 0 ? await prisma.sitter.findMany({
+      where: { id: { in: sitterIds } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+      },
+    }) : [];
+    const sitterMap = new Map(sitters.map(s => [s.id, s]));
 
     return NextResponse.json(numbers.map(n => ({
       id: n.id,
@@ -69,14 +72,14 @@ export async function GET(request: NextRequest) {
       class: n.numberClass,
       status: n.status,
       assignedSitterId: n.assignedSitterId,
-      assignedSitter: n.assignedSitter ? {
-        id: n.assignedSitter.id,
-        name: `${n.assignedSitter.firstName} ${n.assignedSitter.lastName}`,
-      } : null,
-      providerType: n.providerType,
+      assignedSitter: n.assignedSitterId ? (sitterMap.get(n.assignedSitterId) ? {
+        id: sitterMap.get(n.assignedSitterId)!.id,
+        name: `${sitterMap.get(n.assignedSitterId)!.firstName} ${sitterMap.get(n.assignedSitterId)!.lastName}`,
+      } : null) : null,
+      providerType: n.provider,
       providerNumberSid: n.providerNumberSid,
-      purchaseDate: n.purchaseDate?.toISOString(),
-      lastUsedAt: n.lastAssignedAt?.toISOString(),
+      purchaseDate: null, // Not in root schema
+      lastUsedAt: n.lastAssignedAt?.toISOString() || null,
     })));
   } catch (error: any) {
     console.error("[numbers] Error:", error);
