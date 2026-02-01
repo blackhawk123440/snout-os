@@ -58,14 +58,9 @@ export async function PATCH(
       data: updateData,
       include: {
         thread: {
-          include: {
-            client: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
+          select: {
+            id: true,
+            clientId: true,
           },
         },
         sitter: {
@@ -77,6 +72,16 @@ export async function PATCH(
         },
       },
     });
+
+    // Fetch client data separately
+    const client = updated.thread.clientId ? await prisma.client.findUnique({
+      where: { id: updated.thread.clientId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+      },
+    }) : null;
 
     const now = new Date();
     let status: 'active' | 'future' | 'past' = 'past';
@@ -97,8 +102,8 @@ export async function PATCH(
       thread: {
         id: updated.thread.id,
         client: {
-          id: updated.thread.client.id,
-          name: `${updated.thread.client.firstName} ${updated.thread.client.lastName}`,
+          id: client?.id || 'unknown',
+          name: client ? `${client.firstName} ${client.lastName}` : 'Unknown Client',
         },
       },
       sitter: {
