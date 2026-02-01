@@ -48,6 +48,15 @@ export async function GET(request: NextRequest) {
     }
     console.log('[api/messages/threads] User authenticated:', currentUser.id);
 
+    // Block sitters from owner messaging endpoints
+    const sitterId = await getCurrentSitterId(request);
+    if (sitterId) {
+      return NextResponse.json(
+        { error: "Sitters must use /api/sitter/threads endpoint" },
+        { status: 403 }
+      );
+    }
+
     // Phase 4.1: Determine role (owner vs sitter)
     const currentSitterId = await getCurrentSitterId(request);
     const isSitter = !!currentSitterId;

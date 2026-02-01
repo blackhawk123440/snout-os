@@ -32,8 +32,7 @@ import { checkAntiPoaching, blockAntiPoachingMessage } from "@/lib/messaging/ant
 import { resolveInboundSms } from "@/lib/messaging/routing-resolver";
 import { logMessagingEvent } from "@/lib/messaging/audit-trail";
 
-// Initialize Twilio provider
-const twilioProvider = new TwilioProvider();
+// TwilioProvider will be instantiated per-request with orgId from number
 
 /**
  * POST /api/messages/webhook/twilio
@@ -118,8 +117,10 @@ export async function POST(request: NextRequest) {
     const isStatusCallback = payload.MessageStatus !== undefined;
 
     if (isStatusCallback) {
-      // Handle status callback
-      const statusCallback = twilioProvider.parseStatusCallback(payload);
+      // For status callbacks, we need to find the message first to get orgId
+      // Create a temporary provider for parsing (doesn't need credentials)
+      const tempProvider = new TwilioProvider();
+      const statusCallback = tempProvider.parseStatusCallback(payload);
       
       // Find message event by provider message SID
       const messageEvent = await prisma.messageEvent.findFirst({
@@ -145,7 +146,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle inbound message
-    const inboundMessage = twilioProvider.parseInbound(payload);
+    // Create temporary provider for parsing (doesn't need credentials)
+    const tempProvider = new TwilioProvider();
+    const inboundMessage = tempProvider.parseInbound(payload);
     
     // Step 3: Derive orgId from "to" number (REAL org routing)
     let orgId: string;
@@ -158,6 +161,9 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+    
+    // Initialize Twilio provider with orgId for actual API calls
+    const twilioProvider = new TwilioProvider(undefined, orgId);
     
     // Log inbound message receipt with redacted phone numbers
     console.log(

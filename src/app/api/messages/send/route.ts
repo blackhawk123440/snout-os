@@ -21,8 +21,7 @@ import { getCurrentSitterId } from "@/lib/sitter-helpers";
 import { checkAntiPoaching, blockAntiPoachingMessage } from "@/lib/messaging/anti-poaching-enforcement";
 import { env } from "@/lib/env";
 
-// Initialize Twilio provider
-const twilioProvider = new TwilioProvider();
+// TwilioProvider will be instantiated per-request with orgId
 
 /**
  * POST /api/messages/send
@@ -44,8 +43,20 @@ export async function POST(request: NextRequest) {
     }
     console.log('[api/messages/send] User authenticated:', currentUser.id);
 
+    // Block sitters from owner messaging endpoints
+    const sitterId = await getCurrentSitterId(request);
+    if (sitterId) {
+      return NextResponse.json(
+        { error: "Sitters must use /api/sitter/threads/[id]/send endpoint" },
+        { status: 403 }
+      );
+    }
+
     // Get orgId from context
     const orgId = await getOrgIdFromContext(currentUser.id);
+    
+    // Initialize Twilio provider with orgId
+    const twilioProvider = new TwilioProvider(undefined, orgId);
 
     // Parse request body
     const body = await request.json();

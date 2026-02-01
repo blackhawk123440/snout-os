@@ -1061,6 +1061,18 @@ model MessageNumber {
   @@index([assignedSitterId])
 }
 
+// Provider Credentials (encrypted at rest)
+model ProviderCredential {
+  id            String   @id @default(uuid())
+  orgId         String   @unique
+  providerType  String   @default("twilio") // 'twilio', 'openphone', etc.
+  encryptedConfig String @db.Text // Encrypted JSON: { accountSid, authToken }
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([orgId])
+}
+
 model MessageThread {
   id                     String    @id @default(uuid())
   orgId                  String

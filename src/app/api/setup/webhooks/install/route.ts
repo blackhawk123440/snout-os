@@ -19,13 +19,6 @@ export async function POST(request: NextRequest) {
 
     const orgId = await getOrgIdFromContext(currentUser.id);
 
-    if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
-      return NextResponse.json(
-        { success: false, error: "Twilio credentials not configured" },
-        { status: 400 }
-      );
-    }
-
     const webhookUrl = env.TWILIO_WEBHOOK_URL || `${env.WEBHOOK_BASE_URL}/api/messages/webhook/twilio`;
 
     // Get all active numbers
@@ -41,7 +34,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const twilioProvider = new TwilioProvider();
+    // Get Twilio client using DB credentials
+    const { getProviderCredentials } = require('@/lib/messaging/provider-credentials');
+    const credentials = await getProviderCredentials(orgId);
+    
+    if (!credentials) {
+      return NextResponse.json(
+        { success: false, error: "Twilio credentials not configured. Please connect provider in /setup." },
+        { status: 400 }
+      );
+    }
+
+    const twilio = require('twilio');
+    const client = twilio(credentials.accountSid, credentials.authToken);
+    
     let successCount = 0;
     let failCount = 0;
 
@@ -49,8 +55,6 @@ export async function POST(request: NextRequest) {
     for (const number of numbers) {
       if (number.providerNumberSid) {
         try {
-          const twilio = require('twilio');
-          const client = twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
           
           await client.incomingPhoneNumbers(number.providerNumberSid).update({
             smsUrl: webhookUrl,

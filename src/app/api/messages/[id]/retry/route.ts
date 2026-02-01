@@ -12,8 +12,6 @@ import { getOrgIdFromContext } from "@/lib/messaging/org-helpers";
 import { env } from "@/lib/env";
 import { TwilioProvider } from "@/lib/messaging/providers/twilio";
 
-const twilioProvider = new TwilioProvider();
-
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -36,7 +34,20 @@ export async function POST(
       );
     }
 
+    // Block sitters from owner messaging endpoints
+    const { getCurrentSitterId } = require('@/lib/sitter-helpers');
+    const sitterId = await getCurrentSitterId(request);
+    if (sitterId) {
+      return NextResponse.json(
+        { error: "Sitters cannot retry messages" },
+        { status: 403 }
+      );
+    }
+
     const orgId = await getOrgIdFromContext(currentUser.id);
+    
+    // Initialize Twilio provider with orgId
+    const twilioProvider = new TwilioProvider(undefined, orgId);
 
     // Find MessageEvent and verify it belongs to org
     const messageEvent = await prisma.messageEvent.findUnique({

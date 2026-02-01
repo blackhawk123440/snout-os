@@ -1,14 +1,30 @@
-import type { Metadata } from "next";
+/**
+ * Messages Layout - Server-side route protection
+ * 
+ * Redirects sitters to /sitter/inbox
+ */
 
-export const metadata: Metadata = {
-  title: "Messages - Snout OS",
-  description: "Manage message templates and automated communications",
-};
+import { redirect } from 'next/navigation';
+import { getSessionSafe } from '@/lib/auth-helpers';
+import { getCurrentSitterId } from '@/lib/sitter-helpers';
+import { headers } from 'next/headers';
 
-export default function MessagesLayout({
+export default async function MessagesLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  const headersList = await headers();
+  const request = new Request('http://localhost', {
+    headers: headersList,
+  });
+  
+  // Check if user is a sitter
+  const sitterId = await getCurrentSitterId(request);
+  
+  if (sitterId) {
+    redirect('/sitter/inbox');
+  }
+  
+  return <>{children}</>;
 }

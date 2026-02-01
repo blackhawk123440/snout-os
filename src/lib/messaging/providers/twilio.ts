@@ -27,8 +27,17 @@ let twilioClient: any = null;
 let twilioLib: any = null;
 
 // Lazy load Twilio SDK
-function getTwilioClient() {
-  if (twilioClient) {
+/**
+ * Get Twilio client for an organization
+ * 
+ * Resolves credentials from database (encrypted) with env fallback.
+ * 
+ * @param orgId - Organization ID (optional, uses default if not provided)
+ * @returns Twilio client instance
+ */
+async function getTwilioClient(orgId?: string): Promise<any> {
+  // Use cached client if available and orgId matches
+  if (twilioClient && !orgId) {
     return twilioClient;
   }
 
@@ -37,12 +46,18 @@ function getTwilioClient() {
     const twilio = require('twilio');
     twilioLib = twilio;
     
-    // Import env to use validated env vars
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { env } = require('@/lib/env');
+    // Resolve credentials from DB or env
+    const { getProviderCredentials } = require('@/lib/messaging/provider-credentials');
+    const { getOrgIdFromContext } = require('@/lib/messaging/org-helpers');
     
-    const accountSid = env.TWILIO_ACCOUNT_SID;
-    const authToken = env.TWILIO_AUTH_TOKEN;
+    const resolvedOrgId = orgId || await getOrgIdFromContext();
+    const credentials = await getProviderCredentials(resolvedOrgId);
+    
+    if (!credentials) {
+      throw new Error('Twilio credentials not configured. Please connect provider in /setup.');
+    }
+    
+    const { accountSid, authToken } = credentials;
     
     if (!accountSid || !authToken) {
       throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set');
@@ -51,11 +66,15 @@ function getTwilioClient() {
     // In test environment, allow test SIDs to pass through
     // Real Twilio SDK will validate format, but we allow test values for unit tests
     if (accountSid.startsWith('TEST_') || accountSid.startsWith('AC')) {
-      twilioClient = twilio(accountSid, authToken);
+      const client = twilio(accountSid, authToken);
+      // Cache for default org (backward compatibility)
+      if (!orgId) {
+        twilioClient = client;
+      }
+      return client;
     } else {
       throw new Error('TWILIO_ACCOUNT_SID must start with AC or TEST_');
     }
-    return twilioClient;
   } catch (error) {
     throw new Error(`Twilio SDK not available: ${error instanceof Error ? error.message : String(error)}. Install with: npm install twilio`);
   }
@@ -63,12 +82,14 @@ function getTwilioClient() {
 
 export class TwilioProvider implements MessagingProvider {
   private webhookAuthToken: string;
+  private orgId?: string;
 
-  constructor(webhookAuthToken?: string) {
+  constructor(webhookAuthToken?: string, orgId?: string) {
     // Use provided token or fall back to env var
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { env } = require('@/lib/env');
     this.webhookAuthToken = webhookAuthToken || env.TWILIO_WEBHOOK_AUTH_TOKEN || '';
+    this.orgId = orgId;
   }
 
   verifyWebhook(rawBody: string, signature: string, webhookUrl: string): boolean {
@@ -83,7 +104,9 @@ export class TwilioProvider implements MessagingProvider {
     }
 
     try {
-      getTwilioClient();
+      // Webhook verification doesn't need credentials, just the library
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const twilio = require('twilio');
       // Twilio webhook signature verification uses crypto
       // Use Twilio's validateRequest method from twilio library
       if (twilioLib && twilioLib.validateRequest) {
@@ -176,7 +199,7 @@ export class TwilioProvider implements MessagingProvider {
 
   async sendMessage(options: SendMessageOptions): Promise<SendMessageResult> {
     try {
-      const client = getTwilioClient();
+      const client = await getTwilioClient(this.orgId);
       
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { env } = require('@/lib/env');
@@ -220,7 +243,7 @@ export class TwilioProvider implements MessagingProvider {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { env } = require('@/lib/env');
-      const client = getTwilioClient();
+      const client = await getTwilioClient(this.orgId);
 
       // For Twilio, we use Proxy API for masking
       // Create a Proxy Service Session
@@ -265,7 +288,7 @@ export class TwilioProvider implements MessagingProvider {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { env } = require('@/lib/env');
-      const client = getTwilioClient();
+      const client = await getTwilioClient(this.orgId);
       const proxyServiceSid = env.TWILIO_PROXY_SERVICE_SID;
 
       if (!proxyServiceSid) {
@@ -309,7 +332,7 @@ export class TwilioProvider implements MessagingProvider {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { env } = require('@/lib/env');
-      const client = getTwilioClient();
+      const client = await getTwilioClient(this.orgId);
       const proxyServiceSid = env.TWILIO_PROXY_SERVICE_SID;
 
       if (!proxyServiceSid) {
@@ -348,7 +371,7 @@ export class TwilioProvider implements MessagingProvider {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { env } = require('@/lib/env');
-      const client = getTwilioClient();
+      const client = await getTwilioClient(this.orgId);
       const proxyServiceSid = env.TWILIO_PROXY_SERVICE_SID;
 
       if (!proxyServiceSid) {

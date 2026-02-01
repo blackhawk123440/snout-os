@@ -49,6 +49,7 @@ export function isSitterRestrictedRoute(pathname: string): boolean {
   if (pathname.startsWith('/setup')) return true;
   if (pathname.startsWith('/numbers')) return true;
   if (pathname.startsWith('/assignments')) return true;
+  if (pathname.startsWith('/messages')) return true; // Sitters must use /sitter/inbox
   // Payment admin routes
   if (pathname.startsWith("/api/payments")) {
     return true;
@@ -76,6 +77,20 @@ export function isSitterRestrictedRoute(pathname: string): boolean {
 
   // Other sitters' data (admin routes that list all sitters)
   if (pathname === "/api/sitters" || pathname === "/api/sitters/") {
+    return true;
+  }
+
+  // Owner messaging API routes (sitters use /api/sitter/threads)
+  if (pathname.startsWith("/api/messages/threads")) {
+    return true;
+  }
+  if (pathname.startsWith("/api/messages/send")) {
+    return true;
+  }
+  if (pathname.startsWith("/api/messages/") && pathname.includes("/retry")) {
+    return true;
+  }
+  if (pathname.startsWith("/api/routing/")) {
     return true;
   }
 
