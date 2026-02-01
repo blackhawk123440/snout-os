@@ -133,13 +133,17 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
       setComposeMessage('');
       setShowPoolExhaustedConfirm(false);
     } catch (error: any) {
-      const errorData = error.response?.data || {};
-      if (errorData.errorCode === 'POOL_EXHAUSTED') {
+      // Handle API errors - check both error.response (axios) and error directly
+      const errorData = error?.response?.data || error?.data || {};
+      const errorCode = errorData.errorCode || error?.errorCode || error?.code;
+      
+      if (errorCode === 'POOL_EXHAUSTED') {
         setShowPoolExhaustedConfirm(true);
-      } else if (error.message?.includes('Policy violation')) {
+      } else if (error.message?.includes('Policy violation') || errorData.error?.includes('Policy violation')) {
         setShowPolicyOverride(selectedThreadId);
       } else {
-        alert(`Failed to send: ${error.message || errorData.userMessage || 'Unknown error'}`);
+        const errorMessage = errorData.userMessage || errorData.error || error.message || 'Unknown error';
+        alert(`Failed to send: ${errorMessage}`);
       }
     }
   };
