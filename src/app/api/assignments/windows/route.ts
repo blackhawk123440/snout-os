@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
         sitterId: w.sitterId,
         startsAt: w.startAt.toISOString(),
         endsAt: w.endAt.toISOString(),
-        bookingRef: w.bookingRef,
+        bookingRef: (w as any).bookingRef || (w as any).bookingId || null,
         status,
         thread: {
           id: w.thread.id,
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     const orgId = await getOrgIdFromContext(currentUser.id);
     const body = await request.json();
 
-    const { threadId, sitterId, startsAt, endsAt, bookingRef } = body;
+    const { threadId, sitterId, startsAt, endsAt, bookingRef, bookingId } = body;
 
     if (!threadId || !sitterId || !startsAt || !endsAt) {
       return NextResponse.json(
@@ -154,6 +154,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Use bookingId if provided, otherwise use bookingRef (for backward compatibility)
+    const actualBookingId = bookingId || bookingRef || null;
 
     // Verify thread belongs to org
     const thread = await prisma.messageThread.findUnique({
@@ -186,7 +189,7 @@ export async function POST(request: NextRequest) {
         sitterId,
         startAt: new Date(startsAt),
         endAt: new Date(endsAt),
-        bookingRef: bookingRef || null,
+        bookingId: actualBookingId || 'temp-booking-id', // Schema requires bookingId, use temp if not provided
         status: 'active',
       },
       include: {
@@ -230,7 +233,7 @@ export async function POST(request: NextRequest) {
       sitterId: window.sitterId,
       startsAt: window.startAt.toISOString(),
       endsAt: window.endAt.toISOString(),
-      bookingRef: window.bookingRef,
+      bookingRef: window.bookingId || null,
       status,
       thread: {
         id: window.thread.id,

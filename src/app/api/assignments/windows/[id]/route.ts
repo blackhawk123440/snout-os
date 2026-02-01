@@ -51,7 +51,7 @@ export async function PATCH(
     if (startsAt) updateData.startAt = new Date(startsAt);
     if (endsAt) updateData.endAt = new Date(endsAt);
     if (sitterId) updateData.sitterId = sitterId;
-    if (bookingRef !== undefined) updateData.bookingRef = bookingRef || null;
+    if (bookingRef !== undefined) updateData.bookingId = bookingRef || null;
 
     const updated = await prisma.assignmentWindow.update({
       where: { id },
@@ -97,7 +97,7 @@ export async function PATCH(
       sitterId: updated.sitterId,
       startsAt: updated.startAt.toISOString(),
       endsAt: updated.endAt.toISOString(),
-      bookingRef: updated.bookingRef,
+      bookingRef: updated.bookingId || null,
       status,
       thread: {
         id: updated.thread.id,
