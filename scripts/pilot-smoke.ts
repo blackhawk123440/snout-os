@@ -21,10 +21,30 @@ async function main() {
   }
 
   try {
-    // Step 1: Boot infra (Docker Compose)
-    console.log('📦 Booting infrastructure (Postgres + Redis)...');
-    execSync('docker-compose up -d', { stdio: 'inherit' });
-    console.log('✅ Infrastructure ready\n');
+    // Step 1: Boot infra (Docker Compose) - optional if docker-compose.yml exists
+    const dockerComposePath = join(process.cwd(), 'docker-compose.yml');
+    const enterpriseDockerComposePath = join(process.cwd(), 'enterprise-messaging-dashboard', 'docker-compose.yml');
+    
+    if (existsSync(dockerComposePath) || existsSync(enterpriseDockerComposePath)) {
+      console.log('📦 Booting infrastructure (Postgres + Redis)...');
+      const composeFile = existsSync(dockerComposePath) 
+        ? dockerComposePath 
+        : enterpriseDockerComposePath;
+      const composeDir = existsSync(dockerComposePath) 
+        ? process.cwd() 
+        : join(process.cwd(), 'enterprise-messaging-dashboard');
+      
+      execSync(`docker-compose -f ${composeFile} up -d`, { 
+        stdio: 'inherit',
+        cwd: composeDir,
+      });
+      console.log('✅ Infrastructure ready\n');
+      
+      // Wait for services to be ready
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    } else {
+      console.log('⚠️  No docker-compose.yml found - assuming database/Redis already running\n');
+    }
 
     // Step 2: Migrate + seed
     console.log('🗄️  Running migrations...');
