@@ -16,6 +16,7 @@ import { AuthDebugPanel } from '@/components/auth/AuthDebugPanel';
 function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  // Default callback will be determined by role after login
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const [email, setEmail] = useState("");
@@ -57,15 +58,25 @@ function LoginContent() {
         const sessionData = await sessionCheck.json();
         
         if (sessionData?.user) {
+          // Determine redirect based on role
+          const user = sessionData.user as any;
+          const isSitter = !!user.sitterId;
+          const redirectUrl = isSitter ? '/sitter/inbox' : (callbackUrl === '/dashboard' ? '/dashboard' : callbackUrl);
+          
           // Session confirmed - use hard redirect
-          window.location.href = callbackUrl;
+          window.location.href = redirectUrl;
         } else {
           // Session not established - wait and retry
           setTimeout(async () => {
             const retryCheck = await fetch('/api/auth/session');
             const retryData = await retryCheck.json();
             if (retryData?.user) {
-              window.location.href = callbackUrl;
+              // Determine redirect based on role
+              const user = retryData.user as any;
+              const isSitter = !!user.sitterId;
+              const redirectUrl = isSitter ? '/sitter/inbox' : (callbackUrl === '/dashboard' ? '/dashboard' : callbackUrl);
+              
+              window.location.href = redirectUrl;
             } else {
               setError("Login succeeded but session not established. Check debug panel for details.");
               setLoading(false);

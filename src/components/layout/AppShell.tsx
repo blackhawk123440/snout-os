@@ -9,10 +9,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { navigation, type NavItem } from '@/lib/navigation';
+import { useAuth } from '@/lib/auth-client';
 
 export type { NavItem } from '@/lib/navigation';
 
@@ -22,8 +24,39 @@ export interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const pathname = usePathname();
+  const router = useRouter();
   const isMobile = useMobile();
+  const { user, isOwner, isSitter } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Filter navigation by role
+  const filteredNavigation = navigation.filter((item) => {
+    // Sitters should not see owner-only pages
+    if (isSitter) {
+      // Sitters can see: Dashboard (redirected to inbox), Messages (redirected to sitter inbox)
+      // Hide: Bookings, Calendar, Clients, Sitters, Automations, Payments, Payroll, Settings
+      if (item.href === '/messages') {
+        return false; // Sitters use /sitter/inbox instead
+      }
+      if (['/bookings', '/calendar', '/clients', '/bookings/sitters', '/automation', '/payments', '/payroll', '/settings'].includes(item.href)) {
+        return false;
+      }
+    }
+    // Owners see all navigation items
+    return true;
+  });
+  
+  // Add sitter-specific navigation
+  const sitterNavItems: NavItem[] = isSitter ? [
+    { label: 'Inbox', href: '/sitter/inbox', icon: 'fas fa-inbox' },
+  ] : [];
+  
+  const displayNavigation = isSitter ? sitterNavItems : filteredNavigation;
+  
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push('/login');
+  };
 
   // Close sidebar on navigation
   useEffect(() => {
@@ -181,7 +214,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             padding: tokens.spacing[2],
           }}
         >
-          {navigation.map((item) => (
+          {displayNavigation.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -312,7 +345,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             <i className={`fas ${sidebarOpen ? 'fa-times' : 'fa-bars'}`} />
           </button>
           <div style={{ flex: 1 }} />
-          {/* User menu placeholder */}
+          {/* User menu with logout */}
           <div
             style={{
               display: 'flex',
@@ -320,7 +353,42 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
               gap: tokens.spacing[3],
             }}
           >
-            {/* User menu can go here */}
+            {user && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: tokens.spacing[2],
+                  padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+                  borderRadius: tokens.borderRadius.md,
+                  color: tokens.colors.text.secondary,
+                  fontSize: tokens.typography.fontSize.sm[0],
+                }}
+              >
+                <span>{user.email}</span>
+                <span style={{ color: tokens.colors.border.default }}>|</span>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: tokens.colors.text.secondary,
+                    cursor: 'pointer',
+                    fontSize: tokens.typography.fontSize.sm[0],
+                    padding: 0,
+                    textDecoration: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = tokens.colors.text.primary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = tokens.colors.text.secondary;
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </header>
 

@@ -33,10 +33,19 @@ export default function DashboardHomePage() {
   });
   const [loading, setLoading] = useState(true);
 
-  // Redirect to login if not authenticated
+  // Redirect based on authentication and role
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login?redirect=/');
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login?redirect=/');
+      } else {
+        // If user is a sitter, redirect to sitter inbox
+        const isSitter = (user as any).sitterId;
+        if (isSitter) {
+          router.push('/sitter/inbox');
+        }
+        // Owners stay on dashboard
+      }
     }
   }, [user, authLoading, router]);
 
