@@ -4,23 +4,26 @@ import { prisma } from "@/lib/db";
 export async function GET() {
   try {
     const sitters = await prisma.sitter.findMany({
-      include: {
-        currentTier: true,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        active: true,
+      },
+      where: {
+        active: true,
       },
       orderBy: {
         createdAt: "desc",
       },
     });
 
-    return NextResponse.json({ sitters: sitters || [] });
+    return NextResponse.json(sitters || []);
   } catch (error: unknown) {
     console.error("Failed to fetch sitters:", error);
     // Return empty array with proper error status
-    return NextResponse.json({ 
-      sitters: [],
-      error: "Failed to fetch sitters",
-      details: error instanceof Error ? error.message : "Unknown database error"
-    }, { status: 500 });
+    return NextResponse.json([], { status: 500 });
   }
 }
 

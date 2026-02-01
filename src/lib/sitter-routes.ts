@@ -45,6 +45,10 @@ export function isSitterRoute(pathname: string): boolean {
  * global automation settings, or other sitters data
  */
 export function isSitterRestrictedRoute(pathname: string): boolean {
+  // Owner-only operational pages
+  if (pathname.startsWith('/setup')) return true;
+  if (pathname.startsWith('/numbers')) return true;
+  if (pathname.startsWith('/assignments')) return true;
   // Payment admin routes
   if (pathname.startsWith("/api/payments")) {
     return true;
