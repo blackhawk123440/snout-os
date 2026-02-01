@@ -50,7 +50,6 @@ export async function POST(request: NextRequest) {
       await client.api.accounts(accountSid).fetch();
       
       // In production: Store encrypted credentials
-      // await prisma.organization.update({
       //   where: { id: orgId },
       //   data: {
       //     providerType: 'twilio',

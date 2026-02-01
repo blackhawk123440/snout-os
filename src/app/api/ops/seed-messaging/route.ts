@@ -46,21 +46,10 @@ export async function POST(request: NextRequest) {
 
     const orgId = await getOrgIdFromContext(currentUser.id);
 
-    // Get or create org
-    let org = await prisma.organization.findFirst({
-      where: { id: orgId },
-    });
-    if (!org) {
-      return NextResponse.json(
-        { error: "Organization not found" },
-        { status: 404 }
-      );
-    }
-
     // Get or create front desk number
     let frontDeskNumber = await prisma.messageNumber.findFirst({
       where: {
-        orgId: org.id,
+        orgId,
         numberClass: 'front_desk',
       },
     });
@@ -68,7 +57,7 @@ export async function POST(request: NextRequest) {
     if (!frontDeskNumber) {
       frontDeskNumber = await prisma.messageNumber.create({
         data: {
-          orgId: org.id,
+          orgId,
           numberClass: 'front_desk',
           e164: '+12562039373',
           provider: 'twilio',
@@ -81,12 +70,12 @@ export async function POST(request: NextRequest) {
     // Get or create clients
     const client1 = await prisma.client.upsert({
       where: {
-        id: `client-1-${org.id}`,
+        id: `client-1-${orgId}`,
       },
       update: {},
       create: {
-        id: `client-1-${org.id}`,
-        orgId: org.id,
+        id: `client-1-${orgId}`,
+        orgId,
         firstName: 'John',
         lastName: 'Smith',
         phone: '+15551234567',
@@ -95,12 +84,12 @@ export async function POST(request: NextRequest) {
 
     const client2 = await prisma.client.upsert({
       where: {
-        id: `client-2-${org.id}`,
+        id: `client-2-${orgId}`,
       },
       update: {},
       create: {
-        id: `client-2-${org.id}`,
-        orgId: org.id,
+        id: `client-2-${orgId}`,
+        orgId,
         firstName: 'Jane',
         lastName: 'Doe',
         phone: '+15559876543',
@@ -109,12 +98,12 @@ export async function POST(request: NextRequest) {
 
     // Get or create sitter
     let sitter = await prisma.sitter.findFirst({
-      where: { orgId: org.id },
+      where: { orgId },
     });
     if (!sitter) {
       sitter = await prisma.sitter.create({
         data: {
-          orgId: org.id,
+          orgId,
           firstName: 'Demo',
           lastName: 'Sitter',
           email: 'sitter@example.com',
@@ -125,12 +114,12 @@ export async function POST(request: NextRequest) {
 
     // Get or create booking
     let booking = await prisma.booking.findFirst({
-      where: { orgId: org.id, sitterId: sitter.id },
+      where: { orgId, sitterId: sitter.id },
     });
     if (!booking) {
       booking = await prisma.booking.create({
         data: {
-          orgId: org.id,
+          orgId,
           clientId: client1.id,
           sitterId: sitter.id,
           status: 'confirmed',
@@ -143,14 +132,14 @@ export async function POST(request: NextRequest) {
     // THREAD A: Failed delivery + unread + active window
     let threadA = await prisma.messageThread.findFirst({
       where: {
-        orgId: org.id,
+        orgId,
         clientId: client1.id,
       },
     });
     if (!threadA) {
       threadA = await prisma.messageThread.create({
         data: {
-          orgId: org.id,
+          orgId,
           clientId: client1.id,
           scope: 'client_general',
           messageNumberId: frontDeskNumber.id,
@@ -161,7 +150,7 @@ export async function POST(request: NextRequest) {
           assignedSitterId: sitter.id,
           participants: {
             create: {
-              orgId: org.id,
+              orgId,
               role: 'client',
               realE164: '+15551234567',
               displayName: 'John Smith',
@@ -187,7 +176,7 @@ export async function POST(request: NextRequest) {
     const windowEnd = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours from now
     let windowA = await prisma.assignmentWindow.findFirst({
       where: {
-        orgId: org.id,
+        orgId,
         threadId: threadA.id,
         sitterId: sitter.id,
       },
@@ -195,7 +184,7 @@ export async function POST(request: NextRequest) {
     if (!windowA) {
       windowA = await prisma.assignmentWindow.create({
         data: {
-          orgId: org.id,
+          orgId,
           threadId: threadA.id,
           bookingId: booking.id,
           sitterId: sitter.id,
@@ -223,7 +212,7 @@ export async function POST(request: NextRequest) {
       await prisma.messageEvent.createMany({
         data: [
           {
-            orgId: org.id,
+            orgId,
             threadId: threadA.id,
             direction: 'inbound',
             actorType: 'client',
@@ -234,7 +223,7 @@ export async function POST(request: NextRequest) {
             createdAt: new Date(Date.now() - 3600000),
           },
           {
-            orgId: org.id,
+            orgId,
             threadId: threadA.id,
             direction: 'outbound',
             actorType: 'owner',
@@ -245,7 +234,7 @@ export async function POST(request: NextRequest) {
           },
           // FAILED DELIVERY MESSAGE (Retry button will be visible)
           {
-            orgId: org.id,
+            orgId,
             threadId: threadA.id,
             direction: 'outbound',
             actorType: 'owner',
@@ -267,14 +256,14 @@ export async function POST(request: NextRequest) {
     // THREAD B: Policy violation + unread
     let threadB = await prisma.messageThread.findFirst({
       where: {
-        orgId: org.id,
+        orgId,
         clientId: client2.id,
       },
     });
     if (!threadB) {
       threadB = await prisma.messageThread.create({
         data: {
-          orgId: org.id,
+          orgId,
           clientId: client2.id,
           scope: 'client_general',
           messageNumberId: frontDeskNumber.id,
@@ -284,7 +273,7 @@ export async function POST(request: NextRequest) {
           lastMessageAt: new Date(),
           participants: {
             create: {
-              orgId: org.id,
+              orgId,
               role: 'client',
               realE164: '+15559876543',
               displayName: 'Jane Doe',
@@ -313,7 +302,7 @@ export async function POST(request: NextRequest) {
     if (!policyMessage) {
       policyMessage = await prisma.messageEvent.create({
         data: {
-          orgId: org.id,
+          orgId,
           threadId: threadB.id,
           direction: 'inbound',
           actorType: 'client',
@@ -333,7 +322,7 @@ export async function POST(request: NextRequest) {
       // Create AntiPoachingAttempt record (policy violation)
       await prisma.antiPoachingAttempt.create({
         data: {
-          orgId: org.id,
+          orgId,
           threadId: threadB.id,
           eventId: policyMessage.id,
           actorType: 'client',
