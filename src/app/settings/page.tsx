@@ -166,6 +166,7 @@ export default function SettingsPage() {
     { id: 'general', label: 'General', icon: <i className="fas fa-cog" /> },
     { id: 'integrations', label: 'Integrations', icon: <i className="fas fa-plug" /> },
     { id: 'automations', label: 'Automations', icon: <i className="fas fa-robot" /> },
+    { id: 'rotation', label: 'Rotation', icon: <i className="fas fa-sync-alt" /> },
     { id: 'advanced', label: 'Advanced', icon: <i className="fas fa-sliders-h" /> },
   ];
 
@@ -329,6 +330,17 @@ export default function SettingsPage() {
             </FormRow>
           </Card>
         );
+      case 'rotation':
+        return (
+          <Card>
+            <p style={{ marginBottom: tokens.spacing[4], color: tokens.colors.text.secondary }}>
+              Configure pool number rotation and lifecycle settings. 
+              <a href="/settings/rotation" style={{ marginLeft: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
+                Open full Rotation Settings page →
+              </a>
+            </p>
+          </Card>
+        );
       case 'advanced':
         return (
           <Card>
@@ -411,6 +423,9 @@ export default function SettingsPage() {
               </TabPanel>
               <TabPanel id="automations">
                 {renderTabContent('automations')}
+              </TabPanel>
+              <TabPanel id="rotation">
+                {renderTabContent('rotation')}
               </TabPanel>
               <TabPanel id="advanced">
                 {renderTabContent('advanced')}

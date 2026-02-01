@@ -31,6 +31,7 @@ import { routeToOwnerInbox } from "@/lib/messaging/owner-inbox-routing";
 import { checkAntiPoaching, blockAntiPoachingMessage } from "@/lib/messaging/anti-poaching-enforcement";
 import { resolveInboundSms } from "@/lib/messaging/routing-resolver";
 import { logMessagingEvent } from "@/lib/messaging/audit-trail";
+import { enforcePoolUnknownSenderRouting, logInvariantViolation } from "@/lib/messaging/invariants";
 
 // TwilioProvider will be instantiated per-request with orgId from number
 
@@ -198,6 +199,31 @@ export async function POST(request: NextRequest) {
     let shouldRouteToOwner = false;
     let autoResponseText: string | undefined;
 
+    // Get message number to check if it's a pool number
+    const messageNumber = await prisma.messageNumber.findFirst({
+      where: { e164: inboundMessage.to, orgId },
+      select: { id: true, numberClass: true },
+    });
+
+    // INVARIANT ENFORCEMENT: Pool inbound unknown sender → owner inbox + alert
+    if (messageNumber && messageNumber.numberClass === 'pool') {
+      const poolInvariant = await enforcePoolUnknownSenderRouting(
+        messageNumber.id,
+        inboundMessage.from,
+        orgId
+      );
+      
+      if (!poolInvariant.valid && poolInvariant.violation) {
+        await logInvariantViolation(poolInvariant.violation, orgId);
+        // Continue processing but log the violation
+      }
+      
+      // If routed to owner, ensure we route to owner inbox
+      if (poolInvariant.routedToOwner) {
+        shouldRouteToOwner = true;
+      }
+    }
+
     if (routingResult) {
       // Use resolver result
       thread = await prisma.messageThread.findUnique({
@@ -252,7 +278,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      shouldRouteToOwner = routingResult.deliverTo.owner;
+      shouldRouteToOwner = routingResult.deliverTo.owner || shouldRouteToOwner;
       autoResponseText = routingResult.autoResponse;
     } else {
       // Fallback to legacy logic

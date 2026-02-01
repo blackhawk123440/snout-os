@@ -20,6 +20,7 @@ import { hasActiveAssignmentWindow, getNextUpcomingWindow } from "@/lib/messagin
 import { getCurrentSitterId } from "@/lib/sitter-helpers";
 import { checkAntiPoaching, blockAntiPoachingMessage } from "@/lib/messaging/anti-poaching-enforcement";
 import { env } from "@/lib/env";
+import { checkOutboundInvariants, logInvariantViolation } from "@/lib/messaging/invariants";
 
 // TwilioProvider will be instantiated per-request with orgId
 
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
       where: { id: threadId },
       include: {
         participants: true,
+        messageNumber: true,
       },
     });
 
@@ -91,6 +93,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Unauthorized: Thread belongs to different organization" },
         { status: 403 }
+      );
+    }
+
+    // INVARIANT ENFORCEMENT: Thread-bound sending
+    
+    // Get the from number from thread's messageNumber
+    if (!thread.messageNumber) {
+      return NextResponse.json(
+        { error: "Thread has no assigned message number", errorCode: 'NO_THREAD_NUMBER' },
+        { status: 400 }
+      );
+    }
+
+    const fromNumberE164 = thread.messageNumber.e164;
+    
+    // Check all outbound invariants
+    const invariantCheck = await checkOutboundInvariants(threadId, orgId, fromNumberE164);
+    if (!invariantCheck.valid) {
+      // Log violations
+      for (const violation of invariantCheck.violations) {
+        await logInvariantViolation(violation, orgId);
+      }
+      return NextResponse.json(
+        { 
+          error: "Invariant violation detected", 
+          errorCode: 'INVARIANT_VIOLATION',
+          violations: invariantCheck.violations.map(v => v.violation),
+        },
+        { status: 500 }
       );
     }
 
@@ -364,10 +395,13 @@ export async function POST(request: NextRequest) {
       // No session - direct send is OK (backward compatibility)
       const toNumber = clientParticipant.realE164;
 
+      // INVARIANT: from_number must equal thread.messageNumber.e164
+      // Pass the thread's messageNumber SID or E164 to ensure correct from number
       sendResult = await twilioProvider.sendMessage({
         to: toNumber,
         body: text,
         mediaUrls: media && Array.isArray(media) ? media : undefined,
+        fromNumberSid: thread.messageNumber.providerNumberSid || undefined,
       });
 
       if (!sendResult.success) {
