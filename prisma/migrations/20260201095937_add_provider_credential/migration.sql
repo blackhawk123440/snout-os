@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "ProviderCredential" (
+CREATE TABLE IF NOT EXISTS "ProviderCredential" (
     "id" TEXT NOT NULL,
     "orgId" TEXT NOT NULL,
     "providerType" TEXT NOT NULL DEFAULT 'twilio',
@@ -11,7 +11,7 @@ CREATE TABLE "ProviderCredential" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ProviderCredential_orgId_key" ON "ProviderCredential"("orgId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ProviderCredential_orgId_key" ON "ProviderCredential"("orgId");
 
 -- CreateIndex
-CREATE INDEX "ProviderCredential_orgId_idx" ON "ProviderCredential"("orgId");
+CREATE INDEX IF NOT EXISTS "ProviderCredential_orgId_idx" ON "ProviderCredential"("orgId");
