@@ -42,14 +42,9 @@ export async function GET(request: NextRequest) {
       },
       include: {
         thread: {
-          include: {
-            client: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
+          select: {
+            id: true,
+            clientId: true,
           },
         },
         sitter: {
@@ -65,6 +60,18 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Fetch client data separately
+    const clientIds = windows.map(w => w.thread.clientId).filter((id): id is string => !!id);
+    const clients = clientIds.length > 0 ? await prisma.client.findMany({
+      where: { id: { in: clientIds } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+      },
+    }) : [];
+    const clientMap = new Map(clients.map(c => [c.id, c]));
+
     // Find overlapping windows for the same thread
     const conflicts = [];
     for (let i = 0; i < windows.length; i++) {
@@ -78,6 +85,8 @@ export async function GET(request: NextRequest) {
           const overlapEnd = w1.endAt < w2.endAt ? w1.endAt : w2.endAt;
 
           if (overlapStart < overlapEnd) {
+            const client = w1.thread.clientId ? clientMap.get(w1.thread.clientId) : null;
+
             conflicts.push({
               conflictId: `${w1.id}-${w2.id}`,
               windowA: {
@@ -105,8 +114,8 @@ export async function GET(request: NextRequest) {
               thread: {
                 id: w1.thread.id,
                 client: {
-                  id: w1.thread.client.id,
-                  name: `${w1.thread.client.firstName} ${w1.thread.client.lastName}`,
+                  id: client?.id || 'unknown',
+                  name: client ? `${client.firstName} ${client.lastName}` : 'Unknown Client',
                 },
               },
               overlapStart: overlapStart.toISOString(),

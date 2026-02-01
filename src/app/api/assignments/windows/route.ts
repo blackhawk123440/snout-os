@@ -58,14 +58,9 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         thread: {
-          include: {
-            client: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
+          select: {
+            id: true,
+            clientId: true,
           },
         },
         sitter: {
@@ -81,6 +76,18 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Fetch client data separately
+    const clientIds = windows.map(w => w.thread.clientId).filter((id): id is string => !!id);
+    const clients = clientIds.length > 0 ? await prisma.client.findMany({
+      where: { id: { in: clientIds } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+      },
+    }) : [];
+    const clientMap = new Map(clients.map(c => [c.id, c]));
+
     return NextResponse.json(windows.map(w => {
       const now = new Date();
       let status: 'active' | 'future' | 'past' = 'past';
@@ -89,6 +96,8 @@ export async function GET(request: NextRequest) {
       } else if (w.startAt > now) {
         status = 'future';
       }
+
+      const client = w.thread.clientId ? clientMap.get(w.thread.clientId) : null;
 
       return {
         id: w.id,
@@ -101,8 +110,8 @@ export async function GET(request: NextRequest) {
         thread: {
           id: w.thread.id,
           client: {
-            id: w.thread.client.id,
-            name: `${w.thread.client.firstName} ${w.thread.client.lastName}`,
+            id: client?.id || 'unknown',
+            name: client ? `${client.firstName} ${client.lastName}` : 'Unknown Client',
           },
         },
         sitter: {
@@ -182,14 +191,9 @@ export async function POST(request: NextRequest) {
       },
       include: {
         thread: {
-          include: {
-            client: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-              },
-            },
+          select: {
+            id: true,
+            clientId: true,
           },
         },
         sitter: {
@@ -201,6 +205,16 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Fetch client data
+    const client = window.thread.clientId ? await prisma.client.findUnique({
+      where: { id: window.thread.clientId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+      },
+    }) : null;
 
     const now = new Date();
     let status: 'active' | 'future' | 'past' = 'past';
@@ -221,8 +235,8 @@ export async function POST(request: NextRequest) {
       thread: {
         id: window.thread.id,
         client: {
-          id: window.thread.client.id,
-          name: `${window.thread.client.firstName} ${window.thread.client.lastName}`,
+          id: client?.id || 'unknown',
+          name: client ? `${client.firstName} ${client.lastName}` : 'Unknown Client',
         },
       },
       sitter: {
