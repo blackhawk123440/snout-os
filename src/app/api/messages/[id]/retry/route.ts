@@ -103,10 +103,11 @@ export async function POST(
     // Send message via provider
     let sendResult;
     try {
-      if (messageEvent.thread.messageNumber?.providerNumberSid) {
+      if (messageEvent.thread.messageNumber?.e164) {
+        // Use e164 as fromNumberSid (TwilioProvider will handle it)
         sendResult = await twilioProvider.sendMessage({
           to: clientParticipant.realE164 || clientParticipant.displayName,
-          from: messageEvent.thread.messageNumber.e164,
+          fromNumberSid: messageEvent.thread.messageNumber.e164,
           body: messageEvent.body,
         });
       } else {
