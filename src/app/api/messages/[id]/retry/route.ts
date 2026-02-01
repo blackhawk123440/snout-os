@@ -43,14 +43,16 @@ export async function POST(
       where: { id: messageId },
       include: {
         thread: {
-          select: { id: true, orgId: true, messageNumberId: true },
           include: {
             participants: {
               where: { role: 'client' },
               take: 1,
             },
             messageNumber: {
-              select: { e164: true, providerNumberSid: true },
+              select: {
+                e164: true,
+                providerNumberSid: true,
+              },
             },
           },
         },
