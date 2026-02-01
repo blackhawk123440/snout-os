@@ -151,7 +151,20 @@ async function main() {
     console.log('\n🧹 Cleaning up...');
     try {
       execSync('pkill -f "next dev" || true', { stdio: 'ignore' });
-      execSync('docker-compose down', { stdio: 'ignore' });
+      const dockerComposePath = join(process.cwd(), 'docker-compose.yml');
+      const enterpriseDockerComposePath = join(process.cwd(), 'enterprise-messaging-dashboard', 'docker-compose.yml');
+      if (existsSync(dockerComposePath) || existsSync(enterpriseDockerComposePath)) {
+        const composeFile = existsSync(dockerComposePath) 
+          ? dockerComposePath 
+          : enterpriseDockerComposePath;
+        const composeDir = existsSync(dockerComposePath) 
+          ? process.cwd() 
+          : join(process.cwd(), 'enterprise-messaging-dashboard');
+        execSync(`docker-compose -f ${composeFile} down`, { 
+          stdio: 'ignore',
+          cwd: composeDir,
+        });
+      }
     } catch (error) {
       // Ignore cleanup errors
     }
