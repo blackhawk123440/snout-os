@@ -139,24 +139,48 @@ describe('Messaging Invariants - Property-Based Tests', () => {
       /\d{10,15}/g, // Raw digits (10-15 digits)
     ];
 
-    it('should never expose real E164 numbers in sitter API responses', async () => {
+    // Email pattern (also sensitive)
+    const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+
+    it('should never expose real E164 numbers in sitter API responses (including nested metadata)', async () => {
       await fc.assert(
         fc.asyncProperty(e164Arb, async (e164) => {
-          // Simulate sitter API/service output
+          // Simulate sitter API/service output with nested metadata
           const mockApiResponse = {
             thread: {
               id: 'thread-123',
               clientPhone: e164, // This would leak!
               maskedNumber: '+1***1234',
+              metadata: {
+                routing: {
+                  trace: [
+                    { step: 'check', number: e164 }, // Nested leak!
+                  ],
+                },
+                audit: {
+                  events: [
+                    { type: 'send', fromNumber: e164 }, // Nested leak!
+                  ],
+                },
+              },
             },
             messages: [
-              { from: e164, body: 'Hello' }, // This would leak!
+              { 
+                from: e164, 
+                body: 'Hello',
+                delivery: {
+                  provider: {
+                    error: `Failed to send to ${e164}`, // Nested leak!
+                  },
+                },
+              },
             ],
           };
 
+          // Stringify entire response (including nested objects)
           const responseJson = JSON.stringify(mockApiResponse);
           
-          // Scan for E164 patterns
+          // Scan for E164 patterns in entire stringified response
           const e164Matches = responseJson.match(E164_PATTERN);
           const hasLeakedE164 = e164Matches && e164Matches.some(match => match === e164);
           
@@ -172,7 +196,46 @@ describe('Messaging Invariants - Property-Based Tests', () => {
 
           // Test should FAIL if E164 is found (leakage detected)
           if (hasLeakedE164 || hasPhonePattern) {
-            throw new Error(`E164 leakage detected: ${e164} found in API response`);
+            throw new Error(`E164 leakage detected in nested metadata: ${e164} found in API response`);
+          }
+        }),
+        { numRuns: 50 }
+      );
+    });
+
+    it('should never expose emails in sitter API responses (including audit details)', async () => {
+      await fc.assert(
+        fc.asyncProperty(fc.emailAddress(), async (email) => {
+          // Simulate sitter API response with email in audit details
+          const mockApiResponse = {
+            thread: {
+              id: 'thread-123',
+              clientEmail: email, // This would leak!
+            },
+            audit: {
+              events: [
+                {
+                  type: 'policy_violation',
+                  details: {
+                    clientContact: email, // Nested leak!
+                    metadata: {
+                      originalMessage: `Contact ${email} for details`, // Nested leak!
+                    },
+                  },
+                },
+              ],
+            },
+          };
+
+          const responseJson = JSON.stringify(mockApiResponse);
+          
+          // Scan for email patterns
+          const emailMatches = responseJson.match(EMAIL_PATTERN);
+          const hasLeakedEmail = emailMatches && emailMatches.some(match => match === email);
+
+          // Test should FAIL if email is found (leakage detected)
+          if (hasLeakedEmail) {
+            throw new Error(`Email leakage detected in audit details: ${email} found in API response`);
           }
         }),
         { numRuns: 50 }

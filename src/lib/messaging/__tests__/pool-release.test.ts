@@ -1,0 +1,180 @@
+/**
+ * Pool Release Job Tests
+ * 
+ * Verifies pool number release behavior based on rotation settings.
+ */
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { prisma } from '@/lib/db';
+import { releasePoolNumbers } from '../pool-release-job';
+
+describe('Pool Release Job', () => {
+  const orgId = 'test-org-release';
+
+  beforeEach(async () => {
+    // Clean up test data
+    await prisma.messageThread.deleteMany({ where: { orgId } });
+    await prisma.messageNumber.deleteMany({ where: { orgId } });
+    await prisma.setting.deleteMany({ where: { key: { startsWith: 'rotation.' } } });
+  });
+
+  it('should release pool numbers after postBookingGraceHours', async () => {
+    // Set short grace period for testing (1 hour)
+    await prisma.setting.upsert({
+      where: { key: 'rotation.postBookingGraceHours' },
+      update: { value: '1' },
+      create: {
+        key: 'rotation.postBookingGraceHours',
+        value: '1',
+        category: 'rotation',
+        label: 'postBookingGraceHours',
+      },
+    });
+
+    // Create pool number
+    const poolNumber = await prisma.messageNumber.create({
+      data: {
+        orgId,
+        e164: '+15550000001',
+        numberClass: 'pool',
+        status: 'active',
+        provider: 'twilio',
+      },
+    });
+
+    // Create thread with assignment window that ended 2 hours ago
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const thread = await prisma.messageThread.create({
+      data: {
+        orgId,
+        messageNumberId: poolNumber.id,
+        numberClass: 'pool',
+        status: 'open',
+      },
+    });
+
+    await prisma.assignmentWindow.create({
+      data: {
+        orgId,
+        threadId: thread.id,
+        sitterId: 'test-sitter',
+        startsAt: new Date(twoHoursAgo.getTime() - 2 * 60 * 60 * 1000),
+        endsAt: twoHoursAgo,
+        status: 'active',
+      },
+    });
+
+    // Run release job
+    const stats = await releasePoolNumbers(orgId);
+
+    expect(stats.releasedByGracePeriod).toBeGreaterThan(0);
+    expect(stats.totalReleased).toBeGreaterThan(0);
+
+    // Verify thread no longer has pool number
+    const updatedThread = await prisma.messageThread.findUnique({
+      where: { id: thread.id },
+    });
+
+    expect(updatedThread?.messageNumberId).toBeNull();
+  });
+
+  it('should release pool numbers after inactivityReleaseDays', async () => {
+    // Set short inactivity period for testing (1 day)
+    await prisma.setting.upsert({
+      where: { key: 'rotation.inactivityReleaseDays' },
+      update: { value: '1' },
+      create: {
+        key: 'rotation.inactivityReleaseDays',
+        value: '1',
+        category: 'rotation',
+        label: 'inactivityReleaseDays',
+      },
+    });
+
+    // Create pool number
+    const poolNumber = await prisma.messageNumber.create({
+      data: {
+        orgId,
+        e164: '+15550000001',
+        numberClass: 'pool',
+        status: 'active',
+        provider: 'twilio',
+      },
+    });
+
+    // Create thread with last message 2 days ago
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const thread = await prisma.messageThread.create({
+      data: {
+        orgId,
+        messageNumberId: poolNumber.id,
+        numberClass: 'pool',
+        status: 'open',
+        lastMessageAt: twoDaysAgo,
+      },
+    });
+
+    // Run release job
+    const stats = await releasePoolNumbers(orgId);
+
+    expect(stats.releasedByInactivity).toBeGreaterThan(0);
+    expect(stats.totalReleased).toBeGreaterThan(0);
+
+    // Verify thread no longer has pool number
+    const updatedThread = await prisma.messageThread.findUnique({
+      where: { id: thread.id },
+    });
+
+    expect(updatedThread?.messageNumberId).toBeNull();
+  });
+
+  it('should release pool numbers after maxPoolThreadLifetimeDays', async () => {
+    // Set short max lifetime for testing (1 day)
+    await prisma.setting.upsert({
+      where: { key: 'rotation.maxPoolThreadLifetimeDays' },
+      update: { value: '1' },
+      create: {
+        key: 'rotation.maxPoolThreadLifetimeDays',
+        value: '1',
+        category: 'rotation',
+        label: 'maxPoolThreadLifetimeDays',
+      },
+    });
+
+    // Create pool number
+    const poolNumber = await prisma.messageNumber.create({
+      data: {
+        orgId,
+        e164: '+15550000001',
+        numberClass: 'pool',
+        status: 'active',
+        provider: 'twilio',
+      },
+    });
+
+    // Create thread created 2 days ago
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const thread = await prisma.messageThread.create({
+      data: {
+        orgId,
+        messageNumberId: poolNumber.id,
+        numberClass: 'pool',
+        status: 'open',
+        createdAt: twoDaysAgo,
+      },
+    });
+
+    // Run release job
+    const stats = await releasePoolNumbers(orgId);
+
+    expect(stats.releasedByMaxLifetime).toBeGreaterThan(0);
+    expect(stats.totalReleased).toBeGreaterThan(0);
+
+    // Verify thread no longer has pool number
+    const updatedThread = await prisma.messageThread.findUnique({
+      where: { id: thread.id },
+    });
+
+    expect(updatedThread?.messageNumberId).toBeNull();
+  });
+});

@@ -224,7 +224,42 @@ export async function getPoolNumber(
     return null;
   }
 
-  // Apply selection strategy
+  // ENFORCE maxConcurrentThreadsPerPoolNumber: Check capacity for each pool number
+  const maxConcurrent = parseInt(settings.maxConcurrentThreadsPerPoolNumber || '1', 10) || 1;
+  
+  // Get thread counts for each pool number
+  const numberIds = poolNumbers.map(n => n.id);
+  const threadCounts = await prisma.messageThread.groupBy({
+    by: ['messageNumberId'],
+    where: {
+      orgId,
+      messageNumberId: { in: numberIds },
+      status: { not: 'archived' },
+    },
+    _count: {
+      id: true,
+    },
+  });
+
+  const countMap = new Map<string, number>();
+  for (const tc of threadCounts) {
+    if (tc.messageNumberId) {
+      countMap.set(tc.messageNumberId, tc._count.id);
+    }
+  }
+
+  // Filter out numbers at capacity (deterministic: always skip at-capacity numbers)
+  const availableNumbers = poolNumbers.filter(num => {
+    const currentCount = countMap.get(num.id) || 0;
+    return currentCount < maxConcurrent;
+  });
+
+  if (availableNumbers.length === 0) {
+    // All pool numbers are at capacity
+    return null;
+  }
+
+  // Apply selection strategy to available (non-at-capacity) numbers only
   let selected: typeof poolNumbers[0];
 
   if (strategy === 'HASH_SHUFFLE') {
@@ -242,20 +277,20 @@ export async function getPoolNumber(
       hash = hash & hash; // Convert to 32-bit integer
     }
     
-    // Use hash to select from available pool numbers
-    const index = Math.abs(hash) % poolNumbers.length;
-    selected = poolNumbers[index];
+    // Use hash to select from available (non-at-capacity) pool numbers
+    const index = Math.abs(hash) % availableNumbers.length;
+    selected = availableNumbers[index];
   } else if (strategy === 'FIFO') {
-    // First In First Out - oldest first
-    poolNumbers.sort((a, b) => {
+    // First In First Out - oldest first (from available numbers only)
+    availableNumbers.sort((a, b) => {
       const aTime = a.createdAt?.getTime() || 0;
       const bTime = b.createdAt?.getTime() || 0;
       return aTime - bTime;
     });
-    selected = poolNumbers[0];
+    selected = availableNumbers[0];
   } else {
-    // LRU: Least Recently Used (default)
-    poolNumbers.sort((a, b) => {
+    // LRU: Least Recently Used (default) - from available numbers only
+    availableNumbers.sort((a, b) => {
       const aTime = a.lastAssignedAt?.getTime() || 0;
       const bTime = b.lastAssignedAt?.getTime() || 0;
       if (aTime !== bTime) {
@@ -266,7 +301,7 @@ export async function getPoolNumber(
       const bCreated = b.createdAt?.getTime() || 0;
       return aCreated - bCreated;
     });
-    selected = poolNumbers[0];
+    selected = availableNumbers[0];
   }
 
   // Update lastAssignedAt for rotation tracking
@@ -274,6 +309,25 @@ export async function getPoolNumber(
     where: { id: selected.id },
     data: {
       lastAssignedAt: new Date(),
+    },
+  });
+
+  // Log audit event for pool assignment
+  const { logMessagingEvent } = await import('./audit-trail');
+  await logMessagingEvent(orgId, 'pool.number.assigned', {
+    numberId: selected.id,
+    e164: selected.e164,
+    strategy,
+    capacityCheck: {
+      maxConcurrent,
+      currentCount: countMap.get(selected.id) || 0,
+      availableCount: availableNumbers.length,
+      totalPoolCount: poolNumbers.length,
+    },
+    context: {
+      clientId: context?.clientId,
+      threadId: context?.threadId,
+      stickyReuseKey,
     },
   });
 

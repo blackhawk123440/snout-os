@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserSafe } from "@/lib/auth-helpers";
+import { getCurrentSitterId } from "@/lib/sitter-helpers";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 
@@ -98,9 +99,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // HARD BLOCK: Require owner auth
-    // TODO: Add proper role check - for now, any authenticated user can view
-    // In production, this should check for owner role explicitly
+    // HARD BLOCK: Require owner auth (non-sitter = owner)
+    const sitterId = await getCurrentSitterId(request);
+    if (sitterId) {
+      return NextResponse.json(
+        { error: "Access denied: Chaos mode is owner-only" },
+        { status: 403 }
+      );
+    }
     
     // HARD BLOCK: Never allow in production
     if (env.NODE_ENV === 'production') {
@@ -136,9 +142,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // HARD BLOCK: Require owner auth
-    // TODO: Add proper role check - for now, any authenticated user can modify
-    // In production, this should check for owner role explicitly
+    // HARD BLOCK: Require owner auth (non-sitter = owner)
+    const sitterId = await getCurrentSitterId(request);
+    if (sitterId) {
+      return NextResponse.json(
+        { error: "Access denied: Chaos mode is owner-only" },
+        { status: 403 }
+      );
+    }
     
     // HARD BLOCK: Never allow in production
     if (env.NODE_ENV === 'production') {
