@@ -159,7 +159,7 @@ async function main() {
         const composeDir = existsSync(dockerComposePath) 
           ? process.cwd() 
           : join(process.cwd(), 'enterprise-messaging-dashboard');
-        execSync(`docker-compose -f ${composeFile} down`, { 
+        execSync('docker compose down', { 
           stdio: 'ignore',
           cwd: composeDir,
         });
