@@ -54,6 +54,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   const [composeMessage, setComposeMessage] = useState('');
   const [showPolicyOverride, setShowPolicyOverride] = useState<string | null>(null);
   const [overrideReason, setOverrideReason] = useState('');
+  const [showPoolExhaustedConfirm, setShowPoolExhaustedConfirm] = useState(false);
 
   // Apply filters to API call - explicitly pass each filter
   const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useThreads({
@@ -119,7 +120,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
     );
   });
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (confirmPoolFallback = false) => {
     if (!selectedThreadId || !composeMessage.trim()) return;
 
     try {
@@ -127,13 +128,18 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
         threadId: selectedThreadId,
         body: composeMessage,
         forceSend: false,
+        confirmPoolFallback,
       });
       setComposeMessage('');
+      setShowPoolExhaustedConfirm(false);
     } catch (error: any) {
-      if (error.message?.includes('Policy violation')) {
+      const errorData = error.response?.data || {};
+      if (errorData.errorCode === 'POOL_EXHAUSTED') {
+        setShowPoolExhaustedConfirm(true);
+      } else if (error.message?.includes('Policy violation')) {
         setShowPolicyOverride(selectedThreadId);
       } else {
-        alert(`Failed to send: ${error.message}`);
+        alert(`Failed to send: ${error.message || errorData.userMessage || 'Unknown error'}`);
       }
     }
   };
@@ -697,6 +703,59 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
               ) : (
                 <div style={{ color: tokens.colors.text.secondary }}>No routing history available</div>
               )}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Pool Exhausted Confirmation Dialog */}
+      {showPoolExhaustedConfirm && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 50,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: tokens.spacing[4],
+          }}
+          onClick={() => {
+            setShowPoolExhaustedConfirm(false);
+          }}
+        >
+          <Card
+            style={{
+              maxWidth: '28rem',
+              backgroundColor: 'white',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: tokens.spacing[6] }}>
+              <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[4] }}>
+                Pool Exhausted
+              </h3>
+              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[4] }}>
+                All pool numbers are at capacity. Your reply will send from the Front Desk number instead of a pool number.
+              </p>
+              <div style={{ display: 'flex', gap: tokens.spacing[2], justifyContent: 'flex-end' }}>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowPoolExhaustedConfirm(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => handleSendMessage(true)}
+                  disabled={sendMessage.isPending}
+                >
+                  Send from Front Desk
+                </Button>
+              </div>
             </div>
           </Card>
         </div>

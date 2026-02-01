@@ -258,6 +258,26 @@ export default function NumbersPage() {
         }
       />
       <div style={{ padding: tokens.spacing[6] }}>
+        {/* Pool Exhausted Banner */}
+        {(() => {
+          const poolExhausted = numbers.some(n => n.class === 'pool' && (n as any).capacityStatus === 'At Capacity');
+          if (poolExhausted) {
+            return (
+              <Card style={{ marginBottom: tokens.spacing[4], backgroundColor: tokens.colors.error.light, border: `2px solid ${tokens.colors.error.DEFAULT}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                  <span style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.error.DEFAULT }}>
+                    ⚠️ Pool Exhausted
+                  </span>
+                  <span style={{ color: tokens.colors.text.primary }}>
+                    One or more pool numbers are at capacity. Inbound messages will be routed to owner inbox. Consider adding more pool numbers or adjusting capacity settings.
+                  </span>
+                </div>
+              </Card>
+            );
+          }
+          return null;
+        })()}
+
         {/* Summary Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4], marginBottom: tokens.spacing[6] }}>
           <Card>

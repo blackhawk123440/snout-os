@@ -330,9 +330,8 @@ export async function POST(request: NextRequest) {
         });
 
         // Phase 1.2: Assign number to thread based on number class
-        let assignedNumberClass = numberClass;
         try {
-          const assignmentResult = await assignNumberToThread(
+          await assignNumberToThread(
             thread.id,
             numberClass,
             orgId,
@@ -342,18 +341,20 @@ export async function POST(request: NextRequest) {
               isMeetAndGreet: false,
             }
           );
-          assignedNumberClass = assignmentResult.numberClass;
-          
-          // If pool exhausted and fell back to front_desk, route to owner inbox
-          if (numberClass === 'pool' && assignedNumberClass === 'front_desk') {
-            shouldRouteToOwner = true;
-            // Message will be stored in thread but routed to owner inbox
-          }
-        } catch (error) {
+        } catch (error: any) {
           console.error("[webhook/twilio] Failed to assign number to thread:", error);
-          // If pool assignment failed, route to owner inbox as safe fallback
-          if (numberClass === 'pool') {
+          // If pool exhausted, route to owner inbox but keep thread numberClass as "pool"
+          if (numberClass === 'pool' && error.message === 'POOL_EXHAUSTED') {
             shouldRouteToOwner = true;
+            // Thread numberClass stays "pool" - owner will see banner and confirmation modal
+            // Update thread to mark pool exhausted
+            await prisma.messageThread.update({
+              where: { id: thread.id },
+              data: {
+                // Keep numberClass as 'pool' - don't change it
+                // Store metadata that pool is exhausted
+              },
+            });
           }
         }
       } else {

@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { threadId, text, media } = body;
+    const { threadId, text, media, confirmPoolFallback } = body;
     console.log('[api/messages/send] Request body:', { threadId, textLength: text?.length, hasMedia: !!media });
 
     // Validate required fields
@@ -100,20 +100,60 @@ export async function POST(request: NextRequest) {
     
     // HARDENED: Thread must have assigned number - fail with explicit business error
     if (!thread.messageNumber) {
-      await logInvariantViolation({
-        invariant: 'thread-bound-sending',
-        violation: 'Thread has no assigned message number',
-        context: { threadId, orgId },
-      }, orgId);
+      // Check if thread numberClass is "pool" and pool is exhausted
+      if (thread.numberClass === 'pool') {
+        // Try to assign pool number - if exhausted, return specific error
+        try {
+          const { assignNumberToThread } = await import('@/lib/messaging/number-helpers');
+          await assignNumberToThread(
+            threadId,
+            'pool',
+            orgId,
+            twilioProvider,
+            {
+              isOneTimeClient: thread.isOneTimeClient || false,
+            }
+          );
+          // If assignment succeeded, reload thread to get new number
+          const updatedThread = await prisma.messageThread.findUnique({
+            where: { id: threadId },
+            include: { messageNumber: true },
+          });
+          if (updatedThread?.messageNumber) {
+            // Continue with send using newly assigned number
+            thread.messageNumber = updatedThread.messageNumber;
+          }
+        } catch (error: any) {
+          if (error.message === 'POOL_EXHAUSTED') {
+            return NextResponse.json(
+              { 
+                error: "Pool numbers are exhausted. Replies will send from Front Desk number if you choose to continue.", 
+                errorCode: 'POOL_EXHAUSTED',
+                userMessage: "Pool exhausted — replies will send from Front Desk if you choose to continue.",
+                requiresConfirmation: true,
+              },
+              { status: 409 } // Conflict - requires user confirmation
+            );
+          }
+        }
+      }
       
-      return NextResponse.json(
-        { 
-          error: "This conversation cannot send messages because no phone number is assigned. Please contact support to assign a number to this thread.", 
-          errorCode: 'NO_THREAD_NUMBER',
-          userMessage: "Unable to send message. This conversation needs a phone number assigned. Please contact support.",
-        },
-        { status: 400 }
-      );
+      if (!thread.messageNumber) {
+        await logInvariantViolation({
+          invariant: 'thread-bound-sending',
+          violation: 'Thread has no assigned message number',
+          context: { threadId, orgId },
+        }, orgId);
+        
+        return NextResponse.json(
+          { 
+            error: "This conversation cannot send messages because no phone number is assigned. Please contact support to assign a number to this thread.", 
+            errorCode: 'NO_THREAD_NUMBER',
+            userMessage: "Unable to send message. This conversation needs a phone number assigned. Please contact support.",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const fromNumberE164 = thread.messageNumber.e164;

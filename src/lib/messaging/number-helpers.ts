@@ -453,28 +453,9 @@ export async function assignNumberToThread(
         threadId: threadId,
       });
       if (!poolNumber) {
-        // Pool exhausted - fallback to front desk and route to owner inbox
-        // This is a safe fallback that ensures messages are never lost
-        console.warn(`[assignNumberToThread] Pool exhausted for thread ${threadId}, falling back to front desk`);
-        
-        const frontDesk = await getOrCreateFrontDeskNumber(orgId, provider);
-        numberId = frontDesk.numberId;
-        e164 = frontDesk.e164;
-        
-        // Log that we fell back due to pool exhaustion
-        const { logMessagingEvent } = await import('./audit-trail');
-        await logMessagingEvent(orgId, 'pool.exhausted.fallback', {
-          threadId,
-          fallbackTo: 'front_desk',
-          reason: 'Pool numbers exhausted',
-        });
-        
-        // Return front desk number (not pool)
-        return {
-          numberId,
-          e164,
-          numberClass: 'front_desk', // Changed from 'pool' to 'front_desk'
-        };
+        // Pool exhausted - DO NOT silently fallback
+        // Thread numberClass stays "pool" - owner must explicitly confirm fallback
+        throw new Error('POOL_EXHAUSTED');
       }
       numberId = poolNumber.numberId;
       e164 = poolNumber.e164;
