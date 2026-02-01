@@ -6,7 +6,8 @@ import { defineConfig, devices } from '@playwright/test';
  */
 
 export default defineConfig({
-  testDir: './tests/visual',
+  testDir: './tests',
+  testMatch: /.*\.spec\.ts/,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -43,7 +44,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run start',
+    command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
@@ -53,6 +54,9 @@ export default defineConfig({
       OPENPHONE_NUMBER_ID: process.env.OPENPHONE_NUMBER_ID || 'test_number_id',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test_secret',
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+      ENABLE_OPS_SEED: 'true',
+      ENABLE_MESSAGING_V1: 'true',
+      NEXT_PUBLIC_ENABLE_MESSAGING_V1: 'true',
     },
   },
 });
