@@ -177,7 +177,7 @@ export function useSendMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (params: { threadId: string; body: string; forceSend?: boolean }) =>
+    mutationFn: (params: { threadId: string; body: string; forceSend?: boolean; confirmPoolFallback?: boolean }) =>
       apiPost<{ messageId: string; providerMessageSid?: string; hasPolicyViolation: boolean }>(
         '/api/messages/send',
         params,
