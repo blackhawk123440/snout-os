@@ -75,7 +75,6 @@ export async function POST(request: NextRequest) {
       update: {},
       create: {
         id: `client-1-${orgId}`,
-        orgId,
         firstName: 'John',
         lastName: 'Smith',
         phone: '+15551234567',
@@ -89,7 +88,6 @@ export async function POST(request: NextRequest) {
       update: {},
       create: {
         id: `client-2-${orgId}`,
-        orgId,
         firstName: 'Jane',
         lastName: 'Doe',
         phone: '+15559876543',
@@ -98,12 +96,11 @@ export async function POST(request: NextRequest) {
 
     // Get or create sitter
     let sitter = await prisma.sitter.findFirst({
-      where: { orgId },
+      where: {},
     });
     if (!sitter) {
       sitter = await prisma.sitter.create({
         data: {
-          orgId,
           firstName: 'Demo',
           lastName: 'Sitter',
           email: 'sitter@example.com',
@@ -114,17 +111,19 @@ export async function POST(request: NextRequest) {
 
     // Get or create booking
     let booking = await prisma.booking.findFirst({
-      where: { orgId, sitterId: sitter.id },
+      where: { sitterId: sitter.id },
     });
     if (!booking) {
       booking = await prisma.booking.create({
         data: {
-          orgId,
-          clientId: client1.id,
-          sitterId: sitter.id,
+          firstName: client1.firstName,
+          lastName: client1.lastName,
+          phone: client1.phone,
+          service: 'Pet Sitting',
+          startAt: new Date(),
+          endAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          totalPrice: 100.0,
           status: 'confirmed',
-          startDate: new Date(),
-          endDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
         },
       });
     }

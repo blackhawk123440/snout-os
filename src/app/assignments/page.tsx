@@ -129,24 +129,24 @@ export default function AssignmentsPage() {
   };
 
   const windowColumns: TableColumn<AssignmentWindow>[] = [
-    { key: 'thread', label: 'Client', render: (w) => w.thread.client.name },
-    { key: 'sitter', label: 'Sitter', render: (w) => w.sitter.name },
-    { key: 'startsAt', label: 'Start', render: (w) => new Date(w.startsAt).toLocaleString() },
-    { key: 'endsAt', label: 'End', render: (w) => new Date(w.endsAt).toLocaleString() },
-    { key: 'status', label: 'Status', render: (w) => (
-      <Badge variant={w.status === 'active' ? 'success' : w.status === 'future' ? 'info' : 'secondary'}>
+    { key: 'thread', header: 'Client', render: (w) => w.thread.client.name },
+    { key: 'sitter', header: 'Sitter', render: (w) => w.sitter.name },
+    { key: 'startsAt', header: 'Start', render: (w) => new Date(w.startsAt).toLocaleString() },
+    { key: 'endsAt', header: 'End', render: (w) => new Date(w.endsAt).toLocaleString() },
+    { key: 'status', header: 'Status', render: (w) => (
+      <Badge variant={w.status === 'active' ? 'success' : w.status === 'future' ? 'info' : 'default'}>
         {w.status}
       </Badge>
     )},
     {
       key: 'actions',
-      label: 'Actions',
+      header: 'Actions',
       render: (w) => (
         <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
           <Button size="sm" variant="secondary" onClick={() => openEditModal(w)}>
             Edit
           </Button>
-          <Button size="sm" variant="error" onClick={() => openDeleteModal(w)}>
+          <Button size="sm" variant="danger" onClick={() => openDeleteModal(w)}>
             Delete
           </Button>
         </div>
@@ -155,11 +155,11 @@ export default function AssignmentsPage() {
   ];
 
   const conflictColumns: TableColumn<Conflict>[] = [
-    { key: 'thread', label: 'Client', render: (c) => c.thread.client.name },
-    { key: 'windowA', label: 'Window A Sitter', render: (c) => c.windowA.sitter.name },
-    { key: 'windowB', label: 'Window B Sitter', render: (c) => c.windowB.sitter.name },
-    { key: 'overlapStart', label: 'Overlap Start', render: (c) => new Date(c.overlapStart).toLocaleString() },
-    { key: 'overlapEnd', label: 'Overlap End', render: (c) => new Date(c.overlapEnd).toLocaleString() },
+    { key: 'thread', header: 'Client', render: (c) => c.thread.client.name },
+    { key: 'windowA', header: 'Window A Sitter', render: (c) => c.windowA.sitter.name },
+    { key: 'windowB', header: 'Window B Sitter', render: (c) => c.windowB.sitter.name },
+    { key: 'overlapStart', header: 'Overlap Start', render: (c) => new Date(c.overlapStart).toLocaleString() },
+    { key: 'overlapEnd', header: 'Overlap End', render: (c) => new Date(c.overlapEnd).toLocaleString() },
   ];
 
   const activeCount = windows.filter(w => w.status === 'active').length;
@@ -223,7 +223,7 @@ export default function AssignmentsPage() {
           activeTab={activeTab}
           onTabChange={(tab) => setActiveTab(tab as any)}
         >
-          <TabPanel tabId="windows">
+          <TabPanel id="windows">
             <Card>
               {isLoading ? (
                 <Skeleton height={400} />
@@ -240,7 +240,7 @@ export default function AssignmentsPage() {
               )}
             </Card>
           </TabPanel>
-          <TabPanel tabId="conflicts">
+          <TabPanel id="conflicts">
             <Card>
               {conflictsLoading ? (
                 <Skeleton height={400} />
@@ -261,7 +261,7 @@ export default function AssignmentsPage() {
 
         {/* Create Modal */}
         {showCreateModal && (
-          <Modal title="Create Assignment Window" onClose={() => setShowCreateModal(false)}>
+          <Modal isOpen={showCreateModal} title="Create Assignment Window" onClose={() => setShowCreateModal(false)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               <div>
                 <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
@@ -329,7 +329,7 @@ export default function AssignmentsPage() {
 
         {/* Edit Modal */}
         {showEditModal && selectedWindow && (
-          <Modal title="Edit Assignment Window" onClose={() => setShowEditModal(null)}>
+          <Modal isOpen={!!showEditModal} title="Edit Assignment Window" onClose={() => setShowEditModal(null)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               <div>
                 <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
@@ -387,7 +387,7 @@ export default function AssignmentsPage() {
 
         {/* Delete Modal */}
         {showDeleteModal && selectedWindow && (
-          <Modal title="Delete Assignment Window" onClose={() => setShowDeleteModal(null)}>
+          <Modal isOpen={!!showDeleteModal} title="Delete Assignment Window" onClose={() => setShowDeleteModal(null)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               {selectedWindow.status === 'active' ? (
                 <div style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.warning[50], borderRadius: tokens.borderRadius.md }}>
@@ -400,7 +400,7 @@ export default function AssignmentsPage() {
               )}
               <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
                 <Button onClick={() => setShowDeleteModal(null)} variant="secondary">Cancel</Button>
-                <Button onClick={handleDelete} disabled={deleteWindow.isPending} variant="error">
+                <Button onClick={handleDelete} disabled={deleteWindow.isPending} variant="danger">
                   {deleteWindow.isPending ? 'Deleting...' : 'Delete'}
                 </Button>
               </div>

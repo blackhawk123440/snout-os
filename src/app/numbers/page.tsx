@@ -152,22 +152,22 @@ export default function NumbersPage() {
   };
 
   const numberColumns: TableColumn<Number>[] = [
-    { key: 'e164', label: 'Number', render: (n) => n.e164 },
-    { key: 'class', label: 'Class', render: (n) => (
-      <Badge variant={n.class === 'front_desk' ? 'primary' : n.class === 'sitter' ? 'info' : 'secondary'}>
+    { key: 'e164', header: 'Number', render: (n) => n.e164 },
+    { key: 'class', header: 'Class', render: (n) => (
+      <Badge variant={n.class === 'front_desk' ? 'default' : n.class === 'sitter' ? 'info' : 'neutral'}>
         {n.class === 'front_desk' ? 'Front Desk' : n.class === 'sitter' ? 'Sitter' : 'Pool'}
       </Badge>
     )},
-    { key: 'status', label: 'Status', render: (n) => (
+    { key: 'status', header: 'Status', render: (n) => (
       <Badge variant={n.status === 'active' ? 'success' : n.status === 'quarantined' ? 'warning' : 'error'}>
         {n.status}
       </Badge>
     )},
-    { key: 'assignedSitter', label: 'Assigned To', render: (n) => n.assignedSitter?.name || 'Unassigned' },
-    { key: 'lastUsedAt', label: 'Last Used', render: (n) => n.lastUsedAt ? new Date(n.lastUsedAt).toLocaleDateString() : 'Never' },
+    { key: 'assignedSitter', header: 'Assigned To', render: (n) => n.assignedSitter?.name || 'Unassigned' },
+    { key: 'lastUsedAt', header: 'Last Used', render: (n) => n.lastUsedAt ? new Date(n.lastUsedAt).toLocaleDateString() : 'Never' },
     { 
       key: 'actions', 
-      label: 'Actions', 
+      header: 'Actions', 
       render: (n) => (
         <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
           {n.status === 'quarantined' && (
@@ -209,7 +209,7 @@ export default function NumbersPage() {
           {n.status === 'active' && (
             <Button
               size="sm"
-              variant="error"
+              variant="danger"
               onClick={() => {
                 setSelectedNumber(n);
                 setShowQuarantineModal(n.id);
@@ -319,7 +319,7 @@ export default function NumbersPage() {
 
         {/* Buy Modal */}
         {showBuyModal && (
-          <Modal title="Buy Number" onClose={() => setShowBuyModal(false)}>
+          <Modal isOpen={showBuyModal} title="Buy Number" onClose={() => setShowBuyModal(false)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               <div>
                 <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
@@ -369,7 +369,7 @@ export default function NumbersPage() {
 
         {/* Import Modal */}
         {showImportModal && (
-          <Modal title="Import Number" onClose={() => setShowImportModal(false)}>
+          <Modal isOpen={showImportModal} title="Import Number" onClose={() => setShowImportModal(false)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               <div>
                 <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
@@ -417,7 +417,7 @@ export default function NumbersPage() {
 
         {/* Quarantine Modal */}
         {showQuarantineModal && selectedNumber && (
-          <Modal title="Quarantine Number" onClose={() => setShowQuarantineModal(null)}>
+          <Modal isOpen={!!showQuarantineModal} title="Quarantine Number" onClose={() => setShowQuarantineModal(null)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               <p style={{ color: tokens.colors.text.secondary }}>
                 Quarantining: <strong>{selectedNumber.e164}</strong>
@@ -447,7 +447,7 @@ export default function NumbersPage() {
                 <Button 
                   onClick={handleQuarantine} 
                   disabled={quarantineNumber.isPending || !quarantineForm.reason}
-                  variant="error"
+                  variant="danger"
                 >
                   {quarantineNumber.isPending ? 'Quarantining...' : 'Quarantine'}
                 </Button>
@@ -458,7 +458,7 @@ export default function NumbersPage() {
 
         {/* Release Modal */}
         {showReleaseModal && selectedNumber && (
-          <Modal title="Release from Quarantine" onClose={() => setShowReleaseModal(null)}>
+          <Modal isOpen={!!showReleaseModal} title="Release from Quarantine" onClose={() => setShowReleaseModal(null)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               <p>Release <strong>{selectedNumber.e164}</strong> from quarantine?</p>
               <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
@@ -473,7 +473,7 @@ export default function NumbersPage() {
 
         {/* Assign Modal */}
         {showAssignModal && selectedNumber && (
-          <Modal title="Assign to Sitter" onClose={() => setShowAssignModal(null)}>
+          <Modal isOpen={!!showAssignModal} title="Assign to Sitter" onClose={() => setShowAssignModal(null)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               <p style={{ color: tokens.colors.text.secondary }}>
                 Assigning: <strong>{selectedNumber.e164}</strong>
@@ -505,7 +505,7 @@ export default function NumbersPage() {
 
         {/* Release to Pool Modal */}
         {showReleaseToPoolModal && selectedNumber && (
-          <Modal title="Release to Pool" onClose={() => setShowReleaseToPoolModal(null)}>
+          <Modal isOpen={!!showReleaseToPoolModal} title="Release to Pool" onClose={() => setShowReleaseToPoolModal(null)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               <p>Release <strong>{selectedNumber.e164}</strong> to pool?</p>
               <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
