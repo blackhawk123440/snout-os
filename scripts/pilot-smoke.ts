@@ -57,27 +57,40 @@ async function main() {
 
     // Step 3: Start web+api+workers in background
     console.log('🌐 Starting application...');
-    const startProcess = execSync('pnpm dev', { 
-      stdio: 'pipe',
+    console.log('⚠️  Note: Starting dev server in background. Make sure to stop it manually after tests.\n');
+    
+    // Use spawn for background process
+    const { spawn } = await import('child_process');
+    const devProcess = spawn('pnpm', ['dev'], {
       detached: true,
+      stdio: 'ignore',
+      shell: true,
     });
+    devProcess.unref();
     
-    // Wait for app to be ready
+    // Wait for app to be ready (check multiple times)
     console.log('⏳ Waiting for application to start...');
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    
-    // Check if app is responding
-    try {
-      const response = await fetch('http://localhost:3000/api/health');
-      if (response.ok) {
-        console.log('✅ Application ready\n');
-      } else {
-        throw new Error('Application not responding');
+    let appReady = false;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      try {
+        const response = await fetch('http://localhost:3000');
+        if (response.ok || response.status === 404) { // 404 is OK, means server is running
+          appReady = true;
+          break;
+        }
+      } catch (error) {
+        // Continue waiting
       }
-    } catch (error) {
-      console.error('❌ Application failed to start:', error);
+    }
+    
+    if (!appReady) {
+      console.error('❌ Application failed to start after 60 seconds');
+      console.error('   Make sure DATABASE_URL is set in .env.local');
+      console.error('   Try running: pnpm dev (in another terminal)');
       process.exit(1);
     }
+    console.log('✅ Application ready\n');
 
     // Step 4: Run Playwright e2e tests
     console.log('🧪 Running Playwright e2e tests...');
