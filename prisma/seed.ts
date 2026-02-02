@@ -1,9 +1,13 @@
 import { PrismaClient } from "@prisma/client";
+import * as bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Seeding database...");
+
+  // Seed test users first (for E2E tests)
+  await seedTestUsers();
 
   // Seed canonical tiers first
   await seedTiers();
@@ -43,6 +47,46 @@ async function main() {
   }
 
   console.log("✨ Seed completed successfully");
+}
+
+async function seedTestUsers() {
+  console.log("🌱 Seeding test users...");
+
+  // Hash passwords
+  const ownerPasswordHash = await bcrypt.hash("password", 10);
+  const sitterPasswordHash = await bcrypt.hash("password", 10);
+
+  // Create or update owner user
+  const owner = await prisma.user.upsert({
+    where: { email: "owner@example.com" },
+    update: {
+      passwordHash: ownerPasswordHash,
+      name: "Test Owner",
+    },
+    create: {
+      email: "owner@example.com",
+      name: "Test Owner",
+      passwordHash: ownerPasswordHash,
+      emailVerified: new Date(),
+    },
+  });
+  console.log(`✅ Created/updated owner user: ${owner.email}`);
+
+  // Create or update sitter user
+  const sitter = await prisma.user.upsert({
+    where: { email: "sitter@example.com" },
+    update: {
+      passwordHash: sitterPasswordHash,
+      name: "Test Sitter",
+    },
+    create: {
+      email: "sitter@example.com",
+      name: "Test Sitter",
+      passwordHash: sitterPasswordHash,
+      emailVerified: new Date(),
+    },
+  });
+  console.log(`✅ Created/updated sitter user: ${sitter.email}`);
 }
 
 async function seedTiers() {
