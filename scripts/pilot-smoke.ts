@@ -142,19 +142,33 @@ async function main() {
       }
     }
 
-    // Step 5: Capture screenshots (if test-results exist)
-    console.log('📸 Capturing screenshots...');
+    // Step 5: Capture screenshots and HTML report
+    console.log('📸 Capturing screenshots and reports...');
     const testResultsDir = join(process.cwd(), 'test-results');
+    const playwrightReportDir = join(PROOF_PACK_DIR, 'playwright-report');
+    
+    // Copy HTML report if it exists
+    const htmlReportPath = join(process.cwd(), 'playwright-report');
+    if (existsSync(htmlReportPath)) {
+      if (!existsSync(playwrightReportDir)) {
+        mkdirSync(playwrightReportDir, { recursive: true });
+      }
+      execSync(`cp -r ${htmlReportPath}/* ${playwrightReportDir}/ 2>/dev/null || true`, {
+        stdio: 'ignore',
+      });
+    }
+    
+    // Copy screenshots from test-results
     if (existsSync(testResultsDir)) {
       const screenshotsDir = join(PROOF_PACK_DIR, 'screenshots');
       if (!existsSync(screenshotsDir)) {
         mkdirSync(screenshotsDir, { recursive: true });
       }
-      execSync(`cp -r ${testResultsDir}/*/screenshots/* ${screenshotsDir}/ 2>/dev/null || true`, {
-        stdio: 'inherit',
+      execSync(`find ${testResultsDir} -name "*.png" -exec cp {} ${screenshotsDir}/ \\; 2>/dev/null || true`, {
+        stdio: 'ignore',
       });
-      console.log('✅ Screenshots captured\n');
     }
+    console.log('✅ Screenshots and reports captured\n');
 
     // Step 6: Generate proof-pack summary
     console.log('📋 Generating proof-pack summary...');
