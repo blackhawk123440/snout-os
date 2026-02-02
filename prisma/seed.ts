@@ -56,37 +56,59 @@ async function seedTestUsers() {
   const ownerPasswordHash = await bcrypt.hash("password", 10);
   const sitterPasswordHash = await bcrypt.hash("password", 10);
 
-  // Create or update owner user
+  // Create or update owner user (no sitterId)
   const owner = await prisma.user.upsert({
     where: { email: "owner@example.com" },
     update: {
       passwordHash: ownerPasswordHash,
       name: "Test Owner",
+      sitterId: null, // Ensure owner has no sitterId
     },
     create: {
       email: "owner@example.com",
       name: "Test Owner",
       passwordHash: ownerPasswordHash,
       emailVerified: new Date(),
+      sitterId: null, // Owner has no sitterId
     },
   });
   console.log(`✅ Created/updated owner user: ${owner.email}`);
 
-  // Create or update sitter user
-  const sitter = await prisma.user.upsert({
+  // Create or update sitter record first
+  let sitterRecord = await prisma.sitter.findFirst({
+    where: { email: "sitter@example.com" },
+  });
+
+  if (!sitterRecord) {
+    sitterRecord = await prisma.sitter.create({
+      data: {
+        firstName: "Test",
+        lastName: "Sitter",
+        email: "sitter@example.com",
+        phone: "+15551234567",
+        active: true,
+      },
+    });
+    console.log(`✅ Created sitter record: ${sitterRecord.id}`);
+  }
+
+  // Create or update sitter user (with sitterId)
+  const sitterUser = await prisma.user.upsert({
     where: { email: "sitter@example.com" },
     update: {
       passwordHash: sitterPasswordHash,
       name: "Test Sitter",
+      sitterId: sitterRecord.id, // Link to sitter record
     },
     create: {
       email: "sitter@example.com",
       name: "Test Sitter",
       passwordHash: sitterPasswordHash,
       emailVerified: new Date(),
+      sitterId: sitterRecord.id, // Link to sitter record
     },
   });
-  console.log(`✅ Created/updated sitter user: ${sitter.email}`);
+  console.log(`✅ Created/updated sitter user: ${sitterUser.email} (sitterId: ${sitterUser.sitterId})`);
 }
 
 async function seedTiers() {
