@@ -124,7 +124,8 @@ async function main() {
     // Step 4: Run Playwright e2e tests
     console.log('🧪 Running Playwright e2e tests...');
     try {
-      execSync('pnpm test:ui --reporter=html --output-dir=proof-pack/playwright-report', {
+      // Playwright uses --output for output directory, not --output-dir
+      execSync('pnpm test:ui --reporter=html --output=proof-pack/playwright-report', {
         stdio: 'inherit',
         env: {
           ...process.env,
@@ -134,8 +135,11 @@ async function main() {
         },
       });
       console.log('✅ E2E tests complete\n');
-    } catch (error) {
-      console.error('⚠️  Some tests failed, but continuing...\n');
+    } catch (error: any) {
+      console.error('⚠️  Some tests failed, but continuing...');
+      if (error.message) {
+        console.error(`   Error: ${error.message}`);
+      }
     }
 
     // Step 5: Capture screenshots (if test-results exist)
@@ -172,20 +176,20 @@ async function main() {
     console.log('✅ Pilot smoke test complete!');
     console.log(`📦 Proof-pack available at: ${PROOF_PACK_DIR}`);
 
-  } catch (error) {
-    console.error('❌ Pilot smoke test failed:', error);
+  } catch (error: any) {
+    console.error('❌ Pilot smoke test failed:', error?.message || String(error));
     process.exit(1);
   } finally {
     // Cleanup: stop background processes
     console.log('\n🧹 Cleaning up...');
     try {
+      // Kill dev server process
       execSync('pkill -f "next dev" || true', { stdio: 'ignore' });
+      
+      // Stop Docker Compose if we started it
       const dockerComposePath = join(process.cwd(), 'docker-compose.yml');
       const enterpriseDockerComposePath = join(process.cwd(), 'enterprise-messaging-dashboard', 'docker-compose.yml');
       if (existsSync(dockerComposePath) || existsSync(enterpriseDockerComposePath)) {
-        const composeFile = existsSync(dockerComposePath) 
-          ? dockerComposePath 
-          : enterpriseDockerComposePath;
         const composeDir = existsSync(dockerComposePath) 
           ? process.cwd() 
           : join(process.cwd(), 'enterprise-messaging-dashboard');
@@ -194,10 +198,15 @@ async function main() {
           cwd: composeDir,
         });
       }
-    } catch (error) {
-      // Ignore cleanup errors
+      console.log('✅ Cleanup complete');
+    } catch (cleanupError: any) {
+      // Ignore cleanup errors but log them
+      console.error('⚠️  Cleanup warning:', cleanupError?.message || String(cleanupError));
     }
   }
 }
 
-main().catch(console.error);
+main().catch((error: any) => {
+  console.error('❌ Fatal error:', error?.message || String(error));
+  process.exit(1);
+});
