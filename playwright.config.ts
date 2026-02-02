@@ -8,10 +8,10 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   testMatch: /.*\.spec\.ts/,
-  fullyParallel: true,
+  fullyParallel: false, // Disable full parallelism to reduce server load
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 2, // Limit to 2 workers to reduce server load
   reporter: 'html',
   timeout: 30000, // 30 seconds default test timeout
   expect: {
