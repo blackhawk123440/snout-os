@@ -35,10 +35,15 @@ routes.forEach(route => {
       await page.setViewportSize({ width: breakpoint.width, height: breakpoint.height });
       
       // Navigate to route
-      await page.goto(route);
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
       
-      // Wait for page to be fully loaded
-      await page.waitForLoadState('networkidle');
+      // Wait for page to be fully loaded (with timeout)
+      try {
+        await page.waitForLoadState('networkidle', { timeout: 10000 });
+      } catch {
+        // If networkidle never happens, just wait for load
+        await page.waitForLoadState('load', { timeout: 5000 });
+      }
       
       // Wait a bit for any animations/transitions
       await page.waitForTimeout(500);
