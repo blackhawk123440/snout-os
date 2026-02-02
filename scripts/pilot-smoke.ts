@@ -57,6 +57,25 @@ async function main() {
 
     // Step 3: Start web+api+workers in background
     console.log('🌐 Starting application...');
+    
+    // Check if port 3000 is already in use
+    try {
+      const { execSync } = await import('child_process');
+      const portCheck = execSync('lsof -ti:3000', { encoding: 'utf-8', stdio: 'pipe' }).trim();
+      if (portCheck) {
+        console.log(`⚠️  Port 3000 is already in use (PID: ${portCheck})`);
+        console.log('   Killing existing process...');
+        try {
+          execSync(`kill -9 ${portCheck}`, { stdio: 'ignore' });
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for port to free
+        } catch {
+          // Ignore kill errors
+        }
+      }
+    } catch {
+      // Port is free, continue
+    }
+    
     console.log('⚠️  Note: Starting dev server in background. Make sure to stop it manually after tests.\n');
     
     // Use spawn for background process with proper output handling
@@ -66,20 +85,42 @@ async function main() {
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: true,
       cwd: process.cwd(),
+      env: {
+        ...process.env,
+        // Ensure required env vars are set
+        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://localhost:5432/snout_os_db',
+        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-secret-for-smoke-tests-only',
+        NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+      },
     });
     
-    // Log dev server output for debugging
+    // Collect all output for debugging
+    let devOutput = '';
+    let devErrors = '';
+    
     devProcess.stdout?.on('data', (data) => {
       const output = data.toString();
-      if (output.includes('Ready') || output.includes('started server')) {
-        console.log('   Dev server output:', output.trim());
+      devOutput += output;
+      // Log important messages
+      if (output.includes('Ready') || output.includes('started server') || output.includes('Local:')) {
+        console.log('   Dev server:', output.trim());
       }
     });
     
     devProcess.stderr?.on('data', (data) => {
       const output = data.toString();
-      if (output.includes('error') || output.includes('Error')) {
+      devErrors += output;
+      // Log errors immediately
+      if (output.includes('error') || output.includes('Error') || output.includes('Failed')) {
         console.error('   Dev server error:', output.trim());
+      }
+    });
+    
+    devProcess.on('exit', (code) => {
+      if (code !== 0 && code !== null) {
+        console.error(`   Dev server exited with code ${code}`);
+        console.error('   Last output:', devOutput.slice(-500));
+        console.error('   Last errors:', devErrors.slice(-500));
       }
     });
     
@@ -114,9 +155,14 @@ async function main() {
     
     if (!appReady) {
       console.error('❌ Application failed to start after 2 minutes');
-      console.error('   Make sure DATABASE_URL is set in .env.local');
-      console.error('   Check if port 3000 is already in use: lsof -i:3000');
-      console.error('   Try running: pnpm dev (in another terminal) and wait for it to start');
+      console.error('\n   Debugging information:');
+      console.error('   - Last dev server output:', devOutput.slice(-500) || '(none)');
+      console.error('   - Last dev server errors:', devErrors.slice(-500) || '(none)');
+      console.error('\n   Troubleshooting:');
+      console.error('   1. Check if DATABASE_URL is set: echo $DATABASE_URL');
+      console.error('   2. Check if port 3000 is in use: lsof -i:3000');
+      console.error('   3. Try running manually: pnpm dev');
+      console.error('   4. Check for errors in the output above');
       process.exit(1);
     }
     console.log('✅ Application ready\n');
