@@ -59,35 +59,64 @@ async function main() {
     console.log('🌐 Starting application...');
     console.log('⚠️  Note: Starting dev server in background. Make sure to stop it manually after tests.\n');
     
-    // Use spawn for background process
+    // Use spawn for background process with proper output handling
     const { spawn } = await import('child_process');
     const devProcess = spawn('pnpm', ['dev'], {
       detached: true,
-      stdio: 'ignore',
+      stdio: ['ignore', 'pipe', 'pipe'],
       shell: true,
+      cwd: process.cwd(),
     });
+    
+    // Log dev server output for debugging
+    devProcess.stdout?.on('data', (data) => {
+      const output = data.toString();
+      if (output.includes('Ready') || output.includes('started server')) {
+        console.log('   Dev server output:', output.trim());
+      }
+    });
+    
+    devProcess.stderr?.on('data', (data) => {
+      const output = data.toString();
+      if (output.includes('error') || output.includes('Error')) {
+        console.error('   Dev server error:', output.trim());
+      }
+    });
+    
     devProcess.unref();
     
     // Wait for app to be ready (check multiple times)
     console.log('⏳ Waiting for application to start...');
     let appReady = false;
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 60; i++) { // Increase to 60 attempts (2 minutes)
       await new Promise(resolve => setTimeout(resolve, 2000));
       try {
-        const response = await fetch('http://localhost:3000');
-        if (response.ok || response.status === 404) { // 404 is OK, means server is running
+        const response = await fetch('http://localhost:3000', {
+          signal: AbortSignal.timeout(1000),
+        });
+        if (response.ok || response.status === 404 || response.status === 500) { 
+          // Any HTTP response means server is running
           appReady = true;
+          console.log(`   Server responded with status ${response.status}`);
           break;
         }
-      } catch (error) {
-        // Continue waiting
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          // Timeout - server not ready yet
+          process.stdout.write('.');
+        } else {
+          // Other error - might be connection refused, continue
+          process.stdout.write('.');
+        }
       }
     }
+    console.log(''); // New line after dots
     
     if (!appReady) {
-      console.error('❌ Application failed to start after 60 seconds');
+      console.error('❌ Application failed to start after 2 minutes');
       console.error('   Make sure DATABASE_URL is set in .env.local');
-      console.error('   Try running: pnpm dev (in another terminal)');
+      console.error('   Check if port 3000 is already in use: lsof -i:3000');
+      console.error('   Try running: pnpm dev (in another terminal) and wait for it to start');
       process.exit(1);
     }
     console.log('✅ Application ready\n');
