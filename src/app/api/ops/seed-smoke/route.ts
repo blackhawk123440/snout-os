@@ -72,26 +72,32 @@ export async function POST(request: NextRequest) {
     // Create pool numbers (at least 2 for exhaustion testing)
     const poolNumbers = [];
     for (let i = 1; i <= 3; i++) {
-      const poolNumber = await prisma.messageNumber.upsert({
+      const e164 = `+15550000${100 + i}`;
+      const existing = await prisma.messageNumber.findFirst({
         where: {
-          orgId_e164: {
-            orgId,
-            e164: `+15550000${100 + i}`,
-          },
-        },
-        update: {
-          status: 'active',
-          numberClass: 'pool',
-        },
-        create: {
           orgId,
-          numberClass: 'pool',
-          e164: `+15550000${100 + i}`,
-          provider: 'twilio',
-          providerNumberSid: `test-pool-${i}-smoke`,
-          status: 'active',
+          e164,
         },
       });
+      
+      const poolNumber = existing
+        ? await prisma.messageNumber.update({
+            where: { id: existing.id },
+            data: {
+              status: 'active',
+              numberClass: 'pool',
+            },
+          })
+        : await prisma.messageNumber.create({
+            data: {
+              orgId,
+              numberClass: 'pool',
+              e164,
+              provider: 'twilio',
+              providerNumberSid: `test-pool-${i}-smoke`,
+              status: 'active',
+            },
+          });
       poolNumbers.push(poolNumber);
     }
 
