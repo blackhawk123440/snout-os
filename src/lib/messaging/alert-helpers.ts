@@ -48,10 +48,14 @@ export async function createAlert(params: {
       },
     });
 
-    await logMessagingEvent(orgId, 'alert.updated', {
-      type,
-      severity,
-      reason: 'Deduplication refresh',
+    await logMessagingEvent({
+      orgId,
+      eventType: 'alert.updated' as any, // alert.updated not in MessagingAuditEventType, but needed for audit
+      metadata: {
+        type,
+        severity,
+        reason: 'Deduplication refresh',
+      },
     });
     return;
   }
@@ -75,11 +79,14 @@ export async function createAlert(params: {
     },
   });
 
-  await logMessagingEvent(orgId, 'alert.created', {
-    type,
-    severity,
-    entityType,
-    entityId,
+  await logMessagingEvent({
+    orgId,
+    eventType: 'alert.created' as any, // alert.created not in MessagingAuditEventType, but needed for audit
+    metadata: {
+      type,
+      severity,
+      entityType,
+      entityId,
   });
 }
 
