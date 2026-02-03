@@ -116,7 +116,7 @@ function LoginContent() {
               Enter your credentials to access the dashboard
             </p>
           </div>
-          <form onSubmit={handleSubmit} style={{ marginTop: tokens.spacing[8] }}>
+          <form onSubmit={handleSubmit} method="post" style={{ marginTop: tokens.spacing[8] }}>
             <div style={{ marginBottom: tokens.spacing[6] }}>
               <Input
                 id="email"

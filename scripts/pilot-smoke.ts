@@ -91,9 +91,13 @@ async function main() {
       env: {
         ...process.env,
         // Ensure required env vars are set
-        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://localhost:5432/snout_os_db',
-        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-secret-for-smoke-tests-only',
+        DATABASE_URL: process.env.DATABASE_URL || 'postgresql://snoutos:snoutos_dev_password@localhost:5432/snoutos_messaging',
+        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-secret-for-smoke-tests-minimum-64-characters-required-for-nextauth-jwt-encoding',
         NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+        ENABLE_E2E_AUTH: 'true',
+        E2E_AUTH_KEY: process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production',
+        ENABLE_OPS_SEED: 'true',
+        NEXT_PUBLIC_ENABLE_MESSAGING_V1: 'true',
       },
     });
     
@@ -173,15 +177,21 @@ async function main() {
     // Step 4: Run Playwright smoke tests (ONLY smoke suite, no snapshots)
     console.log('🧪 Running Playwright smoke tests...');
     try {
+      // Generate E2E auth key if not set
+      const e2eAuthKey = process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production';
+      const nextAuthSecret = process.env.NEXTAUTH_SECRET || 'test-secret-for-smoke-tests-minimum-64-characters-required-for-nextauth-jwt-encoding';
+      
       execSync('pnpm test:ui:smoke', {
         stdio: 'inherit',
         env: {
           ...process.env,
           BASE_URL: 'http://localhost:3000',
           OWNER_EMAIL: 'owner@example.com',
-          OWNER_PASSWORD: 'password',
           SITTER_EMAIL: 'sitter@example.com',
-          SITTER_PASSWORD: 'password',
+          ENABLE_E2E_AUTH: 'true',
+          E2E_AUTH_KEY: e2eAuthKey,
+          NEXTAUTH_SECRET: nextAuthSecret,
+          NEXTAUTH_URL: 'http://localhost:3000',
           ENABLE_OPS_SEED: 'true',
           NEXT_PUBLIC_ENABLE_MESSAGING_V1: 'true',
         },

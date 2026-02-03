@@ -6,6 +6,7 @@
  */
 
 import { defineConfig, devices } from '@playwright/test';
+import * as path from 'path';
 
 export default defineConfig({
   testDir: './tests',
@@ -20,6 +21,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: 1, // Single worker for smoke tests
+  globalSetup: require.resolve('./tests/e2e/global-setup.ts'),
   reporter: [
     ['html', { outputFolder: 'proof-pack/playwright-report' }],
     ['list'],
@@ -29,7 +31,7 @@ export default defineConfig({
     timeout: 5000,
   },
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     actionTimeout: 10000,
@@ -38,28 +40,21 @@ export default defineConfig({
 
   projects: [
     {
-      name: 'mobile',
+      name: 'owner-mobile',
       use: {
         ...devices['iPhone 13'],
         viewport: { width: 390, height: 844 },
+        storageState: path.join(__dirname, 'tests/.auth/owner.json'),
+      },
+    },
+    {
+      name: 'sitter-mobile',
+      use: {
+        ...devices['iPhone 13'],
+        viewport: { width: 390, height: 844 },
+        storageState: path.join(__dirname, 'tests/.auth/sitter.json'),
       },
     },
   ],
 
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120000,
-    env: {
-      DATABASE_URL: process.env.DATABASE_URL || 'file:./test.db',
-      OPENPHONE_API_KEY: process.env.OPENPHONE_API_KEY || 'test_key',
-      OPENPHONE_NUMBER_ID: process.env.OPENPHONE_NUMBER_ID || 'test_number_id',
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test_secret',
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-      ENABLE_OPS_SEED: 'true',
-      ENABLE_MESSAGING_V1: 'true',
-      NEXT_PUBLIC_ENABLE_MESSAGING_V1: 'true',
-    },
-  },
 });

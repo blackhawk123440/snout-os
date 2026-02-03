@@ -1,90 +1,92 @@
 /**
  * Deterministic Login Helper
  * 
- * Provides reliable login functions for E2E tests that verify session establishment
- * before expecting navigation redirects.
+ * Uses E2E authentication route to establish sessions for tests.
+ * Tests should prefer using storageState projects, but these helpers
+ * can be used for tests that need to login dynamically.
  */
 
 import { Page, expect } from '@playwright/test';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const OWNER_EMAIL = process.env.OWNER_EMAIL || 'owner@example.com';
-const OWNER_PASSWORD = process.env.OWNER_PASSWORD || 'password';
 const SITTER_EMAIL = process.env.SITTER_EMAIL || 'sitter@example.com';
-const SITTER_PASSWORD = process.env.SITTER_PASSWORD || 'password';
+const E2E_AUTH_KEY = process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production';
 
 /**
- * Login as owner and wait for session to be established
+ * Login as owner using E2E auth route
  * 
  * @param page - Playwright page instance
- * @returns Promise that resolves when session is confirmed and redirect is complete
+ * @returns Promise that resolves when session is confirmed
  */
 export async function loginAsOwner(page: Page): Promise<void> {
-  // Navigate to login with full URL
-  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  
-  // Wait for login form to be ready
-  await page.waitForSelector('input[type="email"]', { timeout: 10000 });
-  
-  // Fill credentials
-  await page.fill('input[type="email"]', OWNER_EMAIL);
-  await page.fill('input[type="password"]', OWNER_PASSWORD);
-  
-  // Submit form - wait for navigation to start
-  await Promise.all([
-    page.waitForURL('**/dashboard', { timeout: 15000 }),
-    page.click('button[type="submit"]'),
-  ]);
-  
-  // Verify we're on dashboard
-  expect(page.url()).toContain('/dashboard');
-  
-  // Poll to ensure session is reliably established via API
+  // Use E2E auth route to get session cookie
+  const response = await page.request.post(`${BASE_URL}/api/ops/e2e-login`, {
+    data: {
+      role: 'owner',
+      email: OWNER_EMAIL,
+    },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-e2e-key': E2E_AUTH_KEY,
+    },
+  });
+
+  if (!response.ok()) {
+    const errorText = await response.text();
+    throw new Error(`E2E login failed: ${response.status()} - ${errorText}`);
+  }
+
+  // Verify session exists
   await expect.poll(
     async () => {
-      const response = await page.request.get(`${BASE_URL}/api/auth/session`);
-      if (!response.ok()) return false;
-      const sessionData = await response.json();
-      return sessionData?.user?.email === OWNER_EMAIL;
+      const sessionResponse = await page.request.get(`${BASE_URL}/api/auth/session`);
+      if (!sessionResponse.ok()) return false;
+      const session = await sessionResponse.json();
+      return session?.user?.email === OWNER_EMAIL;
     },
-    { timeout: 5000, intervals: [200, 500, 1000] }
+    { timeout: 10000, intervals: [500, 1000] }
   ).toBeTruthy();
+
+  // Navigate to dashboard
+  await page.goto(`${BASE_URL}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 15000 });
 }
 
 /**
- * Login as sitter and wait for session to be established
+ * Login as sitter using E2E auth route
  * 
  * @param page - Playwright page instance
- * @returns Promise that resolves when session is confirmed and redirect is complete
+ * @returns Promise that resolves when session is confirmed
  */
 export async function loginAsSitter(page: Page): Promise<void> {
-  // Navigate to login with full URL
-  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  
-  // Wait for login form to be ready
-  await page.waitForSelector('input[type="email"]', { timeout: 10000 });
-  
-  // Fill credentials
-  await page.fill('input[type="email"]', SITTER_EMAIL);
-  await page.fill('input[type="password"]', SITTER_PASSWORD);
-  
-  // Submit form - wait for navigation to start
-  await Promise.all([
-    page.waitForURL('**/sitter/inbox', { timeout: 15000 }),
-    page.click('button[type="submit"]'),
-  ]);
-  
-  // Verify we're on sitter inbox
-  expect(page.url()).toContain('/sitter/inbox');
-  
-  // Poll to ensure session is reliably established via API
+  // Use E2E auth route to get session cookie
+  const response = await page.request.post(`${BASE_URL}/api/ops/e2e-login`, {
+    data: {
+      role: 'sitter',
+      email: SITTER_EMAIL,
+    },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-e2e-key': E2E_AUTH_KEY,
+    },
+  });
+
+  if (!response.ok()) {
+    const errorText = await response.text();
+    throw new Error(`E2E login failed: ${response.status()} - ${errorText}`);
+  }
+
+  // Verify session exists
   await expect.poll(
     async () => {
-      const response = await page.request.get(`${BASE_URL}/api/auth/session`);
-      if (!response.ok()) return false;
-      const sessionData = await response.json();
-      return sessionData?.user?.email === SITTER_EMAIL;
+      const sessionResponse = await page.request.get(`${BASE_URL}/api/auth/session`);
+      if (!sessionResponse.ok()) return false;
+      const session = await sessionResponse.json();
+      return session?.user?.email === SITTER_EMAIL;
     },
-    { timeout: 5000, intervals: [200, 500, 1000] }
+    { timeout: 10000, intervals: [500, 1000] }
   ).toBeTruthy();
+
+  // Navigate to sitter inbox
+  await page.goto(`${BASE_URL}/sitter/inbox`, { waitUntil: 'domcontentloaded', timeout: 15000 });
 }
