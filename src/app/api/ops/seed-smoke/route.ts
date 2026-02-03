@@ -207,29 +207,36 @@ export async function POST(request: NextRequest) {
     // Create active assignment window for thread A
     const windowStart = new Date();
     const windowEnd = new Date(Date.now() + 2 * 60 * 60 * 1000);
-    await prisma.assignmentWindow.upsert({
+    const existingWindow = await prisma.assignmentWindow.findFirst({
       where: {
-        orgId_threadId_sitterId: {
-          orgId,
-          threadId: threadA.id,
-          sitterId: sitter.id,
-        },
-      },
-      update: {
-        startAt: windowStart,
-        endAt: windowEnd,
-        status: 'active',
-      },
-      create: {
         orgId,
         threadId: threadA.id,
-        bookingId: booking.id,
         sitterId: sitter.id,
-        startAt: windowStart,
-        endAt: windowEnd,
-        status: 'active',
       },
     });
+    
+    if (existingWindow) {
+      await prisma.assignmentWindow.update({
+        where: { id: existingWindow.id },
+        data: {
+          startAt: windowStart,
+          endAt: windowEnd,
+          status: 'active',
+        },
+      });
+    } else {
+      await prisma.assignmentWindow.create({
+        data: {
+          orgId,
+          threadId: threadA.id,
+          bookingId: booking.id,
+          sitterId: sitter.id,
+          startAt: windowStart,
+          endAt: windowEnd,
+          status: 'active',
+        },
+      });
+    }
 
     // Create messages for thread A (with failed delivery)
     const existingMsgsA = await prisma.messageEvent.findMany({
