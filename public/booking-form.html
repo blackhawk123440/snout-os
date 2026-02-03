@@ -3089,6 +3089,8 @@
         this.setupStep(this.state.currentStep || 1);
         // Track if Meta Pixel Lead event has been fired to prevent double-firing
         this.metaPixelLeadFired = false;
+        // Track if Google Ads conversion has been fired to prevent double-firing
+        this.googleAdsConversionFired = false;
       }
       
       restoreVisualState() {
@@ -3298,6 +3300,11 @@
           const currentStepElement = document.getElementById(`step${step}`);
           if (currentStepElement) {
             currentStepElement.classList.add('active');
+          }
+
+          // Fire Google Ads conversion event when step 7 (confirmation) is shown
+          if (step === 7) {
+            this.fireGoogleAdsConversion();
           }
         } catch (error) {
           console.error('Error setting up step:', error);
@@ -3929,6 +3936,32 @@
           }
         } catch (error) {
           console.error('Error firing Meta Pixel Lead event:', error);
+        }
+      }
+
+      /**
+       * Fire Google Ads conversion event
+       * Prevents double-firing using a flag
+       */
+      fireGoogleAdsConversion() {
+        // Prevent double-firing
+        if (this.googleAdsConversionFired) {
+          return;
+        }
+        this.googleAdsConversionFired = true;
+
+        try {
+          // Fire Google Ads conversion event
+          if (typeof window.gtag === 'function') {
+            window.gtag('event', 'conversion', {
+              'send_to': 'AW-11558191297/81slCKHb0PEbEMGBsIcr'
+            });
+            console.log('Google Ads conversion event fired');
+          } else {
+            console.warn('Google Ads: gtag not available');
+          }
+        } catch (error) {
+          console.error('Error firing Google Ads conversion event:', error);
         }
       }
 

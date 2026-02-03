@@ -26,6 +26,18 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         />
+        {/* Google Ads Global Tag */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11558191297"></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'AW-11558191297');
+            `,
+          }}
+        />
         <style dangerouslySetInnerHTML={{__html: `
           * {
             box-sizing: border-box;
