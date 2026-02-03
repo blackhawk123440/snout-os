@@ -50,7 +50,7 @@ interface Settings {
   conflictNoticeEnabled: boolean;
 }
 
-type SettingsTab = 'general' | 'integrations' | 'automations' | 'advanced';
+type SettingsTab = 'general' | 'integrations' | 'automations' | 'rotation' | 'advanced';
 
 export default function SettingsPage() {
   const isMobile = useMobile();
