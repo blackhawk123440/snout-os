@@ -619,7 +619,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                 </div>
                 <Button
                   variant="primary"
-                  onClick={handleSendMessage}
+                  onClick={() => handleSendMessage()}
                   disabled={!composeMessage.trim() || sendMessage.isPending}
                 >
                   {sendMessage.isPending ? 'Sending...' : 'Send'}
