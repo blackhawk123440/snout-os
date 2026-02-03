@@ -263,7 +263,7 @@ export default function NumbersPage() {
           const poolExhausted = numbers.some(n => n.class === 'pool' && (n as any).capacityStatus === 'At Capacity');
           if (poolExhausted) {
             return (
-              <Card style={{ marginBottom: tokens.spacing[4], backgroundColor: tokens.colors.error.light, border: `2px solid ${tokens.colors.error.DEFAULT}` }}>
+              <Card style={{ marginBottom: tokens.spacing[4], backgroundColor: tokens.colors.error[50], border: `2px solid ${tokens.colors.error.DEFAULT}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
                   <span style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.error.DEFAULT }}>
                     ⚠️ Pool Exhausted
