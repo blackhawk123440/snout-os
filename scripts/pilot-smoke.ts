@@ -179,7 +179,8 @@ async function main() {
     try {
       // Generate E2E auth key if not set
       const e2eAuthKey = process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production';
-      const nextAuthSecret = process.env.NEXTAUTH_SECRET || 'test-secret-for-smoke-tests-minimum-64-characters-required-for-nextauth-jwt-encoding';
+      // Use provided secret or fallback for tests
+      const nextAuthSecret = process.env.NEXTAUTH_SECRET || 'JeBctxnIua976KOMQvZDg9qjF/4Xy3ncp/quiknbXBPKy5nFiOvsErmxIXtq+18a';
       
       execSync('pnpm test:ui:smoke', {
         stdio: 'inherit',

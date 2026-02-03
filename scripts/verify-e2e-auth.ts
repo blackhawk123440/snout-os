@@ -11,6 +11,7 @@
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const E2E_AUTH_KEY = process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production';
 const OWNER_EMAIL = process.env.OWNER_EMAIL || 'owner@example.com';
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || 'JeBctxnIua976KOMQvZDg9qjF/4Xy3ncp/quiknbXBPKy5nFiOvsErmxIXtq+18a';
 
 async function verify() {
   console.log('🔍 Verifying E2E auth endpoint...');
