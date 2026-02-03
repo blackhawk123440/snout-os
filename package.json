@@ -14,6 +14,8 @@
     "test": "vitest run",
     "test:integration": "RUN_INTEGRATION_TESTS=true vitest run --config vitest.config.ts",
     "test:ui": "playwright test",
+    "test:ui:smoke": "playwright test --config=playwright.smoke.config.ts",
+    "test:ui:full": "playwright test",
     "test:ui:visual": "playwright test tests/visual",
     "check:ui-constitution": "tsx scripts/check-ui-constitution.ts",
     "lighthouse:ci": "lhci autorun",

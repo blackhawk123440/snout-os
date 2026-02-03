@@ -7,7 +7,7 @@
  */
 
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
 
 const PROOF_PACK_DIR = join(process.cwd(), 'proof-pack');
@@ -15,10 +15,11 @@ const PROOF_PACK_DIR = join(process.cwd(), 'proof-pack');
 async function main() {
   console.log('🚀 Starting pilot smoke test...\n');
 
-  // Create proof-pack directory
-  if (!existsSync(PROOF_PACK_DIR)) {
-    mkdirSync(PROOF_PACK_DIR, { recursive: true });
+  // Delete and recreate proof-pack directory (fresh artifacts)
+  if (existsSync(PROOF_PACK_DIR)) {
+    rmSync(PROOF_PACK_DIR, { recursive: true, force: true });
   }
+  mkdirSync(PROOF_PACK_DIR, { recursive: true });
 
   try {
     // Step 1: Boot infra (Docker Compose) - optional if docker-compose.yml exists
@@ -167,25 +168,28 @@ async function main() {
     }
     console.log('✅ Application ready\n');
 
-    // Step 4: Run Playwright e2e tests
-    console.log('🧪 Running Playwright e2e tests...');
+    // Step 4: Run Playwright smoke tests (ONLY smoke suite, no snapshots)
+    console.log('🧪 Running Playwright smoke tests...');
+    let testExitCode = 0;
     try {
-      // Playwright uses --output for output directory, not --output-dir
-      execSync('pnpm test:ui --reporter=html --output=proof-pack/playwright-report', {
+      execSync('pnpm test:ui:smoke', {
         stdio: 'inherit',
         env: {
           ...process.env,
           BASE_URL: 'http://localhost:3000',
           OWNER_EMAIL: 'owner@example.com',
           OWNER_PASSWORD: 'password',
+          SITTER_EMAIL: 'sitter@example.com',
+          SITTER_PASSWORD: 'password',
+          ENABLE_OPS_SEED: 'true',
+          NEXT_PUBLIC_ENABLE_MESSAGING_V1: 'true',
         },
       });
-      console.log('✅ E2E tests complete\n');
+      console.log('✅ Smoke tests complete\n');
     } catch (error: any) {
-      console.error('⚠️  Some tests failed, but continuing...');
-      if (error.message) {
-        console.error(`   Error: ${error.message}`);
-      }
+      testExitCode = error.status || 1;
+      console.error('❌ Smoke tests failed\n');
+      // Continue to capture artifacts even if tests fail
     }
 
     // Step 5: Capture screenshots and HTML report
@@ -233,8 +237,14 @@ async function main() {
     );
     console.log('✅ Proof-pack generated at proof-pack/\n');
 
-    console.log('✅ Pilot smoke test complete!');
-    console.log(`📦 Proof-pack available at: ${PROOF_PACK_DIR}`);
+    // Final status
+    if (testExitCode === 0) {
+      console.log('✅ Pilot smoke test complete!');
+      console.log(`📦 Proof-pack available at: ${PROOF_PACK_DIR}`);
+    } else {
+      console.error('❌ Pilot smoke test failed (tests had failures)');
+      console.log(`📦 Proof-pack available at: ${PROOF_PACK_DIR} (for debugging)`);
+    }
 
   } catch (error: any) {
     console.error('❌ Pilot smoke test failed:', error?.message || String(error));
@@ -263,6 +273,11 @@ async function main() {
       // Ignore cleanup errors but log them
       console.error('⚠️  Cleanup warning:', cleanupError?.message || String(cleanupError));
     }
+  }
+  
+  // Exit with test exit code (non-zero if tests failed)
+  if (typeof testExitCode !== 'undefined' && testExitCode !== 0) {
+    process.exit(testExitCode);
   }
 }
 

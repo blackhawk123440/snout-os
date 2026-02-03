@@ -10,19 +10,21 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { loginAsOwner } from './helpers/login';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const OWNER_EMAIL = process.env.OWNER_EMAIL || 'owner@example.com';
-const OWNER_PASSWORD = process.env.OWNER_PASSWORD || 'password';
 
 test.describe('Messaging Features', () => {
+  test.beforeAll(async ({ request }) => {
+    // Seed smoke test data before all tests
+    const seedResponse = await request.post('/api/ops/seed-smoke');
+    if (!seedResponse.ok()) {
+      console.warn('Failed to seed smoke test data:', await seedResponse.text());
+    }
+  });
+
   test.beforeEach(async ({ page }) => {
-    // Login as owner
-    await page.goto(`${BASE_URL}/login`);
-    await page.fill('input[type="email"]', OWNER_EMAIL);
-    await page.fill('input[type="password"]', OWNER_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
+    await loginAsOwner(page);
   });
 
   test('Thread selection loads messages', async ({ page }) => {

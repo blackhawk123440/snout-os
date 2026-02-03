@@ -13,6 +13,53 @@ A comprehensive dashboard for managing pet care services, bookings, sitters, and
 - 📆 **Calendar View** - Visual calendar with conflict detection
 - 🔄 **Sitter Pool** - Automated sitter matching and assignment
 
+## How to Run Proof-Pack Locally
+
+The proof-pack is an automated test suite that verifies core operability features. It generates screenshots, network logs, and test reports.
+
+### Prerequisites
+
+- Docker Compose (for Postgres + Redis) or existing database/Redis
+- Node.js 20+
+- pnpm
+
+### Running the Proof-Pack
+
+```bash
+pnpm pilot:smoke
+```
+
+This will:
+1. Boot infrastructure (Docker Compose if available)
+2. Run database migrations
+3. Seed test data
+4. Start the dev server
+5. Run smoke tests (role routing, messaging features, pool exhausted, rotation settings)
+6. Generate proof-pack artifacts in `proof-pack/`
+
+### Proof-Pack Artifacts
+
+After running, check `proof-pack/` for:
+- `playwright-report/` - HTML test report
+- `screenshots/` - Test screenshots
+- `summary.json` - Commit SHA, timestamp, test summary
+
+### Smoke Test Suite
+
+The smoke suite (`pnpm test:ui:smoke`) includes only critical operability tests:
+- Role-based routing (owner vs sitter)
+- Messaging features (delivery badges, retry, policy banners, routing drawer)
+- Pool exhausted confirmation flow
+- Rotation settings persistence
+
+Full test suite (`pnpm test:ui:full`) includes all tests including visual regression.
+
+### Troubleshooting
+
+- **Application fails to start**: Check `DATABASE_URL` and port 3000 availability
+- **Tests fail**: Check `proof-pack/playwright-report/index.html` for details
+- **Seed fails**: Ensure `ENABLE_OPS_SEED=true` is set
+
 ## Getting Started
 
 ### Prerequisites

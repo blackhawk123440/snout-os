@@ -13,10 +13,10 @@ const STAGING_API_URL = process.env.STAGING_API_URL || 'https://snout-os-api.onr
 const TEST_EMAIL = process.env.TEST_EMAIL || 'owner@example.com';
 const TEST_PASSWORD = process.env.TEST_PASSWORD || 'password';
 
-// Skip entire suite if running locally
-const isLocal = process.env.BASE_URL?.includes('localhost') || !process.env.STAGING_WEB_URL;
+// Skip if STAGING_WEB_URL is not set (env-gated)
+const shouldSkip = !process.env.STAGING_WEB_URL;
 
-test.describe.skip(isLocal, 'Staging Authentication', () => {
+test.describe.skip(shouldSkip, 'Staging Authentication', () => {
   test('should login and establish session', async ({ page }) => {
     // Step 1: Check auth health
     const healthResponse = await page.request.get(`${STAGING_WEB_URL}/api/auth/health`);

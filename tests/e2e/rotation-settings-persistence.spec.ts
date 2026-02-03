@@ -9,18 +9,9 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { loginAsOwner } from './helpers/login';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-const OWNER_EMAIL = process.env.OWNER_EMAIL || 'owner@example.com';
-const OWNER_PASSWORD = process.env.OWNER_PASSWORD || 'password';
-
-async function loginAsOwner(page: any) {
-  await page.goto(`${BASE_URL}/login`);
-  await page.fill('input[type="email"]', OWNER_EMAIL);
-  await page.fill('input[type="password"]', OWNER_PASSWORD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL(/\/(dashboard|messages)/, { timeout: 10000 });
-}
 
 test.describe('Rotation Settings Persistence', () => {
   test('Settings persist after save and refresh', async ({ page }) => {
