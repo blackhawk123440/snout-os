@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     // This ensures NextAuth's internal JWT encoding logic is used
     const callbackUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/callback/credentials`;
     const formData = new URLSearchParams({
-      email: user.email,
+      email: user.email || '', // Handle null case
       password: 'password', // Value doesn't matter when E2E_AUTH is enabled (bypassed in authorize)
       redirect: 'false',
       json: 'true',
