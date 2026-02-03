@@ -40,19 +40,19 @@ export default defineConfig({
 
   projects: [
     {
-      name: 'owner-mobile',
+      name: 'owner',
       use: {
         ...devices['iPhone 13'],
         viewport: { width: 390, height: 844 },
-        storageState: path.join(__dirname, 'tests/.auth/owner.json'),
+        storageState: path.join(__dirname, 'tests', '.auth', 'owner.json'),
       },
     },
     {
-      name: 'sitter-mobile',
+      name: 'sitter',
       use: {
         ...devices['iPhone 13'],
         viewport: { width: 390, height: 844 },
-        storageState: path.join(__dirname, 'tests/.auth/sitter.json'),
+        storageState: path.join(__dirname, 'tests', '.auth', 'sitter.json'),
       },
     },
   ],

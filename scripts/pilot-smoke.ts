@@ -92,7 +92,7 @@ async function main() {
         ...process.env,
         // Ensure required env vars are set
         DATABASE_URL: process.env.DATABASE_URL || 'postgresql://snoutos:snoutos_dev_password@localhost:5432/snoutos_messaging',
-        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-secret-for-smoke-tests-minimum-64-characters-required-for-nextauth-jwt-encoding',
+        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'JeBctxnIua976KOMQvZDg9qjF/4Xy3ncp/quiknbXBPKy5nFiOvsErmxIXtq+18a',
         NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
         ENABLE_E2E_AUTH: 'true',
         E2E_AUTH_KEY: process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production',

@@ -16,7 +16,9 @@ const SITTER_EMAIL = process.env.SITTER_EMAIL || 'sitter@example.com';
 
 async function globalSetup(config: FullConfig) {
   // Create .auth directory if it doesn't exist
-  const authDir = path.join(config.rootDir || process.cwd(), 'tests', '.auth');
+  // config.rootDir is the testDir (./tests), so we need to go up one level
+  const rootDir = config.rootDir ? path.dirname(config.rootDir) : process.cwd();
+  const authDir = path.join(rootDir, 'tests', '.auth');
   if (!fs.existsSync(authDir)) {
     fs.mkdirSync(authDir, { recursive: true });
   }
@@ -102,7 +104,9 @@ async function globalSetup(config: FullConfig) {
           } else if (lower === 'secure') {
             cookie.secure = true;
           } else if (lower.startsWith('samesite=')) {
-            cookie.sameSite = part.split('=')[1] || 'Lax';
+            const sameSiteValue = part.split('=')[1] || 'Lax';
+            // Playwright requires capitalized: Strict, Lax, or None
+            cookie.sameSite = sameSiteValue.charAt(0).toUpperCase() + sameSiteValue.slice(1).toLowerCase() as 'Strict' | 'Lax' | 'None';
           }
         }
         return cookie;
@@ -170,7 +174,9 @@ async function globalSetup(config: FullConfig) {
           } else if (lower === 'secure') {
             cookie.secure = true;
           } else if (lower.startsWith('samesite=')) {
-            cookie.sameSite = part.split('=')[1] || 'Lax';
+            const sameSiteValue = part.split('=')[1] || 'Lax';
+            // Playwright requires capitalized: Strict, Lax, or None
+            cookie.sameSite = sameSiteValue.charAt(0).toUpperCase() + sameSiteValue.slice(1).toLowerCase() as 'Strict' | 'Lax' | 'None';
           }
         }
         return cookie;

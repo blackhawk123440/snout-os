@@ -9,13 +9,23 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { loginAsOwner } from './helpers/login';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('Rotation Settings Persistence', () => {
   test('Settings persist after save and refresh', async ({ page }) => {
-    await loginAsOwner(page);
+    // Verify we're an owner first (skip if running in sitter project)
+    const sessionResponse = await page.request.get(`${BASE_URL}/api/auth/session`);
+    const session = await sessionResponse.json();
+    const isOwner = session?.user?.email === 'owner@example.com';
+    
+    if (!isOwner) {
+      // Skip this test if not running as owner (sitter project)
+      test.skip();
+      return;
+    }
+    
+    // With storageState, we're already authenticated - no need to login
     
     // Navigate to rotation settings
     await page.goto(`${BASE_URL}/settings/rotation`);

@@ -16,18 +16,16 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('Messaging Features', () => {
   test.beforeEach(async ({ page, request }) => {
-    // Login first to get session
-    await loginAsOwner(page);
-    
-    // Get session cookie from page context
+    // With storageState, we're already authenticated - no need to login
+    // Get session cookie from page context (from storageState)
     const cookies = await page.context().cookies();
     const sessionCookie = cookies.find(c => 
-      c.name === 'next-auth.session-token' || c.name === '__Secure-next-auth.session-token'
+      c.name === 'next-auth.session-token' || c.name === '__Secure-next-auth.session-token' || c.name === 'authjs.session-token'
     );
     
     // Seed smoke test data with authenticated request
     if (sessionCookie) {
-      const seedResponse = await request.post('/api/ops/seed-smoke', {
+      const seedResponse = await request.post(`${BASE_URL}/api/ops/seed-smoke`, {
         headers: {
           'Cookie': `${sessionCookie.name}=${sessionCookie.value}`,
         },
@@ -35,6 +33,8 @@ test.describe('Messaging Features', () => {
       if (!seedResponse.ok()) {
         console.warn('Failed to seed smoke test data:', await seedResponse.text());
       }
+    } else {
+      console.warn('No session cookie found - skipping seed');
     }
   });
 

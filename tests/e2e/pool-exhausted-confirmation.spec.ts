@@ -10,23 +10,30 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { loginAsOwner } from './helpers/login';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('Pool Exhausted Confirmation', () => {
   test.beforeEach(async ({ page, request }) => {
-    // Login first to get session
-    await loginAsOwner(page);
+    // Verify we're an owner first (skip if running in sitter project)
+    const sessionResponse = await page.request.get(`${BASE_URL}/api/auth/session`);
+    const session = await sessionResponse.json();
+    const isOwner = session?.user?.email === 'owner@example.com';
     
-    // Get session cookie and seed
+    if (!isOwner) {
+      // Skip this test if not running as owner (sitter project)
+      test.skip();
+      return;
+    }
+    
+    // With storageState, we're already authenticated - get session cookie and seed
     const cookies = await page.context().cookies();
     const sessionCookie = cookies.find(c => 
-      c.name === 'next-auth.session-token' || c.name === '__Secure-next-auth.session-token'
+      c.name === 'next-auth.session-token' || c.name === '__Secure-next-auth.session-token' || c.name === 'authjs.session-token'
     );
     
     if (sessionCookie) {
-      await request.post('/api/ops/seed-smoke', {
+      await request.post(`${BASE_URL}/api/ops/seed-smoke`, {
         headers: { 'Cookie': `${sessionCookie.name}=${sessionCookie.value}` },
       });
     }

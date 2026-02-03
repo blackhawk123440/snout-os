@@ -51,20 +51,32 @@ async function verify() {
       process.exit(1);
     }
 
-    const setCookie = response.headers.get('set-cookie');
-    if (setCookie) {
-      console.log(`   ✅ Success! Cookie header present`);
-      console.log(`   Cookie: ${setCookie.substring(0, 50)}...`);
-    } else {
+    // Get all Set-Cookie headers (NextAuth may set multiple cookies)
+    const setCookieHeaders = response.headers.getSetCookie();
+    if (!setCookieHeaders || setCookieHeaders.length === 0) {
       console.error(`   ❌ No Set-Cookie header in response`);
       process.exit(1);
     }
 
-    // Test session endpoint
-    const cookies = setCookie.split(';')[0];
+    // Find the session token cookie (next-auth.session-token or authjs.session-token)
+    const sessionCookie = setCookieHeaders.find(cookie => 
+      cookie.includes('next-auth.session-token') || cookie.includes('authjs.session-token')
+    );
+    
+    if (!sessionCookie) {
+      console.error(`   ❌ No session token cookie found`);
+      console.error(`   Found cookies: ${setCookieHeaders.map(c => c.split(';')[0]).join(', ')}`);
+      process.exit(1);
+    }
+
+    console.log(`   ✅ Success! Session cookie present`);
+    console.log(`   Cookie: ${sessionCookie.split(';')[0].substring(0, 50)}...`);
+
+    // Test session endpoint - use all cookies
+    const allCookies = setCookieHeaders.map(c => c.split(';')[0]).join('; ');
     const sessionResponse = await fetch(`${BASE_URL}/api/auth/session`, {
       headers: {
-        'Cookie': cookies,
+        'Cookie': allCookies,
       },
     });
 

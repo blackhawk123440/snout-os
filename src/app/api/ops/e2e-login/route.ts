@@ -11,9 +11,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { encode } from 'next-auth/jwt';
+import { handlers } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { getDefaultOrgId } from '@/lib/messaging/org-helpers';
 
 /**
  * Check if E2E auth is enabled
@@ -32,28 +31,6 @@ function verifyE2EKey(request: NextRequest): boolean {
   const key = request.headers.get('x-e2e-key');
   const expectedKey = process.env.E2E_AUTH_KEY;
   return !!expectedKey && key === expectedKey;
-}
-
-/**
- * Get NextAuth secret
- */
-function getNextAuthSecret(): string {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) {
-    throw new Error('NEXTAUTH_SECRET is required for E2E auth');
-  }
-  return secret;
-}
-
-/**
- * Get cookie name based on environment
- */
-function getCookieName(): string {
-  const isSecure = process.env.NODE_ENV === 'production' || 
-                   process.env.NEXTAUTH_URL?.startsWith('https');
-  return isSecure 
-    ? '__Secure-next-auth.session-token'
-    : 'next-auth.session-token';
 }
 
 export async function POST(request: NextRequest) {
@@ -115,72 +92,74 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get orgId (required for JWT)
-    const orgId = getDefaultOrgId();
-
-    // Create JWT token payload matching NextAuth v5 structure
-    // NextAuth v5 expects: sub (user ID), and custom fields from jwt callback
-    // The jwt callback sets: id, email, name, sitterId
-    const now = Math.floor(Date.now() / 1000);
-    const tokenPayload: any = {
-      sub: user.id, // Required: subject (user ID)
-      id: user.id,
+    // Use NextAuth's handlers.POST to create session via credentials callback
+    // This ensures NextAuth's internal JWT encoding logic is used
+    const callbackUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/callback/credentials`;
+    const formData = new URLSearchParams({
       email: user.email,
-      name: user.name,
-      sitterId: user.sitterId || null,
-      orgId: orgId,
-      iat: now, // Issued at
-      exp: now + (30 * 24 * 60 * 60), // Expires in 30 days
-    };
-
-    // Encode JWT using NextAuth's encoder
-    const secret = getNextAuthSecret();
-    const token = await encode({
-      token: tokenPayload,
-      secret: secret,
+      password: 'password', // Value doesn't matter when E2E_AUTH is enabled (bypassed in authorize)
+      redirect: 'false',
+      json: 'true',
     });
 
-    // Set cookie
-    const cookieName = getCookieName();
-    const isSecure = process.env.NODE_ENV === 'production' || 
-                     process.env.NEXTAUTH_URL?.startsWith('https');
-    
-    const cookieOptions = [
-      `${cookieName}=${token}`,
-      'Path=/',
-      'HttpOnly',
-      'SameSite=Lax',
-      `Max-Age=${30 * 24 * 60 * 60}`, // 30 days
-    ];
+    const authRequest = new NextRequest(callbackUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData.toString(),
+    });
 
-    if (isSecure) {
-      cookieOptions.push('Secure');
+    const { POST } = handlers;
+    const authResponse = await POST(authRequest);
+
+    // NextAuth returns 302 on success - extract Set-Cookie from response
+    const setCookieHeader = authResponse.headers.get('Set-Cookie');
+    
+    if (!setCookieHeader && authResponse.status !== 302) {
+      // Check if there's an error
+      try {
+        const errorData = await authResponse.json();
+        return NextResponse.json(
+          { error: 'Authentication failed', details: errorData },
+          { status: authResponse.status }
+        );
+      } catch {
+        // Response might not be JSON
+        return NextResponse.json(
+          { error: 'Authentication failed' },
+          { status: authResponse.status }
+        );
+      }
     }
 
-    // Emit audit event (console log for now)
+    // Emit audit event
     console.log('[E2E Auth] Session issued', {
       eventType: 'e2e.auth.issued',
       userId: user.id,
       email: user.email,
       role: role,
-      orgId: orgId,
       timestamp: new Date().toISOString(),
     });
 
     // Return success with Set-Cookie header
     const response = NextResponse.json({ ok: true });
-    response.headers.set('Set-Cookie', cookieOptions.join('; '));
+    if (setCookieHeader) {
+      // NextAuth may set multiple cookies - handle all of them
+      const cookies = setCookieHeader.split(',').map(c => c.trim());
+      for (const cookie of cookies) {
+        response.headers.append('Set-Cookie', cookie);
+      }
+    }
     
     return response;
   } catch (error: any) {
-    console.error('[E2E Auth] Error:', error);
-    console.error('[E2E Auth] Error stack:', error.stack);
-    console.error('[E2E Auth] Error message:', error.message);
+    // Do NOT log secrets
+    console.error('[E2E Auth] Error:', error.message);
     return NextResponse.json(
       { 
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : undefined,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       },
       { status: 500 }
     );
