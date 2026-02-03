@@ -36,7 +36,8 @@
     "proof:phase3": "tsx scripts/proof-phase-3.ts",
     "test:master-spec": "tsx scripts/test-master-spec-v1.ts",
     "setup:master-spec": "tsx scripts/setup-master-spec-v1.ts",
-    "pilot:smoke": "tsx scripts/pilot-smoke.ts"
+    "pilot:smoke": "tsx scripts/pilot-smoke.ts",
+    "verify:e2e-auth": "tsx scripts/verify-e2e-auth.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
