@@ -21,6 +21,8 @@ async function main() {
   }
   mkdirSync(PROOF_PACK_DIR, { recursive: true });
 
+  let testExitCode = 0; // Track test exit code
+
   try {
     // Step 1: Boot infra (Docker Compose) - optional if docker-compose.yml exists
     const dockerComposePath = join(process.cwd(), 'docker-compose.yml');
@@ -170,7 +172,6 @@ async function main() {
 
     // Step 4: Run Playwright smoke tests (ONLY smoke suite, no snapshots)
     console.log('🧪 Running Playwright smoke tests...');
-    let testExitCode = 0;
     try {
       execSync('pnpm test:ui:smoke', {
         stdio: 'inherit',

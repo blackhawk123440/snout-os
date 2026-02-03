@@ -7,6 +7,7 @@
 
 import { Page, expect } from '@playwright/test';
 
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const OWNER_EMAIL = process.env.OWNER_EMAIL || 'owner@example.com';
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD || 'password';
 const SITTER_EMAIL = process.env.SITTER_EMAIL || 'sitter@example.com';
@@ -19,8 +20,11 @@ const SITTER_PASSWORD = process.env.SITTER_PASSWORD || 'password';
  * @returns Promise that resolves when session is confirmed and redirect is complete
  */
 export async function loginAsOwner(page: Page): Promise<void> {
-  // Navigate to login
-  await page.goto('/login');
+  // Navigate to login with full URL
+  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  
+  // Wait for login form to be ready
+  await page.waitForSelector('input[type="email"]', { timeout: 10000 });
   
   // Fill credentials
   await page.fill('input[type="email"]', OWNER_EMAIL);
@@ -38,7 +42,7 @@ export async function loginAsOwner(page: Page): Promise<void> {
   // Poll to ensure session is reliably established via API
   await expect.poll(
     async () => {
-      const response = await page.request.get('/api/auth/session');
+      const response = await page.request.get(`${BASE_URL}/api/auth/session`);
       if (!response.ok()) return false;
       const sessionData = await response.json();
       return sessionData?.user?.email === OWNER_EMAIL;
@@ -54,8 +58,11 @@ export async function loginAsOwner(page: Page): Promise<void> {
  * @returns Promise that resolves when session is confirmed and redirect is complete
  */
 export async function loginAsSitter(page: Page): Promise<void> {
-  // Navigate to login
-  await page.goto('/login');
+  // Navigate to login with full URL
+  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+  
+  // Wait for login form to be ready
+  await page.waitForSelector('input[type="email"]', { timeout: 10000 });
   
   // Fill credentials
   await page.fill('input[type="email"]', SITTER_EMAIL);
@@ -73,7 +80,7 @@ export async function loginAsSitter(page: Page): Promise<void> {
   // Poll to ensure session is reliably established via API
   await expect.poll(
     async () => {
-      const response = await page.request.get('/api/auth/session');
+      const response = await page.request.get(`${BASE_URL}/api/auth/session`);
       if (!response.ok()) return false;
       const sessionData = await response.json();
       return sessionData?.user?.email === SITTER_EMAIL;

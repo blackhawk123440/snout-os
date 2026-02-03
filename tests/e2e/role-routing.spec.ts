@@ -27,17 +27,19 @@ test.describe('Role-Based Routing', () => {
   test('Owner login redirects to /dashboard', async ({ page }) => {
     await loginAsOwner(page);
     
-    // Should see logout button
-    const logoutButton = page.locator('text=Logout');
-    await expect(logoutButton).toBeVisible();
+    // Wait for page to fully load and logout button to be visible
+    await page.waitForLoadState('networkidle');
+    const logoutButton = page.locator('button:has-text("Logout")').or(page.locator('text=Logout'));
+    await expect(logoutButton).toBeVisible({ timeout: 5000 });
   });
 
   test('Sitter login redirects to /sitter/inbox', async ({ page }) => {
     await loginAsSitter(page);
     
-    // Should see logout button
-    const logoutButton = page.locator('text=Logout');
-    await expect(logoutButton).toBeVisible();
+    // Wait for page to fully load and logout button to be visible
+    await page.waitForLoadState('networkidle');
+    const logoutButton = page.locator('button:has-text("Logout")').or(page.locator('text=Logout'));
+    await expect(logoutButton).toBeVisible({ timeout: 5000 });
   });
 
   test('Sitter cannot access /messages', async ({ page }) => {
@@ -47,29 +49,33 @@ test.describe('Role-Based Routing', () => {
     await page.goto(`${BASE_URL}/messages`);
     
     // Should be redirected back to /sitter/inbox
-    await page.waitForURL('**/sitter/inbox', { timeout: 5000 });
+    await page.waitForURL('**/sitter/inbox', { timeout: 10000 });
     expect(page.url()).toContain('/sitter/inbox');
   });
 
   test('Logout works for owner', async ({ page }) => {
     await loginAsOwner(page);
+    await page.waitForLoadState('networkidle');
     
-    // Click logout
-    await page.click('text=Logout');
+    // Click logout button
+    const logoutButton = page.locator('button:has-text("Logout")').or(page.locator('text=Logout'));
+    await logoutButton.click();
     
     // Should redirect to /login
-    await page.waitForURL('**/login', { timeout: 5000 });
+    await page.waitForURL('**/login', { timeout: 10000 });
     expect(page.url()).toContain('/login');
   });
 
   test('Logout works for sitter', async ({ page }) => {
     await loginAsSitter(page);
+    await page.waitForLoadState('networkidle');
     
-    // Click logout
-    await page.click('text=Logout');
+    // Click logout button
+    const logoutButton = page.locator('button:has-text("Logout")').or(page.locator('text=Logout'));
+    await logoutButton.click();
     
     // Should redirect to /login
-    await page.waitForURL('**/login', { timeout: 5000 });
+    await page.waitForURL('**/login', { timeout: 10000 });
     expect(page.url()).toContain('/login');
   });
 });

@@ -197,21 +197,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * Apply chaos mode effects to a message send operation
- */
-export async function applyChaosMode(
-  operation: 'send' | 'webhook' | 'routing'
-): Promise<{ shouldFail: boolean; delayMs: number; shouldDuplicate: boolean }> {
-  const settings = await getChaosModeSettings();
-  
-  if (!settings.enabled) {
-    return { shouldFail: false, delayMs: 0, shouldDuplicate: false };
-  }
-
-  const shouldFail = Math.random() < settings.failureProbability;
-  const delayMs = Math.random() < settings.delayProbability ? settings.delayMs : 0;
-  const shouldDuplicate = Math.random() < settings.duplicateProbability;
-
-  return { shouldFail, delayMs, shouldDuplicate };
-}

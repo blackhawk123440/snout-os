@@ -50,6 +50,7 @@ export { Table, type TableProps, type TableColumn } from './Table';
 export { PageHeader, type PageHeaderProps } from './PageHeader';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
 export { FormRow, type FormRowProps } from './FormRow';
+export { Alert, type AlertProps } from './Alert';
 
 // Utils and Types
 export * from './utils';
