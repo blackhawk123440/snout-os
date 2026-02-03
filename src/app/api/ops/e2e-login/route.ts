@@ -174,8 +174,14 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error: any) {
     console.error('[E2E Auth] Error:', error);
+    console.error('[E2E Auth] Error stack:', error.stack);
+    console.error('[E2E Auth] Error message:', error.message);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
       { status: 500 }
     );
   }

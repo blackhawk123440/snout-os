@@ -32,6 +32,17 @@ async function verify() {
     if (!response.ok) {
       const text = await response.text();
       console.error(`   ❌ Failed: ${text}`);
+      try {
+        const json = JSON.parse(text);
+        if (json.message) {
+          console.error(`   Error message: ${json.message}`);
+        }
+        if (json.stack) {
+          console.error(`   Stack trace: ${json.stack.substring(0, 200)}...`);
+        }
+      } catch {
+        // Not JSON, already printed
+      }
       process.exit(1);
     }
 
