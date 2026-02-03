@@ -15,16 +15,24 @@ import { loginAsOwner } from './helpers/login';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('Pool Exhausted Confirmation', () => {
-  test.beforeAll(async ({ request }) => {
-    // Seed smoke test data
-    const seedResponse = await request.post('/api/ops/seed-smoke');
-    if (!seedResponse.ok()) {
-      console.warn('Failed to seed smoke test data:', await seedResponse.text());
+  test.beforeEach(async ({ page, request }) => {
+    // Login first to get session
+    await loginAsOwner(page);
+    
+    // Get session cookie and seed
+    const cookies = await page.context().cookies();
+    const sessionCookie = cookies.find(c => 
+      c.name === 'next-auth.session-token' || c.name === '__Secure-next-auth.session-token'
+    );
+    
+    if (sessionCookie) {
+      await request.post('/api/ops/seed-smoke', {
+        headers: { 'Cookie': `${sessionCookie.name}=${sessionCookie.value}` },
+      });
     }
   });
 
   test('owner sees banner and confirmation modal when pool exhausted', async ({ page, request }) => {
-    await loginAsOwner(page);
 
     // Setup: Set maxConcurrentThreadsPerPoolNumber to 1
     await request.post(`${BASE_URL}/api/settings/rotation`, {

@@ -15,16 +15,27 @@ import { loginAsOwner } from './helpers/login';
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 test.describe('Messaging Features', () => {
-  test.beforeAll(async ({ request }) => {
-    // Seed smoke test data before all tests
-    const seedResponse = await request.post('/api/ops/seed-smoke');
-    if (!seedResponse.ok()) {
-      console.warn('Failed to seed smoke test data:', await seedResponse.text());
-    }
-  });
-
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    // Login first to get session
     await loginAsOwner(page);
+    
+    // Get session cookie from page context
+    const cookies = await page.context().cookies();
+    const sessionCookie = cookies.find(c => 
+      c.name === 'next-auth.session-token' || c.name === '__Secure-next-auth.session-token'
+    );
+    
+    // Seed smoke test data with authenticated request
+    if (sessionCookie) {
+      const seedResponse = await request.post('/api/ops/seed-smoke', {
+        headers: {
+          'Cookie': `${sessionCookie.name}=${sessionCookie.value}`,
+        },
+      });
+      if (!seedResponse.ok()) {
+        console.warn('Failed to seed smoke test data:', await seedResponse.text());
+      }
+    }
   });
 
   test('Thread selection loads messages', async ({ page }) => {
