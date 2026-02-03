@@ -356,25 +356,27 @@ export async function POST(request: NextRequest) {
       });
 
       // Create AntiPoachingAttempt record
-      await prisma.antiPoachingAttempt.upsert({
+      const existingAttempt = await prisma.antiPoachingAttempt.findFirst({
         where: {
-          orgId_threadId_eventId: {
-            orgId,
-            threadId: threadB.id,
-            eventId: policyMessage.id,
-          },
-        },
-        update: {},
-        create: {
           orgId,
           threadId: threadB.id,
           eventId: policyMessage.id,
-          actorType: 'client',
-          violationType: 'phone_number_detected',
-          detectedContent: '555-123-4567',
-          action: 'redacted',
         },
       });
+      
+      if (!existingAttempt) {
+        await prisma.antiPoachingAttempt.create({
+          data: {
+            orgId,
+            threadId: threadB.id,
+            eventId: policyMessage.id,
+            actorType: 'client',
+            violationType: 'phone_number_detected',
+            detectedContent: '555-123-4567',
+            action: 'redacted',
+          },
+        });
+      }
     }
 
     return NextResponse.json({
