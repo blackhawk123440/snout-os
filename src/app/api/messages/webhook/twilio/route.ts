@@ -501,7 +501,7 @@ export async function POST(request: NextRequest) {
     // If shouldRouteToOwner is true (pool exhausted or other routing reason), route to owner inbox
     if (shouldRouteToOwner) {
       try {
-        const routingReason = assignedNumberClass === 'front_desk' && numberClass === 'pool'
+        const routingReason = thread.numberClass === 'pool'
           ? 'Pool numbers exhausted - routed to owner inbox'
           : autoResponseText || 'Routed to owner inbox';
         
