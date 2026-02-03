@@ -2,6 +2,10 @@
 /**
  * Quick verification script for E2E auth
  * Run this to test if E2E login route works before running full tests
+ * 
+ * Prerequisites:
+ * - Server must be running (pnpm dev)
+ * - Database must be seeded (pnpm db:seed)
  */
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
