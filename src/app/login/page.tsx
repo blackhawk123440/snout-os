@@ -53,9 +53,19 @@ function LoginContent() {
         setError("Invalid email or password");
         setLoading(false);
       } else if (result?.ok) {
-        // Verify session exists before redirecting
-        const sessionCheck = await fetch('/api/auth/session');
-        const sessionData = await sessionCheck.json();
+        // Wait a moment for session cookie to be set
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Verify session exists with retry loop (for Playwright compatibility)
+        let sessionData = null;
+        for (let i = 0; i < 5; i++) {
+          const sessionCheck = await fetch('/api/auth/session');
+          sessionData = await sessionCheck.json();
+          if (sessionData?.user) {
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
         
         if (sessionData?.user) {
           // Determine redirect based on role
@@ -63,25 +73,17 @@ function LoginContent() {
           const isSitter = !!user.sitterId;
           const redirectUrl = isSitter ? '/sitter/inbox' : (callbackUrl === '/dashboard' ? '/dashboard' : callbackUrl);
           
-          // Session confirmed - use hard redirect
-          window.location.href = redirectUrl;
-        } else {
-          // Session not established - wait and retry
-          setTimeout(async () => {
-            const retryCheck = await fetch('/api/auth/session');
-            const retryData = await retryCheck.json();
-            if (retryData?.user) {
-              // Determine redirect based on role
-              const user = retryData.user as any;
-              const isSitter = !!user.sitterId;
-              const redirectUrl = isSitter ? '/sitter/inbox' : (callbackUrl === '/dashboard' ? '/dashboard' : callbackUrl);
-              
+          // Use router.push for better Playwright navigation detection
+          router.push(redirectUrl);
+          // Also set window.location as immediate fallback (for immediate navigation)
+          setTimeout(() => {
+            if (window.location.pathname !== redirectUrl) {
               window.location.href = redirectUrl;
-            } else {
-              setError("Login succeeded but session not established. Check debug panel for details.");
-              setLoading(false);
             }
-          }, 500);
+          }, 100);
+        } else {
+          setError("Login succeeded but session not established. Check debug panel for details.");
+          setLoading(false);
         }
       } else {
         setError("Login failed. Please try again.");
