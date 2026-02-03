@@ -26,34 +26,25 @@ export async function loginAsOwner(page: Page): Promise<void> {
   await page.fill('input[type="email"]', OWNER_EMAIL);
   await page.fill('input[type="password"]', OWNER_PASSWORD);
   
-  // Submit form and wait for session response
-  const [sessionResponse] = await Promise.all([
-    page.waitForResponse(
-      (response) => 
-        response.url().includes('/api/auth/session') && 
-        response.status() === 200,
-      { timeout: 10000 }
-    ),
+  // Submit form - wait for navigation to start
+  await Promise.all([
+    page.waitForURL('**/dashboard', { timeout: 15000 }),
     page.click('button[type="submit"]'),
   ]);
   
-  // Verify session response contains user object
-  const sessionData = await sessionResponse.json();
-  expect(sessionData?.user).toBeTruthy();
-  expect(sessionData.user.email).toBe(OWNER_EMAIL);
+  // Verify we're on dashboard
+  expect(page.url()).toContain('/dashboard');
   
-  // Poll to ensure session is reliably established
+  // Poll to ensure session is reliably established via API
   await expect.poll(
     async () => {
       const response = await page.request.get('/api/auth/session');
-      return response.ok();
+      if (!response.ok()) return false;
+      const sessionData = await response.json();
+      return sessionData?.user?.email === OWNER_EMAIL;
     },
-    { timeout: 5000 }
+    { timeout: 5000, intervals: [200, 500, 1000] }
   ).toBeTruthy();
-  
-  // Now wait for redirect to dashboard
-  await page.waitForURL('**/dashboard', { timeout: 10000 });
-  expect(page.url()).toContain('/dashboard');
 }
 
 /**
@@ -70,32 +61,23 @@ export async function loginAsSitter(page: Page): Promise<void> {
   await page.fill('input[type="email"]', SITTER_EMAIL);
   await page.fill('input[type="password"]', SITTER_PASSWORD);
   
-  // Submit form and wait for session response
-  const [sessionResponse] = await Promise.all([
-    page.waitForResponse(
-      (response) => 
-        response.url().includes('/api/auth/session') && 
-        response.status() === 200,
-      { timeout: 10000 }
-    ),
+  // Submit form - wait for navigation to start
+  await Promise.all([
+    page.waitForURL('**/sitter/inbox', { timeout: 15000 }),
     page.click('button[type="submit"]'),
   ]);
   
-  // Verify session response contains user object
-  const sessionData = await sessionResponse.json();
-  expect(sessionData?.user).toBeTruthy();
-  expect(sessionData.user.email).toBe(SITTER_EMAIL);
+  // Verify we're on sitter inbox
+  expect(page.url()).toContain('/sitter/inbox');
   
-  // Poll to ensure session is reliably established
+  // Poll to ensure session is reliably established via API
   await expect.poll(
     async () => {
       const response = await page.request.get('/api/auth/session');
-      return response.ok();
+      if (!response.ok()) return false;
+      const sessionData = await response.json();
+      return sessionData?.user?.email === SITTER_EMAIL;
     },
-    { timeout: 5000 }
+    { timeout: 5000, intervals: [200, 500, 1000] }
   ).toBeTruthy();
-  
-  // Now wait for redirect to sitter inbox
-  await page.waitForURL('**/sitter/inbox', { timeout: 10000 });
-  expect(page.url()).toContain('/sitter/inbox');
 }
