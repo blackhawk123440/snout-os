@@ -118,15 +118,19 @@ export async function POST(request: NextRequest) {
     // Get orgId (required for JWT)
     const orgId = getDefaultOrgId();
 
-    // Create JWT token payload matching NextAuth structure
-    // NextAuth v5 JWT tokens match what the jwt callback creates
+    // Create JWT token payload matching NextAuth v5 structure
+    // NextAuth v5 expects: sub (user ID), and custom fields from jwt callback
     // The jwt callback sets: id, email, name, sitterId
+    const now = Math.floor(Date.now() / 1000);
     const tokenPayload: any = {
+      sub: user.id, // Required: subject (user ID)
       id: user.id,
       email: user.email,
       name: user.name,
       sitterId: user.sitterId || null,
       orgId: orgId,
+      iat: now, // Issued at
+      exp: now + (30 * 24 * 60 * 60), // Expires in 30 days
     };
 
     // Encode JWT using NextAuth's encoder

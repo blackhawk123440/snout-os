@@ -21,25 +21,29 @@ async function globalSetup(config: FullConfig) {
     fs.mkdirSync(authDir, { recursive: true });
   }
 
-  // Wait for server to be ready (retry up to 30 times, 2 seconds apart)
+  // Wait for server to be ready (retry up to 60 times, 1 second apart)
   console.log('[Global Setup] Waiting for server to be ready...');
   let serverReady = false;
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 60; i++) {
     try {
-      const healthCheck = await fetch(`${BASE_URL}/api/auth/health`, {
-        signal: AbortSignal.timeout(2000),
+      // Try the E2E login endpoint (will return 400/404 if server is up but endpoint not ready)
+      // Or try a simple GET to root
+      const response = await fetch(`${BASE_URL}/`, {
+        signal: AbortSignal.timeout(1000),
+        method: 'GET',
       });
-      if (healthCheck.ok || healthCheck.status === 404) {
-        // Any response means server is running
-        serverReady = true;
-        console.log('[Global Setup] Server is ready');
-        break;
+      // Any response (even 404) means server is running
+      serverReady = true;
+      console.log(`[Global Setup] Server is ready (attempt ${i + 1})`);
+      break;
+    } catch (error: any) {
+      // ECONNREFUSED means server not ready
+      if (i % 10 === 9) {
+        console.log(`[Global Setup] Still waiting for server... (${i + 1}/60)`);
       }
-    } catch {
-      // Server not ready yet
     }
-    if (i < 29) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    if (i < 59) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 
@@ -71,36 +75,45 @@ async function globalSetup(config: FullConfig) {
     }
 
     // Extract cookies from Set-Cookie header and add to browser context
+    // Playwright's request context doesn't automatically share cookies with browser context
     const setCookieHeader = ownerResponse.headers()['set-cookie'];
     if (setCookieHeader) {
       const cookieStrings = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
       const cookies = cookieStrings.map(cookieStr => {
-        const [nameValue, ...rest] = cookieStr.split(';');
+        const parts = cookieStr.split(';').map(p => p.trim());
+        const [nameValue] = parts;
         const [name, value] = nameValue.split('=');
+        
         const cookie: any = {
           name: name.trim(),
           value: value.trim(),
           domain: new URL(BASE_URL).hostname,
           path: '/',
         };
+        
         // Parse additional attributes
-        for (const attr of rest) {
-          const trimmed = attr.trim();
-          const lower = trimmed.toLowerCase();
+        for (const part of parts.slice(1)) {
+          const lower = part.toLowerCase();
           if (lower.startsWith('max-age=')) {
-            const maxAge = parseInt(trimmed.split('=')[1]);
-            cookie.expires = Date.now() + (maxAge * 1000);
+            const maxAge = parseInt(part.split('=')[1]);
+            cookie.expires = Math.floor(Date.now() / 1000) + maxAge;
           } else if (lower === 'httponly') {
             cookie.httpOnly = true;
           } else if (lower === 'secure') {
             cookie.secure = true;
           } else if (lower.startsWith('samesite=')) {
-            cookie.sameSite = trimmed.split('=')[1] || 'Lax';
+            cookie.sameSite = part.split('=')[1] || 'Lax';
           }
         }
         return cookie;
       });
-      await context.addCookies(cookies);
+      
+      if (cookies.length > 0) {
+        await context.addCookies(cookies);
+        console.log(`[Global Setup] Added ${cookies.length} cookie(s) to owner context`);
+      }
+    } else {
+      console.warn('[Global Setup] No Set-Cookie header in owner response');
     }
     
     // Save owner storage state
@@ -135,32 +148,40 @@ async function globalSetup(config: FullConfig) {
     if (sitterSetCookieHeader) {
       const cookieStrings = Array.isArray(sitterSetCookieHeader) ? sitterSetCookieHeader : [sitterSetCookieHeader];
       const cookies = cookieStrings.map(cookieStr => {
-        const [nameValue, ...rest] = cookieStr.split(';');
+        const parts = cookieStr.split(';').map(p => p.trim());
+        const [nameValue] = parts;
         const [name, value] = nameValue.split('=');
+        
         const cookie: any = {
           name: name.trim(),
           value: value.trim(),
           domain: new URL(BASE_URL).hostname,
           path: '/',
         };
+        
         // Parse additional attributes
-        for (const attr of rest) {
-          const trimmed = attr.trim();
-          const lower = trimmed.toLowerCase();
+        for (const part of parts.slice(1)) {
+          const lower = part.toLowerCase();
           if (lower.startsWith('max-age=')) {
-            const maxAge = parseInt(trimmed.split('=')[1]);
-            cookie.expires = Date.now() + (maxAge * 1000);
+            const maxAge = parseInt(part.split('=')[1]);
+            cookie.expires = Math.floor(Date.now() / 1000) + maxAge;
           } else if (lower === 'httponly') {
             cookie.httpOnly = true;
           } else if (lower === 'secure') {
             cookie.secure = true;
           } else if (lower.startsWith('samesite=')) {
-            cookie.sameSite = trimmed.split('=')[1] || 'Lax';
+            cookie.sameSite = part.split('=')[1] || 'Lax';
           }
         }
         return cookie;
       });
-      await sitterContext.addCookies(cookies);
+      
+      if (cookies.length > 0) {
+        await sitterContext.addCookies(cookies);
+        console.log(`[Global Setup] Added ${cookies.length} cookie(s) to sitter context`);
+      }
+    } else {
+      console.warn('[Global Setup] No Set-Cookie header in sitter response');
     }
     
     // Save sitter storage state
