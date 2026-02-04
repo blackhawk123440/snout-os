@@ -149,7 +149,8 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
                 inactivityReleaseDays,
                 maxPoolThreadLifetimeDays,
               },
-            });
+            },
+          });
 
             stats.totalReleased++;
           }

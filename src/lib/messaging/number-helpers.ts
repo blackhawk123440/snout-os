@@ -367,10 +367,11 @@ export async function getPoolNumber(
         availableCount: availableNumbers.length,
         totalPoolCount: poolNumbers.length,
     },
-    context: {
-      clientId: context?.clientId,
-      threadId: context?.threadId,
-      stickyReuseKey,
+      context: {
+        clientId: context?.clientId,
+        threadId: context?.threadId,
+        stickyReuseKey,
+      },
     },
   });
 
