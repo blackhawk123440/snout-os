@@ -103,7 +103,7 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
 
           // Check 1: Post-booking grace period
           const lastWindow = thread.assignmentWindows[0];
-          if (lastWindow && lastWindow.endsAt < gracePeriodCutoff) {
+          if (lastWindow && lastWindow.endAt < gracePeriodCutoff) {
             shouldRelease = true;
             releaseReason = `postBookingGraceHours (${postBookingGraceHours}h) expired`;
             stats.releasedByGracePeriod++;
