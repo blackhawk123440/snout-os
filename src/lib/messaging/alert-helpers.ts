@@ -87,6 +87,7 @@ export async function createAlert(params: {
       severity,
       entityType,
       entityId,
+    },
   });
 }
 
