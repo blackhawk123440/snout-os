@@ -85,7 +85,7 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
                 status: 'active',
               },
               orderBy: {
-                endsAt: 'desc',
+                endAt: 'desc',
               },
               take: 1,
             },
@@ -97,7 +97,7 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
     for (const poolNumber of poolNumbers) {
       try {
         // Check each thread using this pool number
-        for (const thread of poolNumber.threads) {
+        for (const thread of poolNumber.MessageThread) {
           let shouldRelease = false;
           let releaseReason = '';
 
