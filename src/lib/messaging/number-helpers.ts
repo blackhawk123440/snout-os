@@ -284,11 +284,15 @@ export async function getPoolNumber(
       },
     });
 
-    await logMessagingEvent(orgId, 'pool.exhausted', {
-      currentPoolSize: poolNumbers.length,
-      activeThreadCount,
-      maxConcurrent,
-      recommendedMinPoolSize,
+    await logMessagingEvent({
+      orgId,
+      eventType: 'pool.exhausted' as any, // pool.exhausted not in MessagingAuditEventType, but needed for audit
+      metadata: {
+        currentPoolSize: poolNumbers.length,
+        activeThreadCount,
+        maxConcurrent,
+        recommendedMinPoolSize,
+      },
     });
 
     // Return null to signal pool exhausted

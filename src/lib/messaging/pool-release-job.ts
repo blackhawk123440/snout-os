@@ -136,9 +136,12 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
             });
 
             // Log audit event
-            await logMessagingEvent(poolNumber.orgId, 'pool.number.released', {
-              numberId: poolNumber.id,
-              e164: poolNumber.e164,
+            await logMessagingEvent({
+              orgId: poolNumber.orgId,
+              eventType: 'pool.number.released' as any, // pool.number.released not in MessagingAuditEventType, but needed for audit
+              metadata: {
+                numberId: poolNumber.id,
+                e164: poolNumber.e164,
               threadId: thread.id,
               reason: releaseReason,
               settings: {
