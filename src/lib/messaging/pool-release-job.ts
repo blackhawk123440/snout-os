@@ -75,7 +75,7 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
     const poolNumbers = await prisma.messageNumber.findMany({
       where: whereClause,
       include: {
-        threads: {
+        MessageThread: {
           where: {
             status: { not: 'archived' },
           },
