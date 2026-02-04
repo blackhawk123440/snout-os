@@ -354,15 +354,18 @@ export async function getPoolNumber(
 
   // Log audit event for pool assignment
   const { logMessagingEvent } = await import('./audit-trail');
-  await logMessagingEvent(orgId, 'pool.number.assigned', {
-    numberId: selected.id,
-    e164: selected.e164,
-    strategy,
-    capacityCheck: {
-      maxConcurrent,
-      currentCount: countMap.get(selected.id) || 0,
-      availableCount: availableNumbers.length,
-      totalPoolCount: poolNumbers.length,
+  await logMessagingEvent({
+    orgId,
+    eventType: 'pool.number.assigned' as any, // pool.number.assigned not in MessagingAuditEventType, but needed for audit
+    metadata: {
+      numberId: selected.id,
+      e164: selected.e164,
+      strategy,
+      capacityCheck: {
+        maxConcurrent,
+        currentCount: countMap.get(selected.id) || 0,
+        availableCount: availableNumbers.length,
+        totalPoolCount: poolNumbers.length,
     },
     context: {
       clientId: context?.clientId,
