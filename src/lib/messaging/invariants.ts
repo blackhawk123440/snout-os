@@ -187,10 +187,14 @@ export async function logInvariantViolation(
   violation: InvariantViolation,
   orgId: string
 ): Promise<void> {
-  await logMessagingEvent(orgId, 'invariant.violation', {
-    invariant: violation.invariant,
-    violation: violation.violation,
-    context: violation.context,
+  await logMessagingEvent({
+    orgId,
+    eventType: 'invariant.violation' as any, // invariant.violation not in MessagingAuditEventType, but needed for audit
+    metadata: {
+      invariant: violation.invariant,
+      violation: violation.violation,
+      context: violation.context,
+    },
   });
 }
 
