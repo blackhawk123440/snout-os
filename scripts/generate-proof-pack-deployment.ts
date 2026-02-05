@@ -10,17 +10,27 @@ import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
 
 const WEB_PUBLIC_URL = process.env.WEB_PUBLIC_URL || 'https://snout-os-staging.onrender.com';
-const API_PUBLIC_URL = process.env.API_PUBLIC_URL || '';
+let API_PUBLIC_URL = process.env.API_PUBLIC_URL || '';
 const OWNER_EMAIL = process.env.OWNER_EMAIL || 'owner@example.com';
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD || 'password123';
 
 const PROOF_PACK_DIR = join(process.cwd(), 'proof-pack');
 const SCREENSHOTS_DIR = join(PROOF_PACK_DIR, 'screenshots');
 
+// Try to infer API_PUBLIC_URL from WEB_PUBLIC_URL if not set
 if (!API_PUBLIC_URL) {
-  console.error('❌ API_PUBLIC_URL is required');
-  console.error('Usage: API_PUBLIC_URL=https://... WEB_PUBLIC_URL=https://... pnpm proof:deployment');
-  process.exit(1);
+  if (WEB_PUBLIC_URL.includes('snout-os-staging')) {
+    API_PUBLIC_URL = WEB_PUBLIC_URL.replace('snout-os-staging', 'snout-os-api');
+    console.log(`⚠️  API_PUBLIC_URL not set, inferring: ${API_PUBLIC_URL}`);
+  } else if (WEB_PUBLIC_URL.includes('snout-os-web')) {
+    API_PUBLIC_URL = WEB_PUBLIC_URL.replace('snout-os-web', 'snout-os-api');
+    console.log(`⚠️  API_PUBLIC_URL not set, inferring: ${API_PUBLIC_URL}`);
+  } else {
+    console.error('❌ API_PUBLIC_URL is required');
+    console.error('Usage: API_PUBLIC_URL=https://snout-os-api.onrender.com WEB_PUBLIC_URL=https://snout-os-staging.onrender.com pnpm proof:deployment');
+    console.error('\nOr set API_PUBLIC_URL environment variable.');
+    process.exit(1);
+  }
 }
 
 async function curlCommand(url: string, method: string = 'GET', headers: Record<string, string> = {}): Promise<string> {
