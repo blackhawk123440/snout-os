@@ -199,40 +199,54 @@ export async function POST(request: NextRequest) {
       });
 
       // Rest of the flow is unchanged (automation, messaging, etc.)
-      await emitBookingCreated(booking);
+      // Make these non-blocking so booking creation success isn't affected
+      try {
+        await emitBookingCreated(booking);
+      } catch (eventError) {
+        console.error("[Form] Failed to emit booking created event (non-blocking):", eventError);
+      }
 
       // Phase 3.3: Move automation execution to worker queue
       // Per Master Spec Line 259: "Move every automation execution to the worker queue"
       // Enqueue automation jobs instead of executing directly
-      const { enqueueAutomation } = await import("@/lib/automation-queue");
-      
-      // Enqueue client notification job
-      await enqueueAutomation(
-        "ownerNewBookingAlert",
-        "client",
-        {
-          bookingId: booking.id,
-          firstName: booking.firstName,
-          lastName: booking.lastName,
-          phone: mappedInput.phone,
-          service: booking.service,
-        },
-        `ownerNewBookingAlert:client:${booking.id}` // Idempotency key
-      );
+      // Make these non-blocking so booking creation success isn't affected
+      try {
+        const { enqueueAutomation } = await import("@/lib/automation-queue");
+        
+        // Enqueue client notification job
+        await enqueueAutomation(
+          "ownerNewBookingAlert",
+          "client",
+          {
+            bookingId: booking.id,
+            firstName: booking.firstName,
+            lastName: booking.lastName,
+            phone: mappedInput.phone,
+            service: booking.service,
+          },
+          `ownerNewBookingAlert:client:${booking.id}` // Idempotency key
+        ).catch((err) => {
+          console.error("[Form] Failed to enqueue client notification (non-blocking):", err);
+        });
 
-      // Enqueue owner notification job
-      await enqueueAutomation(
-        "ownerNewBookingAlert",
-        "owner",
-        {
-          bookingId: booking.id,
-          firstName: booking.firstName,
-          lastName: booking.lastName,
-          phone: mappedInput.phone,
-          service: booking.service,
-        },
-        `ownerNewBookingAlert:owner:${booking.id}` // Idempotency key
-      );
+        // Enqueue owner notification job
+        await enqueueAutomation(
+          "ownerNewBookingAlert",
+          "owner",
+          {
+            bookingId: booking.id,
+            firstName: booking.firstName,
+            lastName: booking.lastName,
+            phone: mappedInput.phone,
+            service: booking.service,
+          },
+          `ownerNewBookingAlert:owner:${booking.id}` // Idempotency key
+        ).catch((err) => {
+          console.error("[Form] Failed to enqueue owner notification (non-blocking):", err);
+        });
+      } catch (automationError) {
+        console.error("[Form] Failed to enqueue automations (non-blocking):", automationError);
+      }
 
       return NextResponse.json({
         success: true,
@@ -660,40 +674,54 @@ export async function POST(request: NextRequest) {
     });
 
     // Emit booking.created event for Automation Center
-    await emitBookingCreated(booking);
+    // Make this non-blocking so booking creation success isn't affected
+    try {
+      await emitBookingCreated(booking);
+    } catch (eventError) {
+      console.error("[Form] Failed to emit booking created event (non-blocking):", eventError);
+    }
 
     // Phase 3.3: Move automation execution to worker queue
     // Per Master Spec Line 259: "Move every automation execution to the worker queue"
     // Enqueue automation jobs instead of executing directly
-    const { enqueueAutomation } = await import("@/lib/automation-queue");
-    
-    // Enqueue client notification job
-    await enqueueAutomation(
-      "ownerNewBookingAlert",
-      "client",
-      {
-        bookingId: booking.id,
-        firstName: trimmedFirstName,
-        lastName: trimmedLastName,
-        phone: trimmedPhone,
-        service: booking.service,
-      },
-      `ownerNewBookingAlert:client:${booking.id}` // Idempotency key
-    );
+    // Make these non-blocking so booking creation success isn't affected
+    try {
+      const { enqueueAutomation } = await import("@/lib/automation-queue");
+      
+      // Enqueue client notification job
+      await enqueueAutomation(
+        "ownerNewBookingAlert",
+        "client",
+        {
+          bookingId: booking.id,
+          firstName: trimmedFirstName,
+          lastName: trimmedLastName,
+          phone: trimmedPhone,
+          service: booking.service,
+        },
+        `ownerNewBookingAlert:client:${booking.id}` // Idempotency key
+      ).catch((err) => {
+        console.error("[Form] Failed to enqueue client notification (non-blocking):", err);
+      });
 
-    // Enqueue owner notification job
-    await enqueueAutomation(
-      "ownerNewBookingAlert",
-      "owner",
-      {
-        bookingId: booking.id,
-        firstName: trimmedFirstName,
-        lastName: trimmedLastName,
-        phone: trimmedPhone,
-        service: booking.service,
-      },
-      `ownerNewBookingAlert:owner:${booking.id}` // Idempotency key
-    );
+      // Enqueue owner notification job
+      await enqueueAutomation(
+        "ownerNewBookingAlert",
+        "owner",
+        {
+          bookingId: booking.id,
+          firstName: trimmedFirstName,
+          lastName: trimmedLastName,
+          phone: trimmedPhone,
+          service: booking.service,
+        },
+        `ownerNewBookingAlert:owner:${booking.id}` // Idempotency key
+      ).catch((err) => {
+        console.error("[Form] Failed to enqueue owner notification (non-blocking):", err);
+      });
+    } catch (automationError) {
+      console.error("[Form] Failed to enqueue automations (non-blocking):", automationError);
+    }
 
     return NextResponse.json({
       success: true,
