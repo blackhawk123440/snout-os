@@ -712,7 +712,6 @@ export async function POST(request: NextRequest) {
     console.error("Error details:", {
       message: error instanceof Error ? error.message : String(error),
       name: error instanceof Error ? error.name : "Unknown",
-      cause: error instanceof Error ? error.cause : undefined,
     });
     return NextResponse.json(
       { 
