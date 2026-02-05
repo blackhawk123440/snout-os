@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionSafe } from "@/lib/auth-helpers";
+import { generateAPIToken } from "@/lib/api/proxy-auth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
