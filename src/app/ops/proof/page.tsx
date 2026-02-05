@@ -46,7 +46,13 @@ export default function ProofPage() {
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
   const isUsingExternalAPI = !!API_BASE_URL;
-  const actualBaseUrl = API_BASE_URL || window.location.origin;
+  const [actualBaseUrl, setActualBaseUrl] = useState(API_BASE_URL || '');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setActualBaseUrl(API_BASE_URL || window.location.origin);
+    }
+  }, [API_BASE_URL]);
 
   const testEndpoint = async (
     endpoint: string,
@@ -266,10 +272,10 @@ export default function ProofPage() {
             </>
           ) : (
             <>
-              <li><code>{window.location.origin}/api/health</code></li>
-              <li><code>{window.location.origin}/api/messages/threads</code></li>
-              <li><code>{window.location.origin}/api/numbers</code></li>
-              <li><code>{window.location.origin}/api/assignments/windows</code></li>
+              <li><code>{typeof window !== 'undefined' ? window.location.origin : '...'}/api/health</code></li>
+              <li><code>{typeof window !== 'undefined' ? window.location.origin : '...'}/api/messages/threads</code></li>
+              <li><code>{typeof window !== 'undefined' ? window.location.origin : '...'}/api/numbers</code></li>
+              <li><code>{typeof window !== 'undefined' ? window.location.origin : '...'}/api/assignments/windows</code></li>
             </>
           )}
         </ul>
