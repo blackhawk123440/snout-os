@@ -11,6 +11,10 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 interface ProofResult {
   endpoint: string;
   status: 'pending' | 'pass' | 'fail';
