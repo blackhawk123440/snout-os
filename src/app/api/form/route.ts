@@ -708,10 +708,19 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Failed to create booking:", error);
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      name: error instanceof Error ? error.name : "Unknown",
+      cause: error instanceof Error ? error.cause : undefined,
+    });
     return NextResponse.json(
       { 
         error: "Failed to create booking", 
-        details: error instanceof Error ? error.message : String(error) 
+        details: error instanceof Error ? error.message : String(error),
+        ...(process.env.NODE_ENV === 'development' && {
+          stack: error instanceof Error ? error.stack : undefined,
+        }),
       },
       { status: 500, headers: buildCorsHeaders(request) }
     );
