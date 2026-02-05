@@ -33,6 +33,6 @@
     "playwright.config.ts",
     "vitest.config.ts",
     "enterprise-messaging-dashboard",
-    "scripts/seed-messaging-data.ts"
+    "scripts"
   ]
 }
