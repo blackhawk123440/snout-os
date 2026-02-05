@@ -199,8 +199,8 @@ async function verifyBooking(
         bookingId,
         testCase: testCaseName,
         passed: false,
-        failures,
-      };
+        failures: [...failures],
+      } as VerificationResult;
     }
 
     const data = await response.json();
