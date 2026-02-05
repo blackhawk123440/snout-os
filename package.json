@@ -37,7 +37,11 @@
     "test:master-spec": "tsx scripts/test-master-spec-v1.ts",
     "setup:master-spec": "tsx scripts/setup-master-spec-v1.ts",
     "pilot:smoke": "tsx scripts/pilot-smoke.ts",
-    "verify:e2e-auth": "tsx scripts/verify-e2e-auth.ts"
+    "verify:e2e-auth": "tsx scripts/verify-e2e-auth.ts",
+    "proof:pack": "tsx scripts/generate-proof-pack.ts",
+    "proof:deployment": "tsx scripts/generate-proof-pack-deployment.ts",
+    "get-render-inventory": "tsx scripts/get-render-inventory.ts",
+    "verify:deployment": "tsx scripts/verify-deployment.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

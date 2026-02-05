@@ -1,257 +1,107 @@
 /**
- * Assignment Windows API Endpoint
+ * Assignment Windows API Proxy
  * 
- * GET /api/assignments/windows - List assignment windows
- * POST /api/assignments/windows - Create assignment window
+ * PROXY ONLY - Forwards to NestJS API
+ * GET /api/assignments/windows
+ * POST /api/assignments/windows
+ * Proxies to: {API_BASE_URL}/api/assignments/windows
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { getCurrentUserSafe } from "@/lib/auth-helpers";
-import { getOrgIdFromContext } from "@/lib/messaging/org-helpers";
-import { env } from "@/lib/env";
+import { getSessionSafe } from "@/lib/auth-helpers";
+import { generateAPIToken } from "@/lib/api/proxy-auth";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function GET(request: NextRequest) {
+  if (!API_BASE_URL) {
+    return NextResponse.json(
+      { error: 'API service not configured. NEXT_PUBLIC_API_URL is missing.' },
+      { status: 503 }
+    );
+  }
+
   try {
-    if (!env.ENABLE_MESSAGING_V1) {
+    const session = await getSessionSafe();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const searchParams = request.nextUrl.searchParams;
+    const apiUrl = new URL(`${API_BASE_URL}/api/assignments/windows`);
+    searchParams.forEach((value, key) => {
+      apiUrl.searchParams.set(key, value);
+    });
+
+    // Generate JWT token from NextAuth session for NestJS API
+    const apiToken = await generateAPIToken(session);
+    if (!apiToken) {
       return NextResponse.json(
-        { error: "Messaging V1 not enabled" },
-        { status: 404 }
+        { error: 'Failed to generate API token' },
+        { status: 500 }
       );
     }
 
-    const currentUser = await getCurrentUserSafe(request);
-    if (!currentUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const orgId = await getOrgIdFromContext(currentUser.id);
-    const { searchParams } = new URL(request.url);
-    
-    const threadId = searchParams.get('threadId');
-    const sitterId = searchParams.get('sitterId');
-    const status = searchParams.get('status');
-
-    const where: any = {
-      thread: { orgId },
-    };
-    
-    if (threadId) {
-      where.threadId = threadId;
-    }
-    
-    if (sitterId) {
-      where.sitterId = sitterId;
-    }
-
-    const now = new Date();
-    if (status === 'active') {
-      where.startAt = { lte: now };
-      where.endAt = { gte: now };
-    } else if (status === 'future') {
-      where.startAt = { gt: now };
-    } else if (status === 'past') {
-      where.endAt = { lt: now };
-    }
-
-    const windows = await prisma.assignmentWindow.findMany({
-      where,
-      include: {
-        thread: {
-          select: {
-            id: true,
-            clientId: true,
-          },
-        },
-        sitter: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
+    const response = await fetch(apiUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
       },
-      orderBy: {
-        startAt: 'desc',
-      },
+      cache: 'no-store',
     });
 
-    // Fetch client data separately
-    const clientIds = windows.map(w => w.thread.clientId).filter((id): id is string => !!id);
-    const clients = clientIds.length > 0 ? await prisma.client.findMany({
-      where: { id: { in: clientIds } },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-      },
-    }) : [];
-    const clientMap = new Map(clients.map(c => [c.id, c]));
-
-    return NextResponse.json(windows.map(w => {
-      const now = new Date();
-      let status: 'active' | 'future' | 'past' = 'past';
-      if (w.startAt <= now && w.endAt >= now) {
-        status = 'active';
-      } else if (w.startAt > now) {
-        status = 'future';
-      }
-
-      const client = w.thread.clientId ? clientMap.get(w.thread.clientId) : null;
-
-      return {
-        id: w.id,
-        threadId: w.threadId,
-        sitterId: w.sitterId,
-        startsAt: w.startAt.toISOString(),
-        endsAt: w.endAt.toISOString(),
-        bookingRef: (w as any).bookingRef || (w as any).bookingId || null,
-        status,
-        thread: {
-          id: w.thread.id,
-          client: {
-            id: client?.id || 'unknown',
-            name: client ? `${client.firstName} ${client.lastName}` : 'Unknown Client',
-          },
-        },
-        sitter: {
-          id: w.sitter.id,
-          name: `${w.sitter.firstName} ${w.sitter.lastName}`,
-        },
-      };
-    }));
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
   } catch (error: any) {
-    console.error("[assignments/windows] Error:", error);
+    console.error('[API Proxy] Error proxying to NestJS API:', error);
     return NextResponse.json(
-      { error: "Failed to fetch assignment windows" },
-      { status: 500 }
+      { error: 'Failed to connect to API service', message: error.message },
+      { status: 502 }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    if (!env.ENABLE_MESSAGING_V1) {
-      return NextResponse.json(
-        { error: "Messaging V1 not enabled" },
-        { status: 404 }
-      );
-    }
-
-    const currentUser = await getCurrentUserSafe(request);
-    if (!currentUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const orgId = await getOrgIdFromContext(currentUser.id);
-    const body = await request.json();
-
-    const { threadId, sitterId, startsAt, endsAt, bookingRef, bookingId } = body;
-
-    if (!threadId || !sitterId || !startsAt || !endsAt) {
-      return NextResponse.json(
-        { error: "threadId, sitterId, startsAt, and endsAt are required" },
-        { status: 400 }
-      );
-    }
-
-    // Use bookingId if provided, otherwise use bookingRef (for backward compatibility)
-    const actualBookingId = bookingId || bookingRef || null;
-
-    // Verify thread belongs to org
-    const thread = await prisma.messageThread.findUnique({
-      where: { id: threadId, orgId },
-    });
-
-    if (!thread) {
-      return NextResponse.json(
-        { error: "Thread not found" },
-        { status: 404 }
-      );
-    }
-
-    // Verify sitter exists
-    const sitter = await prisma.sitter.findUnique({
-      where: { id: sitterId },
-    });
-
-    if (!sitter) {
-      return NextResponse.json(
-        { error: "Sitter not found" },
-        { status: 404 }
-      );
-    }
-
-    const window = await prisma.assignmentWindow.create({
-      data: {
-        orgId,
-        threadId,
-        sitterId,
-        startAt: new Date(startsAt),
-        endAt: new Date(endsAt),
-        bookingId: actualBookingId || 'temp-booking-id', // Schema requires bookingId, use temp if not provided
-        status: 'active',
-      },
-      include: {
-        thread: {
-          select: {
-            id: true,
-            clientId: true,
-          },
-        },
-        sitter: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-      },
-    });
-
-    // Fetch client data
-    const client = window.thread.clientId ? await prisma.client.findUnique({
-      where: { id: window.thread.clientId },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-      },
-    }) : null;
-
-    const now = new Date();
-    let status: 'active' | 'future' | 'past' = 'past';
-    if (window.startAt <= now && window.endAt >= now) {
-      status = 'active';
-    } else if (window.startAt > now) {
-      status = 'future';
-    }
-
-    return NextResponse.json({
-      id: window.id,
-      threadId: window.threadId,
-      sitterId: window.sitterId,
-      startsAt: window.startAt.toISOString(),
-      endsAt: window.endAt.toISOString(),
-      bookingRef: window.bookingId || null,
-      status,
-      thread: {
-        id: window.thread.id,
-        client: {
-          id: client?.id || 'unknown',
-          name: client ? `${client.firstName} ${client.lastName}` : 'Unknown Client',
-        },
-      },
-      sitter: {
-        id: window.sitter.id,
-        name: `${window.sitter.firstName} ${window.sitter.lastName}`,
-      },
-    });
-  } catch (error: any) {
-    console.error("[assignments/windows] Error:", error);
+  if (!API_BASE_URL) {
     return NextResponse.json(
-      { error: "Failed to create assignment window" },
-      { status: 500 }
+      { error: 'API service not configured. NEXT_PUBLIC_API_URL is missing.' },
+      { status: 503 }
+    );
+  }
+
+  try {
+    const session = await getSessionSafe();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    // Generate JWT token from NextAuth session for NestJS API
+    const apiToken = await generateAPIToken(session);
+    if (!apiToken) {
+      return NextResponse.json(
+        { error: 'Failed to generate API token' },
+        { status: 500 }
+      );
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/assignments/windows`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch (error: any) {
+    console.error('[API Proxy] Error proxying to NestJS API:', error);
+    return NextResponse.json(
+      { error: 'Failed to connect to API service', message: error.message },
+      { status: 502 }
     );
   }
 }

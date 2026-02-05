@@ -21,6 +21,7 @@ import { DeliveriesModule } from './deliveries/deliveries.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { SitterModule } from './sitter/sitter.module';
 import { OpsModule } from './ops/ops.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { OpsModule } from './ops/ops.module';
     SitterModule,
     OpsModule,
   ],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_GUARD,

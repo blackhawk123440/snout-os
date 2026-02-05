@@ -1,530 +1,58 @@
 /**
- * Send Message Endpoint
+ * Send Message API Proxy
  * 
- * Handles outbound message sending via messaging provider.
- * Per Messaging Master Spec V1:
- * - Authenticates and resolves org
- * - Checks permissions (owner only for now)
- * - Sends via provider adapter using thread session mapping
- * - Creates MessageEvent outbound
- * - Updates thread timestamps
+ * PROXY ONLY - Forwards to NestJS API
+ * POST /api/messages/send
+ * Proxies to: {API_BASE_URL}/api/messaging/send
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { getCurrentUserSafe } from "@/lib/auth-helpers";
-import { TwilioProvider } from "@/lib/messaging/providers/twilio";
-import { getOrgIdFromContext } from "@/lib/messaging/org-helpers";
-import { ensureThreadSession } from "@/lib/messaging/session-helpers";
-import { hasActiveAssignmentWindow, getNextUpcomingWindow } from "@/lib/messaging/routing-resolution";
-import { getCurrentSitterId } from "@/lib/sitter-helpers";
-import { checkAntiPoaching, blockAntiPoachingMessage } from "@/lib/messaging/anti-poaching-enforcement";
-import { env } from "@/lib/env";
-import { checkOutboundInvariants, logInvariantViolation } from "@/lib/messaging/invariants";
+import { getSessionSafe } from "@/lib/auth-helpers";
+import { generateAPIToken } from "@/lib/api/proxy-auth";
 
-// TwilioProvider will be instantiated per-request with orgId
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-/**
- * POST /api/messages/send
- * 
- * Send an outbound message via messaging provider.
- * Body: { threadId, text, media (optional) }
- */
 export async function POST(request: NextRequest) {
-  console.log('[api/messages/send] POST request received');
+  if (!API_BASE_URL) {
+    return NextResponse.json(
+      { error: 'API service not configured. NEXT_PUBLIC_API_URL is missing.' },
+      { status: 503 }
+    );
+  }
+
   try {
-    // Authenticate user
-    const currentUser = await getCurrentUserSafe(request);
-    if (!currentUser) {
-      console.log('[api/messages/send] Unauthorized - no user');
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-    console.log('[api/messages/send] User authenticated:', currentUser.id);
-
-    // Block sitters from owner messaging endpoints
-    const sitterId = await getCurrentSitterId(request);
-    if (sitterId) {
-      return NextResponse.json(
-        { error: "Sitters must use /api/sitter/threads/[id]/send endpoint" },
-        { status: 403 }
-      );
+    const session = await getSessionSafe();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get orgId from context
-    const orgId = await getOrgIdFromContext(currentUser.id);
-    
-    // Initialize Twilio provider with orgId
-    const twilioProvider = new TwilioProvider(undefined, orgId);
-
-    // Parse request body
     const body = await request.json();
-    const { threadId, text, media, confirmPoolFallback } = body;
-    console.log('[api/messages/send] Request body:', { threadId, textLength: text?.length, hasMedia: !!media });
-
-    // Validate required fields
-    if (!threadId || !text) {
+    // NestJS API: POST /api/messages/send
+    // Generate JWT token from NextAuth session for NestJS API
+    const apiToken = await generateAPIToken(session);
+    if (!apiToken) {
       return NextResponse.json(
-        { error: "Missing required fields: threadId and text are required" },
-        { status: 400 }
-      );
-    }
-
-    // Find thread and verify org isolation
-    const thread = await prisma.messageThread.findUnique({
-      where: { id: threadId },
-      include: {
-        participants: true,
-        messageNumber: true,
-      },
-    });
-
-    if (!thread) {
-      return NextResponse.json(
-        { error: "Thread not found" },
-        { status: 404 }
-      );
-    }
-
-    // Verify org isolation
-    if (thread.orgId !== orgId) {
-      return NextResponse.json(
-        { error: "Unauthorized: Thread belongs to different organization" },
-        { status: 403 }
-      );
-    }
-
-    // INVARIANT ENFORCEMENT: Thread-bound sending + from_number validation
-    
-    // HARDENED: Thread must have assigned number - fail with explicit business error
-    if (!thread.messageNumber) {
-      // Check if thread numberClass is "pool" and pool is exhausted
-      if (thread.numberClass === 'pool') {
-        // Try to assign pool number - if exhausted, return specific error
-        try {
-          const { assignNumberToThread } = await import('@/lib/messaging/number-helpers');
-          await assignNumberToThread(
-            threadId,
-            'pool',
-            orgId,
-            twilioProvider,
-            {
-              isOneTimeClient: thread.isOneTimeClient || false,
-            }
-          );
-          // If assignment succeeded, reload thread to get new number
-          const updatedThread = await prisma.messageThread.findUnique({
-            where: { id: threadId },
-            include: { messageNumber: true },
-          });
-          if (updatedThread?.messageNumber) {
-            // Continue with send using newly assigned number
-            thread.messageNumber = updatedThread.messageNumber;
-          }
-        } catch (error: any) {
-          if (error.message === 'POOL_EXHAUSTED') {
-            return NextResponse.json(
-              { 
-                error: "Pool numbers are exhausted. Replies will send from Front Desk number if you choose to continue.", 
-                errorCode: 'POOL_EXHAUSTED',
-                userMessage: "Pool exhausted — replies will send from Front Desk if you choose to continue.",
-                requiresConfirmation: true,
-              },
-              { status: 409 } // Conflict - requires user confirmation
-            );
-          }
-        }
-      }
-      
-      if (!thread.messageNumber) {
-        await logInvariantViolation({
-          invariant: 'thread-bound-sending',
-          violation: 'Thread has no assigned message number',
-          context: { threadId, orgId },
-        }, orgId);
-        
-        return NextResponse.json(
-          { 
-            error: "This conversation cannot send messages because no phone number is assigned. Please contact support to assign a number to this thread.", 
-            errorCode: 'NO_THREAD_NUMBER',
-            userMessage: "Unable to send message. This conversation needs a phone number assigned. Please contact support.",
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    const fromNumberE164 = thread.messageNumber.e164;
-    
-    // Check all outbound invariants
-    const invariantCheck = await checkOutboundInvariants(threadId, orgId, fromNumberE164);
-    if (!invariantCheck.valid) {
-      // Log violations
-      for (const violation of invariantCheck.violations) {
-        await logInvariantViolation(violation, orgId);
-      }
-      
-      // HARDENED: Return explicit business error for UI
-      const hasFromNumberMismatch = invariantCheck.violations.some(v => v.invariant === 'from-number-matches-thread');
-      if (hasFromNumberMismatch) {
-        return NextResponse.json(
-          { 
-            error: "Message sending failed: phone number mismatch. Please refresh and try again.", 
-            errorCode: 'INVARIANT_VIOLATION',
-            userMessage: "Unable to send message due to a configuration error. Please refresh the page and try again.",
-            violations: invariantCheck.violations.map(v => v.violation),
-          },
-          { status: 500 }
-        );
-      }
-      
-      return NextResponse.json(
-        { 
-          error: "Invariant violation detected", 
-          errorCode: 'INVARIANT_VIOLATION',
-          userMessage: "Unable to send message. Please try again or contact support.",
-          violations: invariantCheck.violations.map(v => v.violation),
-        },
+        { error: 'Failed to generate API token' },
         { status: 500 }
       );
     }
 
-    // Phase 2.2: Sitter send gating - block sitter messages outside assignment windows
-    // Check if current user is a sitter
-    const currentSitterId = await getCurrentSitterId(request);
-
-    // Phase 4.2: Sitter messages behind ENABLE_SITTER_MESSAGES_V1
-    if (currentSitterId && !env.ENABLE_SITTER_MESSAGES_V1) {
-      return NextResponse.json(
-        { error: "Sitter messages not enabled", errorCode: "SITTER_MESSAGES_DISABLED" },
-        { status: 404 }
-      );
-    }
-    
-    // If user is a sitter and is the assigned sitter on this thread, check window
-    if (currentSitterId && thread.assignedSitterId === currentSitterId) {
-      // Phase 2.2: Sitter send gating - block unless active window exists
-      const hasActiveWindow = await hasActiveAssignmentWindow(
-        currentSitterId,
-        thread.id,
-        new Date()
-      );
-
-      if (!hasActiveWindow) {
-        const nextWindow = await getNextUpcomingWindow(currentSitterId, thread.id);
-        const windowMsg = nextWindow
-          ? ` Your next window for this client is ${nextWindow.startAt.toLocaleString()} – ${nextWindow.endAt.toLocaleString()}.`
-          : '';
-        return NextResponse.json(
-          {
-            error: `Messages can only be sent during your active booking windows.${windowMsg}`,
-            errorCode: 'NO_ACTIVE_WINDOW',
-            nextWindow: nextWindow
-              ? { startAt: nextWindow.startAt.toISOString(), endAt: nextWindow.endAt.toISOString() }
-              : null,
-          },
-          { status: 403 }
-        );
-      }
-    }
-
-    // Owner always allowed (no window check)
-    // Users who are not the assigned sitter are allowed (they're owners/operators)
-
-    // Find client participant to get destination phone number (needed for anti-poaching check)
-    const clientParticipant = thread.participants.find(p => p.role === 'client');
-    if (!clientParticipant) {
-      return NextResponse.json(
-        { error: "No client participant found in thread" },
-        { status: 400 }
-      );
-    }
-
-    // Phase 3.2: Anti-poaching detection and enforcement
-    // Skip check if override flag is set (owner override)
-    const { forceSend } = body;
-    if (!forceSend) {
-      const detection = checkAntiPoaching(text);
-      
-      if (detection.detected) {
-        // Block message and create audit records
-        const blockingResult = await blockAntiPoachingMessage({
-          threadId: thread.id,
-          orgId,
-          direction: 'outbound',
-          // Phase 4.1: Owner sends messages - for anti-poaching, treat as 'sitter' if thread is assigned, otherwise 'client' (outbound from owner)
-          // Note: In practice, owner messages are outbound, but anti-poaching treats owner as 'sitter' role
-          actorType: 'sitter', // Owner messages are treated as sitter for anti-poaching enforcement
-          actorId: currentSitterId || currentUser.id,
-          body: text,
-          violations: detection.violations,
-          provider: twilioProvider,
-          senderE164: clientParticipant.realE164,
-        });
-
-        // Phase 4.2: Sitter gets friendly warning without exposing client data or violation details
-        const isSitterSender = !!currentSitterId;
-        return NextResponse.json(
-          isSitterSender
-            ? {
-                error: "Your message could not be sent. Please avoid sharing phone numbers, emails, external links, or social handles. Use the app for all client communication.",
-                errorCode: 'ANTI_POACHING_BLOCKED',
-              }
-            : {
-                error: "Message blocked due to anti-poaching policy",
-                errorCode: 'ANTI_POACHING_BLOCKED',
-                violations: detection.violations.map(v => v.type),
-                messageEventId: blockingResult.messageEventId,
-              },
-          { status: 403 }
-        );
-      }
-    }
-
-    // Gate 2: Check if thread has provider session - use Proxy if it exists
-    // If thread.providerSessionSid exists, we MUST use Proxy (never direct send)
-    // Only use direct send if no session exists (backward compatibility)
-    
-    let sessionInfo;
-    const hasSession = !!thread.providerSessionSid;
-
-    if (hasSession) {
-      // Thread has session - ensure participants exist and use Proxy
-      try {
-        sessionInfo = await ensureThreadSession(thread.id, twilioProvider, clientParticipant.realE164);
-      } catch (sessionError) {
-        console.error("[messages/send] Failed to ensure session participants:", sessionError);
-        // If session exists but we can't ensure participants, fail (don't leak real numbers)
-        return NextResponse.json(
-          {
-            error: "Failed to ensure Proxy session participants",
-            errorCode: 'SESSION_PARTICIPANT_ERROR',
-            errorMessage: sessionError instanceof Error ? sessionError.message : String(sessionError),
-          },
-          { status: 500 }
-        );
-      }
-    } else {
-      // No session - try to create one, but allow fallback to direct send if it fails
-      try {
-        sessionInfo = await ensureThreadSession(thread.id, twilioProvider, clientParticipant.realE164);
-        // Refresh thread to get updated providerSessionSid
-        const updatedThread = await prisma.messageThread.findUnique({
-          where: { id: thread.id },
-          select: { providerSessionSid: true },
-        });
-        if (updatedThread?.providerSessionSid) {
-          // Session was created - use Proxy
-          thread.providerSessionSid = updatedThread.providerSessionSid;
-        }
-      } catch (sessionError) {
-        console.error("[messages/send] Failed to create session:", sessionError);
-        // Continue - session creation failure allows direct send fallback
-        sessionInfo = null;
-      }
-    }
-
-    // Gate 2: Send message via Proxy if session exists, otherwise use direct send
-    let sendResult;
-    let messageSid: string | null = null;
-    let deliveryStatus = 'queued';
-    let errorCode: string | undefined;
-    let errorMessage: string | undefined;
-
-    // CRITICAL: If thread.providerSessionSid exists, we MUST use Proxy (never direct send)
-    if (thread.providerSessionSid && sessionInfo) {
-      // Send via Proxy using Message Interaction (maintains masking)
-      // Find owner participant or create one if needed
-      // For now, we'll send from client participant (they're in the session)
-      // In the future, we might have an "owner" participant in the session
-      
-      // Get updated participant with providerParticipantSid
-      const updatedClientParticipant = await prisma.messageParticipant.findUnique({
-        where: { id: clientParticipant.id },
-        select: { providerParticipantSid: true },
-      });
-
-      if (!updatedClientParticipant?.providerParticipantSid) {
-        return NextResponse.json(
-          {
-            error: "Client participant missing Proxy identifier",
-            errorCode: 'MISSING_PARTICIPANT_SID',
-          },
-          { status: 500 }
-        );
-      }
-
-      // For owner sending to client via Proxy, we need an owner participant in the session
-      // Find or create owner participant
-      let ownerParticipant = thread.participants.find(p => p.role === 'owner' && p.userId === currentUser.id);
-      
-      if (!ownerParticipant?.providerParticipantSid) {
-        // Create owner participant in Proxy session
-        // Use business phone number as identifier (from env or masked number)
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { env } = require('@/lib/env');
-        const ownerIdentifier = env.TWILIO_PHONE_NUMBER || thread.maskedNumberE164 || clientParticipant.realE164;
-        
-        const ownerParticipantResult = await twilioProvider.createParticipant({
-          sessionSid: thread.providerSessionSid,
-          identifier: ownerIdentifier,
-          friendlyName: 'Owner',
-        });
-
-        if (!ownerParticipantResult.success || !ownerParticipantResult.participantSid) {
-          return NextResponse.json(
-            {
-              error: "Failed to create owner participant in Proxy session",
-              errorCode: ownerParticipantResult.errorCode,
-              errorMessage: ownerParticipantResult.errorMessage,
-            },
-            { status: 500 }
-          );
-        }
-
-        // Store owner participant
-        if (ownerParticipant) {
-          await prisma.messageParticipant.update({
-            where: { id: ownerParticipant.id },
-            data: {
-              providerParticipantSid: ownerParticipantResult.participantSid,
-            },
-          });
-          ownerParticipant.providerParticipantSid = ownerParticipantResult.participantSid;
-        } else {
-          ownerParticipant = await prisma.messageParticipant.create({
-            data: {
-              threadId: thread.id,
-              orgId,
-              role: 'owner',
-              userId: currentUser.id,
-              displayName: 'Owner',
-              realE164: ownerIdentifier, // Business number
-              providerParticipantSid: ownerParticipantResult.participantSid,
-            },
-          });
-        }
-      }
-
-      // Send via Proxy using Message Interaction from owner participant
-      // In Twilio Proxy, Message Interactions send from one participant to all other participants in the session
-      // Since client is the only other participant, message goes to client (masked)
-      if (!ownerParticipant.providerParticipantSid) {
-        return NextResponse.json(
-          {
-            error: "Owner participant missing Proxy identifier",
-            errorCode: 'MISSING_PARTICIPANT_SID',
-          },
-          { status: 500 }
-        );
-      }
-      
-      const proxySendResult = await twilioProvider.sendViaProxy({
-        sessionSid: thread.providerSessionSid,
-        fromParticipantSid: ownerParticipant.providerParticipantSid,
-        body: text,
-        mediaUrls: media && Array.isArray(media) ? media : undefined,
-      });
-
-      if (!proxySendResult.success) {
-        // If Proxy send fails, do not fall back to direct send (would leak real numbers)
-        return NextResponse.json(
-          {
-            error: "Failed to send message via Proxy",
-            errorCode: proxySendResult.errorCode,
-            errorMessage: proxySendResult.errorMessage,
-          },
-          { status: 500 }
-        );
-      }
-
-      messageSid = proxySendResult.interactionSid || null;
-      deliveryStatus = proxySendResult.interactionSid ? 'queued' : 'failed';
-    } else {
-      // No session - use direct send (backward compatibility)
-      // CRITICAL: Only allowed if thread.providerSessionSid does NOT exist
-      // If thread.providerSessionSid exists, we must use Proxy (never direct send)
-      if (thread.providerSessionSid) {
-        // This should never happen - if session exists, we should have used Proxy above
-        console.error("[messages/send] ERROR: Thread has providerSessionSid but attempting direct send!");
-        return NextResponse.json(
-          {
-            error: "Cannot use direct send when Proxy session exists",
-            errorCode: 'PROXY_SESSION_REQUIRED',
-          },
-          { status: 500 }
-        );
-      }
-
-      // No session - direct send is OK (backward compatibility)
-      const toNumber = clientParticipant.realE164;
-
-      // INVARIANT: from_number must equal thread.messageNumber.e164
-      // Pass the thread's messageNumber SID or E164 to ensure correct from number
-      sendResult = await twilioProvider.sendMessage({
-        to: toNumber,
-        body: text,
-        mediaUrls: media && Array.isArray(media) ? media : undefined,
-        fromNumberSid: thread.messageNumber.providerNumberSid || undefined,
-      });
-
-      if (!sendResult.success) {
-        return NextResponse.json(
-          {
-            error: "Failed to send message",
-            errorCode: sendResult.errorCode,
-            errorMessage: sendResult.errorMessage,
-          },
-          { status: 500 }
-        );
-      }
-
-      messageSid = sendResult.messageSid || null;
-      deliveryStatus = sendResult.messageSid ? 'queued' : 'failed';
-      errorCode = sendResult.errorCode;
-      errorMessage = sendResult.errorMessage;
-    }
-
-    // Create outbound message event
-    const messageEvent = await prisma.messageEvent.create({
-      data: {
-        threadId: thread.id,
-        orgId,
-        direction: 'outbound',
-        actorType: 'owner', // TODO: Determine from user role
-        actorUserId: currentUser.id,
-        providerMessageSid: messageSid,
-        body: text,
-        mediaJson: media && Array.isArray(media) ? JSON.stringify(media) : null,
-        deliveryStatus,
-        failureCode: errorCode,
-        failureDetail: errorMessage,
-        createdAt: new Date(),
+    const response = await fetch(`${API_BASE_URL}/api/messages/send`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify(body),
     });
 
-    // Update thread timestamps
-    await prisma.messageThread.update({
-      where: { id: thread.id },
-      data: {
-        lastOutboundAt: new Date(),
-        lastMessageAt: new Date(),
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      messageId: messageEvent.id,
-      messageSid: messageSid,
-      status: messageEvent.deliveryStatus,
-    });
-  } catch (error) {
-    console.error("[messages/send] Error sending message:", error);
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch (error: any) {
+    console.error('[API Proxy] Error proxying to NestJS API:', error);
     return NextResponse.json(
-      { error: "Failed to send message" },
-      { status: 500 }
+      { error: 'Failed to connect to API service', message: error.message },
+      { status: 502 }
     );
   }
 }

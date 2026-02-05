@@ -190,6 +190,11 @@ export function isProtectedRoute(pathname: string): boolean {
     return true;
   }
 
+  // Ops/proof page (owner-only verification)
+  if (pathname.startsWith("/ops/proof")) {
+    return true;
+  }
+
   return false;
 }
 
