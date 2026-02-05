@@ -5,10 +5,10 @@
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
-    "start": "node dist/main",
-    "start:prod": "node dist/main.js",
+    "start": "node dist/src/main.js",
+    "start:prod": "node dist/src/main.js",
     "worker": "tsx src/worker.ts",
-    "worker:prod": "node dist/worker.js",
+    "worker:prod": "node dist/src/worker.js",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "test:audit": "vitest run audit-completeness",
