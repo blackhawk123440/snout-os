@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 // Alias mapping function - returns both sitter ID (for Stripe) and keeps alias for lookup
+// Note: API schema uses `name` field instead of firstName/lastName
 async function getSitterInfoFromAlias(alias: string): Promise<{ sitterId: string; sitterAlias: string }> {
   // If it's already a Stripe account ID, use it directly
   if (alias.startsWith('acct_')) {
@@ -12,19 +13,20 @@ async function getSitterInfoFromAlias(alias: string): Promise<{ sitterId: string
   const nameParts = alias.split('-');
   if (nameParts.length >= 2) {
     try {
-      // SQLite doesn't support case-insensitive mode, so fetch all and filter
+      // API schema uses `name` field (full name), not firstName/lastName
       const allSitters = await prisma.sitter.findMany({
-        select: { firstName: true, lastName: true, stripeAccountId: true },
+        select: { id: true, name: true },
       });
       
+      // Match by name (case-insensitive)
+      const searchName = nameParts.join(' ');
       const sitter = allSitters.find(s => 
-        s.firstName.toLowerCase() === nameParts[0].toLowerCase() &&
-        s.lastName.toLowerCase() === nameParts.slice(1).join('-').toLowerCase()
+        s.name.toLowerCase().replace(/\s+/g, '-') === alias.toLowerCase()
       );
       
-      // Use stripeAccountId if found, otherwise keep original alias
+      // Use sitter ID if found, otherwise keep original alias
       return { 
-        sitterId: sitter?.stripeAccountId || alias,
+        sitterId: sitter?.id || alias,
         sitterAlias: alias // Keep original alias for name lookup
       };
     } catch (e) {
