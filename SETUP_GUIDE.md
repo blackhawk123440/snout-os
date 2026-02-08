@@ -164,8 +164,8 @@ pnpm install && pnpm --filter @snoutos/shared build && cd apps/api && pnpm prism
 ```
 
 **Test user credentials (after seeding):**
-- Email: `owner@example.com`
-- Password: `password123`
+- Email: `leah2maria@gmail.com`
+- Password: `Saint214!`
 
 ---
 
