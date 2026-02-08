@@ -84,24 +84,11 @@ export async function getOwnerPhone(
     }
   }
 
-  const settings = await prisma.setting.findMany({
-    where: {
-      OR: [
-        { key: "ownerPersonalPhone" },
-        { key: "ownerOpenphonePhone" },
-        { key: "ownerPhoneType" },
-      ],
-    },
-  });
-
-  const settingsObj: Record<string, any> = {};
-  settings.forEach((setting) => {
-    settingsObj[setting.key] = setting.value;
-  });
-
-  const ownerPersonalPhone = settingsObj.ownerPersonalPhone || null;
-  const ownerOpenphonePhone = settingsObj.ownerOpenphonePhone || null;
-  const defaultPhoneType = settingsObj.ownerPhoneType || "personal";
+  // Note: Setting model not available in API schema
+  // Use environment variables instead
+  const ownerPersonalPhone = process.env.OWNER_PERSONAL_PHONE || null;
+  const ownerOpenphonePhone = process.env.OWNER_OPENPHONE_PHONE || null;
+  const defaultPhoneType = process.env.OWNER_PHONE_TYPE || "personal";
 
   if (!preferredType) {
     preferredType = defaultPhoneType;
@@ -130,12 +117,6 @@ export async function getOwnerOpenPhoneNumberId(): Promise<string | null> {
 
   // Note: Setting model not available in API schema
   // Use environment variable only
-  const setting = null; // await prisma.setting.findUnique({ where: { key: "openphoneNumberId" } });
-
-  if (setting && setting.value) {
-    return setting.value;
-  }
-
   return null;
 }
 
