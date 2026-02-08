@@ -83,9 +83,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         let user;
         try {
           console.log('[NextAuth] Querying database for user...');
+          // Note: API schema doesn't have sitterId directly, it's a relation
+          // We'll get it via the sitter relation if needed
           user = await prisma.user.findUnique({
             where: { email: credentials.email as string },
-            select: { id: true, email: true, name: true, passwordHash: true, sitterId: true },
+            select: { 
+              id: true, 
+              email: true, 
+              name: true, 
+              passwordHash: true,
+              // sitterId is not in API schema - removed to avoid Prisma error
+            },
           });
           console.log('[NextAuth] User query result:', user ? 'Found' : 'Not found');
         } catch (error: any) {
@@ -138,7 +146,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          sitterId: user.sitterId, // Include sitterId in token
+          // sitterId removed - API schema uses relation, not direct field
         };
       },
     }),
