@@ -348,16 +348,9 @@ async function executeWriteInternalNote(config: any, context: EventContext): Pro
     return { success: false, error: "No booking ID found" };
   }
 
-  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
-  const existingNotes = booking?.notes || "";
-  const newNotes = existingNotes ? `${existingNotes}\n[Automation] ${note}` : `[Automation] ${note}`;
-
-  await prisma.booking.update({
-    where: { id: bookingId },
-    data: { notes: newNotes },
-  });
-
-  return { success: true };
+  // Note: Booking model not available in messaging dashboard schema
+  // This function is for the original booking system only
+  return { success: false, error: "Booking model not available in messaging dashboard" };
 }
 
 /**
