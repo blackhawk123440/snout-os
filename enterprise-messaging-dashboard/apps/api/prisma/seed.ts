@@ -24,24 +24,30 @@ async function main() {
 
   // Find or create owner user
   let owner = await prisma.user.findUnique({
-    where: { email: 'owner@example.com' },
+    where: { email: 'leah2maria@gmail.com' },
   });
 
   if (!owner) {
-    const ownerPasswordHash = await bcrypt.hash('password123', 10);
+    const ownerPasswordHash = await bcrypt.hash('Saint214!', 10);
     owner = await prisma.user.create({
       data: {
         orgId: org.id,
         role: 'owner',
         name: 'Business Owner',
-        email: 'owner@example.com',
+        email: 'leah2maria@gmail.com',
         passwordHash: ownerPasswordHash,
         active: true,
       },
     });
     console.log('✅ Created owner user:', owner.email);
   } else {
-    console.log('✅ Using existing owner user:', owner.email);
+    // Update password if user exists
+    const ownerPasswordHash = await bcrypt.hash('Saint214!', 10);
+    owner = await prisma.user.update({
+      where: { email: 'leah2maria@gmail.com' },
+      data: { passwordHash: ownerPasswordHash },
+    });
+    console.log('✅ Updated owner user password:', owner.email);
   }
 
   // Create sitters first
