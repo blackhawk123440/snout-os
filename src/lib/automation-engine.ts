@@ -238,50 +238,21 @@ async function executeSendEmail(config: any, context: EventContext): Promise<{ s
 }
 
 async function executeUpdateBookingStatus(config: any, context: EventContext): Promise<{ success: boolean; error?: string }> {
-  const { status } = config;
-  const bookingId = context.bookingId || context.booking?.id;
-  
-  if (!bookingId) {
-    return { success: false, error: "No booking ID found" };
-  }
-
-  await prisma.booking.update({
-    where: { id: bookingId },
-    data: { status },
-  });
-
-  return { success: true };
+  // Note: Booking model not available in messaging dashboard schema
+  // This function is for the original booking system only
+  return { success: false, error: "Booking model not available in messaging dashboard" };
 }
 
 async function executeAssignSitter(config: any, context: EventContext): Promise<{ success: boolean; error?: string }> {
-  const { sitterId } = config;
-  const bookingId = context.bookingId || context.booking?.id;
-  
-  if (!bookingId || !sitterId) {
-    return { success: false, error: "Missing booking ID or sitter ID" };
-  }
-
-  await prisma.booking.update({
-    where: { id: bookingId },
-    data: { sitterId },
-  });
-
-  return { success: true };
+  // Note: Booking model not available in messaging dashboard schema
+  // This function is for the original booking system only
+  return { success: false, error: "Booking model not available in messaging dashboard" };
 }
 
 async function executeUnassignSitter(config: any, context: EventContext): Promise<{ success: boolean; error?: string }> {
-  const bookingId = context.bookingId || context.booking?.id;
-  
-  if (!bookingId) {
-    return { success: false, error: "No booking ID found" };
-  }
-
-  await prisma.booking.update({
-    where: { id: bookingId },
-    data: { sitterId: null },
-  });
-
-  return { success: true };
+  // Note: Booking model not available in messaging dashboard schema
+  // This function is for the original booking system only
+  return { success: false, error: "Booking model not available in messaging dashboard" };
 }
 
 async function executeApplyFee(config: any, context: EventContext): Promise<{ success: boolean; error?: string }> {
