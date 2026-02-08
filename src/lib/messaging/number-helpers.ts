@@ -183,14 +183,8 @@ export async function getPoolNumber(
     stickyReuseKey?: 'clientId' | 'threadId';
   }
 ): Promise<{ numberId: string; e164: string } | null> {
-  // Get rotation settings
-  const rotationSettings = await prisma.setting.findMany({
-    where: {
-      key: {
-        startsWith: 'rotation.',
-      },
-    },
-  });
+  // Note: API schema doesn't have Setting model - use defaults
+  const rotationSettings: any[] = [];
 
   const settings: Record<string, string> = {};
   for (const setting of rotationSettings) {

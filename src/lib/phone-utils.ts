@@ -122,16 +122,9 @@ export async function getOwnerOpenPhoneNumberId(): Promise<string | null> {
     return envNumberId;
   }
 
-  // Then check database settings
-  const setting = await prisma.setting.findUnique({
-    where: { key: "openphoneNumberId" },
-  });
-
-  if (setting && setting.value) {
-    return setting.value;
-  }
-
-  return null;
+  // Note: API schema doesn't have Setting model - use environment variable
+  // Return environment variable directly
+  return process.env.OPENPHONE_NUMBER_ID || null;
 }
 
 

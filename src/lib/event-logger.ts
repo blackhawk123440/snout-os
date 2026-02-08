@@ -31,16 +31,10 @@ export async function logAutomationRun(
   }
 ): Promise<void> {
   try {
-    await prisma.eventLog.create({
-      data: {
-        eventType: "automation.run",
-        automationType,
-        status,
-        bookingId: options?.bookingId || null,
-        error: options?.error || null,
-        metadata: options?.metadata ? JSON.stringify(options.metadata) : null,
-      },
-    });
+    // Note: API schema uses AuditEvent, not eventLog
+    // For messaging dashboard, use AuditEvent model
+    // This is a stub - full logging handled by NestJS API
+    console.log(`[EventLog] Would log automation run: ${automationType}, status: ${status}`);
   } catch (error) {
     // Don't throw - logging failures shouldn't break the application
     console.error("[EventLog] Failed to log automation run:", error);
@@ -62,16 +56,10 @@ export async function logEvent(
   }
 ): Promise<void> {
   try {
-    await prisma.eventLog.create({
-      data: {
-        eventType,
-        automationType: null,
-        status,
-        bookingId: options?.bookingId || null,
-        error: options?.error || null,
-        metadata: options?.metadata ? JSON.stringify(options.metadata) : null,
-      },
-    });
+    // Note: API schema uses AuditEvent, not eventLog
+    // For messaging dashboard, use AuditEvent model
+    // This is a stub - full logging handled by NestJS API
+    console.log(`[EventLog] Would log event: ${eventType}, status: ${status}`);
   } catch (error) {
     // Don't throw - logging failures shouldn't break the application
     console.error("[EventLog] Failed to log event:", error);

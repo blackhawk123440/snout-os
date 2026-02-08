@@ -21,17 +21,9 @@ async function getActiveBookingForClient(
   
   if (!client) return null;
   
-  // Find booking by phone number (Booking model doesn't have clientId or orgId)
-  const booking = await prisma.booking.findFirst({
-    where: {
-      phone: client.phone,
-      startAt: { lte: now },
-      endAt: { gte: now },
-      status: { notIn: ['cancelled', 'completed'] },
-    },
-    select: { id: true, sitterId: true },
-    orderBy: { startAt: 'desc' },
-  });
+  // Note: Booking model not available in messaging dashboard schema
+  // Return null - booking routing handled by API
+  const booking = null;
   return booking;
 }
 

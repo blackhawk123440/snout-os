@@ -29,7 +29,8 @@ export async function determineClientClassification(context: {
 }): Promise<{ isOneTimeClient: boolean; isRecurringClient: boolean }> {
   // Rule 1 (Primary): If booking is linked, check explicit recurrence flags
   if (context.bookingId) {
-    const booking = await prisma.booking.findUnique({
+    // Note: Booking model not available in messaging dashboard schema
+    const booking = null; // await prisma.booking.findUnique({
       where: { id: context.bookingId },
       select: {
         clientId: true,
@@ -116,7 +117,8 @@ async function checkBookingRecurrenceFlags(bookingId: string): Promise<boolean> 
 async function getBookingCountHeuristic(
   clientId: string
 ): Promise<number> {
-  const bookingCount = await prisma.booking.count({
+  // Note: Booking model not available in messaging dashboard schema
+  const bookingCount = 0; // await prisma.booking.count({
     where: {
       clientId,
     },

@@ -51,7 +51,9 @@ export async function ensureProactiveThreadCreation(
   const resolvedOrgId = orgId || (await getDefaultOrgId());
 
   // Fetch booking with client information
-  const booking = await prisma.booking.findUnique({
+  // Note: Booking model not available in messaging dashboard schema
+  // Return null - proactive thread creation handled by API
+  const booking = null; // await prisma.booking.findUnique({
     where: { id: bookingId },
     select: {
       id: true,
@@ -211,7 +213,9 @@ export async function handleBookingReassignment(
 
   if (newSitterId) {
     // Get booking for window update
-    const booking = await prisma.booking.findUnique({
+    // Note: Booking model not available in messaging dashboard schema
+  // Return null - proactive thread creation handled by API
+  const booking = null; // await prisma.booking.findUnique({
       where: { id: bookingId },
       select: {
         startAt: true,

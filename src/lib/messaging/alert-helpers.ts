@@ -23,7 +23,26 @@ export async function createAlert(params: {
 }): Promise<void> {
   const { orgId, severity, type, title, description, entityType, entityId, metadata } = params;
 
-  // Check for existing open alert of same type
+  // Note: API schema uses Alert model, not Setting model
+  // Use Alert model from API schema instead
+  try {
+    await prisma.alert.create({
+      data: {
+        orgId,
+        severity,
+        type,
+        title,
+        description,
+        entityType: entityType || null,
+        entityId: entityId || null,
+        status: 'open',
+      },
+    });
+  } catch (error) {
+    console.error('[AlertHelpers] Failed to create alert:', error);
+  }
+  
+  /* Original code (commented out - uses Setting model):
   const existing = await prisma.setting.findFirst({
     where: {
       key: `alert.${type}.${entityId || 'global'}`,
@@ -31,7 +50,6 @@ export async function createAlert(params: {
   });
 
   if (existing) {
-    // Update existing alert (refresh timestamp)
     await prisma.setting.update({
       where: { key: `alert.${type}.${entityId || 'global'}` },
       data: {
@@ -47,20 +65,9 @@ export async function createAlert(params: {
         updatedAt: new Date(),
       },
     });
-
-    await logMessagingEvent({
-      orgId,
-      eventType: 'alert.updated' as any, // alert.updated not in MessagingAuditEventType, but needed for audit
-      metadata: {
-        type,
-        severity,
-        reason: 'Deduplication refresh',
-      },
-    });
     return;
   }
 
-  // Create new alert (store as setting with alert.* prefix)
   await prisma.setting.create({
     data: {
       key: `alert.${type}.${entityId || 'global'}`,

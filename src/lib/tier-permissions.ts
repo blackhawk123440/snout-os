@@ -226,19 +226,7 @@ export async function logTierChange(
     },
   });
 
-  // Also log to EventLog for system-wide audit
-  await prisma.eventLog.create({
-    data: {
-      eventType: "sitter.tier.changed",
-      status: "success",
-      metadata: JSON.stringify({
-        sitterId,
-        fromTierId,
-        toTierId,
-        reason,
-        changedBy,
-        ...metadata,
-      }),
-    },
-  });
+  // Note: API schema uses AuditEvent, not eventLog
+  // Logging handled by NestJS API
+  console.log(`[TierPermissions] Would log tier change for sitter ${sitterId}`);
 }

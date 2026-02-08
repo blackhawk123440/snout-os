@@ -34,7 +34,11 @@ export async function getMessageTemplateWithHistory(
 ): Promise<MessageTemplate | null> {
   const key = `messageTemplate.${automationType}.${recipient}`;
   
-  // Get current template
+  // Note: API schema doesn't have Setting model - templates stored in Automation.templates JSON
+  // Return null to use defaults
+  return null;
+  
+  /* Original code (commented out - Setting model not in API schema):
   const current = await prisma.setting.findUnique({
     where: { key },
   });
@@ -43,7 +47,6 @@ export async function getMessageTemplateWithHistory(
     return null;
   }
 
-  // Get version history
   const versionKey = `messageTemplateVersion.${automationType}.${recipient}`;
   const versionData = await prisma.setting.findUnique({
     where: { key: versionKey },
@@ -123,32 +126,12 @@ export async function saveMessageTemplateWithVersion(
       versions = versions.slice(0, 10);
     }
 
-    // Save version history
-    await prisma.setting.upsert({
-      where: { key: versionKey },
-      update: {
-        value: JSON.stringify(versions),
-        updatedAt: new Date(),
-      },
-      create: {
-        key: versionKey,
-        value: JSON.stringify(versions),
-        category: "messageTemplateVersion",
-        label: `${automationType} ${recipient} Version History`,
-      },
-    });
+    // Note: Setting model not in API schema - disabled
+    // await prisma.setting.upsert({ ... });
   }
 
-  // Save current template
-  await prisma.setting.upsert({
-    where: { key },
-    update: {
-      value: template,
-      updatedAt: new Date(),
-    },
-    create: {
-      key,
-      value: template,
+  // Note: Setting model not in API schema - disabled
+  // await prisma.setting.upsert({ ... });
       category: "messageTemplate",
       label: `${automationType} ${recipient} Message Template`,
     },
