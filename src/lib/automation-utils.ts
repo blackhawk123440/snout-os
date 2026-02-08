@@ -25,32 +25,9 @@ export async function getMessageTemplate(
   automationType: string,
   recipient: "client" | "sitter" | "owner" = "client"
 ): Promise<string | null> {
-  // First check individual messageTemplate.* settings (these are updated with versioning)
-  // Always read fresh from database - no caching
-  const templateKey = `messageTemplate.${automationType}.${recipient}`;
-  const template = await prisma.setting.findUnique({
-    where: { key: templateKey },
-  });
-
-  // If template exists in database (even if empty string), return it
-  // Empty string means user cleared the template, so we return it (caller should handle default)
-  if (template !== null) {
-    return template.value || ""; // Return empty string if value is null/undefined
-  }
-  
-  // Fallback to automation settings JSON object (for backwards compatibility)
-  // This should only be used if individual template doesn't exist
-  const automationSettings = await getAutomationSettings();
-  const automation = automationSettings[automationType];
-  
-  if (automation && typeof automation === 'object') {
-    const fallbackTemplateKey = `messageTemplate${recipient.charAt(0).toUpperCase() + recipient.slice(1)}` as "messageTemplateClient" | "messageTemplateSitter" | "messageTemplateOwner";
-    // Check if the key exists (even if value is empty string)
-    if (fallbackTemplateKey in automation) {
-      return automation[fallbackTemplateKey] || "";
-    }
-  }
-
+  // API schema doesn't have Setting model - templates are in Automation.templates JSON
+  // Return null to let caller use default templates
+  // TODO: Query Automation model if needed: prisma.automation.findMany({ where: { status: 'active' } })
   return null;
 }
 
