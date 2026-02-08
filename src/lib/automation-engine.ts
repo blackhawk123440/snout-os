@@ -471,6 +471,16 @@ export async function processAutomations(
   return; // Early return - automations handled by API
   
   /* Original code (commented out - uses booking system schema with relations):
+  // Note: Full automation processing is handled by NestJS API's AutomationWorker
+  // This Web service automation engine is for the original booking system only
+  // For messaging dashboard, automations are processed server-side by the API
+  if (automations.length > 0) {
+    console.log(`[AutomationEngine] Found ${automations.length} automations for event ${eventType}, but processing is handled by NestJS API`);
+  }
+  
+  return; // Early return - automations handled by API
+  
+  /* Original code (commented out - uses booking system schema with relations):
   for (const automation of automations) {
     try {
       // Evaluate condition groups
