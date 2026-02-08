@@ -6,7 +6,7 @@ DO $$
 DECLARE
   org_id TEXT;
   user_id TEXT;
-  password_hash TEXT := '$2b$10$2cpsFLf1xqD0Tfa8EAMOReSJd4vzZ2ZxmTbAa/yQaDSb2aPFN82x.';
+  password_hash TEXT := '$2b$10$shlVzw6CFY87F2WZV/ieruwuNuuyG9UpQbmc8YBKHEQGnytI9GkCq';
 BEGIN
   -- Get first organization
   SELECT id INTO org_id FROM "Organization" LIMIT 1;
