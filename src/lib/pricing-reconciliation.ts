@@ -38,6 +38,11 @@ export async function checkBookingPricingDrift(
   bookingId: string,
   driftThreshold: number = 0.01 // $0.01 default threshold
 ): Promise<PricingDriftResult | null> {
+  // Note: Booking model not available in messaging dashboard schema
+  // Pricing reconciliation not available for messaging-only deployments
+  return { success: false, error: 'Booking model not available in messaging dashboard schema' };
+  
+  /* Original code (commented out):
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: {
