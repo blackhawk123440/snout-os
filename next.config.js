@@ -62,13 +62,14 @@ const nextConfig = {
   },
   webpack: (config) => {
     config.resolve.alias["@"] = path.resolve(__dirname, "src");
-    // Exclude enterprise-messaging-dashboard and scripts from compilation
+    // Exclude enterprise-messaging-dashboard, scripts, and prisma seed files from compilation
     config.module.rules.push({
       test: /\.ts$/,
       exclude: [
         /node_modules/,
         /enterprise-messaging-dashboard/,
         /scripts/,
+        /prisma\/seed.*\.ts$/, // Exclude prisma seed files (they use different schema)
       ],
     });
     return config;
