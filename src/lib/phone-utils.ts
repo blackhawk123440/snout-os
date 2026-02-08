@@ -30,36 +30,6 @@ export async function getSitterPhone(
   // API schema doesn't have phone fields on Sitter model
   // Return null - phone numbers would need to be stored elsewhere
   return null;
-  
-  /* Original code (commented out - phone fields don't exist in API schema):
-
-  let preferredType = phoneType;
-
-  if (!preferredType && automationType) {
-    try {
-      const automationSettings = await getAutomationSettings();
-      const automationConfig = automationSettings[automationType];
-      if (automationConfig?.sitterPhoneType) {
-        preferredType = automationConfig.sitterPhoneType;
-      }
-    } catch (error) {
-      console.error("Error getting automation settings for sitter phone:", error);
-    }
-  }
-
-  if (!preferredType) {
-    preferredType = (sitter.phoneType === "openphone" ? "openphone" : "personal") as "personal" | "openphone";
-  }
-
-  if (preferredType === "openphone" && sitter.openphonePhone) {
-    return sitter.openphonePhone;
-  }
-
-  if (preferredType === "personal" && sitter.personalPhone) {
-    return sitter.personalPhone;
-  }
-
-  return sitter.phone || sitter.personalPhone || sitter.openphonePhone || null;
 }
 
 /**
