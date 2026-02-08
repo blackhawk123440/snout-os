@@ -7,21 +7,13 @@ import { formatClientNameForSitter } from "@/lib/booking-utils";
 
 /**
  * Get automation settings from database
+ * Note: API schema doesn't have Setting model - automations are stored in Automation model
+ * This function returns empty object for compatibility
  */
 export async function getAutomationSettings(): Promise<Record<string, any>> {
-  const automationSetting = await prisma.setting.findUnique({
-    where: { key: "automation" },
-  });
-
-  if (!automationSetting) {
-    return {};
-  }
-
-  try {
-    return JSON.parse(automationSetting.value);
-  } catch {
-    return {};
-  }
+  // API schema doesn't have Setting model - return empty for compatibility
+  // Automation settings are stored in Automation.templates JSON field
+  return {};
 }
 
 /**
