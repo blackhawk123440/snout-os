@@ -353,11 +353,11 @@ async function main() {
   console.log('\n🎉 Seeding complete!');
   console.log('\n📝 Login credentials:');
   console.log('   Owner:');
-  console.log('     Email: owner@example.com');
-  console.log('     Password: password123');
+  console.log('     Email: leah2maria@gmail.com');
+  console.log('     Password: Saint214!');
   console.log('   Sitter:');
   console.log('     Email: sitter@example.com');
-  console.log('     Password: password');
+  console.log('     Password: Saint214!');
   console.log('\n📋 Demo Scenarios:');
   console.log('   - Thread 1: Routes to sitter (has active assignment window)');
   console.log('   - Thread 2: Routes to owner (no assignment window)');
