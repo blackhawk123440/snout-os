@@ -67,24 +67,8 @@ export async function createAlert(params: {
     });
     return;
   }
-
-  await prisma.setting.create({
-    data: {
-      key: `alert.${type}.${entityId || 'global'}`,
-      value: JSON.stringify({
-        severity,
-        title,
-        description,
-        entityType,
-        entityId,
-        metadata,
-        status: 'open',
-        createdAt: new Date().toISOString(),
-      }),
-      category: 'alert',
-      label: title,
-    },
-  });
+  
+  // Note: Already handled above with Alert model
 
   await logMessagingEvent({
     orgId,

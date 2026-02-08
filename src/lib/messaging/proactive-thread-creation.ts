@@ -50,10 +50,13 @@ export async function ensureProactiveThreadCreation(
 
   const resolvedOrgId = orgId || (await getDefaultOrgId());
 
-  // Fetch booking with client information
   // Note: Booking model not available in messaging dashboard schema
-  // Return null - proactive thread creation handled by API
-  const booking = null; // await prisma.booking.findUnique({
+  // Proactive thread creation is handled by NestJS API
+  // Return null to skip this function
+  return null;
+  
+  /* Original code (commented out - Booking model not in API schema):
+  const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     select: {
       id: true,
@@ -70,11 +73,9 @@ export async function ensureProactiveThreadCreation(
   }
 
   if (!booking.clientId) {
-    // No client linked, cannot create thread
     return null;
   }
 
-  // Determine if client is weekly/recurring
   const classification = await determineClientClassification({
     clientId: booking.clientId,
     bookingId: booking.id,
