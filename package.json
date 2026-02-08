@@ -5,7 +5,7 @@
   "type": "commonjs",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate --schema=prisma/schema.prisma && next build",
+    "build": "prisma generate --schema=enterprise-messaging-dashboard/apps/api/prisma/schema.prisma && next build",
     "build:with-db": "prisma generate --schema=prisma/schema.prisma && prisma db push --schema=prisma/schema.prisma --skip-generate && next build",
     "start": "next start",
     "lint": "next lint",
@@ -22,7 +22,7 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate --schema=prisma/schema.prisma",
+    "postinstall": "prisma generate --schema=enterprise-messaging-dashboard/apps/api/prisma/schema.prisma",
     "proof:phaseA": "tsx scripts/proof-phaseA.ts",
     "audit:tier-badges": "tsx scripts/audit-tier-badges.ts",
     "backfill:tiers": "tsx scripts/backfill-sitter-tiers.ts",
