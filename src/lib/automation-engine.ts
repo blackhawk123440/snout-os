@@ -469,19 +469,6 @@ export async function processAutomations(
   }
   
   return; // Early return - automations handled by API
-  
-  /* Original code (commented out - uses booking system schema with relations):
-  // Note: Full automation processing is handled by NestJS API's AutomationWorker
-  // This Web service automation engine is for the original booking system only
-  // For messaging dashboard, automations are processed server-side by the API
-  if (automations.length > 0) {
-    console.log(`[AutomationEngine] Found ${automations.length} automations for event ${eventType}, but processing is handled by NestJS API`);
-  }
-  
-  return; // Early return - automations handled by API
-  
-  /* Original code (commented out - uses booking system schema with relations):
-  for (const automation of automations) {
     try {
       // Evaluate condition groups
       const { evaluateAllConditionGroups } = await import('./automations/condition-builder');
@@ -571,63 +558,10 @@ async function logAutomationExecution(
   success: boolean,
   error: string | null
 ): Promise<void> {
-  try {
-    const correlationId = `automation-${automationId}-${Date.now()}`;
-    const status = success ? 'success' : (error ? 'failed' : 'skipped');
-    
-    const run = await prisma.automationRun.create({
-      data: {
-        automationId,
-        status,
-        reason: error || null,
-        targetEntityType: context.targetEntityType,
-        targetEntityId: context.targetEntityId,
-        idempotencyKey: context.idempotencyKey,
-        metadata: JSON.stringify({
-          trigger,
-          context,
-          conditionGroups,
-          actions,
-        }),
-        correlationId,
-        steps: {
-          create: [
-            ...conditionGroups.map((group, idx) => ({
-              stepType: 'conditionCheck',
-              status: 'success',
-              input: JSON.stringify(group),
-              output: JSON.stringify({ passed: true }),
-            })),
-            ...actions.map((action, idx) => ({
-              stepType: 'actionExecute',
-              status: action.success ? 'success' : 'failed',
-              input: JSON.stringify({ type: action.type }),
-              output: JSON.stringify(action.result || {}),
-              error: action.error ? JSON.stringify({ message: action.error }) : null,
-            })),
-          ],
-        },
-      },
-    });
-
-    // Also create EventLog entry
-    await prisma.eventLog.create({
-      data: {
-        eventType: 'automation.run',
-        automationType: trigger,
-        status,
-        error: error || null,
-        metadata: JSON.stringify({
-          automationId,
-          correlationId,
-          runId: run.id,
-        }),
-        bookingId: context.bookingId || context.booking?.id,
-      },
-    });
-  } catch (logError) {
-    console.error("Failed to log automation execution:", logError);
-  }
+  // Note: Automation execution logging is handled by NestJS API
+  // This function is disabled when using the messaging dashboard schema
+  // (automationRun and eventLog models don't exist in API schema)
+  console.log(`[AutomationEngine] Would log execution for automation ${automationId}, but logging is handled by NestJS API`);
 }
 
 /**
