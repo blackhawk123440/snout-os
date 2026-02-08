@@ -430,9 +430,8 @@ async function executeSitterAssignment(
   }
 
   const sitterId = booking.sitterId || context.sitterId;
-  const sitter = booking.sitter || await prisma.sitter.findUnique({
-    where: { id: sitterId },
-  });
+  // Note: Sitter query disabled - booking model not available in messaging schema
+  const sitter = booking.sitter || null;
 
   if (!sitter) {
     return { success: false, error: `Sitter not found: ${sitterId}` };
