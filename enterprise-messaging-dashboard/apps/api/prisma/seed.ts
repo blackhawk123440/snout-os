@@ -6,29 +6,43 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Create organization
-  const org = await prisma.organization.create({
-    data: {
-      name: 'Demo Pet Care Business',
-    },
+  // Find or create organization
+  let org = await prisma.organization.findFirst({
+    where: { name: 'Demo Pet Care Business' },
   });
 
-  console.log('✅ Created organization:', org.id);
+  if (!org) {
+    org = await prisma.organization.create({
+      data: {
+        name: 'Demo Pet Care Business',
+      },
+    });
+    console.log('✅ Created organization:', org.id);
+  } else {
+    console.log('✅ Using existing organization:', org.id);
+  }
 
-  // Create owner user
-  const ownerPasswordHash = await bcrypt.hash('password123', 10);
-  const owner = await prisma.user.create({
-    data: {
-      orgId: org.id,
-      role: 'owner',
-      name: 'Business Owner',
-      email: 'owner@example.com',
-      passwordHash: ownerPasswordHash,
-      active: true,
-    },
+  // Find or create owner user
+  let owner = await prisma.user.findUnique({
+    where: { email: 'owner@example.com' },
   });
 
-  console.log('✅ Created owner user:', owner.email);
+  if (!owner) {
+    const ownerPasswordHash = await bcrypt.hash('password123', 10);
+    owner = await prisma.user.create({
+      data: {
+        orgId: org.id,
+        role: 'owner',
+        name: 'Business Owner',
+        email: 'owner@example.com',
+        passwordHash: ownerPasswordHash,
+        active: true,
+      },
+    });
+    console.log('✅ Created owner user:', owner.email);
+  } else {
+    console.log('✅ Using existing owner user:', owner.email);
+  }
 
   // Create sitters first
   const sitter1 = await prisma.sitter.create({
@@ -49,26 +63,35 @@ async function main() {
 
   console.log('✅ Created sitters');
 
-  // Create sitter user (linked to sitter1)
-  const sitterPasswordHash = await bcrypt.hash('password', 10);
-  const sitterUser = await prisma.user.create({
-    data: {
-      orgId: org.id,
-      role: 'sitter',
-      name: 'Sarah Johnson',
-      email: 'sitter@example.com',
-      passwordHash: sitterPasswordHash,
-      active: true,
-    },
+  // Find or create sitter user (linked to sitter1)
+  let sitterUser = await prisma.user.findUnique({
+    where: { email: 'sitter@example.com' },
   });
+
+  if (!sitterUser) {
+    const sitterPasswordHash = await bcrypt.hash('password', 10);
+    sitterUser = await prisma.user.create({
+      data: {
+        orgId: org.id,
+        role: 'sitter',
+        name: 'Sarah Johnson',
+        email: 'sitter@example.com',
+        passwordHash: sitterPasswordHash,
+        active: true,
+      },
+    });
+    console.log('✅ Created sitter user:', sitterUser.email);
+  } else {
+    console.log('✅ Using existing sitter user:', sitterUser.email);
+  }
 
   // Link sitter user to sitter record
-  await prisma.sitter.update({
-    where: { id: sitter1.id },
-    data: { userId: sitterUser.id },
-  });
-
-  console.log('✅ Created sitter user:', sitterUser.email);
+  if (!sitter1.userId) {
+    await prisma.sitter.update({
+      where: { id: sitter1.id },
+      data: { userId: sitterUser.id },
+    });
+  }
 
   // Create clients
   const client1 = await prisma.client.create({
