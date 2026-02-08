@@ -33,16 +33,16 @@ export async function deactivateSitterMaskedNumber(
   messageNumberId: string | null;
   deactivatedAt: Date;
 }> {
-  // Find active sitter masked number
-  const maskedNumber = await prisma.sitterMaskedNumber.findUnique({
-    where: { sitterId },
-    include: {
-      messageNumber: true,
+  // Note: SitterMaskedNumber model not available in API schema
+  // Use MessageNumber directly instead
+  const messageNumber = await prisma.messageNumber.findFirst({
+    where: {
+      assignedSitterId: sitterId,
+      status: 'active',
     },
   });
 
-  if (!maskedNumber || maskedNumber.status !== 'active') {
-    // No active masked number to deactivate
+  if (!messageNumber) {
     return {
       maskedNumberId: null,
       messageNumberId: null,
@@ -50,13 +50,13 @@ export async function deactivateSitterMaskedNumber(
     };
   }
 
-  // Deactivate the masked number
+  // Unassign number from sitter
   const deactivatedAt = new Date();
-  await prisma.sitterMaskedNumber.update({
-    where: { id: maskedNumber.id },
+  await prisma.messageNumber.update({
+    where: { id: messageNumber.id },
     data: {
-      status: 'deactivated',
-      deactivatedAt,
+      assignedSitterId: null,
+      // Note: API schema doesn't have status field - number remains active but unassigned
     },
   });
 

@@ -43,9 +43,10 @@ export interface TierInfo {
  * Get tier permissions for a sitter
  */
 export async function getSitterTierPermissions(sitterId: string): Promise<TierPermissions | null> {
+  // Note: API schema Sitter model doesn't have currentTier relation
+  // Tier system not available in messaging dashboard schema
   const sitter = await prisma.sitter.findUnique({
     where: { id: sitterId },
-    include: { currentTier: true },
   });
 
   if (!sitter?.currentTier) {
@@ -139,17 +140,18 @@ export async function canSitterAutoAssign(sitterId: string): Promise<boolean> {
  * Higher tier = higher weight
  */
 export async function getTierRankingWeight(sitterId: string): Promise<number> {
+  // Note: API schema Sitter model doesn't have currentTier relation
+  // Return default weight
   const sitter = await prisma.sitter.findUnique({
     where: { id: sitterId },
-    include: { currentTier: true },
   });
 
-  if (!sitter?.currentTier) {
-    return 0; // No tier = lowest priority
+  if (!sitter) {
+    return 0;
   }
 
-  // Use priorityLevel as base weight, but ensure it's always positive
-  return Math.max(1, sitter.currentTier.priorityLevel);
+  // No tier system in messaging dashboard - return default weight
+  return 1;
 }
 
 /**
@@ -168,6 +170,11 @@ export async function getEligibleSittersForBooking(
     maxResults?: number;
   }
 ): Promise<Array<{ sitterId: string; tierWeight: number; canAutoAssign: boolean }>> {
+  // Note: Tier system not available in messaging dashboard schema
+  // Return empty array - tier-based selection not supported
+  return [];
+  
+  /* Original code (commented out - tier system not in API schema):
   const allSitters = await prisma.sitter.findMany({
     where: {
       active: options?.includeInactive ? undefined : true,
@@ -214,11 +221,38 @@ export async function logTierChange(
   changedBy?: string,
   metadata?: Record<string, any>
 ): Promise<void> {
+  // Note: sitterTierHistory and eventLog models not available in API schema
+  // Use AuditEvent instead
+  try {
+    const sitter = await prisma.sitter.findUnique({ where: { id: sitterId }, select: { orgId: true } });
+    if (sitter) {
+      await prisma.auditEvent.create({
+        data: {
+          orgId: sitter.orgId,
+          actorType: 'system',
+          eventType: 'sitter.tier.changed',
+          entityType: 'sitter',
+          entityId: sitterId,
+          payload: {
+            fromTierId,
+            toTierId,
+            reason,
+            changedBy,
+            ...metadata,
+          },
+        },
+      });
+    }
+  } catch (error) {
+    console.error('[tier-permissions] Failed to log tier change:', error);
+  }
+  
+  /* Original code (commented out - models don't exist in API schema):
   await prisma.sitterTierHistory.create({
     data: {
       sitterId,
       tierId: toTierId,
-      points: 0, // Will be calculated separately
+      points: 0,
       periodStart: new Date(),
       changedBy: changedBy || null,
       reason,
@@ -226,7 +260,18 @@ export async function logTierChange(
     },
   });
 
-  // Note: API schema uses AuditEvent, not eventLog
-  // Logging handled by NestJS API
-  console.log(`[TierPermissions] Would log tier change for sitter ${sitterId}`);
+  await prisma.eventLog.create({
+    data: {
+      eventType: "sitter.tier.changed",
+      status: "success",
+      metadata: JSON.stringify({
+        sitterId,
+        fromTierId,
+        toTierId,
+        reason,
+        changedBy,
+        ...metadata,
+      }),
+    },
+  });
 }

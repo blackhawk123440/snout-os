@@ -31,10 +31,21 @@ export async function logAutomationRun(
   }
 ): Promise<void> {
   try {
-    // Note: API schema uses AuditEvent, not eventLog
-    // For messaging dashboard, use AuditEvent model
-    // This is a stub - full logging handled by NestJS API
-    console.log(`[EventLog] Would log automation run: ${automationType}, status: ${status}`);
+    // Note: eventLog model not available in API schema - use AuditEvent instead
+    await prisma.auditEvent.create({
+      data: {
+        orgId: 'unknown', // Would need to be passed in
+        actorType: 'system',
+        eventType: `automation.run.${automationType}`,
+        payload: {
+          automationType,
+          status,
+          bookingId: options?.bookingId,
+          error: options?.error,
+          ...options?.metadata,
+        },
+      },
+    });
   } catch (error) {
     // Don't throw - logging failures shouldn't break the application
     console.error("[EventLog] Failed to log automation run:", error);
@@ -56,10 +67,20 @@ export async function logEvent(
   }
 ): Promise<void> {
   try {
-    // Note: API schema uses AuditEvent, not eventLog
-    // For messaging dashboard, use AuditEvent model
-    // This is a stub - full logging handled by NestJS API
-    console.log(`[EventLog] Would log event: ${eventType}, status: ${status}`);
+    // Note: eventLog model not available in API schema - use AuditEvent instead
+    await prisma.auditEvent.create({
+      data: {
+        orgId: 'unknown', // Would need to be passed in
+        actorType: 'system',
+        eventType,
+        payload: {
+          status,
+          bookingId: options?.bookingId,
+          error: options?.error,
+          ...options?.metadata,
+        },
+      },
+    });
   } catch (error) {
     // Don't throw - logging failures shouldn't break the application
     console.error("[EventLog] Failed to log event:", error);

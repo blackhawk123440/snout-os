@@ -13,19 +13,25 @@ export async function getSitterPhone(
   phoneType?: "personal" | "openphone",
   automationType?: string // e.g., "sitterPoolOffers", "nightBeforeReminder", etc.
 ): Promise<string | null> {
+  // Note: API schema Sitter model only has: id, orgId, userId, name, active, createdAt, updatedAt
+  // Phone fields don't exist - return null or use environment variables
   const sitter = await prisma.sitter.findUnique({
     where: { id: sitterId },
     select: {
-      phone: true,
-      personalPhone: true,
-      openphonePhone: true,
-      phoneType: true,
+      id: true,
+      name: true,
     },
   });
 
   if (!sitter) {
     return null;
   }
+  
+  // API schema doesn't have phone fields on Sitter model
+  // Return null - phone numbers would need to be stored elsewhere
+  return null;
+  
+  /* Original code (commented out - phone fields don't exist in API schema):
 
   let preferredType = phoneType;
 
@@ -122,9 +128,15 @@ export async function getOwnerOpenPhoneNumberId(): Promise<string | null> {
     return envNumberId;
   }
 
-  // Note: API schema doesn't have Setting model - use environment variable
-  // Return environment variable directly
-  return process.env.OPENPHONE_NUMBER_ID || null;
+  // Note: Setting model not available in API schema
+  // Use environment variable only
+  const setting = null; // await prisma.setting.findUnique({ where: { key: "openphoneNumberId" } });
+
+  if (setting && setting.value) {
+    return setting.value;
+  }
+
+  return null;
 }
 
 

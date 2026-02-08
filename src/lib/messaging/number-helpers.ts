@@ -66,99 +66,56 @@ export async function assignSitterMaskedNumber(
   sitterId: string,
   provider: MessagingProvider
 ): Promise<{ numberId: string; sitterMaskedNumberId: string; e164: string }> {
-  // Check if sitter already has an active masked number
-  const existing = await prisma.sitterMaskedNumber.findUnique({
-    where: { sitterId },
-    include: {
-      messageNumber: true,
-    },
-  });
-
-  if (existing && existing.status === 'active') {
-    return {
-      numberId: existing.messageNumberId,
-      sitterMaskedNumberId: existing.id,
-      e164: existing.messageNumber.e164,
-    };
-  }
-
-  // Find or create a sitter-class number for this sitter
-  // In production, this would purchase/provision a number via the provider
-  // For now, we'll look for an available sitter number or create one
+  // Note: SitterMaskedNumber model not available in API schema
+  // Use MessageNumber directly instead
+  // Check if sitter already has an assigned number
   let messageNumber = await prisma.messageNumber.findFirst({
     where: {
       orgId,
-      numberClass: 'sitter',
       assignedSitterId: sitterId,
       status: 'active',
     },
   });
 
-  if (!messageNumber) {
-    // Check if there's a deactivated sitter number we can reuse (after cooldown)
-    const deactivatedNumber = await prisma.sitterMaskedNumber.findFirst({
-      where: {
-        orgId,
-        status: 'deactivated',
-        deactivatedAt: {
-          // 90-day cooldown: deactivated more than 90 days ago
-          lt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
-        },
-      },
-      include: {
-        messageNumber: true,
-      },
-      orderBy: {
-        deactivatedAt: 'desc',
-      },
-    });
-
-    if (deactivatedNumber) {
-      // Reuse this number but convert it to pool (never reuse as sitter number)
-      await prisma.messageNumber.update({
-        where: { id: deactivatedNumber.messageNumberId },
-        data: {
-          numberClass: 'pool',
-          assignedSitterId: null,
-          isRotating: true,
-        },
-      });
-
-      // Create a new sitter number instead
-      // In production, this would provision via provider
-      throw new Error(
-        `No available sitter number for sitter ${sitterId}. Please create a MessageNumber with numberClass="sitter" and assign it manually.`
-      );
-    } else {
-      // Create new sitter number
-      // In production, this would provision via provider
-      throw new Error(
-        `No sitter number configured. Please create a MessageNumber with numberClass="sitter" for sitter ${sitterId}.`
-      );
-    }
+  if (messageNumber) {
+    return {
+      numberId: messageNumber.id,
+      sitterMaskedNumberId: messageNumber.id, // Use numberId as fallback
+      e164: messageNumber.e164,
+    };
   }
 
-  // Create or update SitterMaskedNumber record
-  const sitterMaskedNumber = await prisma.sitterMaskedNumber.upsert({
-    where: { sitterId },
-    create: {
+  // Find available sitter-class number
+  messageNumber = await prisma.messageNumber.findFirst({
+    where: {
       orgId,
-      sitterId,
-      messageNumberId: messageNumber.id,
+      numberClass: 'sitter',
+      assignedSitterId: null,
       status: 'active',
-      assignedAt: new Date(),
-    },
-    update: {
-      status: 'active',
-      deactivatedAt: null,
     },
   });
 
+  if (!messageNumber) {
+    throw new Error(
+      `No available sitter number for sitter ${sitterId}. Please create a MessageNumber with numberClass="sitter".`
+    );
+  }
+
+  // Assign number to sitter
+  await prisma.messageNumber.update({
+    where: { id: messageNumber.id },
+    data: {
+      assignedSitterId: sitterId,
+    },
+  });
+
+  // Note: SitterMaskedNumber model doesn't exist - return MessageNumber ID
   return {
     numberId: messageNumber.id,
-    sitterMaskedNumberId: sitterMaskedNumber.id,
+    sitterMaskedNumberId: messageNumber.id,
     e164: messageNumber.e164,
   };
+  
 }
 
 /**
@@ -183,14 +140,12 @@ export async function getPoolNumber(
     stickyReuseKey?: 'clientId' | 'threadId';
   }
 ): Promise<{ numberId: string; e164: string } | null> {
-  // Note: API schema doesn't have Setting model - use defaults
-  const rotationSettings: any[] = [];
-
-  const settings: Record<string, string> = {};
-  for (const setting of rotationSettings) {
-    const key = setting.key.replace('rotation.', '');
-    settings[key] = setting.value;
-  }
+  // Note: Setting model not available in API schema
+  // Use default settings
+  const settings: Record<string, string> = {
+    poolSelectionStrategy: 'LRU',
+    stickyReuseKey: 'clientId',
+  };
 
   const strategy = (settings.poolSelectionStrategy as 'LRU' | 'FIFO' | 'HASH_SHUFFLE') || 'LRU';
   const stickyReuseKey = (settings.stickyReuseKey as 'clientId' | 'threadId') || 'clientId';

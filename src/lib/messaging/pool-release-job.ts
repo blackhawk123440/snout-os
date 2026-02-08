@@ -33,14 +33,9 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
   };
 
   try {
-    // Get rotation settings
-    const rotationSettings = await prisma.setting.findMany({
-      where: {
-        key: {
-          startsWith: 'rotation.',
-        },
-      },
-    });
+    // Note: Setting model not available in API schema
+    // Rotation settings would need to be stored elsewhere or use defaults
+    const rotationSettings: any[] = []; // Empty - no Setting model in API schema
 
     const settings: Record<string, string> = {};
     for (const setting of rotationSettings) {

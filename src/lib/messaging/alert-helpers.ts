@@ -23,52 +23,52 @@ export async function createAlert(params: {
 }): Promise<void> {
   const { orgId, severity, type, title, description, entityType, entityId, metadata } = params;
 
-  // Note: API schema uses Alert model, not Setting model
-  // Use Alert model from API schema instead
-  try {
-    await prisma.alert.create({
-      data: {
-        orgId,
-        severity,
-        type,
-        title,
-        description,
-        entityType: entityType || null,
-        entityId: entityId || null,
-        status: 'open',
-      },
-    });
-  } catch (error) {
-    console.error('[AlertHelpers] Failed to create alert:', error);
-  }
-  
-  /* Original code (commented out - uses Setting model):
-  const existing = await prisma.setting.findFirst({
+  // Use Alert model from API schema (not Setting)
+  // Check for existing open alert of same type
+  const existing = await prisma.alert.findFirst({
     where: {
-      key: `alert.${type}.${entityId || 'global'}`,
+      orgId,
+      type,
+      entityId: entityId || null,
+      status: 'open',
     },
   });
 
   if (existing) {
-    await prisma.setting.update({
-      where: { key: `alert.${type}.${entityId || 'global'}` },
+    // Update existing alert (refresh timestamp)
+    await prisma.alert.update({
+      where: { id: existing.id },
       data: {
-        value: JSON.stringify({
-          severity,
-          title,
-          description,
-          entityType,
-          entityId,
-          metadata,
-          updatedAt: new Date().toISOString(),
-        }),
+        description,
         updatedAt: new Date(),
+      },
+    });
+
+    await logMessagingEvent({
+      orgId,
+      eventType: 'alert.updated' as any,
+      metadata: {
+        type,
+        severity,
+        reason: 'Deduplication refresh',
       },
     });
     return;
   }
-  
-  // Note: Already handled above with Alert model
+
+  // Create new alert using Alert model
+  await prisma.alert.create({
+    data: {
+      orgId,
+      severity,
+      type,
+      title,
+      description,
+      entityType: entityType || null,
+      entityId: entityId || null,
+      status: 'open',
+    },
+  });
 
   await logMessagingEvent({
     orgId,
@@ -94,44 +94,21 @@ export async function getOpenAlerts(orgId: string): Promise<Array<{
   entityId?: string;
   metadata?: Record<string, unknown>;
 }>> {
-  const alerts = await prisma.setting.findMany({
+  // Use Alert model from API schema
+  const alerts = await prisma.alert.findMany({
     where: {
-      key: {
-        startsWith: 'alert.',
-      },
-      category: 'alert',
+      orgId,
+      status: 'open',
     },
   });
 
-  const result: Array<{
-    type: string;
-    severity: 'critical' | 'warning' | 'info';
-    title: string;
-    description: string;
-    entityType?: string;
-    entityId?: string;
-    metadata?: Record<string, unknown>;
-  }> = [];
-
-  for (const alert of alerts) {
-    try {
-      const data = JSON.parse(alert.value);
-      if (data.status === 'open') {
-        const type = alert.key.replace('alert.', '').split('.')[0];
-        result.push({
-          type,
-          severity: data.severity,
-          title: data.title,
-          description: data.description,
-          entityType: data.entityType,
-          entityId: data.entityId,
-          metadata: data.metadata,
-        });
-      }
-    } catch (error) {
-      console.error(`[alert-helpers] Failed to parse alert ${alert.key}:`, error);
-    }
-  }
-
-  return result;
+  return alerts.map(alert => ({
+    type: alert.type,
+    severity: alert.severity as 'critical' | 'warning' | 'info',
+    title: alert.title,
+    description: alert.description,
+    entityType: alert.entityType || undefined,
+    entityId: alert.entityId || undefined,
+    metadata: {}, // Alert model doesn't have metadata field in API schema
+  }));
 }

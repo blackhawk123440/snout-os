@@ -151,11 +151,8 @@ async function getPoolMismatchAutoResponse(orgId: string): Promise<string> {
     return explicitText;
   }
 
-  // Note: API schema doesn't have Setting model - use environment variable or default
-  const autoResponse = process.env.MESSAGING_POOL_MISMATCH_AUTO_RESPONSE;
-  if (autoResponse) {
-    return autoResponse;
-  }
+  // Note: Setting model not available in API schema
+  // Use default message
 
   // Construct from booking link and front desk number
   const bookingLink = process.env.MESSAGING_BOOKING_LINK || 
@@ -188,10 +185,15 @@ async function getPoolMismatchAutoResponse(orgId: string): Promise<string> {
  * Helper to get setting value
  */
 async function getSetting(key: string): Promise<string | null> {
-  // Note: API schema doesn't have Setting model - use environment variables
-  // Map common keys to env vars
-  const envMap: Record<string, string> = {
-    'links.booking': process.env.MESSAGING_BOOKING_LINK || '',
-  };
-  return envMap[key] || null;
+  // Note: Setting model not available in API schema
+  return null;
+  /* Original code (commented out):
+  try {
+    const setting = await prisma.setting.findUnique({
+      where: { key },
+    });
+    return setting?.value || null;
+  } catch {
+    return null;
+  }
 }

@@ -28,37 +28,14 @@ export async function determineClientClassification(context: {
   orgId: string;
 }): Promise<{ isOneTimeClient: boolean; isRecurringClient: boolean }> {
   // Rule 1 (Primary): If booking is linked, check explicit recurrence flags
+  // Note: Booking model not available in messaging dashboard schema
+  // For messaging-only deployments, skip booking-based classification
   if (context.bookingId) {
-    // Note: Booking model not available in messaging dashboard schema
-    const booking = null; // await prisma.booking.findUnique({
-      where: { id: context.bookingId },
-      select: {
-        clientId: true,
-        // Check for explicit recurrence flags
-        // Note: Booking model may have recurrence flags in metadata or custom fields
-        // For now, check if booking is part of a recurring series
-        // TODO: Add explicit isRecurring flag to Booking model when recurrence system is implemented
-      },
-    });
-
-    if (booking) {
-      // Check for explicit recurrence signal
-      const hasExplicitRecurrence = await checkBookingRecurrenceFlags(context.bookingId);
-      
-      if (hasExplicitRecurrence) {
-        return {
-          isOneTimeClient: false,
-          isRecurringClient: true,
-        };
-      }
-
-      // No explicit recurrence signal - default to one-time
-      // Booking count may inform this decision but doesn't override absence of explicit flag
-      return {
-        isOneTimeClient: true,
-        isRecurringClient: false,
-      };
-    }
+    // Booking model doesn't exist - default to one-time
+    return {
+      isOneTimeClient: true,
+      isRecurringClient: false,
+    };
   }
 
   // Rule 2 (Primary): If client has active weekly plan, mark as recurring
@@ -118,13 +95,7 @@ async function getBookingCountHeuristic(
   clientId: string
 ): Promise<number> {
   // Note: Booking model not available in messaging dashboard schema
-  const bookingCount = 0; // await prisma.booking.count({
-    where: {
-      clientId,
-    },
-  });
-
-  return bookingCount;
+  return 0;
 }
 
 /**

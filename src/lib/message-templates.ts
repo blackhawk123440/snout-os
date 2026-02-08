@@ -34,11 +34,12 @@ export async function getMessageTemplateWithHistory(
 ): Promise<MessageTemplate | null> {
   const key = `messageTemplate.${automationType}.${recipient}`;
   
-  // Note: API schema doesn't have Setting model - templates stored in Automation.templates JSON
+  // Note: Setting model not available in API schema
+  // Templates are stored in Automation.templates JSON field
   // Return null to use defaults
   return null;
   
-  /* Original code (commented out - Setting model not in API schema):
+  /* Original code (commented out - Setting model doesn't exist):
   const current = await prisma.setting.findUnique({
     where: { key },
   });
@@ -87,12 +88,17 @@ export async function saveMessageTemplateWithVersion(
   const key = `messageTemplate.${automationType}.${recipient}`;
   const versionKey = `messageTemplateVersion.${automationType}.${recipient}`;
 
-  // Get current template
+  // Note: Setting model not available in API schema
+  // Templates should be stored in Automation.templates JSON field
+  // This function is disabled for messaging dashboard
+  console.log(`[message-templates] Would save template for ${automationType}.${recipient}, but Setting model not available`);
+  return;
+  
+  /* Original code (commented out - Setting model doesn't exist):
   const current = await prisma.setting.findUnique({
     where: { key },
   });
 
-  // Get version history
   const versionData = await prisma.setting.findUnique({
     where: { key: versionKey },
   });
@@ -106,7 +112,6 @@ export async function saveMessageTemplateWithVersion(
     }
   }
 
-  // Only create new version if template changed
   if (!current || current.value !== template) {
     const newVersion: MessageTemplateVersion = {
       version: generateVersion(versions),
@@ -118,24 +123,29 @@ export async function saveMessageTemplateWithVersion(
       updatedAt: new Date(),
     };
 
-    // Add new version to front of array
     versions.unshift(newVersion);
 
-    // Keep only last 10 versions
     if (versions.length > 10) {
       versions = versions.slice(0, 10);
     }
 
-    // Note: Setting model not in API schema - disabled
-    // await prisma.setting.upsert({ ... });
+    await prisma.setting.upsert({
+      where: { key: versionKey },
+      update: {
+        value: JSON.stringify(versions),
+        updatedAt: new Date(),
+      },
+      create: {
+        key: versionKey,
+        value: JSON.stringify(versions),
+        category: "messageTemplateVersion",
+        label: `${automationType} ${recipient} Version History`,
+      },
+    });
   }
 
-  // Note: Setting model not in API schema - disabled
-  // await prisma.setting.upsert({ ... });
-      category: "messageTemplate",
-      label: `${automationType} ${recipient} Message Template`,
-    },
-  });
+  // Note: Setting model not available - templates stored in Automation.templates
+  // This is handled by the return statement above
 }
 
 /**

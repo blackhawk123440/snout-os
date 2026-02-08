@@ -30,6 +30,7 @@
     "tests",
     "**/*.spec.ts",
     "**/*.test.ts",
+    "**/__tests__/**",
     "playwright.config.ts",
     "vitest.config.ts",
     "enterprise-messaging-dashboard",
