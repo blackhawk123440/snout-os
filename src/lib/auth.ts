@@ -71,47 +71,69 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        console.log('[NextAuth] Login attempt for:', credentials?.email);
+        console.log('[NextAuth] DATABASE_URL set:', !!process.env.DATABASE_URL);
+        
         if (!credentials?.email || !credentials?.password) {
+          console.log('[NextAuth] Missing credentials');
           return null;
         }
 
         // Find user by email
         let user;
         try {
+          console.log('[NextAuth] Querying database for user...');
           user = await prisma.user.findUnique({
             where: { email: credentials.email as string },
             select: { id: true, email: true, name: true, passwordHash: true, sitterId: true },
           });
-        } catch (error) {
+          console.log('[NextAuth] User query result:', user ? 'Found' : 'Not found');
+        } catch (error: any) {
           console.error('[NextAuth] Database error during authorize:', error);
+          console.error('[NextAuth] Error message:', error?.message);
+          console.error('[NextAuth] Error code:', error?.code);
+          console.error('[NextAuth] Error stack:', error?.stack);
           return null;
         }
 
         if (!user) {
+          console.log('[NextAuth] User not found in database');
           return null;
         }
 
+        console.log('[NextAuth] User found, checking password...');
+        console.log('[NextAuth] User has passwordHash:', !!user.passwordHash);
+
         // Check password (if passwordHash exists)
         if (user.passwordHash) {
-          const isValid = await bcrypt.compare(
-            credentials.password as string,
-            user.passwordHash
-          );
-          if (!isValid) {
-            // For E2E tests, allow bypassing password when E2E_AUTH is enabled
-            // This allows deterministic E2E authentication without password verification
-            if (process.env.ENABLE_E2E_AUTH === 'true' || process.env.NODE_ENV === 'test') {
-              // Allow login for E2E - password check bypassed
-              console.log('[NextAuth] E2E auth enabled - bypassing password check for:', user.email);
-            } else {
-              return null;
+          try {
+            const isValid = await bcrypt.compare(
+              credentials.password as string,
+              user.passwordHash
+            );
+            console.log('[NextAuth] Password comparison result:', isValid);
+            if (!isValid) {
+              // For E2E tests, allow bypassing password when E2E_AUTH is enabled
+              // This allows deterministic E2E authentication without password verification
+              if (process.env.ENABLE_E2E_AUTH === 'true' || process.env.NODE_ENV === 'test') {
+                // Allow login for E2E - password check bypassed
+                console.log('[NextAuth] E2E auth enabled - bypassing password check for:', user.email);
+              } else {
+                console.log('[NextAuth] Password invalid');
+                return null;
+              }
             }
+          } catch (error: any) {
+            console.error('[NextAuth] Password comparison error:', error);
+            return null;
           }
         } else {
+          console.log('[NextAuth] No password hash found for user');
           // For users without password hash (legacy/admin setup), allow login for now
           // TODO: Phase 2.3 - enforce password setup
         }
 
+        console.log('[NextAuth] Authentication successful for:', user.email);
         return {
           id: user.id,
           email: user.email,
