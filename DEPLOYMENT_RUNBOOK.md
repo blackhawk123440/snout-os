@@ -82,21 +82,30 @@ JWT_SECRET = <same as snout-os-api>
 
 ---
 
-## Step 3: Update snout-os-web Service Environment Variables
+## Step 3: Update snout-os-web Service Build Command and Environment Variables
 
 1. Go to https://dashboard.render.com
 2. Click on `snout-os-web` service (or `snout-os-staging` if that's the name)
-3. Go to "Environment" tab
-4. Click "Add Environment Variable" for each:
+3. Go to "Settings" tab
+4. Update **Build Command** to:
+   ```
+   prisma generate --schema=enterprise-messaging-dashboard/apps/api/prisma/schema.prisma && next build
+   ```
+   **Why:** Web service must use API's Prisma schema to match database structure.
+5. Go to "Environment" tab
+6. Click "Add Environment Variable" for each:
 
 ```
+DATABASE_URL = <same as snout-os-api - REQUIRED for NextAuth>
 NEXT_PUBLIC_API_URL = https://snout-os-api.onrender.com
 NEXTAUTH_URL = https://snout-os-staging.onrender.com
 NEXTAUTH_SECRET = <existing value or generate new 64+ chars>
 NEXT_PUBLIC_ENABLE_MESSAGING_V1 = true
 ```
 
-**CRITICAL:** Do NOT set JWT_SECRET on Web service. Web uses NEXTAUTH_SECRET; API/Worker use JWT_SECRET.
+**CRITICAL:** 
+- Do NOT set JWT_SECRET on Web service. Web uses NEXTAUTH_SECRET; API/Worker use JWT_SECRET.
+- DATABASE_URL is REQUIRED on Web service for NextAuth to query users.
 
 5. Click "Save Changes" (triggers redeploy)
 6. Wait for deployment to complete
