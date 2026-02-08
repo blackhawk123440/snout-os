@@ -438,32 +438,39 @@ export async function processAutomations(
   eventType: EventType,
   context: EventContext
 ): Promise<void> {
-  // Find all enabled automations that match this trigger
-  const automations = await prisma.automation.findMany({
+  // Note: This automation engine is for the original booking system
+  // The messaging dashboard uses a different automation system (handled by NestJS API)
+  // For messaging-only deployments, automations are processed by the API's AutomationWorker
+  // This function is disabled when using the messaging dashboard schema
+  
+  // Fetch all active automations and filter by trigger type in JavaScript
+  // (since trigger is a JSON field, not a relation)
+  const allAutomations = await prisma.automation.findMany({
     where: {
-      trigger: {
-        triggerType: eventType,
-      },
-      isEnabled: true,
       status: 'active',
     },
-    include: {
-      trigger: true,
-      conditionGroups: {
-        include: {
-          conditions: {
-            orderBy: { order: "asc" },
-          },
-        },
-        orderBy: { order: "asc" },
-      },
-      actions: {
-        orderBy: { order: "asc" },
-      },
-    },
-    orderBy: { version: "desc" }, // Higher version first
   });
 
+  // Filter automations where trigger JSON matches eventType
+  const automations = allAutomations.filter((automation) => {
+    try {
+      const trigger = automation.trigger as any;
+      return trigger?.triggerType === eventType;
+    } catch {
+      return false;
+    }
+  });
+
+  // Note: Full automation processing is handled by NestJS API's AutomationWorker
+  // This Web service automation engine is for the original booking system only
+  // For messaging dashboard, automations are processed server-side by the API
+  if (automations.length > 0) {
+    console.log(`[AutomationEngine] Found ${automations.length} automations for event ${eventType}, but processing is handled by NestJS API`);
+  }
+  
+  return; // Early return - automations handled by API
+  
+  /* Original code (commented out - uses booking system schema with relations):
   for (const automation of automations) {
     try {
       // Evaluate condition groups
