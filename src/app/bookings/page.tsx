@@ -138,6 +138,8 @@ export default function BookingsPage() {
     setLoading(true);
     setError(null);
     try {
+      // Note: These endpoints are from the legacy booking system
+      // They may not exist if only using the messaging dashboard
       const [bookingsRes, sittersRes] = await Promise.all([
         fetch('/api/bookings').catch(() => null),
         fetch('/api/sitters').catch(() => null),
@@ -146,7 +148,8 @@ export default function BookingsPage() {
       if (bookingsRes?.ok) {
         const data = await bookingsRes.json();
         setBookings(data.bookings || []);
-      } else if (bookingsRes && !bookingsRes.ok) {
+      } else if (bookingsRes && !bookingsRes.ok && bookingsRes.status !== 404) {
+        // Only throw error if it's not a 404 (expected for messaging-only deployments)
         throw new Error('Failed to fetch bookings');
       }
 

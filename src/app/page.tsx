@@ -57,6 +57,8 @@ export default function DashboardHomePage() {
 
   const fetchStats = async () => {
     try {
+      // Note: These endpoints are from the legacy booking system
+      // They may not exist if only using the messaging dashboard
       const [bookingsRes, sittersRes] = await Promise.all([
         fetch('/api/bookings').catch(() => null),
         fetch('/api/sitters').catch(() => null),
