@@ -34,13 +34,8 @@ async function getChaosModeSettings(): Promise<ChaosModeSettings> {
     return { ...DEFAULT_CHAOS_SETTINGS, enabled: false };
   }
 
-  const settings = await prisma.setting.findMany({
-    where: {
-      key: {
-        startsWith: 'ops.chaosMode.',
-      },
-    },
-  });
+  // Note: Setting model not available in API schema
+  const settings: any[] = [];
 
   const result: Partial<ChaosModeSettings> = {};
   for (const setting of settings) {
