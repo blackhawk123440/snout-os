@@ -53,18 +53,27 @@ export async function calculateSitterEarnings(
   totalCommission: number;
   bookingCount: number;
 }> {
+  // Note: Booking model not available in messaging dashboard schema
+  // Payroll calculations not available for messaging-only deployments
   const sitter = await prisma.sitter.findUnique({
     where: { id: sitterId },
-    select: { commissionPercentage: true },
   });
 
   if (!sitter) {
     throw new Error(`Sitter ${sitterId} not found`);
   }
 
+  // Return empty earnings - booking-based payroll not available
+  return {
+    bookings: [],
+    totalEarnings: 0,
+    totalCommission: 0,
+    bookingCount: 0,
+  };
+  
+  /* Original code (commented out):
   const commissionPercentage = sitter.commissionPercentage || 80;
 
-  // Get all completed bookings for this sitter in the date range
   const bookings = await prisma.booking.findMany({
     where: {
       sitterId,

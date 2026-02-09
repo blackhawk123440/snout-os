@@ -11,7 +11,11 @@ export async function processReminders() {
     const dayAfter = new Date(tomorrow);
     dayAfter.setDate(dayAfter.getDate() + 1);
 
-    // Find bookings for tomorrow
+    // Note: Booking model not available in messaging dashboard schema
+    // Return empty - reminder processing not available
+    return { processed: 0 };
+    
+    /* Original code (commented out):
     const tomorrowBookings = await prisma.booking.findMany({
       where: {
         startAt: {
@@ -75,7 +79,17 @@ export async function processDailySummary() {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get today's bookings
+    // Note: Booking model not available in messaging dashboard schema
+    // Return empty stats - daily summary not available
+    return {
+      total: 0,
+      pending: 0,
+      confirmed: 0,
+      completed: 0,
+      revenue: 0,
+    };
+    
+    /* Original code (commented out):
     const todayBookings = await prisma.booking.findMany({
       where: {
         startAt: {

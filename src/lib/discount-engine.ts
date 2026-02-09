@@ -122,11 +122,15 @@ export async function findAutomaticDiscounts(
     if (discount.type === "firstTime" && !context.isFirstTime) continue;
     
     if (discount.type === "loyalty" && context.clientId) {
-      // Check if client has previous bookings
+      // Note: Booking model not available in messaging dashboard schema
+      // Skip loyalty discount check
+      continue;
+      
+      /* Original code (commented out):
       const previousBookings = await prisma.booking.count({
         where: { clientId: context.clientId, status: "completed" },
       });
-      if (previousBookings === 0) continue; // Not a loyal client yet
+      if (previousBookings === 0) continue;
     }
 
     // Evaluate conditions

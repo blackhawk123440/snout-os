@@ -36,11 +36,9 @@ export async function getCurrentSitter(request?: NextRequest): Promise<any | nul
       return null;
     }
 
+    // Note: API schema Sitter model doesn't have currentTier relation
     const sitter = await prisma.sitter.findUnique({
       where: { id: sitterId },
-      include: {
-        currentTier: true,
-      },
     });
 
     return sitter;
@@ -76,6 +74,11 @@ export async function verifySitterBookingAccess(
   sitterId: string,
   bookingId: string
 ): Promise<boolean> {
+  // Note: Booking model not available in messaging dashboard schema
+  // Return false - booking access verification not available
+  return false;
+  
+  /* Original code (commented out):
   try {
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
@@ -86,6 +89,7 @@ export async function verifySitterBookingAccess(
   } catch (error) {
     return false;
   }
+  */
 }
 
 /**

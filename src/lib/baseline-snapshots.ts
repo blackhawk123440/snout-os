@@ -35,8 +35,12 @@ export async function captureBaselineSnapshot(
     notes?: string;
   } = {}
 ): Promise<BaselineSnapshot> {
+  // Note: Booking model not available in messaging dashboard schema
+  // Baseline snapshots not available for messaging-only deployments
+  throw new Error('Baseline snapshots not available - Booking model not in messaging dashboard schema');
+  
+  /* Original code (commented out):
   try {
-    // Fetch the booking with all related data
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
@@ -53,7 +57,6 @@ export async function captureBaselineSnapshot(
       throw new Error(`Booking ${bookingId} not found`);
     }
 
-    // Calculate price breakdown using the same method as display
     let calculatedBreakdown = null;
     try {
       calculatedBreakdown = calculatePriceBreakdown({
@@ -70,7 +73,6 @@ export async function captureBaselineSnapshot(
       console.error(`Error calculating breakdown for booking ${bookingId}:`, error);
     }
 
-    // Create snapshot
     const snapshot = await (prisma as any).baselineSnapshot.create({
       data: {
         bookingId,
@@ -110,6 +112,10 @@ export async function captureBaselineSnapshot(
  * Get all snapshots for a booking
  */
 export async function getBaselineSnapshots(bookingId: string): Promise<BaselineSnapshot[]> {
+  // Note: BaselineSnapshot model not available in messaging dashboard schema
+  return [];
+  
+  /* Original code (commented out):
   try {
     const snapshots = await (prisma as any).baselineSnapshot.findMany({
       where: { bookingId },
@@ -141,10 +147,14 @@ export async function getBaselineSnapshots(bookingId: string): Promise<BaselineS
  * Get all snapshots
  */
 export async function getAllBaselineSnapshots(): Promise<BaselineSnapshot[]> {
+  // Note: BaselineSnapshot model not available in messaging dashboard schema
+  return [];
+  
+  /* Original code (commented out):
   try {
     const snapshots = await (prisma as any).baselineSnapshot.findMany({
       orderBy: { timestamp: "desc" },
-      take: 1000, // Limit to recent snapshots
+      take: 1000,
     });
 
     return snapshots.map((snapshot: any) => ({

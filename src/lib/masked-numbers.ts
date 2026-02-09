@@ -67,6 +67,11 @@ export function getPhoneForViewer(phone: string, viewerRole: 'owner' | 'sitter' 
  */
 export async function getSitterMaskedNumber(sitterId: string): Promise<string | null> {
   try {
+    // Note: API schema Sitter model doesn't have phone fields
+    // Return null - phone numbers not stored on Sitter model
+    return null;
+    
+    /* Original code (commented out):
     const sitter = await prisma.sitter.findUnique({
       where: { id: sitterId },
       select: { openphonePhone: true, personalPhone: true },
@@ -74,15 +79,12 @@ export async function getSitterMaskedNumber(sitterId: string): Promise<string | 
 
     if (!sitter) return null;
 
-    // If sitter has an OpenPhone number configured, use that as their "masked" number
-    // This is the number they'll use to send messages
     if (sitter.openphonePhone) {
       return sitter.openphonePhone;
     }
 
-    // If no OpenPhone number, we need to create one or return null
-    // In production, this would create a new OpenPhone number for the sitter
     return null;
+    */
   } catch (error) {
     console.error("[getSitterMaskedNumber] Error:", error);
     return null;
@@ -97,6 +99,11 @@ export async function getBookingParticipantPhone(
   bookingId: string,
   participantType: 'client' | 'sitter'
 ): Promise<string | null> {
+  // Note: Booking model not available in messaging dashboard schema
+  // Return null - booking participant phone lookup not available
+  return null;
+  
+  /* Original code (commented out):
   try {
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
@@ -113,7 +120,6 @@ export async function getBookingParticipantPhone(
     }
 
     if (participantType === 'sitter' && booking.sitter) {
-      // Prefer OpenPhone number, fallback to personal phone
       return booking.sitter.openphonePhone || booking.sitter.personalPhone || booking.sitter.phone;
     }
 
@@ -122,6 +128,7 @@ export async function getBookingParticipantPhone(
     console.error("[getBookingParticipantPhone] Error:", error);
     return null;
   }
+  */
 }
 
 
