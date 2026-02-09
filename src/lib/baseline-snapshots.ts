@@ -38,74 +38,6 @@ export async function captureBaselineSnapshot(
   // Note: Booking model not available in messaging dashboard schema
   // Baseline snapshots not available for messaging-only deployments
   throw new Error('Baseline snapshots not available - Booking model not in messaging dashboard schema');
-  
-  /* Original code (commented out):
-  try {
-    const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
-      include: {
-        pets: true,
-        timeSlots: {
-          orderBy: {
-            startAt: "asc",
-          },
-        },
-      },
-    });
-
-    if (!booking) {
-      throw new Error(`Booking ${bookingId} not found`);
-    }
-
-    let calculatedBreakdown = null;
-    try {
-      calculatedBreakdown = calculatePriceBreakdown({
-        service: booking.service,
-        startAt: booking.startAt,
-        endAt: booking.endAt,
-        pets: booking.pets,
-        quantity: booking.quantity || 1,
-        afterHours: booking.afterHours || false,
-        holiday: booking.holiday || false,
-        timeSlots: booking.timeSlots,
-      });
-    } catch (error) {
-      console.error(`Error calculating breakdown for booking ${bookingId}:`, error);
-    }
-
-    const snapshot = await (prisma as any).baselineSnapshot.create({
-      data: {
-        bookingId,
-        bookingFormTotal: options.bookingFormTotal ?? null,
-        calendarViewTotal: options.calendarViewTotal ?? null,
-        sitterDashboardTotal: options.sitterDashboardTotal ?? null,
-        ownerDashboardTotal: options.ownerDashboardTotal ?? null,
-        stripePaymentTotal: options.stripePaymentTotal ?? null,
-        storedTotalPrice: booking.totalPrice,
-        calculatedBreakdown: calculatedBreakdown ? JSON.stringify(calculatedBreakdown) : null,
-        notes: options.notes || null,
-      },
-    });
-
-    return {
-      id: snapshot.id,
-      bookingId: snapshot.bookingId,
-      timestamp: snapshot.timestamp,
-      bookingFormTotal: snapshot.bookingFormTotal,
-      calendarViewTotal: snapshot.calendarViewTotal,
-      sitterDashboardTotal: snapshot.sitterDashboardTotal,
-      ownerDashboardTotal: snapshot.ownerDashboardTotal,
-      stripePaymentTotal: snapshot.stripePaymentTotal,
-      storedTotalPrice: snapshot.storedTotalPrice,
-      calculatedBreakdown: snapshot.calculatedBreakdown
-        ? JSON.parse(snapshot.calculatedBreakdown)
-        : null,
-      notes: snapshot.notes,
-    };
-  } catch (error) {
-    console.error(`Error capturing baseline snapshot for booking ${bookingId}:`, error);
-    throw error;
-  }
 }
 
 /**
@@ -114,33 +46,6 @@ export async function captureBaselineSnapshot(
 export async function getBaselineSnapshots(bookingId: string): Promise<BaselineSnapshot[]> {
   // Note: BaselineSnapshot model not available in messaging dashboard schema
   return [];
-  
-  /* Original code (commented out):
-  try {
-    const snapshots = await (prisma as any).baselineSnapshot.findMany({
-      where: { bookingId },
-      orderBy: { timestamp: "desc" },
-    });
-
-    return snapshots.map((snapshot: any) => ({
-      id: snapshot.id,
-      bookingId: snapshot.bookingId,
-      timestamp: snapshot.timestamp,
-      bookingFormTotal: snapshot.bookingFormTotal,
-      calendarViewTotal: snapshot.calendarViewTotal,
-      sitterDashboardTotal: snapshot.sitterDashboardTotal,
-      ownerDashboardTotal: snapshot.ownerDashboardTotal,
-      stripePaymentTotal: snapshot.stripePaymentTotal,
-      storedTotalPrice: snapshot.storedTotalPrice,
-      calculatedBreakdown: snapshot.calculatedBreakdown
-        ? JSON.parse(snapshot.calculatedBreakdown)
-        : null,
-      notes: snapshot.notes,
-    }));
-  } catch (error) {
-    console.error(`Error getting baseline snapshots for booking ${bookingId}:`, error);
-    throw error;
-  }
 }
 
 /**
@@ -149,33 +54,6 @@ export async function getBaselineSnapshots(bookingId: string): Promise<BaselineS
 export async function getAllBaselineSnapshots(): Promise<BaselineSnapshot[]> {
   // Note: BaselineSnapshot model not available in messaging dashboard schema
   return [];
-  
-  /* Original code (commented out):
-  try {
-    const snapshots = await (prisma as any).baselineSnapshot.findMany({
-      orderBy: { timestamp: "desc" },
-      take: 1000,
-    });
-
-    return snapshots.map((snapshot: any) => ({
-      id: snapshot.id,
-      bookingId: snapshot.bookingId,
-      timestamp: snapshot.timestamp,
-      bookingFormTotal: snapshot.bookingFormTotal,
-      calendarViewTotal: snapshot.calendarViewTotal,
-      sitterDashboardTotal: snapshot.sitterDashboardTotal,
-      ownerDashboardTotal: snapshot.ownerDashboardTotal,
-      stripePaymentTotal: snapshot.stripePaymentTotal,
-      storedTotalPrice: snapshot.storedTotalPrice,
-      calculatedBreakdown: snapshot.calculatedBreakdown
-        ? JSON.parse(snapshot.calculatedBreakdown)
-        : null,
-      notes: snapshot.notes,
-    }));
-  } catch (error) {
-    console.error("Error getting all baseline snapshots:", error);
-    throw error;
-  }
 }
 
 /**
