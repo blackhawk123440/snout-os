@@ -223,16 +223,19 @@ export async function calculateSitterTier(
     return null;
   }
 
+  // Note: Tier system not available in messaging dashboard schema
+  // Return null - tier calculation not available
+  return null;
+  
+  /* Original code (commented out):
   const previousTierId = sitter.currentTierId;
 
-  // Update sitter tier if changed
   if (previousTierId !== newTierId) {
     await prisma.sitter.update({
       where: { id: sitterId },
       data: { currentTierId: newTierId },
     });
 
-    // Create tier history entry
     await prisma.sitterTierHistory.create({
       data: {
         sitterId,
