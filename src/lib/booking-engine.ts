@@ -135,62 +135,6 @@ export async function detectBookingConflicts(
   // Note: Booking model not available in messaging dashboard schema
   // Return empty array - booking conflict checking not available
   return [];
-  
-  /* Original code (commented out):
-  const existingBookings = await prisma.booking.findMany({
-    where,
-    include: {
-      timeSlots: {
-        orderBy: { startAt: "asc" },
-      },
-    },
-  });
-
-  // Check each time slot for conflicts
-  for (const newSlot of timeSlots) {
-    for (const existingBooking of existingBookings) {
-      for (const existingSlot of existingBooking.timeSlots) {
-        // Check for overlap
-        const overlap = timeSlotsOverlap(newSlot, {
-          startAt: existingSlot.startAt,
-          endAt: existingSlot.endAt,
-        });
-
-        if (overlap.overlaps) {
-          conflicts.push({
-            bookingId: existingBooking.id,
-            conflictType: "overlap",
-            overlapMinutes: overlap.overlapMinutes,
-            travelTimeMinutes: 0,
-            message: `Overlaps with booking ${existingBooking.id} by ${overlap.overlapMinutes} minutes`,
-          });
-        } else {
-          // Check travel time
-          const travelTime = calculateTravelTime(
-            address || "",
-            existingBooking.address || ""
-          );
-
-          // Check if there's enough time between bookings
-          const booking1End = new Date(existingSlot.endAt);
-          const booking2Start = new Date(newSlot.startAt);
-          const timeBetween = (booking2Start.getTime() - booking1End.getTime()) / (1000 * 60);
-
-          if (timeBetween > 0 && timeBetween < travelTime) {
-            conflicts.push({
-              bookingId: existingBooking.id,
-              conflictType: "travel_time",
-              overlapMinutes: 0,
-              travelTimeMinutes: travelTime - timeBetween,
-              message: `Insufficient travel time (${Math.round(timeBetween)} min available, ${travelTime} min needed)`,
-            });
-          }
-        }
-      }
-    }
-  }
-
-  return conflicts;
 }
 
 /**
