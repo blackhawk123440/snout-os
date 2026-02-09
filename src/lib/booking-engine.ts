@@ -203,7 +203,11 @@ export async function getSitterRecommendations(
   address: string,
   petCount: number
 ): Promise<SitterRecommendation[]> {
-  // Get all active sitters
+  // Note: Booking model not available in messaging dashboard schema
+  // Return empty array - sitter recommendations not available
+  return [];
+  
+  /* Original code (commented out):
   const sitters = await prisma.sitter.findMany({
     where: { active: true },
     include: {
