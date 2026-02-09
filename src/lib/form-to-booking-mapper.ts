@@ -102,6 +102,9 @@ export interface BookingCreateInput {
   holiday?: boolean;
   pets?: Array<{ name: string; species: string }>;
   timeSlots?: Array<{ startAt: Date | string; endAt: Date | string; duration?: number }>;
+  totalPrice?: number;
+  status?: string;
+  paymentStatus?: string;
   [key: string]: any; // Allow additional fields
 }
 
