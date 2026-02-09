@@ -209,23 +209,22 @@ export async function calculateSitterTier(
     return null;
   }
 
-  // Calculate metrics
+  // Note: Tier system not available in messaging dashboard schema
+  // Return null - tier calculation not available
+  return null;
+  
+  /* Original code (commented out):
   const [points, completionRate, responseRate] = await Promise.all([
     calculateSitterPoints(sitterId, periodStart, periodEnd),
     calculateCompletionRate(sitterId, periodStart, periodEnd),
     calculateResponseRate(sitterId, periodStart, periodEnd),
   ]);
 
-  // Determine new tier
   const newTierId = await determineSitterTier(points, completionRate, responseRate);
 
   if (!newTierId) {
     return null;
   }
-
-  // Note: Tier system not available in messaging dashboard schema
-  // Return null - tier calculation not available
-  return null;
   
   /* Original code (commented out):
   const previousTierId = sitter.currentTierId;
