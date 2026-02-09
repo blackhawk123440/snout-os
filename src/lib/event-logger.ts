@@ -37,6 +37,7 @@ export async function logAutomationRun(
         orgId: 'unknown', // Would need to be passed in
         actorType: 'system',
         eventType: `automation.run.${automationType}`,
+        correlationIds: {}, // Required field - empty object for system events
         payload: {
           automationType,
           status,
@@ -73,6 +74,7 @@ export async function logEvent(
         orgId: 'unknown', // Would need to be passed in
         actorType: 'system',
         eventType,
+        correlationIds: {}, // Required field - empty object for system events
         payload: {
           status,
           bookingId: options?.bookingId,
