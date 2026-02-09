@@ -13,7 +13,6 @@
  * - Pricing: Not changed in Phase 1, only maps inputs (captures form estimate in metadata)
  */
 
-import { Prisma } from "@prisma/client";
 import { formatPhoneForAPI } from "./phone-format";
 import {
   FormBookingPayload,
@@ -83,8 +82,28 @@ export interface MappingReport {
 
 /**
  * Canonical BookingCreateInput type
+ * Note: Booking model not available in messaging dashboard schema
+ * This is a generic booking input interface for form mapping
  */
-export type BookingCreateInput = Prisma.BookingCreateInput;
+export interface BookingCreateInput {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email?: string | null;
+  address?: string | null;
+  pickupAddress?: string | null;
+  dropoffAddress?: string | null;
+  service: string;
+  startAt: Date | string;
+  endAt: Date | string;
+  quantity?: number;
+  notes?: string | null;
+  afterHours?: boolean;
+  holiday?: boolean;
+  pets?: Array<{ name: string; species: string }>;
+  timeSlots?: Array<{ startAt: Date | string; endAt: Date | string; duration?: number }>;
+  [key: string]: any; // Allow additional fields
+}
 
 /**
  * Convert 12-hour time string to 24-hour format
