@@ -3,9 +3,10 @@
  * 
  * Converts booking records to BookingForm initialValues for edit mode.
  * Reuses existing mapper logic.
+ * 
+ * Note: Booking model not available in messaging dashboard schema.
+ * This mapper works with generic booking objects.
  */
-
-import { Booking } from '@prisma/client';
 
 export interface BookingFormValues {
   firstName: string;
