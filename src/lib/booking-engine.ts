@@ -134,7 +134,7 @@ export async function detectBookingConflicts(
 
   // Note: Booking model not available in messaging dashboard schema
   // Return empty array - booking conflict checking not available
-  const existingBookings: any[] = [];
+  return [];
   
   /* Original code (commented out):
   const existingBookings = await prisma.booking.findMany({
