@@ -400,20 +400,16 @@ export function mapFormPayloadToBookingInput(
     afterHours: payload.afterHours || false,
     holiday: payload.holiday || false,
     notes,
-    pets: {
-      create: pets.map((pet) => ({
-        name: pet.name,
-        species: pet.species,
-      })),
-    },
+    pets: pets.map((pet) => ({
+      name: pet.name,
+      species: pet.species,
+    })),
     ...(timeSlots.length > 0 && {
-      timeSlots: {
-        create: timeSlots.map((slot) => ({
-          startAt: slot.startAt,
-          endAt: slot.endAt,
-          duration: slot.duration,
-        })),
-      },
+      timeSlots: timeSlots.map((slot) => ({
+        startAt: slot.startAt,
+        endAt: slot.endAt,
+        duration: slot.duration,
+      })),
     }),
   };
   
