@@ -63,36 +63,37 @@ export async function blockAntiPoachingMessage(params: {
     violationTypes: violations.map(v => v.type),
   });
 
-  const messageEvent = await prisma.messageEvent.create({
+  // Note: messageEvent and antiPoachingAttempt models don't exist in messaging dashboard schema
+  // Using Message and PolicyViolation instead
+  const primaryViolation = violations[0];
+  
+  // Create Message with blocked status
+  const blockedMessage = await (prisma as any).message.create({
     data: {
       threadId,
       orgId,
-      direction,
-      actorType,
-      actorUserId: actorType === 'sitter' ? actorId || null : null,
-      actorClientId: actorType === 'client' ? actorId || null : null,
       body,
-      deliveryStatus: 'failed',
-      failureCode: 'ANTI_POACHING_BLOCKED',
-      failureDetail: `Blocked due to anti-poaching violation: ${violations.map(v => v.type).join(', ')}`,
-      metadataJson,
+      direction: direction === 'inbound' ? 'inbound' : 'outbound',
+      senderType: actorType === 'sitter' ? 'sitter' : 'client',
+      senderId: actorId || null,
+      hasPolicyViolation: true,
+      // Note: delivery status is tracked in MessageDelivery, not Message
     },
   });
 
-  // Create AntiPoachingAttempt record
-  // For multiple violations, create one attempt with the primary violation type
-  const primaryViolation = violations[0];
-  const antiPoachingAttempt = await prisma.antiPoachingAttempt.create({
+  // Create PolicyViolation record for anti-poaching
+  // Schema violationType: 'phone' | 'email' | 'url' | 'social' | 'other'
+  // Use 'other' for anti-poaching violations
+  const policyViolation = await (prisma as any).policyViolation.create({
     data: {
       orgId,
       threadId,
-      eventId: messageEvent.id,
-      actorType,
-      actorId: actorId || null,
-      violationType: primaryViolation.type,
-      detectedContent: violations.map(v => v.content).join(' | '),
-      action: 'blocked',
-      ownerNotifiedAt: null, // Will be set after owner notification
+      messageId: blockedMessage.id,
+      violationType: 'other', // Schema doesn't have 'anti_poaching', use 'other'
+      detectedSummary: violations.map(v => `${v.type}: ${v.content}`).join(' | '),
+      detectedRedacted: redactViolationsForOwner(body, violations),
+      actionTaken: 'blocked', // Schema field is 'actionTaken', not 'action'
+      status: 'open',
     },
   });
 
@@ -100,39 +101,27 @@ export async function blockAntiPoachingMessage(params: {
   const ownerThread = await findOrCreateOwnerInboxThread(orgId);
   const redactedContent = redactViolationsForOwner(body, violations);
 
-  const ownerNotificationEvent = await prisma.messageEvent.create({
+  // Create notification message for owner
+  const ownerNotificationMessage = await (prisma as any).message.create({
     data: {
       threadId: ownerThread.id,
       orgId,
-      direction: 'inbound', // Owner receives it as inbound notification
-      actorType: 'system',
       body: `[Anti-Poaching Alert] Message blocked from ${actorType === 'sitter' ? 'sitter' : 'client'}. Violations: ${violations.map(v => v.type).join(', ')}. Content preview: ${redactedContent.substring(0, 200)}${redactedContent.length > 200 ? '...' : ''}`,
-      deliveryStatus: 'received',
-      metadataJson: JSON.stringify({
-        antiPoachingAlert: true,
-        originalEventId: messageEvent.id,
-        violationTypes: violations.map(v => v.type),
-      }),
+      direction: 'inbound',
+      senderType: 'system',
+      hasPolicyViolation: false,
     },
   });
 
   // Update owner inbox thread
-  await prisma.messageThread.update({
+  // Thread model has: lastActivityAt, ownerUnreadCount (but not lastInboundAt or lastMessageAt)
+  await (prisma as any).thread.update({
     where: { id: ownerThread.id },
     data: {
-      lastInboundAt: new Date(),
-      lastMessageAt: new Date(),
+      lastActivityAt: new Date(),
       ownerUnreadCount: {
         increment: 1,
       },
-    },
-  });
-
-  // Update AntiPoachingAttempt with owner notification timestamp
-  await prisma.antiPoachingAttempt.update({
-    where: { id: antiPoachingAttempt.id },
-    data: {
-      ownerNotifiedAt: new Date(),
     },
   });
 
@@ -153,7 +142,7 @@ export async function blockAntiPoachingMessage(params: {
       } else if (params.senderE164) {
         // For outbound: send warning to sender
         // Find the thread's number to send from
-        const thread = await prisma.messageThread.findUnique({
+        const thread = await (prisma as any).thread.findUnique({
           where: { id: threadId },
           include: { messageNumber: true },
         });
@@ -177,8 +166,8 @@ export async function blockAntiPoachingMessage(params: {
   await logEvent('messaging.antiPoachingBlocked', 'success', {
     metadata: {
       threadId,
-      eventId: messageEvent.id,
-      attemptId: antiPoachingAttempt.id,
+      messageId: blockedMessage.id,
+      policyViolationId: policyViolation.id,
       actorType,
       violationTypes: violations.map(v => v.type),
     },
@@ -186,8 +175,8 @@ export async function blockAntiPoachingMessage(params: {
 
   return {
     wasBlocked: true,
-    messageEventId: messageEvent.id,
-    antiPoachingAttemptId: antiPoachingAttempt.id,
+    messageEventId: blockedMessage.id,
+    antiPoachingAttemptId: policyViolation.id,
     warningSent,
     ownerNotified: true,
   };
