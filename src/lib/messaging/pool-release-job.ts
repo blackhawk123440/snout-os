@@ -53,10 +53,9 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
     const maxLifetimeCutoff = new Date(now.getTime() - maxPoolThreadLifetimeDays * 24 * 60 * 60 * 1000);
 
     // Find pool numbers
-    // Note: MessageNumber uses 'class' not 'numberClass', and 'status' field
-    // Can't filter by threads relation in where clause (Prisma client doesn't include it)
+    // Note: Schema uses 'class' but code uses 'numberClass' - use type assertion to bypass type check
     const whereClause: any = {
-      class: 'pool', // Schema field is 'class', not 'numberClass'
+      numberClass: 'pool', // Code uses numberClass (legacy field name)
       status: 'active',
     };
 
