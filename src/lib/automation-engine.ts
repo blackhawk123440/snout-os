@@ -182,9 +182,10 @@ export async function processAutomations(
   });
 
   // Filter automations where trigger JSON matches eventType
+  // Note: trigger is a Json field, need to cast it
   const automations = allAutomations.filter((automation) => {
     try {
-      const trigger = automation.trigger as any;
+      const trigger = (automation as any).trigger as any;
       return trigger?.triggerType === eventType;
     } catch {
       return false;

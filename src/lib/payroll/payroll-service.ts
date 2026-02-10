@@ -76,75 +76,17 @@ export async function computePayrollForPeriod(
   // Return empty payroll computation
   return [];
   
-  /* Original code (commented out):
-  const bookings = await prisma.booking.findMany({
-    where: {
-      status: 'completed',
-      startAt: {
-        gte: startDate,
-        lte: endDate,
-      },
-      sitterId: {
-        not: null,
-      },
-    },
-    include: {
-      sitter: {
-        include: {
-          currentTier: true,
-        },
-      },
-    },
-    orderBy: {
-      startAt: 'asc',
-    },
-  });
-
-  // Group by sitter
-  const sitterMap = new Map<string, PayrollComputation>();
-
-  for (const booking of bookings) {
-    if (!booking.sitterId || !booking.sitter) continue;
-
-    const sitterId = booking.sitterId;
-    const commissionRate = booking.sitter.commissionPercentage || 80;
-    const commissionAmount = (booking.totalPrice * commissionRate) / 100;
-
-    if (!sitterMap.has(sitterId)) {
-      sitterMap.set(sitterId, {
-        sitterId,
-        sitterName: `${booking.sitter.firstName} ${booking.sitter.lastName}`,
-        bookingCount: 0,
-        totalEarnings: 0,
-        commissionRate,
-        commissionAmount: 0,
-        adjustments: 0,
-        netAmount: 0,
-        bookings: [],
-      });
-    }
-
-    const computation = sitterMap.get(sitterId)!;
-    computation.bookingCount += 1;
-    computation.totalEarnings += booking.totalPrice;
-    computation.commissionAmount += commissionAmount;
-    computation.bookings.push({
-      bookingId: booking.id,
-      bookingDate: booking.startAt,
-      service: booking.service,
-      totalPrice: booking.totalPrice,
-      commissionPercentage: commissionRate,
-      commissionAmount,
-    });
-  }
-
-  // Calculate net amounts
-  const computations = Array.from(sitterMap.values());
-  for (const computation of computations) {
-    computation.netAmount = computation.commissionAmount + computation.adjustments;
-  }
-
-  return computations;
+  // Original code (commented out - Booking model not available):
+  // const bookings = await prisma.booking.findMany({
+  //   where: {
+  //     status: 'completed',
+  //     startAt: { gte: startDate, lte: endDate },
+  //     sitterId: { not: null },
+  //   },
+  //   include: { sitter: { include: { currentTier: true } } },
+  //   orderBy: { startAt: 'asc' },
+  // });
+  // ... (Booking model queries disabled)
 }
 
 /**

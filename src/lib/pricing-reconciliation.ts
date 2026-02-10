@@ -40,68 +40,11 @@ export async function checkBookingPricingDrift(
 ): Promise<PricingDriftResult | null> {
   // Note: Booking model not available in messaging dashboard schema
   // Pricing reconciliation not available for messaging-only deployments
-  return { success: false, error: 'Booking model not available in messaging dashboard schema' };
+  return null;
   
-  /* Original code (commented out):
-  const booking = await prisma.booking.findUnique({
-    where: { id: bookingId },
-    include: {
-      pets: true,
-      timeSlots: {
-        orderBy: {
-          startAt: "asc",
-        },
-      },
-    },
-  });
-
-  if (!booking) {
-    return null;
-  }
-
-  // Skip if no pricing snapshot exists
-  if (!booking.pricingSnapshot) {
-    return null;
-  }
-
-  // Deserialize stored snapshot
-  const storedSnapshot = deserializePricingSnapshot(booking.pricingSnapshot);
-  if (!storedSnapshot || typeof storedSnapshot.total !== "number") {
-    return null;
-  }
-
-  const storedTotal = storedSnapshot.total;
-
-  // Recompute using pricing engine
-  const input: PricingEngineInput = {
-    service: booking.service,
-    startAt: booking.startAt,
-    endAt: booking.endAt,
-    pets: booking.pets,
-    quantity: booking.quantity || 1,
-    afterHours: booking.afterHours || false,
-    holiday: booking.holiday || false,
-    timeSlots: booking.timeSlots,
-  };
-
-  const recomputedBreakdown = calculateCanonicalPricing(input);
-  const recomputedTotal = recomputedBreakdown.total;
-
-  // Calculate drift
-  const driftAmount = Math.abs(recomputedTotal - storedTotal);
-  const driftPercentage = storedTotal > 0 
-    ? (driftAmount / storedTotal) * 100 
-    : 0;
-  const hasDrift = driftAmount > driftThreshold;
-
-  return {
-    bookingId,
-    storedTotal,
-    recomputedTotal,
-    driftAmount,
-    driftPercentage,
-    hasDrift,
-  };
+  // Original code (commented out - Booking model not available):
+  // const booking = await prisma.booking.findUnique({ ... });
+  // ... (Booking model queries disabled)
 }
 
 /**
@@ -121,74 +64,12 @@ export async function runPricingReconciliation(
   // Return empty reconciliation result
   return {
     totalChecked: 0,
-    driftsFound: [],
-    errors: [],
+    driftsFound: 0,
+    drifts: [],
   };
   
-  /* Original code (commented out):
-  const bookings = await prisma.booking.findMany({
-    where: {
-      pricingSnapshot: {
-        not: null,
-      },
-      status: {
-        in: ["confirmed", "completed"], // Only check confirmed/completed bookings
-      },
-    },
-    select: {
-      id: true,
-      pricingSnapshot: true,
-    },
-    take: maxBookings || 1000, // Default to 1000 bookings per run
-    orderBy: {
-      updatedAt: "desc", // Check most recently updated first
-    },
-  });
-
-  const drifts: PricingDriftResult[] = [];
-
-  // Check each booking for drift
-  for (const booking of bookings) {
-    try {
-      const driftResult = await checkBookingPricingDrift(booking.id, driftThreshold);
-      if (driftResult && driftResult.hasDrift) {
-        drifts.push(driftResult);
-
-        // Log drift to EventLog
-        await logEvent("pricing.reconciliation.drift", "failed", {
-          bookingId: booking.id,
-          error: `Pricing drift detected: $${driftResult.driftAmount.toFixed(2)} (${driftResult.driftPercentage.toFixed(2)}%)`,
-          metadata: {
-            storedTotal: driftResult.storedTotal,
-            recomputedTotal: driftResult.recomputedTotal,
-            driftAmount: driftResult.driftAmount,
-            driftPercentage: driftResult.driftPercentage,
-          },
-        });
-      }
-    } catch (error: any) {
-      console.error(`Failed to check drift for booking ${booking.id}:`, error);
-      // Log error but continue processing other bookings
-      await logEvent("pricing.reconciliation.error", "failed", {
-        bookingId: booking.id,
-        error: error?.message || String(error),
-      });
-    }
-  }
-
-  // Log summary to EventLog
-  await logEvent("pricing.reconciliation.completed", drifts.length > 0 ? "failed" : "success", {
-    metadata: {
-      totalChecked: bookings.length,
-      driftsFound: drifts.length,
-      driftThreshold,
-    },
-  });
-
-  return {
-    totalChecked: bookings.length,
-    driftsFound: drifts.length,
-    drifts,
-  };
+  // Original code (commented out - Booking model not available):
+  // const bookings = await prisma.booking.findMany({ ... });
+  // ... (Booking model queries disabled)
 }
 

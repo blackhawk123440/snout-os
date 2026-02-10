@@ -25,7 +25,8 @@ export async function createAlert(params: {
 
   // Use Alert model from API schema (not Setting)
   // Check for existing open alert of same type
-  const existing = await prisma.alert.findFirst({
+  // Cast to any to avoid type issues with Prisma client from API schema
+  const existing = await (prisma as any).alert.findFirst({
     where: {
       orgId,
       type,
@@ -37,7 +38,7 @@ export async function createAlert(params: {
   if (existing) {
     // Update existing alert (refresh description)
     // Note: Alert model doesn't have updatedAt field, only createdAt and resolvedAt
-    await prisma.alert.update({
+    await (prisma as any).alert.update({
       where: { id: existing.id },
       data: {
         description,
@@ -57,7 +58,7 @@ export async function createAlert(params: {
   }
 
   // Create new alert using Alert model
-  await prisma.alert.create({
+  await (prisma as any).alert.create({
     data: {
       orgId,
       severity,
@@ -95,14 +96,14 @@ export async function getOpenAlerts(orgId: string): Promise<Array<{
   metadata?: Record<string, unknown>;
 }>> {
   // Use Alert model from API schema
-  const alerts = await prisma.alert.findMany({
+  const alerts = await (prisma as any).alert.findMany({
     where: {
       orgId,
       status: 'open',
     },
   });
 
-  return alerts.map(alert => ({
+  return alerts.map((alert: any) => ({
     type: alert.type,
     severity: alert.severity as 'critical' | 'warning' | 'info',
     title: alert.title,

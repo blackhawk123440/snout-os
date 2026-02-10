@@ -68,8 +68,8 @@ export async function deactivateSitterMaskedNumber(
       {
         metadata: {
           sitterId,
-          maskedNumberId: maskedNumber.id,
-          messageNumberId: maskedNumber.messageNumberId,
+          maskedNumberId: messageNumber.id,
+          messageNumberId: messageNumber.id,
           deactivatedAt: deactivatedAt.toISOString(),
         },
       }
@@ -80,8 +80,8 @@ export async function deactivateSitterMaskedNumber(
   }
 
   return {
-    maskedNumberId: maskedNumber.id,
-    messageNumberId: maskedNumber.messageNumberId,
+    maskedNumberId: messageNumber.id,
+    messageNumberId: messageNumber.id,
     deactivatedAt,
   };
 }

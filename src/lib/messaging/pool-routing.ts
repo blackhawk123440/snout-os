@@ -187,13 +187,13 @@ async function getPoolMismatchAutoResponse(orgId: string): Promise<string> {
 async function getSetting(key: string): Promise<string | null> {
   // Note: Setting model not available in API schema
   return null;
-  /* Original code (commented out):
-  try {
-    const setting = await prisma.setting.findUnique({
-      where: { key },
-    });
-    return setting?.value || null;
-  } catch {
-    return null;
-  }
+  // Original code (commented out - Setting model not available):
+  // try {
+  //   const setting = await prisma.setting.findUnique({
+  //     where: { key },
+  //   });
+  //   return setting?.value || null;
+  // } catch {
+  //   return null;
+  // }
 }

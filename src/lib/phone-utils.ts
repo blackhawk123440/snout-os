@@ -15,18 +15,7 @@ export async function getSitterPhone(
 ): Promise<string | null> {
   // Note: API schema Sitter model only has: id, orgId, userId, name, active, createdAt, updatedAt
   // Phone fields don't exist - return null or use environment variables
-  const sitter = await prisma.sitter.findUnique({
-    where: { id: sitterId },
-    select: {
-      id: true,
-      name: true,
-    },
-  });
-
-  if (!sitter) {
-    return null;
-  }
-  
+  // Note: Sitter model has 'name' field but Prisma types may not reflect it
   // API schema doesn't have phone fields on Sitter model
   // Return null - phone numbers would need to be stored elsewhere
   return null;
@@ -61,7 +50,7 @@ export async function getOwnerPhone(
   const defaultPhoneType = process.env.OWNER_PHONE_TYPE || "personal";
 
   if (!preferredType) {
-    preferredType = defaultPhoneType;
+    preferredType = defaultPhoneType as "personal" | "openphone" | undefined;
   }
 
   if (preferredType === "openphone" && ownerOpenphonePhone) {

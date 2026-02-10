@@ -14,14 +14,13 @@ async function getSitterInfoFromAlias(alias: string): Promise<{ sitterId: string
   if (nameParts.length >= 2) {
     try {
       // API schema uses `name` field (full name), not firstName/lastName
-      const allSitters = await prisma.sitter.findMany({
-        select: { id: true, name: true },
-      });
+      // Get all sitters and filter in memory to avoid Prisma type issues
+      const allSitters = await prisma.sitter.findMany();
       
       // Match by name (case-insensitive)
       const searchName = nameParts.join(' ');
       const sitter = allSitters.find(s => 
-        s.name.toLowerCase().replace(/\s+/g, '-') === alias.toLowerCase()
+        (s as any).name?.toLowerCase().replace(/\s+/g, '-') === alias.toLowerCase()
       );
       
       // Use sitter ID if found, otherwise keep original alias

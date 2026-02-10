@@ -71,52 +71,10 @@ export async function calculateSitterEarnings(
     bookingCount: 0,
   };
   
-  /* Original code (commented out):
-  const commissionPercentage = sitter.commissionPercentage || 80;
-
-  const bookings = await prisma.booking.findMany({
-    where: {
-      sitterId,
-      status: 'completed',
-      createdAt: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
-    select: {
-      id: true,
-      createdAt: true,
-      service: true,
-      totalPrice: true,
-      status: true,
-    },
-    orderBy: {
-      createdAt: 'asc',
-    },
-  });
-
-  const bookingEarnings: BookingEarning[] = bookings.map((booking) => {
-    const commissionAmount = (booking.totalPrice * commissionPercentage) / 100;
-    return {
-      bookingId: booking.id,
-      bookingDate: booking.createdAt,
-      service: booking.service,
-      totalPrice: booking.totalPrice,
-      commissionPercentage,
-      commissionAmount,
-      status: booking.status as 'completed' | 'cancelled',
-    };
-  });
-
-  const totalEarnings = bookingEarnings.reduce((sum, b) => sum + b.totalPrice, 0);
-  const totalCommission = bookingEarnings.reduce((sum, b) => sum + b.commissionAmount, 0);
-
-  return {
-    bookings: bookingEarnings,
-    totalEarnings,
-    totalCommission,
-    bookingCount: bookings.length,
-  };
+  // Original code (commented out - Booking model not available in API schema):
+  // const commissionPercentage = sitter.commissionPercentage || 80;
+  // const bookings = await prisma.booking.findMany({ ... });
+  // ... (Booking model queries disabled)
 }
 
 /**

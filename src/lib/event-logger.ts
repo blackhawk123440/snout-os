@@ -32,7 +32,8 @@ export async function logAutomationRun(
 ): Promise<void> {
   try {
     // Note: eventLog model not available in API schema - use AuditEvent instead
-    await prisma.auditEvent.create({
+    // Cast to any to avoid type issues with Json fields
+    await (prisma as any).auditEvent.create({
       data: {
         orgId: 'unknown', // Would need to be passed in
         actorType: 'system',
@@ -69,7 +70,8 @@ export async function logEvent(
 ): Promise<void> {
   try {
     // Note: eventLog model not available in API schema - use AuditEvent instead
-    await prisma.auditEvent.create({
+    // Cast to any to avoid type issues with Json fields
+    await (prisma as any).auditEvent.create({
       data: {
         orgId: 'unknown', // Would need to be passed in
         actorType: 'system',

@@ -212,53 +212,51 @@ export async function handleBookingReassignment(
   if (newSitterId) {
     // Get booking for window update
     // Note: Booking model not available in messaging dashboard schema
-    const booking = null; // await prisma.booking.findUnique({
-      where: { id: bookingId },
-      select: {
-        startAt: true,
-        endAt: true,
-        service: true,
-      },
-    });
+    const booking = null;
+    // Original code (commented out):
+    // await prisma.booking.findUnique({
+    //   where: { id: bookingId },
+    //   select: {
+    //     startAt: true,
+    //     endAt: true,
+    //     service: true,
+    //   },
+    // });
 
-    if (booking && booking.startAt && booking.endAt && booking.service) {
-      // Update or create assignment window with new sitter ID
-      const windowId = await findOrCreateAssignmentWindow(
-        bookingId,
-        thread.id,
-        newSitterId,
-        booking.startAt,
-        booking.endAt,
-        booking.service,
-        resolvedOrgId
-      );
-
-      // Update thread with window ID
-      await prisma.messageThread.update({
-        where: { id: thread.id },
-        data: { assignmentWindowId: windowId },
-      });
-
-      // Reassign number if needed (sitter masked number for assigned sitter)
-      const numberClass = await determineThreadNumberClass({
-        assignedSitterId: newSitterId,
-        isMeetAndGreet: thread.isMeetAndGreet || false,
-        isOneTimeClient: thread.isOneTimeClient || false,
-      });
-
-      const provider = new TwilioProvider();
-      await assignNumberToThread(
-        thread.id,
-        numberClass,
-        resolvedOrgId,
-        provider,
-        {
-          sitterId: newSitterId,
-          isOneTimeClient: thread.isOneTimeClient || undefined,
-          isMeetAndGreet: thread.isMeetAndGreet || undefined,
-        }
-      );
-    }
+    // Note: Booking model not available, so skip window update
+    // Original code (commented out - Booking model not in API schema):
+    // if (booking && booking.startAt && booking.endAt && booking.service) {
+    //   const windowId = await findOrCreateAssignmentWindow(
+    //     bookingId,
+    //     thread.id,
+    //     newSitterId,
+    //     booking.startAt,
+    //     booking.endAt,
+    //     booking.service,
+    //     resolvedOrgId
+    //   );
+    //   await prisma.messageThread.update({
+    //     where: { id: thread.id },
+    //     data: { assignmentWindowId: windowId },
+    //   });
+    //   const numberClass = await determineThreadNumberClass({
+    //     assignedSitterId: newSitterId,
+    //     isMeetAndGreet: thread.isMeetAndGreet || false,
+    //     isOneTimeClient: thread.isOneTimeClient || false,
+    //   });
+    //   const provider = new TwilioProvider();
+    //   await assignNumberToThread(
+    //     thread.id,
+    //     numberClass,
+    //     resolvedOrgId,
+    //     provider,
+    //     {
+    //       sitterId: newSitterId,
+    //       isOneTimeClient: thread.isOneTimeClient || undefined,
+    //       isMeetAndGreet: thread.isMeetAndGreet || undefined,
+    //     }
+    //   );
+    // }
   } else {
     // Sitter unassigned - close active windows
     const { closeAllBookingWindows } = await import('./window-helpers');
