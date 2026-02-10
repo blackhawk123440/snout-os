@@ -183,6 +183,12 @@ export async function getTemplateVersionHistory(
   automationType: string,
   recipient: "client" | "sitter" | "owner"
 ): Promise<MessageTemplateVersion[]> {
+  // Note: Setting model not available in API schema
+  // Templates are stored in Automation.templates JSON field
+  // Return empty array as version history is not available
+  return [];
+  
+  /* Original code (commented out - Setting model doesn't exist):
   const versionKey = `messageTemplateVersion.${automationType}.${recipient}`;
   const versionData = await prisma.setting.findUnique({
     where: { key: versionKey },
@@ -197,6 +203,7 @@ export async function getTemplateVersionHistory(
   } catch {
     return [];
   }
+  */
 }
 
 /**
