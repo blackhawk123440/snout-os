@@ -50,23 +50,11 @@ export async function sendMessage(
     
     console.log(`[sendMessage] Message send result: ${sent ? 'SUCCESS' : 'FAILED'}`);
     
-    // Log message in database if bookingId provided
+    // Note: Message model in API schema doesn't have bookingId, from, to, or status fields
+    // Messages are created via the API's messaging service with proper thread associations
+    // Database logging disabled for messaging dashboard schema compatibility
     if (bookingId) {
-      try {
-        await prisma.message.create({
-          data: {
-            direction: "outbound",
-            body: message,
-            status: sent ? "sent" : "failed",
-            bookingId,
-            from: "system",
-            to: formattedPhone,
-          },
-        });
-      } catch (dbError) {
-        console.error("[sendMessage] Failed to log message to database:", dbError);
-        // Don't fail the send if database logging fails
-      }
+      console.log(`[sendMessage] Would log message for booking ${bookingId}, but Message model doesn't support bookingId in messaging dashboard schema`);
     }
     
     return sent;
