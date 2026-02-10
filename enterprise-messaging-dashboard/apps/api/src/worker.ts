@@ -14,6 +14,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { MessageRetryWorker } from './workers/message-retry.worker';
 import { AutomationWorker } from './workers/automation.worker';
+import { ProofWorker } from './workers/proof.worker';
 
 async function bootstrap() {
   // Create minimal NestJS app context for workers
@@ -22,11 +23,13 @@ async function bootstrap() {
   // Get worker instances from the module
   const messageRetryWorker = app.get(MessageRetryWorker);
   const automationWorker = app.get(AutomationWorker);
+  const proofWorker = app.get(ProofWorker);
   
   // Workers start automatically via OnModuleInit
   console.log('🚀 Workers started:');
   console.log('  - Message Retry Worker');
   console.log('  - Automation Worker');
+  console.log('  - Proof Worker');
   console.log('  - Pool Release Jobs (via API)');
   
   // Keep process alive

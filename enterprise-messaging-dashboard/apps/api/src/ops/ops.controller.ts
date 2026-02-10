@@ -82,4 +82,24 @@ export class OpsController {
 
     return this.opsService.getHealth(user.orgId);
   }
+
+  @Post('proof/trigger')
+  async triggerProof(@CurrentUser() user: any) {
+    // Owner-only
+    if (user.role !== 'owner') {
+      throw new ForbiddenException('Only owners can trigger proof jobs');
+    }
+
+    return this.opsService.triggerProof(user.orgId, user.id);
+  }
+
+  @Get('proof/latest')
+  async getLatestProof(@CurrentUser() user: any) {
+    // Owner-only
+    if (user.role !== 'owner') {
+      throw new ForbiddenException('Only owners can view proof events');
+    }
+
+    return this.opsService.getLatestProof(user.orgId);
+  }
 }

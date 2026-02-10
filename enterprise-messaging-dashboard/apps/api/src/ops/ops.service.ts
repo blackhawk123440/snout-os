@@ -16,6 +16,7 @@ import { ConfigService } from '@nestjs/config';
 export class OpsService {
   private messageRetryQueue: Queue;
   private automationQueue: Queue;
+  private proofQueue: Queue;
 
   constructor(
     private prisma: PrismaService,
@@ -23,9 +24,11 @@ export class OpsService {
     private config: ConfigService,
     @Inject('MESSAGE_RETRY_QUEUE') messageRetryQueue: Queue,
     @Inject('AUTOMATION_QUEUE') automationQueue: Queue,
+    @Inject('PROOF_QUEUE') proofQueue: Queue,
   ) {
     this.messageRetryQueue = messageRetryQueue;
     this.automationQueue = automationQueue;
+    this.proofQueue = proofQueue;
   }
 
   /**
@@ -242,5 +245,76 @@ export class OpsService {
         database: { latencyMs: -1, status: 'error' },
       };
     }
+  }
+
+  /**
+   * Trigger a proof job to demonstrate worker execution
+   */
+  async triggerProof(orgId: string, userId: string) {
+    const jobId = `proof-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    
+    // Enqueue proof job
+    await this.proofQueue.add('proof.noop', {
+      orgId,
+      jobId,
+      triggeredBy: userId,
+      triggeredAt: new Date().toISOString(),
+    }, {
+      attempts: 1,
+      removeOnComplete: true,
+      removeOnFail: false,
+    });
+
+    // Audit event for triggering
+    await this.audit.recordEvent({
+      orgId,
+      actorType: 'owner',
+      actorId: userId,
+      eventType: 'ops.proof.job.triggered',
+      payload: {
+        jobId,
+        triggeredAt: new Date().toISOString(),
+      },
+    });
+
+    return {
+      success: true,
+      jobId,
+      message: 'Proof job enqueued',
+    };
+  }
+
+  /**
+   * Get latest proof audit event
+   */
+  async getLatestProof(orgId: string) {
+    const event = await this.prisma.auditEvent.findFirst({
+      where: {
+        orgId,
+        eventType: 'ops.proof.job.processed',
+      },
+      orderBy: {
+        ts: 'desc',
+      },
+    });
+
+    if (!event) {
+      return {
+        found: false,
+        message: 'No proof events found. Trigger a proof job first.',
+      };
+    }
+
+    return {
+      found: true,
+      event: {
+        id: event.id,
+        eventType: event.eventType,
+        timestamp: event.ts.toISOString(),
+        jobId: (event.correlationIds as any)?.jobId,
+        bullmqJobId: (event.correlationIds as any)?.bullmqJobId,
+        payload: event.payload,
+      },
+    };
   }
 }
