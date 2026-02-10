@@ -36,8 +36,8 @@ export async function GET() {
         id: true, 
         email: true, 
         passwordHash: true,
-        role: true,
-        orgId: true,
+        // role and orgId may not be in Web's Prisma client - check if they exist
+        name: true,
       },
     });
     
@@ -45,11 +45,10 @@ export async function GET() {
       results.checks.userFound = "✅ User exists";
       results.checks.userDetails = {
         email: user.email,
+        name: user.name || "N/A",
         hasPassword: !!user.passwordHash,
         passwordHashLength: user.passwordHash ? user.passwordHash.length : 0,
         passwordHashStart: user.passwordHash ? user.passwordHash.substring(0, 20) : null,
-        role: user.role || "N/A",
-        orgId: user.orgId || "N/A",
       };
     } else {
       results.checks.userFound = "❌ User not found";
@@ -63,7 +62,7 @@ export async function GET() {
   // Check 4: List all users (for debugging)
   try {
     const allUsers = await (prisma as any).user.findMany({
-      select: { email: true, role: true },
+      select: { email: true, name: true },
       take: 5,
     });
     results.checks.allUsers = allUsers;

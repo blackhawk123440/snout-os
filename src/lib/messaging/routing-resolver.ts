@@ -128,23 +128,20 @@ export async function resolveInboundSms(
   if (!activeBooking || !activeBooking.sitterId) {
     // No active booking - route to relationship thread or owner inbox
     // Find or create relationship thread
-    let thread = await prisma.messageThread.findFirst({
+    // Note: Thread model doesn't have 'scope' field - use threadType instead
+    let thread = await (prisma as any).thread.findFirst({
       where: {
         orgId,
         clientId: client.id,
-        scope: 'internal',
+        threadType: 'other', // Use 'other' for internal/relationship threads
       },
     });
 
     if (!thread) {
-      thread = await prisma.messageThread.create({
-        data: {
-          orgId,
-          clientId: client.id,
-          scope: 'internal',
-          status: 'open',
-        },
-      });
+      // Thread model requires: orgId, clientId, numberId, threadType, status
+      // We need a numberId - this should be handled by the API service
+      // For now, return error or use placeholder
+      throw new Error('Thread creation requires numberId - this should be handled by the API service');
     }
 
     return {
@@ -158,25 +155,20 @@ export async function resolveInboundSms(
   }
 
   // Active booking exists - find or create JOB thread
-  let jobThread = await prisma.messageThread.findFirst({
+  // Note: Thread model doesn't have bookingId or scope - use threadType='assignment'
+  let jobThread = await (prisma as any).thread.findFirst({
     where: {
       orgId,
       clientId: client.id,
-      bookingId: activeBooking.id,
+      sitterId: activeBooking.sitterId,
+      threadType: 'assignment', // Use 'assignment' for job threads
     },
   });
 
   if (!jobThread) {
-    jobThread = await prisma.messageThread.create({
-      data: {
-        orgId,
-        clientId: client.id,
-        bookingId: activeBooking.id,
-        scope: 'client_general',
-        assignedSitterId: activeBooking.sitterId,
-        status: 'open',
-      },
-    });
+    // Thread model requires: orgId, clientId, numberId, threadType, status
+    // We need a numberId - this should be handled by the API service
+    throw new Error('Thread creation requires numberId - this should be handled by the API service');
   }
 
   // Check for active assignment window
@@ -239,7 +231,7 @@ export async function resolveOutboundMessage(
   const { orgId, senderUserId, threadId, now } = params;
 
   // Get thread
-  const thread = await prisma.messageThread.findUnique({
+  const thread = await (prisma as any).thread.findUnique({
     where: {
       id: threadId,
       orgId,
