@@ -53,12 +53,12 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
     const maxLifetimeCutoff = new Date(now.getTime() - maxPoolThreadLifetimeDays * 24 * 60 * 60 * 1000);
 
     // Find pool numbers
-    // Note: Use type assertion to bypass Prisma type checking
-    // The actual field in database is 'class' but Prisma client may have different types
-    const whereClause = {
-      class: 'pool' as any, // Schema field is 'class'
-      status: 'active' as any,
-    } as any;
+    // Note: Code uses 'numberClass' (matching other files like number-helpers.ts)
+    // Use type assertion since Prisma types may not match exactly
+    const whereClause: any = {
+      numberClass: 'pool', // Match field name used in number-helpers.ts
+      status: 'active',
+    };
 
     if (orgId) {
       whereClause.orgId = orgId;
