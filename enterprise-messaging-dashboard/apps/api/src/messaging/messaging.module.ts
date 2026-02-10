@@ -4,9 +4,10 @@ import { MessagingController } from './messaging.controller';
 import { RoutingModule } from '../routing/routing.module';
 import { PolicyModule } from '../policy/policy.module';
 import { WorkersModule } from '../workers/workers.module';
+import { ThreadsModule } from '../threads/threads.module';
 
 @Module({
-  imports: [RoutingModule, PolicyModule, forwardRef(() => WorkersModule)],
+  imports: [RoutingModule, PolicyModule, forwardRef(() => WorkersModule), ThreadsModule],
   providers: [MessagingService],
   controllers: [MessagingController],
   exports: [MessagingService],

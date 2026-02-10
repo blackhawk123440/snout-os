@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { MessagingService } from './messaging.service';
+import { ThreadsService } from '../threads/threads.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { sendMessageSchema } from '@snoutos/shared';
@@ -8,7 +9,15 @@ import { sendMessageSchema } from '@snoutos/shared';
 @Controller('api/messages')
 @UseGuards(AuthGuard)
 export class MessagingController {
-  constructor(private messagingService: MessagingService) {}
+  constructor(
+    private messagingService: MessagingService,
+    private threadsService: ThreadsService,
+  ) {}
+
+  @Get('threads')
+  async getThreads(@CurrentUser() user: any, @Query() query: any) {
+    return this.threadsService.getThreads(user.orgId, query);
+  }
 
   @Get('threads/:threadId')
   async getMessages(@Param('threadId') threadId: string) {
