@@ -53,12 +53,13 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
     const maxLifetimeCutoff = new Date(now.getTime() - maxPoolThreadLifetimeDays * 24 * 60 * 60 * 1000);
 
     // Find pool numbers with active threads
+    // Note: MessageNumber uses 'class' not 'numberClass', and 'status' field
     const whereClause: any = {
-      numberClass: 'pool',
+      class: 'pool', // Schema field is 'class', not 'numberClass'
       status: 'active',
       threads: {
         some: {
-          status: { not: 'archived' },
+          status: 'active', // Thread model uses 'active' | 'inactive', not 'archived'
         },
       },
     };
@@ -67,20 +68,19 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
       whereClause.orgId = orgId;
     }
 
+    // MessageNumber has threads relation in schema, but Prisma client may not include it
+    // Use include to get threads
     const poolNumbers = await prisma.messageNumber.findMany({
       where: whereClause,
       include: {
         threads: {
           where: {
-            status: 'active', // Thread model uses 'active' | 'inactive', not 'archived'
+            status: 'active',
           },
           include: {
             assignmentWindows: {
-              where: {
-                // Note: AssignmentWindow model doesn't have status field
-              },
               orderBy: {
-                endsAt: 'desc', // Field is endsAt, not endAt
+                endsAt: 'desc',
               },
               take: 1,
             },
