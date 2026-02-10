@@ -68,13 +68,19 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
       whereClause.orgId = orgId;
     }
 
-    // MessageNumber has threads relation in schema, but Prisma client may not include it
-    // Use include to get threads
+    // Note: MessageNumber Prisma client may not include threads relation
+    // Query threads separately for each pool number
     const poolNumbers = await prisma.messageNumber.findMany({
       where: whereClause,
-      include: {
-        threads: {
+    });
+
+    // For each pool number, find its threads separately
+    const poolNumbersWithThreads = await Promise.all(
+      poolNumbers.map(async (poolNumber) => {
+        const threads = await (prisma as any).thread.findMany({
           where: {
+            orgId: poolNumber.orgId,
+            numberId: poolNumber.id,
             status: 'active',
           },
           include: {
@@ -85,11 +91,12 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
               take: 1,
             },
           },
-        },
-      },
-    });
+        });
+        return { ...poolNumber, threads };
+      })
+    );
 
-    for (const poolNumber of poolNumbers) {
+    for (const poolNumber of poolNumbersWithThreads) {
       try {
         // Check each thread using this pool number
         for (const thread of poolNumber.threads) {
