@@ -125,7 +125,6 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
             // These are on MessageNumber model - this logic needs to be in the API service
             // For now, this is a no-op
             console.warn('[pool-release] Thread number release not supported - should be handled by API service');
-          }
 
             // Log audit event
             await logMessagingEvent({
@@ -134,15 +133,15 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
               metadata: {
                 numberId: poolNumber.id,
                 e164: poolNumber.e164,
-              threadId: thread.id,
-              reason: releaseReason,
-              settings: {
-                postBookingGraceHours,
-                inactivityReleaseDays,
-                maxPoolThreadLifetimeDays,
+                threadId: thread.id,
+                reason: releaseReason,
+                settings: {
+                  postBookingGraceHours,
+                  inactivityReleaseDays,
+                  maxPoolThreadLifetimeDays,
+                },
               },
-            },
-          });
+            });
 
             stats.totalReleased++;
           }

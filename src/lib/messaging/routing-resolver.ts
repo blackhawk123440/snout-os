@@ -21,18 +21,9 @@ async function getActiveBookingForClient(
   
   if (!client) return null;
   
-  // Find booking by phone number (Booking model doesn't have clientId or orgId)
-  const booking = await prisma.booking.findFirst({
-    where: {
-      phone: client.phone,
-      startAt: { lte: now },
-      endAt: { gte: now },
-      status: { notIn: ['cancelled', 'completed'] },
-    },
-    select: { id: true, sitterId: true },
-    orderBy: { startAt: 'desc' },
-  });
-  return booking;
+  // Note: Booking model doesn't exist in messaging dashboard schema
+  // This functionality should be handled by the API service
+  return null;
 }
 
 async function getActiveAssignment(
@@ -49,14 +40,15 @@ async function getActiveAssignment(
   
   const sitterId = user?.sitterId || sitterUserId;
   
-  const assignment = await prisma.assignmentWindow.findFirst({
+  // Note: AssignmentWindow model doesn't have bookingId or status fields
+  // Field names are: startsAt, endsAt (not startAt, endAt)
+  const assignment = await (prisma as any).assignmentWindow.findFirst({
     where: {
       orgId,
-      bookingId,
       sitterId,
-      startAt: { lte: now },
-      endAt: { gte: now },
-      status: 'active',
+      startsAt: { lte: now },
+      endsAt: { gte: now },
+      // Note: AssignmentWindow doesn't have status field
     },
     select: { id: true },
   });

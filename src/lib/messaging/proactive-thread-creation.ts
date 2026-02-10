@@ -95,49 +95,6 @@ export async function ensureProactiveThreadCreation(
   // This functionality should be handled by the API service
   // For now, return null to skip proactive creation
   return null;
-
-  // Determine number class for thread
-  const numberClass = await determineThreadNumberClass({
-    assignedSitterId: thread.assignedSitterId,
-    isMeetAndGreet: thread.isMeetAndGreet || false,
-    isOneTimeClient: thread.isOneTimeClient || false,
-  });
-
-  // Assign number to thread (idempotent - will not reassign if already assigned)
-  const provider = new TwilioProvider();
-  await assignNumberToThread(
-    thread.id,
-    numberClass,
-    resolvedOrgId,
-    provider,
-    {
-      sitterId: thread.assignedSitterId || undefined,
-      isOneTimeClient: thread.isOneTimeClient || undefined,
-      isMeetAndGreet: thread.isMeetAndGreet || undefined,
-    }
-  );
-
-  // Create or update assignment window (idempotent via findOrCreateAssignmentWindow)
-  const windowId = await findOrCreateAssignmentWindow(
-    booking.id,
-    thread.id,
-    sitterId,
-    booking.startAt,
-    booking.endAt,
-    booking.service,
-    resolvedOrgId
-  );
-
-  // Update thread with current window ID
-  // Note: Thread model doesn't have assignmentWindowId field
-  // Assignment windows are linked via AssignmentWindow.threadId relation
-  // This update is a no-op - window linking is handled by the API service
-
-  return {
-    threadId: thread.id,
-    windowId,
-    numberClass,
-  };
 }
 
 /**

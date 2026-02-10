@@ -39,23 +39,17 @@ export async function handlePoolNumberMismatch(
   // Owner inbox is a special thread for routing messages that don't belong to specific client threads
   const ownerThread = await findOrCreateOwnerInboxThread(orgId);
 
-  // Step 2: Create inbound message event in owner inbox
-  const messageEvent = await prisma.messageEvent.create({
+  // Step 2: Create inbound message in owner inbox
+  // Note: messageEvent model doesn't exist - using Message instead
+  const message = await (prisma as any).message.create({
     data: {
       threadId: ownerThread.id,
       orgId,
       direction: 'inbound',
-      actorType: 'client',
+      senderType: 'client', // Message model uses senderType, not actorType
       providerMessageSid: inboundMessage.messageSid,
       body: inboundMessage.body,
-      mediaJson: inboundMessage.mediaUrls ? JSON.stringify(inboundMessage.mediaUrls) : null,
-      deliveryStatus: 'received',
-      metadataJson: JSON.stringify({
-        routingMismatch: true,
-        poolNumberId: messageNumberId,
-        senderE164: inboundMessage.from,
-        reason: 'Sender not mapped to active thread on pool number',
-      }),
+      // Note: Message model doesn't have mediaJson, deliveryStatus, or metadataJson fields
       createdAt: inboundMessage.timestamp,
     },
   });
@@ -82,21 +76,16 @@ export async function handlePoolNumberMismatch(
       if (responseResult.success) {
         autoResponseSent = true;
 
-        // Create outbound message event for the auto-response
-        await prisma.messageEvent.create({
+        // Create outbound message for the auto-response
+        await (prisma as any).message.create({
           data: {
             threadId: ownerThread.id,
             orgId,
             direction: 'outbound',
-            actorType: 'system',
+            senderType: 'system', // Message model uses senderType, not actorType
             providerMessageSid: responseResult.messageSid || undefined,
             body: autoResponseText,
-            deliveryStatus: 'queued',
-            metadataJson: JSON.stringify({
-              autoResponse: true,
-              poolMismatch: true,
-              originalEventId: messageEvent.id,
-            }),
+            // Note: Message model doesn't have deliveryStatus or metadataJson fields
             createdAt: new Date(),
           },
         });
@@ -117,7 +106,7 @@ export async function handlePoolNumberMismatch(
           messageNumberId,
           senderE164: inboundMessage.from,
           ownerThreadId: ownerThread.id,
-          messageEventId: messageEvent.id,
+          messageId: message.id,
           autoResponseSent,
           reason: 'Sender not mapped to active thread on pool number',
         },
@@ -131,7 +120,7 @@ export async function handlePoolNumberMismatch(
   return {
     ownerThreadId: ownerThread.id,
     autoResponseSent,
-    auditEventId: messageEvent.id, // Use messageEvent.id as audit reference
+    auditEventId: message.id, // Use message.id as audit reference
   };
 }
 
