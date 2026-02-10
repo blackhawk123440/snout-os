@@ -53,9 +53,9 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
     const maxLifetimeCutoff = new Date(now.getTime() - maxPoolThreadLifetimeDays * 24 * 60 * 60 * 1000);
 
     // Find pool numbers
-    // Note: Schema uses 'class' but code uses 'numberClass' - use type assertion to bypass type check
+    // Note: Schema uses 'class' field (not 'numberClass')
     const whereClause: any = {
-      numberClass: 'pool', // Code uses numberClass (legacy field name)
+      class: 'pool', // Schema field is 'class'
       status: 'active',
     };
 
