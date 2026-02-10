@@ -35,12 +35,12 @@ export async function createAlert(params: {
   });
 
   if (existing) {
-    // Update existing alert (refresh timestamp)
+    // Update existing alert (refresh description)
+    // Note: Alert model doesn't have updatedAt field, only createdAt and resolvedAt
     await prisma.alert.update({
       where: { id: existing.id },
       data: {
         description,
-        updatedAt: new Date(),
       },
     });
 
