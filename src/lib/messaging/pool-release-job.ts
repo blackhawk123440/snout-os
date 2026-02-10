@@ -52,16 +52,12 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
     const inactivityCutoff = new Date(now.getTime() - inactivityReleaseDays * 24 * 60 * 60 * 1000);
     const maxLifetimeCutoff = new Date(now.getTime() - maxPoolThreadLifetimeDays * 24 * 60 * 60 * 1000);
 
-    // Find pool numbers with active threads
+    // Find pool numbers
     // Note: MessageNumber uses 'class' not 'numberClass', and 'status' field
+    // Can't filter by threads relation in where clause (Prisma client doesn't include it)
     const whereClause: any = {
       class: 'pool', // Schema field is 'class', not 'numberClass'
       status: 'active',
-      threads: {
-        some: {
-          status: 'active', // Thread model uses 'active' | 'inactive', not 'archived'
-        },
-      },
     };
 
     if (orgId) {
