@@ -17,7 +17,7 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   // Default callback will be determined by role after login
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -74,7 +74,11 @@ function LoginContent() {
           // Determine redirect based on role
           const user = sessionData.user as any;
           const isSitter = !!user.sitterId;
-          const redirectUrl = isSitter ? '/sitter/inbox' : (callbackUrl === '/dashboard' ? '/dashboard' : callbackUrl);
+          // For owners, redirect to root (/) which is the dashboard
+          // For sitters, redirect to /sitter/inbox
+          // If callbackUrl is provided and valid, use it (but normalize /dashboard to /)
+          const normalizedCallback = callbackUrl === '/dashboard' ? '/' : callbackUrl;
+          const redirectUrl = isSitter ? '/sitter/inbox' : normalizedCallback;
           
           // Use router.push for better Playwright navigation detection
           router.push(redirectUrl);
