@@ -67,7 +67,9 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
       whereClause.orgId = orgId;
     }
 
-    const poolNumbers = await prisma.messageNumber.findMany({
+    // Note: MessageNumber model uses 'threads' relation, but Prisma client may not have it
+    // Use type assertion to access the relation
+    const poolNumbers = await (prisma as any).messageNumber.findMany({
       where: whereClause,
       include: {
         threads: {

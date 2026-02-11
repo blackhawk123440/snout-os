@@ -85,7 +85,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           console.log('[NextAuth] Querying database for user...');
           // Note: API schema doesn't have sitterId directly, it's a relation
           // We'll get it via the sitter relation if needed
-          user = await prisma.user.findUnique({
+          // Use type assertion since Prisma client types may not match exactly
+          user = await (prisma as any).user.findUnique({
             where: { email: credentials.email as string },
             select: { 
               id: true, 
@@ -150,9 +151,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          orgId: user.orgId,
-          role: user.role,
-          sitterId: user.sitter?.id || null,
+          orgId: (user as any).orgId,
+          role: (user as any).role,
+          sitterId: (user as any).sitter?.id || null,
         };
       },
     }),
