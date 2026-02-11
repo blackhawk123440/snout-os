@@ -38,6 +38,9 @@ function LoginContent() {
         redirect: false,
         callbackUrl: callbackUrl,
       });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'auth-debug-pre',hypothesisId:'H4',location:'src/app/login/page.tsx:42',message:'signIn result',data:{ok:result?.ok || false,error:result?.error || null,callbackUrl,hasEmail:!!email,hasPassword:!!password},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
 
       // Store result for debug panel
       const signInResult = {

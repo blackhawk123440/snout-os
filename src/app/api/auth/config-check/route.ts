@@ -32,6 +32,10 @@ export async function GET() {
     .filter(([_, check]) => check.required && !check.set)
     .map(([key, _]) => key);
 
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'H2',location:'src/app/api/auth/config-check/route.ts:35',message:'config check computed',data:{allRequiredSet,missing,checks:{NEXTAUTH_SECRET:checks.NEXTAUTH_SECRET.set,NEXTAUTH_URL:checks.NEXTAUTH_URL.set,DATABASE_URL:checks.DATABASE_URL.set}},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+
   return NextResponse.json({
     status: allRequiredSet ? 'ok' : 'error',
     message: allRequiredSet 
@@ -49,7 +53,7 @@ export async function GET() {
       ],
       values: {
         NEXTAUTH_SECRET: 'KKHCGgsajwdE5jkpbJj6I9zX3r/qwb9ScqLHN1pcf9I=',
-        NEXTAUTH_URL: 'https://snout-os-staging.onrender.com',
+        NEXTAUTH_URL: '2https://snout-os-staging.onrender.com',
       },
     } : null,
   }, {

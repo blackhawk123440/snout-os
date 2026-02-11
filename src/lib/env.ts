@@ -55,7 +55,8 @@ const optionalEnvVars = {
   WEBHOOK_BASE_URL: process.env.WEBHOOK_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   // Auth configuration (optional until flags enabled)
-  NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  // Trim whitespace/newlines from NEXTAUTH_URL (common Render issue)
+  NEXTAUTH_URL: (process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").trim(),
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-secret-key-change-in-production' : undefined),
   // Chaos mode (staging/dev only, requires explicit opt-in)
   ALLOW_CHAOS_MODE: process.env.ALLOW_CHAOS_MODE,
@@ -78,6 +79,10 @@ export function validateEnv() {
     // Don't throw - allow app to start but log warning
     // Individual API routes will handle missing env vars gracefully
   }
+
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'H2',location:'src/lib/env.ts:82',message:'validateEnv result',data:{missing,missingCount:missing.length,nodeEnv:process.env.NODE_ENV || 'NOT SET'},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
 
   return {
     ...requiredEnvVars,
