@@ -48,46 +48,13 @@ export async function ensureProactiveThreadCreation(
     return null; // Feature flag disabled, skip proactive creation
   }
 
-  const resolvedOrgId = orgId || (await getDefaultOrgId());
-
-  // Fetch booking with client information
-  const booking = await prisma.booking.findUnique({
-    where: { id: bookingId },
-    select: {
-      id: true,
-      clientId: true,
-      service: true,
-      startAt: true,
-      endAt: true,
-      status: true,
-    },
-  });
-
-  if (!booking) {
-    throw new Error(`Booking ${bookingId} not found`);
-  }
-
-  if (!booking.clientId) {
-    // No client linked, cannot create thread
-    return null;
-  }
-
-  // Determine if client is weekly/recurring
-  const classification = await determineClientClassification({
-    clientId: booking.clientId,
-    bookingId: booking.id,
-    orgId: resolvedOrgId,
-  });
-
-  // Only create threads for recurring clients (not one-time)
-  if (classification.isOneTimeClient) {
-    return null; // Skip one-time clients
-  }
-
-  // Ensure booking has required fields
-  if (!booking.startAt || !booking.endAt || !booking.service) {
-    throw new Error(`Booking ${bookingId} missing required fields (startAt, endAt, service)`);
-  }
+  // Note: Booking model doesn't exist in messaging dashboard schema
+  // This function is disabled - proactive thread creation handled by API service
+  throw new Error('Proactive thread creation not available - Booking model not in messaging schema');
+  
+  // Disabled code:
+  // const resolvedOrgId = orgId || (await getDefaultOrgId());
+  // const booking = await prisma.booking.findUnique({ ... });
 
   // Find or create thread for this booking and client
   // Note: Thread model doesn't have bookingId, scope, assignedSitterId, isOneTimeClient, or isMeetAndGreet

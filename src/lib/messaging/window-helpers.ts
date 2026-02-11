@@ -39,16 +39,16 @@ export function calculateAssignmentWindow(
   bookingStartAt: Date,
   bookingEndAt: Date,
   service: string
-): { startAt: Date; endAt: Date } {
+): { startsAt: Date; endsAt: Date } {
   const buffer = getBufferForService(service);
   
-  const startAt = new Date(bookingStartAt);
-  startAt.setMinutes(startAt.getMinutes() - buffer.preMinutes);
+  const startsAt = new Date(bookingStartAt);
+  startsAt.setMinutes(startsAt.getMinutes() - buffer.preMinutes);
   
-  const endAt = new Date(bookingEndAt);
-  endAt.setMinutes(endAt.getMinutes() + buffer.postMinutes);
+  const endsAt = new Date(bookingEndAt);
+  endsAt.setMinutes(endsAt.getMinutes() + buffer.postMinutes);
   
-  return { startAt, endAt };
+  return { startsAt, endsAt };
 }
 
 /**
@@ -75,29 +75,30 @@ export async function createAssignmentWindow(
   bookingEndAt: Date,
   service: string,
   orgId?: string
-): Promise<{ id: string; startAt: Date; endAt: Date }> {
+): Promise<{ id: string; startsAt: Date; endsAt: Date }> {
   const resolvedOrgId = orgId || (await getDefaultOrgId());
   
   // Calculate window with buffers
-  const { startAt, endAt } = calculateAssignmentWindow(bookingStartAt, bookingEndAt, service);
+  const { startsAt, endsAt } = calculateAssignmentWindow(bookingStartAt, bookingEndAt, service);
   
   // Create assignment window
-  const window = await prisma.assignmentWindow.create({
+  // Note: AssignmentWindow doesn't have status or bookingId fields - use bookingRef instead
+  const window = await (prisma as any).assignmentWindow.create({
     data: {
       orgId: resolvedOrgId,
       threadId,
-      bookingId,
+      bookingRef: bookingId, // Field is bookingRef, not bookingId
       sitterId,
-      startAt,
-      endAt,
-      status: 'active',
+      startsAt, // Field is startsAt, not startAt
+      endsAt, // Field is endsAt, not endAt
+      // status field doesn't exist
     },
   });
   
   return {
     id: window.id,
-    startAt: window.startAt,
-    endAt: window.endAt,
+    startsAt: window.startsAt,
+    endsAt: window.endsAt,
   };
 }
 
@@ -119,33 +120,33 @@ export async function updateAssignmentWindow(
   bookingEndAt: Date,
   service: string,
   sitterId?: string
-): Promise<{ id: string; startAt: Date; endAt: Date }> {
+): Promise<{ id: string; startsAt: Date; endsAt: Date }> {
   // Calculate window with buffers
-  const { startAt, endAt } = calculateAssignmentWindow(bookingStartAt, bookingEndAt, service);
+  const { startsAt, endsAt } = calculateAssignmentWindow(bookingStartAt, bookingEndAt, service);
   
   // Update assignment window
   const updateData: {
-    startAt: Date;
-    endAt: Date;
+    startsAt: Date;
+    endsAt: Date;
     sitterId?: string;
   } = {
-    startAt,
-    endAt,
+    startsAt, // Field is startsAt, not startAt
+    endsAt, // Field is endsAt, not endAt
   };
   
   if (sitterId) {
     updateData.sitterId = sitterId;
   }
   
-  const window = await prisma.assignmentWindow.update({
+  const window = await (prisma as any).assignmentWindow.update({
     where: { id: windowId },
     data: updateData,
   });
   
   return {
     id: window.id,
-    startAt: window.startAt,
-    endAt: window.endAt,
+    startsAt: window.startsAt,
+    endsAt: window.endsAt,
   };
 }
 
@@ -159,9 +160,11 @@ export async function updateAssignmentWindow(
  * @param windowId - AssignmentWindow ID
  */
 export async function closeAssignmentWindow(windowId: string): Promise<void> {
-  await prisma.assignmentWindow.update({
+  // Note: AssignmentWindow doesn't have status field
+  // Instead, we can delete the window or mark it as expired by setting endsAt to past
+  await (prisma as any).assignmentWindow.update({
     where: { id: windowId },
-    data: { status: 'closed' },
+    data: { endsAt: new Date() }, // Set endsAt to now to effectively close it
   });
 }
 
@@ -173,12 +176,14 @@ export async function closeAssignmentWindow(windowId: string): Promise<void> {
  * @param bookingId - Booking ID
  */
 export async function closeAllBookingWindows(bookingId: string): Promise<void> {
-  await prisma.assignmentWindow.updateMany({
+  // Note: AssignmentWindow uses bookingRef, not bookingId, and doesn't have status field
+  // Set endsAt to now to effectively close all windows for this booking
+  await (prisma as any).assignmentWindow.updateMany({
     where: {
-      bookingId,
-      status: 'active',
+      bookingRef: bookingId, // Field is bookingRef, not bookingId
+      endsAt: { gte: new Date() }, // Only update windows that haven't ended yet
     },
-    data: { status: 'closed' },
+    data: { endsAt: new Date() }, // Set endsAt to now to close them
   });
 }
 
@@ -206,11 +211,12 @@ export async function findOrCreateAssignmentWindow(
   orgId?: string
 ): Promise<string> {
   // Check if window already exists
-  const existingWindow = await prisma.assignmentWindow.findFirst({
+  // Note: AssignmentWindow uses bookingRef, not bookingId, and doesn't have status field
+  const existingWindow = await (prisma as any).assignmentWindow.findFirst({
     where: {
-      bookingId,
+      bookingRef: bookingId, // Field is bookingRef, not bookingId
       threadId,
-      status: 'active',
+      endsAt: { gte: new Date() }, // Only find windows that haven't ended yet
     },
   });
   

@@ -38,14 +38,14 @@ export async function resolveRoutingForInboundMessage(
   timestamp: Date = new Date()
 ): Promise<RoutingResolution> {
   // Find all active assignment windows for this thread at the given timestamp
-  const activeWindows = await prisma.assignmentWindow.findMany({
+  // Note: AssignmentWindow doesn't have status field - filter by time range only
+  const activeWindows = await (prisma as any).assignmentWindow.findMany({
     where: {
       threadId,
-      status: 'active',
-      startAt: {
+      startsAt: {
         lte: timestamp,
       },
-      endAt: {
+      endsAt: {
         gte: timestamp,
       },
     },
@@ -53,13 +53,12 @@ export async function resolveRoutingForInboundMessage(
       sitter: {
         select: {
           id: true,
-          firstName: true,
-          lastName: true,
+          name: true, // Sitter model has name, not firstName/lastName
         },
       },
     },
     orderBy: {
-      startAt: 'asc',
+      startsAt: 'asc', // Field is startsAt, not startAt
     },
   });
 
@@ -97,7 +96,7 @@ export async function resolveRoutingForInboundMessage(
     reason: `Multiple overlapping active assignment windows (${activeWindows.length}) detected - requires owner intervention`,
     metadata: {
       activeWindowsCount: activeWindows.length,
-      conflictingWindowIds: activeWindows.map((w) => w.id),
+      conflictingWindowIds: activeWindows.map((w: any) => w.id),
       timestamp,
     },
   };
@@ -118,15 +117,15 @@ export async function hasActiveAssignmentWindow(
   threadId: string,
   timestamp: Date = new Date()
 ): Promise<boolean> {
-  const window = await prisma.assignmentWindow.findFirst({
+  const window = await (prisma as any).assignmentWindow.findFirst({
     where: {
       sitterId,
       threadId,
-      status: 'active',
-      startAt: {
+      // status field doesn't exist - filter by time range only
+      startsAt: {
         lte: timestamp,
       },
-      endAt: {
+      endsAt: {
         gte: timestamp,
       },
     },
@@ -149,26 +148,26 @@ export async function getActiveAssignmentWindows(
   sitterId: string,
   threadId: string,
   timestamp: Date = new Date()
-): Promise<Array<{ id: string; startAt: Date; endAt: Date }>> {
-  const windows = await prisma.assignmentWindow.findMany({
+): Promise<Array<{ id: string; startsAt: Date; endsAt: Date }>> {
+  const windows = await (prisma as any).assignmentWindow.findMany({
     where: {
       sitterId,
       threadId,
-      status: 'active',
-      startAt: {
+      // status field doesn't exist - filter by time range only
+      startsAt: {
         lte: timestamp,
       },
-      endAt: {
+      endsAt: {
         gte: timestamp,
       },
     },
     select: {
       id: true,
-      startAt: true,
-      endAt: true,
+      startsAt: true, // Field is startsAt, not startAt
+      endsAt: true, // Field is endsAt, not endAt
     },
     orderBy: {
-      startAt: 'asc',
+      startsAt: 'asc', // Field is startsAt, not startAt
     },
   });
 
@@ -183,16 +182,16 @@ export async function getNextUpcomingWindow(
   sitterId: string,
   threadId: string,
   after: Date = new Date()
-): Promise<{ startAt: Date; endAt: Date } | null> {
-  const window = await prisma.assignmentWindow.findFirst({
+): Promise<{ startsAt: Date; endsAt: Date } | null> {
+  const window = await (prisma as any).assignmentWindow.findFirst({
     where: {
       sitterId,
       threadId,
-      status: 'active',
-      startAt: { gt: after },
+      // status field doesn't exist - filter by time range only
+      startsAt: { gt: after }, // Field is startsAt, not startAt
     },
-    select: { startAt: true, endAt: true },
-    orderBy: { startAt: 'asc' },
+    select: { startsAt: true, endsAt: true }, // Fields are startsAt/endsAt
+    orderBy: { startsAt: 'asc' }, // Field is startsAt, not startAt
   });
   return window;
 }

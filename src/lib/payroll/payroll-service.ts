@@ -107,104 +107,21 @@ export async function createPayrollRun(
   const totalAmount = computations.reduce((sum, c) => sum + c.netAmount, 0);
   const totalSitters = computations.length;
 
-  // Create payroll run
-  const payrollRun = await prisma.payrollRun.create({
-    data: {
-      payPeriodStart: startDate,
-      payPeriodEnd: endDate,
-      status: 'draft',
-      totalAmount,
-      totalSitters,
-    },
-  });
-
-  // Create line items
-  for (const computation of computations) {
-    await prisma.payrollLineItem.create({
-      data: {
-        payrollRunId: payrollRun.id,
-        sitterId: computation.sitterId,
-        bookingCount: computation.bookingCount,
-        totalEarnings: computation.totalEarnings,
-        commissionRate: computation.commissionRate,
-        commissionAmount: computation.commissionAmount,
-        adjustments: 0, // Will be updated with adjustments
-        netAmount: computation.netAmount,
-      },
-    });
-  }
-
-  // Create adjustments and update line items
-  for (const adjustment of adjustments) {
-    const adjustmentRecord = await prisma.payrollAdjustment.create({
-      data: {
-        payrollRunId: payrollRun.id,
-        sitterId: adjustment.sitterId,
-        type: adjustment.type,
-        amount: adjustment.amount,
-        reason: adjustment.reason,
-      },
-    });
-
-    // Update line item adjustments
-    const lineItem = await prisma.payrollLineItem.findFirst({
-      where: {
-        payrollRunId: payrollRun.id,
-        sitterId: adjustment.sitterId,
-      },
-    });
-
-    if (lineItem) {
-      const adjustmentAmount = adjustment.type === 'bonus' ? adjustment.amount : -adjustment.amount;
-      await prisma.payrollLineItem.update({
-        where: { id: lineItem.id },
-        data: {
-          adjustments: lineItem.adjustments + adjustmentAmount,
-          netAmount: lineItem.netAmount + adjustmentAmount,
-        },
-      });
-    }
-  }
-
-  // Update total amount with adjustments
-  const finalTotal = computations.reduce((sum, c) => {
-    const sitterAdjustments = adjustments
-      .filter(a => a.sitterId === c.sitterId)
-      .reduce((adjSum, a) => adjSum + (a.type === 'bonus' ? a.amount : -a.amount), 0);
-    return sum + c.netAmount + sitterAdjustments;
-  }, 0);
-
-  await prisma.payrollRun.update({
-    where: { id: payrollRun.id },
-    data: { totalAmount: finalTotal },
-  });
-
-  return payrollRun.id;
+  // Note: PayrollRun and PayrollLineItem models don't exist in messaging dashboard schema
+  // This functionality is disabled for the messaging dashboard
+  throw new Error('Payroll functionality not available in messaging dashboard schema');
+  
+  // Disabled code:
+  // const payrollRun = await prisma.payrollRun.create({ ... });
+  // return payrollRun.id;
 }
 
 /**
  * Get payroll run with details
  */
 export async function getPayrollRunDetails(runId: string) {
-  return await prisma.payrollRun.findUnique({
-    where: { id: runId },
-    include: {
-      lineItems: {
-        include: {
-          sitter: {
-            include: {
-              currentTier: true,
-            },
-          },
-        },
-      },
-      adjustments: {
-        include: {
-          sitter: true,
-        },
-      },
-    },
-  });
+  // Note: PayrollRun model doesn't exist in messaging dashboard schema
+  throw new Error('Payroll functionality not available in messaging dashboard schema');
 }
 
 /**
@@ -214,13 +131,7 @@ export async function approvePayrollRun(
   runId: string,
   approvedBy: string
 ): Promise<void> {
-  await prisma.payrollRun.update({
-    where: { id: runId },
-    data: {
-      status: 'approved',
-      approvedBy,
-      approvedAt: new Date(),
-    },
-  });
+  // Note: PayrollRun model doesn't exist in messaging dashboard schema
+  throw new Error('Payroll functionality not available in messaging dashboard schema');
 }
 

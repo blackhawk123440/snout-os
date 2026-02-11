@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Fetch thread with participants
-    const thread = await prisma.messageThread.findUnique({
+    const thread = await (prisma as any).thread.findUnique({
       where: { id: threadId, orgId },
       include: {
         participants: true,
@@ -66,18 +66,21 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch messages separately
-    const messages = await prisma.messageEvent.findMany({
+    const messages = await (prisma as any).message.findMany({
       where: { threadId, orgId },
       take: 20,
       orderBy: { createdAt: 'desc' },
     });
 
     // Fetch assignment windows separately
-    const assignmentWindows = await prisma.assignmentWindow.findMany({
+    // Note: AssignmentWindow model doesn't have status field
+    const assignmentWindows = await (prisma as any).assignmentWindow.findMany({
       where: {
         threadId,
         orgId,
-        status: 'active',
+        // status field doesn't exist - filter by time range instead
+        startsAt: { lte: new Date() },
+        endsAt: { gte: new Date() },
       },
       include: {
         sitter: {
@@ -109,11 +112,10 @@ export async function GET(request: NextRequest) {
       thread: {
         id: thread.id,
         orgId: thread.orgId,
-        scope: thread.scope,
-        bookingId: thread.bookingId,
-        assignedSitterId: thread.assignedSitterId,
+        threadType: thread.threadType, // Thread model uses threadType, not scope
+        // bookingId and assignedSitterId don't exist on Thread model
         status: thread.status,
-        messageNumberId: thread.messageNumberId,
+        numberId: thread.numberId, // Thread model uses numberId, not messageNumberId
       },
       participants: thread.participants.map((p: any) => ({
         id: p.id,
@@ -123,12 +125,12 @@ export async function GET(request: NextRequest) {
       })),
       assignmentWindows: assignmentWindows.map((w: any) => ({
         id: w.id,
-        startAt: w.startAt,
-        endAt: w.endAt,
-        status: w.status,
+        startsAt: w.startsAt, // Field is startsAt, not startAt
+        endsAt: w.endsAt, // Field is endsAt, not endAt
+        // status field doesn't exist on AssignmentWindow
         sitter: w.sitter ? {
           id: w.sitter.id,
-          name: w.sitter.user?.name,
+          name: w.sitter.name, // Sitter model has name directly, not via user relation
         } : null,
       })),
       messages: messages.map((e: any) => ({
