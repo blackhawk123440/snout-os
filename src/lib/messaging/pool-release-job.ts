@@ -160,13 +160,9 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
         });
 
         if (activeThreadCount === 0) {
-          // No active threads - reset lastAssignedAt for rotation
-          await prisma.messageNumber.update({
-            where: { id: poolNumber.id },
-            data: {
-              lastAssignedAt: null,
-            },
-          });
+          // No active threads - rotation tracking handled by API service
+          // Note: MessageNumber model doesn't have lastAssignedAt field
+          // This logic is handled by the API service
         }
       } catch (error: any) {
         stats.errors.push(`Error processing pool number ${poolNumber.id}: ${error.message}`);

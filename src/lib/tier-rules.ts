@@ -22,12 +22,9 @@ export async function getSitterCommissionPercentage(sitterId: string): Promise<n
   }
 
   // Fallback to sitter's individual commission
-  const sitter = await prisma.sitter.findUnique({
-    where: { id: sitterId },
-    select: { commissionPercentage: true },
-  });
-
-  return sitter?.commissionPercentage || 80.0;
+  // Note: Sitter model doesn't have commissionPercentage field in messaging schema
+  // Use default commission percentage
+  return 80.0;
 }
 
 /**
@@ -73,11 +70,11 @@ export async function isSitterEligibleForService(
  * Filters sitters based on tier eligibility
  */
 export async function getEligibleSittersForService(service: string): Promise<string[]> {
-  const sitters = await prisma.sitter.findMany({
+  // Note: Sitter model doesn't have currentTier relation in messaging schema
+  // Get all active sitters and check eligibility via tier-permissions
+  const sitters = await (prisma as any).sitter.findMany({
     where: { active: true },
-    include: {
-      currentTier: true,
-    },
+    select: { id: true },
   });
 
   const eligibleSitterIds: string[] = [];

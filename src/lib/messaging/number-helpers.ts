@@ -280,13 +280,9 @@ export async function getPoolNumber(
     selected = availableNumbers[0];
   } else {
     // LRU: Least Recently Used (default) - from available numbers only
+    // Note: MessageNumber model doesn't have lastAssignedAt field
+    // Use creation time for LRU sorting
     availableNumbers.sort((a: any, b: any) => {
-      const aTime = a.lastAssignedAt?.getTime() || 0;
-      const bTime = b.lastAssignedAt?.getTime() || 0;
-      if (aTime !== bTime) {
-        return aTime - bTime;
-      }
-      // Fallback to creation time
       const aCreated = a.createdAt?.getTime() || 0;
       const bCreated = b.createdAt?.getTime() || 0;
       return aCreated - bCreated;

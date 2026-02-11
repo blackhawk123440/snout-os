@@ -65,7 +65,7 @@ export async function handlePoolNumberMismatch(
       where: { id: messageNumberId },
     });
 
-    if (messageNumber) {
+    if (messageNumber && messageNumber.providerNumberSid) {
       // Send auto-response from the pool number (or front desk number)
       const responseResult = await provider.sendMessage({
         to: inboundMessage.from,

@@ -13,14 +13,7 @@ async function getActiveBookingForClient(
   clientId: string,
   now: Date
 ): Promise<{ id: string; sitterId: string | null } | null> {
-  // First get client to find phone number
-  const client = await prisma.client.findUnique({
-    where: { id: clientId },
-    select: { phone: true },
-  });
-  
-  if (!client) return null;
-  
+  // Note: Client model doesn't have phone field - use ClientContact instead
   // Note: Booking model doesn't exist in messaging dashboard schema
   // This functionality should be handled by the API service
   return null;
