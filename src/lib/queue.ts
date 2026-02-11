@@ -99,10 +99,9 @@ export async function initializeQueues() {
     initializeAutomationWorker();
 
     // Initialize pool release worker (runs every 5 minutes)
-    // NOTE: Disabled for web service - should run in API/Worker service only
-    // const { initializePoolReleaseWorker, schedulePoolRelease } = await import("./pool-release-queue");
-    // initializePoolReleaseWorker();
-    // await schedulePoolRelease();
+    const { initializePoolReleaseWorker, schedulePoolRelease } = await import("./pool-release-queue");
+    initializePoolReleaseWorker();
+    await schedulePoolRelease();
   } catch (error) {
     console.error("Failed to initialize queues:", error);
   }

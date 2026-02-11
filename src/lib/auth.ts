@@ -92,7 +92,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               email: true, 
               name: true, 
               passwordHash: true,
-              // sitterId is not in API schema - removed to avoid Prisma error
+              orgId: true,
+              role: true,
+              sitter: {
+                select: { id: true },
+              },
             },
           });
           console.log('[NextAuth] User query result:', user ? 'Found' : 'Not found');
@@ -146,7 +150,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-          // sitterId removed - API schema uses relation, not direct field
+          orgId: user.orgId,
+          role: user.role,
+          sitterId: user.sitter?.id || null,
         };
       },
     }),
@@ -161,15 +167,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       
       // Populate user from JWT token (no database query to avoid failures)
-      // Token should have id, email, name, sitterId from jwt callback
+      // Token should have id, email, name, orgId, role, sitterId from jwt callback
       if (token) {
         if (token.id) session.user.id = token.id as string;
         if (token.email) session.user.email = token.email as string;
         if (token.name) session.user.name = token.name as string;
-        // sitterId is stored in token during jwt callback, no DB query needed
-        if (token.sitterId) {
-          (session.user as any).sitterId = token.sitterId;
-        }
+        if (token.orgId) (session.user as any).orgId = token.orgId;
+        if (token.role) (session.user as any).role = token.role;
+        if (token.sitterId) (session.user as any).sitterId = token.sitterId;
       } else {
         // If token is null/undefined, NextAuth couldn't decode the JWT
         // This means our manually created JWT isn't being decoded correctly
@@ -182,7 +187,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
-        // Store sitterId in token so we don't need DB query in session callback
+        token.orgId = (user as any).orgId;
+        token.role = (user as any).role;
         token.sitterId = (user as any).sitterId;
       }
       return token;

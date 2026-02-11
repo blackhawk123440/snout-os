@@ -10,9 +10,9 @@
 
 import { z } from 'zod';
 
-// Use NEXT_PUBLIC_API_URL if set, otherwise use relative URLs (same origin)
-// This allows Next.js API routes to work without a separate API server
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+// Always use relative URLs - proxy through Next.js BFF layer
+// The BFF proxy handles authentication and forwards to the API server
+const API_BASE_URL = '';
 
 export class ApiError extends Error {
   constructor(
