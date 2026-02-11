@@ -11,8 +11,9 @@
  * NOTE: Simplified implementation - full logic should be in API service
  */
 
-import { prisma } from '@/lib/db';
-import { logMessagingEvent } from './audit-trail';
+// Imports removed - simplified implementation doesn't need them
+// import { prisma } from '@/lib/db';
+// import { logMessagingEvent } from './audit-trail';
 
 interface PoolReleaseStats {
   releasedByGracePeriod: number;
