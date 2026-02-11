@@ -53,6 +53,16 @@ async function handleProxyRequest(
   params: { path: string[] },
   method: string
 ) {
+  // Skip NextAuth routes - they are handled by NextAuth directly
+  const path = params.path.join('/');
+  if (path.startsWith('auth/')) {
+    // This shouldn't happen due to Next.js route priority, but safety check
+    return NextResponse.json(
+      { error: 'NextAuth routes are not proxied' },
+      { status: 404 }
+    );
+  }
+
   if (!API_BASE_URL) {
     return NextResponse.json(
       { error: 'API server not configured' },
