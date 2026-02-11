@@ -28,10 +28,10 @@ export async function getOrCreateFrontDeskNumber(
   provider: MessagingProvider
 ): Promise<{ numberId: string; e164: string }> {
   // Check for existing Front Desk number
-  const existing = await prisma.messageNumber.findFirst({
+  const existing = await (prisma as any).messageNumber.findFirst({
     where: {
       orgId,
-      numberClass: 'front_desk',
+      class: 'front_desk',
       status: 'active',
     },
   });
@@ -86,10 +86,10 @@ export async function assignSitterMaskedNumber(
   }
 
   // Find available sitter-class number
-  messageNumber = await prisma.messageNumber.findFirst({
+  messageNumber = await (prisma as any).messageNumber.findFirst({
     where: {
       orgId,
-      numberClass: 'sitter',
+      class: 'sitter',
       assignedSitterId: null,
       status: 'active',
     },
@@ -153,7 +153,7 @@ export async function getPoolNumber(
   // Find available pool numbers
   const whereClause: any = {
     orgId,
-    numberClass: 'pool',
+    class: 'pool',
     status: 'active',
   };
 
@@ -164,7 +164,7 @@ export async function getPoolNumber(
   }
 
   // Get all available pool numbers
-  let poolNumbers = await prisma.messageNumber.findMany({
+  let poolNumbers = await (prisma as any).messageNumber.findMany({
     where: whereClause,
   });
 
@@ -177,7 +177,7 @@ export async function getPoolNumber(
   const maxConcurrent = parseInt(settings.maxConcurrentThreadsPerPoolNumber || '1', 10) || 1;
   
   // Get thread counts for each pool number
-  const numberIds = poolNumbers.map(n => n.id);
+  const numberIds = poolNumbers.map((n: any) => n.id);
   // Note: Thread model uses numberId, not messageNumberId, and status is 'active' | 'inactive'
   const threadCounts = await (prisma as any).thread.groupBy({
     by: ['numberId'],
@@ -199,7 +199,7 @@ export async function getPoolNumber(
   }
 
   // Filter out numbers at capacity (deterministic: always skip at-capacity numbers)
-  const availableNumbers = poolNumbers.filter(num => {
+  const availableNumbers = poolNumbers.filter((num: any) => {
     const currentCount = countMap.get(num.id) || 0;
     return currentCount < maxConcurrent;
   });
@@ -272,7 +272,7 @@ export async function getPoolNumber(
     selected = availableNumbers[index];
   } else if (strategy === 'FIFO') {
     // First In First Out - oldest first (from available numbers only)
-    availableNumbers.sort((a, b) => {
+    availableNumbers.sort((a: any, b: any) => {
       const aTime = a.createdAt?.getTime() || 0;
       const bTime = b.createdAt?.getTime() || 0;
       return aTime - bTime;
@@ -280,7 +280,7 @@ export async function getPoolNumber(
     selected = availableNumbers[0];
   } else {
     // LRU: Least Recently Used (default) - from available numbers only
-    availableNumbers.sort((a, b) => {
+    availableNumbers.sort((a: any, b: any) => {
       const aTime = a.lastAssignedAt?.getTime() || 0;
       const bTime = b.lastAssignedAt?.getTime() || 0;
       if (aTime !== bTime) {
@@ -425,7 +425,7 @@ export async function assignNumberToThread(
 
   // Update thread with number assignment
   // Ensure thread.numberClass matches MessageNumber.numberClass
-  const messageNumber = await prisma.messageNumber.findUnique({
+  const messageNumber = await (prisma as any).messageNumber.findUnique({
     where: { id: numberId },
   });
 
@@ -434,9 +434,9 @@ export async function assignNumberToThread(
   }
 
   // Validate number class matches
-  if (messageNumber.numberClass !== numberClass) {
+  if (messageNumber.class !== numberClass) {
     throw new Error(
-      `Number class mismatch: MessageNumber has ${messageNumber.numberClass}, expected ${numberClass}`
+      `Number class mismatch: MessageNumber has ${messageNumber.class}, expected ${numberClass}`
     );
   }
 
@@ -453,7 +453,7 @@ export async function assignNumberToThread(
   return {
     numberId,
     e164,
-    numberClass: messageNumber.numberClass,
+    numberClass: messageNumber.class,
   };
 }
 
@@ -473,11 +473,11 @@ export async function validatePoolNumberRouting(
   threadId?: string;
   reason?: string;
 }> {
-  const messageNumber = await prisma.messageNumber.findUnique({
+  const messageNumber = await (prisma as any).messageNumber.findUnique({
     where: { id: numberId },
   });
 
-  if (!messageNumber || messageNumber.numberClass !== 'pool') {
+  if (!messageNumber || messageNumber.class !== 'pool') {
     return {
       isValid: false,
       reason: 'Number is not a pool number',

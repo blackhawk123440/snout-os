@@ -149,10 +149,10 @@ async function getPoolMismatchAutoResponse(orgId: string): Promise<string> {
     env.PUBLIC_BASE_URL + '/booking';
 
   // Get front desk number for contact info
-  const frontDeskNumber = await prisma.messageNumber.findFirst({
+  const frontDeskNumber = await (prisma as any).messageNumber.findFirst({
     where: {
       orgId,
-      numberClass: 'front_desk',
+      class: 'front_desk',
       status: 'active',
     },
   });

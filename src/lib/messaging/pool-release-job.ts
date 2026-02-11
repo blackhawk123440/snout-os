@@ -54,7 +54,7 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
 
     // Find pool numbers with active threads
     const whereClause: any = {
-      numberClass: 'pool',
+      class: 'pool',
       status: 'active',
       threads: {
         some: {

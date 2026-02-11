@@ -122,9 +122,9 @@ export async function enforcePoolUnknownSenderRouting(
   fromNumberE164: string,
   orgId: string
 ): Promise<{ valid: boolean; violation?: InvariantViolation; routedToOwner: boolean }> {
-  const messageNumber = await prisma.messageNumber.findUnique({
+  const messageNumber = await (prisma as any).messageNumber.findUnique({
     where: { id: messageNumberId },
-    select: { id: true, numberClass: true, orgId: true },
+    select: { id: true, class: true, orgId: true },
   });
 
   if (!messageNumber) {
@@ -152,7 +152,7 @@ export async function enforcePoolUnknownSenderRouting(
   }
 
   // Check if this is a pool number
-  if (messageNumber.numberClass !== 'pool') {
+  if (messageNumber.class !== 'pool') {
     // Not a pool number - invariant doesn't apply
     return { valid: true, routedToOwner: false };
   }
