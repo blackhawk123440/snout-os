@@ -33,6 +33,14 @@ const getSecret = () => {
 
 const secretValue = getSecret();
 
+// Ensure NEXTAUTH_URL is trimmed (fixes Render trailing newline issue)
+// NextAuth reads from process.env, so we need to set it explicitly
+if (process.env.NEXTAUTH_URL) {
+  process.env.NEXTAUTH_URL = process.env.NEXTAUTH_URL.trim();
+}
+// Also use trimmed value from env.ts as fallback
+const nextAuthUrl = env.NEXTAUTH_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // Session strategy - JWT required for Credentials provider
   // Force JWT sessions for deterministic E2E tests
