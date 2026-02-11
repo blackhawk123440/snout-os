@@ -294,11 +294,11 @@ export async function getPoolNumber(
     selected = availableNumbers[0];
   }
 
-  // Update lastAssignedAt for rotation tracking
+  // Update lastUsedAt for rotation tracking
   await prisma.messageNumber.update({
     where: { id: selected.id },
     data: {
-      lastAssignedAt: new Date(),
+      lastUsedAt: new Date(),
     },
   });
 
