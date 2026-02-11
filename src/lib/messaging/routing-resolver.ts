@@ -26,12 +26,13 @@ async function getActiveAssignment(
   now: Date
 ): Promise<{ id: string } | null> {
   // Find sitter by user relation
+  // Note: User model doesn't have sitterId field - use sitter relation instead
   const user = await prisma.user.findFirst({
     where: { id: sitterUserId },
-    select: { sitterId: true },
+    include: { sitter: { select: { id: true } } },
   });
   
-  const sitterId = user?.sitterId || sitterUserId;
+  const sitterId = user?.sitter?.id || sitterUserId;
   
   // Note: AssignmentWindow model doesn't have bookingId or status fields
   // Field names are: startsAt, endsAt (not startAt, endAt)
@@ -88,11 +89,15 @@ export async function resolveInboundSms(
   const { orgId, toNumberE164, fromNumberE164, now } = params;
 
   // Find client by phone number
-  const client = await prisma.client.findFirst({
+  // Note: Client model doesn't have phone field - use ClientContact instead
+  const clientContact = await (prisma as any).clientContact.findFirst({
     where: {
-      phone: fromNumberE164,
+      e164: fromNumberE164,
     },
+    include: { client: true },
   });
+  
+  const client = clientContact?.client || null;
 
   if (!client) {
     // No client found - route to owner inbox
@@ -158,8 +163,9 @@ export async function resolveInboundSms(
 
   // Check for active assignment window
   // Sitter model doesn't have userId - need to find via User relation
+  // Note: User model doesn't have sitterId field - use sitter relation instead
   const user = await prisma.user.findFirst({
-    where: { sitterId: activeBooking.sitterId },
+    where: { sitter: { id: activeBooking.sitterId } },
     select: { id: true },
   });
 

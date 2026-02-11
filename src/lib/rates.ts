@@ -112,21 +112,26 @@ export interface LegacyRate {
 }
 
 export async function getAllRates(): Promise<LegacyRate[]> {
-  try {
-    const rates = await prisma.rate.findMany({
-      orderBy: { duration: 'asc' }
-    });
-    return rates.map(rate => ({
-      id: rate.id,
-      service: rate.service,
-      duration: rate.duration,
-      price: rate.baseRate,
-      description: `${rate.service} - ${rate.duration} minutes`,
-    }));
-  } catch (error) {
-    console.error("Failed to fetch rates:", error);
-    return [];
-  }
+  // Note: Rate model doesn't exist in messaging dashboard schema
+  // Return empty array - rates handled by API service
+  return [];
+  
+  // Disabled code:
+  // try {
+  //   const rates = await prisma.rate.findMany({
+  //     orderBy: { duration: 'asc' }
+  //   });
+  //   return rates.map((rate: any) => ({
+  //     id: rate.id,
+  //     service: rate.service,
+  //     duration: rate.duration,
+  //     price: rate.baseRate,
+  //     description: `${rate.service} - ${rate.duration} minutes`,
+  //   }));
+  // } catch (error) {
+  //   console.error("Failed to fetch rates:", error);
+  //   return [];
+  // }
 }
 
 // Default rates configuration

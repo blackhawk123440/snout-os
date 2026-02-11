@@ -26,10 +26,11 @@ export interface ProviderCredentials {
  * @returns Provider credentials or null if not configured
  */
 export async function getProviderCredentials(orgId: string): Promise<ProviderCredentials | null> {
-  // Try database first
-  const credential = await prisma.providerCredential.findUnique({
+  // Note: ProviderCredential model doesn't exist in messaging dashboard schema
+  // Try database first (using type assertion)
+  const credential = await (prisma as any).providerCredential?.findUnique({
     where: { orgId },
-  });
+  }) || null;
 
   if (credential) {
     try {

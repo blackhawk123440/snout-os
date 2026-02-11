@@ -51,8 +51,10 @@ export async function sendSitterNightBeforeReminder(booking: Booking, sitterId?:
     const sitter = await prisma.sitter.findUnique({
       where: { id: sitterId },
     });
-    if (sitter) {
-      const commissionPercentage = sitter.commissionPercentage || 80.0;
+    if (sitter && booking.totalPrice) {
+      // Note: Sitter model doesn't have commissionPercentage field
+      // Use default 80% commission
+      const commissionPercentage = 80.0;
       const earnings = (booking.totalPrice * commissionPercentage) / 100;
       earningsText = `\nYour Earnings: $${earnings.toFixed(2)}`;
     }
@@ -91,8 +93,10 @@ export async function sendSitterAssignmentNotification(booking: Booking, sitterI
     const sitter = await prisma.sitter.findUnique({
       where: { id: sitterId },
     });
-    if (sitter) {
-      const commissionPercentage = sitter.commissionPercentage || 80.0;
+    if (sitter && booking.totalPrice) {
+      // Note: Sitter model doesn't have commissionPercentage field
+      // Use default 80% commission
+      const commissionPercentage = 80.0;
       const earnings = (booking.totalPrice * commissionPercentage) / 100;
       earningsText = `\nYour Earnings: $${earnings.toFixed(2)}`;
     }

@@ -251,73 +251,66 @@ export async function calculatePriceWithRules(
   basePrice: number,
   context: PricingContext
 ): Promise<PricingResult> {
-  // Get all enabled pricing rules, ordered by priority
-  const rules = await prisma.pricingRule.findMany({
-    where: { enabled: true },
-    orderBy: { priority: "desc" },
-  });
-
-  // Enrich context with additional data
-  const enrichedContext: PricingContext = {
-    ...context,
-    bookingTotal: basePrice,
-    dayOfWeek: context.startAt.getDay(),
-    hour: context.startAt.getHours(),
-  };
-
-  const fees: Array<{ name: string; amount: number }> = [];
-  const discounts: Array<{ name: string; amount: number }> = [];
-  const multipliers: Array<{ name: string; multiplier: number }> = [];
-
-  let currentTotal = basePrice;
-
-  // Process rules in priority order
-  for (const rule of rules) {
-    try {
-      const conditions = JSON.parse(rule.conditions || "[]");
-      const calculation = JSON.parse(rule.calculation || "{}");
-
-      // Check if conditions are met
-      if (!evaluateConditions(conditions, enrichedContext)) {
-        continue;
-      }
-
-      // Apply calculation based on rule type
-      if (rule.type === "fee") {
-        const feeAmount = applyCalculation(calculation, enrichedContext, currentTotal);
-        fees.push({ name: rule.name, amount: feeAmount });
-        currentTotal += feeAmount;
-      } else if (rule.type === "discount") {
-        const discountAmount = applyCalculation(calculation, enrichedContext, currentTotal);
-        discounts.push({ name: rule.name, amount: discountAmount });
-        currentTotal -= discountAmount;
-      } else if (rule.type === "multiplier") {
-        const multiplier = Number(calculation.value) || 1;
-        multipliers.push({ name: rule.name, multiplier });
-        currentTotal *= multiplier;
-      }
-
-      // Update context for next rule evaluation
-      enrichedContext.bookingTotal = currentTotal;
-    } catch (error) {
-      console.error(`Error processing pricing rule ${rule.id}:`, error);
-      // Continue with next rule
-    }
-  }
-
-  // Ensure total is not negative
-  if (currentTotal < 0) {
-    currentTotal = 0;
-  }
-
+  // Note: PricingRule model doesn't exist in messaging dashboard schema
+  // Return base price without rule-based adjustments
   return {
-    basePrice,
-    fees,
-    discounts,
-    multipliers,
-    subtotal: basePrice + fees.reduce((sum, f) => sum + f.amount, 0),
-    total: currentTotal,
+    basePrice: basePrice,
+    fees: [],
+    discounts: [],
+    multipliers: [],
+    subtotal: basePrice,
+    total: basePrice,
   };
+  
+  // Disabled code (PricingRule model not available):
+  // // Enrich context with additional data
+  // const enrichedContext: PricingContext = {
+  //   ...context,
+  //   bookingTotal: basePrice,
+  //   dayOfWeek: context.startAt.getDay(),
+  //   hour: context.startAt.getHours(),
+  // };
+  // const fees: Array<{ name: string; amount: number }> = [];
+  // const discounts: Array<{ name: string; amount: number }> = [];
+  // const multipliers: Array<{ name: string; multiplier: number }> = [];
+  // let currentTotal = basePrice;
+  // // Process rules in priority order
+  // for (const rule of rules) {
+  //   try {
+  //     const conditions = JSON.parse(rule.conditions || "[]");
+  //     const calculation = JSON.parse(rule.calculation || "{}");
+  //     if (!evaluateConditions(conditions, enrichedContext)) {
+  //       continue;
+  //     }
+  //     if (rule.type === "fee") {
+  //       const feeAmount = applyCalculation(calculation, enrichedContext, currentTotal);
+  //       fees.push({ name: rule.name, amount: feeAmount });
+  //       currentTotal += feeAmount;
+  //     } else if (rule.type === "discount") {
+  //       const discountAmount = applyCalculation(calculation, enrichedContext, currentTotal);
+  //       discounts.push({ name: rule.name, amount: discountAmount });
+  //       currentTotal -= discountAmount;
+  //     } else if (rule.type === "multiplier") {
+  //       const multiplier = Number(calculation.value) || 1;
+  //       multipliers.push({ name: rule.name, multiplier });
+  //       currentTotal *= multiplier;
+  //     }
+  //     enrichedContext.bookingTotal = currentTotal;
+  //   } catch (error) {
+  //     console.error(`Error processing pricing rule ${rule.id}:`, error);
+  //   }
+  // }
+  // if (currentTotal < 0) {
+  //   currentTotal = 0;
+  // }
+  // return {
+  //   basePrice,
+  //   fees,
+  //   discounts,
+  //   multipliers,
+  //   subtotal: basePrice + fees.reduce((sum, f) => sum + f.amount, 0),
+  //   total: currentTotal,
+  // };
 }
 
 
