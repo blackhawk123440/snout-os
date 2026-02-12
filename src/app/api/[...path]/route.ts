@@ -111,7 +111,17 @@ async function handleProxyRequest(
     apiPath = '/api/numbers/sitters';
   }
   
-  // /api/bookings doesn't exist in messaging dashboard API - handled below
+  // /api/bookings doesn't exist in messaging dashboard API - return empty array immediately
+  if (apiPath === '/api/bookings' || apiPath.startsWith('/api/bookings/')) {
+    return NextResponse.json({ bookings: [] }, { status: 200 });
+  }
+  
+  // /api/numbers (GET) is handled by /api/numbers/route.ts, but catch-all handles other methods
+  // Skip if it's a GET request to /api/numbers (let the specific route handle it)
+  if (method === 'GET' && (apiPath === '/api/numbers' || apiPath === '/api/numbers/')) {
+    // This shouldn't happen due to route priority, but safety check
+    // The specific /api/numbers/route.ts should handle GET requests
+  }
   
   // Preserve query string
   const searchParams = request.nextUrl.searchParams.toString();
