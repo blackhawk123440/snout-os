@@ -89,8 +89,52 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       console.error('[BFF Proxy] API error response:', responseData);
+      return NextResponse.json(responseData, {
+        status: response.status,
+        headers: {
+          'Content-Type': contentType || 'application/json',
+        },
+      });
     }
 
+    // Transform API response to match frontend expectations
+    // API returns: { results: [{ e164, success, number }], errors: [] }
+    // Frontend expects: { success: boolean, number: { id, e164, numberSid } }
+    if (responseData.results && Array.isArray(responseData.results) && responseData.results.length > 0) {
+      const firstResult = responseData.results[0];
+      if (firstResult.success && firstResult.number) {
+        const transformedResponse = {
+          success: true,
+          number: {
+            id: firstResult.number.id,
+            e164: firstResult.number.e164,
+            numberSid: firstResult.number.providerNumberSid || firstResult.number.numberSid || '',
+          },
+        };
+        console.log('[BFF Proxy] Transformed response:', transformedResponse);
+        return NextResponse.json(transformedResponse, {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+    }
+
+    // If there are errors, return error response
+    if (responseData.errors && Array.isArray(responseData.errors) && responseData.errors.length > 0) {
+      const firstError = responseData.errors[0];
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: firstError.error || 'Failed to import number',
+          number: undefined,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Fallback: return API response as-is
     return NextResponse.json(responseData, {
       status: response.status,
       headers: {
