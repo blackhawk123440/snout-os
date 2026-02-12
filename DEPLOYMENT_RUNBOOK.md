@@ -100,12 +100,14 @@ DATABASE_URL = <same as snout-os-api - REQUIRED for NextAuth>
 NEXT_PUBLIC_API_URL = https://snout-os-api.onrender.com
 NEXTAUTH_URL = https://snout-os-staging.onrender.com
 NEXTAUTH_SECRET = <existing value or generate new 64+ chars>
+JWT_SECRET = <same as snout-os-api - REQUIRED for BFF proxy to mint API tokens>
 NEXT_PUBLIC_ENABLE_MESSAGING_V1 = true
 ```
 
 **CRITICAL:** 
-- Do NOT set JWT_SECRET on Web service. Web uses NEXTAUTH_SECRET; API/Worker use JWT_SECRET.
-- DATABASE_URL is REQUIRED on Web service for NextAuth to query users.
+- `JWT_SECRET` is REQUIRED on Web service for BFF proxy to mint API tokens (must match API/Worker value)
+- `NEXTAUTH_SECRET` is used for NextAuth session management (different from JWT_SECRET)
+- `DATABASE_URL` is REQUIRED on Web service for NextAuth to query users
 
 5. Click "Save Changes" (triggers redeploy)
 6. Wait for deployment to complete
