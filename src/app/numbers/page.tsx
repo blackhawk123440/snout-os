@@ -88,6 +88,36 @@ export default function NumbersPage() {
       alert('Please enter either E164 or Number SID');
       return;
     }
+
+    // Validate and format E.164 if provided
+    if (importForm.e164) {
+      // Remove any spaces, dashes, or parentheses
+      let cleaned = importForm.e164.replace(/[\s\-\(\)]/g, '');
+      
+      // Add + prefix if missing
+      if (!cleaned.startsWith('+')) {
+        // If it starts with 1, assume US number and add +
+        if (cleaned.startsWith('1') && cleaned.length === 11) {
+          cleaned = '+' + cleaned;
+        } else if (cleaned.length === 10) {
+          // Assume US number without country code
+          cleaned = '+1' + cleaned;
+        } else {
+          alert('E.164 format invalid. Please enter number in E.164 format (e.g., +15551234567)');
+          return;
+        }
+      }
+
+      // Validate E.164 format: +[1-9][0-9]{1,14}
+      if (!/^\+[1-9]\d{1,14}$/.test(cleaned)) {
+        alert('Invalid E.164 format. Must start with + followed by country code and number (e.g., +15551234567)');
+        return;
+      }
+
+      // Update form with cleaned E.164
+      importForm.e164 = cleaned;
+    }
+
     try {
       await importNumber.mutateAsync(importForm);
       setShowImportModal(false);
