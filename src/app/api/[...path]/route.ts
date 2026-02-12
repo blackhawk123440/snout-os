@@ -103,7 +103,15 @@ async function handleProxyRequest(
   }
 
   // Reconstruct the API path
-  const apiPath = `/${params.path.join('/')}`;
+  let apiPath = `/${params.path.join('/')}`;
+  
+  // Route mapping: Map legacy endpoints to correct API endpoints
+  // /api/sitters -> /api/numbers/sitters (NestJS API has sitters under numbers)
+  if (apiPath === '/api/sitters' || apiPath === '/api/sitters/') {
+    apiPath = '/api/numbers/sitters';
+  }
+  
+  // /api/bookings doesn't exist in messaging dashboard API - handled below
   
   // Preserve query string
   const searchParams = request.nextUrl.searchParams.toString();
@@ -140,6 +148,18 @@ async function handleProxyRequest(
       responseData = await response.json();
     } else {
       responseData = await response.text();
+    }
+
+    // Handle expected 404s gracefully (legacy endpoints that don't exist)
+    const originalPath = `/${params.path.join('/')}`;
+    const isExpected404 = originalPath.includes('/bookings') && response.status === 404;
+    
+    if (isExpected404) {
+      // Return empty array/object for legacy booking endpoints
+      // /api/bookings -> { bookings: [] }
+      if (originalPath === '/api/bookings' || originalPath.startsWith('/api/bookings/')) {
+        return NextResponse.json({ bookings: [] }, { status: 200 });
+      }
     }
 
     // Forward response with same status and headers

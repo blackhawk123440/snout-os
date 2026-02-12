@@ -168,8 +168,8 @@ export function useSitters() {
     queryKey: ['sitters'],
     queryFn: () => apiGet('/api/sitters', z.array(z.object({
       id: z.string(),
-      firstName: z.string(),
-      lastName: z.string(),
+      name: z.string(), // API returns 'name', not 'firstName'/'lastName'
+      userId: z.string().nullable(),
     }))),
   });
 }

@@ -523,7 +523,7 @@ export default function NumbersPage() {
                 >
                   <option value="">Select sitter...</option>
                   {sitters.map(s => (
-                    <option key={s.id} value={s.id}>{s.firstName} {s.lastName}</option>
+                    <option key={s.id} value={s.id}>{s.name || s.id}</option>
                   ))}
                 </select>
               </div>

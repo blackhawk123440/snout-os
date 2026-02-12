@@ -141,8 +141,8 @@ export default function BookingsPage() {
       // Note: These endpoints are from the legacy booking system
       // They may not exist if only using the messaging dashboard
       const [bookingsRes, sittersRes] = await Promise.all([
-        fetch('/api/bookings').catch(() => null),
-        fetch('/api/sitters').catch(() => null),
+        fetch('/api/bookings').catch(() => null), // Legacy endpoint - BFF returns empty
+        fetch('/api/sitters').catch(() => null), // BFF proxy maps to /api/numbers/sitters
       ]);
 
       if (bookingsRes?.ok) {
@@ -155,7 +155,8 @@ export default function BookingsPage() {
 
       if (sittersRes?.ok) {
         const data = await sittersRes.json();
-        setSitters(data.sitters || []);
+        // API returns array directly, not { sitters: [] }
+        setSitters(Array.isArray(data) ? data : (data.sitters || []));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load bookings');
