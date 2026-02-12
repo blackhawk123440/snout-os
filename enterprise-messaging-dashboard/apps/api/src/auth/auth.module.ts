@@ -8,7 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.NEXTAUTH_SECRET || 'dev-secret-change-in-production',
+      secret: process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'dev-secret-change-in-production',
       signOptions: { expiresIn: '7d' },
     }),
   ],

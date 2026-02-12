@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
   const apiUrl = `${API_BASE_URL}/api/numbers/import`;
 
   try {
+    console.log('[BFF Proxy] Forwarding request to:', apiUrl);
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -78,6 +79,16 @@ export async function POST(request: NextRequest) {
       responseData = await response.json();
     } else {
       responseData = await response.text();
+    }
+
+    console.log('[BFF Proxy] API response:', {
+      status: response.status,
+      contentType,
+      hasData: !!responseData,
+    });
+
+    if (!response.ok) {
+      console.error('[BFF Proxy] API error response:', responseData);
     }
 
     return NextResponse.json(responseData, {

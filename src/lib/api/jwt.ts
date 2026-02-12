@@ -33,9 +33,15 @@ export async function mintApiJWT(params: {
   // Token expires in 1 hour
   const expiresAt = Math.floor(Date.now() / 1000) + 3600;
 
+  // Match API's expected JWT payload structure:
+  // - sub: user ID (required by NestJS JwtService)
+  // - orgId: organization ID
+  // - email: user email (optional, for compatibility)
+  // - role: user role
   const jwt = await new SignJWT({
-    userId: params.userId,
+    sub: params.userId, // NestJS JwtService expects 'sub' for user ID
     orgId: params.orgId,
+    email: params.userId.includes('@') ? params.userId : undefined, // If userId is email, include it
     role: params.role,
     sitterId: params.sitterId || undefined,
   })
