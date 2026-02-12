@@ -24,6 +24,18 @@ export class NumbersController {
     return this.numbersService.getInventory(user.orgId, query);
   }
 
+  @Get('sitters')
+  async getSitters(@CurrentUser() user: any) {
+    return this.numbersService.getSitters(user.orgId);
+  }
+
+  @Get('export.csv')
+  @Header('Content-Type', 'text/csv')
+  async exportCsv(@CurrentUser() user: any, @Res() res: Response) {
+    const csv = await this.numbersService.exportCsv(user.orgId);
+    res.send(csv);
+  }
+
   @Get(':id')
   async getNumberDetail(@CurrentUser() user: any, @Param('id') id: string) {
     return this.numbersService.getNumberDetail(user.orgId, id);
@@ -101,17 +113,5 @@ export class NumbersController {
   @Post(':id/release-from-quarantine')
   async releaseFromQuarantine(@CurrentUser() user: any, @Param('id') id: string) {
     return this.numbersService.releaseFromQuarantine(user.orgId, id);
-  }
-
-  @Get('export.csv')
-  @Header('Content-Type', 'text/csv')
-  async exportCsv(@CurrentUser() user: any, @Res() res: Response) {
-    const csv = await this.numbersService.exportCsv(user.orgId);
-    res.send(csv);
-  }
-
-  @Get('sitters')
-  async getSitters(@CurrentUser() user: any) {
-    return this.numbersService.getSitters(user.orgId);
   }
 }
