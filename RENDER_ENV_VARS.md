@@ -71,10 +71,15 @@ JWT_SECRET = o6OatgV6N9LlMgeauvp012pH8gaI5jVjoCvS/7cRK9z3S48Osx0WkGI5IZXuSpzU
 NEXT_PUBLIC_API_URL = https://snout-os-api.onrender.com
 NEXTAUTH_URL = https://snout-os-staging.onrender.com
 NEXTAUTH_SECRET = tZ1YxfCsbp3jSATNIeE30Qw3iwV9ZjzWRN4evJkyjUG7TdEDmwPe8tHUkkcE2TQiARq6EFKR1E8mgoF08OCusw==
+JWT_SECRET = o6OatgV6N9LlMgeauvp012pH8gaI5jVjoCvS/7cRK9z3S48Osx0WkGI5IZXuSpzU
+DATABASE_URL = postgresql://snout_os_db_staging_user:r5oPEGtD6Cl3SvrvHpc0Q3PUAsJVUTnz@dpg-d5ab7v6r433s738a2isg-a/snout_os_db_staging
 NEXT_PUBLIC_ENABLE_MESSAGING_V1 = true
 ```
 
-**⚠️ CRITICAL:** Do NOT set `JWT_SECRET` on Web service. Web uses `NEXTAUTH_SECRET` (different value).
+**⚠️ IMPORTANT:** 
+- `JWT_SECRET` is **REQUIRED** on Web service for BFF proxy to mint API tokens (must match API/Worker value)
+- `NEXTAUTH_SECRET` is used for NextAuth session management (different from JWT_SECRET)
+- `DATABASE_URL` is **REQUIRED** for NextAuth to query users
 
 ---
 
@@ -82,9 +87,9 @@ NEXT_PUBLIC_ENABLE_MESSAGING_V1 = true
 
 | Variable | API | Worker | Web |
 |----------|-----|--------|-----|
-| `DATABASE_URL` | ✅ | ✅ | ❌ |
+| `DATABASE_URL` | ✅ | ✅ | ✅ (for NextAuth) |
 | `REDIS_URL` | ✅ | ✅ | ❌ |
-| `JWT_SECRET` | ✅ | ✅ (same) | ❌ |
+| `JWT_SECRET` | ✅ | ✅ (same) | ✅ (same - for BFF proxy) |
 | `ENCRYPTION_KEY` | ✅ | ❌ | ❌ |
 | `CORS_ORIGINS` | ✅ | ❌ | ❌ |
 | `PROVIDER_MODE` | ✅ | ❌ | ❌ |
@@ -117,6 +122,8 @@ NEXT_PUBLIC_ENABLE_MESSAGING_V1 = true
 - [ ] NEXT_PUBLIC_API_URL = https://snout-os-api.onrender.com
 - [ ] NEXTAUTH_URL = https://snout-os-staging.onrender.com
 - [ ] NEXTAUTH_SECRET = (your value above)
+- [ ] JWT_SECRET = (same as API/Worker - REQUIRED for BFF proxy)
+- [ ] DATABASE_URL = (same as API - REQUIRED for NextAuth)
 - [ ] NEXT_PUBLIC_ENABLE_MESSAGING_V1 = true
 
 ---
