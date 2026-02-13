@@ -165,7 +165,7 @@ export function DropdownMenu({
             role="menu"
             style={{
               position: 'fixed',
-              zIndex: tokens.z.layer.dropdown,
+              zIndex: tokens.z.dropdown,
               backgroundColor: tokens.colors.surface.overlay,
               border: `1px solid ${tokens.colors.border.default}`,
               borderRadius: tokens.radius.md,
