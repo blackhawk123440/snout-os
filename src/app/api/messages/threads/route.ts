@@ -71,9 +71,21 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       console.error('[BFF Proxy] API error response:', responseData);
+      return NextResponse.json(responseData, {
+        status: response.status,
+        headers: {
+          'Content-Type': contentType || 'application/json',
+        },
+      });
     }
 
-    return NextResponse.json(responseData, {
+    // Transform API response to match frontend expectations
+    // API returns array directly, but frontend expects { threads: Thread[] }
+    const transformedResponse = Array.isArray(responseData)
+      ? { threads: responseData }
+      : responseData;
+
+    return NextResponse.json(transformedResponse, {
       status: response.status,
       headers: {
         'Content-Type': contentType || 'application/json',
