@@ -69,13 +69,21 @@ export class NumbersService {
       skip: filters?.offset ? parseInt(filters.offset) : undefined,
     });
 
-    // Enrich with health metrics
+    // Enrich with health metrics and active thread count
     const enriched = await Promise.all(
       numbers.map(async (number) => {
         const health = await this.computeHealth(orgId, number.id);
+        const activeThreadCount = await this.prisma.thread.count({
+          where: {
+            orgId,
+            numberId: number.id,
+            status: 'active',
+          },
+        });
         return {
           ...number,
           health,
+          activeThreadCount,
         };
       }),
     );
