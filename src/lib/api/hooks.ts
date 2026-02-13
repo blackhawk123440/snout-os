@@ -87,7 +87,17 @@ export function useThreads(filters?: {
       if (typeof document !== 'undefined' && document.hidden) {
         return false;
       }
-      return 5000; // Poll every 5s when page is visible
+      // Increase interval to 15s to avoid rate limiting (API limit: 100/min = ~1.67/sec)
+      // With 15s interval, max 4 requests/min per user, well under limit
+      return 15000; // Poll every 15s when page is visible (reduced from 5s to avoid rate limiting)
+    },
+    retry: (failureCount, error: any) => {
+      // Don't retry on 429 (rate limit) - wait for next poll
+      if (error?.status === 429) {
+        return false;
+      }
+      // Retry other errors up to 3 times
+      return failureCount < 3;
     },
   });
 }
@@ -168,7 +178,14 @@ export function useMessages(threadId: string | null) {
       if (typeof document !== 'undefined' && document.hidden) {
         return false;
       }
-      return 3000; // Poll every 3s for delivery status updates
+      return 10000; // Poll every 10s for delivery status updates (reduced from 3s to avoid rate limiting)
+    },
+    retry: (failureCount, error: any) => {
+      // Don't retry on 429 (rate limit)
+      if (error?.status === 429) {
+        return false;
+      }
+      return failureCount < 3;
     },
   });
 }
