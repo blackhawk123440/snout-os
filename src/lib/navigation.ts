@@ -26,12 +26,6 @@ export const navigation: NavItem[] = [
     label: 'Messaging',
     href: '/messages',
     icon: 'fas fa-comments',
-    children: [
-      { label: 'Inbox', href: '/messages' },
-      { label: 'Numbers', href: '/numbers' },
-      { label: 'Assignments', href: '/assignments' },
-      { label: 'Setup', href: '/setup' },
-    ],
   },
   { label: 'Settings', href: '/settings', icon: 'fas fa-cog' },
 ];
