@@ -82,18 +82,20 @@ export function useThreads(filters?: {
       }));
       return response.threads;
     },
-    // Disable automatic polling to avoid rate limiting
-    // Refetch will happen on window focus, mount, or manual refresh
+    // Prevent excessive refetching
     refetchInterval: false,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    refetchOnWindowFocus: false, // Disable to prevent 429s on tab switch
+    refetchOnMount: false, // Only refetch if data is stale
+    refetchOnReconnect: false,
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    gcTime: 300000, // Keep in cache for 5 minutes
     retry: (failureCount, error: any) => {
       // Don't retry on 429 (rate limit) - wait for manual refresh
-      if (error?.status === 429) {
+      if (error?.status === 429 || error?.statusCode === 429) {
         return false;
       }
-      // Retry other errors up to 2 times
-      return failureCount < 2;
+      // Retry other errors up to 1 time
+      return failureCount < 1;
     },
   });
 }

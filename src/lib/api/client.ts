@@ -163,6 +163,15 @@ export async function apiRequest<T>(
         };
       }
       
+      // For 429 errors, add a helpful message
+      if (response.status === 429) {
+        throw new ApiError(
+          'Rate limit exceeded. Please wait a moment and refresh the page.',
+          response.status,
+          data.code
+        );
+      }
+      
       throw apiError;
     }
 
