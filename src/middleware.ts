@@ -31,10 +31,17 @@ export async function middleware(request: NextRequest) {
 
   // Phase 5.1: If sitter auth is enabled, check sitter restrictions first
   if (enableSitterAuth) {
-    const currentSitterId = await getCurrentSitterId(request);
+    // Get session to check role
+    const session = await getSessionSafe();
+    
+    // Check if user is a sitter (has sitterId in session or role === 'sitter')
+    const isSitter = session?.user && (
+      (session.user as any).sitterId || 
+      (session.user as any).role === 'sitter'
+    );
     
     // If user is authenticated as a sitter, enforce sitter restrictions
-    if (currentSitterId) {
+    if (isSitter) {
       // Per Master Spec 7.1.2: Sitters cannot access restricted routes
       if (isSitterRestrictedRoute(pathname)) {
         // Redirect /messages to /sitter/inbox (UI route)

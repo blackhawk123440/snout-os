@@ -194,8 +194,11 @@ export function useSendMessage() {
   return useMutation({
     mutationFn: (params: { threadId: string; body: string; forceSend?: boolean; confirmPoolFallback?: boolean }) =>
       apiPost<{ messageId: string; providerMessageSid?: string; hasPolicyViolation: boolean }>(
-        '/api/messages/send',
-        params,
+        `/api/messages/threads/${params.threadId}/messages`,
+        {
+          body: params.body,
+          forceSend: params.forceSend || false,
+        },
       ),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['messages', variables.threadId] });
