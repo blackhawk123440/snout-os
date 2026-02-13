@@ -171,16 +171,19 @@ export function useMessages(threadId: string | null) {
         z.array(messageSchema),
       ),
     enabled: !!threadId,
-    // Disable automatic polling - refetch on window focus or manual refresh
+    // Prevent excessive refetching
     refetchInterval: false,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    refetchOnWindowFocus: false, // Disable to prevent 429s
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    staleTime: 10000, // Consider data fresh for 10 seconds
+    gcTime: 300000, // Keep in cache for 5 minutes
     retry: (failureCount, error: any) => {
       // Don't retry on 429 (rate limit)
-      if (error?.status === 429) {
+      if (error?.status === 429 || error?.statusCode === 429) {
         return false;
       }
-      return failureCount < 2;
+      return failureCount < 1;
     },
   });
 }
