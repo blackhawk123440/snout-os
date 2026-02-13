@@ -28,6 +28,16 @@ export { Switch, type SwitchProps } from './Switch';
 export { Tabs, TabPanel, type TabsProps, type Tab, type TabPanelProps } from './Tabs';
 export { Badge, type BadgeProps, type BadgeVariant } from './Badge';
 export { Tooltip, type TooltipProps } from './Tooltip';
+export {
+  DropdownMenu,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  type DropdownMenuProps,
+  type DropdownMenuGroupProps,
+  type DropdownMenuItemProps,
+  type DropdownMenuSeparatorProps,
+} from './DropdownMenu';
 
 // Overlays
 export { Modal, type ModalProps } from './Modal';

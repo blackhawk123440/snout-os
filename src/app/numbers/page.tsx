@@ -13,8 +13,9 @@
 'use client';
 
 import { useState } from 'react';
+import React from 'react';
 import { AppShell } from '@/components/layout/AppShell';
-import { PageHeader, Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Textarea, Tooltip } from '@/components/ui';
+import { PageHeader, Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Textarea, Tooltip, Drawer, DropdownMenu, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, IconButton } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import {
@@ -135,7 +136,8 @@ export default function NumbersPage() {
   const [showReleaseToPoolModal, setShowReleaseToPoolModal] = useState<string | null>(null);
   const [showChangeClassModal, setShowChangeClassModal] = useState<string | null>(null);
   const [showDeactivateSitterModal, setShowDeactivateSitterModal] = useState<string | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState<string | null>(null);
+  const [showDetailsDrawer, setShowDetailsDrawer] = useState<string | null>(null);
+  const [showReleaseFromTwilioModal, setShowReleaseFromTwilioModal] = useState<string | null>(null);
   
   const [buyForm, setBuyForm] = useState({ class: 'front_desk' as 'front_desk' | 'sitter' | 'pool', areaCode: '', quantity: 1 });
   const [importForm, setImportForm] = useState({ e164: '', numberSid: '', class: 'front_desk' as 'front_desk' | 'sitter' | 'pool' });
@@ -146,7 +148,7 @@ export default function NumbersPage() {
 
   const { data: numbers = [], isLoading } = useNumbers(filters);
   const { data: sitters = [] } = useSitters();
-  const { data: numberDetail } = useNumberDetail(showDetailsModal);
+  const { data: numberDetail } = useNumberDetail(showDetailsDrawer);
   const buyNumber = useBuyNumber();
   const importNumber = useImportNumber();
   const quarantineNumber = useQuarantineNumber();
@@ -315,38 +317,27 @@ export default function NumbersPage() {
     }
   };
 
-  const renderActionButton = (
+  const renderActionMenuItem = (
     action: ActionType,
     label: string,
     number: Number & { activeThreadCount?: number | null },
     onClick: () => void,
+    icon?: React.ReactNode,
   ) => {
     const state = getActionState(action, number);
+    const isDanger = action === 'quarantine' || action === 'release-from-twilio';
     
-    const button = (
-      <Button
-        size="sm"
-        variant={action === 'quarantine' || action === 'release-from-twilio' ? 'danger' : 'secondary'}
-        onClick={onClick}
+    return (
+      <DropdownMenuItem
+        onClick={state.enabled ? onClick : undefined}
         disabled={!state.enabled}
-        style={{ 
-          opacity: state.enabled ? 1 : 0.5,
-          cursor: state.enabled ? 'pointer' : 'not-allowed',
-        }}
+        tooltip={!state.enabled ? state.tooltip : undefined}
+        variant={isDanger ? 'danger' : 'default'}
+        icon={icon}
       >
         {label}
-      </Button>
+      </DropdownMenuItem>
     );
-
-    if (!state.enabled && state.tooltip) {
-      return (
-        <Tooltip content={state.tooltip}>
-          {button}
-        </Tooltip>
-      );
-    }
-
-    return button;
   };
 
   const numberColumns: TableColumn<Number & { activeThreadCount?: number | null; capacityStatus?: string | null; maxConcurrentThreads?: number | null }>[] = [
@@ -381,55 +372,69 @@ export default function NumbersPage() {
       key: 'actions', 
       header: 'Actions', 
       render: (n) => {
-        const actionsMenu = (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[1] }}>
-            {renderActionButton('view-details', 'View Details', n, () => {
-              setSelectedNumber(n);
-              setShowDetailsModal(n.id);
-            })}
-            {renderActionButton('change-class', 'Change Class', n, () => {
-              setSelectedNumber(n);
-              setChangeClassForm({ class: n.class });
-              setShowChangeClassModal(n.id);
-            })}
-            {renderActionButton('assign-sitter', 'Assign/Reassign Sitter', n, () => {
-              setSelectedNumber(n);
-              setAssignForm({ sitterId: n.assignedSitterId || '' });
-              setShowAssignModal(n.id);
-            })}
-            {renderActionButton('release-to-pool', 'Release to Pool', n, () => {
-              setSelectedNumber(n);
-              setShowReleaseToPoolModal(n.id);
-            })}
-            {renderActionButton('quarantine', 'Quarantine', n, () => {
-              setSelectedNumber(n);
-              setShowQuarantineModal(n.id);
-            })}
-            {renderActionButton('restore', 'Restore', n, () => {
-              setSelectedNumber(n);
-              setShowReleaseModal(n.id);
-            })}
-            {renderActionButton('release-from-twilio', 'Release from Twilio', n, () => {
-              if (confirm(`Release ${n.e164} from Twilio? This cannot be undone.`)) {
-                // TODO: Implement release from Twilio
-                alert('Release from Twilio not yet implemented');
-              }
-            })}
-            {/* Deactivate Sitter button - only show for sitter numbers with assigned sitter */}
-            {n.class === 'sitter' && n.assignedSitterId && (
-              <Button
+        return (
+          <DropdownMenu
+            trigger={
+              <IconButton
+                icon={<i className="fas fa-ellipsis-v" />}
+                variant="ghost"
                 size="sm"
-                variant="danger"
-                onClick={() => {
-                  setShowDeactivateSitterModal(n.assignedSitterId!);
-                }}
-              >
-                Deactivate Sitter
-              </Button>
-            )}
-          </div>
+                aria-label="Actions menu"
+              />
+            }
+            placement="bottom-end"
+          >
+            <DropdownMenuGroup label="Actions">
+              {renderActionMenuItem('view-details', 'View Details', n, () => {
+                setSelectedNumber(n);
+                setShowDetailsDrawer(n.id);
+              }, <i className="fas fa-eye" />)}
+              {renderActionMenuItem('change-class', 'Change Class', n, () => {
+                setSelectedNumber(n);
+                setChangeClassForm({ class: n.class });
+                setShowChangeClassModal(n.id);
+              }, <i className="fas fa-exchange-alt" />)}
+              {renderActionMenuItem('assign-sitter', 'Assign/Reassign Sitter', n, () => {
+                setSelectedNumber(n);
+                setAssignForm({ sitterId: n.assignedSitterId || '' });
+                setShowAssignModal(n.id);
+              }, <i className="fas fa-user-plus" />)}
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup label="Lifecycle">
+              {renderActionMenuItem('release-to-pool', 'Release to Pool', n, () => {
+                setSelectedNumber(n);
+                setShowReleaseToPoolModal(n.id);
+              }, <i className="fas fa-undo" />)}
+              {renderActionMenuItem('quarantine', 'Quarantine', n, () => {
+                setSelectedNumber(n);
+                setShowQuarantineModal(n.id);
+              }, <i className="fas fa-ban" />)}
+              {renderActionMenuItem('restore', 'Restore', n, () => {
+                setSelectedNumber(n);
+                setShowReleaseModal(n.id);
+              }, <i className="fas fa-check-circle" />)}
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup label="Danger Zone">
+              {renderActionMenuItem('release-from-twilio', 'Release from Twilio', n, () => {
+                setSelectedNumber(n);
+                setShowReleaseFromTwilioModal(n.id);
+              }, <i className="fas fa-trash-alt" />)}
+              {n.class === 'sitter' && n.assignedSitterId && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setShowDeactivateSitterModal(n.assignedSitterId!);
+                  }}
+                  variant="danger"
+                  icon={<i className="fas fa-user-slash" />}
+                >
+                  Deactivate Sitter
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuGroup>
+          </DropdownMenu>
         );
-        return actionsMenu;
       },
     },
   ];
@@ -819,35 +824,110 @@ export default function NumbersPage() {
           </Modal>
         )}
 
-        {/* View Details Modal */}
-        {showDetailsModal && numberDetail && (
-          <Modal isOpen={!!showDetailsModal} title="Number Details" onClose={() => setShowDetailsModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <div>
-                <strong>E.164:</strong> {numberDetail.e164}
-              </div>
-              <div>
-                <strong>Class:</strong> {numberDetail.class}
-              </div>
-              <div>
-                <strong>Status:</strong> {numberDetail.status}
-              </div>
-              <div>
-                <strong>Active Threads:</strong> {numberDetail.activeThreadCount || 0}
-              </div>
-              {numberDetail.assignedSitter && (
-                <div>
-                  <strong>Assigned To:</strong> {numberDetail.assignedSitter.name}
-                </div>
-              )}
-              {numberDetail.health && (
-                <div>
-                  <strong>Health:</strong> {numberDetail.health.status}
-                  {numberDetail.health.deliveryRate !== null && (
-                    <span> (Delivery: {Math.round(numberDetail.health.deliveryRate * 100)}%)</span>
+        {/* Number Details Drawer */}
+        {showDetailsDrawer && numberDetail && (
+          <Drawer
+            isOpen={!!showDetailsDrawer}
+            onClose={() => setShowDetailsDrawer(null)}
+            title="Number Details"
+            placement="right"
+            width="480px"
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}>
+              <Card>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <div>
+                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                      E.164 Number
+                    </div>
+                    <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+                      {numberDetail.e164}
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4] }}>
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Class
+                      </div>
+                      <Badge variant={numberDetail.class === 'front_desk' ? 'default' : numberDetail.class === 'sitter' ? 'info' : 'neutral'}>
+                        {numberDetail.class === 'front_desk' ? 'Front Desk' : numberDetail.class === 'sitter' ? 'Sitter' : 'Pool'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Status
+                      </div>
+                      <Badge variant={numberDetail.status === 'active' ? 'success' : numberDetail.status === 'quarantined' ? 'warning' : 'error'}>
+                        {numberDetail.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                      Active Threads
+                    </div>
+                    <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+                      {numberDetail.activeThreadCount || 0}
+                    </div>
+                  </div>
+                  {numberDetail.assignedSitter && (
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Assigned To
+                      </div>
+                      <div style={{ fontSize: tokens.typography.fontSize.base[0] }}>
+                        {numberDetail.assignedSitter.name}
+                      </div>
+                    </div>
+                  )}
+                  {numberDetail.health && (
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Health Status
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                        <Badge variant={numberDetail.health.status === 'healthy' ? 'success' : numberDetail.health.status === 'degraded' ? 'warning' : 'error'}>
+                          {numberDetail.health.status}
+                        </Badge>
+                        {numberDetail.health.deliveryRate !== null && (
+                          <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            {Math.round(numberDetail.health.deliveryRate * 100)}% delivery rate
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
-              )}
+              </Card>
+            </div>
+          </Drawer>
+        )}
+
+        {/* Release from Twilio Confirmation Modal */}
+        {showReleaseFromTwilioModal && selectedNumber && (
+          <Modal isOpen={!!showReleaseFromTwilioModal} title="Release from Twilio" onClose={() => setShowReleaseFromTwilioModal(null)}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+              <div style={{ backgroundColor: tokens.colors.error[50], padding: tokens.spacing[4], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.error.DEFAULT}` }}>
+                <p style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.error.DEFAULT, marginBottom: tokens.spacing[2] }}>
+                  ⚠️ This action cannot be undone
+                </p>
+                <p style={{ color: tokens.colors.text.primary }}>
+                  Releasing <strong>{selectedNumber.e164}</strong> from Twilio will permanently remove it from your account. This number will no longer be available for messaging.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+                <Button onClick={() => setShowReleaseFromTwilioModal(null)} variant="secondary">Cancel</Button>
+                <Button
+                  onClick={() => {
+                    // TODO: Implement release from Twilio
+                    alert('Release from Twilio not yet implemented');
+                    setShowReleaseFromTwilioModal(null);
+                  }}
+                  variant="danger"
+                >
+                  Release from Twilio
+                </Button>
+              </div>
             </div>
           </Modal>
         )}
