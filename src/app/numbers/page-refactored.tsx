@@ -710,7 +710,7 @@ export default function NumbersPage() {
               <p>Release <strong>{selectedNumber.e164}</strong> from quarantine?</p>
               <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
                 <Button onClick={() => setShowReleaseModal(null)} variant="secondary">Cancel</Button>
-                <Button onClick={handleRelease} disabled={releaseNumber.isPending} variant="primary">
+                <Button onClick={() => handleRelease(false)} disabled={releaseNumber.isPending} variant="primary">
                   {releaseNumber.isPending ? 'Releasing...' : 'Release'}
                 </Button>
               </div>
