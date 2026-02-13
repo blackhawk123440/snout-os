@@ -325,7 +325,6 @@ export class NumbersService {
         restoreReason: restoreReason || null,
         originalReleaseAt: number.quarantineReleaseAt?.toISOString() || null,
       },
-      payload: {},
     });
 
     return updated;
