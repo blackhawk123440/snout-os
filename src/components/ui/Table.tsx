@@ -187,7 +187,7 @@ export function Table<T extends Record<string, any>>({
       style={{
         border: `1px solid ${tokens.colors.border.default}`,
         borderRadius: tokens.borderRadius.lg,
-        overflow: 'hidden',
+        overflow: 'visible', // Changed to visible to allow dropdowns to render outside
         backgroundColor: tokens.colors.background.primary,
       }}
     >
@@ -200,6 +200,7 @@ export function Table<T extends Record<string, any>>({
           width: '100%',
           maxWidth: '100%',
           WebkitOverflowScrolling: 'touch',
+          position: 'relative', // Create stacking context for table cells
         }}
       >
         <table

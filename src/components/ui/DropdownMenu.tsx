@@ -25,6 +25,7 @@
 'use client';
 
 import { ReactNode, useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { tokens } from '@/lib/design-tokens';
 import { Tooltip } from './Tooltip';
 import { cn } from './utils';
@@ -63,8 +64,14 @@ export function DropdownMenu({
   'data-testid': testId,
 }: DropdownMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
+
+  // Ensure we only render portal on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -96,7 +103,12 @@ export function DropdownMenu({
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && menuRef.current && triggerRef.current) {
+    if (!isOpen || !mounted) return;
+
+    // Use requestAnimationFrame to ensure Portal element is in DOM
+    const positionMenu = () => {
+      if (!menuRef.current || !triggerRef.current) return;
+
       const triggerRect = triggerRef.current.getBoundingClientRect();
       const menuRect = menuRef.current.getBoundingClientRect();
       let top = 0;
@@ -139,10 +151,22 @@ export function DropdownMenu({
         top = 16;
       }
 
-      menuRef.current.style.top = `${top}px`;
-      menuRef.current.style.left = `${left}px`;
-    }
-  }, [isOpen, placement]);
+      if (menuRef.current) {
+        menuRef.current.style.top = `${top}px`;
+        menuRef.current.style.left = `${left}px`;
+      }
+    };
+
+    // Position immediately and on window resize
+    requestAnimationFrame(positionMenu);
+    window.addEventListener('resize', positionMenu);
+    window.addEventListener('scroll', positionMenu, true); // Capture scroll events in all containers
+
+    return () => {
+      window.removeEventListener('resize', positionMenu);
+      window.removeEventListener('scroll', positionMenu, true);
+    };
+  }, [isOpen, placement, mounted]);
 
   return (
     <div
@@ -158,27 +182,26 @@ export function DropdownMenu({
         {trigger}
       </div>
 
-      {isOpen && (
-        <>
-          <div
-            ref={menuRef}
-            role="menu"
-            style={{
-              position: 'fixed',
-              zIndex: tokens.z.dropdown,
-              backgroundColor: tokens.colors.surface.overlay,
-              border: `1px solid ${tokens.colors.border.default}`,
-              borderRadius: tokens.radius.md,
-              boxShadow: tokens.shadow.lg,
-              minWidth: '200px',
-              maxWidth: '320px',
-              padding: tokens.spacing[1],
-              marginTop: tokens.spacing[1],
-            }}
-          >
-            {children}
-          </div>
-        </>
+      {isOpen && mounted && createPortal(
+        <div
+          ref={menuRef}
+          role="menu"
+          style={{
+            position: 'fixed',
+            zIndex: tokens.z.dropdown,
+            backgroundColor: tokens.colors.surface.overlay,
+            border: `1px solid ${tokens.colors.border.default}`,
+            borderRadius: tokens.radius.md,
+            boxShadow: tokens.shadow.lg,
+            minWidth: '200px',
+            maxWidth: '320px',
+            padding: tokens.spacing[1],
+            marginTop: tokens.spacing[1],
+          }}
+        >
+          {children}
+        </div>,
+        document.body
       )}
     </div>
   );
