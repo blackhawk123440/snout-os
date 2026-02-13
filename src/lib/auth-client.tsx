@@ -34,12 +34,21 @@ export function useAuth(): UseAuthReturn {
 
     const sessionUser = session.user as any;
     const hasSitterId = !!sessionUser.sitterId;
+    const sessionRole = sessionUser.role as string | undefined;
+    const normalizedRole =
+      sessionRole === 'sitter'
+        ? 'sitter'
+        : sessionRole === 'owner'
+          ? 'owner'
+          : hasSitterId
+            ? 'sitter'
+            : 'owner';
     
     return {
       id: sessionUser.id || '',
       email: sessionUser.email || '',
       name: sessionUser.name || null,
-      role: hasSitterId ? 'sitter' : 'owner',
+      role: normalizedRole,
       sitterId: sessionUser.sitterId || null,
     };
   }, [session]);

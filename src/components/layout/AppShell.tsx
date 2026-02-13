@@ -214,78 +214,174 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             padding: tokens.spacing[2],
           }}
         >
-          {displayNavigation.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setSidebarOpen(false)} // Close sidebar on navigation
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: tokens.spacing[3],
-                padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
-                marginBottom: tokens.spacing[1],
-                borderRadius: tokens.borderRadius.md,
-                textDecoration: 'none',
-                color: isActive(item.href)
-                  ? tokens.colors.primary.DEFAULT
-                  : tokens.colors.text.primary,
-                backgroundColor: isActive(item.href)
-                  ? tokens.colors.primary[100]
-                  : 'transparent',
-                fontWeight: isActive(item.href)
-                  ? tokens.typography.fontWeight.semibold
-                  : tokens.typography.fontWeight.normal,
-                transition: `all ${tokens.transitions.duration.DEFAULT}`,
-                cursor: 'pointer',
-                pointerEvents: 'auto', // Ensure links are clickable
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive(item.href)) {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive(item.href)) {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }
-              }}
-            >
-              {item.icon && (
-                <i
-                  className={item.icon}
+          {displayNavigation.map((item) => {
+            const groupActive = item.children?.some((child) => isActive(child.href)) ?? false;
+            const parentActive = isActive(item.href) || groupActive;
+            const parentHighlight = isActive(item.href) && !groupActive;
+
+            return (
+              <div key={item.href} style={{ marginBottom: tokens.spacing[1] }}>
+                <Link
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)} // Close sidebar on navigation
                   style={{
-                    width: '1.25rem',
-                    textAlign: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: tokens.spacing[3],
+                    padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                    marginBottom: item.children?.length ? 0 : tokens.spacing[1],
+                    borderRadius: tokens.borderRadius.md,
+                    textDecoration: 'none',
+                    color: parentActive
+                      ? tokens.colors.primary.DEFAULT
+                      : tokens.colors.text.primary,
+                    backgroundColor: parentHighlight
+                      ? tokens.colors.primary[100]
+                      : 'transparent',
+                    fontWeight: parentActive
+                      ? tokens.typography.fontWeight.semibold
+                      : tokens.typography.fontWeight.normal,
+                    transition: `all ${tokens.transitions.duration.DEFAULT}`,
+                    cursor: 'pointer',
+                    pointerEvents: 'auto', // Ensure links are clickable
                   }}
-                />
-              )}
-              <span
-                style={{
-                  flex: 1,
-                  fontSize: tokens.typography.fontSize.base[0],
-                }}
-              >
-                {item.label}
-              </span>
-              {item.badge && item.badge > 0 && (
-                <span
-                  style={{
-                    backgroundColor: tokens.colors.error.DEFAULT,
-                    color: tokens.colors.text.inverse,
-                    borderRadius: tokens.borderRadius.full,
-                    padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                    fontSize: tokens.typography.fontSize.xs[0],
-                    fontWeight: tokens.typography.fontWeight.semibold,
-                    minWidth: '1.25rem',
-                    textAlign: 'center',
+                  onMouseEnter={(e) => {
+                    if (!parentActive) {
+                      e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!parentActive) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
                   }}
                 >
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          ))}
+                  {item.icon && (
+                    <i
+                      className={item.icon}
+                      style={{
+                        width: '1.25rem',
+                        textAlign: 'center',
+                      }}
+                    />
+                  )}
+                  <span
+                    style={{
+                      flex: 1,
+                      fontSize: tokens.typography.fontSize.base[0],
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                  {item.badge && item.badge > 0 && (
+                    <span
+                      style={{
+                        backgroundColor: tokens.colors.error.DEFAULT,
+                        color: tokens.colors.text.inverse,
+                        borderRadius: tokens.borderRadius.full,
+                        padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                        fontSize: tokens.typography.fontSize.xs[0],
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        minWidth: '1.25rem',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+
+                {item.children && item.children.length > 0 && (
+                  <div
+                    style={{
+                      marginTop: tokens.spacing[1],
+                      marginLeft: tokens.spacing[5],
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: tokens.spacing[1],
+                    }}
+                  >
+                    {item.children.map((child) => {
+                      const childActive = isActive(child.href);
+
+                      return (
+                        <Link
+                          key={`${item.href}-${child.href}`}
+                          href={child.href}
+                          onClick={() => setSidebarOpen(false)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: tokens.spacing[3],
+                            padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+                            borderRadius: tokens.borderRadius.md,
+                            textDecoration: 'none',
+                            color: childActive
+                              ? tokens.colors.primary.DEFAULT
+                              : tokens.colors.text.secondary,
+                            backgroundColor: childActive
+                              ? tokens.colors.primary[50]
+                              : 'transparent',
+                            fontWeight: childActive
+                              ? tokens.typography.fontWeight.semibold
+                              : tokens.typography.fontWeight.normal,
+                            fontSize: tokens.typography.fontSize.sm[0],
+                            transition: `all ${tokens.transitions.duration.DEFAULT}`,
+                            cursor: 'pointer',
+                            pointerEvents: 'auto',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!childActive) {
+                              e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!childActive) {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }
+                          }}
+                        >
+                          {child.icon && (
+                            <i
+                              className={child.icon}
+                              style={{
+                                width: '1.25rem',
+                                textAlign: 'center',
+                              }}
+                            />
+                          )}
+                          <span
+                            style={{
+                              flex: 1,
+                              fontSize: tokens.typography.fontSize.sm[0],
+                            }}
+                          >
+                            {child.label}
+                          </span>
+                          {child.badge && child.badge > 0 && (
+                            <span
+                              style={{
+                                backgroundColor: tokens.colors.error.DEFAULT,
+                                color: tokens.colors.text.inverse,
+                                borderRadius: tokens.borderRadius.full,
+                                padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                                fontSize: tokens.typography.fontSize.xs[0],
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                minWidth: '1.25rem',
+                                textAlign: 'center',
+                              }}
+                            >
+                              {child.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
       </aside>
 

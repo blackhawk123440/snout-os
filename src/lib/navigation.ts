@@ -10,6 +10,7 @@ export interface NavItem {
   href: string;
   icon?: string;
   badge?: number;
+  children?: NavItem[];
 }
 
 export const navigation: NavItem[] = [
@@ -21,9 +22,16 @@ export const navigation: NavItem[] = [
   { label: 'Automations', href: '/automation', icon: 'fas fa-robot' },
   { label: 'Payments', href: '/payments', icon: 'fas fa-credit-card' },
   { label: 'Payroll', href: '/payroll', icon: 'fas fa-money-bill-wave' },
-  { label: 'Messages', href: '/messages', icon: 'fas fa-comments' },
-  { label: 'Numbers', href: '/numbers', icon: 'fas fa-phone' },
-  { label: 'Assignments', href: '/assignments', icon: 'fas fa-calendar-alt' },
-  { label: 'Setup', href: '/setup', icon: 'fas fa-cog' },
+  {
+    label: 'Messaging',
+    href: '/messages',
+    icon: 'fas fa-comments',
+    children: [
+      { label: 'Inbox', href: '/messages' },
+      { label: 'Numbers', href: '/numbers' },
+      { label: 'Assignments', href: '/assignments' },
+      { label: 'Setup', href: '/setup' },
+    ],
+  },
   { label: 'Settings', href: '/settings', icon: 'fas fa-cog' },
 ];
