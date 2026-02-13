@@ -1,98 +1,122 @@
-# Deployment Diagnosis
+# Render Deployment Diagnosis
 
-## ✅ Fixed Issues
+## Current Status
 
-1. **Next.js 15 Route Handler Signature**
-   - Fixed: Changed `{ params }` to `context: { params: Promise<...> }` and await params
-   - File: `src/app/api/[...path]/route.ts`
+✅ **Services Found:**
+- `snout-os-staging` (Web Service) - ID: `srv-d5abmh3uibrs73boq1kg`
+- `snout-os-api` (Web Service) - ID: `srv-d62mrjpr0fns738rirdg`
+- `snout-os-worker` (Background Worker) - ID: `srv-d63jnnmr433s73dqep70`
 
-2. **TypeScript Errors**
-   - Fixed: Added type assertions for Prisma schema mismatch
-   - Files: `src/lib/auth.ts`, `src/lib/messaging/pool-release-job.ts`
+⚠️ **Issue:** Services exist but deployments are not completing successfully.
 
-3. **Duplicate Proxy Route**
-   - Fixed: Removed `src/app/api/proxy/[...path]/route.ts` (duplicate)
+## Diagnosis Steps
 
-## ✅ Local Build Status
+### 1. Check Build Logs
 
-- ✅ TypeScript compilation: PASS
-- ✅ Next.js build: PASS
-- ✅ All route handlers: Valid
+Go to each service in Render Dashboard:
+- https://dashboard.render.com → Select service → "Logs" tab
 
-## 🔍 What to Check on Render
+**Look for:**
+- Build errors (TypeScript, missing dependencies, Prisma issues)
+- Environment variable errors
+- Build command failures
 
-### 1. Build Command
-Verify in Render Dashboard → Web Service → Settings:
+### 2. Verify Build Commands
+
+**snout-os-staging (Web):**
 ```
-Build Command: npm install && npm run build
+prisma generate --schema=enterprise-messaging-dashboard/apps/api/prisma/schema.prisma && next build
 ```
 
-### 2. Environment Variables (Web Service)
-Required variables:
-- `NEXTAUTH_URL` = `https://snout-os-staging.onrender.com`
-- `NEXTAUTH_SECRET` = (your secret, min 32 chars)
-- `DATABASE_URL` = (internal PostgreSQL URL)
-- `NEXT_PUBLIC_API_URL` = `https://snout-os-api.onrender.com`
-- `JWT_SECRET` = (same as API service - for BFF proxy)
+**snout-os-api:**
+```
+pnpm install && pnpm --filter @snoutos/shared build && pnpm --filter @snoutos/api build
+```
 
-### 3. Route Priority
-Next.js route priority (most specific first):
-1. `/api/auth/[...nextauth]` - NextAuth routes (handled first)
-2. `/api/auth/health` - Specific auth routes
-3. `/api/[...path]` - Catch-all proxy (handles everything else)
+**snout-os-worker:**
+```
+pnpm install && pnpm --filter @snoutos/shared build && pnpm --filter @snoutos/api build
+```
 
-The catch-all proxy has a safety check to skip `auth/` paths.
+### 3. Check Environment Variables
 
-### 4. Build Logs
-Check Render build logs for:
-- TypeScript errors
-- Missing dependencies
-- Prisma generation errors
-- Next.js build errors
+**Required for snout-os-staging:**
+- `DATABASE_URL` (from PostgreSQL service)
+- `NEXTAUTH_URL` (should be https://snout-os-staging.onrender.com)
+- `NEXTAUTH_SECRET` (generated)
+- `NEXT_PUBLIC_API_URL` (should be https://snout-os-api.onrender.com)
+- `NEXT_PUBLIC_ENABLE_MESSAGING_V1=true`
 
-### 5. Runtime Logs
-After deployment, check runtime logs for:
-- `[BFF Proxy]` messages
-- `[NextAuth]` messages
-- JWT minting errors
+**Required for snout-os-api:**
+- `DATABASE_URL` (from PostgreSQL service)
+- `REDIS_URL` (from Redis service)
+- `JWT_SECRET` (generated)
+- `ENCRYPTION_KEY` (generated)
+- `CORS_ORIGINS` (should include https://snout-os-staging.onrender.com)
+- `PROVIDER_MODE=mock` (or `twilio`)
 
-## 🚨 Common Issues
+**Required for snout-os-worker:**
+- `DATABASE_URL` (same as API)
+- `REDIS_URL` (same as API)
+- `JWT_SECRET` (same as API)
 
-### Issue: Build fails with "params is not a valid type"
-**Fix**: Already fixed - params are now async and awaited
+### 4. Manual Deploy Trigger
 
-### Issue: TypeScript errors about Prisma models
-**Fix**: Already fixed - using type assertions for schema mismatch
+If services are not auto-deploying:
 
-### Issue: Proxy not working
-**Check**:
-1. `JWT_SECRET` is set on Web service (same as API)
-2. `NEXT_PUBLIC_API_URL` is set correctly
-3. NextAuth session is working (check `/api/auth/health`)
+1. Go to https://dashboard.render.com
+2. Select each service
+3. Click "Manual Deploy" → "Deploy latest commit"
+4. Watch the build logs
 
-### Issue: 401 errors on API calls
-**Check**:
-1. User is logged in (NextAuth session exists)
-2. `orgId` and `role` are in session (check auth.ts)
-3. `JWT_SECRET` matches between Web and API services
+### 5. Common Issues
 
-## 📋 Verification Steps
+**Build Fails:**
+- Check if `pnpm` is available (might need `npm install -g pnpm`)
+- Check if Prisma schema path is correct
+- Check if all dependencies are in package.json
 
-1. **Check Build Logs**: Look for any errors during `npm run build`
-2. **Check Service Status**: Verify Web service is "Live" on Render
-3. **Test Health Endpoint**: `curl https://snout-os-staging.onrender.com/api/auth/health`
-4. **Test Login**: Try logging in with `leah2maria@gmail.com` / `Saint214!`
-5. **Test Proxy**: After login, check Network tab - requests should go to `/api/messages/threads` (not direct API URL)
+**Runtime Fails:**
+- Check environment variables are set
+- Check database connection (DATABASE_URL)
+- Check Redis connection (REDIS_URL)
+- Check CORS origins match web service URL
 
-## 🔧 If Build Still Fails
+**Health Check Fails:**
+- Web: `/api/health` should return 200
+- API: `/health` should return 200
 
-1. **Clear Render Cache**: In Render Dashboard → Settings → Clear Build Cache
-2. **Check Node Version**: Should be 20.x
-3. **Check Build Command**: Must be `npm install && npm run build`
-4. **Check Root Directory**: Should be `/` (root of repo)
+## Quick Fix Commands
 
-## 📝 Current Commit
+### Trigger Manual Deploy via Dashboard:
+1. Go to https://dashboard.render.com
+2. Click on service
+3. Click "Manual Deploy" → "Deploy latest commit"
 
-Latest commit: `4b7f8b7` - "Fix TypeScript errors: Use type assertions for Prisma schema mismatch"
+### Check Service Status:
+```bash
+# Check web service
+curl https://snout-os-staging.onrender.com/api/health
 
-All fixes are pushed to `main` branch.
+# Check API service  
+curl https://snout-os-api.onrender.com/health
+```
+
+### Verify Environment Variables:
+Use the script:
+```bash
+pnpm tsx scripts/check-render-deployment.ts
+```
+
+## Next Steps
+
+1. **Check build logs** for each service to identify the specific error
+2. **Verify environment variables** are set correctly
+3. **Trigger manual deploy** if auto-deploy is not working
+4. **Check service health** endpoints after deployment
+
+## Service URLs (Expected)
+
+- Web: https://snout-os-staging.onrender.com
+- API: https://snout-os-api.onrender.com
+- Worker: (no public URL, background service)
