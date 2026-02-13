@@ -51,6 +51,17 @@ export async function POST(
     );
   }
 
+  // Read request body for forceRestore and restoreReason
+  let body: { forceRestore?: boolean; restoreReason?: string } = {};
+  try {
+    const bodyText = await request.text();
+    if (bodyText) {
+      body = JSON.parse(bodyText);
+    }
+  } catch {
+    // Empty body is OK for normal release
+  }
+
   // API endpoint is /api/numbers/:id/release-from-quarantine
   const apiUrl = `${API_BASE_URL}/api/numbers/${numberId}/release-from-quarantine`;
 
@@ -61,7 +72,10 @@ export async function POST(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiToken}`,
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({
+        forceRestore: body.forceRestore || false,
+        restoreReason: body.restoreReason,
+      }),
     });
 
     const contentType = response.headers.get('content-type');

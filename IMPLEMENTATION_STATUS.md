@@ -1,146 +1,84 @@
-# SNOUT OS Implementation Status
+# Implementation Status - Enterprise Messaging Dashboard
 
-**Date**: 2024-12-30  
-**Master Spec**: SNOUT_OS_INTERNAL_MASTER.md
+## ✅ COMPLETED
 
----
+### 1. Messages Tab Restructure
+- ✅ `/messages` now has internal tabs: Owner Inbox, Sitters, Numbers, Assignments, Twilio Setup
+- ✅ All messaging operations consolidated in ONE place
+- ✅ Dashboard UI unchanged (no modifications to `/dashboard`)
 
-## ✅ Completed Phases
+### 2. BFF Proxy Routes
+- ✅ `GET /api/messages/threads/[id]/messages`
+- ✅ `POST /api/messages/threads/[id]/messages`
+- ✅ `POST /api/messages/[id]/retry`
+- ✅ `GET /api/sitter/threads`
+- ✅ `GET /api/sitter/threads/[id]/messages`
+- ✅ `POST /api/sitter/threads/[id]/messages`
 
-### Phase 1: Form to Dashboard Wiring Map ✅
-- Form-to-booking mapper with precedence rules
-- Zod validation schemas
-- Unit tests and integration tests
-- Feature flag: `ENABLE_FORM_MAPPER_V1`
+### 3. Quarantine Fixes
+- ✅ API accepts `durationDays` (1, 3, 7, 14, 30, 90) and `customReleaseDate`
+- ✅ API accepts `forceRestore` and `restoreReason` for Restore Now
+- ✅ Frontend quarantine modal includes duration selector
+- ✅ Frontend release modal includes "Restore Now" with reason input
 
-### Phase 2: Pricing Unification ✅
-- PricingEngine v1 with canonical breakdown
-- PricingParity harness
-- Pricing snapshot storage
-- Feature flag: `USE_PRICING_ENGINE_V1`
+### 4. Role Separation
+- ✅ Middleware defaults auth protection to `true`
+- ✅ Sitters redirected from `/messages` to `/sitter/inbox`
+- ✅ Logout button exists in AppShell
 
-### Phase 3: Automation Persistence and Execution Truth ✅
-- Automation settings persistence with checksum
-- Automation run ledger page
-- Worker queue migration
-- Stub removal/implementation
-- Reminder worker migration
+## ⚠️ PARTIALLY COMPLETE
 
-### Phase 4: Security Containment ✅
-- Auth protection with allowlist
-- NextAuth v5 integration
-- Permission checks
-- Feature flags: `ENABLE_AUTH_PROTECTION`, `ENABLE_PERMISSION_CHECKS`
+### 1. Owner Inbox Features
+- ✅ Thread list with filters (Unread, Policy Issues, Delivery Failures)
+- ✅ Thread-bound compose
+- ✅ Delivery status badges
+- ✅ Retry button on failed deliveries
+- ✅ Policy violation banners
+- ✅ Routing drawer ("Why routed here?")
+- ⚠️ Polling stops when tab hidden (needs implementation)
 
-### Phase 5: Sitter Tiers and Dashboards ✅
-- Sitter scoped dashboard (Phase 5.1)
-- Tier system and eligibility rules (Phase 5.2)
-- Earnings view and payout reporting (Phase 5.3)
+### 2. Panel Components
+- ✅ NumbersPanel (fully functional with quarantine duration + restore-now)
+- ⚠️ SittersPanel (stub - needs implementation)
+- ⚠️ AssignmentsPanel (stub - needs implementation)
+- ⚠️ TwilioSetupPanel (stub - needs implementation)
 
-### Phase 6: Owner Click Reduction ✅
-- Booking confirmed message on Stripe payment success (Phase 6.1)
-- One click actions in Today board (Phase 6.2)
-- Exception queue (Phase 6.3)
+## ❌ NOT YET IMPLEMENTED
 
-### Phase 7: Priority Gaps ✅
-- Webhook validation (Phase 7.1) ✅
-- Price reconciliation job (Phase 7.2) ✅
-- Booking status history (Phase 7.3) ✅
+### 1. Seed Script
+- ❌ Create seed script for proof scenarios:
+  - 1 unread thread
+  - 1 failed delivery message
+  - 1 policy violation message
+  - 1 active assignment window
 
-### Section 9.1: Health Endpoint ✅
-- DB, Redis, Queue connection checks
-- Worker heartbeat and last processed job
-- Webhook validation status
+### 2. Runtime Proof
+- ❌ Screenshots of all features
+- ❌ Network request documentation
+- ❌ Playwright tests
 
----
+## Files Modified
 
-## 🔄 In Progress / Next Steps
+### Created:
+- `src/app/messages/page.tsx` - Restructured with internal tabs
+- `src/components/messaging/NumbersPanel.tsx`
+- `src/components/messaging/NumbersPanelContent.tsx` - Updated with duration selector + Restore Now
+- `src/components/messaging/SittersPanel.tsx` - Stub
+- `src/components/messaging/AssignmentsPanel.tsx` - Stub
+- `src/components/messaging/TwilioSetupPanel.tsx` - Stub
 
-### Section 12.3.4: Automation Templates Library (Epic 13)
-**Status**: Partially implemented - automation-center exists but template library UX needs enhancement  
-**Priority**: High (owner click reduction)  
-**Requirements**:
-- Template library (booking confirmed, payment failed, arrival, departure, review request, sitter assignment, key pickup reminder)
-- Conditions builder (booking status, service type, client tags, sitter tier, payment status, time windows)
-- Action library complete set (send SMS, send email optional, create task, add fee, apply discount, change status, notify sitter, notify owner, schedule follow up)
+### Modified:
+- `src/lib/api/numbers-hooks.ts` - Added durationDays and forceRestore support
+- `src/app/api/numbers/[id]/quarantine/route.ts` - Pass durationDays to API
+- `src/app/api/numbers/[id]/release/route.ts` - Pass forceRestore to API
+- `enterprise-messaging-dashboard/apps/api/src/numbers/numbers.service.ts` - Accept duration and forceRestore
+- `enterprise-messaging-dashboard/apps/api/src/numbers/numbers.controller.ts` - Accept new parameters
 
-**Notes**: Current automation-center provides basic automation management. Template library would enable "plug and play" UX for common automation patterns.
+## Next Steps
 
----
-
-### Section 12.2.5: Session Management (Epic 12) ✅
-**Status**: ✅ COMPLETE  
-**Priority**: Complete (security expansion)  
-**Requirements**:
-- ✅ Session inventory
-- ✅ Session revoke
-- ⚠️ Impersonation (deferred - requires careful security considerations)
-- ✅ Audit reporting
-
-**Notes**: Session inventory, revoke, and audit reporting APIs implemented. Impersonation deferred as it requires additional security considerations and is not critical for initial deployment.
-
----
-
-### Section 8.2: Next 7 Days Capacity ✅
-**Status**: ✅ COMPLETE  
-**Priority**: Complete (operations excellence)  
-**Requirements**:
-- ✅ Sitter utilization view
-- ✅ Overbook risk detection
-- ✅ Hiring triggers
-
----
-
-### Section 8.3: Client Success ✅
-**Status**: ✅ COMPLETE  
-**Priority**: Complete (operations excellence)  
-**Requirements**:
-- ✅ Review requests automation
-- ✅ Churn risk detection
-- ✅ Repeat booking nudges
-
----
-
-## 📊 Completion Summary
-
-**Core Phases**: ✅ 100% Complete (Phases 1-7)  
-**Security Epic (12)**: ✅ 100% Complete (12.2.1-12.2.5 done)  
-**Operations Epic (13)**: ✅ 100% Complete (13.1-13.5 done)  
-**Reliability (Section 9)**: ✅ 100% Complete (9.1 done, 9.2 already implemented)  
-**Operations Excellence (Section 8)**: ✅ 100% Complete (8.2, 8.3 done)  
-
-**Overall Progress**: ~98% of core reconstruction sequence complete
-
----
-
-## 🎯 Next Recommended Actions
-
-1. **Capacity Planning** (Section 8.2)
-   - Operations excellence
-   - Helps prevent overbooking
-   - Moderate complexity
-
-2. **Client Success** (Section 8.3)
-   - Revenue retention
-   - Review generation
-   - Moderate complexity
-
-3. **UI Enhancements** (Optional)
-   - Session management UI
-   - Capacity planning dashboard
-   - Client success dashboard
-
----
-
-## 🔒 Safety Status
-
-✅ **All feature flags default to `false`**  
-✅ **Zero breaking changes to booking intake**  
-✅ **Backward compatible deployments**  
-✅ **Comprehensive test coverage for critical paths**  
-✅ **Typecheck: PASS**  
-✅ **Build: PASS**
-
----
-
-**Last Updated**: 2024-12-30
+1. Complete SittersPanel implementation
+2. Complete AssignmentsPanel implementation
+3. Complete TwilioSetupPanel implementation
+4. Create seed script
+5. Add Playwright tests
+6. Document runtime proof with screenshots

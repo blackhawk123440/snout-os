@@ -98,9 +98,13 @@ export function useQuarantineNumber() {
       numberId: string;
       reason: string;
       reasonDetail?: string;
+      durationDays?: number;
+      customReleaseDate?: string;
     }) => apiPost(`/api/numbers/${params.numberId}/quarantine`, {
       reason: params.reason,
       reasonDetail: params.reasonDetail,
+      durationDays: params.durationDays,
+      customReleaseDate: params.customReleaseDate,
     }, z.object({
       success: z.boolean(),
       impact: z.object({
@@ -119,7 +123,14 @@ export function useQuarantineNumber() {
 export function useReleaseNumber() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (numberId: string) => apiPost(`/api/numbers/${numberId}/release`, {}, z.object({
+    mutationFn: (params: {
+      numberId: string;
+      forceRestore?: boolean;
+      restoreReason?: string;
+    }) => apiPost(`/api/numbers/${params.numberId}/release`, {
+      forceRestore: params.forceRestore || false,
+      restoreReason: params.restoreReason,
+    }, z.object({
       success: z.boolean(),
       message: z.string(),
     })),

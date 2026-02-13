@@ -53,9 +53,9 @@ export async function POST(
   }
 
   // Read request body
-  let body: string;
+  let body: { reason: string; reasonDetail?: string; durationDays?: number; customReleaseDate?: string };
   try {
-    body = await request.text();
+    body = await request.json();
   } catch {
     return NextResponse.json(
       { error: 'Invalid request body' },
@@ -63,7 +63,7 @@ export async function POST(
     );
   }
 
-  // Forward to API
+  // Forward to API with duration support
   const apiUrl = `${API_BASE_URL}/api/numbers/${params.id}/quarantine`;
 
   try {
@@ -73,7 +73,12 @@ export async function POST(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiToken}`,
       },
-      body,
+      body: JSON.stringify({
+        reason: body.reason,
+        reasonDetail: body.reasonDetail,
+        durationDays: body.durationDays,
+        customReleaseDate: body.customReleaseDate,
+      }),
     });
 
     const contentType = response.headers.get('content-type');
@@ -112,15 +117,19 @@ export async function POST(
 
       const releaseAt = responseData.quarantineReleaseAt 
         ? new Date(responseData.quarantineReleaseAt).toISOString()
-        : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+        : new Date(Date.now() + (body.durationDays || 90) * 24 * 60 * 60 * 1000).toISOString();
+      
+      const durationDays = body.durationDays || 90;
+      const releaseDate = new Date(releaseAt);
+      const daysUntilRelease = Math.ceil((releaseDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 
       const transformedResponse = {
         success: true,
         impact: {
           affectedThreads,
-          cooldownDays: 90,
+          cooldownDays: durationDays,
           releaseAt,
-          message: `Number quarantined. ${affectedThreads} active thread(s) will be routed to owner inbox. Will be released in 90 days.`,
+          message: `Number quarantined. ${affectedThreads} active thread(s) will be routed to owner inbox. Will be released in ${daysUntilRelease} days.`,
         },
       };
       return NextResponse.json(transformedResponse, {
