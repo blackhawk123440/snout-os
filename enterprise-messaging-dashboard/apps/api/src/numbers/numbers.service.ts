@@ -209,6 +209,8 @@ export class NumbersService {
     numberId: string,
     reason: string,
     reasonDetail?: string,
+    durationDays?: number,
+    customReleaseDate?: Date,
   ) {
     // Check if this is the last front desk number
     const number = await this.prisma.messageNumber.findUnique({
@@ -235,8 +237,18 @@ export class NumbersService {
       }
     }
 
-    const releaseAt = new Date();
-    releaseAt.setDate(releaseAt.getDate() + 90); // 90-day cooldown
+    // Calculate release date: customReleaseDate > durationDays > default 90 days
+    let releaseAt: Date;
+    if (customReleaseDate) {
+      releaseAt = customReleaseDate;
+    } else if (durationDays !== undefined && durationDays > 0) {
+      releaseAt = new Date();
+      releaseAt.setDate(releaseAt.getDate() + durationDays);
+    } else {
+      // Default 90-day cooldown
+      releaseAt = new Date();
+      releaseAt.setDate(releaseAt.getDate() + 90);
+    }
 
     const updated = await this.prisma.messageNumber.update({
       where: { id: numberId },
@@ -254,13 +266,23 @@ export class NumbersService {
       entityType: 'messageNumber',
       entityId: numberId,
       eventType: 'number.quarantined',
-      payload: { reason, reasonDetail, releaseAt: releaseAt.toISOString() },
+      payload: { 
+        reason, 
+        reasonDetail, 
+        durationDays: durationDays || 90,
+        releaseAt: releaseAt.toISOString() 
+      },
     });
 
     return updated;
   }
 
-  async releaseFromQuarantine(orgId: string, numberId: string) {
+  async releaseFromQuarantine(
+    orgId: string, 
+    numberId: string, 
+    forceRestore?: boolean,
+    restoreReason?: string,
+  ) {
     const number = await this.prisma.messageNumber.findFirst({
       where: { id: numberId, orgId },
     });
@@ -273,12 +295,13 @@ export class NumbersService {
       throw new BadRequestException('Number is not quarantined');
     }
 
-    if (number.quarantineReleaseAt && new Date() < number.quarantineReleaseAt) {
+    // Check cooldown period - allow override with forceRestore
+    if (!forceRestore && number.quarantineReleaseAt && new Date() < number.quarantineReleaseAt) {
       const daysRemaining = Math.ceil(
         (number.quarantineReleaseAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
       );
       throw new BadRequestException(
-        `Cannot release: Cooldown period not complete. ${daysRemaining} days remaining.`,
+        `Cannot release: Cooldown period not complete. ${daysRemaining} days remaining. Use "Restore Now" to override.`,
       );
     }
 
@@ -297,6 +320,11 @@ export class NumbersService {
       entityType: 'messageNumber',
       entityId: numberId,
       eventType: 'number.released_from_quarantine',
+      payload: {
+        forceRestore: forceRestore || false,
+        restoreReason: restoreReason || null,
+        originalReleaseAt: number.quarantineReleaseAt?.toISOString() || null,
+      },
       payload: {},
     });
 

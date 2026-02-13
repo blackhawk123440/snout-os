@@ -19,9 +19,6 @@ const numberSchema = z.object({
   providerType: z.string(),
   purchaseDate: z.string().nullable(),
   lastUsedAt: z.string().nullable(),
-  // Quarantine state
-  quarantineReleaseAt: z.string().nullable().optional(),
-  quarantinedReason: z.string().nullable().optional(),
   // Pool state
   activeThreadCount: z.number().nullable().optional(),
   capacityStatus: z.string().nullable().optional(),

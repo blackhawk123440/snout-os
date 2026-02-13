@@ -98,9 +98,24 @@ export class NumbersController {
   async quarantine(
     @CurrentUser() user: any,
     @Param('id') id: string,
-    @Body() body: { reason: string; reasonDetail?: string },
+    @Body() body: { 
+      reason: string; 
+      reasonDetail?: string;
+      durationDays?: number;
+      customReleaseDate?: string; // ISO date string
+    },
   ) {
-    return this.numbersService.quarantineNumber(user.orgId, id, body.reason, body.reasonDetail);
+    const customReleaseDate = body.customReleaseDate 
+      ? new Date(body.customReleaseDate) 
+      : undefined;
+    return this.numbersService.quarantineNumber(
+      user.orgId, 
+      id, 
+      body.reason, 
+      body.reasonDetail,
+      body.durationDays,
+      customReleaseDate,
+    );
   }
 
   @Post('bulk-quarantine')
@@ -117,8 +132,17 @@ export class NumbersController {
   }
 
   @Post(':id/release-from-quarantine')
-  async releaseFromQuarantine(@CurrentUser() user: any, @Param('id') id: string) {
-    return this.numbersService.releaseFromQuarantine(user.orgId, id);
+  async releaseFromQuarantine(
+    @CurrentUser() user: any, 
+    @Param('id') id: string,
+    @Body() body?: { forceRestore?: boolean; restoreReason?: string },
+  ) {
+    return this.numbersService.releaseFromQuarantine(
+      user.orgId, 
+      id,
+      body?.forceRestore,
+      body?.restoreReason,
+    );
   }
 
   @Patch(':id/class')

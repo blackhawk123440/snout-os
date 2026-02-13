@@ -16,10 +16,11 @@ import { getCurrentSitterId } from "@/lib/sitter-helpers";
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Gate B Phase 2.1: Feature flags default to false - no enforcement unless enabled
-  const enableAuthProtection = env.ENABLE_AUTH_PROTECTION === true;
-  const enableSitterAuth = env.ENABLE_SITTER_AUTH === true;
-  const enablePermissionChecks = env.ENABLE_PERMISSION_CHECKS === true;
+  // Phase 2: Role separation enforcement - ALWAYS ENABLED for production
+  // Feature flags can disable for development, but default to enabled
+  const enableAuthProtection = env.ENABLE_AUTH_PROTECTION !== false; // Default true unless explicitly false
+  const enableSitterAuth = env.ENABLE_SITTER_AUTH !== false; // Default true unless explicitly false
+  const enablePermissionChecks = env.ENABLE_PERMISSION_CHECKS !== false; // Default true unless explicitly false
   const isHealthPath = pathname === "/api/health" || pathname === "/api/auth/health" || pathname === "/api/auth/config-check";
 
   if (isHealthPath) {
