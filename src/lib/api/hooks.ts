@@ -82,22 +82,18 @@ export function useThreads(filters?: {
       }));
       return response.threads;
     },
-    refetchInterval: (query) => {
-      // Only poll when tab is visible
-      if (typeof document !== 'undefined' && document.hidden) {
-        return false;
-      }
-      // Increase interval to 15s to avoid rate limiting (API limit: 100/min = ~1.67/sec)
-      // With 15s interval, max 4 requests/min per user, well under limit
-      return 15000; // Poll every 15s when page is visible (reduced from 5s to avoid rate limiting)
-    },
+    // Disable automatic polling to avoid rate limiting
+    // Refetch will happen on window focus, mount, or manual refresh
+    refetchInterval: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     retry: (failureCount, error: any) => {
-      // Don't retry on 429 (rate limit) - wait for next poll
+      // Don't retry on 429 (rate limit) - wait for manual refresh
       if (error?.status === 429) {
         return false;
       }
-      // Retry other errors up to 3 times
-      return failureCount < 3;
+      // Retry other errors up to 2 times
+      return failureCount < 2;
     },
   });
 }
