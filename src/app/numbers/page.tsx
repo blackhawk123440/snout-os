@@ -50,13 +50,29 @@ interface ActionState {
 
 function getActionState(
   action: ActionType,
-  number: Number & { activeThreadCount?: number | null },
+  number: Number & { activeThreadCount?: number | null; quarantineReleaseAt?: string | null },
 ): ActionState {
   const activeThreads = number.activeThreadCount ?? 0;
   const isQuarantined = number.status === 'quarantined';
   const isActive = number.status === 'active';
   const isSitterNumber = number.class === 'sitter';
   const hasSitter = !!number.assignedSitterId;
+
+  // Check if cooldown period is complete for restore action
+  const canRestore = (): boolean => {
+    if (!isQuarantined) return false;
+    if (!number.quarantineReleaseAt) return true; // No cooldown set, can restore
+    const releaseDate = new Date(number.quarantineReleaseAt);
+    return new Date() >= releaseDate;
+  };
+
+  const getCooldownDaysRemaining = (): number | null => {
+    if (!number.quarantineReleaseAt) return null;
+    const releaseDate = new Date(number.quarantineReleaseAt);
+    const now = new Date();
+    if (now >= releaseDate) return 0;
+    return Math.ceil((releaseDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  };
 
   switch (action) {
     case 'view-details':
@@ -101,9 +117,15 @@ function getActionState(
       };
 
     case 'restore':
+      const cooldownDays = getCooldownDaysRemaining();
+      const canRestoreNow = canRestore();
       return {
-        enabled: isQuarantined,
-        tooltip: !isQuarantined ? 'Number must be quarantined to restore' : undefined,
+        enabled: canRestoreNow,
+        tooltip: !isQuarantined
+          ? 'Number must be quarantined to restore'
+          : !canRestoreNow && cooldownDays !== null
+          ? `Cannot restore: Cooldown period not complete. ${cooldownDays} day(s) remaining.`
+          : undefined,
       };
 
     case 'release-from-twilio':
