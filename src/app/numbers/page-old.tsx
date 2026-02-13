@@ -144,14 +144,23 @@ export default function NumbersPage() {
     }
   };
 
-  const handleRelease = async () => {
+  const handleRelease = async (forceRestore = false) => {
     if (!showReleaseModal) return;
     try {
-      await releaseNumber.mutateAsync(showReleaseModal);
+      await releaseNumber.mutateAsync({
+        numberId: showReleaseModal,
+        forceRestore,
+        restoreReason: forceRestore ? 'Manual owner override' : undefined,
+      });
       setShowReleaseModal(null);
-      alert('Number released from quarantine');
+      alert(forceRestore ? 'Number restored from quarantine (cooldown overridden)' : 'Number released from quarantine');
     } catch (error: any) {
-      alert(`Failed to release: ${error.message}`);
+      const errorMsg = error.message || 'Unknown error';
+      if (errorMsg.includes('Cooldown period not complete')) {
+        alert(`${errorMsg}\n\nUse "Restore Now" to override the cooldown period.`);
+      } else {
+        alert(`Failed to release: ${errorMsg}`);
+      }
     }
   };
 
