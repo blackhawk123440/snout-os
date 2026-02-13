@@ -173,19 +173,16 @@ export function useMessages(threadId: string | null) {
         z.array(messageSchema),
       ),
     enabled: !!threadId,
-    refetchInterval: (query) => {
-      // Only poll when tab is visible
-      if (typeof document !== 'undefined' && document.hidden) {
-        return false;
-      }
-      return 10000; // Poll every 10s for delivery status updates (reduced from 3s to avoid rate limiting)
-    },
+    // Disable automatic polling - refetch on window focus or manual refresh
+    refetchInterval: false,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     retry: (failureCount, error: any) => {
       // Don't retry on 429 (rate limit)
       if (error?.status === 429) {
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 2;
     },
   });
 }
