@@ -92,10 +92,25 @@ export async function PATCH(
       });
     }
 
-    // Transform API response to match frontend schema
+    // API returns the updated number object directly
+    // Transform to match frontend schema: { success: boolean, number: Number }
+    if (!responseData || typeof responseData !== 'object') {
+      console.error('[BFF Proxy] Invalid API response format:', responseData);
+      return NextResponse.json(
+        { error: 'Invalid API response format' },
+        { status: 500 }
+      );
+    }
+
+    // Ensure assignedSitter is properly formatted (nullable)
+    const transformedNumber = {
+      ...responseData,
+      assignedSitter: responseData.assignedSitter || null,
+    };
+
     return NextResponse.json({
       success: true,
-      number: responseData,
+      number: transformedNumber,
     }, { status: 200 });
 
   } catch (error: any) {

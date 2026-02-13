@@ -626,6 +626,14 @@ export class NumbersService {
     const updated = await this.prisma.messageNumber.update({
       where: { id: numberId },
       data: updateData,
+      include: {
+        assignedSitter: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     await this.audit.recordEvent({
