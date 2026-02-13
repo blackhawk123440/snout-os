@@ -173,3 +173,69 @@ export function useSitters() {
     }))),
   });
 }
+
+export function useNumberDetail(numberId: string | null) {
+  return useQuery({
+    queryKey: ['numbers', numberId, 'detail'],
+    queryFn: () => apiGet(`/api/numbers/${numberId}`, numberSchema.extend({
+      activeThreadCount: z.number(),
+      health: z.object({
+        status: z.string(),
+        deliveryRate: z.number().nullable(),
+        errorRate: z.number().nullable(),
+      }),
+      deliveryErrors: z.array(z.any()),
+    })),
+    enabled: !!numberId,
+  });
+}
+
+export function useChangeNumberClass() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: {
+      numberId: string;
+      class: 'front_desk' | 'sitter' | 'pool';
+    }) => apiPatch(`/api/numbers/${params.numberId}/class`, {
+      class: params.class,
+    }, z.object({
+      success: z.boolean(),
+      number: numberSchema,
+    })),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['numbers'] });
+    },
+  });
+}
+
+export function useDeactivateSitter() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sitterId: string) => apiPost(`/api/numbers/sitters/${sitterId}/deactivate`, {}, z.object({
+      success: z.boolean(),
+      message: z.string(),
+      activeAssignments: z.number(),
+      numbersAffected: z.number(),
+    })),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['numbers'] });
+      queryClient.invalidateQueries({ queryKey: ['sitters'] });
+      queryClient.invalidateQueries({ queryKey: ['assignments'] });
+    },
+  });
+}
+
+export function useSitterAssignmentWindows(sitterId: string | null) {
+  return useQuery({
+    queryKey: ['assignments', 'windows', sitterId],
+    queryFn: () => apiGet(`/api/assignments/windows?sitterId=${sitterId}`, z.array(z.object({
+      id: z.string(),
+      threadId: z.string(),
+      sitterId: z.string(),
+      startsAt: z.string(),
+      endsAt: z.string(),
+      status: z.string(),
+    }))),
+    enabled: !!sitterId,
+  });
+}

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -27,6 +28,11 @@ export class NumbersController {
   @Get('sitters')
   async getSitters(@CurrentUser() user: any) {
     return this.numbersService.getSitters(user.orgId);
+  }
+
+  @Post('sitters/:sitterId/deactivate')
+  async deactivateSitter(@CurrentUser() user: any, @Param('sitterId') sitterId: string) {
+    return this.numbersService.deactivateSitter(user.orgId, sitterId);
   }
 
   @Get('export.csv')
@@ -113,5 +119,14 @@ export class NumbersController {
   @Post(':id/release-from-quarantine')
   async releaseFromQuarantine(@CurrentUser() user: any, @Param('id') id: string) {
     return this.numbersService.releaseFromQuarantine(user.orgId, id);
+  }
+
+  @Patch(':id/class')
+  async changeClass(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { class: string },
+  ) {
+    return this.numbersService.changeClass(user.orgId, id, body.class);
   }
 }

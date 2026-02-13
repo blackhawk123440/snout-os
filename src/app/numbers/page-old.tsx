@@ -1,20 +1,14 @@
 /**
- * Numbers Inventory Page - Refactored with Safety Guardrails
+ * Numbers Inventory Page
  * 
- * Requirements:
- * - No hard deletes (state transitions only)
- * - Standardized Actions menu (⋯) for every number
- * - Actions enabled/disabled based on state, never hidden
- * - Tooltips for disabled actions
- * - Confirmation modals for risky actions
- * - Deactivate Sitter functionality
+ * Full operational control for number management
  */
 
 'use client';
 
 import { useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
-import { PageHeader, Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Textarea, Tooltip } from '@/components/ui';
+import { PageHeader, Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Textarea } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import {
@@ -26,103 +20,8 @@ import {
   useAssignToSitter,
   useReleaseToPool,
   useSitters,
-  useNumberDetail,
-  useChangeNumberClass,
-  useDeactivateSitter,
-  useSitterAssignmentWindows,
   type Number,
 } from '@/lib/api/numbers-hooks';
-
-type ActionType = 
-  | 'view-details'
-  | 'change-class'
-  | 'assign-sitter'
-  | 'release-to-pool'
-  | 'quarantine'
-  | 'restore'
-  | 'release-from-twilio';
-
-interface ActionState {
-  enabled: boolean;
-  tooltip?: string;
-}
-
-function getActionState(
-  action: ActionType,
-  number: Number & { activeThreadCount?: number | null },
-): ActionState {
-  const activeThreads = number.activeThreadCount ?? 0;
-  const isQuarantined = number.status === 'quarantined';
-  const isActive = number.status === 'active';
-  const isSitterNumber = number.class === 'sitter';
-  const hasSitter = !!number.assignedSitterId;
-
-  switch (action) {
-    case 'view-details':
-      return { enabled: true };
-
-    case 'change-class':
-      return {
-        enabled: activeThreads === 0,
-        tooltip: activeThreads > 0 
-          ? `Cannot change class: ${activeThreads} active thread(s) using this number`
-          : undefined,
-      };
-
-    case 'assign-sitter':
-      return {
-        enabled: isSitterNumber && !isQuarantined && isActive,
-        tooltip: !isSitterNumber
-          ? 'Only sitter numbers can be assigned'
-          : isQuarantined
-          ? 'Cannot assign quarantined number'
-          : !isActive
-          ? 'Number must be active'
-          : undefined,
-      };
-
-    case 'release-to-pool':
-      return {
-        enabled: isSitterNumber && activeThreads === 0 && isActive,
-        tooltip: !isSitterNumber
-          ? 'Only sitter numbers can be released to pool'
-          : activeThreads > 0
-          ? `Cannot release: ${activeThreads} active thread(s) using this number`
-          : !isActive
-          ? 'Number must be active'
-          : undefined,
-      };
-
-    case 'quarantine':
-      return {
-        enabled: isActive,
-        tooltip: !isActive ? 'Number must be active to quarantine' : undefined,
-      };
-
-    case 'restore':
-      return {
-        enabled: isQuarantined,
-        tooltip: !isQuarantined ? 'Number must be quarantined to restore' : undefined,
-      };
-
-    case 'release-from-twilio':
-      return {
-        enabled: activeThreads === 0 && !hasSitter && !isQuarantined && isActive,
-        tooltip: activeThreads > 0
-          ? `Cannot release: ${activeThreads} active thread(s) using this number`
-          : hasSitter
-          ? 'Cannot release: number is assigned to a sitter'
-          : isQuarantined
-          ? 'Cannot release: number is quarantined'
-          : !isActive
-          ? 'Number must be active'
-          : undefined,
-      };
-
-    default:
-      return { enabled: false };
-  }
-}
 
 export default function NumbersPage() {
   const { isOwner, loading: authLoading } = useAuth();
@@ -133,34 +32,21 @@ export default function NumbersPage() {
   const [showAssignModal, setShowAssignModal] = useState<string | null>(null);
   const [showReleaseModal, setShowReleaseModal] = useState<string | null>(null);
   const [showReleaseToPoolModal, setShowReleaseToPoolModal] = useState<string | null>(null);
-  const [showChangeClassModal, setShowChangeClassModal] = useState<string | null>(null);
-  const [showDeactivateSitterModal, setShowDeactivateSitterModal] = useState<string | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState<string | null>(null);
   
   const [buyForm, setBuyForm] = useState({ class: 'front_desk' as 'front_desk' | 'sitter' | 'pool', areaCode: '', quantity: 1 });
   const [importForm, setImportForm] = useState({ e164: '', numberSid: '', class: 'front_desk' as 'front_desk' | 'sitter' | 'pool' });
   const [quarantineForm, setQuarantineForm] = useState({ reason: '', reasonDetail: '' });
   const [assignForm, setAssignForm] = useState({ sitterId: '' });
-  const [changeClassForm, setChangeClassForm] = useState({ class: 'front_desk' as 'front_desk' | 'sitter' | 'pool' });
   const [selectedNumber, setSelectedNumber] = useState<Number | null>(null);
 
   const { data: numbers = [], isLoading } = useNumbers(filters);
   const { data: sitters = [] } = useSitters();
-  const { data: numberDetail } = useNumberDetail(showDetailsModal);
   const buyNumber = useBuyNumber();
   const importNumber = useImportNumber();
   const quarantineNumber = useQuarantineNumber();
   const releaseNumber = useReleaseNumber();
   const assignToSitter = useAssignToSitter();
   const releaseToPool = useReleaseToPool();
-  const changeNumberClass = useChangeNumberClass();
-  const deactivateSitter = useDeactivateSitter();
-
-  // Get assignment windows for selected sitter (if deactivating)
-  const { data: assignmentWindows = [] } = useSitterAssignmentWindows(
-    showDeactivateSitterModal || null
-  );
-  const activeAssignments = assignmentWindows.filter((w: any) => w.status === 'active').length;
 
   if (authLoading) {
     return (
@@ -205,12 +91,16 @@ export default function NumbersPage() {
 
     // Validate and format E.164 if provided
     if (importForm.e164) {
+      // Remove any spaces, dashes, or parentheses
       let cleaned = importForm.e164.replace(/[\s\-\(\)]/g, '');
       
+      // Add + prefix if missing
       if (!cleaned.startsWith('+')) {
+        // If it starts with 1, assume US number and add +
         if (cleaned.startsWith('1') && cleaned.length === 11) {
           cleaned = '+' + cleaned;
         } else if (cleaned.length === 10) {
+          // Assume US number without country code
           cleaned = '+1' + cleaned;
         } else {
           alert('E.164 format invalid. Please enter number in E.164 format (e.g., +15551234567)');
@@ -218,11 +108,13 @@ export default function NumbersPage() {
         }
       }
 
+      // Validate E.164 format: +[1-9][0-9]{1,14}
       if (!/^\+[1-9]\d{1,14}$/.test(cleaned)) {
         alert('Invalid E.164 format. Must start with + followed by country code and number (e.g., +15551234567)');
         return;
       }
 
+      // Update form with cleaned E.164
       importForm.e164 = cleaned;
     }
 
@@ -289,66 +181,6 @@ export default function NumbersPage() {
     }
   };
 
-  const handleChangeClass = async () => {
-    if (!showChangeClassModal) return;
-    try {
-      await changeNumberClass.mutateAsync({
-        numberId: showChangeClassModal,
-        class: changeClassForm.class,
-      });
-      alert(`Number class changed to ${changeClassForm.class}`);
-      setShowChangeClassModal(null);
-      setChangeClassForm({ class: 'front_desk' });
-    } catch (error: any) {
-      alert(`Failed to change class: ${error.message}`);
-    }
-  };
-
-  const handleDeactivateSitter = async () => {
-    if (!showDeactivateSitterModal) return;
-    try {
-      const result = await deactivateSitter.mutateAsync(showDeactivateSitterModal);
-      alert(`Sitter deactivated. ${result.message}`);
-      setShowDeactivateSitterModal(null);
-    } catch (error: any) {
-      alert(`Failed to deactivate sitter: ${error.message}`);
-    }
-  };
-
-  const renderActionButton = (
-    action: ActionType,
-    label: string,
-    number: Number & { activeThreadCount?: number | null },
-    onClick: () => void,
-  ) => {
-    const state = getActionState(action, number);
-    
-    const button = (
-      <Button
-        size="sm"
-        variant={action === 'quarantine' || action === 'release-from-twilio' ? 'danger' : 'secondary'}
-        onClick={onClick}
-        disabled={!state.enabled}
-        style={{ 
-          opacity: state.enabled ? 1 : 0.5,
-          cursor: state.enabled ? 'pointer' : 'not-allowed',
-        }}
-      >
-        {label}
-      </Button>
-    );
-
-    if (!state.enabled && state.tooltip) {
-      return (
-        <Tooltip content={state.tooltip}>
-          {button}
-        </Tooltip>
-      );
-    }
-
-    return button;
-  };
-
   const numberColumns: TableColumn<Number & { activeThreadCount?: number | null; capacityStatus?: string | null; maxConcurrentThreads?: number | null }>[] = [
     { key: 'e164', header: 'Number', render: (n) => n.e164 },
     { key: 'class', header: 'Class', render: (n) => (
@@ -380,70 +212,64 @@ export default function NumbersPage() {
     { 
       key: 'actions', 
       header: 'Actions', 
-      render: (n) => {
-        const actionsMenu = (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[1] }}>
-            {renderActionButton('view-details', 'View Details', n, () => {
-              setSelectedNumber(n);
-              setShowDetailsModal(n.id);
-            })}
-            {renderActionButton('change-class', 'Change Class', n, () => {
-              setSelectedNumber(n);
-              setChangeClassForm({ class: n.class });
-              setShowChangeClassModal(n.id);
-            })}
-            {renderActionButton('assign-sitter', 'Assign/Reassign Sitter', n, () => {
-              setSelectedNumber(n);
-              setAssignForm({ sitterId: n.assignedSitterId || '' });
-              setShowAssignModal(n.id);
-            })}
-            {renderActionButton('release-to-pool', 'Release to Pool', n, () => {
-              setSelectedNumber(n);
-              setShowReleaseToPoolModal(n.id);
-            })}
-            {renderActionButton('quarantine', 'Quarantine', n, () => {
-              setSelectedNumber(n);
-              setShowQuarantineModal(n.id);
-            })}
-            {renderActionButton('restore', 'Restore', n, () => {
-              setSelectedNumber(n);
-              setShowReleaseModal(n.id);
-            })}
-            {renderActionButton('release-from-twilio', 'Release from Twilio', n, () => {
-              if (confirm(`Release ${n.e164} from Twilio? This cannot be undone.`)) {
-                // TODO: Implement release from Twilio
-                alert('Release from Twilio not yet implemented');
-              }
-            })}
-            {/* Deactivate Sitter button - only show for sitter numbers with assigned sitter */}
-            {n.class === 'sitter' && n.assignedSitterId && (
+      render: (n) => (
+        <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
+          {n.status === 'quarantined' && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setSelectedNumber(n);
+                setShowReleaseModal(n.id);
+              }}
+            >
+              Release
+            </Button>
+          )}
+          {n.status === 'active' && n.class === 'sitter' && (
+            <>
               <Button
                 size="sm"
-                variant="danger"
+                variant="secondary"
                 onClick={() => {
-                  setShowDeactivateSitterModal(n.assignedSitterId!);
+                  setSelectedNumber(n);
+                  setShowAssignModal(n.id);
                 }}
               >
-                Deactivate Sitter
+                Assign
               </Button>
-            )}
-          </div>
-        );
-        return actionsMenu;
-      },
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setSelectedNumber(n);
+                  setShowReleaseToPoolModal(n.id);
+                }}
+              >
+                Release to Pool
+              </Button>
+            </>
+          )}
+          {n.status === 'active' && (
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={() => {
+                setSelectedNumber(n);
+                setShowQuarantineModal(n.id);
+              }}
+            >
+              Quarantine
+            </Button>
+          )}
+        </div>
+      ),
     },
   ];
 
   const frontDeskCount = numbers.filter(n => n.class === 'front_desk').length;
   const poolCount = numbers.filter(n => n.class === 'pool').length;
   const sitterCount = numbers.filter(n => n.class === 'sitter').length;
-
-  const selectedSitter = showDeactivateSitterModal 
-    ? sitters.find(s => s.id === showDeactivateSitterModal)
-    : null;
-  const sitterNumbers = showDeactivateSitterModal
-    ? numbers.filter(n => n.assignedSitterId === showDeactivateSitterModal)
-    : [];
 
   return (
     <AppShell>
@@ -755,105 +581,6 @@ export default function NumbersPage() {
             </div>
           </Modal>
         )}
-
-        {/* Change Class Modal */}
-        {showChangeClassModal && selectedNumber && (
-          <Modal isOpen={!!showChangeClassModal} title="Change Number Class" onClose={() => setShowChangeClassModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <p style={{ color: tokens.colors.text.secondary }}>
-                Changing class for: <strong>{selectedNumber.e164}</strong>
-              </p>
-              <p style={{ color: tokens.colors.warning.DEFAULT, fontSize: tokens.typography.fontSize.sm[0] }}>
-                ⚠️ This will affect future routing only. Existing threads are not affected.
-              </p>
-              <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
-                  New Class
-                </label>
-                <select
-                  value={changeClassForm.class}
-                  onChange={(e) => setChangeClassForm({ class: e.target.value as any })}
-                  style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}`, width: '100%' }}
-                >
-                  <option value="front_desk">Front Desk</option>
-                  <option value="pool">Pool</option>
-                  <option value="sitter">Sitter</option>
-                </select>
-              </div>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
-                <Button onClick={() => setShowChangeClassModal(null)} variant="secondary">Cancel</Button>
-                <Button onClick={handleChangeClass} disabled={changeNumberClass.isPending} variant="primary">
-                  {changeNumberClass.isPending ? 'Changing...' : 'Change Class'}
-                </Button>
-              </div>
-            </div>
-          </Modal>
-        )}
-
-        {/* Deactivate Sitter Modal */}
-        {showDeactivateSitterModal && selectedSitter && (
-          <Modal isOpen={!!showDeactivateSitterModal} title="Deactivate Sitter" onClose={() => setShowDeactivateSitterModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <p style={{ color: tokens.colors.text.secondary }}>
-                Deactivating sitter: <strong>{selectedSitter.name}</strong>
-              </p>
-              <div style={{ backgroundColor: tokens.colors.warning[50], padding: tokens.spacing[3], borderRadius: tokens.borderRadius.md }}>
-                <p style={{ fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>
-                  This will:
-                </p>
-                <ul style={{ margin: 0, paddingLeft: tokens.spacing[4] }}>
-                  <li>Set sitter status to inactive</li>
-                  <li>End all active assignment windows ({activeAssignments} active)</li>
-                  <li>Release {sitterNumbers.length} number(s) to pool</li>
-                  <li>Preserve all message threads</li>
-                  <li>Route new inbound messages to owner</li>
-                </ul>
-              </div>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
-                <Button onClick={() => setShowDeactivateSitterModal(null)} variant="secondary">Cancel</Button>
-                <Button onClick={handleDeactivateSitter} disabled={deactivateSitter.isPending} variant="danger">
-                  {deactivateSitter.isPending ? 'Deactivating...' : 'Deactivate Sitter'}
-                </Button>
-              </div>
-            </div>
-          </Modal>
-        )}
-
-        {/* View Details Modal */}
-        {showDetailsModal && numberDetail && (
-          <Modal isOpen={!!showDetailsModal} title="Number Details" onClose={() => setShowDetailsModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <div>
-                <strong>E.164:</strong> {numberDetail.e164}
-              </div>
-              <div>
-                <strong>Class:</strong> {numberDetail.class}
-              </div>
-              <div>
-                <strong>Status:</strong> {numberDetail.status}
-              </div>
-              <div>
-                <strong>Active Threads:</strong> {numberDetail.activeThreadCount || 0}
-              </div>
-              {numberDetail.assignedSitter && (
-                <div>
-                  <strong>Assigned To:</strong> {numberDetail.assignedSitter.name}
-                </div>
-              )}
-              {numberDetail.health && (
-                <div>
-                  <strong>Health:</strong> {numberDetail.health.status}
-                  {numberDetail.health.deliveryRate !== null && (
-                    <span> (Delivery: {Math.round(numberDetail.health.deliveryRate * 100)}%)</span>
-                  )}
-                </div>
-              )}
-            </div>
-          </Modal>
-        )}
-
-        {/* Keep existing modals - Buy, Import, Quarantine, Release, Assign, Release to Pool */}
-        {/* ... (existing modal code remains the same) ... */}
       </div>
     </AppShell>
   );

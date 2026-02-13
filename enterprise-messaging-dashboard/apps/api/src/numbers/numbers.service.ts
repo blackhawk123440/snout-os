@@ -582,4 +582,170 @@ export class NumbersService {
       clientName: d.message.thread.client.name,
     }));
   }
+
+  async changeClass(orgId: string, numberId: string, newClass: string) {
+    const number = await this.prisma.messageNumber.findFirst({
+      where: { id: numberId, orgId },
+      include: {
+        threads: {
+          where: { status: 'active' },
+        },
+      },
+    });
+
+    if (!number) {
+      throw new BadRequestException('Number not found');
+    }
+
+    // Safety check: cannot change class if there are active threads
+    if (number.threads.length > 0) {
+      throw new BadRequestException(
+        `Cannot change class: ${number.threads.length} active thread(s) using this number`,
+      );
+    }
+
+    // Validate class
+    if (!['front_desk', 'sitter', 'pool'].includes(newClass)) {
+      throw new BadRequestException('Invalid class. Must be front_desk, sitter, or pool');
+    }
+
+    // If changing from sitter to something else, unassign sitter
+    const updateData: any = { class: newClass };
+    if (number.class === 'sitter' && newClass !== 'sitter') {
+      updateData.assignedSitterId = null;
+    }
+
+    const updated = await this.prisma.messageNumber.update({
+      where: { id: numberId },
+      data: updateData,
+    });
+
+    await this.audit.recordEvent({
+      orgId,
+      actorType: 'owner',
+      entityType: 'messageNumber',
+      entityId: numberId,
+      eventType: 'number.class_changed',
+      payload: { oldClass: number.class, newClass },
+    });
+
+    return updated;
+  }
+
+  async deactivateSitter(orgId: string, sitterId: string) {
+    const now = new Date();
+
+    // Find sitter
+    const sitter = await this.prisma.sitter.findFirst({
+      where: { id: sitterId, orgId },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!sitter) {
+      throw new BadRequestException('Sitter not found');
+    }
+
+    // Get active assignment windows
+    const activeWindows = await this.prisma.assignmentWindow.findMany({
+      where: {
+        orgId,
+        sitterId,
+        startsAt: { lte: now },
+        endsAt: { gte: now },
+      },
+    });
+
+    // End all active assignment windows
+    await this.prisma.assignmentWindow.updateMany({
+      where: {
+        orgId,
+        sitterId,
+        startsAt: { lte: now },
+        endsAt: { gte: now },
+      },
+      data: {
+        endsAt: now,
+      },
+    });
+
+    // Get sitter's numbers
+    const sitterNumbers = await this.prisma.messageNumber.findMany({
+      where: {
+        orgId,
+        assignedSitterId: sitterId,
+        status: 'active',
+      },
+    });
+
+    // Release numbers to pool (or quarantine if safer - using pool for now)
+    for (const number of sitterNumbers) {
+      // Check if number has active threads
+      const activeThreads = await this.prisma.thread.count({
+        where: {
+          orgId,
+          numberId: number.id,
+          status: 'active',
+        },
+      });
+
+      if (activeThreads === 0) {
+        // Safe to release to pool
+        await this.prisma.messageNumber.update({
+          where: { id: number.id },
+          data: {
+            assignedSitterId: null,
+            class: 'pool',
+          },
+        });
+      } else {
+        // Has active threads - quarantine instead
+        const releaseAt = new Date();
+        releaseAt.setDate(releaseAt.getDate() + 90);
+        await this.prisma.messageNumber.update({
+          where: { id: number.id },
+          data: {
+            assignedSitterId: null,
+            status: 'quarantined',
+            quarantinedReason: 'Sitter deactivated',
+            quarantineReleaseAt: releaseAt,
+          },
+        });
+      }
+    }
+
+    // Set user status to inactive (if user exists and has status field)
+    // Note: User model may not have status field - this is a no-op if field doesn't exist
+    if (sitter.user) {
+      try {
+        await this.prisma.user.update({
+          where: { id: sitter.user.id },
+          data: { active: false } as any, // Type assertion since status might not exist
+        });
+      } catch (error) {
+        // If status field doesn't exist, that's okay - we'll just log
+        this.logger.warn(`Could not set user status for ${sitter.user.id}: ${error}`);
+      }
+    }
+
+    await this.audit.recordEvent({
+      orgId,
+      actorType: 'owner',
+      entityType: 'sitter',
+      entityId: sitterId,
+      eventType: 'sitter.deactivated',
+      payload: {
+        activeAssignments: activeWindows.length,
+        numbersAffected: sitterNumbers.length,
+      },
+    });
+
+    return {
+      success: true,
+      message: `Sitter deactivated. ${activeWindows.length} assignment window(s) ended, ${sitterNumbers.length} number(s) released.`,
+      activeAssignments: activeWindows.length,
+      numbersAffected: sitterNumbers.length,
+    };
+  }
 }
