@@ -31,13 +31,22 @@ vi.mock('@/lib/env', () => ({
 
 vi.mock('@/lib/db', () => ({
   prisma: {
-    messageThread: { findMany: vi.fn(), findUnique: vi.fn(), count: vi.fn() },
-    messageEvent: { findMany: vi.fn(), count: vi.fn() },
+    thread: { findMany: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn(), count: vi.fn() },
+    message: { findMany: vi.fn(), count: vi.fn() },
     assignmentWindow: { findFirst: vi.fn(), findMany: vi.fn() },
     messageNumber: { findUnique: vi.fn() },
     sitter: { findMany: vi.fn() },
-    threadAssignmentAudit: { findMany: vi.fn() },
+    organization: { findFirst: vi.fn() },
+    client: { findFirst: vi.fn() },
   },
+}));
+
+vi.mock('@/lib/auth', () => ({
+  auth: vi.fn().mockResolvedValue({ user: { id: 'user-1', role: 'owner', orgId: 'org-1' } }),
+}));
+
+vi.mock('@/lib/api/jwt', () => ({
+  mintApiJWT: vi.fn().mockResolvedValue('mock-jwt-token'),
 }));
 
 vi.mock('@/lib/messaging/providers/twilio', () => ({
@@ -68,8 +77,8 @@ describe('Phase 4.2 Sitter Filtering and Send Gating', () => {
 
     it('should allow owner when ENABLE_SITTER_MESSAGES_V1 is disabled', async () => {
       vi.mocked(getCurrentSitterId).mockResolvedValue(null);
-      vi.mocked(prisma.messageThread.findMany).mockResolvedValue([]);
-      vi.mocked(prisma.messageThread.count).mockResolvedValue(0);
+      vi.mocked((prisma as any).thread.findMany).mockResolvedValue([]);
+      vi.mocked((prisma as any).thread.count).mockResolvedValue(0);
 
       const { GET } = await import('@/app/api/messages/threads/route');
       const req = new Request('http://localhost/api/messages/threads');
@@ -96,13 +105,14 @@ describe('Phase 4.2 Sitter Filtering and Send Gating', () => {
   describe('POST /api/messages/send', () => {
     it('should return 404 for sitter when ENABLE_SITTER_MESSAGES_V1 is disabled', async () => {
       vi.mocked(getCurrentSitterId).mockResolvedValue('sitter-1');
-      vi.mocked(prisma.messageThread.findUnique).mockResolvedValue({
+      vi.mocked((prisma as any).thread.findUnique).mockResolvedValue({
         id: 'thread-1',
         orgId: 'org-1',
-        assignedSitterId: 'sitter-1',
-        scope: 'client',
-        providerSessionSid: null,
-        participants: [{ id: 'p1', role: 'client', realE164: '+15551234567' }],
+        sitterId: 'sitter-1',
+        threadType: 'assignment',
+        status: 'active',
+        clientId: 'client-1',
+        numberId: 'number-1',
       } as any);
 
       const { POST } = await import('@/app/api/messages/send/route');

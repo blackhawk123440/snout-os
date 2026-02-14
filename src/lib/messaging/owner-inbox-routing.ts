@@ -94,6 +94,11 @@ export async function routeToOwnerInbox(
  * There is exactly one owner inbox thread per org.
  */
 export async function findOrCreateOwnerInboxThread(orgId: string) {
+  // Ensure prisma is initialized
+  if (!prisma) {
+    throw new Error('Prisma client not initialized. Ensure DATABASE_URL is set.');
+  }
+
   // Look for existing owner inbox thread
   // Thread model doesn't have 'scope' field - use threadType='other' and specific clientId pattern
   // For owner inbox, we'll use a special clientId pattern or find by threadType

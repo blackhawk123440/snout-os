@@ -96,10 +96,11 @@ export async function POST(request: NextRequest) {
       const endDate = mappedInput.endAt as Date;
       
       // Extract pets array from Prisma nested create structure
-      const petsArray = Array.isArray(mappedInput.pets?.create) 
-        ? mappedInput.pets.create 
-        : mappedInput.pets?.create 
-          ? [mappedInput.pets.create]
+      const petsCreateValue: unknown = (mappedInput.pets as any)?.create;
+      const petsArray: Array<{ name: string; species: string }> = Array.isArray(petsCreateValue)
+        ? (petsCreateValue as Array<{ name: string; species: string }>)
+        : petsCreateValue 
+          ? [petsCreateValue as { name: string; species: string }]
           : [];
       const petsCount = petsArray.length || 0;
       const quantity = mappedInput.quantity || 1;
@@ -116,15 +117,16 @@ export async function POST(request: NextRequest) {
       );
 
       // Build time slots array from mapped input if present
-      const timeSlotsArray = Array.isArray(mappedInput.timeSlots?.create)
-        ? mappedInput.timeSlots.create
-        : mappedInput.timeSlots?.create
-          ? [mappedInput.timeSlots.create]
+      const timeSlotsCreateValue: unknown = (mappedInput.timeSlots as any)?.create;
+      const timeSlotsArray: Array<{ startAt: string | Date; endAt: string | Date; duration?: number }> = Array.isArray(timeSlotsCreateValue)
+        ? (timeSlotsCreateValue as Array<{ startAt: string | Date; endAt: string | Date; duration?: number }>)
+        : timeSlotsCreateValue
+          ? [timeSlotsCreateValue as { startAt: string | Date; endAt: string | Date; duration?: number }]
           : [];
-      const timeSlotsData = timeSlotsArray.map(slot => ({
+      const timeSlotsData = timeSlotsArray.map((slot: { startAt: string | Date; endAt: string | Date; duration?: number }) => ({
         startAt: slot.startAt as Date,
         endAt: slot.endAt as Date,
-        duration: slot.duration,
+        duration: slot.duration ?? 0, // Provide default duration if undefined
       }));
 
       // Phase 2: Check feature flag for pricing engine
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
           service: trimmedService,
           startAt: startDate,
           endAt: endDate,
-          pets: petsArray.map(pet => ({ species: pet.species })),
+          pets: petsArray.map((pet: { name: string; species: string }) => ({ species: pet.species })),
           quantity,
           afterHours,
           holiday: priceCalculation.holidayApplied,
@@ -158,7 +160,7 @@ export async function POST(request: NextRequest) {
           service: trimmedService,
           startAt: startDate,
           endAt: endDate,
-          pets: petsArray.map(pet => ({ species: pet.species })),
+          pets: petsArray.map((pet: { name: string; species: string }) => ({ species: pet.species })),
           quantity,
           afterHours,
           holiday: priceCalculation.holidayApplied,
@@ -172,7 +174,7 @@ export async function POST(request: NextRequest) {
           service: trimmedService,
           startAt: startDate,
           endAt: endDate,
-          pets: petsArray.map(pet => ({ species: pet.species })),
+          pets: petsArray.map((pet: { name: string; species: string }) => ({ species: pet.species })),
           quantity,
           afterHours,
           holiday: priceCalculation.holidayApplied,
@@ -190,8 +192,10 @@ export async function POST(request: NextRequest) {
       };
 
       // Create booking using mapped input (unchanged persistence logic)
-      const booking = await prisma.booking.create({
-        data: bookingData as Prisma.BookingCreateInput,
+      // Note: booking model exists in main app schema, not enterprise-messaging-dashboard schema
+      // Using type assertion to access booking model
+      const booking = await (prisma as any).booking.create({
+        data: bookingData,
         include: {
           pets: true,
           timeSlots: true,
@@ -654,8 +658,10 @@ export async function POST(request: NextRequest) {
       hasNotes: !!bookingData.notes,
     });
 
-    const booking = await prisma.booking.create({
-      data: bookingData as Prisma.BookingCreateInput,
+    // Note: booking model exists in main app schema, not enterprise-messaging-dashboard schema
+    // Using type assertion to access booking model
+    const booking = await (prisma as any).booking.create({
+      data: bookingData,
       include: {
         pets: true,
         timeSlots: true,

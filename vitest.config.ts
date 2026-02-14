@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
+    setupFiles: ['./vitest.setup.ts'],
     // Exclude E2E and integration tests from default run
     exclude: [
       "**/node_modules/**",
