@@ -98,14 +98,22 @@ export function ProofRunnerButton() {
           setResults([...newResults]);
           try {
             const routingRes = await fetch(`/api/routing/threads/${threadId}/history`);
-          newResults[3] = {
-            check: 'Get routing history',
-            status: routingRes.ok ? 'pass' : 'fail',
-            url: `/api/routing/threads/${threadId}/history`,
-            statusCode: routingRes.status,
-            responseSize: routingRes.headers.get('content-length') ? parseInt(routingRes.headers.get('content-length')!) : undefined,
-            error: !routingRes.ok ? 'Request failed' : undefined,
-          };
+            newResults[3] = {
+              check: 'Get routing history',
+              status: routingRes.ok ? 'pass' : 'fail',
+              url: `/api/routing/threads/${threadId}/history`,
+              statusCode: routingRes.status,
+              responseSize: routingRes.headers.get('content-length') ? parseInt(routingRes.headers.get('content-length')!) : undefined,
+              error: !routingRes.ok ? 'Request failed' : undefined,
+            };
+          } catch (error: any) {
+            newResults[3] = {
+              check: 'Get routing history',
+              status: 'fail',
+              url: `/api/routing/threads/${threadId}/history`,
+              error: error.message,
+            };
+          }
 
           // 5. Retry failed message (if exists)
           const failedMessage = messages.find((m: any) => m.deliveryStatus === 'failed');
