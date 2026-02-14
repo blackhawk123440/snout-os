@@ -42,6 +42,13 @@ describe('Persistent Sitter Number Assignment', () => {
     assignedSitterId: sitterId,
     e164: '+15552222222',
   };
+  const frontDeskNumber = {
+    id: 'number-front-desk',
+    orgId,
+    class: 'front_desk',
+    status: 'active',
+    e164: '+15551111111',
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();

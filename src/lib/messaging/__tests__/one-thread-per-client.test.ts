@@ -52,11 +52,13 @@ describe('One Thread Per Client', () => {
   });
 
   it('should create one thread for same client across multiple bookings', async () => {
+    const sitterId = 'sitter-1'; // Assignment windows require a sitterId
+    
     const booking1 = {
       bookingId: 'booking-1',
       orgId,
       clientId,
-      sitterId: null,
+      sitterId,
       startAt: new Date('2024-01-01T10:00:00Z'),
       endAt: new Date('2024-01-01T12:00:00Z'),
     };
@@ -65,7 +67,7 @@ describe('One Thread Per Client', () => {
       bookingId: 'booking-2',
       orgId,
       clientId,
-      sitterId: null,
+      sitterId,
       startAt: new Date('2024-01-02T10:00:00Z'),
       endAt: new Date('2024-01-02T12:00:00Z'),
     };
