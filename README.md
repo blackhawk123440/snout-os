@@ -6,7 +6,7 @@ A comprehensive dashboard for managing pet care services, bookings, sitters, and
 
 - 📅 **Booking Management** - Create and manage pet service bookings
 - 👥 **Sitter Management** - Manage sitter profiles and assignments
-- 📱 **SMS Integration** - OpenPhone integration for automated messaging
+- 📱 **SMS Integration** - Twilio integration for enterprise messaging
 - 💳 **Payment Processing** - Stripe integration for payments
 - 🤖 **Automations** - Configurable automated messages and reminders
 - 📊 **Analytics** - Dashboard with booking and payment analytics
@@ -134,14 +134,13 @@ See `.env.example` for all required environment variables.
 - `DATABASE_URL` - Database connection string
 - `NEXTAUTH_SECRET` - NextAuth.js secret key (generate with: `openssl rand -base64 32`)
 - `NEXTAUTH_URL` - Your app URL (e.g., `https://snout-os-staging.onrender.com` or `http://localhost:3000`)
-- `OPENPHONE_API_KEY` - OpenPhone API key
-- `OPENPHONE_NUMBER_ID` - OpenPhone number ID
+- `TWILIO_ACCOUNT_SID` - Twilio Account SID (get from Twilio Console)
+- `TWILIO_AUTH_TOKEN` - Twilio Auth Token (get from Twilio Console)
 
 **Recommended:**
 - `STRIPE_SECRET_KEY` - For payment processing
 - `STRIPE_PUBLISHABLE_KEY` - For payment links
 - `OWNER_PERSONAL_PHONE` - Owner's personal phone number
-- `OWNER_OPENPHONE_PHONE` - Owner's OpenPhone number
 
 **Optional:**
 - `REDIS_URL` - Redis connection URL (default: redis://localhost:6379)
@@ -201,7 +200,7 @@ snout-os/
 - Sitter pool offers
 - Post-visit thank you messages
 - Customizable message templates
-- Configurable phone routing (personal vs OpenPhone)
+- Configurable phone routing (personal vs messaging provider)
 
 ### Payment Processing
 - Stripe integration for payment links
@@ -243,9 +242,9 @@ See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
 ## Health Checks
 
 - `/api/health` - General health check
-- `/api/integrations/openphone/health` - OpenPhone integration health
 - `/api/integrations/test/stripe` - Stripe integration test
 - `/api/integrations/test/database` - Database connection test
+- `/api/setup/provider/status` - Messaging provider (Twilio) connection status
 
 ## Development
 

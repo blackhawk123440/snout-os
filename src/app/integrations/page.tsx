@@ -59,12 +59,18 @@ export default function IntegrationsPage() {
     
     try {
       // Check all integrations
-      const [stripeStatus, openphoneStatus, databaseStatus, googleCalendarStatus] = await Promise.all([
+      const [stripeStatus, databaseStatus, googleCalendarStatus] = await Promise.all([
         checkStripe(),
-        checkOpenPhone(),
         checkDatabase(),
         checkGoogleCalendar(),
       ]);
+      
+      // Messaging provider status - redirect to Messages setup
+      const openphoneStatus = {
+        status: "not_configured" as const,
+        message: "Configure messaging in Messages → Twilio Setup",
+        details: {}
+      };
 
       setIntegrations([
         {
@@ -110,38 +116,19 @@ export default function IntegrationsPage() {
           color: "#635BFF"
         },
         {
-          name: "OpenPhone SMS",
+          name: "Messaging Provider (Twilio)",
           status: openphoneStatus.status,
-          message: openphoneStatus.message,
-          credentials: [
-            {
-              key: "OPENPHONE_API_KEY",
-              value: openphoneStatus.details?.apiKeyConfigured ? (openphoneStatus.status === "error" ? "⚠️ Set but invalid" : "✅ Set") : "❌ Not set",
-              required: true,
-              description: "Your OpenPhone API key (should be 40+ characters long)",
-              whereToGet: "OpenPhone Dashboard → Settings → API → Generate API Key (copy the COMPLETE key)"
-            },
-            {
-              key: "OPENPHONE_NUMBER_ID",
-              value: openphoneStatus.details?.numberIdConfigured ? "✅ Set" : "❌ Not set",
-              required: true,
-              description: "The ID of your OpenPhone phone number",
-              whereToGet: "OpenPhone Dashboard → Numbers → Select your number → Copy ID from URL or API"
-            }
-          ],
-          webhookUrl: `${typeof window !== 'undefined' ? window.location.origin : ''}/api/webhooks/sms`,
+          message: "Messaging is configured in the Messages tab. Go to Messages → Twilio Setup to configure your provider.",
+          credentials: [],
+          webhookUrl: undefined,
           setupSteps: [
-            "1. Sign up for OpenPhone at https://www.openphone.com",
-            "2. Purchase a phone number",
-            "3. Go to Settings → API",
-            "4. Generate an API key",
-            "5. Copy your phone number ID (found in the API or in your number settings)",
-            "6. Add OPENPHONE_API_KEY and OPENPHONE_NUMBER_ID to your .env.local file",
-            "7. Go to Settings → Webhooks",
-            "8. Add webhook URL: https://yourdomain.com/api/webhooks/sms",
-            "9. Select events: message.received"
+            "1. Navigate to Messages → Twilio Setup tab",
+            "2. Enter your Twilio Account SID and Auth Token",
+            "3. Test the connection",
+            "4. Install webhooks",
+            "5. Verify readiness checks"
           ],
-          icon: "fa-phone",
+          icon: "fa-comments",
           color: "#00D9FF"
         },
         {
@@ -221,34 +208,6 @@ export default function IntegrationsPage() {
     }
   };
 
-  const checkOpenPhone = async (): Promise<{ status: "working" | "not_configured" | "error" | "testing", message: string, details?: any }> => {
-    try {
-      const response = await fetch("/api/integrations/test/openphone");
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return { 
-          status: "error", 
-          message: `Failed to test OpenPhone: HTTP ${response.status} - ${errorData.message || "Unauthorized"}`,
-          details: { 
-            statusCode: response.status,
-            error: errorData.message || "Invalid API key",
-            help: "Please verify your OPENPHONE_API_KEY in the OpenPhone dashboard and update .env.local"
-          }
-        };
-      }
-      const data = await response.json();
-      if (data.working) {
-        return { status: "working", message: data.message || "OpenPhone is connected and working", details: data.details };
-      }
-      return { status: data.status || "not_configured", message: data.message || "OpenPhone is not configured", details: data.details };
-    } catch (error: any) {
-      return { 
-        status: "error", 
-        message: `Failed to test OpenPhone connection: ${error.message || "Network error"}`,
-        details: { error: error.message }
-      };
-    }
-  };
 
   const checkDatabase = async (): Promise<{ status: "working" | "not_configured" | "error" | "testing", message: string, details?: any }> => {
     try {
@@ -688,10 +647,8 @@ export default function IntegrationsPage() {
                 </a>
               </GridCol>
               <GridCol span={12} md={6} lg={3}>
-                <a
-                  href="https://app.openphone.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/messages?tab=setup"
                   style={{
                     padding: tokens.spacing[4],
                     borderRadius: tokens.borderRadius.md,
@@ -709,12 +666,12 @@ export default function IntegrationsPage() {
                   }}
                 >
                   <div style={{ marginBottom: tokens.spacing[2] }}>
-                    <i className="fas fa-phone" style={{ fontSize: tokens.typography.fontSize['2xl'][0], color: "#00D9FF" }} />
+                    <i className="fas fa-comments" style={{ fontSize: tokens.typography.fontSize['2xl'][0], color: "#00D9FF" }} />
                   </div>
                   <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.sm[0] }}>
-                    OpenPhone Dashboard
+                    Messaging Setup
                   </div>
-                </a>
+                </Link>
               </GridCol>
               <GridCol span={12} md={6} lg={3}>
                 <a

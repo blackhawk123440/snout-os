@@ -77,7 +77,7 @@ interface AutomationSettings {
     enabled: boolean;
     sendToOwner: boolean;
     sendToClient?: boolean;
-    ownerPhoneType: 'personal' | 'openphone';
+    ownerPhoneType: 'personal' | 'messaging';
     messageTemplateClient?: string;
     messageTemplateOwner?: string;
   };
@@ -174,7 +174,7 @@ export default function AutomationPage() {
       enabled: true,
       sendToOwner: true,
       sendToClient: true,
-      ownerPhoneType: 'personal',
+      ownerPhoneType: 'messaging',
     },
   });
 

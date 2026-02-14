@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   PageHeader,
   Tabs,
@@ -250,21 +251,27 @@ export default function SettingsPage() {
                 color: tokens.colors.text.primary,
               }}
             >
-              Messaging Integration (OpenPhone)
+              Messaging Provider
             </h3>
-            <FormRow label="OpenPhone API Key">
-              <Input
-                type="password"
-                value={settings.openphoneApiKey}
-                onChange={(e) => handleInputChange('openphoneApiKey', e.target.value)}
-              />
-            </FormRow>
-            <FormRow label="OpenPhone Number ID">
-              <Input
-                value={settings.openphoneNumberId}
-                onChange={(e) => handleInputChange('openphoneNumberId', e.target.value)}
-              />
-            </FormRow>
+            <div style={{
+              padding: tokens.spacing[4],
+              backgroundColor: tokens.colors.primary[50],
+              borderRadius: tokens.borderRadius.md,
+              border: `1px solid ${tokens.colors.primary[200]}`,
+            }}>
+              <p style={{
+                fontSize: tokens.typography.fontSize.sm[0],
+                color: tokens.colors.text.secondary,
+                marginBottom: tokens.spacing[3],
+              }}>
+                Messaging is now configured in the Messages tab. Go to <strong>Messages → Twilio Setup</strong> to configure your messaging provider.
+              </p>
+              <Link href="/messages?tab=setup">
+                <Button variant="primary" leftIcon={<i className="fas fa-comments" />}>
+                  Go to Messaging Setup
+                </Button>
+              </Link>
+            </div>
           </Card>
         );
       case 'automations':

@@ -35,8 +35,6 @@ interface Sitter {
   lastName: string;
   phone: string;
   personalPhone?: string | null;
-  openphonePhone?: string | null;
-  phoneType?: "personal" | "openphone";
   email: string;
   isActive: boolean;
   commissionPercentage?: number;
@@ -66,8 +64,6 @@ export default function SittersPage() {
     lastName: "",
     phone: "",
     personalPhone: "",
-    openphonePhone: "",
-    phoneType: "personal" as "personal" | "openphone",
     email: "",
     isActive: true,
     commissionPercentage: 80.0,
@@ -124,16 +120,10 @@ export default function SittersPage() {
       const url = editingSitter ? `/api/sitters/${editingSitter.id}` : "/api/sitters";
       const method = editingSitter ? "PATCH" : "POST";
 
-      // Determine primary phone based on phoneType
+      // Use personal phone if provided, otherwise use main phone
       let primaryPhone = formData.phone;
-      if (formData.phoneType === "personal" && formData.personalPhone) {
+      if (formData.personalPhone) {
         primaryPhone = formData.personalPhone;
-      } else if (formData.phoneType === "openphone" && formData.openphonePhone) {
-        primaryPhone = formData.openphonePhone;
-      } else if (formData.personalPhone) {
-        primaryPhone = formData.personalPhone;
-      } else if (formData.openphonePhone) {
-        primaryPhone = formData.openphonePhone;
       }
 
       const submitData = {
@@ -166,8 +156,6 @@ export default function SittersPage() {
       phone: "", 
       personalPhone: "",
       commissionPercentage: 80.0,
-      openphonePhone: "",
-      phoneType: "personal",
       email: "", 
       isActive: true 
     });
@@ -182,8 +170,6 @@ export default function SittersPage() {
       lastName: sitter.lastName,
       phone: sitter.phone,
       personalPhone: sitter.personalPhone || "",
-      openphonePhone: sitter.openphonePhone || "",
-      phoneType: sitter.phoneType || "personal",
       email: sitter.email,
       isActive: sitter.isActive,
       commissionPercentage: sitter.commissionPercentage || 80.0,
@@ -620,22 +606,11 @@ export default function SittersPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
                     <i className="fas fa-phone" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
                     <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>{formatPhoneNumber(sitter.phone)}</span>
-                    {sitter.phoneType && (
-                      <Badge variant="neutral" style={{ marginLeft: tokens.spacing[1] }}>
-                        {sitter.phoneType === "personal" ? "Personal" : "OpenPhone"}
-                      </Badge>
-                    )}
                   </div>
                   {sitter.personalPhone && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
                       <i className="fas fa-mobile-alt" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
                       <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>Personal: {formatPhoneNumber(sitter.personalPhone)}</span>
-                    </div>
-                  )}
-                  {sitter.openphonePhone && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                      <i className="fas fa-phone-alt" style={{ width: '20px', fontSize: tokens.typography.fontSize.base[0] }} />
-                      <span style={{ fontSize: tokens.typography.fontSize.base[0] }}>OpenPhone: {formatPhoneNumber(sitter.openphonePhone)}</span>
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
@@ -757,47 +732,20 @@ export default function SittersPage() {
                   placeholder="(555) 123-4567"
                 />
               </FormRow>
-              <FormRow label="OpenPhone Number">
-                <Input
-                  type="tel"
-                  value={formData.openphonePhone}
-                  onChange={(e) => setFormData({ ...formData, openphonePhone: e.target.value })}
-                  placeholder="(555) 123-4567"
-                />
-              </FormRow>
               </div>
               
-            <FormRow label="Use Phone Number Type for Messages">
-              <div style={{ display: 'flex', gap: tokens.spacing[4] }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="phoneType"
-                    value="personal"
-                    checked={formData.phoneType === "personal"}
-                    onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as "personal" | "openphone" })}
-                    style={{ accentColor: tokens.colors.primary.DEFAULT }}
-                  />
-                  <span style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.primary }}>
-                    Personal Phone
-                  </span>
-                  </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="phoneType"
-                    value="openphone"
-                    checked={formData.phoneType === "openphone"}
-                    onChange={(e) => setFormData({ ...formData, phoneType: e.target.value as "personal" | "openphone" })}
-                    style={{ accentColor: tokens.colors.primary.DEFAULT }}
-                  />
-                  <span style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.primary }}>
-                    OpenPhone
-                  </span>
-                </label>
-              </div>
-              <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginTop: tokens.spacing[1] }}>
-                Choose which phone number to use for sitter notifications
+            <FormRow label="Masking Number">
+              <div style={{
+                padding: tokens.spacing[3],
+                backgroundColor: tokens.colors.neutral[50],
+                borderRadius: tokens.borderRadius.md,
+                border: `1px solid ${tokens.colors.border.default}`,
+                fontSize: tokens.typography.fontSize.sm[0],
+                color: tokens.colors.text.secondary,
+              }}>
+                <i className="fas fa-info-circle" style={{ marginRight: tokens.spacing[2] }} />
+                Masking numbers are assigned automatically by the system when a sitter is assigned to a booking.
+                View assigned numbers in <Link href="/messages?tab=numbers" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Messages → Numbers</Link>.
               </div>
             </FormRow>
 
