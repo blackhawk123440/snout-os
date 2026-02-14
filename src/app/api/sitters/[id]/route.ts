@@ -126,6 +126,10 @@ export async function PATCH(
       
       // If activating sitter and they don't have a number, assign one
       if (isActive === true) {
+        // Get orgId from session user
+        const sessionUser = session.user as any;
+        const orgId = sessionUser.orgId || 'default';
+        
         const existingSitter = await prisma.sitter.findUnique({
           where: { id: resolvedParams.id },
           include: {
@@ -145,7 +149,6 @@ export async function PATCH(
           const { getMessagingProvider } = await import('@/lib/messaging/provider-factory');
           
           try {
-            const orgId = user.orgId || 'default';
             const provider = await getMessagingProvider(orgId);
             await assignSitterMaskedNumber(orgId, resolvedParams.id, provider);
           } catch (error: any) {
