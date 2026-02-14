@@ -2,75 +2,70 @@
 
 ## Overview
 
-Phone numbers are **assigned to threads** (not directly to sitters or clients). The assignment happens automatically when a booking is confirmed, and the number class (Front Desk, Sitter, or Pool) is determined by business rules.
+**ONE THREAD PER CLIENT PER ORG**
+
+Each client has exactly one conversation thread. Phone numbers are chosen dynamically at send-time based on the current operational state (active assignment windows). Sitters receive a dedicated masked number when activated, which persists across all bookings.
 
 ---
 
 ## When Numbers Are Assigned
 
-### Primary Trigger: Booking Confirmation
+### Sitter Number Assignment (Persistent)
 
-**When:** A booking is confirmed (payment succeeds, status changes to "confirmed")
+**When:** Sitter is activated OR manually assigned a number
 
-**Function:** `onBookingConfirmed()` in `src/lib/bookings/booking-confirmed-handler.ts`
+**Function:** `assignSitterMaskedNumber()` in `src/lib/messaging/number-helpers.ts`
 
 **What Happens:**
-1. Creates or reuses a thread for the booking
-2. **Automatically assigns a masking number** to the thread
-3. Creates an assignment window
-4. Emits audit events
+1. Sitter receives a dedicated masked number
+2. **This number persists** - it stays assigned to the sitter until manual change or offboarding
+3. **NOT per-booking** - the same number is used for all bookings where this sitter is assigned
 
-**Integration Point:** Stripe webhook (`src/app/api/webhooks/stripe/route.ts`) calls `onBookingConfirmed()` when payment succeeds.
+**Integration Points:**
+- `src/app/api/sitters/route.ts` (POST) - assigns number when creating active sitter
+- `src/app/api/sitters/[id]/route.ts` (PATCH) - assigns number when activating sitter
+
+### Thread Number Selection (Dynamic)
+
+**When:** At message send-time (computed dynamically)
+
+**Function:** `getEffectiveNumberForThread()` in `src/lib/messaging/dynamic-number-routing.ts`
+
+**What Happens:**
+1. System checks for active assignment windows
+2. If active window with sitter → uses sitter's dedicated number
+3. Else if one-time/unassigned → uses pool number
+4. Else → uses front desk number
+
+**Important:** The number used is computed at send-time, not stored statically on the thread.
 
 ---
 
-## How Numbers Are Assigned: The Decision Tree
+## How Numbers Are Chosen: The Decision Tree (At Send-Time)
 
-### Step 1: Determine Number Class
+### Dynamic Number Selection
 
-The system uses this priority order:
-
-```typescript
-// From: src/lib/bookings/booking-confirmed-handler.ts
-// Function: assignMaskingNumberToThread()
-
-// Rule 1: If booking has assigned sitter → use sitter's dedicated number
-if (sitterId) {
-  const sitterNumber = await findSitterNumber(sitterId);
-  if (sitterNumber) {
-    return { numberClass: 'sitter', numberId: sitterNumber.id };
-  }
-}
-
-// Rule 2: If no sitter number → try pool number
-if (!selectedNumber) {
-  const poolNumber = await findPoolNumber();
-  if (poolNumber) {
-    return { numberClass: 'pool', numberId: poolNumber.id };
-  }
-}
-
-// Rule 3: Fallback → front desk number
-if (!selectedNumber) {
-  const frontDeskNumber = await findFrontDeskNumber();
-  return { numberClass: 'front_desk', numberId: frontDeskNumber.id };
-}
-```
-
-### Step 2: Assign Number to Thread
-
-Once the number class is determined, the number is assigned to the thread:
+The system computes the effective number at send-time using this priority:
 
 ```typescript
-// From: src/lib/bookings/booking-confirmed-handler.ts
-await thread.update({
-  where: { id: threadId },
-  data: {
-    numberId: selectedNumber.id,  // Links thread to number
-    threadType: numberClass,      // Stores the class for reference
-  },
-});
+// From: src/lib/messaging/dynamic-number-routing.ts
+// Function: getEffectiveNumberForThread()
+
+// Step 1: Check for active assignment window with sitter
+if (activeWindow && activeWindow.sitter?.assignedNumbers?.length > 0) {
+  return sitterNumber; // Use sitter's dedicated number
+}
+
+// Step 2: No active window → use pool number (for one-time/unassigned)
+if (poolNumberAvailable) {
+  return poolNumber;
+}
+
+// Step 3: Fallback → front desk number
+return frontDeskNumber;
 ```
+
+**Important:** This is computed dynamically - the thread stores an initial/default number, but the actual number used is determined by current state.
 
 ---
 
@@ -140,38 +135,58 @@ await thread.update({
 
 ## Number Assignment Flow Diagram
 
+### Sitter Activation (Persistent Assignment)
+```
+Sitter Activated
+    ↓
+assignSitterMaskedNumber()
+    ↓
+Find available sitter-class number
+    ↓
+Assign to sitter (persistent)
+    ↓
+Done (sitter keeps this number)
+```
+
+### Booking Confirmation (Thread + Window)
 ```
 Booking Confirmed
     ↓
 onBookingConfirmed()
     ↓
-Create/Reuse Thread
+Find or Create Thread (orgId, clientId) - ONE THREAD PER CLIENT
     ↓
-assignMaskingNumberToThread()
+Create Assignment Window for booking
     ↓
-    ├─→ Has sitter? → assignSitterMaskedNumber() → Sitter Number
-    │       ↓ (no sitter or no sitter number)
-    ├─→ Try pool → getPoolNumber() → Pool Number
+Done (number chosen dynamically at send-time)
+```
+
+### Message Send (Dynamic Number Selection)
+```
+Message Send Request
+    ↓
+getEffectiveNumberForThread()
+    ↓
+    ├─→ Active window with sitter? → Sitter's Dedicated Number
+    │       ↓ (no active window)
+    ├─→ One-time/unassigned? → Pool Number
     │       ↓ (pool exhausted)
-    └─→ Fallback → getOrCreateFrontDeskNumber() → Front Desk Number
+    └─→ Fallback → Front Desk Number
     ↓
-Update Thread.numberId
-    ↓
-Create Assignment Window
-    ↓
-Done
+Send message from selected number
 ```
 
 ---
 
 ## Important Notes
 
-### Numbers Are Assigned to Threads, Not Clients or Sitters
+### ONE THREAD PER CLIENT PER ORG
 
-- **Thread** = Conversation between client and business
-- **Number** = Phone number used for that conversation
-- A client can have multiple threads (different bookings) with different numbers
-- A sitter's dedicated number is used for all threads where that sitter is assigned
+- **Thread** = One conversation per client per organization
+- **Number** = Chosen dynamically at send-time based on active windows
+- A client has exactly one thread (enforced by unique constraint)
+- Multiple bookings create multiple assignment windows within the same thread
+- A sitter's dedicated number is persistent - assigned on activation, used for all bookings
 
 ### Idempotency
 
@@ -182,10 +197,10 @@ Done
 
 ### Number Persistence
 
-- Once assigned, the number stays with the thread until:
-  - Thread is closed/deactivated
-  - Number is manually reassigned (owner action)
-  - Sitter is offboarded (sitter number deactivated)
+- **Sitter numbers:** Assigned on activation, persist until sitter offboarding or manual change
+- **Thread numbers:** Chosen dynamically at send-time based on active windows
+  - During active window → sitter's dedicated number
+  - Outside window → pool or front desk (based on client classification)
 
 ### Pool Number Reuse
 

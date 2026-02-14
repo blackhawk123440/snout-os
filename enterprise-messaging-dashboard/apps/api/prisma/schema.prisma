@@ -162,6 +162,7 @@ model Thread {
   messages           Message[]
   policyViolations   PolicyViolation[]
 
+  @@unique([orgId, clientId]) // Enforce: one thread per client per org
   @@index([orgId])
   @@index([clientId])
   @@index([sitterId])

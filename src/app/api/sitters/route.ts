@@ -160,6 +160,20 @@ export async function POST(request: NextRequest) {
       } as any, // Type assertion: runtime uses enterprise-messaging-dashboard schema
     }) as any;
 
+    // If sitter is active, assign a dedicated masked number (persistent assignment)
+    if (isActive === true) {
+      try {
+        const { assignSitterMaskedNumber } = await import('@/lib/messaging/number-helpers');
+        const { getMessagingProvider } = await import('@/lib/messaging/provider-factory');
+        
+        const provider = await getMessagingProvider(orgId);
+        await assignSitterMaskedNumber(orgId, sitter.id, provider);
+      } catch (error: any) {
+        // Log but don't fail sitter creation if number assignment fails
+        console.warn(`[Sitter Creation] Failed to assign number to new sitter ${sitter.id}:`, error);
+      }
+    }
+
     // Return sitter in format expected by frontend
     return NextResponse.json({ 
       sitter: {

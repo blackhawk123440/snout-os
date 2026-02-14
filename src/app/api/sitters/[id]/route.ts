@@ -123,6 +123,37 @@ export async function PATCH(
     
     if (isActive !== undefined) {
       updateData.active = isActive;
+      
+      // If activating sitter and they don't have a number, assign one
+      if (isActive === true) {
+        const existingSitter = await prisma.sitter.findUnique({
+          where: { id: resolvedParams.id },
+          include: {
+            assignedNumbers: {
+              where: {
+                status: 'active',
+                class: 'sitter',
+              },
+            },
+          },
+        }) as any;
+        
+        // Check if sitter already has an assigned number
+        if (!existingSitter?.assignedNumbers || existingSitter.assignedNumbers.length === 0) {
+          // Assign a sitter number on activation (persistent assignment)
+          const { assignSitterMaskedNumber } = await import('@/lib/messaging/number-helpers');
+          const { getMessagingProvider } = await import('@/lib/messaging/provider-factory');
+          
+          try {
+            const orgId = user.orgId || 'default';
+            const provider = await getMessagingProvider(orgId);
+            await assignSitterMaskedNumber(orgId, resolvedParams.id, provider);
+          } catch (error: any) {
+            // Log but don't fail sitter activation if number assignment fails
+            console.warn(`[Sitter Activation] Failed to assign number to sitter ${resolvedParams.id}:`, error);
+          }
+        }
+      }
     }
 
     const sitter = await prisma.sitter.update({

@@ -744,7 +744,7 @@ export default function SittersPage() {
                 color: tokens.colors.text.secondary,
               }}>
                 <i className="fas fa-info-circle" style={{ marginRight: tokens.spacing[2] }} />
-                Masking numbers are assigned automatically by the system when a sitter is assigned to a booking.
+                Sitters receive a dedicated masked number when activated (or manually assigned). This number persists across all bookings. During an active assignment window, messages send from the sitter's masked number. Outside the window, the thread routes to owner/front desk or pool based on rules.
                 View assigned numbers in <Link href="/messages?tab=numbers" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Messages → Numbers</Link>.
               </div>
             </FormRow>

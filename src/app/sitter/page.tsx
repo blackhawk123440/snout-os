@@ -142,7 +142,7 @@ function SitterDashboardContent() {
             {sitterNumber}
                       </div>
           <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
-            This is your masked business number. Clients see this number when you message them.
+            This is your dedicated masked number, assigned when you were activated. It persists across all bookings. During active assignment windows, messages send from this number.
                 </div>
               </Card>
 

@@ -1,14 +1,14 @@
 /**
  * Booking Confirmed Handler
  * 
- * Phase 3: Booking Confirmed → Thread + Masking Number + Windows + Automations
+ * ONE THREAD PER CLIENT PER ORG
  * 
  * Idempotent handler that:
- * 1. Creates or reuses thread (key: {orgId, clientId, bookingId})
- * 2. Selects & assigns masking number to thread
- * 3. Creates assignment window(s)
+ * 1. Finds or creates thread using (orgId, clientId) only - NOT per booking
+ * 2. Creates/updates assignment window for the booking
+ * 3. Thread number assignment is dynamic based on active windows (computed at send-time)
  * 4. Emits audit + routing trace
- * 5. Ensures automations send from thread masking number
+ * 5. Ensures automations send from appropriate number based on active state
  */
 
 import { prisma } from '@/lib/db';
@@ -47,21 +47,20 @@ export async function onBookingConfirmed(
 ): Promise<BookingConfirmedResult> {
   const { bookingId, orgId, clientId, sitterId, startAt, endAt, actorUserId } = params;
 
-  // A) Create or reuse thread (idempotent)
+  // A) Find or create thread (idempotent) - ONE THREAD PER CLIENT PER ORG
   const thread = await findOrCreateThread({
     orgId,
     clientId,
-    bookingId,
     sitterId,
   });
 
-  // B) Select & assign masking number
-  const numberAssignment = await assignMaskingNumberToThread({
+  // B) Number assignment is now dynamic based on active windows
+  // We don't assign a fixed number here - it's computed at send-time
+  // Store the "preferred" number for initial state, but routing will override
+  const initialNumber = await determineInitialThreadNumber({
     orgId,
     threadId: thread.id,
-    clientId,
     sitterId,
-    bookingId,
   });
 
   // C) Create assignment window
@@ -79,7 +78,7 @@ export async function onBookingConfirmed(
     orgId,
     threadId: thread.id,
     bookingId,
-    messageNumberId: numberAssignment.numberId,
+    messageNumberId: initialNumber.numberId,
     windowId: window.id,
     reused: {
       thread: thread.reused,
@@ -90,8 +89,8 @@ export async function onBookingConfirmed(
 
   return {
     threadId: thread.id,
-    messageNumberId: numberAssignment.numberId,
-    numberClass: numberAssignment.numberClass,
+    messageNumberId: initialNumber.numberId,
+    numberClass: initialNumber.numberClass,
     windowId: window.id,
     reused: {
       thread: thread.reused,
@@ -103,29 +102,28 @@ export async function onBookingConfirmed(
 /**
  * A) Find or create thread (idempotent)
  * 
- * Thread key: {orgId, clientId, bookingId}
+ * ONE THREAD PER CLIENT PER ORG
+ * Thread key: {orgId, clientId} only - NOT per booking
  */
 async function findOrCreateThread(params: {
   orgId: string;
   clientId: string;
-  bookingId: string;
   sitterId?: string | null;
 }): Promise<{ id: string; reused: boolean }> {
-  const { orgId, clientId, bookingId, sitterId } = params;
+  const { orgId, clientId, sitterId } = params;
 
-  // Try to find existing thread by bookingRef (stored in assignment window)
-  // Note: Thread model doesn't have bookingId, so we find via assignment window
-  const existingWindow = await (prisma as any).assignmentWindow.findFirst({
+  // Find existing thread for this client (enforced by unique constraint)
+  const existing = await (prisma as any).thread.findUnique({
     where: {
-      orgId,
-      bookingRef: bookingId,
+      orgId_clientId: {
+        orgId,
+        clientId,
+      },
     },
-    include: { thread: true },
   });
 
-  if (existingWindow?.thread) {
-    const existing = existingWindow.thread;
-    // Update sitter assignment if changed
+  if (existing) {
+    // Update sitter assignment if changed (but don't change number - that's dynamic)
     if (sitterId && existing.sitterId !== sitterId) {
       await (prisma as any).thread.update({
         where: { id: existing.id },
@@ -135,23 +133,37 @@ async function findOrCreateThread(params: {
     return { id: existing.id, reused: true };
   }
 
-  // Need a number first - get one temporarily
-  const tempNumber = await (prisma as any).messageNumber.findFirst({
-    where: { orgId, status: 'active' },
+  // Need a number first - get front desk as initial default
+  const frontDeskNumber = await (prisma as any).messageNumber.findFirst({
+    where: {
+      orgId,
+      class: 'front_desk',
+      status: 'active',
+    },
   });
   
-  if (!tempNumber) {
-    throw new Error(`No available messaging numbers for org ${orgId}. Please configure numbers in Messages → Numbers.`);
+  if (!frontDeskNumber) {
+    // Fallback to any active number
+    const anyNumber = await (prisma as any).messageNumber.findFirst({
+      where: { orgId, status: 'active' },
+    });
+    if (!anyNumber) {
+      throw new Error(`No available messaging numbers for org ${orgId}. Please configure numbers in Messages → Numbers.`);
+    }
   }
 
-  // Create new thread (Thread model requires numberId)
+  const initialNumber = frontDeskNumber || await (prisma as any).messageNumber.findFirst({
+    where: { orgId, status: 'active' },
+  });
+
+  // Create new thread (Thread model requires numberId, but it's just initial - routing will override)
   const thread = await (prisma as any).thread.create({
     data: {
       orgId,
       clientId,
       sitterId: sitterId || null,
-      numberId: tempNumber.id, // Will be updated with correct number later
-      threadType: 'assignment', // 'front_desk' | 'assignment' | 'pool' | 'other'
+      numberId: initialNumber.id, // Initial default - actual number used is computed dynamically
+      threadType: 'front_desk', // Initial default
       status: 'active',
     },
   });
@@ -160,6 +172,7 @@ async function findOrCreateThread(params: {
   await (prisma as any).threadParticipant.createMany({
     data: [
       {
+        orgId,
         threadId: thread.id,
         participantType: 'client',
         participantId: clientId,
@@ -171,21 +184,21 @@ async function findOrCreateThread(params: {
 }
 
 /**
- * B) Select & assign masking number to thread
+ * B) Determine initial thread number (for new threads only)
+ * 
+ * This is just the initial default. The actual number used for sending
+ * is computed dynamically based on active assignment windows.
  * 
  * Rules:
- * - If booking has assigned sitter and weekly client → use sitter's dedicated number
- * - If booking is one-time / pool eligible → use pool number
- * - If pool empty → fallback to front desk and create alert
+ * - If sitter assigned and has dedicated number → use sitter number
+ * - Else → use front desk (pool assignment happens dynamically based on windows)
  */
-async function assignMaskingNumberToThread(params: {
+async function determineInitialThreadNumber(params: {
   orgId: string;
   threadId: string;
-  clientId: string;
   sitterId?: string | null;
-  bookingId: string;
 }): Promise<{ numberId: string; numberClass: 'front_desk' | 'sitter' | 'pool' }> {
-  const { orgId, threadId, clientId, sitterId, bookingId } = params;
+  const { orgId, threadId, sitterId } = params;
 
   // Check if thread already has a number assigned
   const thread = await (prisma as any).thread.findUnique({
@@ -220,30 +233,7 @@ async function assignMaskingNumberToThread(params: {
     }
   }
 
-  // Rule 2: If no sitter number, try pool
-  if (!selectedNumber) {
-    const poolNumber = await (prisma as any).messageNumber.findFirst({
-      where: {
-        orgId,
-        class: 'pool',
-        status: 'active',
-      },
-      orderBy: { lastUsedAt: 'asc' }, // Use least recently used
-    });
-
-    if (poolNumber) {
-      selectedNumber = { id: poolNumber.id, class: poolNumber.class };
-      numberClass = 'pool';
-
-      // Update lastUsedAt
-      await (prisma as any).messageNumber.update({
-        where: { id: poolNumber.id },
-        data: { lastUsedAt: new Date() },
-      });
-    }
-  }
-
-  // Rule 3: Fallback to front desk
+  // Rule 2: Default to front desk (pool assignment happens dynamically)
   if (!selectedNumber) {
     const frontDeskNumber = await (prisma as any).messageNumber.findFirst({
       where: {
@@ -262,12 +252,12 @@ async function assignMaskingNumberToThread(params: {
     }
   }
 
-  // Assign number to thread (Thread model uses numberId, not messageNumberId)
+  // Update thread with initial number (this is just a default - routing will override)
   await (prisma as any).thread.update({
     where: { id: threadId },
     data: {
       numberId: selectedNumber.id,
-      threadType: numberClass === 'sitter' ? 'assignment' : numberClass === 'pool' ? 'pool' : 'front_desk',
+      threadType: numberClass === 'sitter' ? 'assignment' : 'front_desk',
     },
   });
 

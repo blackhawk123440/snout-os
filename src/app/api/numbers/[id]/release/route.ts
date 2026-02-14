@@ -52,6 +52,7 @@ export async function POST(
   }
 
   // Read request body for forceRestore and restoreReason
+  // forceRestore=true allows immediate restore (owner-only, reason required)
   let body: { forceRestore?: boolean; restoreReason?: string } = {};
   try {
     const bodyText = await request.text();
@@ -60,6 +61,14 @@ export async function POST(
     }
   } catch {
     // Empty body is OK for normal release
+  }
+
+  // Require restoreReason if forceRestore is true
+  if (body.forceRestore === true && !body.restoreReason) {
+    return NextResponse.json(
+      { error: 'restoreReason is required when forceRestore is true' },
+      { status: 400 }
+    );
   }
 
   // API endpoint is /api/numbers/:id/release-from-quarantine

@@ -79,15 +79,35 @@ export class MessagingService {
       );
     }
 
-    // Step 1: Load thread with number
+    // Step 1: Load thread with relationships for dynamic number routing
     const thread = await this.prisma.thread.findUnique({
       where: { id: threadId },
       include: {
-        messageNumber: true,
+        messageNumber: true, // Initial/default number
         client: {
           include: { contacts: true },
         },
         sitter: true,
+        assignmentWindows: {
+          where: {
+            startsAt: { lte: new Date() },
+            endsAt: { gte: new Date() },
+          },
+          include: {
+            sitter: {
+              include: {
+                assignedNumbers: {
+                  where: {
+                    status: 'active',
+                    class: 'sitter',
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { startsAt: 'desc' },
+          take: 1, // Most recent active window
+        },
       },
     });
 
@@ -106,7 +126,29 @@ export class MessagingService {
     }
 
     const recipientE164 = clientContact.e164;
-    const fromE164 = thread.messageNumber.e164;
+    
+    // Step 2.5: Compute effective number dynamically based on active windows
+    // ONE THREAD PER CLIENT - number is chosen at send-time based on current state
+    let fromE164: string;
+    let effectiveNumberId: string;
+    
+    // Priority 1: Active assignment window with sitter → use sitter's dedicated number
+    if (thread.assignmentWindows && thread.assignmentWindows.length > 0) {
+      const activeWindow = thread.assignmentWindows[0];
+      if (activeWindow.sitter?.assignedNumbers && activeWindow.sitter.assignedNumbers.length > 0) {
+        const sitterNumber = activeWindow.sitter.assignedNumbers[0];
+        fromE164 = sitterNumber.e164;
+        effectiveNumberId = sitterNumber.id;
+      } else {
+        // Window exists but sitter has no number - fallback to thread's default
+        fromE164 = thread.messageNumber.e164;
+        effectiveNumberId = thread.numberId;
+      }
+    } else {
+      // No active window - use thread's default number (pool or front desk)
+      fromE164 = thread.messageNumber.e164;
+      effectiveNumberId = thread.numberId;
+    }
 
     // Step 3: Policy violation check (use trimmed body)
     const violations = this.policyService.detectViolations(trimmedBody);

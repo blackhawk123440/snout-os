@@ -74,7 +74,7 @@ This document provides step-by-step instructions to verify Phase 3 implementatio
 
 ### Expected Records Created
 
-1. **MessageThread** (one per booking, idempotent):
+1. **Thread** (one per client per org, idempotent):
    ```sql
    SELECT * FROM "MessageThread" 
    WHERE "bookingId" = '<booking-id>' 
@@ -84,7 +84,7 @@ This document provides step-by-step instructions to verify Phase 3 implementatio
    - `messageNumberId` should be set
    - `numberClass` should be set (pool/sitter/front_desk)
 
-2. **AssignmentWindow** (one per booking, idempotent):
+2. **AssignmentWindow** (one per booking within the client's thread, idempotent):
    ```sql
    SELECT * FROM "AssignmentWindow" 
    WHERE "bookingId" = '<booking-id>';

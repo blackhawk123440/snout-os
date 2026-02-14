@@ -52,8 +52,14 @@ export async function POST(
     );
   }
 
-  // Read request body
-  let body: { reason: string; reasonDetail?: string; durationDays?: number; customReleaseDate?: string };
+  // Read request body - support configurable duration
+  let body: { 
+    reason: string; 
+    reasonDetail?: string; 
+    durationDays?: number; 
+    customReleaseDate?: string;
+    duration?: '1' | '3' | '7' | '14' | '30' | '90' | 'custom';
+  };
   try {
     body = await request.json();
   } catch {
@@ -61,6 +67,23 @@ export async function POST(
       { error: 'Invalid request body' },
       { status: 400 }
     );
+  }
+
+  // Map duration selector to days if provided
+  let durationDays = body.durationDays;
+  if (!durationDays && body.duration) {
+    const durationMap: Record<string, number> = {
+      '1': 1,
+      '3': 3,
+      '7': 7,
+      '14': 14,
+      '30': 30,
+      '90': 90,
+    };
+    durationDays = durationMap[body.duration] || 90; // Default to 90 if invalid
+  }
+  if (!durationDays && !body.customReleaseDate) {
+    durationDays = 90; // Safe default
   }
 
   // Forward to API with duration support
@@ -76,7 +99,7 @@ export async function POST(
       body: JSON.stringify({
         reason: body.reason,
         reasonDetail: body.reasonDetail,
-        durationDays: body.durationDays,
+        durationDays: durationDays,
         customReleaseDate: body.customReleaseDate,
       }),
     });

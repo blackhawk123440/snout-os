@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
               stripeEventType: event.type,
             });
 
-            console.log(`[Stripe Webhook] Phase 3: Thread and masking number created for booking ${bookingId}`);
+                console.log(`[Stripe Webhook] Phase 3: Thread found/created and assignment window created for booking ${bookingId}`);
           } catch (error: any) {
             // Non-blocking: Log error but don't fail webhook
             console.error(`[Stripe Webhook] Phase 3: Failed to create thread for booking ${bookingId}:`, error);
