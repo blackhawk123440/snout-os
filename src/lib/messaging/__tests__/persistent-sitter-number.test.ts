@@ -84,24 +84,32 @@ describe('Persistent Sitter Number Assignment', () => {
     };
 
     // Reset mock to check sitter number lookup
-    ((prisma as any).messageNumber.findFirst as any).mockResolvedValue(sitterNumber);
-    ((prisma as any).thread.findUnique as any).mockResolvedValue({
-      id: 'thread-1',
-      numberId: sitterNumber.id,
-      messageNumber: sitterNumber,
-    });
+    // determineInitialThreadNumber will look for sitter number if sitterId is provided
+    ((prisma as any).messageNumber.findFirst as any)
+      .mockResolvedValueOnce(sitterNumber) // First call: find sitter number for initial assignment
+      .mockResolvedValueOnce(frontDeskNumber); // Fallback if needed
+    
+    ((prisma as any).thread.findUnique as any)
+      .mockResolvedValueOnce(null) // Thread doesn't exist yet
+      .mockResolvedValueOnce({ id: 'thread-1', numberId: sitterNumber.id, messageNumber: sitterNumber }); // After creation
 
     const result1 = await onBookingConfirmed(booking1);
     
     // Verify sitter number was found (not reassigned)
-    expect((prisma as any).messageNumber.findFirst).toHaveBeenCalledWith({
-      where: {
-        orgId,
-        class: 'sitter',
-        assignedSitterId: sitterId,
-        status: 'active',
-      },
-    });
+    // determineInitialThreadNumber should have looked for sitter number
+    const findFirstCalls = ((prisma as any).messageNumber.findFirst as any).mock.calls;
+    const sitterNumberCall = findFirstCalls.find((call: any[]) => 
+      call[0]?.where?.assignedSitterId === sitterId && call[0]?.where?.class === 'sitter'
+    );
+    expect(sitterNumberCall).toBeDefined();
+    
+    // Verify number was NOT reassigned to sitter
+    // The only update should be the initial assignment from assignSitterMaskedNumber
+    // No additional update should happen during booking confirmation
+    const updateCalls = ((prisma as any).messageNumber.update as any).mock.calls;
+    expect(updateCalls.length).toBe(1); // Only the initial assignment from activation
+    expect(updateCalls[0][0].where.id).toBe('number-sitter-1');
+    expect(updateCalls[0][1].data.assignedSitterId).toBe(sitterId);
 
     // Booking 2: Same sitter, same number (persistent)
     const booking2 = {
@@ -113,18 +121,20 @@ describe('Persistent Sitter Number Assignment', () => {
       endAt: new Date('2024-01-02T12:00:00Z'),
     };
 
-    ((prisma as any).thread.findUnique as any).mockResolvedValue({
-      id: 'thread-1',
-      numberId: sitterNumber.id,
-      messageNumber: sitterNumber,
-    });
+    // Thread already exists, determineInitialThreadNumber will find existing number
+    ((prisma as any).thread.findUnique as any)
+      .mockResolvedValueOnce({ id: 'thread-1', orgId, clientId }) // findOrCreateThread: thread exists
+      .mockResolvedValueOnce({ id: 'thread-1', numberId: sitterNumber.id, messageNumber: sitterNumber }); // determineInitialThreadNumber: thread with number
+    
+    ((prisma as any).assignmentWindow.findFirst as any).mockResolvedValue(null);
+    ((prisma as any).assignmentWindow.create as any).mockResolvedValue({ id: 'window-2' });
 
     const result2 = await onBookingConfirmed(booking2);
     
     // Number should still be the same sitter number
     expect(result2.messageNumberId).toBe('number-sitter-1');
     
-    // Verify number was NOT reassigned (update should not be called for number assignment)
-    // The number assignment happens in determineInitialThreadNumber, which should reuse existing
+    // Verify number was NOT reassigned (no additional update calls to MessageNumber)
+    expect((prisma as any).messageNumber.update).toHaveBeenCalledTimes(1); // Still only the initial assignment from activation
   });
 });
