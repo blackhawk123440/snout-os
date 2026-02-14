@@ -208,7 +208,6 @@ async function seedMessagingProof() {
         status: 'open',
         ownerUnreadCount: 2,
         lastMessageAt: new Date(),
-        lastActivityAt: new Date(),
       },
     });
 
@@ -282,7 +281,6 @@ async function seedMessagingProof() {
         status: 'open',
         ownerUnreadCount: 0,
         lastMessageAt: new Date(),
-        lastActivityAt: new Date(),
       },
     });
 
@@ -340,7 +338,6 @@ async function seedMessagingProof() {
         status: 'open',
         ownerUnreadCount: 1,
         lastMessageAt: new Date(),
-        lastActivityAt: new Date(),
       },
     });
 
