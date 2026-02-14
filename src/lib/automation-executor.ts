@@ -12,6 +12,7 @@ import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } f
 import { sendMessage } from "./message-utils";
 import { getOwnerPhone, getSitterPhone } from "./phone-utils";
 import { sendAutomationMessageViaThread } from "./bookings/automation-thread-sender";
+import { onBookingConfirmed } from "./bookings/booking-confirmed-handler";
 import { 
   formatDatesAndTimesForMessage, 
   formatDateForMessage, 
@@ -128,12 +129,38 @@ async function executeOwnerNewBookingAlert(
       petQuantities,
     });
 
-    const sent = await sendMessage(booking.phone, message, booking.id);
+    // Phase 3: Send via thread masking number
+    const orgId = booking.orgId || 'default';
+    const result = await sendAutomationMessageViaThread({
+      bookingId: booking.id,
+      orgId,
+      clientId: booking.clientId || '',
+      message,
+      recipient: 'client',
+      recipientPhone: booking.phone,
+    });
+    
+    if (!result.success && result.usedThread === false) {
+      // Thread not found - log audit warning
+      await prisma.eventLog.create({
+        data: {
+          eventType: 'automation.fallback',
+          status: 'warning',
+          bookingId: booking.id,
+          error: 'Thread not found, used fallback sendMessage',
+          metadata: JSON.stringify({
+            automationType: 'ownerNewBookingAlert',
+            recipient: 'client',
+            reason: 'Thread not found for booking',
+          }),
+        },
+      });
+    }
     
     return {
-      success: sent,
-      message: sent ? "Client notification sent" : "Failed to send client notification",
-      metadata: { recipient: "client", phone: booking.phone },
+      success: result.success,
+      message: result.success ? "Client notification sent" : result.error || "Failed to send client notification",
+      metadata: { recipient: "client", phone: booking.phone, usedThread: result.usedThread },
     };
   }
 
@@ -182,6 +209,8 @@ async function executeOwnerNewBookingAlert(
       bookingUrl: bookingDetailsUrl,
     });
 
+    // Phase 3: Owner notifications don't use thread (no booking context for owner)
+    // Keep old sendMessage for owner notifications
     const sent = await sendMessage(ownerPhone, message, booking.id);
     
     return {
@@ -419,6 +448,43 @@ async function executeNightBeforeReminder(
     sitterCommissionPercentage: booking.sitter?.commissionPercentage || context.sitter?.commissionPercentage,
   });
 
+  // Phase 3: Client reminders use thread, owner/sitter use old method
+  if (recipient === 'client') {
+    const orgId = booking.orgId || 'default';
+    const result = await sendAutomationMessageViaThread({
+      bookingId: booking.id,
+      orgId,
+      clientId: booking.clientId || '',
+      message,
+      recipient: 'client',
+      recipientPhone: targetPhone,
+    });
+    
+    if (!result.success && result.usedThread === false) {
+      // Thread not found - log audit warning
+      await prisma.eventLog.create({
+        data: {
+          eventType: 'automation.fallback',
+          status: 'warning',
+          bookingId: booking.id,
+          error: 'Thread not found, used fallback sendMessage',
+          metadata: JSON.stringify({
+            automationType: 'nightBeforeReminder',
+            recipient: 'client',
+            reason: 'Thread not found for booking',
+          }),
+        },
+      });
+    }
+    
+    return {
+      success: result.success,
+      message: result.success ? `${recipient} reminder sent` : result.error || `Failed to send ${recipient} reminder`,
+      metadata: { recipient, phone: targetPhone, bookingId: booking.id, usedThread: result.usedThread },
+    };
+  }
+  
+  // Owner/sitter reminders use old method
   const sent = await sendMessage(targetPhone, message, booking.id);
   
   return {
@@ -503,6 +569,8 @@ async function executeSitterAssignment(
       sitterCommissionPercentage: sitter.commissionPercentage || 80,
     });
 
+    // Phase 3: Sitter notifications don't use thread (no booking context for sitter)
+    // Keep old sendMessage for sitter notifications
     const sent = await sendMessage(sitterPhone, message, booking.id);
     
     return {
@@ -536,12 +604,67 @@ async function executeSitterAssignment(
       sitterName: `${sitter.firstName} ${sitter.lastName}`,
     });
 
-    const sent = await sendMessage(booking.phone, message, booking.id);
+    // Phase 3: Send via thread masking number
+    const orgId = booking.orgId || 'default';
+    const result = await sendAutomationMessageViaThread({
+      bookingId: booking.id,
+      orgId,
+      clientId: booking.clientId || '',
+      message,
+      recipient: 'client',
+      recipientPhone: booking.phone,
+    });
+    
+    if (!result.success && result.usedThread === false) {
+      // Thread not found - try to create it first, then send
+      try {
+        await onBookingConfirmed({
+          bookingId: booking.id,
+          orgId,
+          clientId: booking.clientId || '',
+          sitterId: booking.sitterId,
+          startAt: new Date(booking.startAt),
+          endAt: new Date(booking.endAt),
+          actorUserId: 'system',
+        });
+        
+        // Retry sending
+        const retryResult = await sendAutomationMessageViaThread({
+          bookingId: booking.id,
+          orgId,
+          clientId: booking.clientId || '',
+          message,
+          recipient: 'client',
+          recipientPhone: booking.phone,
+        });
+        
+        return {
+          success: retryResult.success,
+          message: retryResult.success ? "Sitter assignment notification sent to client" : retryResult.error || "Failed to send client notification",
+          metadata: { recipient: "client", phone: booking.phone, usedThread: retryResult.usedThread },
+        };
+      } catch (error: any) {
+        // Log audit warning
+        await prisma.eventLog.create({
+          data: {
+            eventType: 'automation.fallback',
+            status: 'warning',
+            bookingId: booking.id,
+            error: `Thread creation failed: ${error.message}`,
+            metadata: JSON.stringify({
+              automationType: 'sitterAssignment',
+              recipient: 'client',
+              reason: 'Thread creation failed',
+            }),
+          },
+        });
+      }
+    }
     
     return {
-      success: sent,
-      message: sent ? "Sitter assignment notification sent to client" : "Failed to send client notification",
-      metadata: { recipient: "client", phone: booking.phone },
+      success: result.success,
+      message: result.success ? "Sitter assignment notification sent to client" : result.error || "Failed to send client notification",
+      metadata: { recipient: "client", phone: booking.phone, usedThread: result.usedThread },
     };
   }
 
@@ -610,12 +733,38 @@ async function executePaymentReminder(
       paymentLink: paymentLink || "Payment link will be sent separately",
     });
 
-    const sent = await sendMessage(booking.phone, message, booking.id);
+    // Phase 3: Send via thread masking number
+    const orgId = booking.orgId || 'default';
+    const result = await sendAutomationMessageViaThread({
+      bookingId: booking.id,
+      orgId,
+      clientId: booking.clientId || '',
+      message,
+      recipient: 'client',
+      recipientPhone: booking.phone,
+    });
+    
+    if (!result.success && result.usedThread === false) {
+      // Thread not found - log audit warning
+      await prisma.eventLog.create({
+        data: {
+          eventType: 'automation.fallback',
+          status: 'warning',
+          bookingId: booking.id,
+          error: 'Thread not found, used fallback sendMessage',
+          metadata: JSON.stringify({
+            automationType: 'paymentReminder',
+            recipient: 'client',
+            reason: 'Thread not found for booking',
+          }),
+        },
+      });
+    }
     
     return {
-      success: sent,
-      message: sent ? "Payment reminder sent to client" : "Failed to send payment reminder",
-      metadata: { recipient: "client", phone: booking.phone, paymentLink: paymentLink || null },
+      success: result.success,
+      message: result.success ? "Payment reminder sent to client" : result.error || "Failed to send payment reminder",
+      metadata: { recipient: "client", phone: booking.phone, paymentLink: paymentLink || null, usedThread: result.usedThread },
     };
   }
 
@@ -719,12 +868,38 @@ async function executePostVisitThankYou(
       sitterName: booking.sitter ? `${booking.sitter.firstName} ${booking.sitter.lastName}` : "your assigned sitter",
     });
 
-    const sent = await sendMessage(booking.phone, message, booking.id);
+    // Phase 3: Send via thread masking number
+    const orgId = booking.orgId || 'default';
+    const result = await sendAutomationMessageViaThread({
+      bookingId: booking.id,
+      orgId,
+      clientId: booking.clientId || '',
+      message,
+      recipient: 'client',
+      recipientPhone: booking.phone,
+    });
+    
+    if (!result.success && result.usedThread === false) {
+      // Thread not found - log audit warning
+      await prisma.eventLog.create({
+        data: {
+          eventType: 'automation.fallback',
+          status: 'warning',
+          bookingId: booking.id,
+          error: 'Thread not found, used fallback sendMessage',
+          metadata: JSON.stringify({
+            automationType: 'postVisitThankYou',
+            recipient: 'client',
+            reason: 'Thread not found for booking',
+          }),
+        },
+      });
+    }
     
     return {
-      success: sent,
-      message: sent ? "Post visit thank you sent to client" : "Failed to send post visit thank you",
-      metadata: { recipient: "client", phone: booking.phone },
+      success: result.success,
+      message: result.success ? "Post visit thank you sent to client" : result.error || "Failed to send post visit thank you",
+      metadata: { recipient: "client", phone: booking.phone, usedThread: result.usedThread },
     };
   }
 
