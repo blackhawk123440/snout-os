@@ -124,10 +124,11 @@ describe('Persistent Sitter Number Assignment', () => {
     // No additional update should happen during booking confirmation
     expect((prisma as any).messageNumber.update).toHaveBeenCalledTimes(1); // Only the initial assignment from activation
     // Verify it was called with the correct arguments for sitter number assignment
-    expect((prisma as any).messageNumber.update).toHaveBeenCalledWith(
-      { where: { id: 'number-sitter-1' } },
-      { data: { assignedSitterId: sitterId } }
-    );
+    // Prisma update takes a single object: { where: {...}, data: {...} }
+    expect((prisma as any).messageNumber.update).toHaveBeenCalledWith({
+      where: { id: 'number-sitter-1' },
+      data: { assignedSitterId: sitterId },
+    });
 
     // Booking 2: Same sitter, same number (persistent)
     const booking2 = {
