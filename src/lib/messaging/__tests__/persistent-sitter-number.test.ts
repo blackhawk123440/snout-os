@@ -124,8 +124,10 @@ describe('Persistent Sitter Number Assignment', () => {
     // No additional update should happen during booking confirmation
     const updateCalls = ((prisma as any).messageNumber.update as any).mock.calls;
     expect(updateCalls.length).toBe(1); // Only the initial assignment from activation
-    expect(updateCalls[0][0].where.id).toBe('number-sitter-1');
-    expect(updateCalls[0][1].data.assignedSitterId).toBe(sitterId);
+    // Verify the update call matches the initial assignment
+    const updateCall = updateCalls[0];
+    expect(updateCall[0].where.id).toBe('number-sitter-1');
+    expect(updateCall[1].data.assignedSitterId).toBe(sitterId);
 
     // Booking 2: Same sitter, same number (persistent)
     const booking2 = {
