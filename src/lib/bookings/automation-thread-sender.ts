@@ -30,20 +30,24 @@ export async function sendAutomationMessageViaThread(
   const { bookingId, orgId, clientId, message, recipient, recipientPhone } = params;
 
   try {
-    // Find thread for this booking
-    const thread = await prisma.messageThread.findFirst({
+    // Find thread for this booking (via assignment window bookingRef)
+    const window = await (prisma as any).assignmentWindow.findFirst({
       where: {
         orgId,
-        clientId,
-        bookingId,
-        scope: 'client_booking',
+        bookingRef: bookingId,
       },
       include: {
-        messageNumber: true,
+        thread: {
+          include: {
+            messageNumber: true,
+          },
+        },
       },
     });
+    
+    const thread = window?.thread;
 
-    if (!thread || !thread.messageNumberId || !thread.messageNumber) {
+    if (!thread || !thread.numberId || !thread.messageNumber) {
       // Thread not found or no number assigned - fallback to old method
       console.warn(`[sendAutomationMessageViaThread] Thread not found for booking ${bookingId}, falling back to old sendMessage`);
       

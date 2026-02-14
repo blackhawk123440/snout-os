@@ -175,8 +175,6 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
 
   const [seeding, setSeeding] = useState(false);
 
-  const [seeding, setSeeding] = useState(false);
-
   const handleSeed = async () => {
     if (seeding) return;
     setSeeding(true);
@@ -354,11 +352,10 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                   icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                   action={
                     (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_ENABLE_OPS_SEED === 'true') && role === 'owner' ? {
-                      label: seeding ? 'Generating...' : 'Generate Demo Data',
-                      onClick: handleSeed,
-                      variant: 'primary' as const,
-                      disabled: seeding,
-                    } : undefined
+                    label: seeding ? 'Generating...' : 'Generate Demo Data',
+                    onClick: seeding ? () => {} : handleSeed,
+                    variant: 'primary' as const,
+                  } : undefined
                   }
                 />
               ) : (

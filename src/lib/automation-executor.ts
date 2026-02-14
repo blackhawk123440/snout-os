@@ -142,18 +142,15 @@ async function executeOwnerNewBookingAlert(
     
     if (!result.success && result.usedThread === false) {
       // Thread not found - log audit warning
-      await prisma.eventLog.create({
-        data: {
-          eventType: 'automation.fallback',
-          status: 'warning',
-          bookingId: booking.id,
-          error: 'Thread not found, used fallback sendMessage',
-          metadata: JSON.stringify({
-            automationType: 'ownerNewBookingAlert',
-            recipient: 'client',
-            reason: 'Thread not found for booking',
-          }),
-        },
+      // Note: eventLog model doesn't exist in enterprise-messaging-dashboard schema
+      console.warn('[Automation] Thread not found, using fallback', {
+        eventType: 'automation.fallback',
+        status: 'warning',
+        bookingId: booking.id,
+        error: 'Thread not found, used fallback sendMessage',
+        automationType: 'ownerNewBookingAlert',
+        recipient: 'client',
+        reason: 'Thread not found for booking',
       });
     }
     
@@ -462,18 +459,15 @@ async function executeNightBeforeReminder(
     
     if (!result.success && result.usedThread === false) {
       // Thread not found - log audit warning
-      await prisma.eventLog.create({
-        data: {
-          eventType: 'automation.fallback',
-          status: 'warning',
-          bookingId: booking.id,
-          error: 'Thread not found, used fallback sendMessage',
-          metadata: JSON.stringify({
-            automationType: 'nightBeforeReminder',
-            recipient: 'client',
-            reason: 'Thread not found for booking',
-          }),
-        },
+      // Note: eventLog model doesn't exist in enterprise-messaging-dashboard schema
+      console.warn('[Automation] Thread not found, using fallback', {
+        eventType: 'automation.fallback',
+        status: 'warning',
+        bookingId: booking.id,
+        error: 'Thread not found, used fallback sendMessage',
+        automationType: 'nightBeforeReminder',
+        recipient: 'client',
+        reason: 'Thread not found for booking',
       });
     }
     
@@ -645,18 +639,15 @@ async function executeSitterAssignment(
         };
       } catch (error: any) {
         // Log audit warning
-        await prisma.eventLog.create({
-          data: {
-            eventType: 'automation.fallback',
-            status: 'warning',
-            bookingId: booking.id,
-            error: `Thread creation failed: ${error.message}`,
-            metadata: JSON.stringify({
-              automationType: 'sitterAssignment',
-              recipient: 'client',
-              reason: 'Thread creation failed',
-            }),
-          },
+        // Note: eventLog model doesn't exist in enterprise-messaging-dashboard schema
+        console.warn('[Automation] Thread creation failed', {
+          eventType: 'automation.fallback',
+          status: 'warning',
+          bookingId: booking.id,
+          error: `Thread creation failed: ${error.message}`,
+          automationType: 'sitterAssignment',
+          recipient: 'client',
+          reason: 'Thread creation failed',
         });
       }
     }
@@ -746,18 +737,15 @@ async function executePaymentReminder(
     
     if (!result.success && result.usedThread === false) {
       // Thread not found - log audit warning
-      await prisma.eventLog.create({
-        data: {
-          eventType: 'automation.fallback',
-          status: 'warning',
-          bookingId: booking.id,
-          error: 'Thread not found, used fallback sendMessage',
-          metadata: JSON.stringify({
-            automationType: 'paymentReminder',
-            recipient: 'client',
-            reason: 'Thread not found for booking',
-          }),
-        },
+      // Note: eventLog model doesn't exist in enterprise-messaging-dashboard schema
+      console.warn('[Automation] Thread not found, using fallback', {
+        eventType: 'automation.fallback',
+        status: 'warning',
+        bookingId: booking.id,
+        error: 'Thread not found, used fallback sendMessage',
+        automationType: 'paymentReminder',
+        recipient: 'client',
+        reason: 'Thread not found for booking',
       });
     }
     
@@ -881,18 +869,15 @@ async function executePostVisitThankYou(
     
     if (!result.success && result.usedThread === false) {
       // Thread not found - log audit warning
-      await prisma.eventLog.create({
-        data: {
-          eventType: 'automation.fallback',
-          status: 'warning',
-          bookingId: booking.id,
-          error: 'Thread not found, used fallback sendMessage',
-          metadata: JSON.stringify({
-            automationType: 'postVisitThankYou',
-            recipient: 'client',
-            reason: 'Thread not found for booking',
-          }),
-        },
+      // Note: eventLog model doesn't exist in enterprise-messaging-dashboard schema
+      console.warn('[Automation] Thread not found, using fallback', {
+        eventType: 'automation.fallback',
+        status: 'warning',
+        bookingId: booking.id,
+        error: 'Thread not found, used fallback sendMessage',
+        automationType: 'postVisitThankYou',
+        recipient: 'client',
+        reason: 'Thread not found for booking',
       });
     }
     

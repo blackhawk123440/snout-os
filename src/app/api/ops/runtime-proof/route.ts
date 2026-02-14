@@ -8,8 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
 interface RouteCheck {
@@ -22,7 +21,7 @@ interface RouteCheck {
 
 export async function GET(request: NextRequest) {
   // Require owner authentication
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user) {
     return NextResponse.json(
       { error: 'Unauthorized' },
@@ -31,12 +30,12 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user is owner
-  const user = await prisma.user.findUnique({
+  const user = await (prisma as any).user.findUnique({
     where: { id: session.user.id },
     select: { role: true },
   });
 
-  if (user?.role !== 'OWNER') {
+  if (user?.role !== 'owner') {
     return NextResponse.json(
       { error: 'Owner access required' },
       { status: 403 }
@@ -85,7 +84,7 @@ export async function GET(request: NextRequest) {
   try {
     // Check if seed endpoint file exists by trying to import it
     const seedRoute = await import('@/app/api/messages/seed-proof/route');
-    if (seedRoute.POST) {
+    if (seedRoute && typeof seedRoute.POST === 'function') {
       proof.seedProofAvailable = true;
     }
   } catch (error: any) {

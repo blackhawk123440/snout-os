@@ -36,8 +36,8 @@ function SitterDashboardContent() {
   });
   
   const todayWindows = windows.filter((w: any) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
     const windowDate = new Date(w.startsAt);
     windowDate.setHours(0, 0, 0, 0);
     return windowDate.getTime() === today.getTime();
@@ -50,7 +50,7 @@ function SitterDashboardContent() {
     return (
       <AppShell>
         <PageHeader title="Sitter Dashboard" />
-        <Skeleton height={200} />
+          <Skeleton height={200} />
       </AppShell>
     );
   }
@@ -62,12 +62,12 @@ function SitterDashboardContent() {
 
   return (
     <AppShell>
-      <PageHeader 
-        title="Sitter Dashboard"
-        actions={
+        <PageHeader
+          title="Sitter Dashboard"
+          actions={
           <Link href="/api/auth/signout">
             <Button variant="secondary" size="sm">Logout</Button>
-          </Link>
+              </Link>
         }
       />
       
@@ -81,13 +81,12 @@ function SitterDashboardContent() {
             <Link href="/sitter/inbox">
               <Button variant="primary" size="sm">Open Inbox</Button>
             </Link>
-          </div>
-          <StatCard
+                </div>
+              <StatCard
             label="Active Conversations"
             value={activeThreads.length}
-            description={`${threads.length} total threads`}
           />
-        </Card>
+                        </Card>
 
         {/* Today's Assignments */}
         <Card style={{ padding: tokens.spacing[4] }}>
@@ -95,19 +94,19 @@ function SitterDashboardContent() {
             Today's Assignments
           </h3>
           {todayWindows.length === 0 ? (
-            <EmptyState
+                  <EmptyState
               title="No assignments today"
               description="You have no active assignment windows today."
-            />
-          ) : (
+                  />
+                ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
               {todayWindows.map((window: any) => {
                 const now = new Date();
                 const isActive = new Date(window.startsAt) <= now && new Date(window.endsAt) >= now;
-                return (
+                              return (
                   <div
                     key={window.id}
-                    style={{
+                        style={{
                       padding: tokens.spacing[3],
                       border: `1px solid ${tokens.colors.border.default}`,
                       borderRadius: tokens.borderRadius.md,
@@ -116,23 +115,23 @@ function SitterDashboardContent() {
                       alignItems: 'center',
                     }}
                   >
-                    <div>
+                      <div>
                       <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
                         {window.thread?.client?.name || 'Client'}
-                      </div>
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                         {new Date(window.startsAt).toLocaleTimeString()} - {new Date(window.endsAt).toLocaleTimeString()}
-                      </div>
-                    </div>
+                          </div>
+                        </div>
                     <Badge variant={isActive ? 'success' : 'default'}>
                       {isActive ? 'Active' : 'Upcoming'}
                     </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
+                                        </div>
+                              );
+                            })}
+                      </div>
+                    )}
+            </Card>
 
         {/* Business Number */}
         <Card style={{ padding: tokens.spacing[4] }}>
@@ -141,11 +140,11 @@ function SitterDashboardContent() {
           </h3>
           <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontFamily: 'monospace', color: tokens.colors.text.primary }}>
             {sitterNumber}
-          </div>
+                      </div>
           <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
             This is your masked business number. Clients see this number when you message them.
-          </div>
-        </Card>
+                </div>
+              </Card>
 
         {/* Messaging Status */}
         <Card style={{ padding: tokens.spacing[4], backgroundColor: tokens.colors.info[50] }}>
@@ -154,14 +153,14 @@ function SitterDashboardContent() {
             <div>
               <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
                 Messaging Status
-              </div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    </div>
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                 You can message only during assignment windows. Outside active windows, compose is disabled.
-              </div>
-            </div>
+                    </div>
+                      </div>
           </div>
-        </Card>
-      </div>
+                  </Card>
+            </div>
     </AppShell>
   );
 }

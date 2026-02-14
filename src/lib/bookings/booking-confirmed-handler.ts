@@ -113,49 +113,56 @@ async function findOrCreateThread(params: {
 }): Promise<{ id: string; reused: boolean }> {
   const { orgId, clientId, bookingId, sitterId } = params;
 
-  // Try to find existing thread
-  const existing = await prisma.messageThread.findFirst({
+  // Try to find existing thread by bookingRef (stored in assignment window)
+  // Note: Thread model doesn't have bookingId, so we find via assignment window
+  const existingWindow = await (prisma as any).assignmentWindow.findFirst({
     where: {
       orgId,
-      clientId,
-      bookingId,
-      scope: 'client_booking',
+      bookingRef: bookingId,
     },
+    include: { thread: true },
   });
 
-  if (existing) {
+  if (existingWindow?.thread) {
+    const existing = existingWindow.thread;
     // Update sitter assignment if changed
-    if (sitterId && existing.assignedSitterId !== sitterId) {
-      await prisma.messageThread.update({
+    if (sitterId && existing.sitterId !== sitterId) {
+      await (prisma as any).thread.update({
         where: { id: existing.id },
-        data: { assignedSitterId: sitterId },
+        data: { sitterId: sitterId },
       });
     }
     return { id: existing.id, reused: true };
   }
 
-  // Create new thread
-  const thread = await prisma.messageThread.create({
+  // Need a number first - get one temporarily
+  const tempNumber = await (prisma as any).messageNumber.findFirst({
+    where: { orgId, status: 'active' },
+  });
+  
+  if (!tempNumber) {
+    throw new Error(`No available messaging numbers for org ${orgId}. Please configure numbers in Messages → Numbers.`);
+  }
+
+  // Create new thread (Thread model requires numberId)
+  const thread = await (prisma as any).thread.create({
     data: {
       orgId,
-      scope: 'client_booking',
-      bookingId,
       clientId,
-      assignedSitterId: sitterId || null,
-      status: 'open',
+      sitterId: sitterId || null,
+      numberId: tempNumber.id, // Will be updated with correct number later
+      threadType: 'assignment', // 'front_desk' | 'assignment' | 'pool' | 'other'
+      status: 'active',
     },
   });
 
-  // Create participants
-  await prisma.messageParticipant.createMany({
+  // Create participants (ThreadParticipant model)
+  await (prisma as any).threadParticipant.createMany({
     data: [
       {
-        orgId,
         threadId: thread.id,
-        role: 'client',
-        clientId,
-        displayName: 'Client', // Will be updated with actual client name
-        realE164: '', // Will be updated from client contact
+        participantType: 'client',
+        participantId: clientId,
       },
     ],
   });
@@ -181,14 +188,14 @@ async function assignMaskingNumberToThread(params: {
   const { orgId, threadId, clientId, sitterId, bookingId } = params;
 
   // Check if thread already has a number assigned
-  const thread = await prisma.messageThread.findUnique({
+  const thread = await (prisma as any).thread.findUnique({
     where: { id: threadId },
     include: { messageNumber: true },
   });
 
-  if (thread?.messageNumberId && thread.messageNumber) {
+  if (thread?.numberId && thread.messageNumber) {
     return {
-      numberId: thread.messageNumberId,
+      numberId: thread.numberId,
       numberClass: (thread.messageNumber.class as 'front_desk' | 'sitter' | 'pool') || 'front_desk',
     };
   }
@@ -198,7 +205,7 @@ async function assignMaskingNumberToThread(params: {
 
   // Rule 1: If sitter assigned, try to use sitter's dedicated number
   if (sitterId) {
-    const sitterNumber = await prisma.messageNumber.findFirst({
+    const sitterNumber = await (prisma as any).messageNumber.findFirst({
       where: {
         orgId,
         class: 'sitter',
@@ -215,7 +222,7 @@ async function assignMaskingNumberToThread(params: {
 
   // Rule 2: If no sitter number, try pool
   if (!selectedNumber) {
-    const poolNumber = await prisma.messageNumber.findFirst({
+    const poolNumber = await (prisma as any).messageNumber.findFirst({
       where: {
         orgId,
         class: 'pool',
@@ -229,7 +236,7 @@ async function assignMaskingNumberToThread(params: {
       numberClass = 'pool';
 
       // Update lastUsedAt
-      await prisma.messageNumber.update({
+      await (prisma as any).messageNumber.update({
         where: { id: poolNumber.id },
         data: { lastUsedAt: new Date() },
       });
@@ -238,7 +245,7 @@ async function assignMaskingNumberToThread(params: {
 
   // Rule 3: Fallback to front desk
   if (!selectedNumber) {
-    const frontDeskNumber = await prisma.messageNumber.findFirst({
+    const frontDeskNumber = await (prisma as any).messageNumber.findFirst({
       where: {
         orgId,
         class: 'front_desk',
@@ -255,12 +262,12 @@ async function assignMaskingNumberToThread(params: {
     }
   }
 
-  // Assign number to thread
-  await prisma.messageThread.update({
+  // Assign number to thread (Thread model uses numberId, not messageNumberId)
+  await (prisma as any).thread.update({
     where: { id: threadId },
     data: {
-      messageNumberId: selectedNumber.id,
-      numberClass: numberClass,
+      numberId: selectedNumber.id,
+      threadType: numberClass === 'sitter' ? 'assignment' : numberClass === 'pool' ? 'pool' : 'front_desk',
     },
   });
 
@@ -283,30 +290,33 @@ async function findOrCreateAssignmentWindow(params: {
 }): Promise<{ id: string; reused: boolean }> {
   const { orgId, threadId, bookingId, sitterId, startsAt, endsAt } = params;
 
-  // Try to find existing window for this booking
-  const existing = await prisma.assignmentWindow.findFirst({
+  // Try to find existing window for this booking (AssignmentWindow uses bookingRef, not bookingId)
+  const existing = await (prisma as any).assignmentWindow.findFirst({
     where: {
       orgId,
       threadId,
-      bookingId,
+      bookingRef: bookingId,
     },
   });
 
   if (existing) {
-    // Update window if dates changed
-    await prisma.assignmentWindow.update({
+    // Update window if dates changed (AssignmentWindow uses sitterId, not responsibleSitterId)
+    if (!sitterId) {
+      throw new Error('Sitter ID required for assignment window');
+    }
+    await (prisma as any).assignmentWindow.update({
       where: { id: existing.id },
       data: {
         startsAt,
         endsAt,
-        responsibleSitterId: sitterId || null,
+        sitterId: sitterId,
       },
     });
     return { id: existing.id, reused: true };
   }
 
   // Check for overlaps (enforce overlap rules)
-  const overlapping = await prisma.assignmentWindow.findFirst({
+  const overlapping = await (prisma as any).assignmentWindow.findFirst({
     where: {
       orgId,
       threadId,
@@ -323,28 +333,33 @@ async function findOrCreateAssignmentWindow(params: {
 
   if (overlapping) {
     // Update existing overlapping window instead of creating duplicate
-    await prisma.assignmentWindow.update({
+    if (!sitterId) {
+      throw new Error('Sitter ID required for assignment window');
+    }
+    await (prisma as any).assignmentWindow.update({
       where: { id: overlapping.id },
       data: {
         startsAt,
         endsAt,
-        responsibleSitterId: sitterId || null,
-        bookingId,
+        sitterId: sitterId,
+        bookingRef: bookingId,
       },
     });
     return { id: overlapping.id, reused: true };
   }
 
-  // Create new window
-  const window = await prisma.assignmentWindow.create({
+  // Create new window (AssignmentWindow requires sitterId, uses bookingRef not bookingId, no resolutionStatus)
+  if (!sitterId) {
+    throw new Error('Sitter ID required for assignment window');
+  }
+  const window = await (prisma as any).assignmentWindow.create({
     data: {
       orgId,
       threadId,
-      bookingId,
-      responsibleSitterId: sitterId || null,
+      sitterId: sitterId,
+      bookingRef: bookingId,
       startsAt,
       endsAt,
-      resolutionStatus: 'open',
     },
   });
 
@@ -365,47 +380,20 @@ async function emitAuditEvents(params: {
 }): Promise<void> {
   const { orgId, threadId, bookingId, messageNumberId, windowId, reused, actorUserId } = params;
 
-  // Log events using EventLog
+  // Log events using AuditEvent (enterprise-messaging-dashboard schema)
   try {
-    await prisma.eventLog.createMany({
-      data: [
-        {
-          eventType: 'booking.confirmed',
-          status: 'success',
-          bookingId,
-          metadata: JSON.stringify({
-            threadId,
-            messageNumberId,
-            windowId,
-            action: reused.thread ? 'thread.reused' : 'thread.created',
-            actorUserId: actorUserId || 'system',
-          }),
-        },
-        {
-          eventType: 'messaging.number.assigned',
-          status: 'success',
-          bookingId,
-          metadata: JSON.stringify({
-            threadId,
-            messageNumberId,
-            actorUserId: actorUserId || 'system',
-          }),
-        },
-        {
-          eventType: 'messaging.window.created',
-          status: 'success',
-          bookingId,
-          metadata: JSON.stringify({
-            threadId,
-            windowId,
-            action: reused.window ? 'window.updated' : 'window.created',
-            actorUserId: actorUserId || 'system',
-          }),
-        },
-      ],
+    // Note: AuditEvent model structure is different - using console.log for now
+    // In production, should use the API's AuditService
+    console.log('[Booking Confirmed]', {
+      threadId,
+      messageNumberId,
+      windowId,
+      bookingId,
+      reused,
+      actorUserId: actorUserId || 'system',
     });
   } catch (error) {
     // Audit logging is non-blocking
-    console.error('Failed to create event logs:', error);
+    console.error('Failed to create audit events:', error);
   }
 }
