@@ -11,6 +11,7 @@ import { prisma } from "./db";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "./automation-utils";
 import { sendMessage } from "./message-utils";
 import { getOwnerPhone, getSitterPhone } from "./phone-utils";
+import { sendAutomationMessageViaThread } from "./bookings/automation-thread-sender";
 import { 
   formatDatesAndTimesForMessage, 
   formatDateForMessage, 
@@ -242,12 +243,27 @@ async function executeBookingConfirmation(
       total: breakdown.total.toFixed(2),
     });
 
-    const sent = await sendMessage(booking.phone, message, booking.id);
+    // Phase 3: Send via thread masking number
+    const orgId = booking.orgId || 'default'; // TODO: Get actual orgId
+    const result = await sendAutomationMessageViaThread({
+      bookingId: booking.id,
+      orgId,
+      clientId: booking.clientId || '',
+      message,
+      recipient: 'client',
+      recipientPhone: booking.phone, // Fallback
+    });
+    
+    const sent = result.success;
     
     return {
       success: sent,
-      message: sent ? "Booking confirmation sent to client" : "Failed to send booking confirmation",
-      metadata: { recipient: "client", phone: booking.phone },
+      message: sent ? "Booking confirmation sent to client" : result.error || "Failed to send booking confirmation",
+      metadata: { 
+        recipient: "client", 
+        phone: booking.phone,
+        usedThread: result.usedThread || false,
+      },
     };
   }
 
