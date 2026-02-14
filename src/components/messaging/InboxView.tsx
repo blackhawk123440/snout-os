@@ -173,18 +173,26 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
     }
   };
 
+  const [seeding, setSeeding] = useState(false);
+
+  const [seeding, setSeeding] = useState(false);
+
   const handleSeed = async () => {
+    if (seeding) return;
+    setSeeding(true);
     try {
-      const response = await fetch('/api/ops/seed-messaging', { method: 'POST' });
+      const response = await fetch('/api/messages/seed-proof', { method: 'POST' });
       const data = await response.json();
       if (data.success) {
-        alert(`Demo data created! Thread A (failed delivery + active window) and Thread B (policy violation). Refreshing...`);
+        alert('✅ Demo data created! Refreshing to show proof scenarios...');
         window.location.reload();
       } else {
         alert(data.error || 'Failed to create demo data');
       }
     } catch (error: any) {
       alert(`Failed to create demo data: ${error.message}`);
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -345,10 +353,11 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                     : "Start a conversation to see threads here"}
                   icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                   action={
-                    (process.env.NODE_ENV === 'development' || process.env.ALLOW_DEV_SEED === 'true') ? {
-                      label: "Create Demo Data",
+                    (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_ENABLE_OPS_SEED === 'true') && role === 'owner' ? {
+                      label: seeding ? 'Generating...' : 'Generate Demo Data',
                       onClick: handleSeed,
-                      variant: "primary" as const,
+                      variant: 'primary' as const,
+                      disabled: seeding,
                     } : undefined
                   }
                 />

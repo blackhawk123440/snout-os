@@ -42,7 +42,8 @@
     "proof:deployment": "tsx scripts/generate-proof-pack-deployment.ts",
     "get-render-inventory": "tsx scripts/get-render-inventory.ts",
     "verify:deployment": "tsx scripts/verify-deployment.ts",
-    "seed:proof": "tsx scripts/seed-proof-scenarios.ts"
+    "seed:proof": "tsx scripts/seed-proof-scenarios.ts",
+    "seed:messaging-proof": "tsx scripts/seed-messaging-proof.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
