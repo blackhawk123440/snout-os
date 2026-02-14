@@ -328,6 +328,8 @@ async function main() {
   }
 
   // Create policy violation message
+  // Note: Policy violations are detected by the system and stored in metadataJson
+  // For demo purposes, we'll mark the message with metadata indicating a violation
   const violationMessage = await prisma.messageEvent.create({
     data: {
       orgId: org.id,
@@ -337,21 +339,14 @@ async function main() {
       actorClientId: client3.id,
       body: 'Call me at 555-123-4567 or email me at test@example.com',
       deliveryStatus: 'delivered',
+      metadataJson: JSON.stringify({
+        hasPolicyViolation: true,
+        violationType: 'other',
+        detectedSummary: 'Message contains phone number and email address',
+        actionTaken: 'redacted',
+        redactedBody: 'Call me at [REDACTED] or email me at [REDACTED]',
+      }),
       createdAt: new Date(Date.now() - 5400000), // 1.5 hours ago
-    },
-  });
-
-  // Create policy violation record
-  await prisma.policyViolation.create({
-    data: {
-      orgId: org.id,
-      threadId: policyViolationThread.id,
-      messageId: violationMessage.id,
-      violationType: 'other',
-      detectedSummary: 'Message contains phone number and email address',
-      actionTaken: 'redacted',
-      status: 'open',
-      detectedAt: new Date(Date.now() - 5400000),
     },
   });
 
