@@ -13,8 +13,8 @@ module.exports = {
         'http://localhost:3000/messages',
       ],
       startServerCommand: 'npm start',
-      startServerReadyPattern: 'Ready on',
-      startServerReadyTimeout: 60000,
+      startServerReadyPattern: 'Ready on|started server on',
+      startServerReadyTimeout: 120000,
       numberOfRuns: 3,
     },
     assert: {
