@@ -161,7 +161,7 @@ jobs:
       - name: Run proof-pack tests
         run: |
           mkdir -p proof-pack
-          npm run test:ui -- tests/e2e/rotation-settings-persistence.spec.ts tests/e2e/pool-exhausted-integration.spec.ts --reporter=html --output-dir=proof-pack/playwright-report
+          npm run test:ui:smoke
           npm run test -- src/lib/messaging/__tests__/pool-capacity.test.ts src/lib/messaging/__tests__/pool-release.test.ts src/lib/messaging/__tests__/invariants.test.ts --reporter=json --outputFile=proof-pack/test-output.json
         env:
           CI: true

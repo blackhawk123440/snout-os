@@ -104,7 +104,7 @@ export default defineConfig({
     command: 'npm run dev',
     url: process.env.BASE_URL || 'http://localhost:3003',
     reuseExistingServer: !process.env.CI,
-    timeout: 120000,
+    timeout: 180000, // Increased to 3 minutes for slower CI environments
     env: {
       DATABASE_URL: process.env.DATABASE_URL || 'postgresql://snoutos:snoutos_dev_password@localhost:5432/snoutos_messaging',
       OPENPHONE_API_KEY: process.env.OPENPHONE_API_KEY || 'test_key',

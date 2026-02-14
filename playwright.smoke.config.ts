@@ -57,4 +57,23 @@ export default defineConfig({
     },
   ],
 
+  // webServer: In CI, the server is started manually, so reuseExistingServer will skip starting it
+  // For local development, this will start the dev server automatically
+  webServer: {
+    command: 'npm run dev',
+    url: process.env.BASE_URL || 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI, // In CI, server is started manually, so reuse it
+    timeout: 180000, // 3 minutes
+    env: {
+      DATABASE_URL: process.env.DATABASE_URL || 'postgresql://snoutos:snoutos_dev_password@localhost:5432/snoutos_messaging',
+      OPENPHONE_API_KEY: process.env.OPENPHONE_API_KEY || 'test_key',
+      OPENPHONE_NUMBER_ID: process.env.OPENPHONE_NUMBER_ID || 'test_number_id',
+      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test_secret',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.BASE_URL || 'http://localhost:3000',
+      ENABLE_OPS_SEED: 'true',
+      ENABLE_MESSAGING_V1: 'true',
+      NEXT_PUBLIC_ENABLE_MESSAGING_V1: 'true',
+    },
+  },
+
 });
