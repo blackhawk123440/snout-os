@@ -64,7 +64,10 @@ export default defineConfig({
     url: process.env.BASE_URL || 'http://localhost:3000',
     reuseExistingServer: !process.env.CI, // In CI, server is started manually, so reuse it
     timeout: 180000, // 3 minutes
+    stdout: 'pipe', // Capture stdout to see server logs
+    stderr: 'pipe', // Capture stderr to see server errors
     env: {
+      PORT: '3000', // Explicitly set port for Next.js
       DATABASE_URL: process.env.DATABASE_URL || 'postgresql://snoutos:snoutos_dev_password@localhost:5432/snoutos_messaging',
       OPENPHONE_API_KEY: process.env.OPENPHONE_API_KEY || 'test_key',
       OPENPHONE_NUMBER_ID: process.env.OPENPHONE_NUMBER_ID || 'test_number_id',

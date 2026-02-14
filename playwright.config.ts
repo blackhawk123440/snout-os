@@ -20,7 +20,7 @@ export default defineConfig({
   },
   globalSetup: require.resolve('./tests/e2e/global-setup.ts'),
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3003',
+    baseURL: process.env.BASE_URL || 'http://localhost:3000', // Match webServer URL
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     actionTimeout: 10000, // 10 seconds for actions (click, fill, etc.)
@@ -102,15 +102,18 @@ export default defineConfig({
 
   webServer: {
     command: 'npm run dev',
-    url: process.env.BASE_URL || 'http://localhost:3003',
+    url: process.env.BASE_URL || 'http://localhost:3000', // Next.js dev server defaults to port 3000
     reuseExistingServer: !process.env.CI,
     timeout: 180000, // Increased to 3 minutes for slower CI environments
+    stdout: 'pipe', // Capture stdout to see server logs
+    stderr: 'pipe', // Capture stderr to see server errors
     env: {
+      PORT: '3000', // Explicitly set port for Next.js
       DATABASE_URL: process.env.DATABASE_URL || 'postgresql://snoutos:snoutos_dev_password@localhost:5432/snoutos_messaging',
       OPENPHONE_API_KEY: process.env.OPENPHONE_API_KEY || 'test_key',
       OPENPHONE_NUMBER_ID: process.env.OPENPHONE_NUMBER_ID || 'test_number_id',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test_secret',
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.BASE_URL || 'http://localhost:3003',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.BASE_URL || 'http://localhost:3000',
       ENABLE_OPS_SEED: 'true',
       ENABLE_MESSAGING_V1: 'true',
       NEXT_PUBLIC_ENABLE_MESSAGING_V1: 'true',
