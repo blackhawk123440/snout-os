@@ -130,7 +130,9 @@ export async function PATCH(
         const sessionUser = session.user as any;
         const orgId = sessionUser.orgId || 'default';
         
-        const existingSitter = await prisma.sitter.findUnique({
+        // Check if sitter already has an assigned number
+        // Note: Use (prisma as any) because assignedNumbers relation may not be in frontend schema
+        const existingSitter = await (prisma as any).sitter.findUnique({
           where: { id: resolvedParams.id },
           include: {
             assignedNumbers: {
@@ -140,7 +142,7 @@ export async function PATCH(
               },
             },
           },
-        }) as any;
+        });
         
         // Check if sitter already has an assigned number
         if (!existingSitter?.assignedNumbers || existingSitter.assignedNumbers.length === 0) {
