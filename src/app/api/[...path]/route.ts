@@ -107,8 +107,16 @@ async function handleProxyRequest(
   
   // Route mapping: Map legacy endpoints to correct API endpoints
   // /api/sitters -> /api/numbers/sitters (NestJS API has sitters under numbers)
+  // BUT: POST/PATCH to /api/sitters should be handled by /api/sitters/route.ts, not proxied
   if (apiPath === '/api/sitters' || apiPath === '/api/sitters/') {
-    apiPath = '/api/numbers/sitters';
+    // Only proxy GET requests - POST/PATCH are handled by the specific route
+    if (method === 'GET') {
+      apiPath = '/api/numbers/sitters';
+    } else {
+      // Skip catch-all for POST/PATCH - let Next.js route to /api/sitters/route.ts
+      // This shouldn't happen due to route priority, but safety check
+      return NextResponse.next();
+    }
   }
   
   // /api/bookings doesn't exist in messaging dashboard API - return empty array immediately

@@ -72,15 +72,36 @@ export async function GET(request: NextRequest) {
   // Fallback: Use Prisma directly
   try {
     const sitters = await prisma.sitter.findMany({
-      include: {
-        currentTier: true,
-      },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    return NextResponse.json({ sitters });
+    // Transform sitters to match frontend expectations
+    const transformedSitters = sitters.map((sitter) => {
+      const nameParts = sitter.name.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      return {
+        id: sitter.id,
+        firstName,
+        lastName,
+        name: sitter.name,
+        phone: null,
+        email: null,
+        personalPhone: null,
+        openphonePhone: null,
+        phoneType: null,
+        isActive: sitter.active,
+        commissionPercentage: 80.0,
+        createdAt: sitter.createdAt,
+        updatedAt: sitter.updatedAt,
+        currentTier: null,
+      };
+    });
+
+    return NextResponse.json({ sitters: transformedSitters });
   } catch (error: any) {
     console.error('[Sitters API] Failed to fetch sitters:', error);
     return NextResponse.json(
@@ -116,34 +137,48 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!firstName || !lastName || !phone || !email) {
+    if (!firstName || !lastName) {
       return NextResponse.json(
-        { error: 'Missing required fields: firstName, lastName, phone, email' },
+        { error: 'Missing required fields: firstName, lastName' },
         { status: 400 }
       );
     }
 
-    // Get orgId from session (if needed for future multi-org support)
-    // For now, sitters don't have orgId in the main schema
-    // Create sitter using Prisma
+    // Get orgId from session
+    const user = session.user as any;
+    const orgId = user.orgId || 'default';
+
+    // Combine firstName and lastName into name (schema requirement)
+    const name = `${firstName} ${lastName}`.trim();
+
+    // Create sitter using Prisma (schema only has: id, orgId, userId, name, active, createdAt, updatedAt)
     const sitter = await prisma.sitter.create({
       data: {
-        firstName,
-        lastName,
-        phone,
-        email,
+        orgId,
+        name,
         active: isActive,
-        commissionPercentage: parseFloat(String(commissionPercentage)) || 80.0,
-        personalPhone: personalPhone || null,
-        openphonePhone: openphonePhone || null,
-        phoneType: phoneType || null,
-      },
-      include: {
-        currentTier: true,
       },
     });
 
-    return NextResponse.json({ sitter }, { status: 201 });
+    // Return sitter in format expected by frontend
+    return NextResponse.json({ 
+      sitter: {
+        id: sitter.id,
+        firstName,
+        lastName,
+        name: sitter.name,
+        phone: phone || null,
+        email: email || null,
+        personalPhone: personalPhone || null,
+        openphonePhone: openphonePhone || null,
+        phoneType: phoneType || null,
+        isActive: sitter.active,
+        commissionPercentage: commissionPercentage || 80.0,
+        createdAt: sitter.createdAt,
+        updatedAt: sitter.updatedAt,
+        currentTier: null,
+      }
+    }, { status: 201 });
   } catch (error: any) {
     console.error('[Sitters API] Failed to create sitter:', error);
     return NextResponse.json(

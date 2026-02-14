@@ -12,7 +12,7 @@ import { prisma } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
 
@@ -24,11 +24,9 @@ export async function GET(
   }
 
   try {
+    const resolvedParams = await params;
     const sitter = await prisma.sitter.findUnique({
-      where: { id: params.id },
-      include: {
-        currentTier: true,
-      },
+      where: { id: resolvedParams.id },
     });
 
     if (!sitter) {
@@ -38,7 +36,29 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ sitter });
+    // Return sitter in format expected by frontend
+    const nameParts = sitter.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    return NextResponse.json({ 
+      sitter: {
+        id: sitter.id,
+        firstName,
+        lastName,
+        name: sitter.name,
+        phone: null,
+        email: null,
+        personalPhone: null,
+        openphonePhone: null,
+        phoneType: null,
+        isActive: sitter.active,
+        commissionPercentage: 80.0,
+        createdAt: sitter.createdAt,
+        updatedAt: sitter.updatedAt,
+        currentTier: null,
+      }
+    });
   } catch (error: any) {
     console.error('[Sitters API] Failed to fetch sitter:', error);
     return NextResponse.json(
@@ -50,7 +70,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
 
@@ -62,6 +82,7 @@ export async function PATCH(
   }
 
   try {
+    const resolvedParams = await params;
     const body = await request.json();
     const {
       firstName,
@@ -75,27 +96,63 @@ export async function PATCH(
       phoneType,
     } = body;
 
-    // Build update data object (only include fields that are provided)
+    // Build update data object (only include fields that exist in schema)
     const updateData: any = {};
-    if (firstName !== undefined) updateData.firstName = firstName;
-    if (lastName !== undefined) updateData.lastName = lastName;
-    if (phone !== undefined) updateData.phone = phone;
-    if (email !== undefined) updateData.email = email;
-    if (isActive !== undefined) updateData.active = isActive;
-    if (commissionPercentage !== undefined) updateData.commissionPercentage = parseFloat(commissionPercentage) || 80.0;
-    if (personalPhone !== undefined) updateData.personalPhone = personalPhone || null;
-    if (openphonePhone !== undefined) updateData.openphonePhone = openphonePhone || null;
-    if (phoneType !== undefined) updateData.phoneType = phoneType || null;
+    
+    // Schema only has: id, orgId, userId, name, active, createdAt, updatedAt
+    if (firstName !== undefined || lastName !== undefined) {
+      // Combine firstName and lastName into name
+      const existingSitter = await prisma.sitter.findUnique({
+        where: { id: resolvedParams.id },
+      });
+      
+      if (firstName !== undefined && lastName !== undefined) {
+        updateData.name = `${firstName} ${lastName}`.trim();
+      } else if (firstName !== undefined && existingSitter) {
+        // Only firstName provided, combine with existing lastName
+        const existingName = existingSitter.name.split(' ');
+        const existingLastName = existingName.slice(1).join(' ') || '';
+        updateData.name = `${firstName} ${existingLastName}`.trim();
+      } else if (lastName !== undefined && existingSitter) {
+        // Only lastName provided, combine with existing firstName
+        const existingName = existingSitter.name.split(' ');
+        const existingFirstName = existingName[0] || '';
+        updateData.name = `${existingFirstName} ${lastName}`.trim();
+      }
+    }
+    
+    if (isActive !== undefined) {
+      updateData.active = isActive;
+    }
 
     const sitter = await prisma.sitter.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: updateData,
-      include: {
-        currentTier: true,
-      },
     });
 
-    return NextResponse.json({ sitter });
+    // Return sitter in format expected by frontend
+    const nameParts = sitter.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    return NextResponse.json({ 
+      sitter: {
+        id: sitter.id,
+        firstName,
+        lastName,
+        name: sitter.name,
+        phone: phone || null,
+        email: email || null,
+        personalPhone: personalPhone || null,
+        openphonePhone: openphonePhone || null,
+        phoneType: phoneType || null,
+        isActive: sitter.active,
+        commissionPercentage: commissionPercentage || 80.0,
+        createdAt: sitter.createdAt,
+        updatedAt: sitter.updatedAt,
+        currentTier: null,
+      }
+    });
   } catch (error: any) {
     if (error.code === 'P2025') {
       return NextResponse.json(
@@ -113,7 +170,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
 
@@ -125,8 +182,9 @@ export async function DELETE(
   }
 
   try {
+    const resolvedParams = await params;
     await prisma.sitter.delete({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
     });
 
     return NextResponse.json({ success: true });
