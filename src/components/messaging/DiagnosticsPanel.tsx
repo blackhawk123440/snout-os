@@ -12,6 +12,7 @@ import { Card, Button, Badge } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { isMessagingEnabled } from '@/lib/flags';
+import { ProofRunnerButton } from './ProofRunnerButton';
 
 interface DiagnosticsPanelProps {
   threadsCount: number;
@@ -221,8 +222,8 @@ export function DiagnosticsPanel({
               </div>
 
               {/* Actions */}
-              {issue === 'DB empty — seed required' && onSeed && (
-                <div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                {issue === 'DB empty — seed required' && onSeed && (
                   <Button
                     variant="primary"
                     size="sm"
@@ -231,8 +232,9 @@ export function DiagnosticsPanel({
                   >
                     Create Demo Data
                   </Button>
-                </div>
-              )}
+                )}
+                <ProofRunnerButton />
+              </div>
 
               {/* Help Text */}
               <div style={{ padding: tokens.spacing[2], backgroundColor: tokens.colors.neutral[50], borderRadius: tokens.radius.sm, fontSize: '10px' }}>

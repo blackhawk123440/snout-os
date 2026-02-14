@@ -675,6 +675,16 @@ export function NumbersPageContent() {
         {/* Quarantine Modal */}
         {showQuarantineModal && selectedNumber && (
           <Modal isOpen={!!showQuarantineModal} title="Quarantine Number" onClose={() => setShowQuarantineModal(null)}>
+            <div style={{ marginBottom: tokens.spacing[4], padding: tokens.spacing[3], backgroundColor: tokens.colors.info[50], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.info[200]}` }}>
+              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary }}>
+                <strong>What is quarantine?</strong>
+                <p style={{ marginTop: tokens.spacing[2], marginBottom: 0 }}>
+                  Quarantining a number temporarily disables it from being used for new messages. 
+                  This is useful when a number is compromised, receiving spam, or needs to be reviewed.
+                  The number will be automatically released after the selected duration, or you can restore it immediately with a reason.
+                </p>
+              </div>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
               <p style={{ color: tokens.colors.text.secondary }}>
                 Quarantining: <strong>{selectedNumber.e164}</strong>
@@ -755,28 +765,38 @@ export function NumbersPageContent() {
         {showReleaseModal && selectedNumber && (
           <Modal isOpen={!!showReleaseModal} title="Release from Quarantine" onClose={() => setShowReleaseModal(null)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+              {selectedNumber.quarantineReleaseAt && new Date(selectedNumber.quarantineReleaseAt) > new Date() ? (
+                <div style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.warning[50], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.warning[200]}`, marginBottom: tokens.spacing[3] }}>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary }}>
+                    <strong>Cooldown Period Active</strong>
+                    <p style={{ marginTop: tokens.spacing[1], marginBottom: 0 }}>
+                      This number is scheduled to be released on {new Date(selectedNumber.quarantineReleaseAt).toLocaleString()}.
+                      You can restore it immediately using "Restore Now" below, which requires a reason and creates an audit log.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.success[50], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.success[200]}`, marginBottom: tokens.spacing[3] }}>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary }}>
+                    <strong>Ready to Release</strong>
+                    <p style={{ marginTop: tokens.spacing[1], marginBottom: 0 }}>
+                      The cooldown period has ended. You can release this number normally, or use "Restore Now" to override with a reason.
+                    </p>
+                  </div>
+                </div>
+              )}
               <p>Release <strong>{selectedNumber.e164}</strong> from quarantine?</p>
               {selectedNumber.quarantineReleaseAt && new Date(selectedNumber.quarantineReleaseAt) > new Date() && (
-                <div style={{ 
-                  padding: tokens.spacing[3], 
-                  backgroundColor: tokens.colors.warning[50], 
-                  borderRadius: tokens.radius.sm,
-                  border: `1px solid ${tokens.colors.warning[200]}`,
-                }}>
-                  <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.warning[800], marginBottom: tokens.spacing[2] }}>
-                    ⚠️ Cooldown period not complete. Release date: {new Date(selectedNumber.quarantineReleaseAt).toLocaleDateString()}
-                  </p>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
-                      Reason for Restore Now (required to override)
-                    </label>
-                    <Textarea
-                      value={restoreReason}
-                      onChange={(e) => setRestoreReason(e.target.value)}
-                      placeholder="e.g., Testing complete, operator override..."
-                      rows={3}
-                    />
-                  </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                    Reason for Restore Now (required to override)
+                  </label>
+                  <Textarea
+                    value={restoreReason}
+                    onChange={(e) => setRestoreReason(e.target.value)}
+                    placeholder="e.g., Testing complete, operator override..."
+                    rows={3}
+                  />
                 </div>
               )}
               <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
