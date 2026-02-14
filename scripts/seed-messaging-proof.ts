@@ -188,8 +188,8 @@ async function main() {
         orgId: org.id,
         threadId: unreadThread.id,
         direction: 'inbound',
-        senderRole: 'client',
-        senderId: client1.id,
+        actorType: 'client',
+        actorClientId: client1.id,
         body: 'Hello, I need help with my pet.',
         deliveryStatus: 'delivered',
         createdAt: new Date(Date.now() - 3600000), // 1 hour ago
@@ -201,8 +201,8 @@ async function main() {
         orgId: org.id,
         threadId: unreadThread.id,
         direction: 'inbound',
-        senderRole: 'client',
-        senderId: client1.id,
+        actorType: 'client',
+        actorClientId: client1.id,
         body: 'Can someone call me back?',
         deliveryStatus: 'delivered',
         createdAt: new Date(Date.now() - 1800000), // 30 min ago
@@ -270,10 +270,12 @@ async function main() {
       orgId: org.id,
       threadId: failedDeliveryThread.id,
       direction: 'outbound',
-      senderRole: 'owner',
-      senderId: owner.id,
+      actorType: 'owner',
+      actorUserId: owner.id,
       body: 'This message failed to deliver',
       deliveryStatus: 'failed',
+      failureCode: '21211',
+      failureDetail: 'Invalid phone number',
       createdAt: new Date(Date.now() - 7200000), // 2 hours ago
     },
   });
@@ -331,13 +333,25 @@ async function main() {
       orgId: org.id,
       threadId: policyViolationThread.id,
       direction: 'inbound',
-      senderRole: 'client',
-      senderId: client3.id,
+      actorType: 'client',
+      actorClientId: client3.id,
       body: 'Call me at 555-123-4567 or email me at test@example.com',
-      redactedBody: 'Call me at [REDACTED] or email me at [REDACTED]',
       deliveryStatus: 'delivered',
-      hasPolicyViolation: true,
       createdAt: new Date(Date.now() - 5400000), // 1.5 hours ago
+    },
+  });
+
+  // Create policy violation record
+  await prisma.policyViolation.create({
+    data: {
+      orgId: org.id,
+      threadId: policyViolationThread.id,
+      messageId: violationMessage.id,
+      violationType: 'other',
+      detectedSummary: 'Message contains phone number and email address',
+      actionTaken: 'redacted',
+      status: 'open',
+      detectedAt: new Date(Date.now() - 5400000),
     },
   });
 
