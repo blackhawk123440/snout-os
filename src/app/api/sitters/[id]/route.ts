@@ -27,7 +27,7 @@ export async function GET(
     const resolvedParams = await params;
     const sitter = await prisma.sitter.findUnique({
       where: { id: resolvedParams.id },
-    });
+    }) as any; // Type assertion: runtime uses enterprise-messaging-dashboard schema (name field)
 
     if (!sitter) {
       return NextResponse.json(
@@ -37,7 +37,7 @@ export async function GET(
     }
 
     // Return sitter in format expected by frontend
-    const nameParts = sitter.name.split(' ');
+    const nameParts = (sitter.name || '').split(' ');
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
 
@@ -46,7 +46,7 @@ export async function GET(
         id: sitter.id,
         firstName,
         lastName,
-        name: sitter.name,
+        name: sitter.name || '',
         phone: null,
         email: null,
         personalPhone: null,
@@ -85,8 +85,8 @@ export async function PATCH(
     const resolvedParams = await params;
     const body = await request.json();
     const {
-      firstName,
-      lastName,
+      firstName: bodyFirstName,
+      lastName: bodyLastName,
       phone,
       email,
       isActive,
@@ -100,24 +100,24 @@ export async function PATCH(
     const updateData: any = {};
     
     // Schema only has: id, orgId, userId, name, active, createdAt, updatedAt
-    if (firstName !== undefined || lastName !== undefined) {
+    if (bodyFirstName !== undefined || bodyLastName !== undefined) {
       // Combine firstName and lastName into name
       const existingSitter = await prisma.sitter.findUnique({
         where: { id: resolvedParams.id },
-      });
+      }) as any; // Type assertion: runtime uses enterprise-messaging-dashboard schema
       
-      if (firstName !== undefined && lastName !== undefined) {
-        updateData.name = `${firstName} ${lastName}`.trim();
-      } else if (firstName !== undefined && existingSitter) {
+      if (bodyFirstName !== undefined && bodyLastName !== undefined) {
+        updateData.name = `${bodyFirstName} ${bodyLastName}`.trim();
+      } else if (bodyFirstName !== undefined && existingSitter) {
         // Only firstName provided, combine with existing lastName
-        const existingName = existingSitter.name.split(' ');
+        const existingName = (existingSitter.name || '').split(' ');
         const existingLastName = existingName.slice(1).join(' ') || '';
-        updateData.name = `${firstName} ${existingLastName}`.trim();
-      } else if (lastName !== undefined && existingSitter) {
+        updateData.name = `${bodyFirstName} ${existingLastName}`.trim();
+      } else if (bodyLastName !== undefined && existingSitter) {
         // Only lastName provided, combine with existing firstName
-        const existingName = existingSitter.name.split(' ');
+        const existingName = (existingSitter.name || '').split(' ');
         const existingFirstName = existingName[0] || '';
-        updateData.name = `${existingFirstName} ${lastName}`.trim();
+        updateData.name = `${existingFirstName} ${bodyLastName}`.trim();
       }
     }
     
@@ -127,11 +127,11 @@ export async function PATCH(
 
     const sitter = await prisma.sitter.update({
       where: { id: resolvedParams.id },
-      data: updateData,
-    });
+      data: updateData as any, // Type assertion: runtime uses enterprise-messaging-dashboard schema
+    }) as any;
 
     // Return sitter in format expected by frontend
-    const nameParts = sitter.name.split(' ');
+    const nameParts = (sitter.name || '').split(' ');
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
 

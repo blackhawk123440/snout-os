@@ -75,11 +75,11 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: 'desc',
       },
-    });
+    }) as any[]; // Type assertion: runtime uses enterprise-messaging-dashboard schema (name field)
 
     // Transform sitters to match frontend expectations
     const transformedSitters = sitters.map((sitter) => {
-      const nameParts = sitter.name.split(' ');
+      const nameParts = (sitter.name || '').split(' ');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
       
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
         id: sitter.id,
         firstName,
         lastName,
-        name: sitter.name,
+        name: sitter.name || '',
         phone: null,
         email: null,
         personalPhone: null,
@@ -151,14 +151,14 @@ export async function POST(request: NextRequest) {
     // Combine firstName and lastName into name (schema requirement)
     const name = `${firstName} ${lastName}`.trim();
 
-    // Create sitter using Prisma (schema only has: id, orgId, userId, name, active, createdAt, updatedAt)
+    // Create sitter using Prisma (enterprise-messaging-dashboard schema: id, orgId, userId, name, active, createdAt, updatedAt)
     const sitter = await prisma.sitter.create({
       data: {
         orgId,
         name,
         active: isActive,
-      },
-    });
+      } as any, // Type assertion: runtime uses enterprise-messaging-dashboard schema
+    }) as any;
 
     // Return sitter in format expected by frontend
     return NextResponse.json({ 
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         id: sitter.id,
         firstName,
         lastName,
-        name: sitter.name,
+        name: sitter.name || '',
         phone: phone || null,
         email: email || null,
         personalPhone: personalPhone || null,
