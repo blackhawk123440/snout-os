@@ -150,8 +150,16 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Direct Prisma] Error fetching threads:', error);
+    console.error('[Direct Prisma] Error stack:', error.stack);
+    console.error('[Direct Prisma] Error name:', error.name);
     return NextResponse.json(
-      { error: 'Failed to fetch threads', details: error.message },
+      { 
+        error: 'Failed to fetch threads', 
+        details: error.message,
+        errorName: error.name,
+        // Only include stack in development
+        ...(process.env.NODE_ENV === 'development' ? { stack: error.stack } : {}),
+      },
       { status: 500 }
     );
   }
