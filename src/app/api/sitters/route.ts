@@ -28,9 +28,10 @@ export async function GET(request: NextRequest) {
     try {
       // Mint API JWT token from session
       const user = session.user as any;
+      const orgId = user.orgId || 'default';
       const apiToken = await mintApiJWT({
         userId: user.id || user.email || '',
-        orgId: user.orgId || 'default',
+        orgId,
         role: user.role || (user.sitterId ? 'sitter' : 'owner'),
         sitterId: user.sitterId || null,
       });
@@ -69,8 +70,7 @@ export async function GET(request: NextRequest) {
       }
 
       // If backend API doesn't include assignedNumberId, fetch it from Prisma
-      const user = session.user as any;
-      const orgId = user.orgId || 'default';
+      // (user and orgId already declared above)
       const sitterIds = sitters.map((s: any) => s.id).filter(Boolean);
       
       let numberMap = new Map<string, string>();
