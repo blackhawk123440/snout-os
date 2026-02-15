@@ -282,7 +282,7 @@ export async function POST(
     const provider = await getMessagingProvider(orgId);
     const sendResult = await provider.sendMessage({
       to: clientContact.e164,
-      from: fromNumber.e164,
+      fromNumberSid: fromNumber.providerNumberSid || undefined,
       body: messageBody,
     });
 
@@ -304,7 +304,7 @@ export async function POST(
         { 
           messageId: message.id,
           hasPolicyViolation: false,
-          error: sendResult.error || 'Failed to send message',
+          error: sendResult.errorMessage || 'Failed to send message',
         },
         { status: 500 }
       );

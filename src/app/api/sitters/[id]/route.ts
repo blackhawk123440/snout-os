@@ -176,8 +176,6 @@ export async function PATCH(
         phone: phone || null,
         email: email || null,
         personalPhone: personalPhone || null,
-        openphonePhone: openphonePhone || null,
-        phoneType: phoneType || null,
         isActive: sitter.active,
         commissionPercentage: commissionPercentage || 80.0,
         createdAt: sitter.createdAt,
