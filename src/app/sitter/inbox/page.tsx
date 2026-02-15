@@ -99,26 +99,40 @@ function SitterInboxContent() {
                 />
               </div>
             ) : (
-              threads.map((thread) => (
-                <Card
-                  key={thread.id}
-                  onClick={() => setSelectedThreadId(thread.id)}
-                  style={{
-                    margin: tokens.spacing[2],
-                    padding: tokens.spacing[3],
-                    cursor: 'pointer',
-                    backgroundColor: selectedThreadId === thread.id ? tokens.colors.primary[50] : 'white',
-                    border: selectedThreadId === thread.id ? `2px solid ${tokens.colors.primary.DEFAULT}` : `1px solid ${tokens.colors.border.default}`,
-                  }}
-                >
-                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
-                    {thread.client.name}
-                  </div>
-                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
-                    {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
-                  </div>
-                </Card>
-              ))
+              threads.map((thread) => {
+                const threadWindow = thread.assignmentWindows?.[0];
+                const isThreadWindowActive = threadWindow && new Date() >= threadWindow.startsAt && new Date() <= threadWindow.endsAt;
+                
+                return (
+                  <Card
+                    key={thread.id}
+                    onClick={() => setSelectedThreadId(thread.id)}
+                    style={{
+                      margin: tokens.spacing[2],
+                      padding: tokens.spacing[3],
+                      cursor: 'pointer',
+                      backgroundColor: selectedThreadId === thread.id ? tokens.colors.primary[50] : 'white',
+                      border: selectedThreadId === thread.id ? `2px solid ${tokens.colors.primary.DEFAULT}` : `1px solid ${tokens.colors.border.default}`,
+                    }}
+                  >
+                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                      {thread.client.name}
+                    </div>
+                    {threadWindow && (
+                      <div style={{ 
+                        fontSize: tokens.typography.fontSize.xs[0], 
+                        color: isThreadWindowActive ? tokens.colors.success[700] : tokens.colors.text.secondary,
+                        marginBottom: tokens.spacing[0.5]
+                      }}>
+                        {isThreadWindowActive ? '✓ Active' : 'Inactive'} • {formatDistanceToNow(new Date(threadWindow.endsAt), { addSuffix: true })}
+                      </div>
+                    )}
+                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                      {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
+                    </div>
+                  </Card>
+                );
+              })
             )}
           </div>
         </div>
