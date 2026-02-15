@@ -99,6 +99,7 @@ beforeAll(async () => {
       name: 'Test Client',
       contacts: {
         create: {
+          orgId: testOrgId,
           e164: testClientE164,
           label: 'Mobile',
           verified: true,
