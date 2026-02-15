@@ -106,7 +106,7 @@ export function SittersPanel() {
       <Card>
         <EmptyState
           title="No sitters found"
-          description="No sitters exist in this org yet. Add sitters in Settings → Sitters Management."
+          description="No sitters exist in this org yet. Add sitters in Bookings → Sitters Management."
           icon={<i className="fas fa-user-friends" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
         />
       </Card>
