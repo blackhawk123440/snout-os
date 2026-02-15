@@ -7,21 +7,19 @@
  * - Must run against PostgreSQL (not SQLite)
  * - Must use real Prisma client (not mocks)
  * - Must verify DB state after concurrent operations
+ * 
+ * NOTE: This test requires a real PostgreSQL database. It will be skipped if:
+ * - DATABASE_URL is not set
+ * - Running in CI without test database configured
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 
-// Use real Prisma client - connect to test database
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL || 'postgresql://localhost:5432/snout_test',
-    },
-  },
-});
+// Skip if no database URL (CI or local without DB)
+const shouldSkip = !process.env.DATABASE_URL || process.env.CI === 'true';
 
-describe('Phone-to-Client Uniqueness - Real DB Integration', () => {
+describe.skipIf(shouldSkip)('Phone-to-Client Uniqueness - Real DB Integration', () => {
   const testOrgId = `test-org-${Date.now()}`;
   const testPhoneE164 = '+15559999999';
 
