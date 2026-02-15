@@ -119,7 +119,7 @@ export function useMarkThreadRead() {
 
   return useMutation({
     mutationFn: (threadId: string) =>
-      apiPatch(`/api/threads/${threadId}/mark-read`),
+      apiPatch(`/api/messages/threads/${threadId}/mark-read`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['threads'] });
     },
