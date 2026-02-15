@@ -173,4 +173,6 @@ export function useSitters() {
 ## Commit SHA
 - `f31bcc4` - Fix sitters API: add org scoping, assignedNumberId, and fix response format mismatch
 - `9b37285` - Add assignedNumberId lookup in API proxy and improve empty state message
-- `[latest]` - Add assignedNumberId lookup in API proxy response transformation
+- `f7ff867` - Add assignedNumberId lookup in API proxy response transformation
+- `f58a903` - Fix syntax error: remove duplicate closing brace in Prisma query
+- `2411f0c` - Fix duplicate variable declaration: reuse user and orgId in API proxy
