@@ -19,7 +19,31 @@ export async function GET(request: NextRequest) {
   if (!session?.user) {
     return NextResponse.json(
       { error: 'Unauthorized' },
-      { status: 401 }
+      { 
+        status: 401,
+        headers: {
+          'X-Snout-Api': 'sitters-route-hit',
+          'X-Snout-Auth': 'missing-session',
+        },
+      }
+    );
+  }
+
+  const user = session.user as any;
+  const orgId = user.orgId || 'default';
+  
+  // Fail loudly if orgId is missing in staging
+  if (process.env.NODE_ENV === 'production' && (!user.orgId || user.orgId === 'default')) {
+    return NextResponse.json(
+      { error: 'Organization ID missing. Please contact support.', details: 'orgId is required but was not found in session.' },
+      { 
+        status: 401,
+        headers: {
+          'X-Snout-Api': 'sitters-route-hit',
+          'X-Snout-Auth': 'missing-orgid',
+          'X-Snout-OrgId': 'missing',
+        },
+      }
     );
   }
 
@@ -27,8 +51,7 @@ export async function GET(request: NextRequest) {
   if (API_BASE_URL) {
     try {
       // Mint API JWT token from session
-      const user = session.user as any;
-      const orgId = user.orgId || 'default';
+      // (user and orgId already declared above)
       const apiToken = await mintApiJWT({
         userId: user.id || user.email || '',
         orgId,
@@ -122,6 +145,9 @@ export async function GET(request: NextRequest) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
+          'X-Snout-Api': 'sitters-route-hit',
+          'X-Snout-Route': 'proxy',
+          'X-Snout-OrgId': orgId,
         },
       });
     } catch (error: any) {
@@ -132,8 +158,7 @@ export async function GET(request: NextRequest) {
 
   // Fallback: Use Prisma directly
   try {
-    const user = session.user as any;
-    const orgId = user.orgId || 'default';
+    // (user and orgId already declared above)
 
     // Get sitters for this org with their assigned numbers
     const sitters = await (prisma as any).sitter.findMany({
@@ -194,12 +219,25 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ sitters: transformedSitters });
+    return NextResponse.json({ sitters: transformedSitters }, {
+      headers: {
+        'X-Snout-Api': 'sitters-route-hit',
+        'X-Snout-Route': 'prisma-fallback',
+        'X-Snout-OrgId': orgId,
+      },
+    });
   } catch (error: any) {
     console.error('[Sitters API] Failed to fetch sitters:', error);
     return NextResponse.json(
       { error: 'Failed to fetch sitters', message: error.message },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'X-Snout-Api': 'sitters-route-hit',
+          'X-Snout-Route': 'error',
+          'X-Snout-OrgId': orgId,
+        },
+      }
     );
   }
 }
