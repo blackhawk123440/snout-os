@@ -125,41 +125,30 @@ export async function GET(request: NextRequest) {
       filters.threadType = 'front_desk';
     }
 
-    // Use try-catch for each relation to handle missing models gracefully
-    let threads: any[];
-    try {
-      threads = await (prisma as any).thread.findMany({
-        where: filters,
-        include: {
-          client: {
-            include: {
-              contacts: {
-                where: {
-                  orgId, // Ensure contacts are scoped to org
-                },
+    const threads = await (prisma as any).thread.findMany({
+      where: filters,
+      include: {
+        client: {
+          include: {
+            contacts: {
+              where: {
+                orgId, // Ensure contacts are scoped to org
               },
             },
           },
-          sitter: true,
-          messageNumber: true,
-          assignmentWindows: {
-            where: {
-              endsAt: { gte: new Date() },
-            },
-            orderBy: { startsAt: 'desc' },
-            take: 1,
-          },
         },
-        orderBy: { lastActivityAt: 'desc' },
-      });
-    } catch (relationError: any) {
-      // If relation fails, try without relations
-      console.warn('[Direct Prisma] Relation error, trying without relations:', relationError.message);
-      threads = await (prisma as any).thread.findMany({
-        where: filters,
-        orderBy: { lastActivityAt: 'desc' },
-      });
-    }
+        sitter: true,
+        messageNumber: true,
+        assignmentWindows: {
+          where: {
+            endsAt: { gte: new Date() },
+          },
+          orderBy: { startsAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { lastActivityAt: 'desc' },
+    });
 
     return NextResponse.json({ threads }, {
       status: 200,
@@ -172,21 +161,11 @@ export async function GET(request: NextRequest) {
     console.error('[Direct Prisma] Error fetching threads:', error);
     console.error('[Direct Prisma] Error stack:', error.stack);
     console.error('[Direct Prisma] Error name:', error.name);
-    console.error('[Direct Prisma] Error code:', error.code);
-    console.error('[Direct Prisma] Prisma client available:', !!prisma);
-    console.error('[Direct Prisma] Thread model available:', !!(prisma as any).thread);
-    
-    // Check if it's a Prisma model not found error
-    if (error.message?.includes('model') || error.message?.includes('undefined')')) {
-      console.error('[Direct Prisma] Prisma model may not be available. Check schema generation.');
-    }
-    
     return NextResponse.json(
       { 
         error: 'Failed to fetch threads', 
         details: error.message,
         errorName: error.name,
-        errorCode: error.code,
         // Only include stack in development
         ...(process.env.NODE_ENV === 'development' ? { stack: error.stack } : {}),
       },
