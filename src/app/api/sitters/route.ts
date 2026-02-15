@@ -55,12 +55,74 @@ export async function GET(request: NextRequest) {
         responseData = await response.text();
       }
 
-      // Wrap array in { sitters: [] } format expected by frontend
-      const sitters = Array.isArray(responseData) ? responseData : [];
-      return NextResponse.json({ sitters }, {
-        status: response.status,
+      if (!response.ok) {
+        // If API returns error, fall through to Prisma fallback
+        throw new Error(`API returned ${response.status}: ${JSON.stringify(responseData)}`);
+      }
+
+      // API may return array or { sitters: [...] } - normalize to array
+      let sitters: any[] = [];
+      if (Array.isArray(responseData)) {
+        sitters = responseData;
+      } else if (responseData.sitters && Array.isArray(responseData.sitters)) {
+        sitters = responseData.sitters;
+      }
+
+      // If backend API doesn't include assignedNumberId, fetch it from Prisma
+      const user = session.user as any;
+      const orgId = user.orgId || 'default';
+      const sitterIds = sitters.map((s: any) => s.id).filter(Boolean);
+      
+      let numberMap = new Map<string, string>();
+      if (sitterIds.length > 0) {
+        try {
+          const assignedNumbers = await (prisma as any).messageNumber.findMany({
+            where: {
+              orgId,
+              assignedSitterId: { in: sitterIds },
+              class: 'sitter',
+              status: 'active',
+            },
+            },
+            select: {
+              id: true,
+              assignedSitterId: true,
+            },
+          });
+          assignedNumbers.forEach((num: any) => {
+            if (num.assignedSitterId) {
+              numberMap.set(num.assignedSitterId, num.id);
+            }
+          });
+        } catch (error) {
+          console.warn('[BFF Proxy] Failed to fetch assigned numbers:', error);
+          // Continue without assignedNumberId - not critical
+        }
+      }
+
+      // Transform to match frontend expectations
+      const transformedSitters = sitters.map((sitter: any) => ({
+        id: sitter.id,
+        firstName: sitter.firstName || (sitter.name ? sitter.name.split(' ')[0] : ''),
+        lastName: sitter.lastName || (sitter.name ? sitter.name.split(' ').slice(1).join(' ') : ''),
+        name: sitter.name || `${sitter.firstName || ''} ${sitter.lastName || ''}`.trim(),
+        phone: sitter.phone || null,
+        email: sitter.email || null,
+        personalPhone: sitter.personalPhone || null,
+        openphonePhone: sitter.openphonePhone || null,
+        phoneType: sitter.phoneType || null,
+        isActive: sitter.isActive ?? sitter.active ?? true,
+        commissionPercentage: sitter.commissionPercentage || 80.0,
+        createdAt: sitter.createdAt,
+        updatedAt: sitter.updatedAt,
+        currentTier: sitter.currentTier || null,
+        assignedNumberId: sitter.assignedNumberId || numberMap.get(sitter.id) || null,
+      }));
+
+      return NextResponse.json({ sitters: transformedSitters }, {
+        status: 200,
         headers: {
-          'Content-Type': contentType || 'application/json',
+          'Content-Type': 'application/json',
         },
       });
     } catch (error: any) {
