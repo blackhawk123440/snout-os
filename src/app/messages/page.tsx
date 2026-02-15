@@ -58,7 +58,7 @@ function MessagesPageContent() {
         title="Messages"
         description="Manage all messaging operations from one place"
       />
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div className="flex flex-col h-full min-h-0" style={{ padding: 0 }}>
         <Tabs
           tabs={[
             { id: 'inbox', label: 'Owner Inbox' },

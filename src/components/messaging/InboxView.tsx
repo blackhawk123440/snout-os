@@ -260,7 +260,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 180px)', minHeight: '600px', position: 'relative', width: '100%', overflow: 'hidden' }}>
+    <div className="flex h-full min-h-0 overflow-hidden">
       {/* Diagnostics Panel (dev + owner-only) */}
       <DiagnosticsPanel
         threadsCount={threads.length}
@@ -336,7 +336,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
         </div>
 
         {/* Thread List */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {threadsLoading ? (
             <div style={{ padding: tokens.spacing[4], textAlign: 'center', color: tokens.colors.text.secondary }}>
               <Skeleton height={60} />
@@ -435,7 +435,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
       </div>
 
       {/* Right: Message View */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="flex-1 min-h-0 flex flex-col">
         {selectedThreadId ? (
           <>
             {/* Thread Header */}
@@ -493,7 +493,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
             </div>
 
             {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: tokens.spacing[4] }}>
+            <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: tokens.spacing[4] }}>
               {messagesLoading ? (
                 <div style={{ textAlign: 'center', color: tokens.colors.text.secondary }}>
                   <Skeleton height={100} />
@@ -598,8 +598,8 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
               )}
             </div>
 
-            {/* Compose Box */}
-            <div style={{ padding: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
+            {/* Compose Box - Pinned Bottom */}
+            <div className="flex-shrink-0" style={{ padding: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
               <textarea
                 value={composeMessage}
                 onChange={(e) => setComposeMessage(e.target.value)}

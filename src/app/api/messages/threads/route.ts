@@ -253,23 +253,32 @@ export async function POST(request: NextRequest) {
 
   // Fallback: Direct Prisma implementation
   try {
-    // Find or create client by phone number
-    let client = await (prisma as any).client.findFirst({
+    // CRITICAL: Find client by phone number (orgId + e164)
+    // This ensures one client per phone per org, preventing duplicate threads.
+    // We look up ClientContact first, then get the Client.
+    const contact = await (prisma as any).clientContact.findFirst({
       where: {
-        orgId,
-        contacts: {
-          some: {
-            e164: normalizedPhone,
-          },
+        e164: normalizedPhone,
+        client: {
+          orgId,
         },
       },
       include: {
-        contacts: true,
+        client: {
+          include: {
+            contacts: true,
+          },
+        },
       },
     });
 
-    if (!client) {
-      // Create guest client
+    let client;
+    if (contact) {
+      // Reuse existing client for this phone
+      client = contact.client;
+    } else {
+      // Create guest client (first time this phone is seen)
+      // This is safe because we checked no contact exists for this phone+org
       client = await (prisma as any).client.create({
         data: {
           orgId,

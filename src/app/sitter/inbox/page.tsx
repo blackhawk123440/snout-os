@@ -77,14 +77,14 @@ function SitterInboxContent() {
         description="Messages from clients during your active assignments"
       />
       
-      <div style={{ display: 'flex', height: 'calc(100vh - 200px)', minHeight: '600px' }}>
+      <div className="flex flex-1 min-h-0 overflow-hidden h-full">
         {/* Left: Thread List */}
-        <div style={{ width: '33%', borderRight: `1px solid ${tokens.colors.border.default}`, backgroundColor: tokens.colors.neutral[50], display: 'flex', flexDirection: 'column' }}>
+        <div className="w-1/3 flex flex-col min-h-0" style={{ borderRight: `1px solid ${tokens.colors.border.default}`, backgroundColor: tokens.colors.neutral[50] }}>
           <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
             <h2 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>Active Assignments</h2>
           </div>
           
-          <div style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {threadsLoading ? (
               <div style={{ padding: tokens.spacing[4] }}>
                 <Skeleton height={60} />
@@ -124,23 +124,46 @@ function SitterInboxContent() {
         </div>
 
         {/* Right: Message View */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div className="flex-1 min-h-0 flex flex-col">
           {selectedThreadId ? (
             <>
               {/* Thread Header */}
               <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
-                <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
-                  {selectedThread?.client.name || 'Unknown'}
-                </h3>
-                {activeWindow && (
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                    Assignment window: {formatDistanceToNow(new Date(activeWindow.endsAt), { addSuffix: true })}
+                <div style={{ marginBottom: tokens.spacing[3] }}>
+                  <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                    {selectedThread?.client.name || 'Unknown'}
+                  </h3>
+                  {user && (
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                      {user.name || user.email} • {selectedThread?.messageNumber?.e164 ? `Assigned number: ${selectedThread.messageNumber.e164}` : 'No assigned number'}
+                    </div>
+                  )}
+                </div>
+                {activeWindow ? (
+                  <div style={{ 
+                    padding: tokens.spacing[2], 
+                    backgroundColor: tokens.colors.success[50], 
+                    borderRadius: tokens.radius.sm,
+                    fontSize: tokens.typography.fontSize.sm[0],
+                    color: tokens.colors.success[800]
+                  }}>
+                    ✓ Active assignment window ends {formatDistanceToNow(new Date(activeWindow.endsAt), { addSuffix: true })}
+                  </div>
+                ) : (
+                  <div style={{ 
+                    padding: tokens.spacing[2], 
+                    backgroundColor: tokens.colors.warning[50], 
+                    borderRadius: tokens.radius.sm,
+                    fontSize: tokens.typography.fontSize.sm[0],
+                    color: tokens.colors.warning[800]
+                  }}>
+                    ⚠ Assignment window is not active. You cannot send messages outside your active assignment window.
                   </div>
                 )}
               </div>
 
               {/* Messages */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: tokens.spacing[4] }}>
+              <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: tokens.spacing[4] }}>
                 {messagesLoading ? (
                   <div style={{ textAlign: 'center' }}>
                     <Skeleton height={100} />
@@ -175,11 +198,23 @@ function SitterInboxContent() {
                 )}
               </div>
 
-              {/* Compose Box */}
-              <div style={{ padding: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
+              {/* Compose Box - Pinned Bottom */}
+              <div className="flex-shrink-0" style={{ padding: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
                 {!isWindowActive ? (
-                  <div style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.warning[50], borderRadius: tokens.radius.sm, color: tokens.colors.warning[800] }}>
-                    Assignment window is not active. You cannot send messages outside your active assignment window.
+                  <div style={{ 
+                    padding: tokens.spacing[3], 
+                    backgroundColor: tokens.colors.warning[50], 
+                    borderRadius: tokens.radius.sm, 
+                    color: tokens.colors.warning[800],
+                    fontSize: tokens.typography.fontSize.sm[0],
+                    lineHeight: 1.5
+                  }}>
+                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                      Cannot send messages
+                    </div>
+                    <div>
+                      Your assignment window is not currently active. Messages can only be sent during active assignment windows. Contact the owner if you need to communicate outside your window.
+                    </div>
                   </div>
                 ) : (
                   <>
