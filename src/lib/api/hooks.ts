@@ -126,6 +126,29 @@ export function useMarkThreadRead() {
   });
 }
 
+export function useCreateThread() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: { phoneNumber: string; initialMessage?: string }) =>
+      apiPost<{ threadId: string; clientId: string; reused: boolean }>(
+        '/api/messages/threads',
+        {
+          phoneNumber: params.phoneNumber,
+          initialMessage: params.initialMessage,
+        },
+        z.object({
+          threadId: z.string(),
+          clientId: z.string(),
+          reused: z.boolean(),
+        })
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['threads'] });
+    },
+  });
+}
+
 // ============================================
 // Messages
 // ============================================

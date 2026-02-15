@@ -25,6 +25,7 @@ import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { isMessagingEnabled } from '@/lib/flags';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
+import { NewMessageModal } from './NewMessageModal';
 
 interface InboxViewProps {
   role?: 'owner' | 'sitter';
@@ -55,6 +56,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   const [showPolicyOverride, setShowPolicyOverride] = useState<string | null>(null);
   const [overrideReason, setOverrideReason] = useState('');
   const [showPoolExhaustedConfirm, setShowPoolExhaustedConfirm] = useState(false);
+  const [showNewMessageModal, setShowNewMessageModal] = useState(false);
 
   // Apply filters to API call - explicitly pass each filter
   const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useThreads({
@@ -839,6 +841,18 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
             </div>
           </Card>
         </div>
+      )}
+
+      {/* New Message Modal */}
+      {role === 'owner' && (
+        <NewMessageModal
+          isOpen={showNewMessageModal}
+          onClose={() => setShowNewMessageModal(false)}
+          onThreadCreated={(threadId) => {
+            setSelectedThreadId(threadId);
+            setShowNewMessageModal(false);
+          }}
+        />
       )}
     </div>
   );
