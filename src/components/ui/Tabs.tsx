@@ -167,11 +167,13 @@ export const Tabs: React.FC<TabsProps> = ({
 export interface TabPanelProps {
   id: string;
   children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-export const TabPanel: React.FC<TabPanelProps> = ({ id, children }) => {
+export const TabPanel: React.FC<TabPanelProps> = ({ id, children, className, style }) => {
   const { activeTab } = useTabsContext();
   if (activeTab !== id) return null;
-  return <div>{children}</div>;
+  return <div className={className} style={style}>{children}</div>;
 };
 

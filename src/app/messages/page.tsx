@@ -76,7 +76,7 @@ function MessagesPageContent() {
             window.history.pushState({}, '', url.toString());
           }}
         >
-          <TabPanel id="inbox">
+          <TabPanel id="inbox" className="flex-1 min-h-0 flex flex-col">
             <InboxView 
               role="owner" 
               initialThreadId={searchParams.get('thread') || undefined}
