@@ -237,4 +237,4 @@ X-Snout-OrgId: missing
 4. `src/app/api/sitters/route.ts:207-214` - Added debug headers to error response
 
 ## Commit SHA
-`[run: git log --oneline -1]` - Add staging debug headers and fail loudly on missing orgId
+`6fbfa96` - Add staging debug headers and fail loudly on missing orgId
