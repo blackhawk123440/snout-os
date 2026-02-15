@@ -260,7 +260,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   };
 
   return (
-    <div className="flex h-full min-h-0 overflow-hidden">
+    <div className="flex flex-1 min-h-0 overflow-hidden h-full">
       {/* Diagnostics Panel (dev + owner-only) */}
       <DiagnosticsPanel
         threadsCount={threads.length}
@@ -273,7 +273,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
       />
 
       {/* Left: Thread List */}
-      <div style={{ width: '33%', borderRight: `1px solid ${tokens.colors.border.default}`, backgroundColor: tokens.colors.neutral[50], display: 'flex', flexDirection: 'column' }}>
+      <div className="w-1/3 flex flex-col min-h-0" style={{ borderRight: `1px solid ${tokens.colors.border.default}`, backgroundColor: tokens.colors.neutral[50] }}>
         {/* Filters */}
         <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
           <h2 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[3] }}>Threads</h2>
