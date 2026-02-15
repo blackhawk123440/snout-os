@@ -355,23 +355,9 @@ export default function SettingsPage() {
                 value={settings.ownerPersonalPhone}
                 onChange={(e) => handleInputChange('ownerPersonalPhone', e.target.value)}
               />
-            </FormRow>
-            <FormRow label="Owner OpenPhone">
-              <Input
-                type="tel"
-                value={settings.ownerOpenphonePhone}
-                onChange={(e) => handleInputChange('ownerOpenphonePhone', e.target.value)}
-              />
-            </FormRow>
-            <FormRow label="Owner Phone Type">
-              <Select
-                options={[
-                  { value: 'personal', label: 'Personal' },
-                  { value: 'openphone', label: 'OpenPhone' },
-                ]}
-                value={settings.ownerPhoneType}
-                onChange={(e) => handleInputChange('ownerPhoneType', e.target.value)}
-              />
+              <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                Messaging is configured in Messages → Twilio Setup
+              </div>
             </FormRow>
           </Card>
         );
