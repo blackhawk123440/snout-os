@@ -172,4 +172,5 @@ export function useSitters() {
 
 ## Commit SHA
 - `f31bcc4` - Fix sitters API: add org scoping, assignedNumberId, and fix response format mismatch
-- `[check git log]` - Add assignedNumberId lookup in API proxy and improve empty state message
+- `9b37285` - Add assignedNumberId lookup in API proxy and improve empty state message
+- `[latest]` - Add assignedNumberId lookup in API proxy response transformation

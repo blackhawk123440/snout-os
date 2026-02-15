@@ -83,7 +83,6 @@ export async function GET(request: NextRequest) {
               class: 'sitter',
               status: 'active',
             },
-            },
             select: {
               id: true,
               assignedSitterId: true,
