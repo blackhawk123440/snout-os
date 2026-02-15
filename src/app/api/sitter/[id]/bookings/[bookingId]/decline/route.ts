@@ -27,7 +27,7 @@ export async function POST(
     const bookingId = resolvedParams.bookingId;
 
     // Find the active pool offer for this booking and sitter
-    const offer = await prisma.sitterPoolOffer.findFirst({
+    const offer = await (prisma as any).sitterPoolOffer.findFirst({
       where: {
         bookingId: bookingId,
         OR: [
@@ -58,7 +58,7 @@ export async function POST(
     responses.push({ sitterId, response: 'declined' });
     
     // Update offer with response
-    await prisma.sitterPoolOffer.update({
+    await (prisma as any).sitterPoolOffer.update({
       where: { id: offer.id },
       data: {
         responses: JSON.stringify(responses),

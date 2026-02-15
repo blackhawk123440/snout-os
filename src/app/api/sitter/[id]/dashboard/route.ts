@@ -44,7 +44,7 @@ export async function GET(
     const now = new Date();
 
     // Fetch pending requests (bookings with active pool offers for this sitter)
-    const pendingOffers = await prisma.sitterPoolOffer.findMany({
+    const pendingOffers = await (prisma as any).sitterPoolOffer.findMany({
       where: {
         OR: [
           { sitterId: sitterId, status: 'active' },
