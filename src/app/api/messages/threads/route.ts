@@ -119,13 +119,22 @@ export async function GET(request: NextRequest) {
     if (searchParams.get('unreadOnly') === 'true') {
       filters.ownerUnreadCount = { gt: 0 };
     }
+    
+    // Handle scope filter: 'internal' means owner inbox (front_desk threads)
+    if (searchParams.get('scope') === 'internal') {
+      filters.threadType = 'front_desk';
+    }
 
     const threads = await (prisma as any).thread.findMany({
       where: filters,
       include: {
         client: {
           include: {
-            contacts: true,
+            contacts: {
+              where: {
+                orgId, // Ensure contacts are scoped to org
+              },
+            },
           },
         },
         sitter: true,
