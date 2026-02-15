@@ -106,6 +106,7 @@ async function main() {
       name: 'John Smith',
       contacts: {
         create: {
+          orgId: org.id,
           e164: '+15551234567',
           label: 'Mobile',
           verified: true,
@@ -120,6 +121,7 @@ async function main() {
       name: 'Jane Doe',
       contacts: {
         create: {
+          orgId: org.id,
           e164: '+15559876543',
           label: 'Mobile',
           verified: true,
