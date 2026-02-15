@@ -125,30 +125,41 @@ export async function GET(request: NextRequest) {
       filters.threadType = 'front_desk';
     }
 
-    const threads = await (prisma as any).thread.findMany({
-      where: filters,
-      include: {
-        client: {
-          include: {
-            contacts: {
-              where: {
-                orgId, // Ensure contacts are scoped to org
+    // Use try-catch for each relation to handle missing models gracefully
+    let threads: any[];
+    try {
+      threads = await (prisma as any).thread.findMany({
+        where: filters,
+        include: {
+          client: {
+            include: {
+              contacts: {
+                where: {
+                  orgId, // Ensure contacts are scoped to org
+                },
               },
             },
           },
-        },
-        sitter: true,
-        messageNumber: true,
-        assignmentWindows: {
-          where: {
-            endsAt: { gte: new Date() },
+          sitter: true,
+          messageNumber: true,
+          assignmentWindows: {
+            where: {
+              endsAt: { gte: new Date() },
+            },
+            orderBy: { startsAt: 'desc' },
+            take: 1,
           },
-          orderBy: { startsAt: 'desc' },
-          take: 1,
         },
-      },
-      orderBy: { lastActivityAt: 'desc' },
-    });
+        orderBy: { lastActivityAt: 'desc' },
+      });
+    } catch (relationError: any) {
+      // If relation fails, try without relations
+      console.warn('[Direct Prisma] Relation error, trying without relations:', relationError.message);
+      threads = await (prisma as any).thread.findMany({
+        where: filters,
+        orderBy: { lastActivityAt: 'desc' },
+      });
+    }
 
     return NextResponse.json({ threads }, {
       status: 200,
