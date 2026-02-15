@@ -27,7 +27,7 @@ export async function GET(
     const sitterId = resolvedParams.id;
 
     // Fetch sitter
-    const sitter = await prisma.sitter.findUnique({
+    const sitter = await (prisma as any).sitter.findUnique({
       where: { id: sitterId },
       include: {
         currentTier: true,
@@ -119,7 +119,7 @@ export async function GET(
       }));
 
     // Fetch upcoming bookings (confirmed bookings assigned to this sitter)
-    const upcomingBookings = await prisma.booking.findMany({
+    const upcomingBookings = await (prisma as any).booking.findMany({
       where: {
         sitterId: sitterId,
         status: { in: ['confirmed', 'in_progress'] },
@@ -166,7 +166,7 @@ export async function GET(
     }));
 
     // Fetch completed bookings
-    const completedBookings = await prisma.booking.findMany({
+    const completedBookings = await (prisma as any).booking.findMany({
       where: {
         sitterId: sitterId,
         status: 'completed',
@@ -199,7 +199,7 @@ export async function GET(
     }));
 
     // Calculate performance metrics (placeholders for now)
-    const allSitterBookings = await prisma.booking.findMany({
+    const allSitterBookings = await (prisma as any).booking.findMany({
       where: { sitterId: sitterId },
     });
 

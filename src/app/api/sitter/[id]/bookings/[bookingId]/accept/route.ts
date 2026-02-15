@@ -69,7 +69,7 @@ export async function POST(
     });
 
     // Assign booking to sitter
-    await prisma.booking.update({
+    await (prisma as any).booking.update({
       where: { id: bookingId },
       data: {
         sitterId: sitterId,
