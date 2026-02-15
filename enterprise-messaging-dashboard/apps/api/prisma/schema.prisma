@@ -72,16 +72,20 @@ model Client {
 
 model ClientContact {
   id        String   @id @default(uuid())
+  orgId     String   // Added for org-scoped uniqueness
   clientId  String
   e164      String   // E.164 format
   label     String?  // e.g., "Mobile", "Home"
   verified  Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  client        Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@unique([clientId, e164])
+  @@unique([orgId, e164]) // Enforce: one phone per org
   @@index([e164])
+  @@index([orgId, e164])
 }
 
 model Sitter {

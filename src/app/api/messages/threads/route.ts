@@ -253,14 +253,29 @@ export async function POST(request: NextRequest) {
 
   // Fallback: Direct Prisma implementation
   try {
-    // CRITICAL: Find client by phone number (orgId + e164)
-    // This ensures one client per phone per org, preventing duplicate threads.
-    // We look up ClientContact first, then get the Client.
-    const contact = await (prisma as any).clientContact.findFirst({
+    // CRITICAL: Use upsert to enforce one phone per org at DB level
+    // This prevents duplicates even under concurrent requests.
+    // The UNIQUE constraint on ClientContact(orgId, e164) ensures atomicity.
+    const contact = await (prisma as any).clientContact.upsert({
       where: {
-        e164: normalizedPhone,
-        client: {
+        orgId_e164: {
           orgId,
+          e164: normalizedPhone,
+        },
+      },
+      update: {
+        // Contact exists, no update needed
+      },
+      create: {
+        orgId,
+        e164: normalizedPhone,
+        label: 'Mobile',
+        verified: false,
+        client: {
+          create: {
+            orgId,
+            name: `Guest (${normalizedPhone})`,
+          },
         },
       },
       include: {
@@ -272,30 +287,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    let client;
-    if (contact) {
-      // Reuse existing client for this phone
-      client = contact.client;
-    } else {
-      // Create guest client (first time this phone is seen)
-      // This is safe because we checked no contact exists for this phone+org
-      client = await (prisma as any).client.create({
-        data: {
-          orgId,
-          name: `Guest (${normalizedPhone})`,
-          contacts: {
-            create: {
-              e164: normalizedPhone,
-              label: 'Mobile',
-              verified: false,
-            },
-          },
-        },
-        include: {
-          contacts: true,
-        },
-      });
-    }
+    const client = contact.client;
 
     // Find or create thread (one thread per client per org)
     let thread = await (prisma as any).thread.findUnique({

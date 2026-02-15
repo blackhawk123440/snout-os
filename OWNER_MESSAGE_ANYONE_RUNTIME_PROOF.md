@@ -94,21 +94,36 @@ WHERE t.id = '<threadId>'
 
 ## DB Proof Queries
 
+### UNIQUE Constraint Verification
+
+```sql
+-- Verify: UNIQUE constraint on ClientContact(orgId, e164) is enforced
+-- This query should return 0 rows if uniqueness is properly enforced
+SELECT 
+  "orgId", 
+  e164, 
+  COUNT(*) as duplicate_count
+FROM "ClientContact"
+GROUP BY "orgId", e164
+HAVING COUNT(*) > 1;
+
+-- Expected: 0 rows (no duplicates)
+```
+
 ### Single Client Per Phone Per Org
 
 ```sql
 -- Verify: One client per phone per org
 SELECT 
   cc.e164,
-  c."orgId",
-  COUNT(DISTINCT c.id) as client_count,
+  cc."orgId",
+  COUNT(DISTINCT cc."clientId") as client_count,
   COUNT(DISTINCT t.id) as thread_count
 FROM "ClientContact" cc
-JOIN "Client" c ON cc."clientId" = c.id
-LEFT JOIN "Thread" t ON t."clientId" = c.id AND t."orgId" = c."orgId"
-WHERE c."orgId" = '<orgId>'
+LEFT JOIN "Thread" t ON t."clientId" = cc."clientId" AND t."orgId" = cc."orgId"
+WHERE cc."orgId" = '<orgId>'
   AND cc.e164 = '+15551234567'
-GROUP BY cc.e164, c."orgId";
+GROUP BY cc.e164, cc."orgId";
 
 -- Expected: client_count = 1, thread_count = 1
 ```
@@ -132,18 +147,33 @@ GROUP BY t."orgId", t."clientId";
 ### Phone-to-Client Resolution
 
 ```sql
--- Verify: Phone resolves to single client
+-- Verify: Phone resolves to single client (using orgId directly on ClientContact)
 SELECT 
   cc.e164,
-  c.id as client_id,
-  c.name as client_name,
-  c."orgId"
+  cc."orgId",
+  cc."clientId" as client_id,
+  c.name as client_name
 FROM "ClientContact" cc
 JOIN "Client" c ON cc."clientId" = c.id
 WHERE cc.e164 = '+15551234567'
-  AND c."orgId" = '<orgId>';
+  AND cc."orgId" = '<orgId>';
 
--- Expected: Exactly one row
+-- Expected: Exactly one row (enforced by UNIQUE constraint)
+```
+
+### UNIQUE Index Definition
+
+```sql
+-- Verify: UNIQUE index exists
+SELECT 
+  indexname,
+  indexdef
+FROM pg_indexes
+WHERE tablename = 'ClientContact'
+  AND indexname = 'ClientContact_orgId_e164_key';
+
+-- Expected: One row with unique index definition
+-- Example: CREATE UNIQUE INDEX "ClientContact_orgId_e164_key" ON "ClientContact"("orgId", "e164")
 ```
 
 ## Test Scenarios

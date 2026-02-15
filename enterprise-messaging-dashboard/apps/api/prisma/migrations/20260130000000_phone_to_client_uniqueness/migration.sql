@@ -3,22 +3,38 @@
 -- Problem: Guest clients created by phone can create duplicates if same phone
 -- is used to create a client later, leading to multiple threads for same phone.
 --
--- Solution: Add unique constraint on (orgId, e164) via ClientContact.
--- Since ClientContact has @@unique([clientId, e164]), we need to ensure
--- that for a given (orgId, e164), there's only one ClientContact.
+-- Solution: Add UNIQUE constraint on ClientContact(orgId, e164).
+-- This ensures at the database level that one phone number maps to one client per org.
 --
--- We'll add a unique index on ClientContact(orgId, e164) by joining through Client.
--- However, Prisma doesn't support cross-table unique constraints directly.
---
--- Alternative: Add a helper function that ensures phone→client uniqueness
--- by always finding existing ClientContact by (orgId, e164) first.
---
--- For now, we'll add an index to speed up lookups and document the invariant
--- in application code.
+-- Implementation: We need to add orgId to ClientContact or create a unique index
+-- that includes orgId. Since ClientContact doesn't have orgId directly, we'll
+-- create a unique index that joins through Client.
 
--- Add index for fast phone→client lookup
-CREATE INDEX IF NOT EXISTS "ClientContact_orgId_e164_idx" ON "ClientContact"("e164");
+-- Step 1: Add orgId column to ClientContact for direct uniqueness enforcement
+-- (Alternative: Use a unique index with JOIN, but direct column is cleaner)
+ALTER TABLE "ClientContact" 
+ADD COLUMN IF NOT EXISTS "orgId" TEXT;
 
--- Note: We cannot create a unique constraint across Client and ClientContact
--- in PostgreSQL without a function or trigger. The application code must
--- enforce the invariant by always using findFirst with orgId + e164 lookup.
+-- Step 2: Backfill orgId from Client
+UPDATE "ClientContact" cc
+SET "orgId" = c."orgId"
+FROM "Client" c
+WHERE cc."clientId" = c.id
+  AND cc."orgId" IS NULL;
+
+-- Step 3: Make orgId NOT NULL after backfill
+ALTER TABLE "ClientContact"
+ALTER COLUMN "orgId" SET NOT NULL;
+
+-- Step 4: Add foreign key constraint
+ALTER TABLE "ClientContact"
+ADD CONSTRAINT "ClientContact_orgId_fkey" 
+FOREIGN KEY ("orgId") REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Step 5: Create UNIQUE constraint on (orgId, e164)
+CREATE UNIQUE INDEX IF NOT EXISTS "ClientContact_orgId_e164_key" 
+ON "ClientContact"("orgId", "e164");
+
+-- Step 6: Add index for fast lookups
+CREATE INDEX IF NOT EXISTS "ClientContact_orgId_e164_idx" 
+ON "ClientContact"("orgId", "e164");
