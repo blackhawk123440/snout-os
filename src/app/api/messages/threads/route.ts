@@ -335,40 +335,28 @@ export async function POST(request: NextRequest) {
 
     // Send initial message if provided
     if (initialMessage) {
-      // Get front desk number for sending
-      const frontDeskNumber = await (prisma as any).messageNumber.findFirst({
-        where: {
-          orgId,
-          class: 'front_desk',
-          status: 'active',
-        },
-      });
-
-      if (frontDeskNumber) {
-        // Create message record
-        await (prisma as any).message.create({
-          data: {
-            orgId,
-            threadId: thread.id,
-            direction: 'outbound',
-            senderType: 'owner',
-            senderId: user.id,
+      // Use the same send endpoint internally
+      // This ensures consistent routing and number selection
+      try {
+        const sendResponse = await fetch(`${request.nextUrl.origin}/api/messages/threads/${thread.id}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cookie': request.headers.get('Cookie') || '',
+          },
+          body: JSON.stringify({
             body: initialMessage,
-            createdAt: new Date(),
-          },
+            forceSend: false,
+          }),
         });
 
-        // Update thread activity
-        await (prisma as any).thread.update({
-          where: { id: thread.id },
-          data: {
-            lastActivityAt: new Date(),
-            lastOutboundAt: new Date(),
-          },
-        });
-
-        // TODO: Actually send via provider (Twilio)
-        // This would call the messaging provider to send the SMS
+        if (!sendResponse.ok) {
+          console.error('[Thread Creation] Failed to send initial message:', await sendResponse.text());
+          // Don't fail thread creation if message send fails
+        }
+      } catch (error: any) {
+        console.error('[Thread Creation] Error sending initial message:', error);
+        // Don't fail thread creation if message send fails
       }
     }
 

@@ -34,11 +34,7 @@ interface Settings {
   businessAddress: string;
   stripeSecretKey: string;
   stripePublishableKey: string;
-  openphoneApiKey: string;
-  openphoneNumberId: string;
   ownerPersonalPhone: string;
-  ownerOpenphonePhone: string;
-  ownerPhoneType: 'personal' | 'openphone';
   automation: {
     smsEnabled: boolean;
     emailEnabled: boolean;
@@ -63,11 +59,7 @@ export default function SettingsPage() {
     businessAddress: '',
     stripeSecretKey: '',
     stripePublishableKey: '',
-    openphoneApiKey: '',
-    openphoneNumberId: '',
     ownerPersonalPhone: '',
-    ownerOpenphonePhone: '',
-    ownerPhoneType: 'personal',
     automation: {
       smsEnabled: true,
       emailEnabled: false,
@@ -99,11 +91,7 @@ export default function SettingsPage() {
           businessAddress: data.settings.businessAddress ?? prev.businessAddress ?? '',
           stripeSecretKey: data.settings.stripeSecretKey ?? prev.stripeSecretKey ?? '',
           stripePublishableKey: data.settings.stripePublishableKey ?? prev.stripePublishableKey ?? '',
-          openphoneApiKey: data.settings.openphoneApiKey ?? prev.openphoneApiKey ?? '',
-          openphoneNumberId: data.settings.openphoneNumberId ?? prev.openphoneNumberId ?? '',
           ownerPersonalPhone: data.settings.ownerPersonalPhone ?? prev.ownerPersonalPhone ?? '',
-          ownerOpenphonePhone: data.settings.ownerOpenphonePhone ?? prev.ownerOpenphonePhone ?? '',
-          ownerPhoneType: data.settings.ownerPhoneType ?? prev.ownerPhoneType ?? 'personal',
           automation: data.settings.automation ?? prev.automation,
           conflictNoticeEnabled:
             data.settings.conflictNoticeEnabled ?? prev.conflictNoticeEnabled ?? true,

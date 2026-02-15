@@ -131,8 +131,6 @@ export async function GET(request: NextRequest) {
         phone: sitter.phone || null,
         email: sitter.email || null,
         personalPhone: sitter.personalPhone || null,
-        openphonePhone: sitter.openphonePhone || null,
-        phoneType: sitter.phoneType || null,
         isActive: sitter.isActive ?? sitter.active ?? true,
         commissionPercentage: sitter.commissionPercentage || 80.0,
         createdAt: sitter.createdAt,

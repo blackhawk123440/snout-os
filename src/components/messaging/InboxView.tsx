@@ -260,7 +260,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   };
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 200px)', minHeight: '600px', position: 'relative' }}>
+    <div style={{ display: 'flex', height: 'calc(100vh - 180px)', minHeight: '600px', position: 'relative', width: '100%', overflow: 'hidden' }}>
       {/* Diagnostics Panel (dev + owner-only) */}
       <DiagnosticsPanel
         threadsCount={threads.length}

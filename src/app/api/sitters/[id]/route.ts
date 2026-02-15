@@ -50,8 +50,6 @@ export async function GET(
         phone: null,
         email: null,
         personalPhone: null,
-        openphonePhone: null,
-        phoneType: null,
         isActive: sitter.active,
         commissionPercentage: 80.0,
         createdAt: sitter.createdAt,
@@ -92,8 +90,6 @@ export async function PATCH(
       isActive,
       commissionPercentage,
       personalPhone,
-      openphonePhone,
-      phoneType,
     } = body;
 
     // Build update data object (only include fields that exist in schema)
