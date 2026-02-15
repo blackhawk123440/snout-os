@@ -8,17 +8,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
+import { prisma } from '@/lib/db';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function GET(request: NextRequest) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
   // Get NextAuth session
   const session = await auth();
 
@@ -29,23 +23,28 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Mint API JWT token from session
-  let apiToken: string;
-  try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
+  const user = session.user as any;
+  const orgId = user.orgId || 'default';
+
+  // If API_BASE_URL is set, proxy to NestJS API
+  if (API_BASE_URL) {
+
+    // Mint API JWT token from session
+    let apiToken: string;
+    try {
+      apiToken = await mintApiJWT({
+        userId: user.id || user.email || '',
+        orgId,
+        role: user.role || (user.sitterId ? 'sitter' : 'owner'),
+        sitterId: user.sitterId || null,
+      });
+    } catch (error: any) {
+      console.error('[BFF Proxy] Failed to mint API JWT:', error);
+      return NextResponse.json(
+        { error: 'Failed to authenticate with API' },
+        { status: 500 }
+      );
+    }
 
   // Preserve query string
   const searchParams = request.nextUrl.searchParams.toString();
@@ -91,11 +90,69 @@ export async function GET(request: NextRequest) {
         'Content-Type': contentType || 'application/json',
       },
     });
+    } catch (error: any) {
+      console.error('[BFF Proxy] Failed to forward threads request:', error);
+      return NextResponse.json(
+        { error: 'Failed to reach API server', message: error.message },
+        { status: 502 }
+      );
+    }
+  }
+
+  // Fallback: Direct Prisma implementation
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const filters: any = {
+      orgId,
+    };
+
+    // Apply filters from query params
+    if (searchParams.get('sitterId')) {
+      filters.sitterId = searchParams.get('sitterId');
+    }
+    if (searchParams.get('clientId')) {
+      filters.clientId = searchParams.get('clientId');
+    }
+    if (searchParams.get('status')) {
+      filters.status = searchParams.get('status');
+    }
+    if (searchParams.get('unreadOnly') === 'true') {
+      filters.ownerUnreadCount = { gt: 0 };
+    }
+
+    const threads = await (prisma as any).thread.findMany({
+      where: filters,
+      include: {
+        client: {
+          include: {
+            contacts: true,
+          },
+        },
+        sitter: true,
+        messageNumber: true,
+        assignmentWindows: {
+          where: {
+            endsAt: { gte: new Date() },
+          },
+          orderBy: { startsAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { lastActivityAt: 'desc' },
+    });
+
+    return NextResponse.json({ threads }, {
+      status: 200,
+      headers: {
+        'X-Snout-Route': 'prisma-fallback',
+        'X-Snout-OrgId': orgId,
+      },
+    });
   } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward threads request:', error);
+    console.error('[Direct Prisma] Error fetching threads:', error);
     return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
+      { error: 'Failed to fetch threads', details: error.message },
+      { status: 500 }
     );
   }
 }
