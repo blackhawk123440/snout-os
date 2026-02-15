@@ -172,11 +172,21 @@ export async function GET(request: NextRequest) {
     console.error('[Direct Prisma] Error fetching threads:', error);
     console.error('[Direct Prisma] Error stack:', error.stack);
     console.error('[Direct Prisma] Error name:', error.name);
+    console.error('[Direct Prisma] Error code:', error.code);
+    console.error('[Direct Prisma] Prisma client available:', !!prisma);
+    console.error('[Direct Prisma] Thread model available:', !!(prisma as any).thread);
+    
+    // Check if it's a Prisma model not found error
+    if (error.message?.includes('model') || error.message?.includes('undefined')')) {
+      console.error('[Direct Prisma] Prisma model may not be available. Check schema generation.');
+    }
+    
     return NextResponse.json(
       { 
         error: 'Failed to fetch threads', 
         details: error.message,
         errorName: error.name,
+        errorCode: error.code,
         // Only include stack in development
         ...(process.env.NODE_ENV === 'development' ? { stack: error.stack } : {}),
       },
