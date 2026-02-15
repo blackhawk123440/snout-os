@@ -71,11 +71,42 @@ export async function GET(request: NextRequest) {
 
   // Fallback: Use Prisma directly
   try {
-    const sitters = await prisma.sitter.findMany({
+    const user = session.user as any;
+    const orgId = user.orgId || 'default';
+
+    // Get sitters for this org with their assigned numbers
+    const sitters = await (prisma as any).sitter.findMany({
+      where: {
+        orgId, // CRITICAL: Filter by orgId
+      },
       orderBy: {
         createdAt: 'desc',
       },
-    }) as any[]; // Type assertion: runtime uses enterprise-messaging-dashboard schema (name field)
+    }) as any[];
+
+    // Get assigned numbers for all sitters in one query
+    const sitterIds = sitters.map(s => s.id);
+    const assignedNumbers = await (prisma as any).messageNumber.findMany({
+      where: {
+        orgId,
+        assignedSitterId: { in: sitterIds },
+        class: 'sitter',
+        status: 'active',
+      },
+      select: {
+        id: true,
+        assignedSitterId: true,
+        e164: true,
+      },
+    });
+
+    // Create a map of sitterId -> numberId
+    const numberMap = new Map<string, string>();
+    assignedNumbers.forEach((num: any) => {
+      if (num.assignedSitterId) {
+        numberMap.set(num.assignedSitterId, num.id);
+      }
+    });
 
     // Transform sitters to match frontend expectations
     const transformedSitters = sitters.map((sitter) => {
@@ -98,6 +129,7 @@ export async function GET(request: NextRequest) {
         createdAt: sitter.createdAt,
         updatedAt: sitter.updatedAt,
         currentTier: null,
+        assignedNumberId: numberMap.get(sitter.id) || null, // Include persistent sitter number ID
       };
     });
 

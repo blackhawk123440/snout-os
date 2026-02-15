@@ -180,11 +180,20 @@ export function useReleaseToPool() {
 export function useSitters() {
   return useQuery({
     queryKey: ['sitters'],
-    queryFn: () => apiGet('/api/sitters', z.array(z.object({
-      id: z.string(),
-      name: z.string(), // API returns 'name', not 'firstName'/'lastName'
-      userId: z.string().nullable(),
-    }))),
+    queryFn: async () => {
+      // API returns { sitters: [...] }, but we need to unwrap it
+      const response = await apiGet('/api/sitters', z.object({
+        sitters: z.array(z.object({
+          id: z.string(),
+          name: z.string(),
+          firstName: z.string().optional(),
+          lastName: z.string().optional(),
+          isActive: z.boolean(),
+          assignedNumberId: z.string().nullable().optional(), // Persistent sitter number
+        })),
+      }));
+      return response.sitters;
+    },
   });
 }
 
