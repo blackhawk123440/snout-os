@@ -144,10 +144,33 @@ function SitterDetailContent() {
       <AppShell>
         <PageHeader title="Sitter Not Found" />
         <div style={{ padding: tokens.spacing[4] }}>
-          <EmptyState
-            title="Sitter not found"
-            description={undefined}
-          />
+          <Card>
+            <div style={{ 
+              padding: tokens.spacing[6],
+              textAlign: 'center',
+            }}>
+              <div style={{ 
+                fontSize: tokens.typography.fontSize.xl[0],
+                marginBottom: tokens.spacing[2],
+              }}>
+                👤
+              </div>
+              <div style={{ 
+                fontSize: tokens.typography.fontSize.base[0],
+                fontWeight: tokens.typography.fontWeight.semibold,
+                marginBottom: tokens.spacing[2],
+                color: tokens.colors.text.primary,
+              }}>
+                Sitter not found
+              </div>
+              <div style={{ 
+                fontSize: tokens.typography.fontSize.sm[0],
+                color: tokens.colors.text.secondary,
+              }}>
+                The sitter you're looking for doesn't exist or has been removed.
+              </div>
+            </div>
+          </Card>
         </div>
       </AppShell>
     );
@@ -299,8 +322,9 @@ function SitterPayrollTab({ sitterId, stats }: { sitterId: string; stats: Sitter
             </div>
           </div>
         )}
-      </div>
-    </Card>
+        </div>
+      </Card>
+    </div>
   );
 }
 

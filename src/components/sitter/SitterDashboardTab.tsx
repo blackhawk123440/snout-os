@@ -36,7 +36,7 @@ interface SitterDashboardTabProps {
 
 export function SitterDashboardTab({ sitterId, sitter, dashboardData }: SitterDashboardTabProps) {
   const isLoading = !dashboardData;
-  const hasPendingRequests = dashboardData?.pendingRequests.length > 0;
+  const hasPendingRequests = (dashboardData?.pendingRequests?.length ?? 0) > 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
