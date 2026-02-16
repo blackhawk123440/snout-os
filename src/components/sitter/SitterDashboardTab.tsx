@@ -7,7 +7,7 @@
 
 'use client';
 
-import { Card, Button, Badge } from '@/components/ui';
+import { Card, Skeleton, Badge } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { PendingRequests } from './PendingRequests';
 import { UpcomingBookings } from './UpcomingBookings';
@@ -17,7 +17,6 @@ import { StatusAvailability } from './StatusAvailability';
 import { SitterTierCard } from './SitterTierCard';
 import { MessagingInboxCard } from './MessagingInboxCard';
 import type { SitterDashboardData } from '@/lib/api/sitter-dashboard-hooks';
-import Link from 'next/link';
 
 interface SitterDashboardTabProps {
   sitterId: string;
@@ -36,66 +35,146 @@ interface SitterDashboardTabProps {
 }
 
 export function SitterDashboardTab({ sitterId, sitter, dashboardData }: SitterDashboardTabProps) {
-  if (!dashboardData) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-        <Card style={{ padding: tokens.spacing[4] }}>
-          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-            Loading dashboard data...
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  const hasPendingRequests = dashboardData.pendingRequests.length > 0;
+  const isLoading = !dashboardData;
+  const hasPendingRequests = dashboardData?.pendingRequests.length > 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-      {/* Status & Availability - Top Priority */}
-      <StatusAvailability 
-        isAvailable={dashboardData.isAvailable}
-        sitterId={sitterId}
-      />
-
-      {/* Pending Requests - Highest Priority if any exist */}
-      {hasPendingRequests && (
-        <PendingRequests 
-          bookings={dashboardData.pendingRequests}
+      {/* Status & Availability - Always rendered */}
+      {isLoading ? (
+        <Card style={{ padding: tokens.spacing[4] }}>
+          <Skeleton height={80} />
+        </Card>
+      ) : (
+        <StatusAvailability 
+          isAvailable={dashboardData.isAvailable}
           sitterId={sitterId}
         />
       )}
 
-      {/* Performance & Tier - Side by side on desktop */}
+      {/* Pending Requests - Always render section, show skeletons when loading */}
+      <Card style={{ padding: tokens.spacing[4] }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: tokens.spacing[4] 
+        }}>
+          <h2 style={{ 
+            fontSize: tokens.typography.fontSize.xl[0], 
+            fontWeight: tokens.typography.fontWeight.bold 
+          }}>
+            Pending Requests
+          </h2>
+          {!isLoading && hasPendingRequests && (
+            <Badge variant="warning" style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+              {dashboardData.pendingRequests.length} {dashboardData.pendingRequests.length === 1 ? 'request' : 'requests'}
+            </Badge>
+          )}
+        </div>
+        {isLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+            <Skeleton height={200} />
+            <Skeleton height={200} />
+          </div>
+        ) : hasPendingRequests ? (
+          <PendingRequests 
+            bookings={dashboardData.pendingRequests}
+            sitterId={sitterId}
+            showHeader={false}
+          />
+        ) : (
+          <div style={{ 
+            padding: tokens.spacing[4],
+            textAlign: 'center',
+            color: tokens.colors.text.secondary,
+            fontSize: tokens.typography.fontSize.sm[0],
+          }}>
+            No pending requests. New booking requests will appear here.
+          </div>
+        )}
+      </Card>
+
+      {/* Performance & Tier - Always rendered, consistent grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
         gap: tokens.spacing[4],
       }}>
-        <PerformanceSnapshot 
-          performance={dashboardData.performance}
-          currentTier={dashboardData.currentTier}
-        />
-        <SitterTierCard 
-          currentTier={dashboardData.currentTier}
-        />
+        {isLoading ? (
+          <>
+            <Card style={{ padding: tokens.spacing[4] }}>
+              <Skeleton height={24} style={{ marginBottom: tokens.spacing[4] }} />
+              <Skeleton height={150} />
+            </Card>
+            <Card style={{ padding: tokens.spacing[4] }}>
+              <Skeleton height={24} style={{ marginBottom: tokens.spacing[4] }} />
+              <Skeleton height={150} />
+            </Card>
+          </>
+        ) : (
+          <>
+            <PerformanceSnapshot 
+              performance={dashboardData.performance}
+              currentTier={dashboardData.currentTier}
+            />
+            <SitterTierCard 
+              currentTier={dashboardData.currentTier}
+            />
+          </>
+        )}
       </div>
 
-      {/* Messaging Inbox Card */}
-      <MessagingInboxCard 
-        unreadCount={dashboardData.unreadMessageCount}
-      />
+      {/* Messaging Inbox Card - Always rendered */}
+      {isLoading ? (
+        <Card style={{ padding: tokens.spacing[4] }}>
+          <Skeleton height={100} />
+        </Card>
+      ) : (
+        <MessagingInboxCard 
+          unreadCount={dashboardData.unreadMessageCount}
+        />
+      )}
 
-      {/* Upcoming Bookings */}
-      <UpcomingBookings 
-        bookings={dashboardData.upcomingBookings}
-      />
+      {/* Upcoming Bookings - Always rendered */}
+      {isLoading ? (
+        <Card style={{ padding: tokens.spacing[4] }}>
+          <h2 style={{ 
+            fontSize: tokens.typography.fontSize.xl[0], 
+            fontWeight: tokens.typography.fontWeight.bold,
+            marginBottom: tokens.spacing[4],
+          }}>
+            Upcoming Bookings
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+            <Skeleton height={150} />
+            <Skeleton height={150} />
+          </div>
+        </Card>
+      ) : (
+        <UpcomingBookings 
+          bookings={dashboardData.upcomingBookings}
+        />
+      )}
 
-      {/* Completed Bookings - Collapsed by default */}
-      <CompletedBookings 
-        bookings={dashboardData.completedBookings}
-        totalEarnings={dashboardData.performance.totalEarnings}
-      />
+      {/* Completed Bookings - Always rendered */}
+      {isLoading ? (
+        <Card style={{ padding: tokens.spacing[4] }}>
+          <h2 style={{ 
+            fontSize: tokens.typography.fontSize.xl[0], 
+            fontWeight: tokens.typography.fontWeight.bold,
+            marginBottom: tokens.spacing[4],
+          }}>
+            Completed Bookings
+          </h2>
+          <Skeleton height={100} />
+        </Card>
+      ) : (
+        <CompletedBookings 
+          bookings={dashboardData.completedBookings}
+          totalEarnings={dashboardData.performance.totalEarnings}
+        />
+      )}
     </div>
   );
 }

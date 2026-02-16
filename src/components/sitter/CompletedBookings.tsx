@@ -69,8 +69,9 @@ export function CompletedBookings({ bookings, totalEarnings }: CompletedBookings
               padding: tokens.spacing[4],
               textAlign: 'center',
               color: tokens.colors.text.secondary,
+              fontSize: tokens.typography.fontSize.sm[0],
             }}>
-              No completed bookings yet
+              No completed bookings yet. Completed bookings will appear here with earnings details.
             </div>
           ) : (
             sortedBookings.map((booking) => {

@@ -6,7 +6,7 @@
 
 'use client';
 
-import { Card, Button, EmptyState } from '@/components/ui';
+import { Card, Button } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { type SitterBooking } from '@/lib/api/sitter-dashboard-hooks';
 import { format } from 'date-fns';
@@ -33,11 +33,35 @@ export function UpcomingBookings({ bookings }: UpcomingBookingsProps) {
       </h2>
 
       {sortedBookings.length === 0 ? (
-        <EmptyState
-          title="No upcoming bookings"
-          description="You don't have any confirmed bookings coming up. Accepted requests will appear here."
-          icon="📅"
-        />
+        <div style={{ 
+          padding: tokens.spacing[6],
+          textAlign: 'center',
+        }}>
+          <div style={{ 
+            fontSize: tokens.typography.fontSize.xl[0],
+            marginBottom: tokens.spacing[2],
+          }}>
+            📅
+          </div>
+          <div style={{ 
+            fontSize: tokens.typography.fontSize.base[0],
+            fontWeight: tokens.typography.fontWeight.semibold,
+            marginBottom: tokens.spacing[2],
+            color: tokens.colors.text.primary,
+          }}>
+            No upcoming bookings
+          </div>
+          <div style={{ 
+            fontSize: tokens.typography.fontSize.sm[0],
+            color: tokens.colors.text.secondary,
+            maxWidth: '500px',
+            margin: '0 auto',
+            lineHeight: '1.5',
+          }}>
+            Accepted booking requests will appear here. Bookings are shown in chronological order 
+            with all details needed for your visits.
+          </div>
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
           {sortedBookings.map((booking) => {

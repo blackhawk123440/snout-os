@@ -8,7 +8,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, Button, Badge, EmptyState } from '@/components/ui';
+import { Button, Badge } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAcceptBooking, useDeclineBooking, type SitterBooking } from '@/lib/api/sitter-dashboard-hooks';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -17,9 +17,10 @@ import Link from 'next/link';
 interface PendingRequestsProps {
   bookings: SitterBooking[];
   sitterId: string;
+  showHeader?: boolean; // Allow parent to control header rendering
 }
 
-export function PendingRequests({ bookings, sitterId }: PendingRequestsProps) {
+export function PendingRequests({ bookings, sitterId, showHeader = true }: PendingRequestsProps) {
   const acceptBooking = useAcceptBooking();
   const declineBooking = useDeclineBooking();
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -56,23 +57,25 @@ export function PendingRequests({ bookings, sitterId }: PendingRequestsProps) {
   }
 
   return (
-    <Card style={{ padding: tokens.spacing[4] }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        marginBottom: tokens.spacing[4] 
-      }}>
-        <h2 style={{ 
-          fontSize: tokens.typography.fontSize.xl[0], 
-          fontWeight: tokens.typography.fontWeight.bold 
+    <>
+      {showHeader && (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: tokens.spacing[4] 
         }}>
-          Pending Requests
-        </h2>
-        <Badge variant="warning" style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
-          {bookings.length} {bookings.length === 1 ? 'request' : 'requests'}
-        </Badge>
-      </div>
+          <h2 style={{ 
+            fontSize: tokens.typography.fontSize.xl[0], 
+            fontWeight: tokens.typography.fontWeight.bold 
+          }}>
+            Pending Requests
+          </h2>
+          <Badge variant="warning" style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+            {bookings.length} {bookings.length === 1 ? 'request' : 'requests'}
+          </Badge>
+        </div>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
         {bookings.map((booking) => {
@@ -93,11 +96,12 @@ export function PendingRequests({ bookings, sitterId }: PendingRequestsProps) {
           const payout = booking.totalPrice * 0.8; // Placeholder - should come from sitter commission
 
           return (
-            <Card
+            <div
               key={booking.id}
               style={{
                 padding: tokens.spacing[4],
                 border: `2px solid ${isExpired ? tokens.colors.error[300] : tokens.colors.warning[300]}`,
+                borderRadius: tokens.borderRadius.md,
                 backgroundColor: isExpired ? tokens.colors.error[50] : tokens.colors.background.primary,
               }}
             >
@@ -219,10 +223,10 @@ export function PendingRequests({ bookings, sitterId }: PendingRequestsProps) {
                   )}
                 </div>
               </div>
-            </Card>
+            </div>
           );
         })}
       </div>
-    </Card>
+    </>
   );
 }

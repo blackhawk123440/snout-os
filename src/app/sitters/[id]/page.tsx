@@ -15,10 +15,7 @@ import {
   Card,
   Button,
   Badge,
-  Table,
-  TableColumn,
   StatCard,
-  EmptyState,
   Skeleton,
   SectionHeader,
   Tabs,
@@ -208,12 +205,10 @@ function SitterDetailContent() {
             />
           </TabPanel>
 
-          {/* Profile Tab - Existing Profile Content */}
+          {/* Profile Tab - Identity Information Only */}
           <TabPanel id="profile">
             <SitterProfileTab
               sitter={sitter}
-              upcomingBookings={upcomingBookings}
-              stats={stats}
               isMobile={isMobile}
             />
           </TabPanel>
@@ -243,21 +238,66 @@ function SitterDetailContent() {
   );
 }
 
-// Placeholder components for other tabs
+// Foundation tab components - always render structure
 function SitterPayrollTab({ sitterId, stats }: { sitterId: string; stats: SitterStats | null }) {
   return (
-    <Card>
-      <SectionHeader title="Payroll & Earnings" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <Card>
+        <SectionHeader 
+          title="Payroll & Earnings" 
+          description="Earnings from completed bookings"
+        />
       <div style={{ padding: tokens.spacing[4] }}>
-        {stats ? (
+        {stats && stats.totalEarnings > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
             <StatCard label="Total Earnings" value={`$${stats.totalEarnings.toFixed(2)}`} />
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-              Payroll history and detailed earnings breakdown coming soon.
+            <div style={{ 
+              padding: tokens.spacing[4],
+              backgroundColor: tokens.colors.neutral[50],
+              borderRadius: tokens.borderRadius.md,
+            }}>
+              <div style={{ 
+                fontSize: tokens.typography.fontSize.sm[0],
+                color: tokens.colors.text.secondary,
+                lineHeight: '1.5',
+              }}>
+                <strong>How it works:</strong> Earnings are calculated from completed bookings using your commission rate. 
+                Detailed payroll history, payment schedules, and earnings breakdowns will appear here once the payroll 
+                system is fully activated.
+              </div>
             </div>
           </div>
         ) : (
-          <EmptyState title="No payroll data available" />
+          <div style={{ 
+            padding: tokens.spacing[6],
+            textAlign: 'center',
+          }}>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.xl[0],
+              marginBottom: tokens.spacing[2],
+            }}>
+              💰
+            </div>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.base[0],
+              fontWeight: tokens.typography.fontWeight.semibold,
+              marginBottom: tokens.spacing[2],
+              color: tokens.colors.text.primary,
+            }}>
+              Payroll system
+            </div>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.sm[0],
+              color: tokens.colors.text.secondary,
+              maxWidth: '500px',
+              margin: '0 auto',
+              lineHeight: '1.5',
+            }}>
+              This section will populate after completed bookings are processed. Earnings are calculated 
+              automatically based on your commission rate. Payment history and detailed breakdowns will 
+              appear here once you have completed bookings.
+            </div>
+          </div>
         )}
       </div>
     </Card>
@@ -265,41 +305,103 @@ function SitterPayrollTab({ sitterId, stats }: { sitterId: string; stats: Sitter
 }
 
 function SitterPerformanceTab({ sitterId, dashboardData }: { sitterId: string; dashboardData: any }) {
+  const hasData = dashboardData?.performance && (
+    dashboardData.performance.completionRate !== null ||
+    dashboardData.performance.acceptanceRate !== null ||
+    dashboardData.performance.onTimeRate !== null ||
+    dashboardData.performance.clientRating !== null
+  );
+
   return (
-    <Card>
-      <SectionHeader title="Performance Metrics" />
-      <div style={{ padding: tokens.spacing[4] }}>
-        {dashboardData?.performance ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4] }}>
-            <StatCard 
-              label="Acceptance Rate" 
-              value={dashboardData.performance.acceptanceRate ? `${(dashboardData.performance.acceptanceRate * 100).toFixed(0)}%` : 'N/A'} 
-            />
-            <StatCard 
-              label="Completion Rate" 
-              value={dashboardData.performance.completionRate ? `${(dashboardData.performance.completionRate * 100).toFixed(0)}%` : 'N/A'} 
-            />
-            <StatCard 
-              label="On-Time Rate" 
-              value={dashboardData.performance.onTimeRate ? `${(dashboardData.performance.onTimeRate * 100).toFixed(0)}%` : 'N/A'} 
-            />
-            <StatCard 
-              label="Client Rating" 
-              value={dashboardData.performance.clientRating ? dashboardData.performance.clientRating.toFixed(1) : 'N/A'} 
-            />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <Card>
+        <SectionHeader 
+          title="Performance Metrics" 
+          description="Track your acceptance, completion, and on-time rates"
+        />
+        <div style={{ padding: tokens.spacing[4] }}>
+        {hasData ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4] }}>
+              <StatCard 
+                label="Acceptance Rate" 
+                value={dashboardData.performance.acceptanceRate ? `${(dashboardData.performance.acceptanceRate * 100).toFixed(0)}%` : 'N/A'} 
+              />
+              <StatCard 
+                label="Completion Rate" 
+                value={dashboardData.performance.completionRate ? `${(dashboardData.performance.completionRate * 100).toFixed(0)}%` : 'N/A'} 
+              />
+              <StatCard 
+                label="On-Time Rate" 
+                value={dashboardData.performance.onTimeRate ? `${(dashboardData.performance.onTimeRate * 100).toFixed(0)}%` : 'N/A'} 
+              />
+              <StatCard 
+                label="Client Rating" 
+                value={dashboardData.performance.clientRating ? dashboardData.performance.clientRating.toFixed(1) : 'N/A'} 
+              />
+            </div>
+            <div style={{ 
+              padding: tokens.spacing[4],
+              backgroundColor: tokens.colors.neutral[50],
+              borderRadius: tokens.borderRadius.md,
+            }}>
+              <div style={{ 
+                fontSize: tokens.typography.fontSize.sm[0],
+                color: tokens.colors.text.secondary,
+                lineHeight: '1.5',
+              }}>
+                <strong>How metrics are calculated:</strong> Performance metrics are tracked automatically as you accept 
+                bookings, complete visits, and receive client feedback. Some metrics may show "N/A" until sufficient data 
+                is available. Ratings and on-time tracking activate after your first completed bookings.
+              </div>
+            </div>
           </div>
         ) : (
-          <EmptyState title="Performance data not available" />
+          <div style={{ 
+            padding: tokens.spacing[6],
+            textAlign: 'center',
+          }}>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.xl[0],
+              marginBottom: tokens.spacing[2],
+            }}>
+              📊
+            </div>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.base[0],
+              fontWeight: tokens.typography.fontWeight.semibold,
+              marginBottom: tokens.spacing[2],
+              color: tokens.colors.text.primary,
+            }}>
+              Performance tracking
+            </div>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.sm[0],
+              color: tokens.colors.text.secondary,
+              maxWidth: '500px',
+              margin: '0 auto',
+              lineHeight: '1.5',
+            }}>
+              Performance metrics will appear here as you accept and complete bookings. The system tracks 
+              acceptance rate, completion rate, on-time performance, and client ratings. Metrics become 
+              available after your first few bookings are processed.
+            </div>
+          </div>
         )}
       </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
 
 function SitterTierTab({ sitter, dashboardData }: { sitter: Sitter; dashboardData: any }) {
   return (
-    <Card>
-      <SectionHeader title="Tier Information" />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <Card>
+        <SectionHeader 
+          title="Tier System" 
+          description="Your current tier and progression status"
+        />
       <div style={{ padding: tokens.spacing[4] }}>
         {sitter.currentTier ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
@@ -307,17 +409,66 @@ function SitterTierTab({ sitter, dashboardData }: { sitter: Sitter; dashboardDat
               <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
                 Current Tier
               </div>
-              <SitterTierBadge tier={sitter.currentTier} size="lg" />
+              <SitterTierBadge 
+                tier={sitter.currentTier ? {
+                  ...sitter.currentTier,
+                  priorityLevel: sitter.currentTier.priorityLevel ?? undefined,
+                } : null} 
+                size="lg" 
+              />
             </div>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-              Tier progression and benefits coming soon.
+            <div style={{ 
+              padding: tokens.spacing[4],
+              backgroundColor: tokens.colors.neutral[50],
+              borderRadius: tokens.borderRadius.md,
+            }}>
+              <div style={{ 
+                fontSize: tokens.typography.fontSize.sm[0],
+                color: tokens.colors.text.secondary,
+                lineHeight: '1.5',
+              }}>
+                <strong>How tiers work:</strong> Tiers reflect your experience level and performance. As you complete 
+                more bookings and maintain high performance metrics, you'll progress through tiers. Each tier unlocks 
+                additional benefits and opportunities. Tier progression is calculated automatically based on your 
+                booking history and performance data.
+              </div>
             </div>
           </div>
         ) : (
-          <EmptyState title="No tier assigned" />
+          <div style={{ 
+            padding: tokens.spacing[6],
+            textAlign: 'center',
+          }}>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.xl[0],
+              marginBottom: tokens.spacing[2],
+            }}>
+              ⭐
+            </div>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.base[0],
+              fontWeight: tokens.typography.fontWeight.semibold,
+              marginBottom: tokens.spacing[2],
+              color: tokens.colors.text.primary,
+            }}>
+              Tier assignment
+            </div>
+            <div style={{ 
+              fontSize: tokens.typography.fontSize.sm[0],
+              color: tokens.colors.text.secondary,
+              maxWidth: '500px',
+              margin: '0 auto',
+              lineHeight: '1.5',
+            }}>
+              Your tier will be assigned based on your experience and performance. Tiers determine 
+              eligibility for different service types and booking opportunities. Once assigned, you'll 
+              see your current tier, benefits, and progress toward the next tier here.
+            </div>
+          </div>
         )}
-      </div>
-    </Card>
+        </div>
+      </Card>
+    </div>
   );
 }
 
