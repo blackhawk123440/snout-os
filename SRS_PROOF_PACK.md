@@ -1,15 +1,18 @@
 # SRS System Proof Pack
 
-## Commit SHA
+## Commit SHAs
 
+**Main Implementation:**
 ```
 64dd7189ec4f41b71fe05084e586cef5c0c02353
 ```
+**Commit Message:** `feat: Implement SRS system with event ingestion, background jobs, and UI`
 
-**Commit Message:**
+**Integration Fixes:**
 ```
-feat: Implement SRS system with event ingestion, background jobs, and UI
+43c2283 (latest)
 ```
+**Commit Message:** `fix: Wire message processing hooks and worker initialization`
 
 ## Changed File List (28 files)
 
@@ -53,74 +56,78 @@ feat: Implement SRS system with event ingestion, background jobs, and UI
 
 #### A) Inbound Client Message (Twilio Webhook)
 
-**STATUS: ⚠️ NOT FULLY WIRED**
-
-**Issue:** NestJS service creates `Message` (enterprise schema), not `MessageEvent` (main schema).
-
-**Current State:**
-- NestJS service: `enterprise-messaging-dashboard/apps/api/src/webhooks/webhooks.service.ts:150` creates `Message`
-- Main app expects: `MessageEvent` in `prisma/schema.prisma`
-
-**Required Integration:**
-Add hook in NestJS service after message creation:
+**STATUS: ✅ WIRED**
 
 **File:** `enterprise-messaging-dashboard/apps/api/src/webhooks/webhooks.service.ts`
-**After line 162** (after `message.create`):
+**Function:** `handleInboundSms()`
+**Message Creation:** Lines 150-162
+**SRS Hook:** Lines 163-178 (ADDED in commit 43c2283)
+
+**Hook Implementation:**
 ```typescript
-// Process for SRS (async, don't block)
+// Step 8.5: Process message for SRS responsiveness tracking (async, don't block)
 try {
-  await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/messages/process-srs`, {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  fetch(`${appUrl}/api/messages/process-srs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       orgId,
       threadId: thread.id,
-      messageEventId: message.id, // Bridge: use Message.id as MessageEvent.id
+      messageEventId: message.id, // Bridge: use Message.id
       direction: 'inbound',
       actorType: 'client',
       messageBody: body,
       hasPolicyViolation: hasViolation,
       createdAt: new Date().toISOString(),
     }),
-  }).catch(() => {}); // Don't block on SRS processing
+  }).catch(() => {}); // Silent fail - SRS shouldn't block message processing
 } catch (error) {
-  // Silent fail - SRS shouldn't block message processing
+  // Silent fail
 }
 ```
 
-**Alternative:** Create MessageEvent record in main schema when Message is created in NestJS.
+**Bridge Endpoint:**
+- **File:** `src/app/api/messages/process-srs/route.ts`
+- **Function:** `POST()`
+- **Lines:** 13-50
+- **Creates MessageEvent:** Lines 33-45 (upsert to bridge Message → MessageEvent)
+- **Calls processMessageEvent:** Line 48
 
-**Function:** `handleInboundSms()` in `webhooks.service.ts`
-**Line:** 150-162 (Message creation)
-**SRS Hook:** NOT YET ADDED - needs integration
+**requiresResponse Logic:**
+- **File:** `src/lib/tiers/message-instrumentation.ts`
+- **Function:** `requiresResponse()` - Lines 12-45
+- **Sets requiresResponse=true:** Only for `direction='inbound'` AND `actorType='client'` AND not policy violation
+- **Called from:** `processMessageEvent()` line 146
 
 #### B) Outbound Sitter/Owner Reply
 
-**STATUS: ⚠️ NOT FULLY WIRED**
+**STATUS: ✅ WIRED**
 
 **File:** `enterprise-messaging-dashboard/apps/api/src/messaging/messaging.service.ts`
 **Function:** `sendMessage()`
-**Line:** 268-280 (Message creation)
+**Message Creation:** Lines 268-280
+**SRS Hook:** Lines 281-296 (ADDED in commit 43c2283)
 
-**Required Integration:**
-Add hook after line 280:
+**Hook Implementation:**
 ```typescript
-// Process for SRS (async, don't block)
+// Step 6.5: Process message for SRS responsiveness tracking (async, don't block)
 try {
-  await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/messages/process-srs`, {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  fetch(`${appUrl}/api/messages/process-srs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       orgId,
       threadId,
-      messageEventId: message.id,
+      messageEventId: message.id, // Bridge: use Message.id
       direction: 'outbound',
       actorType: senderType,
       messageBody: trimmedBody,
       hasPolicyViolation: hasViolation,
       createdAt: new Date().toISOString(),
     }),
-  }).catch(() => {});
+  }).catch(() => {}); // Silent fail - SRS shouldn't block message processing
 } catch (error) {
   // Silent fail
 }
@@ -128,10 +135,13 @@ try {
 
 **Response Linking:**
 - **File:** `src/lib/tiers/message-instrumentation.ts`
-- **Function:** `linkResponseToRequiringMessage()`
-- **Lines:** 51-127
+- **Function:** `linkResponseToRequiringMessage()` - Lines 51-127
 - **Called from:** `processMessageEvent()` line 156
-- **Logic:** Finds oldest unanswered inbound (FIFO), creates MessageResponseLink
+- **Logic:** 
+  - Finds oldest unanswered inbound (FIFO) - Lines 64-75
+  - Checks assignment window - Lines 91-99
+  - Creates MessageResponseLink - Lines 108-118
+  - Marks requiring message as answered - Lines 121-124
 
 #### C) DB Writes
 
@@ -307,22 +317,24 @@ POST /api/ops/srs/run-weekly-eval?weekOf=2024-01-15
 
 #### C) Worker Initialization
 
-**STATUS: ⚠️ NOT INITIALIZED**
+**STATUS: ✅ INITIALIZED**
+
+**File:** `src/lib/queue.ts`
+**Function:** `initializeQueues()`
+**SRS Worker Init:** Lines 107-110 (ADDED in commit 43c2283)
+
+**Implementation:**
+```typescript
+// Initialize SRS worker
+const { createSRSWorker } = await import('./tiers/srs-queue');
+createSRSWorker();
+console.log('SRS worker started');
+```
 
 **Worker Function:**
 - **File:** `src/lib/tiers/srs-queue.ts`
 - **Function:** `createSRSWorker()` - Lines 300-325
-
-**Required Initialization:**
-Add to `src/lib/queue.ts` after line 104:
-```typescript
-// Initialize SRS worker
-const { createSRSWorker } = await import('./tiers/srs-queue');
-const srsWorker = createSRSWorker();
-console.log('SRS worker started');
-```
-
-**Current State:** Worker function exists but not called in `initializeQueues()`
+- **Job Types:** `"daily-snapshot"` (line 309), `"weekly-evaluation"` (line 311)
 
 ### 5) Seed Proof
 
@@ -346,18 +358,20 @@ console.log('SRS worker started');
 #### A) Owner Dashboard
 
 **Component:** `src/components/sitter/SitterGrowthTab.tsx`
-**Route:** Must be added to `/messages` page with tab "Sitters → Growth"
+**Route:** `/messages?tab=sitters&subtab=growth` (to be added to SittersPanel)
 
-**Current State:** Component exists but not integrated into messages page
+**Current State:** Component exists, needs integration into SittersPanel
 
 **Required Integration:**
-- Add to `src/app/messages/page.tsx` or create sub-route
-- Import `SitterGrowthTab` component
-- Add tab navigation
+Add to `src/components/messaging/SittersPanel.tsx`:
+- Import `SitterGrowthTab` 
+- Add subtab navigation within sitters tab
+- Render `SitterGrowthTab` when subtab=growth
 
 **Features:**
 - Table: Lines 60-120
 - Drilldown: Lines 125-220
+- API: `GET /api/sitters/srs` - Lines 10-75
 
 #### B) Sitter Dashboard
 
@@ -423,38 +437,17 @@ FROM "VisitEvent"
 GROUP BY "sitterId";
 ```
 
-## Missing Integrations (Must Fix)
+## Missing Integrations
 
-### 1. Message Event Processing
+### 1. Owner UI Integration
 
-**Issue:** NestJS creates `Message`, not `MessageEvent`. Need bridge.
-
-**Fix Required:**
-- Option A: Add HTTP hook in NestJS to call `/api/messages/process-srs`
-- Option B: Create MessageEvent record in main schema when Message created
-- Option C: Sync Message → MessageEvent via background job
-
-**Location:** 
-- Inbound: `enterprise-messaging-dashboard/apps/api/src/webhooks/webhooks.service.ts:162`
-- Outbound: `enterprise-messaging-dashboard/apps/api/src/messaging/messaging.service.ts:280`
-
-### 2. Worker Initialization
-
-**Issue:** `createSRSWorker()` not called in `initializeQueues()`
+**Issue:** `SitterGrowthTab` component exists but not added to SittersPanel
 
 **Fix Required:**
-Add to `src/lib/queue.ts:104`:
-```typescript
-const { createSRSWorker } = await import('./tiers/srs-queue');
-createSRSWorker();
-```
-
-### 3. Owner UI Integration
-
-**Issue:** `SitterGrowthTab` component exists but not added to `/messages` page
-
-**Fix Required:**
-Add tab to messages page or create sub-route
+Add to `src/components/messaging/SittersPanel.tsx`:
+- Add subtab state: `'list' | 'growth'`
+- Import `SitterGrowthTab`
+- Render when subtab='growth'
 
 ## Screenshot Checklist
 
