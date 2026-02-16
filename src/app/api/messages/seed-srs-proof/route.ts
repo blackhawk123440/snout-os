@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Owner only
-  if (session.user.role !== 'owner' && session.user.role !== 'admin') {
+  const user = session.user as any;
+  if (user.role !== 'owner' && user.role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const orgId = (session.user as any).orgId;
+    const orgId = user.orgId;
     if (!orgId) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 400 });
     }

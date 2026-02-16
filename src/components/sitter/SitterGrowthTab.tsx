@@ -226,7 +226,6 @@ export function SitterGrowthTab() {
             <Table
               data={sitters}
               columns={columns}
-              keyField="sitterId"
             />
           )}
         </div>

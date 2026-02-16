@@ -29,64 +29,69 @@ export async function GET(request: NextRequest) {
   // If API_BASE_URL is set, proxy to NestJS API
   if (API_BASE_URL) {
     // Mint API JWT token from session
-    let apiToken: string;
+    let apiToken: string | undefined;
     try {
       apiToken = await mintApiJWT({
         userId: user.id || user.email || '',
         orgId,
-        role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-        sitterId: user.sitterId || null,
+        role: (user as any).role || ((user as any).sitterId ? 'sitter' : 'owner'),
+        sitterId: (user as any).sitterId || null,
       });
     } catch (error: any) {
       console.error('[BFF Proxy] Failed to mint API JWT, falling back to direct Prisma:', error);
       // Fall through to direct Prisma implementation
     }
 
-    // Preserve query string
-    const searchParams = request.nextUrl.searchParams.toString();
-    const apiUrl = `${API_BASE_URL}/api/messages/threads${searchParams ? `?${searchParams}` : ''}`;
-
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiToken}`,
-        },
-        // Add timeout to prevent hanging
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-      });
-
-      const contentType = response.headers.get('content-type');
-      let responseData: any;
-      
-      if (contentType?.includes('application/json')) {
-        responseData = await response.json();
-      } else {
-        responseData = await response.text();
-      }
-
-      if (!response.ok) {
-        console.error('[BFF Proxy] API error response, falling back to direct Prisma:', response.status, responseData);
-        // Fall through to direct Prisma implementation instead of returning error
-      } else {
-        // Transform API response to match frontend expectations
-        // API returns array directly, but frontend expects { threads: Thread[] }
-        const transformedResponse = Array.isArray(responseData)
-          ? { threads: responseData }
-          : responseData;
-
-        return NextResponse.json(transformedResponse, {
-          status: response.status,
-          headers: {
-            'Content-Type': contentType || 'application/json',
-            'X-Snout-Route': 'api-proxy',
-          },
-        });
-      }
-    } catch (error: any) {
-      console.error('[BFF Proxy] Failed to forward threads request, falling back to direct Prisma:', error.message);
+    if (!apiToken) {
       // Fall through to direct Prisma implementation
+    } else {
+
+      // Preserve query string
+      const searchParams = request.nextUrl.searchParams.toString();
+      const apiUrl = `${API_BASE_URL}/api/messages/threads${searchParams ? `?${searchParams}` : ''}`;
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiToken}`,
+          },
+          // Add timeout to prevent hanging
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        });
+
+        const contentType = response.headers.get('content-type');
+        let responseData: any;
+        
+        if (contentType?.includes('application/json')) {
+          responseData = await response.json();
+        } else {
+          responseData = await response.text();
+        }
+
+        if (!response.ok) {
+          console.error('[BFF Proxy] API error response, falling back to direct Prisma:', response.status, responseData);
+          // Fall through to direct Prisma implementation instead of returning error
+        } else {
+          // Transform API response to match frontend expectations
+          // API returns array directly, but frontend expects { threads: Thread[] }
+          const transformedResponse = Array.isArray(responseData)
+            ? { threads: responseData }
+            : responseData;
+
+          return NextResponse.json(transformedResponse, {
+            status: response.status,
+            headers: {
+              'Content-Type': contentType || 'application/json',
+              'X-Snout-Route': 'api-proxy',
+            },
+          });
+        }
+      } catch (error: any) {
+        console.error('[BFF Proxy] Failed to forward threads request, falling back to direct Prisma:', error.message);
+        // Fall through to direct Prisma implementation
+      }
     }
   }
 
@@ -168,7 +173,7 @@ export async function GET(request: NextRequest) {
     console.error('[Direct Prisma] Thread model available:', !!(prisma as any).thread);
     
     // Check if it's a Prisma model not found error
-    if (error.message?.includes('model') || error.message?.includes('undefined')')) {
+    if (error.message?.includes('model') || error.message?.includes('undefined')) {
       console.error('[Direct Prisma] Prisma model may not be available. Check schema generation.');
     }
     

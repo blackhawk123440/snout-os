@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
   }
 
   // Owner only
-  if (session.user.role !== 'owner' && session.user.role !== 'admin') {
+  const user = session.user as any;
+  if (user.role !== 'owner' && user.role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

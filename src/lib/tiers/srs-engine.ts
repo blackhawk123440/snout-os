@@ -171,7 +171,7 @@ async function calculateResponsiveness(
   }
 
   // Calculate median
-  responseTimes.sort((a, b) => a - b);
+  responseTimes.sort((a: number, b: number) => a - b);
   const median = responseTimes[Math.floor(responseTimes.length / 2)];
 
   // Apply bands
