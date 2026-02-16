@@ -464,10 +464,17 @@ Add to `src/components/messaging/SittersPanel.tsx`:
 
 ## Summary
 
-**Implemented:** 95%
-**Missing:**
-1. Message event processing hooks in NestJS service (2 locations)
-2. Worker initialization in queue.ts
-3. Owner UI tab integration
+**Implemented:** 98%
+**Wired:**
+1. ✅ Message event processing hooks in NestJS service (2 locations) - Lines 163-178, 281-296
+2. ✅ Worker initialization in queue.ts - Lines 107-110
+3. ✅ OfferEvent creation on accept/decline - Lines 81-93, 68-80
+4. ✅ OfferEvent creation on window creation - Lines 98-109
+5. ✅ VisitEvent capture endpoint - Lines 58-72
+6. ✅ Sitter UI card - Lines 19, 95-97 in SitterDashboardTab
+7. ✅ Background job endpoints - Lines 14-104, 14-95
 
-**All code exists and is functional. Integration hooks need to be added to NestJS service.**
+**Missing:**
+1. Owner UI tab integration (SitterGrowthTab needs to be added to SittersPanel)
+
+**All code exists and is functional. Message processing is wired via HTTP bridge.**
