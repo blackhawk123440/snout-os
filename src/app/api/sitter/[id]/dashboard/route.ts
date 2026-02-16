@@ -22,8 +22,9 @@ export async function GET(
     );
   }
 
+  let resolvedParams: { id: string } | null = null;
   try {
-    const resolvedParams = await params;
+    resolvedParams = await params;
     const sitterId = resolvedParams.id;
 
     // Fetch sitter
@@ -78,8 +79,8 @@ export async function GET(
     });
 
     // Get thread IDs for pending bookings (for messaging links)
-    const pendingBookingIds = pendingOffers.map((offer: any) => offer.bookingId);
-    const pendingThreads = await (prisma as any).messageThread.findMany({
+    const pendingBookingIds = pendingOffers.map((offer: any) => offer.bookingId).filter(Boolean);
+    const pendingThreads = pendingBookingIds.length > 0 ? await (prisma as any).messageThread.findMany({
       where: {
         bookingId: { in: pendingBookingIds },
         assignedSitterId: sitterId,
@@ -88,14 +89,19 @@ export async function GET(
         id: true,
         bookingId: true,
       },
-    });
+    }) : [];
     const threadMap = new Map(pendingThreads.map((t: any) => [t.bookingId, t.id]));
 
     const pendingRequests = pendingOffers
       .filter((offer: any) => {
         // Check if sitter hasn't already responded
-        const responses = JSON.parse(offer.responses || '[]') as Array<{ sitterId: string; response: string }>;
-        return !responses.some(r => r.sitterId === sitterId);
+        try {
+          const responses = JSON.parse(offer.responses || '[]') as Array<{ sitterId: string; response: string }>;
+          return !responses.some(r => r.sitterId === sitterId);
+        } catch (e) {
+          // If responses is invalid JSON, treat as no responses
+          return true;
+        }
       })
       .map((offer: any) => ({
         id: offer.booking.id,
@@ -135,8 +141,8 @@ export async function GET(
     });
 
     // Get thread IDs for upcoming bookings
-    const upcomingBookingIds = upcomingBookings.map((b: any) => b.id);
-    const upcomingThreads = await (prisma as any).messageThread.findMany({
+    const upcomingBookingIds = upcomingBookings.map((b: any) => b.id).filter(Boolean);
+    const upcomingThreads = upcomingBookingIds.length > 0 ? await (prisma as any).messageThread.findMany({
       where: {
         bookingId: { in: upcomingBookingIds },
         assignedSitterId: sitterId,
@@ -145,7 +151,7 @@ export async function GET(
         id: true,
         bookingId: true,
       },
-    });
+    }) : [];
     const upcomingThreadMap = new Map(upcomingThreads.map((t: any) => [t.bookingId, t.id]));
 
     const upcoming = upcomingBookings.map((booking: any) => ({
@@ -245,13 +251,21 @@ export async function GET(
         badgeColor: (sitter.currentTier as any).badgeColor || null,
         badgeStyle: (sitter.currentTier as any).badgeStyle || null,
       } : null,
-      isAvailable: sitter.active,
+      isAvailable: (sitter as any).isActive ?? (sitter as any).active ?? false,
       unreadMessageCount: unreadCount,
     });
   } catch (error: any) {
-    console.error('[Sitter Dashboard API] Failed to fetch dashboard:', error);
+    console.error('[Sitter Dashboard API] Failed to fetch dashboard:', {
+      error: error.message,
+      stack: error.stack,
+      sitterId: resolvedParams?.id,
+    });
     return NextResponse.json(
-      { error: 'Failed to fetch dashboard data', message: error.message },
+      { 
+        error: 'Failed to fetch dashboard data', 
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+        ...(process.env.NODE_ENV === 'development' && { stack: error.stack }),
+      },
       { status: 500 }
     );
   }
