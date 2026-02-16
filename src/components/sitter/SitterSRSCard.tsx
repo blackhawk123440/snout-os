@@ -61,7 +61,22 @@ export function SitterSRSCard() {
   }
 
   if (!data) {
-    return null;
+    return (
+      <Card style={{ padding: tokens.spacing[4] }}>
+        <SectionHeader 
+          title="Your Level" 
+          description="Service Reliability Score and tier status"
+        />
+        <div style={{ 
+          padding: tokens.spacing[4],
+          textAlign: 'center',
+          color: tokens.colors.text.secondary,
+          fontSize: tokens.typography.fontSize.sm[0],
+        }}>
+          Complete your first visits to generate a performance score.
+        </div>
+      </Card>
+    );
   }
 
   const tierColors: Record<string, string> = {

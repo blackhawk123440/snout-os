@@ -79,15 +79,11 @@ function SitterDashboardContent() {
           sitterId={sitterId}
         />
 
-        {/* Pending Requests - Highest Priority, appears at top if any exist */}
-        {hasPendingRequests && (
-          <div>
-            <PendingRequests 
-              bookings={dashboardData!.pendingRequests}
-              sitterId={sitterId}
-            />
-          </div>
-        )}
+        {/* Pending Requests - Always rendered, shows empty state if none */}
+        <PendingRequests 
+          bookings={dashboardData?.pendingRequests ?? []}
+          sitterId={sitterId}
+        />
 
         {/* Upcoming Bookings - Chronological list */}
         <UpcomingBookings 

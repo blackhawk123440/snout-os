@@ -8,7 +8,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Badge } from '@/components/ui';
+import { Button, Badge, Card } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAcceptBooking, useDeclineBooking, type SitterBooking } from '@/lib/api/sitter-dashboard-hooks';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -53,7 +53,50 @@ export function PendingRequests({ bookings, sitterId, showHeader = true }: Pendi
   };
 
   if (bookings.length === 0) {
-    return null;
+    return (
+      <>
+        {showHeader && (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginBottom: tokens.spacing[4] 
+          }}>
+            <h2 style={{ 
+              fontSize: tokens.typography.fontSize.xl[0], 
+              fontWeight: tokens.typography.fontWeight.bold 
+            }}>
+              Pending Requests
+            </h2>
+          </div>
+        )}
+        <Card style={{ padding: tokens.spacing[6], textAlign: 'center' }}>
+          <div style={{ 
+            fontSize: tokens.typography.fontSize.xl[0],
+            marginBottom: tokens.spacing[2],
+          }}>
+            📋
+          </div>
+          <div style={{ 
+            fontSize: tokens.typography.fontSize.base[0],
+            fontWeight: tokens.typography.fontWeight.semibold,
+            marginBottom: tokens.spacing[2],
+            color: tokens.colors.text.primary,
+          }}>
+            No pending requests
+          </div>
+          <div style={{ 
+            fontSize: tokens.typography.fontSize.sm[0],
+            color: tokens.colors.text.secondary,
+            maxWidth: '500px',
+            margin: '0 auto',
+            lineHeight: '1.5',
+          }}>
+            New booking requests will appear here. You can accept, decline, or message the client directly from each request.
+          </div>
+        </Card>
+      </>
+    );
   }
 
   return (
