@@ -49,6 +49,8 @@ model Booking {
   timeSlots            TimeSlot[]
   messages             Message[]
   reports              Report[]
+  offerEvents          OfferEvent[]
+  visitEvents          VisitEvent[]
   // Phase 2: Assignment windows (prepared for Phase 2)
   assignmentWindows    AssignmentWindow[]
   sitterPoolOffers     SitterPoolOffer[]
@@ -122,6 +124,13 @@ model Sitter {
   maskedNumber         SitterMaskedNumber?
   // Phase 2: Assignment windows (prepared for Phase 2)
   assignmentWindows    AssignmentWindow[]
+  // SRS System relations
+  tierSnapshots        SitterTierSnapshot[]
+  serviceEvents        SitterServiceEvent[]
+  timeOffs             SitterTimeOff[]
+  offerEvents          OfferEvent[]
+  visitEvents          VisitEvent[]
+  compensation         SitterCompensation?
 
   @@index([active])
   @@index([currentTierId])
@@ -1108,6 +1117,9 @@ model MessageThread {
   messageNumber       MessageNumber?          @relation(fields: [messageNumberId], references: [id], onDelete: SetNull)
   assignmentWindows   AssignmentWindow[]
   AntiPoachingAttempt AntiPoachingAttempt[]
+  offerEvents         OfferEvent[]
+  visitEvents         VisitEvent[]
+  responseLinks       MessageResponseLink[]
 
   @@index([orgId])
   @@index([bookingId])
@@ -1162,10 +1174,13 @@ model MessageEvent {
   failureCode                 String?
   failureDetail               String?  @db.Text
   requiresResponse            Boolean  @default(false)
+  responseToMessageId         String?  // FK to MessageEvent (the message this responds to)
   responseSlaSeconds          Int?
   responsibleSitterIdSnapshot String?
   promptId                    String?
   metadataJson                String?  @db.Text // JSON object
+  correlationIds              String?  @db.Text // JSON array for audit trail
+  answeredAt                  DateTime? // When this message was answered (if requiresResponse=true)
   // Legacy fields for backward compatibility (delivery retry)
   attemptCount                Int?
   lastAttemptAt               DateTime?
@@ -1175,6 +1190,10 @@ model MessageEvent {
   // Relations
   thread              MessageThread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
   AntiPoachingAttempt AntiPoachingAttempt?
+  responseTo          MessageEvent?        @relation("ResponseTo", fields: [responseToMessageId], references: [id], onDelete: SetNull)
+  responses           MessageEvent[]       @relation("ResponseTo")
+  requiresResponseLinks MessageResponseLink[] @relation("RequiresResponse")
+  responseLinks       MessageResponseLink[] @relation("Response")
 
   @@index([threadId])
   @@index([orgId])
@@ -1183,6 +1202,9 @@ model MessageEvent {
   @@index([deliveryStatus])
   @@index([createdAt])
   @@index([providerMessageSid])
+  @@index([requiresResponse])
+  @@index([responseToMessageId])
+  @@index([answeredAt])
 }
 
 model ThreadAssignmentAudit {
@@ -1331,4 +1353,191 @@ model AntiPoachingAttempt {
   @@index([threadId])
   @@index([eventId])
   @@index([action])
+}
+
+// ============================================
+// SITTER GROWTH LEVELS SYSTEM (SRS)
+// ============================================
+
+model SitterTierSnapshot {
+  id                    String   @id @default(uuid())
+  orgId                 String
+  sitterId              String
+  asOfDate              DateTime @db.Date
+  rolling30dScore       Float    // 0-100
+  rolling30dBreakdownJson String  @db.Text // JSON: { responsiveness, acceptance, timeliness, accuracy, engagement, conduct }
+  rolling26wScore       Float?   // 0-100, nullable for new sitters
+  rolling26wBreakdownJson String? @db.Text // JSON: same structure
+  tier                  String   @default("foundation") // foundation, reliant, trusted, preferred
+  provisional           Boolean  @default(false)
+  visits30d             Int      @default(0)
+  offers30d             Int      @default(0)
+  lastPromotionAt       DateTime?
+  lastDemotionAt        DateTime?
+  atRisk                Boolean  @default(false)
+  atRiskReason          String?  @db.Text
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  sitter                Sitter   @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, sitterId, asOfDate])
+  @@index([orgId, sitterId, asOfDate(sort: Desc)])
+  @@index([orgId, asOfDate])
+  @@index([sitterId, asOfDate(sort: Desc)])
+  @@index([tier])
+  @@index([atRisk])
+}
+
+model SitterServiceEvent {
+  id            String    @id @default(uuid())
+  orgId         String
+  sitterId      String
+  level         String    // coaching, corrective, probation
+  reasonCode    String
+  notes         String?   @db.Text
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  createdByUserId String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  sitter        Sitter    @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, sitterId, createdAt(sort: Desc)])
+  @@index([orgId, sitterId, effectiveFrom, effectiveTo])
+  @@index([level])
+  @@index([effectiveFrom, effectiveTo])
+}
+
+model SitterTimeOff {
+  id              String    @id @default(uuid())
+  orgId           String
+  sitterId        String
+  type            String    // pto, medical
+  startsAt        DateTime
+  endsAt          DateTime
+  approvedByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  sitter          Sitter    @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, sitterId, startsAt, endsAt])
+  @@index([orgId, sitterId, startsAt(sort: Desc)])
+  @@index([type])
+  @@index([startsAt, endsAt])
+}
+
+model OfferEvent {
+  id                String    @id @default(uuid())
+  orgId             String
+  sitterId          String
+  threadId          String?
+  bookingId         String?
+  offeredAt         DateTime
+  acceptedAt        DateTime?
+  declinedAt        DateTime?
+  declineReason     String?    // enum + free text
+  withinAvailability Boolean   @default(true)
+  leadTimeValid     Boolean    @default(true)
+  routingValid      Boolean    @default(true)
+  excluded          Boolean    @default(false)
+  excludedReason    String?    @db.Text
+  correlationIds    String?    @db.Text // JSON array
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  // Relations
+  sitter            Sitter     @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+  booking           Booking?   @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  thread            MessageThread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, sitterId, offeredAt(sort: Desc)])
+  @@index([orgId, sitterId, excluded])
+  @@index([bookingId])
+  @@index([threadId])
+  @@index([offeredAt])
+}
+
+model VisitEvent {
+  id                  String    @id @default(uuid())
+  orgId               String
+  sitterId            String
+  clientId            String?
+  bookingId           String
+  threadId            String?
+  scheduledStart      DateTime
+  scheduledEnd        DateTime
+  checkInAt           DateTime?
+  checkOutAt          DateTime?
+  status              String    // completed, late, missed, canceled
+  lateMinutes         Int?      @default(0)
+  checklistMissedCount Int      @default(0)
+  mediaMissingCount   Int       @default(0)
+  complaintVerified    Boolean   @default(false)
+  safetyFlag          Boolean   @default(false)
+  excluded            Boolean   @default(false)
+  excludedReason      String?   @db.Text
+  correlationIds      String?   @db.Text // JSON array
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  sitter              Sitter     @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+  booking             Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  thread              MessageThread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, sitterId, scheduledStart(sort: Desc)])
+  @@index([orgId, sitterId, excluded])
+  @@index([bookingId])
+  @@index([threadId])
+  @@index([scheduledStart])
+  @@index([status])
+}
+
+model SitterCompensation {
+  id                  String    @id @default(uuid())
+  orgId               String
+  sitterId            String    @unique
+  basePay             Float     @default(12.50)
+  lastRaiseAt         DateTime?
+  lastRaiseAmount     Float?
+  nextReviewDate      DateTime?
+  perkFlags           String?   @db.Text // JSON: { priority, multipliers, mentorship, reducedOversight }
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  sitter              Sitter    @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, sitterId])
+  @@index([nextReviewDate])
+}
+
+model MessageResponseLink {
+  id                    String    @id @default(uuid())
+  orgId                 String
+  threadId              String
+  requiresResponseEventId String  // FK to MessageEvent (the message requiring response)
+  responseEventId       String    // FK to MessageEvent (the response)
+  responseMinutes       Int       // Calculated response time in minutes
+  withinAssignmentWindow Boolean  @default(false)
+  excluded              Boolean   @default(false)
+  excludedReason        String?   @db.Text
+  createdAt             DateTime  @default(now())
+
+  // Relations
+  requiresResponseEvent MessageEvent @relation("RequiresResponse", fields: [requiresResponseEventId], references: [id], onDelete: Cascade)
+  responseEvent         MessageEvent @relation("Response", fields: [responseEventId], references: [id], onDelete: Cascade)
+  thread                MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([requiresResponseEventId]) // One response per requiring message
+  @@index([orgId, threadId, createdAt(sort: Desc)])
+  @@index([orgId, requiresResponseEventId])
+  @@index([responseEventId])
+  @@index([withinAssignmentWindow, excluded])
 }

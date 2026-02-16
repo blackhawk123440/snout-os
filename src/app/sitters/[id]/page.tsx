@@ -1,35 +1,31 @@
 /**
- * Sitter Detail Page - Enterprise Rebuild with Tabs
+ * Sitter Detail Page - Enterprise Rebuild
  * 
- * Tabbed interface: Dashboard (default), Profile, Messages, Payroll, Performance, Tier
- * All within existing AppShell - no global dashboard changes
+ * Complete sitter detail view with profile, tier, assigned bookings, and payroll snapshot.
  */
 
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   PageHeader,
   Card,
   Button,
   Badge,
+  Table,
+  TableColumn,
   StatCard,
+  EmptyState,
   Skeleton,
   SectionHeader,
-  Tabs,
-  TabPanel,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { SitterTierBadge } from '@/components/sitter';
-import { SitterDashboardTab } from '@/components/sitter/SitterDashboardTab';
-import { SitterProfileTab } from '@/components/sitter/SitterProfileTab';
-import { SitterMessagesTab } from '@/components/sitter/SitterMessagesTab';
-import { useSitterDashboard } from '@/lib/api/sitter-dashboard-hooks';
 
 interface Sitter {
   id: string;
@@ -82,28 +78,13 @@ interface SitterStats {
 
 function SitterDetailContent() {
   const params = useParams();
-  const searchParams = useSearchParams();
   const sitterId = params.id as string;
   const isMobile = useMobile();
-  
-  // Get initial tab from URL or default to 'dashboard'
-  const initialTab = searchParams?.get('tab') || 'dashboard';
-  const [activeTab, setActiveTab] = useState(initialTab);
 
   const [sitter, setSitter] = useState<Sitter | null>(null);
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<SitterStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  // Fetch dashboard data for unread count
-  const { data: dashboardData } = useSitterDashboard(sitterId);
-
-  useEffect(() => {
-    if (dashboardData) {
-      setUnreadCount(dashboardData.unreadMessageCount || 0);
-    }
-  }, [dashboardData]);
 
   useEffect(() => {
     if (sitterId) {
@@ -128,11 +109,110 @@ function SitterDetailContent() {
     }
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
+  };
+
+  const formatDate = (date: Date | string) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const getStatusBadgeVariant = (status: string): 'default' | 'info' | 'success' | 'warning' | 'error' => {
+    switch (status) {
+      case 'confirmed': return 'success';
+      case 'pending': return 'warning';
+      case 'completed': return 'info';
+      case 'cancelled': return 'error';
+      default: return 'default';
+    }
+  };
+
+  const bookingColumns: TableColumn<Booking>[] = [
+    {
+      key: 'client',
+      header: 'Client',
+      mobileLabel: 'Client',
+      mobileOrder: 1,
+      render: (row) => (
+        <div>
+          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+            {row.firstName} {row.lastName}
+          </div>
+          {row.client && (
+            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+              {row.client.email}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'service',
+      header: 'Service',
+      mobileLabel: 'Service',
+      mobileOrder: 2,
+      render: (row) => (
+        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+          {row.service}
+        </div>
+      ),
+    },
+    {
+      key: 'schedule',
+      header: 'Schedule',
+      mobileLabel: 'Schedule',
+      mobileOrder: 3,
+      render: (row) => (
+        <BookingScheduleDisplay
+          service={row.service}
+          startAt={row.startAt}
+          endAt={row.endAt}
+          timeSlots={row.timeSlots}
+        />
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      mobileLabel: 'Status',
+      mobileOrder: 4,
+      render: (row) => (
+        <Badge variant={getStatusBadgeVariant(row.status)}>
+          {row.status}
+        </Badge>
+      ),
+      align: 'center',
+    },
+    {
+      key: 'earnings',
+      header: 'Earnings',
+      mobileLabel: 'Earnings',
+      mobileOrder: 5,
+      render: (row) => {
+        if (!sitter) return null;
+        const earnings = (row.totalPrice * (sitter.commissionPercentage || 80)) / 100;
+        return (
+          <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+            {formatCurrency(earnings)}
+          </div>
+        );
+      },
+      align: 'right',
+    },
+  ];
+
   if (loading) {
     return (
       <AppShell>
         <PageHeader title="Sitter Details" />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div style={{ padding: tokens.spacing[4] }}> {/* Phase E: Tighter density to match Dashboard */}
           <Skeleton height={400} />
         </div>
       </AppShell>
@@ -143,58 +223,21 @@ function SitterDetailContent() {
     return (
       <AppShell>
         <PageHeader title="Sitter Not Found" />
-        <div style={{ padding: tokens.spacing[4] }}>
-          <Card>
-            <div style={{ 
-              padding: tokens.spacing[6],
-              textAlign: 'center',
-            }}>
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.xl[0],
-                marginBottom: tokens.spacing[2],
-              }}>
-                👤
-              </div>
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.base[0],
-                fontWeight: tokens.typography.fontWeight.semibold,
-                marginBottom: tokens.spacing[2],
-                color: tokens.colors.text.primary,
-              }}>
-                Sitter not found
-              </div>
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-              }}>
-                The sitter you're looking for doesn't exist or has been removed.
-              </div>
-            </div>
-          </Card>
+        <div style={{ padding: tokens.spacing[4] }}> {/* Phase E: Tighter density to match Dashboard */}
+          <EmptyState
+            title="Sitter not found"
+            description={undefined} // Phase E: Neutral, operational
+          />
         </div>
       </AppShell>
     );
   }
 
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: <i className="fas fa-home" /> },
-    { id: 'profile', label: 'Profile', icon: <i className="fas fa-user" /> },
-    { 
-      id: 'messages', 
-      label: 'Messages', 
-      icon: <i className="fas fa-inbox" />,
-      badge: unreadCount > 0 ? unreadCount : undefined,
-    },
-    { id: 'payroll', label: 'Payroll', icon: <i className="fas fa-dollar-sign" /> },
-    { id: 'performance', label: 'Performance', icon: <i className="fas fa-chart-line" /> },
-    { id: 'tier', label: 'Tier', icon: <i className="fas fa-star" /> },
-  ];
-
   return (
     <AppShell>
       <PageHeader
         title={`${sitter.firstName} ${sitter.lastName}`}
-        description="Sitter profile and operational dashboard"
+        description="Sitter profile and assigned bookings"
         actions={
           <div style={{ display: 'flex', gap: tokens.spacing[3] }}>
             <Link href="/bookings/sitters">
@@ -206,293 +249,346 @@ function SitterDetailContent() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[4] }}>
-        <Tabs
-          tabs={tabs}
-          defaultTab="dashboard"
-          activeTab={activeTab}
-          onTabChange={(tabId) => {
-            setActiveTab(tabId);
-            // Update URL without page reload
-            const url = new URL(window.location.href);
-            url.searchParams.set('tab', tabId);
-            window.history.pushState({}, '', url);
-          }}
-        >
-          {/* Dashboard Tab - Action-First */}
-          <TabPanel id="dashboard">
-            <SitterDashboardTab 
-              sitterId={sitterId}
-              sitter={sitter}
-              dashboardData={dashboardData}
-            />
-          </TabPanel>
+      <div style={{ padding: tokens.spacing[4] }}> {/* Phase E: Tighter density to match Dashboard */}
+        {isMobile ? (
+          <>
+            {/* Mobile: Stats Cards */}
+            {stats && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4], marginBottom: tokens.spacing[6] }}>
+                <StatCard label="Total Bookings" value={stats.totalBookings} />
+                <StatCard label="Completed" value={stats.completedBookings} />
+                <StatCard label="Total Earnings" value={formatCurrency(stats.totalEarnings)} />
+                <StatCard label="Upcoming" value={stats.upcomingCount} />
+              </div>
+            )}
 
-          {/* Profile Tab - Identity Information Only */}
-          <TabPanel id="profile">
-            <SitterProfileTab
-              sitter={sitter}
-              isMobile={isMobile}
-            />
-          </TabPanel>
+            {/* Mobile: Sitter Profile */}
+            <Card style={{ marginBottom: tokens.spacing[4] }}>
+              <SectionHeader title="Profile" />
+              <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                {sitter.currentTier && (
+                  <div>
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                      Tier
+                    </div>
+                    <SitterTierBadge tier={sitter.currentTier} />
+                  </div>
+                )}
+                <div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Status
+                  </div>
+                  <Badge variant={sitter.isActive ? "success" : "error"}>
+                    {sitter.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                <div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Email
+                  </div>
+                  <a href={`mailto:${sitter.email}`} style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none' }}>
+                    {sitter.email}
+                  </a>
+                </div>
+                <div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Phone
+                  </div>
+                  <a href={`tel:${sitter.phone}`} style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none' }}>
+                    {sitter.phone}
+                  </a>
+                </div>
+                <div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Commission
+                  </div>
+                  <div>{sitter.commissionPercentage || 80}%</div>
+                </div>
+              </div>
+            </Card>
 
-          {/* Messages Tab - Sitter-Scoped Inbox */}
-          <TabPanel id="messages">
-            <SitterMessagesTab sitterId={sitterId} />
-          </TabPanel>
+            {/* Mobile: Messaging Section */}
+            <Card style={{ marginBottom: tokens.spacing[4] }}>
+              <SectionHeader title="Messaging" />
+              <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                <div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Status
+                  </div>
+                  <Badge variant={sitter.isActive ? "success" : "error"}>
+                    {sitter.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                <div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Business Number
+                  </div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontFamily: 'monospace', color: tokens.colors.text.primary }}>
+                    {sitter.maskedNumber || 'Not assigned'}
+                  </div>
+                </div>
+                {sitter.activeAssignmentWindowsCount !== undefined && (
+                  <div>
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                      Active Windows
+                    </div>
+                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+                      {sitter.activeAssignmentWindowsCount}
+                    </div>
+                  </div>
+                )}
+                <Button
+                  variant="primary"
+                  size="sm"
+                  style={{ width: '100%', marginTop: tokens.spacing[2] }}
+                  leftIcon={<i className="fas fa-comments" />}
+                  onClick={() => window.location.href = `/messages?sitterId=${sitter.id}`}
+                >
+                  Open Inbox
+                </Button>
+              </div>
+            </Card>
 
-          {/* Payroll Tab */}
-          <TabPanel id="payroll">
-            <SitterPayrollTab sitterId={sitterId} stats={stats} />
-          </TabPanel>
+            {/* Mobile: Upcoming Bookings */}
+            <Card>
+              <SectionHeader title="Upcoming Bookings" />
+              {upcomingBookings.length === 0 ? (
+                <div style={{ padding: tokens.spacing[4] }}>
+                  <EmptyState
+                    title="No upcoming bookings"
+                    description="This sitter has no upcoming assigned bookings"
+                    icon="📅"
+                  />
+                </div>
+              ) : (
+                <Table
+                  columns={bookingColumns}
+                  data={upcomingBookings}
+                  emptyMessage="No upcoming bookings"
+                  onRowClick={(row) => {
+                    window.location.href = `/bookings/${row.id}`;
+                  }}
+                  keyExtractor={(row) => row.id}
+                />
+              )}
+            </Card>
+          </>
+        ) : (
+          <>
+            {/* Desktop: Two Column Layout */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 400px',
+                gap: tokens.spacing[4], // Phase E: Tighter density to match Dashboard
+              }}
+            >
+              {/* Left Column: Upcoming Bookings */}
+              <div>
+                {/* Stats Row */}
+                {stats && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: tokens.spacing[2], marginBottom: tokens.spacing[4] }}> {/* Phase E: Token-only - disciplined spacing */}
+                    <StatCard label="Total Bookings" value={stats.totalBookings} />
+                    <StatCard label="Completed" value={stats.completedBookings} />
+                    <StatCard label="Total Earnings" value={formatCurrency(stats.totalEarnings)} />
+                    <StatCard label="Upcoming" value={stats.upcomingCount} />
+                  </div>
+                )}
 
-          {/* Performance Tab */}
-          <TabPanel id="performance">
-            <SitterPerformanceTab sitterId={sitterId} dashboardData={dashboardData} />
-          </TabPanel>
+                {/* Upcoming Bookings */}
+                <Card>
+                  <SectionHeader title="Upcoming Assigned Bookings" />
+                  {upcomingBookings.length === 0 ? (
+                    <div style={{ padding: tokens.spacing[4] }}>
+                      <EmptyState
+                        title="No upcoming bookings"
+                        description="This sitter has no upcoming assigned bookings"
+                        icon="📅"
+                      />
+                    </div>
+                  ) : (
+                    <Table
+                      columns={bookingColumns}
+                      data={upcomingBookings}
+                      emptyMessage="No upcoming bookings"
+                      onRowClick={(row) => {
+                        window.location.href = `/bookings/${row.id}`;
+                      }}
+                      keyExtractor={(row) => row.id}
+                    />
+                  )}
+                </Card>
+              </div>
 
-          {/* Tier Tab */}
-          <TabPanel id="tier">
-            <SitterTierTab sitter={sitter} dashboardData={dashboardData} />
-          </TabPanel>
-        </Tabs>
+              {/* Right Column: Sitter Profile & Actions */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: tokens.spacing[4],
+                  position: 'sticky',
+                  top: 0,
+                  alignSelf: 'flex-start',
+                  maxHeight: 'calc(100vh - 200px)',
+                  overflowY: 'auto',
+                }}
+              >
+                {/* Sitter Profile */}
+                <Card>
+                  <SectionHeader title="Sitter Profile" />
+                  <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                    {sitter.currentTier && (
+                      <div>
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                          Tier
+                        </div>
+                        <SitterTierBadge tier={sitter.currentTier} />
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Status
+                      </div>
+                      <Badge variant={sitter.isActive ? "success" : "error"}>
+                        {sitter.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Email
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        style={{ width: '100%', justifyContent: 'flex-start' }}
+                        onClick={() => window.location.href = `mailto:${sitter.email}`}
+                        leftIcon={<i className="fas fa-envelope" />}
+                      >
+                        {sitter.email}
+                      </Button>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Phone
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        style={{ width: '100%', justifyContent: 'flex-start' }}
+                        onClick={() => window.location.href = `tel:${sitter.phone}`}
+                        leftIcon={<i className="fas fa-phone" />}
+                      >
+                        {sitter.phone}
+                      </Button>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Commission Rate
+                      </div>
+                      <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+                        {sitter.commissionPercentage || 80}%
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Messaging Section */}
+                <Card>
+                  <SectionHeader title="Messaging" />
+                  <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Status
+                      </div>
+                      <Badge variant={sitter.isActive ? "success" : "error"}>
+                        {sitter.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        Business Number
+                      </div>
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontFamily: 'monospace', color: tokens.colors.text.primary }}>
+                        {sitter.maskedNumber || 'Not assigned'}
+                      </div>
+                    </div>
+                    {sitter.activeAssignmentWindowsCount !== undefined && (
+                      <div>
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                          Active Windows
+                        </div>
+                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+                          {sitter.activeAssignmentWindowsCount}
+                        </div>
+                      </div>
+                    )}
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      style={{ width: '100%', marginTop: tokens.spacing[2] }}
+                      leftIcon={<i className="fas fa-comments" />}
+                      onClick={() => window.location.href = `/messages?sitterId=${sitter.id}`}
+                    >
+                      Open Inbox
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Quick Actions */}
+                <Card>
+                  <SectionHeader title="Quick Actions" />
+                  <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      style={{ width: '100%' }}
+                      leftIcon={<i className="fas fa-calendar-alt" />}
+                      onClick={() => window.open(`/sitter-dashboard?id=${sitter.id}&admin=true`, '_blank')}
+                    >
+                      View Dashboard
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Payroll Snapshot */}
+                <Card>
+                  <SectionHeader title="Payroll Snapshot" />
+                  <div style={{ padding: tokens.spacing[4] }}>
+                    {stats ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                        <div>
+                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                            Total Earnings
+                          </div>
+                          <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success.DEFAULT }}>
+                            {formatCurrency(stats.totalEarnings)}
+                          </div>
+                        </div>
+                        <div style={{ paddingTop: tokens.spacing[3], borderTop: `1px solid ${tokens.colors.border.default}` }}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            style={{ width: '100%', justifyContent: 'flex-start' }}
+                            onClick={() => window.location.href = `/payroll?sitterId=${sitter.id}`}
+                            leftIcon={<i className="fas fa-dollar-sign" />}
+                          >
+                            View Payroll History
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                        No payroll data available
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </AppShell>
-  );
-}
-
-// Foundation tab components - always render structure
-function SitterPayrollTab({ sitterId, stats }: { sitterId: string; stats: SitterStats | null }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-      <Card>
-        <SectionHeader 
-          title="Payroll & Earnings" 
-          description="Earnings from completed bookings"
-        />
-      <div style={{ padding: tokens.spacing[4] }}>
-        {stats && stats.totalEarnings > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            <StatCard label="Total Earnings" value={`$${stats.totalEarnings.toFixed(2)}`} />
-            <div style={{ 
-              padding: tokens.spacing[4],
-              backgroundColor: tokens.colors.neutral[50],
-              borderRadius: tokens.borderRadius.md,
-            }}>
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-                lineHeight: '1.5',
-              }}>
-                <strong>How it works:</strong> Earnings are calculated from completed bookings using your commission rate. 
-                Detailed payroll history, payment schedules, and earnings breakdowns will appear here once the payroll 
-                system is fully activated.
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div style={{ 
-            padding: tokens.spacing[6],
-            textAlign: 'center',
-          }}>
-            <div style={{ 
-              fontSize: tokens.typography.fontSize.xl[0],
-              marginBottom: tokens.spacing[2],
-            }}>
-              💰
-            </div>
-            <div style={{ 
-              fontSize: tokens.typography.fontSize.base[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-              marginBottom: tokens.spacing[2],
-              color: tokens.colors.text.primary,
-            }}>
-              Payroll system
-            </div>
-            <div style={{ 
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-              maxWidth: '500px',
-              margin: '0 auto',
-              lineHeight: '1.5',
-            }}>
-              This section will populate after completed bookings are processed. Earnings are calculated 
-              automatically based on your commission rate. Payment history and detailed breakdowns will 
-              appear here once you have completed bookings.
-            </div>
-          </div>
-        )}
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function SitterPerformanceTab({ sitterId, dashboardData }: { sitterId: string; dashboardData: any }) {
-  const hasData = dashboardData?.performance && (
-    dashboardData.performance.completionRate !== null ||
-    dashboardData.performance.acceptanceRate !== null ||
-    dashboardData.performance.onTimeRate !== null ||
-    dashboardData.performance.clientRating !== null
-  );
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-      <Card>
-        <SectionHeader 
-          title="Performance Metrics" 
-          description="Track your acceptance, completion, and on-time rates"
-        />
-        <div style={{ padding: tokens.spacing[4] }}>
-        {hasData ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4] }}>
-              <StatCard 
-                label="Acceptance Rate" 
-                value={dashboardData.performance.acceptanceRate ? `${(dashboardData.performance.acceptanceRate * 100).toFixed(0)}%` : 'N/A'} 
-              />
-              <StatCard 
-                label="Completion Rate" 
-                value={dashboardData.performance.completionRate ? `${(dashboardData.performance.completionRate * 100).toFixed(0)}%` : 'N/A'} 
-              />
-              <StatCard 
-                label="On-Time Rate" 
-                value={dashboardData.performance.onTimeRate ? `${(dashboardData.performance.onTimeRate * 100).toFixed(0)}%` : 'N/A'} 
-              />
-              <StatCard 
-                label="Client Rating" 
-                value={dashboardData.performance.clientRating ? dashboardData.performance.clientRating.toFixed(1) : 'N/A'} 
-              />
-            </div>
-            <div style={{ 
-              padding: tokens.spacing[4],
-              backgroundColor: tokens.colors.neutral[50],
-              borderRadius: tokens.borderRadius.md,
-            }}>
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-                lineHeight: '1.5',
-              }}>
-                <strong>How metrics are calculated:</strong> Performance metrics are tracked automatically as you accept 
-                bookings, complete visits, and receive client feedback. Some metrics may show "N/A" until sufficient data 
-                is available. Ratings and on-time tracking activate after your first completed bookings.
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div style={{ 
-            padding: tokens.spacing[6],
-            textAlign: 'center',
-          }}>
-            <div style={{ 
-              fontSize: tokens.typography.fontSize.xl[0],
-              marginBottom: tokens.spacing[2],
-            }}>
-              📊
-            </div>
-            <div style={{ 
-              fontSize: tokens.typography.fontSize.base[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-              marginBottom: tokens.spacing[2],
-              color: tokens.colors.text.primary,
-            }}>
-              Performance tracking
-            </div>
-            <div style={{ 
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-              maxWidth: '500px',
-              margin: '0 auto',
-              lineHeight: '1.5',
-            }}>
-              Performance metrics will appear here as you accept and complete bookings. The system tracks 
-              acceptance rate, completion rate, on-time performance, and client ratings. Metrics become 
-              available after your first few bookings are processed.
-            </div>
-          </div>
-        )}
-      </div>
-      </Card>
-    </div>
-  );
-}
-
-function SitterTierTab({ sitter, dashboardData }: { sitter: Sitter; dashboardData: any }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-      <Card>
-        <SectionHeader 
-          title="Tier System" 
-          description="Your current tier and progression status"
-        />
-      <div style={{ padding: tokens.spacing[4] }}>
-        {sitter.currentTier ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            <div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
-                Current Tier
-              </div>
-              <SitterTierBadge 
-                tier={sitter.currentTier ? {
-                  ...sitter.currentTier,
-                  priorityLevel: sitter.currentTier.priorityLevel ?? undefined,
-                } : null} 
-                size="lg" 
-              />
-            </div>
-            <div style={{ 
-              padding: tokens.spacing[4],
-              backgroundColor: tokens.colors.neutral[50],
-              borderRadius: tokens.borderRadius.md,
-            }}>
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-                lineHeight: '1.5',
-              }}>
-                <strong>How tiers work:</strong> Tiers reflect your experience level and performance. As you complete 
-                more bookings and maintain high performance metrics, you'll progress through tiers. Each tier unlocks 
-                additional benefits and opportunities. Tier progression is calculated automatically based on your 
-                booking history and performance data.
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div style={{ 
-            padding: tokens.spacing[6],
-            textAlign: 'center',
-          }}>
-            <div style={{ 
-              fontSize: tokens.typography.fontSize.xl[0],
-              marginBottom: tokens.spacing[2],
-            }}>
-              ⭐
-            </div>
-            <div style={{ 
-              fontSize: tokens.typography.fontSize.base[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-              marginBottom: tokens.spacing[2],
-              color: tokens.colors.text.primary,
-            }}>
-              Tier assignment
-            </div>
-            <div style={{ 
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-              maxWidth: '500px',
-              margin: '0 auto',
-              lineHeight: '1.5',
-            }}>
-              Your tier will be assigned based on your experience and performance. Tiers determine 
-              eligibility for different service types and booking opportunities. Once assigned, you'll 
-              see your current tier, benefits, and progress toward the next tier here.
-            </div>
-          </div>
-        )}
-        </div>
-      </Card>
-    </div>
   );
 }
 
@@ -501,7 +597,7 @@ export default function SitterDetailPage() {
     <Suspense fallback={
       <AppShell>
         <PageHeader title="Sitter Details" />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div style={{ padding: tokens.spacing[4] }}> {/* Phase E: Tighter density to match Dashboard */}
           <Skeleton height={400} />
         </div>
       </AppShell>
@@ -510,3 +606,4 @@ export default function SitterDetailPage() {
     </Suspense>
   );
 }
+
