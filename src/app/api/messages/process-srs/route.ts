@@ -7,8 +7,18 @@
  * Call this after creating a MessageEvent (from webhook or send endpoint)
  */
 
+/**
+ * Message Event SRS Processing Endpoint
+ * 
+ * POST /api/messages/process-srs
+ * 
+ * Processes a Message for SRS responsiveness tracking
+ * Bridge between NestJS Message (enterprise schema) and MessageEvent (main schema)
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import { onMessageEventCreated } from '@/lib/tiers/event-hooks';
+import { prisma } from '@/lib/db';
+import { processMessageEvent } from '@/lib/tiers/message-instrumentation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +26,7 @@ export async function POST(request: NextRequest) {
     const {
       orgId,
       threadId,
-      messageEventId,
+      messageEventId, // This is Message.id from NestJS, we'll use it as MessageEvent.id
       direction,
       actorType,
       messageBody,
@@ -31,7 +41,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await onMessageEventCreated(orgId, threadId, messageEventId, {
+    // Create or find MessageEvent record (bridge from Message to MessageEvent)
+    const messageEvent = await (prisma as any).messageEvent.upsert({
+      where: { id: messageEventId },
+      create: {
+        id: messageEventId,
+        orgId,
+        threadId,
+        direction,
+        actorType,
+        body: messageBody || '',
+        requiresResponse: false, // Will be set by processMessageEvent
+        createdAt: createdAt ? new Date(createdAt) : new Date(),
+        deliveryStatus: direction === 'inbound' ? 'received' : 'queued',
+      },
+      update: {
+        // Update if exists
+        body: messageBody || '',
+      },
+    });
+
+    // Process for SRS
+    await processMessageEvent(orgId, threadId, messageEvent.id, {
       direction,
       actorType,
       body: messageBody || '',
@@ -39,7 +70,7 @@ export async function POST(request: NextRequest) {
       createdAt: createdAt ? new Date(createdAt) : new Date(),
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, messageEventId: messageEvent.id });
   } catch (error: any) {
     console.error('[Message SRS Processing] Error:', error);
     return NextResponse.json(

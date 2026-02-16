@@ -279,6 +279,27 @@ export class MessagingService {
       },
     });
 
+    // Step 6.5: Process message for SRS responsiveness tracking (async, don't block)
+    try {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      fetch(`${appUrl}/api/messages/process-srs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orgId,
+          threadId,
+          messageEventId: message.id, // Bridge: use Message.id
+          direction: 'outbound',
+          actorType: senderType,
+          messageBody: trimmedBody,
+          hasPolicyViolation: hasViolation,
+          createdAt: new Date().toISOString(),
+        }),
+      }).catch(() => {}); // Silent fail - SRS shouldn't block message processing
+    } catch (error) {
+      // Silent fail
+    }
+
     // Step 7: Create initial delivery record
       const delivery = await this.prisma.messageDelivery.create({
         data: {
