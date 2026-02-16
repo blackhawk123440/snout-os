@@ -69,7 +69,7 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
                     e.currentTarget.style.backgroundColor = tokens.colors.neutral[50];
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = tokens.colors.background.default;
+                    e.currentTarget.style.backgroundColor = tokens.colors.background.primary;
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -88,7 +88,7 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
                       </div>
                     </div>
                     {thread.ownerUnreadCount > 0 && (
-                      <Badge variant="primary">
+                      <Badge variant="default">
                         {thread.ownerUnreadCount}
                       </Badge>
                     )}

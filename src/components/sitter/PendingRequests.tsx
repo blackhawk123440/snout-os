@@ -98,7 +98,7 @@ export function PendingRequests({ bookings, sitterId }: PendingRequestsProps) {
               style={{
                 padding: tokens.spacing[4],
                 border: `2px solid ${isExpired ? tokens.colors.error[300] : tokens.colors.warning[300]}`,
-                backgroundColor: isExpired ? tokens.colors.error[50] : tokens.colors.background.default,
+                backgroundColor: isExpired ? tokens.colors.error[50] : tokens.colors.background.primary,
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
@@ -189,7 +189,7 @@ export function PendingRequests({ bookings, sitterId }: PendingRequestsProps) {
                   flexWrap: 'wrap',
                 }}>
                   <Button
-                    variant="primary"
+                    variant="secondary"
                     size="md"
                     onClick={() => handleAccept(booking.id)}
                     disabled={isProcessing || isExpired}
@@ -209,7 +209,7 @@ export function PendingRequests({ bookings, sitterId }: PendingRequestsProps) {
                   {booking.threadId && (
                     <Link href={`/sitter/inbox?thread=${booking.threadId}`}>
                       <Button
-                        variant="outline"
+                        variant="secondary"
                         size="md"
                         style={{ flex: '1 1 auto', minWidth: '120px' }}
                       >

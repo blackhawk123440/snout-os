@@ -119,13 +119,13 @@ export function UpcomingBookings({ bookings }: UpcomingBookingsProps) {
                     flexWrap: 'wrap',
                   }}>
                     <Link href={`/bookings/${booking.id}`}>
-                      <Button variant="outline" size="md">
+                      <Button variant="secondary" size="md">
                         View Details
                       </Button>
                     </Link>
                     {booking.threadId && (
                       <Link href={`/sitter/inbox?thread=${booking.threadId}`}>
-                        <Button variant="outline" size="md">
+                        <Button variant="secondary" size="md">
                           Message
                         </Button>
                       </Link>

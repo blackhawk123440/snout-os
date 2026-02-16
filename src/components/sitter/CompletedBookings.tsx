@@ -54,7 +54,7 @@ export function CompletedBookings({ bookings, totalEarnings }: CompletedBookings
           </div>
         </div>
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={() => setIsExpanded(!isExpanded)}
         >

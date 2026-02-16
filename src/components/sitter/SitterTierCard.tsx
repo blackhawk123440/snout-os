@@ -42,7 +42,13 @@ export function SitterTierCard({ currentTier }: SitterTierCardProps) {
       {currentTier ? (
         <>
           <div style={{ marginBottom: tokens.spacing[4] }}>
-            <SitterTierBadge tier={currentTier} size="lg" />
+            <SitterTierBadge 
+              tier={currentTier ? {
+                ...currentTier,
+                priorityLevel: currentTier.priorityLevel ?? undefined,
+              } : null} 
+              size="lg" 
+            />
           </div>
 
           <div style={{ 

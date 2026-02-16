@@ -56,22 +56,18 @@ export function PerformanceSnapshot({ performance, currentTier }: PerformanceSna
         <StatCard
           label="Acceptance Rate"
           value={formatPercentage(performance.acceptanceRate)}
-          size="sm"
         />
         <StatCard
           label="Completion Rate"
           value={formatPercentage(performance.completionRate)}
-          size="sm"
         />
         <StatCard
           label="On-Time Rate"
           value={formatPercentage(performance.onTimeRate)}
-          size="sm"
         />
         <StatCard
           label="Client Rating"
           value={formatRating(performance.clientRating)}
-          size="sm"
         />
       </div>
 

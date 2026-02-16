@@ -36,7 +36,7 @@ export function MessagingInboxCard({ unreadCount }: MessagingInboxCardProps) {
               Messages
             </h3>
             {unreadCount > 0 && (
-              <Badge variant="primary" style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+              <Badge variant="default" style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
                 {unreadCount} {unreadCount === 1 ? 'unread' : 'unread'}
               </Badge>
             )}

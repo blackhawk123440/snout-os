@@ -78,7 +78,7 @@ export async function GET(
     });
 
     // Get thread IDs for pending bookings (for messaging links)
-    const pendingBookingIds = pendingOffers.map(offer => offer.bookingId);
+    const pendingBookingIds = pendingOffers.map((offer: any) => offer.bookingId);
     const pendingThreads = await (prisma as any).messageThread.findMany({
       where: {
         bookingId: { in: pendingBookingIds },
@@ -92,12 +92,12 @@ export async function GET(
     const threadMap = new Map(pendingThreads.map((t: any) => [t.bookingId, t.id]));
 
     const pendingRequests = pendingOffers
-      .filter(offer => {
+      .filter((offer: any) => {
         // Check if sitter hasn't already responded
         const responses = JSON.parse(offer.responses || '[]') as Array<{ sitterId: string; response: string }>;
         return !responses.some(r => r.sitterId === sitterId);
       })
-      .map(offer => ({
+      .map((offer: any) => ({
         id: offer.booking.id,
         firstName: offer.booking.firstName,
         lastName: offer.booking.lastName,
@@ -135,7 +135,7 @@ export async function GET(
     });
 
     // Get thread IDs for upcoming bookings
-    const upcomingBookingIds = upcomingBookings.map(b => b.id);
+    const upcomingBookingIds = upcomingBookings.map((b: any) => b.id);
     const upcomingThreads = await (prisma as any).messageThread.findMany({
       where: {
         bookingId: { in: upcomingBookingIds },
@@ -148,7 +148,7 @@ export async function GET(
     });
     const upcomingThreadMap = new Map(upcomingThreads.map((t: any) => [t.bookingId, t.id]));
 
-    const upcoming = upcomingBookings.map(booking => ({
+    const upcoming = upcomingBookings.map((booking: any) => ({
       id: booking.id,
       firstName: booking.firstName,
       lastName: booking.lastName,
@@ -181,7 +181,7 @@ export async function GET(
       take: 50, // Limit to recent 50
     });
 
-    const completed = completedBookings.map(booking => ({
+    const completed = completedBookings.map((booking: any) => ({
       id: booking.id,
       firstName: booking.firstName,
       lastName: booking.lastName,
@@ -204,8 +204,8 @@ export async function GET(
     });
 
     const totalBookings = allSitterBookings.length;
-    const completedCount = allSitterBookings.filter(b => b.status === 'completed').length;
-    const totalEarnings = completedBookings.reduce((sum, b) => {
+    const completedCount = allSitterBookings.filter((b: any) => b.status === 'completed').length;
+    const totalEarnings = completedBookings.reduce((sum: number, b: any) => {
       const commission = (sitter as any).commissionPercentage || 80;
       return sum + (b.totalPrice * commission / 100);
     }, 0);
