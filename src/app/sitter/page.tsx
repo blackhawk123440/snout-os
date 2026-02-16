@@ -17,6 +17,7 @@ import { useAssignmentWindows } from '@/lib/api/assignments-hooks';
 import { tokens } from '@/lib/design-tokens';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { SitterSRSCard } from '@/components/sitter/SitterSRSCard';
 
 function SitterDashboardContent() {
   const { user, isSitter, loading: authLoading } = useAuth();
@@ -145,6 +146,9 @@ function SitterDashboardContent() {
             This is your dedicated masked number, assigned when you were activated. It persists across all bookings. During active assignment windows, messages send from this number.
                 </div>
               </Card>
+
+        {/* Your Level (SRS) Card - Sitter-facing tier display */}
+        <SitterSRSCard />
 
         {/* Messaging Status */}
         <Card style={{ padding: tokens.spacing[4], backgroundColor: tokens.colors.info[50] }}>
