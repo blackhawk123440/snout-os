@@ -75,8 +75,9 @@ export function useSitterDashboard(sitterId: string | undefined) {
     queryKey: ['sitter', 'dashboard', sitterId],
     queryFn: async () => {
       if (!sitterId) return null;
+      // Use self-scoped endpoint for sitter's own dashboard
       const response = await apiGet<SitterDashboardData>(
-        `/api/sitter/${sitterId}/dashboard`,
+        `/api/sitter/me/dashboard`,
         dashboardDataSchema
       );
       return response;
