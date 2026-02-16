@@ -6,6 +6,7 @@ import { PolicyService } from '../policy/policy.service';
 import { MessageRetryWorker } from '../workers/message-retry.worker';
 import { Inject, forwardRef } from '@nestjs/common';
 import type { IProvider } from '../provider/provider.interface';
+import { SrsMessageProcessorService } from '../srs/srs-message-processor.service';
 
 /**
  * Messaging Service - Complete outbound send pipeline
@@ -29,6 +30,7 @@ export class MessagingService {
     @Inject(forwardRef(() => MessageRetryWorker))
     private retryWorker: MessageRetryWorker,
     @Inject('PROVIDER') private provider: IProvider,
+    private srsProcessor: SrsMessageProcessorService,
   ) {}
 
   async getMessages(threadId: string) {
@@ -280,25 +282,21 @@ export class MessagingService {
     });
 
     // Step 6.5: Process message for SRS responsiveness tracking (async, don't block)
-    try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      fetch(`${appUrl}/api/messages/process-srs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orgId,
-          threadId,
-          messageEventId: message.id, // Bridge: use Message.id
-          direction: 'outbound',
-          actorType: senderType,
-          messageBody: trimmedBody,
-          hasPolicyViolation: hasViolation,
-          createdAt: new Date().toISOString(),
-        }),
-      }).catch(() => {}); // Silent fail - SRS shouldn't block message processing
-    } catch (error) {
-      // Silent fail
-    }
+    this.srsProcessor.processMessage(
+      orgId,
+      threadId,
+      message.id,
+      {
+        direction: 'outbound',
+        actorType: senderType,
+        body: trimmedBody,
+        hasPolicyViolation: hasViolation,
+        createdAt: new Date(),
+      }
+    ).catch((error) => {
+      this.logger.error('[SRS] Failed to process outbound message:', error);
+      // TODO: Create alert for SRS processing failures
+    });
 
     // Step 7: Create initial delivery record
       const delivery = await this.prisma.messageDelivery.create({

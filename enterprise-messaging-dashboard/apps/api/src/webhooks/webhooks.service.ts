@@ -5,6 +5,7 @@ import { RoutingService } from '../routing/routing.service';
 import { PolicyService } from '../policy/policy.service';
 import { Inject } from '@nestjs/common';
 import type { IProvider } from '../provider/provider.interface';
+import { SrsMessageProcessorService } from '../srs/srs-message-processor.service';
 
 /**
  * Webhooks Service - Complete inbound/outbound message processing
@@ -27,6 +28,7 @@ export class WebhooksService {
     private routingService: RoutingService,
     private policyService: PolicyService,
     @Inject('PROVIDER') private provider: IProvider,
+    private srsProcessor: SrsMessageProcessorService,
   ) {}
 
   /**
@@ -194,25 +196,21 @@ export class WebhooksService {
     }
 
     // Step 8.5: Process message for SRS responsiveness tracking (async, don't block)
-    try {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      fetch(`${appUrl}/api/messages/process-srs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orgId,
-          threadId: thread.id,
-          messageEventId: message.id, // Bridge: use Message.id
-          direction: 'inbound',
-          actorType: 'client',
-          messageBody: body,
-          hasPolicyViolation: hasViolation,
-          createdAt: new Date().toISOString(),
-        }),
-      }).catch(() => {}); // Silent fail - SRS shouldn't block message processing
-    } catch (error) {
-      // Silent fail
-    }
+    this.srsProcessor.processMessage(
+      orgId,
+      thread.id,
+      message.id,
+      {
+        direction: 'inbound',
+        actorType: 'client',
+        body,
+        hasPolicyViolation: hasViolation,
+        createdAt: new Date(),
+      }
+    ).catch((error) => {
+      this.logger.error('[SRS] Failed to process inbound message:', error);
+      // TODO: Create alert for SRS processing failures
+    });
 
     // Step 9: Create initial delivery record
     await this.prisma.messageDelivery.create({

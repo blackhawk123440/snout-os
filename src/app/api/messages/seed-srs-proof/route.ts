@@ -6,10 +6,20 @@
  * Runs the seed script and automatically triggers snapshot
  */
 
+/**
+ * Seed SRS Proof Endpoint (Owner Only)
+ * 
+ * POST /api/messages/seed-srs-proof
+ * 
+ * Runs the seed script and automatically triggers snapshot + weekly eval
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { scheduleDailySnapshots, scheduleWeeklyEvaluations } from '@/lib/tiers/srs-queue';
+import { prisma } from '@/lib/db';
 
 const execAsync = promisify(exec);
 
@@ -30,6 +40,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const orgId = (session.user as any).orgId;
+    if (!orgId) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 400 });
+    }
+
     // Run seed script
     const { stdout, stderr } = await execAsync(
       'npx tsx scripts/seed-srs-proof.ts',
@@ -41,32 +56,52 @@ export async function POST(request: NextRequest) {
     }
 
     // Wait a moment for data to settle
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Trigger snapshot
-    const orgId = (session.user as any).orgId;
-    if (orgId) {
-      const snapshotUrl = new URL('/api/ops/srs/run-snapshot', request.url);
-      const snapshotRes = await fetch(snapshotUrl.toString(), {
-        method: 'POST',
-        headers: {
-          'Cookie': request.headers.get('Cookie') || '',
+    // Trigger snapshot directly (not via HTTP)
+    const asOfDate = new Date();
+    await scheduleDailySnapshots(orgId, asOfDate);
+
+    // Wait for jobs to process
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Trigger weekly evaluation
+    await scheduleWeeklyEvaluations(orgId, asOfDate);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Get created snapshots
+    const snapshots = await (prisma as any).sitterTierSnapshot.findMany({
+      where: {
+        orgId,
+        asOfDate: {
+          gte: new Date(asOfDate.getTime() - 24 * 60 * 60 * 1000),
+          lte: new Date(asOfDate.getTime() + 24 * 60 * 60 * 1000),
         },
-      });
-
-      const snapshotData = await snapshotRes.json();
-
-      return NextResponse.json({
-        success: true,
-        seedOutput: stdout,
-        snapshot: snapshotData,
-      });
-    }
+      },
+      include: {
+        sitter: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
 
     return NextResponse.json({
       success: true,
       seedOutput: stdout,
-      message: 'Seed completed. Run snapshot manually.',
+      snapshotsCreated: snapshots.length,
+      snapshots: snapshots.map((s: any) => ({
+        sitterId: s.sitterId,
+        sitterName: `${s.sitter.firstName} ${s.sitter.lastName}`,
+        score: s.rolling30dScore,
+        tier: s.tier,
+        provisional: s.provisional,
+        visits30d: s.visits30d,
+        atRisk: s.atRisk,
+      })),
     });
   } catch (error: any) {
     console.error('[Seed SRS Proof] Error:', error);
