@@ -6,7 +6,6 @@ import { PolicyService } from '../policy/policy.service';
 import { MessageRetryWorker } from '../workers/message-retry.worker';
 import { Inject, forwardRef } from '@nestjs/common';
 import type { IProvider } from '../provider/provider.interface';
-import { SrsMessageProcessorService } from '../srs/srs-message-processor.service';
 
 /**
  * Messaging Service - Complete outbound send pipeline
@@ -30,7 +29,6 @@ export class MessagingService {
     @Inject(forwardRef(() => MessageRetryWorker))
     private retryWorker: MessageRetryWorker,
     @Inject('PROVIDER') private provider: IProvider,
-    private srsProcessor: SrsMessageProcessorService,
   ) {}
 
   async getMessages(threadId: string) {
@@ -279,23 +277,6 @@ export class MessagingService {
         hasPolicyViolation: hasViolation,
         providerMessageSid: sendResult.messageSid || null,
       },
-    });
-
-    // Step 6.5: Process message for SRS responsiveness tracking (async, don't block)
-    this.srsProcessor.processMessage(
-      orgId,
-      threadId,
-      message.id,
-      {
-        direction: 'outbound',
-        actorType: senderType,
-        body: trimmedBody,
-        hasPolicyViolation: hasViolation,
-        createdAt: new Date(),
-      }
-    ).catch((error) => {
-      this.logger.error('[SRS] Failed to process outbound message:', error);
-      // TODO: Create alert for SRS processing failures
     });
 
     // Step 7: Create initial delivery record

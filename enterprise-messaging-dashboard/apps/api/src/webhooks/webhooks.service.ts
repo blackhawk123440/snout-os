@@ -5,7 +5,6 @@ import { RoutingService } from '../routing/routing.service';
 import { PolicyService } from '../policy/policy.service';
 import { Inject } from '@nestjs/common';
 import type { IProvider } from '../provider/provider.interface';
-import { SrsMessageProcessorService } from '../srs/srs-message-processor.service';
 
 /**
  * Webhooks Service - Complete inbound/outbound message processing
@@ -28,7 +27,6 @@ export class WebhooksService {
     private routingService: RoutingService,
     private policyService: PolicyService,
     @Inject('PROVIDER') private provider: IProvider,
-    private srsProcessor: SrsMessageProcessorService,
   ) {}
 
   /**
@@ -194,23 +192,6 @@ export class WebhooksService {
         },
       });
     }
-
-    // Step 8.5: Process message for SRS responsiveness tracking (async, don't block)
-    this.srsProcessor.processMessage(
-      orgId,
-      thread.id,
-      message.id,
-      {
-        direction: 'inbound',
-        actorType: 'client',
-        body,
-        hasPolicyViolation: hasViolation,
-        createdAt: new Date(),
-      }
-    ).catch((error) => {
-      this.logger.error('[SRS] Failed to process inbound message:', error);
-      // TODO: Create alert for SRS processing failures
-    });
 
     // Step 9: Create initial delivery record
     await this.prisma.messageDelivery.create({

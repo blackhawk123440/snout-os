@@ -6,15 +6,14 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Card, Button, Badge, Table, TableColumn, EmptyState, Skeleton, Tabs, TabPanel } from '@/components/ui';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, Button, Badge, Table, TableColumn, EmptyState, Skeleton } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useSitters } from '@/lib/api/numbers-hooks';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '@/lib/api/client';
 import { z } from 'zod';
-import { SitterGrowthTab } from '@/components/sitter/SitterGrowthTab';
 
 const windowSchema = z.object({
   id: z.string(),
@@ -42,26 +41,9 @@ function useSitterWindows(sitterId: string | null) {
 
 export function SittersPanel() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { data: sitters = [], isLoading } = useSitters();
   const [selectedSitterId, setSelectedSitterId] = useState<string | null>(null);
   const { data: windows = [] } = useSitterWindows(selectedSitterId);
-  
-  // Get subtab from URL or default to 'directory'
-  const subtabParam = searchParams.get('subtab');
-  const [activeSubtab, setActiveSubtab] = useState<'directory' | 'growth'>(
-    (subtabParam === 'growth' ? 'growth' : 'directory') as 'directory' | 'growth'
-  );
-
-  // Sync URL with subtab state
-  useEffect(() => {
-    const currentSubtab = searchParams.get('subtab');
-    if (currentSubtab === 'growth' && activeSubtab !== 'growth') {
-      setActiveSubtab('growth');
-    } else if (currentSubtab !== 'growth' && activeSubtab === 'growth') {
-      setActiveSubtab('directory');
-    }
-  }, [searchParams, activeSubtab]);
   
   const activeWindows = windows.filter((w: any) => w.status === 'active');
   const futureWindows = windows.filter((w: any) => w.status === 'future');
@@ -138,36 +120,13 @@ export function SittersPanel() {
           Sitters
         </h2>
         <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
-          View sitter directory and growth metrics.
+          View sitter list, status, and threads. Click "View Threads" to see a sitter's active assignments.
         </p>
       </div>
 
-      <Tabs
-        tabs={[
-          { id: 'directory', label: 'Directory' },
-          { id: 'growth', label: 'Growth' },
-        ]}
-        activeTab={activeSubtab}
-        onTabChange={(id) => {
-          setActiveSubtab(id as 'directory' | 'growth');
-          const url = new URL(window.location.href);
-          if (id === 'growth') {
-            url.searchParams.set('subtab', 'growth');
-          } else {
-            url.searchParams.delete('subtab');
-          }
-          window.history.pushState({}, '', url.toString());
-        }}
-      >
-        <TabPanel id="directory">
-          <Card style={{ marginBottom: tokens.spacing[4] }}>
-            <Table data={sitters} columns={sitterColumns} />
-          </Card>
-        </TabPanel>
-        <TabPanel id="growth">
-          <SitterGrowthTab />
-        </TabPanel>
-      </Tabs>
+      <Card style={{ marginBottom: tokens.spacing[4] }}>
+        <Table data={sitters} columns={sitterColumns} />
+      </Card>
 
       {selectedSitterId && (
         <Card>

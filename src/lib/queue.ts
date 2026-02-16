@@ -102,11 +102,6 @@ export async function initializeQueues() {
     const { initializePoolReleaseWorker, schedulePoolRelease } = await import("./pool-release-queue");
     initializePoolReleaseWorker();
     await schedulePoolRelease();
-
-    // Initialize SRS worker
-    const { createSRSWorker } = await import("./tiers/srs-queue");
-    createSRSWorker();
-    console.log("SRS worker started");
   } catch (error) {
     console.error("Failed to initialize queues:", error);
   }

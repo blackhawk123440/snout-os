@@ -105,8 +105,8 @@ export class SrsMessageProcessorService {
       where: {
         orgId,
         threadId,
-        startAt: { lte: responseCreatedAt },
-        endAt: { gte: responseCreatedAt },
+        startsAt: { lte: responseCreatedAt },
+        endsAt: { gte: responseCreatedAt },
         status: 'active',
       },
     });
