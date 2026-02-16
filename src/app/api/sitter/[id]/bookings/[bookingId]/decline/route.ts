@@ -65,6 +65,20 @@ export async function POST(
       },
     });
 
+    // Record offer decline for SRS
+    try {
+      const { onOfferDeclined } = await import('@/lib/tiers/event-hooks');
+      const thread = await (prisma as any).messageThread.findFirst({
+        where: { bookingId },
+        select: { orgId: true },
+      });
+      if (thread?.orgId) {
+        await onOfferDeclined(thread.orgId, sitterId, bookingId, 'declined');
+      }
+    } catch (error) {
+      console.error('[SRS] Failed to record offer decline:', error);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[Decline Booking API] Failed to decline booking:', error);

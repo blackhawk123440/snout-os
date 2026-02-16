@@ -82,23 +82,36 @@ export async function createAssignmentWindow(
   const { startsAt, endsAt } = calculateAssignmentWindow(bookingStartAt, bookingEndAt, service);
   
   // Create assignment window
-  // Note: AssignmentWindow doesn't have status or bookingId fields - use bookingRef instead
+  // Note: AssignmentWindow uses startAt/endAt (calculated with buffers)
   const window = await (prisma as any).assignmentWindow.create({
     data: {
       orgId: resolvedOrgId,
       threadId,
-      bookingRef: bookingId, // Field is bookingRef, not bookingId
+      bookingId: bookingId,
       sitterId,
-      startsAt, // Field is startsAt, not startAt
-      endsAt, // Field is endsAt, not endAt
-      // status field doesn't exist
+      startAt: startsAt, // Use calculated window times with buffers
+      endAt: endsAt,
+      status: 'active',
     },
   });
+
+  // Create OfferEvent for SRS tracking
+  try {
+    const { onCreateOffer } = await import('@/lib/tiers/event-hooks');
+    await onCreateOffer(resolvedOrgId, sitterId, bookingId, threadId, {
+      withinAvailability: true,
+      leadTimeValid: true,
+      routingValid: true,
+    });
+  } catch (error) {
+    console.error('[Window Helpers] Failed to create OfferEvent:', error);
+    // Don't throw - SRS tracking shouldn't block window creation
+  }
   
   return {
     id: window.id,
-    startsAt: window.startsAt,
-    endsAt: window.endsAt,
+    startsAt: window.startAt,
+    endsAt: window.endAt,
   };
 }
 

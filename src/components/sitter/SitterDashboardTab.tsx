@@ -16,6 +16,7 @@ import { PerformanceSnapshot } from './PerformanceSnapshot';
 import { StatusAvailability } from './StatusAvailability';
 import { SitterTierCard } from './SitterTierCard';
 import { MessagingInboxCard } from './MessagingInboxCard';
+import { SitterSRSCard } from './SitterSRSCard';
 import type { SitterDashboardData } from '@/lib/api/sitter-dashboard-hooks';
 
 interface SitterDashboardTabProps {
@@ -124,6 +125,9 @@ export function SitterDashboardTab({ sitterId, sitter, dashboardData }: SitterDa
           </>
         )}
       </div>
+
+      {/* Your Level (SRS) Card - Always rendered */}
+      <SitterSRSCard />
 
       {/* Messaging Inbox Card - Always rendered */}
       {isLoading ? (

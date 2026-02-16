@@ -107,13 +107,25 @@ async function calculateResponsiveness(
     },
   });
 
+  // Get threads assigned to this sitter
+  const sitterThreads = await (prisma as any).messageThread.findMany({
+    where: {
+      orgId,
+      assignedSitterId: sitterId,
+    },
+    select: { id: true },
+  });
+  const threadIds = sitterThreads.map((t: any) => t.id);
+
+  if (threadIds.length === 0) {
+    return { score: 0, sampleSize: 0 };
+  }
+
   // Get messages requiring response within assignment windows
   const responseLinks = await (prisma as any).messageResponseLink.findMany({
     where: {
       orgId,
-      thread: {
-        assignedSitterId: sitterId,
-      },
+      threadId: { in: threadIds },
       requiresResponseEvent: {
         createdAt: { gte: windowStart, lte: asOfDate },
         direction: 'inbound',

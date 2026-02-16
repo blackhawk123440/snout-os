@@ -78,6 +78,20 @@ export async function POST(
       },
     });
 
+    // Record offer acceptance for SRS
+    try {
+      const { onOfferAccepted } = await import('@/lib/tiers/event-hooks');
+      const thread = await (prisma as any).messageThread.findFirst({
+        where: { bookingId },
+        select: { orgId: true },
+      });
+      if (thread?.orgId) {
+        await onOfferAccepted(thread.orgId, sitterId, bookingId);
+      }
+    } catch (error) {
+      console.error('[SRS] Failed to record offer acceptance:', error);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[Accept Booking API] Failed to accept booking:', error);
