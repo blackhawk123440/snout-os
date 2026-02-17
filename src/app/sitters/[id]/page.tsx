@@ -26,6 +26,7 @@ import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { SitterTierBadge } from '@/components/sitter';
+import { OwnerSRSCard } from '@/components/sitter/OwnerSRSCard';
 
 interface Sitter {
   id: string;
@@ -533,6 +534,9 @@ function SitterDetailContent() {
                     </Button>
                   </div>
                 </Card>
+
+                {/* Service Reliability Score */}
+                <OwnerSRSCard sitterId={sitterId} />
 
                 {/* Quick Actions */}
                 <Card>
