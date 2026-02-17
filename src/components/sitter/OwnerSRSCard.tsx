@@ -189,7 +189,7 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
             }}>
               {score ? score.toFixed(1) : 'N/A'}/100
             </div>
-            {data.snapshot && data.snapshot.visits30d !== undefined && (
+            {data.snapshot && typeof data.snapshot.visits30d === 'number' && (
               <div style={{ 
                 fontSize: tokens.typography.fontSize.sm[0],
                 color: tokens.colors.text.secondary,
