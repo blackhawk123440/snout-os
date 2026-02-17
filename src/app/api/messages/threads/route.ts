@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
     console.error('[Direct Prisma] Thread model available:', !!(prisma as any).thread);
     
     // Check if it's a Prisma model not found error
-    if (error.message?.includes('model') || error.message?.includes('undefined')')) {
+    if (error.message?.includes('model') || error.message?.includes('undefined')) {
       console.error('[Direct Prisma] Prisma model may not be available. Check schema generation.');
     }
     
