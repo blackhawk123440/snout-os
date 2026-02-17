@@ -7,12 +7,64 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Badge, Card } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAcceptBooking, useDeclineBooking, type SitterBooking } from '@/lib/api/sitter-dashboard-hooks';
 import { format, formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+
+/**
+ * Countdown Timer Component
+ * Updates every second to show time remaining
+ */
+function CountdownTimer({ expiresAt }: { expiresAt: Date }) {
+  const [timeRemaining, setTimeRemaining] = useState(() => {
+    const now = new Date();
+    return expiresAt.getTime() - now.getTime();
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      const remaining = expiresAt.getTime() - now.getTime();
+      setTimeRemaining(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  if (timeRemaining <= 0) {
+    return (
+      <div style={{
+        padding: tokens.spacing[2],
+        backgroundColor: tokens.colors.error[50],
+        borderRadius: tokens.borderRadius.md,
+        fontSize: tokens.typography.fontSize.sm[0],
+        color: tokens.colors.error[700],
+      }}>
+        This request has expired
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      padding: tokens.spacing[2],
+      backgroundColor: tokens.colors.warning[50],
+      borderRadius: tokens.borderRadius.md,
+      fontSize: tokens.typography.fontSize.sm[0],
+      fontWeight: tokens.typography.fontWeight.medium,
+      color: tokens.colors.warning[700],
+    }}>
+      ⏰ Response deadline: {formatDistanceToNow(expiresAt, { addSuffix: true })}
+    </div>
+  );
+}
 
 interface PendingRequestsProps {
   bookings: SitterBooking[];
@@ -122,7 +174,8 @@ export function PendingRequests({ bookings, sitterId, showHeader = true }: Pendi
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
         {bookings.map((booking) => {
-          const offer = booking.sitterPoolOffer;
+          // Support both legacy sitterPoolOffer and new offerEvent
+          const offer = (booking as any).offerEvent || booking.sitterPoolOffer;
           const expiresAt = offer?.expiresAt ? new Date(offer.expiresAt) : null;
           const now = new Date();
           const timeRemaining = expiresAt ? expiresAt.getTime() - now.getTime() : null;
@@ -205,16 +258,7 @@ export function PendingRequests({ bookings, sitterId, showHeader = true }: Pendi
 
                 {/* Countdown Timer */}
                 {expiresAt && !isExpired && (
-                  <div style={{
-                    padding: tokens.spacing[2],
-                    backgroundColor: tokens.colors.warning[50],
-                    borderRadius: tokens.borderRadius.md,
-                    fontSize: tokens.typography.fontSize.sm[0],
-                    fontWeight: tokens.typography.fontWeight.medium,
-                    color: tokens.colors.warning[700],
-                  }}>
-                    ⏰ Response deadline: {formatDistanceToNow(expiresAt, { addSuffix: true })}
-                  </div>
+                  <CountdownTimer expiresAt={expiresAt} />
                 )}
 
                 {isExpired && (

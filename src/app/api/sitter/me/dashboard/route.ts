@@ -3,6 +3,8 @@
  * 
  * GET: Fetch dashboard data for the authenticated sitter
  * Returns: pending requests, upcoming bookings, completed bookings, performance metrics, tier info
+ * 
+ * Uses OfferEvent model for pending requests (in-app booking flow)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -44,40 +46,37 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const orgId = (session.user as any).orgId;
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Organization not found' },
+        { status: 400 }
+      );
+    }
+
     const now = new Date();
 
-    // Fetch pending requests (bookings with active pool offers for this sitter)
-    const pendingOffers = await (prisma as any).sitterPoolOffer.findMany({
+    // Fetch pending requests from OfferEvent (status = sent, expiresAt > now)
+    const pendingOffers = await (prisma as any).offerEvent.findMany({
       where: {
-        OR: [
-          { sitterId: sitterId, status: 'active' },
-          { 
-            sitterIds: { contains: sitterId },
-            status: 'active',
-            expiresAt: { gt: now },
-          },
-        ],
+        orgId,
+        sitterId,
+        status: 'sent',
+        expiresAt: { gt: now },
+        excluded: false,
       },
       include: {
         booking: {
           include: {
             pets: true,
             client: true,
-            sitterPoolOffers: {
-              where: {
-                OR: [
-                  { sitterId: sitterId },
-                  { sitterIds: { contains: sitterId } },
-                ],
-                status: 'active',
-              },
-            },
           },
         },
       },
-      orderBy: {
-        expiresAt: 'asc',
-      },
+      orderBy: [
+        { expiresAt: 'asc' }, // Earliest expiry first
+        { offeredAt: 'desc' }, // Then newest first
+      ],
     });
 
     // Get thread IDs for pending bookings (for messaging links)
@@ -95,15 +94,7 @@ export async function GET(request: NextRequest) {
     const threadMap = new Map(pendingThreads.map((t: any) => [t.bookingId, t.id]));
 
     const pendingRequests = pendingOffers
-      .filter((offer: any) => {
-        // Check if sitter hasn't already responded
-        try {
-          const responses = JSON.parse(offer.responses || '[]') as Array<{ sitterId: string; response: string }>;
-          return !responses.some(r => r.sitterId === sitterId);
-        } catch {
-          return true;
-        }
-      })
+      .filter((offer: any) => offer.booking) // Only include offers with valid bookings
       .map((offer: any) => ({
         id: offer.booking.id,
         firstName: offer.booking.firstName,
@@ -117,9 +108,10 @@ export async function GET(request: NextRequest) {
         status: offer.booking.status,
         pets: offer.booking.pets,
         client: offer.booking.client,
-        sitterPoolOffer: {
+        offerEvent: {
           id: offer.id,
-          expiresAt: offer.expiresAt.toISOString(),
+          expiresAt: offer.expiresAt?.toISOString() || null,
+          offeredAt: offer.offeredAt.toISOString(),
           status: offer.status,
         },
         threadId: threadMap.get(offer.booking.id) || null,
@@ -166,7 +158,8 @@ export async function GET(request: NextRequest) {
       status: booking.status,
       pets: booking.pets,
       client: booking.client,
-      sitterPoolOffer: null,
+      sitterPoolOffer: null, // Legacy field for compatibility
+      offerEvent: null,
       threadId: upcomingThreadMap.get(booking.id) || null,
     }));
 
@@ -200,25 +193,39 @@ export async function GET(request: NextRequest) {
       status: booking.status,
       pets: booking.pets,
       client: booking.client,
-      sitterPoolOffer: null,
+      sitterPoolOffer: null, // Legacy field for compatibility
+      offerEvent: null,
       threadId: null,
     }));
 
-    // Calculate performance metrics (placeholders for now)
-    const allSitterBookings = await (prisma as any).booking.findMany({
-      where: { sitterId: sitterId },
+    // Calculate performance metrics from OfferEvent
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const recentOffers = await (prisma as any).offerEvent.findMany({
+      where: {
+        orgId,
+        sitterId,
+        offeredAt: { gte: sevenDaysAgo },
+        excluded: false,
+      },
     });
 
-    const totalBookings = allSitterBookings.length;
-    const completedCount = allSitterBookings.filter((b: any) => b.status === 'completed').length;
+    const totalOffers = recentOffers.length;
+    const accepted = recentOffers.filter((o: any) => o.status === 'accepted' || o.acceptedAt).length;
+    const acceptanceRate = totalOffers > 0 ? accepted / totalOffers : null;
+
+    const totalBookings = await (prisma as any).booking.count({
+      where: { sitterId: sitterId },
+    });
+    const completedCount = completed.length;
     const totalEarnings = completedBookings.reduce((sum: number, b: any) => {
       const commission = (sitter as any).commissionPercentage || 80;
       return sum + (b.totalPrice * commission / 100);
     }, 0);
 
-    // Calculate metrics (simplified - would need more data for accurate rates)
     const performance = {
-      acceptanceRate: null as number | null, // Would need offer response data
+      acceptanceRate,
       completionRate: totalBookings > 0 ? completedCount / totalBookings : null,
       onTimeRate: null as number | null, // Would need actual vs scheduled time data
       clientRating: null as number | null, // Would need rating system
@@ -227,8 +234,6 @@ export async function GET(request: NextRequest) {
     };
 
     // Get unread message count
-    // Note: This is a simplified placeholder - proper unread tracking would require
-    // a sitterUnreadCount field on MessageThread or a separate tracking table
     const unreadThreads = await (prisma as any).messageThread.findMany({
       where: {
         assignedSitterId: sitterId,
@@ -236,7 +241,6 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Count threads with unread messages (simplified - would need proper unread tracking)
     const unreadCount = unreadThreads.length; // Placeholder
 
     return NextResponse.json({

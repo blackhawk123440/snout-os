@@ -34,6 +34,12 @@ const bookingSchema = z.object({
     expiresAt: z.string().transform((s) => new Date(s)),
     status: z.string(),
   }).nullable(),
+  offerEvent: z.object({
+    id: z.string(),
+    expiresAt: z.string().transform((s) => new Date(s)).nullable(),
+    offeredAt: z.string().transform((s) => new Date(s)),
+    status: z.string(),
+  }).nullable(),
   threadId: z.string().nullable(),
 });
 

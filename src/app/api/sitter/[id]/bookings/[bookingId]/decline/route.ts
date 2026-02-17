@@ -1,7 +1,8 @@
 /**
  * Decline Booking Request API Route
  * 
- * POST: Decline a booking request from a pool offer
+ * POST: Decline a booking request from an OfferEvent
+ * Updates OfferEvent status, records response time
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -25,16 +26,31 @@ export async function POST(
     const resolvedParams = await params;
     const sitterId = resolvedParams.id;
     const bookingId = resolvedParams.bookingId;
+    const orgId = (session.user as any).orgId;
 
-    // Find the active pool offer for this booking and sitter
-    const offer = await (prisma as any).sitterPoolOffer.findFirst({
+    if (!orgId) {
+      return NextResponse.json(
+        { error: 'Organization not found' },
+        { status: 400 }
+      );
+    }
+
+    // Verify sitter matches authenticated user
+    if (sitterId !== (session.user as any).sitterId) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
+    // Find the active offer for this booking and sitter
+    const offer = await (prisma as any).offerEvent.findFirst({
       where: {
+        orgId,
+        sitterId: sitterId,
         bookingId: bookingId,
-        OR: [
-          { sitterId: sitterId },
-          { sitterIds: { contains: sitterId } },
-        ],
-        status: 'active',
+        status: 'sent',
+        excluded: false,
       },
     });
 
@@ -45,46 +61,163 @@ export async function POST(
       );
     }
 
-    // Check if already responded
-    const responses = JSON.parse(offer.responses || '[]') as Array<{ sitterId: string; response: string }>;
-    if (responses.some(r => r.sitterId === sitterId)) {
+    // Check if expired (still allow decline for tracking, but mark as expired)
+    const isExpired = offer.expiresAt && new Date(offer.expiresAt) < new Date();
+
+    // Check if already accepted/declined (idempotency)
+    if (offer.status === 'accepted' || offer.acceptedAt) {
       return NextResponse.json(
-        { error: 'You have already responded to this offer' },
+        { error: 'Offer already accepted' },
         { status: 400 }
       );
     }
 
-    // Add decline response
-    responses.push({ sitterId, response: 'declined' });
-    
-    // Update offer with response
-    await (prisma as any).sitterPoolOffer.update({
+    if (offer.status === 'declined' || offer.declinedAt) {
+      return NextResponse.json(
+        { error: 'Offer already declined' },
+        { status: 400 }
+      );
+    }
+
+    const now = new Date();
+    const responseSeconds = Math.floor((now.getTime() - new Date(offer.offeredAt).getTime()) / 1000);
+
+    // Update offer status
+    await (prisma as any).offerEvent.update({
       where: { id: offer.id },
       data: {
-        responses: JSON.stringify(responses),
+        status: isExpired ? 'expired' : 'declined',
+        declinedAt: now,
+        declineReason: isExpired ? 'expired' : 'declined',
       },
     });
 
-    // Record offer decline for SRS
+    // Update metrics window with response time
+    await updateMetricsWindow(orgId, sitterId, responseSeconds, 'declined');
+
+    // Trigger tier recomputation (async, don't wait)
     try {
-      const { onOfferDeclined } = await import('@/lib/tiers/event-hooks');
-      const thread = await (prisma as any).messageThread.findFirst({
-        where: { bookingId },
-        select: { orgId: true },
+      const { computeTierForSitter, recordTierChange } = await import('@/lib/tiers/tier-engine-twilio');
+      const tierResult = await computeTierForSitter(orgId, sitterId, 7);
+      
+      // Get tier ID from tier name
+      const tier = await (prisma as any).sitterTier.findFirst({
+        where: { name: tierResult.tier },
       });
-      if (thread?.orgId) {
-        await onOfferDeclined(thread.orgId, sitterId, bookingId, 'declined');
+
+      if (tier) {
+        await recordTierChange(
+          orgId,
+          sitterId,
+          tierResult.tier,
+          tier.id,
+          tierResult.metrics,
+          tierResult.reasons
+        );
       }
     } catch (error) {
-      console.error('[SRS] Failed to record offer decline:', error);
+      console.error('[Tier Engine] Failed to recompute tier:', error);
+      // Don't fail the request if tier computation fails
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, responseSeconds });
   } catch (error: any) {
     console.error('[Decline Booking API] Failed to decline booking:', error);
     return NextResponse.json(
       { error: 'Failed to decline booking', message: error.message },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Update metrics window with response time and decline
+ */
+async function updateMetricsWindow(
+  orgId: string,
+  sitterId: string,
+  responseSeconds: number,
+  action: 'accepted' | 'declined'
+) {
+  const now = new Date();
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  // Get or create metrics window
+  const existing = await (prisma as any).sitterMetricsWindow.findFirst({
+    where: {
+      orgId,
+      sitterId,
+      windowStart: { lte: sevenDaysAgo },
+      windowEnd: { gte: now },
+      windowType: 'weekly_7d',
+    },
+  });
+
+  // Get all offers in this window to recalculate rates
+  const offers = await (prisma as any).offerEvent.findMany({
+    where: {
+      orgId,
+      sitterId,
+      offeredAt: { gte: sevenDaysAgo, lte: now },
+      excluded: false,
+    },
+  });
+
+  const totalOffers = offers.length;
+  const accepted = offers.filter((o: any) => o.status === 'accepted' || o.acceptedAt).length;
+  const declined = offers.filter((o: any) => o.status === 'declined' || o.declinedAt).length;
+  const expired = offers.filter((o: any) => o.status === 'expired' || (o.expiresAt && new Date(o.expiresAt) < now && !o.acceptedAt && !o.declinedAt)).length;
+
+  // Get response times
+  const responseTimes = offers
+    .filter((o: any) => o.acceptedAt || o.declinedAt)
+    .map((o: any) => {
+      const respondedAt = o.acceptedAt || o.declinedAt;
+      return Math.floor((new Date(respondedAt).getTime() - new Date(o.offeredAt).getTime()) / 1000);
+    });
+
+  const avgResponseSeconds = responseTimes.length > 0
+    ? responseTimes.reduce((a: number, b: number) => a + b, 0) / responseTimes.length
+    : null;
+
+  const sortedTimes = [...responseTimes].sort((a: number, b: number) => a - b);
+  const medianResponseSeconds = sortedTimes.length > 0
+    ? sortedTimes[Math.floor(sortedTimes.length / 2)]
+    : null;
+
+  const offerAcceptRate = totalOffers > 0 ? accepted / totalOffers : null;
+  const offerDeclineRate = totalOffers > 0 ? declined / totalOffers : null;
+  const offerExpireRate = totalOffers > 0 ? expired / totalOffers : null;
+
+  if (existing) {
+    await (prisma as any).sitterMetricsWindow.update({
+      where: { id: existing.id },
+      data: {
+        avgResponseSeconds,
+        medianResponseSeconds,
+        offerAcceptRate,
+        offerDeclineRate,
+        offerExpireRate,
+        lastOfferRespondedAt: now,
+        updatedAt: now,
+      },
+    });
+  } else {
+    await (prisma as any).sitterMetricsWindow.create({
+      data: {
+        orgId,
+        sitterId,
+        windowStart: sevenDaysAgo,
+        windowEnd: now,
+        windowType: 'weekly_7d',
+        avgResponseSeconds,
+        medianResponseSeconds,
+        offerAcceptRate,
+        offerDeclineRate,
+        offerExpireRate,
+        lastOfferRespondedAt: now,
+      },
+    });
   }
 }

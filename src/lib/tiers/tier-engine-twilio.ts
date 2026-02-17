@@ -132,7 +132,7 @@ async function computeMetricsFromEvents(
     ? responseLinks.length / requiringResponse.length
     : 0;
 
-  // Compute offer metrics from OfferEvent
+  // Compute offer metrics from OfferEvent (in-app booking flow)
   const offers = await (prisma as any).offerEvent.findMany({
     where: {
       orgId,
@@ -145,6 +145,7 @@ async function computeMetricsFromEvents(
       acceptedAt: true,
       declinedAt: true,
       expiresAt: true,
+      offeredAt: true,
     },
   });
 
@@ -159,9 +160,32 @@ async function computeMetricsFromEvents(
   const offerDeclineRate = totalOffers > 0 ? declined / totalOffers : 0;
   const offerExpireRate = totalOffers > 0 ? expired / totalOffers : 0;
 
+  // Calculate response times from offers (in-app flow)
+  const offerResponseTimes = offers
+    .filter((o: any) => o.acceptedAt || o.declinedAt)
+    .map((o: any) => {
+      const respondedAt = o.acceptedAt || o.declinedAt;
+      return Math.floor((new Date(respondedAt).getTime() - new Date(o.offeredAt).getTime()) / 1000);
+    });
+
+  // Merge response times from offers with message response times
+  const allResponseTimes = [...responseSeconds, ...offerResponseTimes];
+  
+  // Use merged times if available, otherwise fall back to message-only times
+  const finalAvgResponseSeconds = allResponseTimes.length > 0
+    ? allResponseTimes.reduce((a: number, b: number) => a + b, 0) / allResponseTimes.length
+    : avgResponseSeconds;
+
+  const finalSortedTimes = allResponseTimes.length > 0
+    ? [...allResponseTimes].sort((a: number, b: number) => a - b)
+    : sortedSeconds;
+  const finalMedianResponseSeconds = finalSortedTimes.length > 0
+    ? finalSortedTimes[Math.floor(finalSortedTimes.length / 2)]
+    : medianResponseSeconds;
+
   return {
-    avgResponseSeconds,
-    medianResponseSeconds,
+    avgResponseSeconds: finalAvgResponseSeconds,
+    medianResponseSeconds: finalMedianResponseSeconds,
     responseRate,
     offerAcceptRate,
     offerDeclineRate,
