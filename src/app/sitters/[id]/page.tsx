@@ -7,7 +7,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   PageHeader,
@@ -20,6 +20,8 @@ import {
   EmptyState,
   Skeleton,
   SectionHeader,
+  Tabs,
+  TabPanel,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -27,6 +29,9 @@ import { useMobile } from '@/lib/use-mobile';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { SitterTierBadge } from '@/components/sitter';
 import { OwnerSRSCard } from '@/components/sitter/OwnerSRSCard';
+import { TierSummaryCard } from '@/components/sitter/TierSummaryCard';
+import { TierTab } from '@/components/sitter/TierTab';
+import { SitterMessagesTab } from '@/components/sitter/SitterMessagesTab';
 
 interface Sitter {
   id: string;
@@ -77,15 +82,31 @@ interface SitterStats {
   upcomingCount: number;
 }
 
+type SitterTab = 'dashboard' | 'tier' | 'messages';
+
 function SitterDetailContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const sitterId = params.id as string;
   const isMobile = useMobile();
+
+  // Get tab from URL or default to dashboard
+  const tabParam = searchParams.get('tab') as SitterTab | null;
+  const [activeTab, setActiveTab] = useState<SitterTab>(
+    (tabParam && ['dashboard', 'tier', 'messages'].includes(tabParam)) ? tabParam : 'dashboard'
+  );
 
   const [sitter, setSitter] = useState<Sitter | null>(null);
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<SitterStats | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Update URL when tab changes
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', activeTab);
+    window.history.pushState({}, '', url.toString());
+  }, [activeTab]);
 
   useEffect(() => {
     if (sitterId) {
@@ -234,6 +255,12 @@ function SitterDetailContent() {
     );
   }
 
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'tier', label: 'Tier' },
+    { id: 'messages', label: 'Messages' },
+  ];
+
   return (
     <AppShell>
       <PageHeader
@@ -250,8 +277,14 @@ function SitterDetailContent() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[4] }}> {/* Phase E: Tighter density to match Dashboard */}
-        {isMobile ? (
+      <div style={{ padding: tokens.spacing[4] }}>
+        <Tabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={(id) => setActiveTab(id as SitterTab)}
+        >
+          <TabPanel id="dashboard">
+            {isMobile ? (
           <>
             {/* Mobile: Stats Cards */}
             {stats && (
@@ -349,6 +382,12 @@ function SitterDetailContent() {
                 </Button>
               </div>
             </Card>
+
+            {/* Mobile: Tier Summary */}
+            <TierSummaryCard 
+              sitterId={sitterId}
+              onViewDetails={() => setActiveTab('tier')}
+            />
 
             {/* Mobile: Upcoming Bookings */}
             <Card>
@@ -535,8 +574,11 @@ function SitterDetailContent() {
                   </div>
                 </Card>
 
-                {/* Service Reliability Score */}
-                <OwnerSRSCard sitterId={sitterId} />
+                {/* Tier Summary Card */}
+                <TierSummaryCard 
+                  sitterId={sitterId}
+                  onViewDetails={() => setActiveTab('tier')}
+                />
 
                 {/* Quick Actions */}
                 <Card>
@@ -590,7 +632,17 @@ function SitterDetailContent() {
               </div>
             </div>
           </>
-        )}
+            )}
+          </TabPanel>
+
+          <TabPanel id="tier">
+            <TierTab sitterId={sitterId} />
+          </TabPanel>
+
+          <TabPanel id="messages">
+            <SitterMessagesTab sitterId={sitterId} />
+          </TabPanel>
+        </Tabs>
       </div>
     </AppShell>
   );

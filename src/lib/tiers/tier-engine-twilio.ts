@@ -120,10 +120,10 @@ async function computeMetricsFromEvents(
     .filter((s: number | null): s is number => s !== null);
 
   const avgResponseSeconds = responseSeconds.length > 0
-    ? responseSeconds.reduce((a, b) => a + b, 0) / responseSeconds.length
+    ? responseSeconds.reduce((a: number, b: number) => a + b, 0) / responseSeconds.length
     : 0;
 
-  const sortedSeconds = [...responseSeconds].sort((a, b) => a - b);
+  const sortedSeconds = [...responseSeconds].sort((a: number, b: number) => a - b);
   const medianResponseSeconds = sortedSeconds.length > 0
     ? sortedSeconds[Math.floor(sortedSeconds.length / 2)]
     : 0;
