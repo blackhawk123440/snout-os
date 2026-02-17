@@ -28,7 +28,6 @@ import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { SitterTierBadge } from '@/components/sitter';
-import { OwnerSRSCard } from '@/components/sitter/OwnerSRSCard';
 import { TierSummaryCard } from '@/components/sitter/TierSummaryCard';
 import { TierTab } from '@/components/sitter/TierTab';
 import { SitterMessagesTab } from '@/components/sitter/SitterMessagesTab';
