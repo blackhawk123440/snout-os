@@ -131,6 +131,7 @@ model Sitter {
   offerEvents          OfferEvent[]
   visitEvents          VisitEvent[]
   compensation         SitterCompensation?
+  metricsWindows       SitterMetricsWindow[]
 
   @@index([active])
   @@index([currentTierId])
@@ -1439,9 +1440,12 @@ model OfferEvent {
   threadId          String?
   bookingId         String?
   offeredAt         DateTime
+  expiresAt         DateTime? // When offer expires (for timeout tracking)
   acceptedAt        DateTime?
   declinedAt        DateTime?
   declineReason     String?    // enum + free text
+  source            String     @default("dashboard") // dashboard | sms
+  status            String     @default("sent") // sent | accepted | declined | expired
   withinAvailability Boolean   @default(true)
   leadTimeValid     Boolean    @default(true)
   routingValid      Boolean    @default(true)
@@ -1458,9 +1462,11 @@ model OfferEvent {
 
   @@index([orgId, sitterId, offeredAt(sort: Desc)])
   @@index([orgId, sitterId, excluded])
+  @@index([orgId, sitterId, status])
   @@index([bookingId])
   @@index([threadId])
   @@index([offeredAt])
+  @@index([expiresAt])
 }
 
 model VisitEvent {
@@ -1518,6 +1524,32 @@ model SitterCompensation {
   @@index([nextReviewDate])
 }
 
+model SitterMetricsWindow {
+  id                  String    @id @default(uuid())
+  orgId               String
+  sitterId            String
+  windowStart         DateTime
+  windowEnd           DateTime
+  windowType          String     // daily | weekly_7d | monthly_30d
+  avgResponseSeconds  Float?
+  medianResponseSeconds Float?
+  responseRate        Float?     // responded threads / total requiring response
+  offerAcceptRate     Float?     // accepted / total offers
+  offerDeclineRate    Float?     // declined / total offers
+  offerExpireRate     Float?     // expired / total offers
+  lastOfferRespondedAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  sitter              Sitter     @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, sitterId, windowStart, windowType])
+  @@index([orgId, sitterId, windowStart])
+  @@index([orgId, sitterId, windowEnd])
+  @@index([windowType])
+}
+
 model MessageResponseLink {
   id                    String    @id @default(uuid())
   orgId                 String
@@ -1525,6 +1557,7 @@ model MessageResponseLink {
   requiresResponseEventId String  // FK to MessageEvent (the message requiring response)
   responseEventId       String    // FK to MessageEvent (the response)
   responseMinutes       Int       // Calculated response time in minutes
+  responseSeconds       Int?      // More precise response time in seconds
   withinAssignmentWindow Boolean  @default(false)
   excluded              Boolean   @default(false)
   excludedReason        String?   @db.Text
