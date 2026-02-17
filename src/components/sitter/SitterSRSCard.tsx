@@ -41,18 +41,30 @@ interface SitterSRSData {
 }
 
 export function SitterSRSCard() {
-  const { data, isLoading } = useQuery<SitterSRSData>({
+  const { data, isLoading, error } = useQuery<SitterSRSData>({
     queryKey: ['sitter-srs'],
     queryFn: async () => {
       const res = await fetch('/api/sitter/me/srs');
-      if (!res.ok) throw new Error('Failed to fetch SRS');
+      if (!res.ok) {
+        // If 404, return null to show empty state
+        if (res.status === 404) {
+          return null;
+        }
+        throw new Error('Failed to fetch SRS');
+      }
       return res.json();
     },
+    retry: false, // Don't retry on error
   });
 
+  // Always render the card, even on error or no data
   if (isLoading) {
     return (
       <Card style={{ padding: tokens.spacing[4] }}>
+        <SectionHeader 
+          title="Your Level" 
+          description="Service Reliability Score and tier status"
+        />
         <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
           Loading your performance score...
         </div>
@@ -60,7 +72,8 @@ export function SitterSRSCard() {
     );
   }
 
-  if (!data) {
+  // Show empty state if no data or error
+  if (error || !data) {
     return (
       <Card style={{ padding: tokens.spacing[4] }}>
         <SectionHeader 
@@ -73,7 +86,18 @@ export function SitterSRSCard() {
           color: tokens.colors.text.secondary,
           fontSize: tokens.typography.fontSize.sm[0],
         }}>
-          Complete your first visits to generate a performance score.
+          {error ? (
+            <div>
+              <div style={{ marginBottom: tokens.spacing[2] }}>
+                Unable to load performance score.
+              </div>
+              <div style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
+                Complete your first visits to generate a performance score.
+              </div>
+            </div>
+          ) : (
+            'Complete your first visits to generate a performance score.'
+          )}
         </div>
       </Card>
     );
