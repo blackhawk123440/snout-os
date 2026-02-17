@@ -149,7 +149,7 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
     if (breakdown.accuracy < 15) {
       nextActions.push('Improve visit accuracy');
     }
-    if (data.snapshot?.visits30d < 15) {
+    if (data.snapshot && typeof data.snapshot.visits30d === 'number' && data.snapshot.visits30d < 15) {
       nextActions.push('Complete more visits to exit provisional status');
     }
   }
