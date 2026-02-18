@@ -17,6 +17,7 @@ import { getOrgIdFromNumber } from '@/lib/messaging/number-org-mapping';
 import { getSitterIdFromMaskedNumber } from '@/lib/messaging/number-sitter-mapping';
 import { isAcceptCommand, isDeclineCommand } from '@/lib/messaging/sms-commands';
 import { recordSitterAuditEvent } from '@/lib/audit-events';
+import { processMessageEvent } from '@/lib/tiers/message-instrumentation';
 import { env } from '@/lib/env';
 
 // TwiML response helper
@@ -584,8 +585,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Persist inbound message to MessageEvent
+    let messageEventId: string;
     try {
-      await (prisma as any).messageEvent.create({
+      const messageEvent = await (prisma as any).messageEvent.create({
         data: {
           threadId: thread.id,
           orgId,
@@ -598,6 +600,25 @@ export async function POST(request: NextRequest) {
           deliveryStatus: 'received',
         },
       });
+      messageEventId = messageEvent.id;
+
+      // Process message for tier metrics (creates MessageResponseLink if needed)
+      try {
+        await processMessageEvent(
+          orgId,
+          thread.id,
+          messageEventId,
+          {
+            direction: 'inbound',
+            actorType: 'client',
+            body: messageBody,
+            createdAt: new Date(messageEvent.createdAt),
+          }
+        );
+      } catch (error) {
+        console.error('[Twilio Webhook] Failed to process message for tier metrics:', error);
+        // Don't fail the request if tier processing fails
+      }
 
       // Update thread timestamps
       await (prisma as any).messageThread.update({
