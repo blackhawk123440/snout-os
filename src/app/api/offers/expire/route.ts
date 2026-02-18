@@ -138,8 +138,8 @@ export async function POST(request: NextRequest) {
 
             const booking = offer.booking;
             const bookingWindow = {
-              startAt: booking.startAt,
-              endAt: booking.endAt,
+              startAt: offer.booking.startAt,
+              endAt: offer.booking.endAt,
             };
 
             // Get sitters in cooldown (exclude sitters who declined/expired recently)
