@@ -8,7 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { recordOfferAccepted } from '@/lib/audit-events';
+import { recordOfferAccepted, recordOfferAcceptBlocked } from '@/lib/audit-events';
+import { checkSitterEligibility } from '@/lib/sitter-eligibility';
 
 export async function POST(
   request: NextRequest,

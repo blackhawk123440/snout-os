@@ -206,3 +206,60 @@ export async function recordAvailabilityToggled(
     },
   });
 }
+
+/**
+ * Record offer accept blocked event
+ */
+export async function recordOfferAcceptBlocked(
+  orgId: string,
+  sitterId: string,
+  bookingId: string,
+  offerId: string,
+  reason: string,
+  actorId?: string
+): Promise<void> {
+  await recordSitterAuditEvent({
+    orgId,
+    sitterId,
+    eventType: 'offer.accept_blocked',
+    actorType: 'sitter',
+    actorId: actorId || sitterId,
+    entityType: 'offer',
+    entityId: offerId,
+    bookingId,
+    metadata: {
+      offerId,
+      reason,
+    },
+  });
+}
+
+/**
+ * Record offer reassigned event
+ */
+export async function recordOfferReassigned(
+  orgId: string,
+  fromSitterId: string,
+  toSitterId: string,
+  bookingId: string,
+  offerId: string,
+  reason: string,
+  actorId?: string
+): Promise<void> {
+  await recordSitterAuditEvent({
+    orgId,
+    sitterId: toSitterId, // Primary sitter is the new one
+    eventType: 'offer.reassigned',
+    actorType: 'system',
+    actorId: actorId || 'system',
+    entityType: 'offer',
+    entityId: offerId,
+    bookingId,
+    metadata: {
+      fromSitterId,
+      toSitterId,
+      offerId,
+      reason,
+    },
+  });
+}

@@ -8,7 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { recordOfferExpired } from '@/lib/audit-events';
+import { recordOfferExpired, recordOfferReassigned } from '@/lib/audit-events';
+import { selectEligibleSitter } from '@/lib/sitter-eligibility';
 
 export async function POST(request: NextRequest) {
   // Optional: Require admin auth or API key for cron jobs
@@ -39,23 +40,97 @@ export async function POST(request: NextRequest) {
     let bookingsReturnedToPool = 0;
 
     for (const offer of expiredOffers) {
-      // Mark offer as expired
-      await (prisma as any).offerEvent.update({
-        where: { id: offer.id },
-        data: {
-          status: 'expired',
-        },
-      });
+      try {
+        // Mark offer as expired (idempotent - check status first)
+        if (offer.status === 'sent') {
+          await (prisma as any).offerEvent.update({
+            where: { id: offer.id },
+            data: {
+              status: 'expired',
+            },
+          });
+        }
 
-      // Record audit event
-      await recordOfferExpired(
-        offer.orgId,
-        offer.sitterId,
-        offer.bookingId || '',
-        offer.id
-      );
+        // Record audit event
+        await recordOfferExpired(
+          offer.orgId,
+          offer.sitterId,
+          offer.bookingId || '',
+          offer.id
+        );
 
-      expiredCount++;
+        expiredCount++;
+
+        // Return booking to pool (unassign if not already assigned)
+        if (offer.booking && offer.booking.status === 'pending' && !offer.booking.sitterId) {
+          // Booking is already in pool - no action needed
+          bookingsReturnedToPool++;
+        } else if (offer.booking && offer.booking.sitterId === offer.sitterId) {
+          // Booking was assigned to this sitter, but offer expired - unassign
+          await (prisma as any).booking.update({
+            where: { id: offer.booking.id },
+            data: {
+              sitterId: null,
+              status: 'pending', // Return to pending/unassigned
+            },
+          });
+          bookingsReturnedToPool++;
+        }
+
+        // Optionally: Create new offer for next eligible sitter
+        if (offer.bookingId && offer.booking) {
+          try {
+            const booking = offer.booking;
+            const bookingWindow = {
+              startAt: booking.startAt,
+              endAt: booking.endAt,
+            };
+
+            // Select next eligible sitter (excluding the one that just expired)
+            const selection = await selectEligibleSitter(
+              offer.orgId,
+              offer.bookingId,
+              bookingWindow,
+              [offer.sitterId] // Exclude the sitter whose offer expired
+            );
+
+            if (selection.sitterId) {
+              // Create new offer for the selected sitter
+              const expiresAt = new Date();
+              expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiry
+
+              const newOffer = await (prisma as any).offerEvent.create({
+                data: {
+                  orgId: offer.orgId,
+                  sitterId: selection.sitterId,
+                  bookingId: offer.bookingId,
+                  offeredAt: new Date(),
+                  expiresAt: expiresAt,
+                  status: 'sent',
+                  excluded: false,
+                },
+              });
+
+              // Record reassignment event
+              await recordOfferReassigned(
+                offer.orgId,
+                offer.sitterId,
+                selection.sitterId,
+                offer.bookingId,
+                newOffer.id,
+                `Offer expired, reassigned to ${selection.reason}`
+              );
+            }
+          } catch (reassignError: any) {
+            // Log but don't fail - booking is already in pool
+            console.error(`[Expire Offers] Failed to reassign booking ${offer.bookingId}:`, reassignError);
+          }
+        }
+      } catch (error: any) {
+        // Log but continue processing other offers
+        console.error(`[Expire Offers] Failed to process offer ${offer.id}:`, error);
+      }
+    }
 
       // If booking is not yet assigned, return it to pool
       if (offer.booking && !offer.booking.sitterId && offer.booking.status === 'pending') {
