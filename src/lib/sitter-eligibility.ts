@@ -174,10 +174,6 @@ export async function selectEligibleSitter(
     }
   }
 
-  if (eligibleSitters.length === 0) {
-    return { sitterId: null, reason: 'No eligible sitters found' };
-  }
-
   // Sort by priority level (lower is better), then by sitterId for consistency
   eligibleSitters.sort((a, b) => {
     if (a.priorityLevel !== b.priorityLevel) {
