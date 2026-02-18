@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
             if (attemptCount >= MAX_REASSIGNMENT_ATTEMPTS) {
               // Max attempts reached - mark for manual dispatch
               // markBookingForManualDispatch is idempotent, so safe to call multiple times
-              const wasAlreadyManual = booking.dispatchStatus === 'manual_required' || 
-                                      booking.dispatchStatus === 'manual_in_progress';
+              const wasAlreadyManual = offer.booking.dispatchStatus === 'manual_required' || 
+                                      offer.booking.dispatchStatus === 'manual_in_progress';
               
               await markBookingForManualDispatch(
                 offer.orgId,
@@ -136,7 +136,6 @@ export async function POST(request: NextRequest) {
               continue; // Skip reassignment for this offer
             }
 
-            const booking = offer.booking;
             const bookingWindow = {
               startAt: offer.booking.startAt,
               endAt: offer.booking.endAt,
