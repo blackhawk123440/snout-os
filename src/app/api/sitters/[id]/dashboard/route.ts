@@ -34,7 +34,9 @@ export async function GET(
   try {
     const resolvedParams = await params;
     const sitterId = resolvedParams.id;
-    const orgId = user.orgId;
+    
+    // Get orgId from session or use default
+    const orgId = user.orgId || (await import('@/lib/messaging/org-helpers')).getDefaultOrgId();
 
     if (!orgId) {
       return NextResponse.json(

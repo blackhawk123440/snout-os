@@ -99,6 +99,10 @@ function SitterDetailContent() {
   const searchParams = useSearchParams();
   const sitterId = params.id as string;
   const isMobile = useMobile();
+  
+  // Check if user has edit permissions (owner only for now) - MUST be called before any early returns
+  const { user } = useAuth();
+  const canEdit = user?.role === 'owner';
 
   // Get tab from URL or default to dashboard
   const tabParam = searchParams.get('tab') as SitterTab | null;
@@ -291,10 +295,6 @@ function SitterDetailContent() {
     { id: 'payroll', label: 'Payroll' },
     { id: 'activity', label: 'Activity' },
   ];
-
-  // Check if user has edit permissions (owner only for now)
-  const { user } = useAuth();
-  const canEdit = user?.role === 'owner';
 
   return (
     <AppShell>
