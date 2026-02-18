@@ -166,7 +166,7 @@ export function TierProgression({ currentTierName, metrics }: TierProgressionPro
                       Level {level}
                     </Badge>
                     {isCurrent && (
-                      <Badge variant="primary" style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
+                      <Badge variant="info" style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
                         Current
                       </Badge>
                     )}

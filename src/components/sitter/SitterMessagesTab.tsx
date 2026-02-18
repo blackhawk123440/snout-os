@@ -177,7 +177,7 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: tokens.spacing[1] }}>
                   {thread.hasActiveWindow && (
-                    <Badge variant="success" size="sm">Active</Badge>
+                    <Badge variant="success">Active</Badge>
                   )}
                   <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
                     {formatDistanceToNow(new Date(thread.lastMessageAt), { addSuffix: true })}
