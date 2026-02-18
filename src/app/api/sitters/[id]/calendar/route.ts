@@ -53,7 +53,7 @@ export async function GET(
     const connected = !!(sitter.googleAccessToken && sitter.googleRefreshToken);
     const syncEnabled = sitter.calendarSyncEnabled || false;
 
-    // Get last sync time from most recent calendar event
+    // Get last sync time from most recent calendar event (updatedAt serves as lastSyncAt)
     const lastCalendarEvent = await (prisma as any).bookingCalendarEvent.findFirst({
       where: {
         sitterId,
@@ -65,6 +65,9 @@ export async function GET(
         updatedAt: true,
       },
     });
+
+    // Also check if there's a calendar name (could fetch from Google API, but for now use calendarId)
+    const calendarName = sitter.googleCalendarId === 'primary' ? 'Primary Calendar' : sitter.googleCalendarId || 'Primary Calendar';
 
     // Fetch upcoming bookings (same query as dashboard)
     const now = new Date();
@@ -95,6 +98,7 @@ export async function GET(
         connected,
         syncEnabled,
         calendarId: sitter.googleCalendarId || 'primary',
+        calendarName: calendarName,
         lastSyncAt: lastCalendarEvent?.updatedAt?.toISOString() || null,
       },
       upcomingBookings: upcomingBookings.map((booking: any) => ({

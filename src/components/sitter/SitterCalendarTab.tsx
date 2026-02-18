@@ -16,6 +16,7 @@ interface CalendarStatus {
   connected: boolean;
   syncEnabled: boolean;
   calendarId: string | null;
+  calendarName: string | null;
   lastSyncAt: string | null;
 }
 
@@ -145,15 +146,27 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
                 </Badge>
               </div>
 
-              {calendarStatus.calendarId && (
+              {calendarStatus.calendarName && (
                 <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                  Calendar: {calendarStatus.calendarId}
+                  <i className="fas fa-calendar" style={{ marginRight: tokens.spacing[2] }} />
+                  {calendarStatus.calendarName}
+                  {calendarStatus.calendarId && calendarStatus.calendarId !== 'primary' && (
+                    <span style={{ marginLeft: tokens.spacing[2], opacity: 0.7 }}>
+                      ({calendarStatus.calendarId})
+                    </span>
+                  )}
                 </div>
               )}
 
-              {calendarStatus.lastSyncAt && (
+              {calendarStatus.lastSyncAt ? (
                 <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                  <i className="fas fa-clock" style={{ marginRight: tokens.spacing[2] }} />
                   Last synced: {formatDate(calendarStatus.lastSyncAt)} at {formatTime(calendarStatus.lastSyncAt)}
+                </div>
+              ) : (
+                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, fontStyle: 'italic' }}>
+                  <i className="fas fa-info-circle" style={{ marginRight: tokens.spacing[2] }} />
+                  No syncs yet
                 </div>
               )}
 

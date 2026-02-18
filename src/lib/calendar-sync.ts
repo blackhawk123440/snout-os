@@ -10,6 +10,22 @@ import { createGoogleCalendarEvent, updateGoogleCalendarEvent, deleteGoogleCalen
 import { recordSitterAuditEvent } from './audit-events';
 
 /**
+ * Get timezone for organization
+ * Falls back to America/New_York if not configured
+ */
+async function getOrgTimezone(orgId: string): Promise<string> {
+  try {
+    const settings = await (prisma as any).businessSettings.findFirst({
+      select: { timeZone: true },
+    });
+    return settings?.timeZone || 'America/New_York';
+  } catch (error) {
+    console.warn('[Calendar Sync] Failed to fetch org timezone, using default');
+    return 'America/New_York';
+  }
+}
+
+/**
  * Sync booking to Google Calendar (create or update)
  * 
  * Idempotent: If event exists, updates it. Otherwise creates new.
@@ -93,7 +109,10 @@ export async function syncBookingToCalendar(
 
     const calendarId = sitter.googleCalendarId || 'primary';
 
-    // Check if event already exists
+    // Get timezone for organization
+    const timeZone = await getOrgTimezone(orgId);
+
+    // Check if event already exists (idempotency check)
     const existingEvent = await (prisma as any).bookingCalendarEvent.findUnique({
       where: {
         bookingId_sitterId: {
@@ -103,29 +122,34 @@ export async function syncBookingToCalendar(
       },
     });
 
-    // Build calendar event
+    // Build calendar event with explicit timezone
     const eventTitle = `${booking.service} - ${booking.firstName} ${booking.lastName}`;
     const eventDescription = booking.notes || '';
     const eventLocation = booking.address || '';
+
+    // Ensure dates are Date objects
+    const startAt = booking.startAt instanceof Date ? booking.startAt : new Date(booking.startAt);
+    const endAt = booking.endAt instanceof Date ? booking.endAt : new Date(booking.endAt);
 
     const calendarEvent: GoogleCalendarEvent = {
       summary: eventTitle,
       description: eventDescription,
       start: {
-        dateTime: booking.startAt.toISOString(),
-        timeZone: 'America/New_York', // TODO: Get from org settings
+        dateTime: startAt.toISOString(),
+        timeZone: timeZone, // Explicit timezone from org settings
       },
       end: {
-        dateTime: booking.endAt.toISOString(),
-        timeZone: 'America/New_York',
+        dateTime: endAt.toISOString(),
+        timeZone: timeZone, // Explicit timezone from org settings
       },
       location: eventLocation,
     };
 
     let googleEventId: string | null = null;
+    const now = new Date();
 
     if (existingEvent) {
-      // Update existing event
+      // Idempotency: Update existing event
       calendarEvent.id = existingEvent.googleCalendarEventId;
       const updated = await updateGoogleCalendarEvent(
         accessToken,
@@ -136,6 +160,20 @@ export async function syncBookingToCalendar(
 
       if (updated) {
         googleEventId = existingEvent.googleCalendarEventId;
+        
+        // Update lastSyncAt timestamp
+        await (prisma as any).bookingCalendarEvent.update({
+          where: {
+            bookingId_sitterId: {
+              bookingId,
+              sitterId,
+            },
+          },
+          data: {
+            updatedAt: now, // This serves as lastSyncAt
+          },
+        });
+
         await recordSitterAuditEvent({
           orgId,
           sitterId,
@@ -150,13 +188,14 @@ export async function syncBookingToCalendar(
             bookingId,
             sitterId,
             googleEventId,
+            timeZone,
           },
         });
       } else {
         throw new Error('Failed to update Google Calendar event');
       }
     } else {
-      // Create new event
+      // Create new event and store mapping
       googleEventId = await createGoogleCalendarEvent(
         accessToken,
         calendarId,
@@ -164,12 +203,14 @@ export async function syncBookingToCalendar(
       );
 
       if (googleEventId) {
-        // Store mapping
+        // Store mapping with timestamp
         await (prisma as any).bookingCalendarEvent.create({
           data: {
             bookingId,
             sitterId,
             googleCalendarEventId: googleEventId,
+            createdAt: now,
+            updatedAt: now, // This serves as lastSyncAt
           },
         });
 
@@ -187,6 +228,7 @@ export async function syncBookingToCalendar(
             bookingId,
             sitterId,
             googleEventId,
+            timeZone,
           },
         });
       } else {
@@ -241,7 +283,8 @@ export async function deleteBookingCalendarEvent(
     });
 
     if (!event) {
-      // No event to delete
+      // No event to delete - handle gracefully (idempotent)
+      console.log(`[Calendar Sync] No calendar event found for booking ${bookingId} and sitter ${sitterId} - skipping deletion`);
       return;
     }
 
