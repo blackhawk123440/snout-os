@@ -106,14 +106,16 @@ export async function checkSitterEligibility(
  * Priority:
  * 1. Active + available
  * 2. No conflicts
- * 3. Highest tier first (if tier exists)
- * 4. Fallback to any eligible sitter
+ * 3. Not in cooldown (if cooldownSitterIds provided)
+ * 4. Highest tier first (if tier exists)
+ * 5. Fallback to any eligible sitter
  */
 export async function selectEligibleSitter(
   orgId: string,
   bookingId: string,
   bookingWindow: BookingWindow,
-  excludeSitterIds: string[] = []
+  excludeSitterIds: string[] = [],
+  cooldownSitterIds: string[] = []
 ): Promise<{ sitterId: string | null; reason: string }> {
   // Get booking details
   const booking = await (prisma as any).booking.findUnique({
@@ -130,11 +132,14 @@ export async function selectEligibleSitter(
     return { sitterId: null, reason: 'Booking not found' };
   }
 
-  // Get all active sitters (excluding the ones we're excluding)
+  // Combine exclude and cooldown lists
+  const allExcludedIds = [...new Set([...excludeSitterIds, ...cooldownSitterIds])];
+
+  // Get all active sitters (excluding the ones we're excluding and in cooldown)
   const allSitters = await (prisma as any).sitter.findMany({
     where: {
       active: true,
-      id: { notIn: excludeSitterIds },
+      id: { notIn: allExcludedIds },
     },
     include: {
       currentTier: {
@@ -181,9 +186,17 @@ export async function selectEligibleSitter(
     return a.sitterId.localeCompare(b.sitterId);
   });
 
+  if (eligibleSitters.length === 0) {
+    const cooldownReason = cooldownSitterIds.length > 0
+      ? ` (${cooldownSitterIds.length} sitter(s) in cooldown excluded)`
+      : '';
+    return { sitterId: null, reason: `No eligible sitters found${cooldownReason}` };
+  }
+
   const selected = eligibleSitters[0];
+  const wasInCooldown = cooldownSitterIds.length > 0;
   return {
     sitterId: selected.sitterId,
-    reason: `Selected sitter with tier ${selected.tierName || 'Unknown'} (priority ${selected.priorityLevel})`,
+    reason: `Selected sitter with tier ${selected.tierName || 'Unknown'} (priority ${selected.priorityLevel})${wasInCooldown ? ', excluding cooldown sitters' : ''}`,
   };
 }

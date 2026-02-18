@@ -8,8 +8,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { recordOfferExpired, recordOfferReassigned } from '@/lib/audit-events';
+import { recordOfferExpired, recordOfferReassigned, recordOfferExhausted, recordManualDispatchRequired } from '@/lib/audit-events';
 import { selectEligibleSitter } from '@/lib/sitter-eligibility';
+import {
+  getBookingAttemptCount,
+  getSittersInCooldown,
+  markBookingForManualDispatch,
+  isBookingFlaggedForManualDispatch,
+  MAX_REASSIGNMENT_ATTEMPTS,
+  SITTER_COOLDOWN_HOURS,
+} from '@/lib/offer-reassignment';
 
 export async function POST(request: NextRequest) {
   // Optional: Require admin auth or API key for cron jobs
@@ -78,24 +86,77 @@ export async function POST(request: NextRequest) {
         }
 
         // Optionally: Create new offer for next eligible sitter
-        if (offer.bookingId && offer.booking) {
+        // Skip if booking is already flagged for manual dispatch
+        if (offer.bookingId && offer.booking && !(await isBookingFlaggedForManualDispatch(offer.bookingId))) {
           try {
+            // Check attempt count to prevent infinite loops
+            const attemptCount = await getBookingAttemptCount(offer.orgId, offer.bookingId);
+            
+            if (attemptCount >= MAX_REASSIGNMENT_ATTEMPTS) {
+              // Max attempts reached - mark for manual dispatch
+              await markBookingForManualDispatch(
+                offer.orgId,
+                offer.bookingId,
+                `Max reassignment attempts (${attemptCount}) reached`
+              );
+              
+              await recordOfferExhausted(
+                offer.orgId,
+                offer.bookingId,
+                attemptCount,
+                `Max attempts (${MAX_REASSIGNMENT_ATTEMPTS}) reached for booking`
+              );
+              
+              await recordManualDispatchRequired(
+                offer.orgId,
+                offer.bookingId,
+                `Max reassignment attempts (${attemptCount}) reached`
+              );
+              
+              console.log(`[Expire Offers] Booking ${offer.bookingId} exhausted after ${attemptCount} attempts`);
+              continue; // Skip reassignment for this offer
+            }
+
             const booking = offer.booking;
             const bookingWindow = {
               startAt: booking.startAt,
               endAt: booking.endAt,
             };
 
-            // Select next eligible sitter (excluding the one that just expired)
+            // Get sitters in cooldown (exclude sitters who declined/expired recently)
+            const cooldownSitterIds = await getSittersInCooldown(
+              offer.orgId,
+              offer.bookingId,
+              SITTER_COOLDOWN_HOURS
+            );
+
+            // Select next eligible sitter (excluding expired sitter and cooldown sitters)
             const selection = await selectEligibleSitter(
               offer.orgId,
               offer.bookingId,
               bookingWindow,
-              [offer.sitterId] // Exclude the sitter whose offer expired
+              [offer.sitterId], // Exclude the sitter whose offer expired
+              cooldownSitterIds // Exclude sitters in cooldown
             );
 
             if (selection.sitterId) {
-              // Create new offer for the selected sitter
+              // Create new offer for the selected sitter (idempotent - check if offer already exists)
+              const existingOffer = await (prisma as any).offerEvent.findFirst({
+                where: {
+                  orgId: offer.orgId,
+                  bookingId: offer.bookingId,
+                  sitterId: selection.sitterId,
+                  status: 'sent',
+                  excluded: false,
+                },
+              });
+
+              if (existingOffer) {
+                // Offer already exists - skip creation (idempotency)
+                console.log(`[Expire Offers] Offer already exists for booking ${offer.bookingId} and sitter ${selection.sitterId}`);
+                continue;
+              }
+
               const expiresAt = new Date();
               expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiry
 
@@ -111,19 +172,44 @@ export async function POST(request: NextRequest) {
                 },
               });
 
-              // Record reassignment event
+              // Record reassignment event with selection reason
               await recordOfferReassigned(
                 offer.orgId,
                 offer.sitterId,
                 selection.sitterId,
                 offer.bookingId,
                 newOffer.id,
-                `Offer expired, reassigned to ${selection.reason}`
+                `Offer expired (attempt ${attemptCount + 1}/${MAX_REASSIGNMENT_ATTEMPTS}), reassigned to ${selection.reason}`
               );
+            } else {
+              // No eligible sitter found - mark for manual dispatch
+              await markBookingForManualDispatch(
+                offer.orgId,
+                offer.bookingId,
+                `No eligible sitter found: ${selection.reason}`
+              );
+              
+              await recordManualDispatchRequired(
+                offer.orgId,
+                offer.bookingId,
+                `No eligible sitter found after ${attemptCount} attempts: ${selection.reason}`
+              );
+              
+              console.log(`[Expire Offers] No eligible sitter found for booking ${offer.bookingId}: ${selection.reason}`);
             }
           } catch (reassignError: any) {
             // Log but don't fail - booking is already in pool
             console.error(`[Expire Offers] Failed to reassign booking ${offer.bookingId}:`, reassignError);
+            // Mark for manual dispatch as fallback
+            try {
+              await markBookingForManualDispatch(
+                offer.orgId,
+                offer.bookingId,
+                `Reassignment error: ${reassignError.message}`
+              );
+            } catch (markError) {
+              console.error(`[Expire Offers] Failed to mark booking for manual dispatch:`, markError);
+            }
           }
         }
 

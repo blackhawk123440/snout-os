@@ -263,3 +263,55 @@ export async function recordOfferReassigned(
     },
   });
 }
+
+/**
+ * Record offer exhausted event (max attempts reached)
+ */
+export async function recordOfferExhausted(
+  orgId: string,
+  bookingId: string,
+  attempts: number,
+  reason: string,
+  actorId?: string
+): Promise<void> {
+  await recordSitterAuditEvent({
+    orgId,
+    sitterId: 'system', // System-level event
+    eventType: 'offer.exhausted',
+    actorType: 'system',
+    actorId: actorId || 'system',
+    entityType: 'booking',
+    entityId: bookingId,
+    bookingId,
+    metadata: {
+      bookingId,
+      attempts,
+      reason,
+    },
+  });
+}
+
+/**
+ * Record manual dispatch required event
+ */
+export async function recordManualDispatchRequired(
+  orgId: string,
+  bookingId: string,
+  reason: string,
+  actorId?: string
+): Promise<void> {
+  await recordSitterAuditEvent({
+    orgId,
+    sitterId: 'system', // System-level event
+    eventType: 'dispatch.manual_required',
+    actorType: 'system',
+    actorId: actorId || 'system',
+    entityType: 'booking',
+    entityId: bookingId,
+    bookingId,
+    metadata: {
+      bookingId,
+      reason,
+    },
+  });
+}
