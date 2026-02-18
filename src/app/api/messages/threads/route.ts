@@ -121,8 +121,11 @@ export async function GET(request: NextRequest) {
     }
     
     // Handle scope filter: 'internal' means owner inbox (front_desk threads)
-    if (searchParams.get('scope') === 'internal') {
+    // Owner inbox should NOT include sitter threads (assignedSitterId should be null)
+    if (searchParams.get('scope') === 'internal' || searchParams.get('inbox') === 'owner') {
       filters.threadType = 'front_desk';
+      // Explicitly exclude sitter-assigned threads from owner inbox
+      filters.assignedSitterId = null;
     }
 
     // Use try-catch for each relation to handle missing models gracefully
