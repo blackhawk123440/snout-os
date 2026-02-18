@@ -102,6 +102,10 @@ export async function POST(request: NextRequest) {
             
             if (attemptCount >= MAX_REASSIGNMENT_ATTEMPTS) {
               // Max attempts reached - mark for manual dispatch
+              // markBookingForManualDispatch is idempotent, so safe to call multiple times
+              const wasAlreadyManual = booking.dispatchStatus === 'manual_required' || 
+                                      booking.dispatchStatus === 'manual_in_progress';
+              
               await markBookingForManualDispatch(
                 offer.orgId,
                 offer.bookingId,
@@ -115,11 +119,14 @@ export async function POST(request: NextRequest) {
                 `Max attempts (${MAX_REASSIGNMENT_ATTEMPTS}) reached for booking`
               );
               
-              await recordManualDispatchRequired(
-                offer.orgId,
-                offer.bookingId,
-                `Max reassignment attempts (${attemptCount}) reached`
-              );
+              // Only record manual dispatch event once (idempotent check)
+              if (!wasAlreadyManual) {
+                await recordManualDispatchRequired(
+                  offer.orgId,
+                  offer.bookingId,
+                  `Max reassignment attempts (${attemptCount}) reached`
+                );
+              }
               
               console.log(`[Expire Offers] Booking ${offer.bookingId} exhausted after ${attemptCount} attempts`);
               continue; // Skip reassignment for this offer
@@ -191,17 +198,24 @@ export async function POST(request: NextRequest) {
               );
             } else {
               // No eligible sitter found - mark for manual dispatch
+              // markBookingForManualDispatch is idempotent, so safe to call multiple times
+              const wasAlreadyManual = booking.dispatchStatus === 'manual_required' || 
+                                      booking.dispatchStatus === 'manual_in_progress';
+              
               await markBookingForManualDispatch(
                 offer.orgId,
                 offer.bookingId,
                 `No eligible sitter found: ${selection.reason}`
               );
               
-              await recordManualDispatchRequired(
-                offer.orgId,
-                offer.bookingId,
-                `No eligible sitter found after ${attemptCount} attempts: ${selection.reason}`
-              );
+              // Only record manual dispatch event once (idempotent check)
+              if (!wasAlreadyManual) {
+                await recordManualDispatchRequired(
+                  offer.orgId,
+                  offer.bookingId,
+                  `No eligible sitter found after ${attemptCount} attempts: ${selection.reason}`
+                );
+              }
               
               console.log(`[Expire Offers] No eligible sitter found for booking ${offer.bookingId}: ${selection.reason}`);
             }
