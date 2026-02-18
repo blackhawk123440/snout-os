@@ -139,21 +139,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-      // If booking is not yet assigned, return it to pool
-      if (offer.booking && !offer.booking.sitterId && offer.booking.status === 'pending') {
-        // Booking remains in pool - no action needed
-        // The booking system will handle re-offering to other sitters
-        bookingsReturnedToPool++;
-      }
-
-      // Update metrics window for this sitter
-      try {
-        await updateMetricsWindowForExpired(offer.orgId, offer.sitterId);
-      } catch (error) {
-        console.error(`[Expire Offers] Failed to update metrics for sitter ${offer.sitterId}:`, error);
-      }
-    }
-
     return NextResponse.json({
       success: true,
       expiredCount,
