@@ -126,6 +126,13 @@ export async function POST(request: NextRequest) {
             console.error(`[Expire Offers] Failed to reassign booking ${offer.bookingId}:`, reassignError);
           }
         }
+
+        // Update metrics window for this sitter
+        try {
+          await updateMetricsWindowForExpired(offer.orgId, offer.sitterId);
+        } catch (error) {
+          console.error(`[Expire Offers] Failed to update metrics for sitter ${offer.sitterId}:`, error);
+        }
       } catch (error: any) {
         // Log but continue processing other offers
         console.error(`[Expire Offers] Failed to process offer ${offer.id}:`, error);
