@@ -12,10 +12,19 @@ export type DispatchStatus = 'auto' | 'manual_required' | 'manual_in_progress' |
 
 /**
  * Valid dispatch status transitions
+ * 
+ * Rules:
+ * - auto -> manual_required: When automation exhausts or fails
+ * - auto -> assigned: Direct assignment (bypasses automation)
+ * - manual_required -> manual_in_progress: Owner starts working on it
+ * - manual_required -> assigned: Owner assigns directly
+ * - manual_required -> auto: Owner resumes automation (retry)
+ * - manual_in_progress -> assigned: Owner completes assignment
+ * - assigned -> auto: Resume automation (for future bookings)
  */
 const VALID_TRANSITIONS: Record<DispatchStatus, DispatchStatus[]> = {
   auto: ['manual_required', 'assigned'],
-  manual_required: ['manual_in_progress', 'assigned'],
+  manual_required: ['manual_in_progress', 'assigned', 'auto'], // Can resume automation
   manual_in_progress: ['assigned'],
   assigned: ['auto'], // Can resume automation after assignment
 };
