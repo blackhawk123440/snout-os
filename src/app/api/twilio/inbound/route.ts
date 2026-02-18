@@ -15,7 +15,6 @@ import { prisma } from '@/lib/db';
 import { TwilioProvider } from '@/lib/messaging/providers/twilio';
 import { getOrgIdFromNumber } from '@/lib/messaging/number-org-mapping';
 import { getSitterIdFromMaskedNumber } from '@/lib/messaging/number-sitter-mapping';
-import { resolveInboundSms } from '@/lib/messaging/routing-resolver';
 import { isAcceptCommand, isDeclineCommand } from '@/lib/messaging/sms-commands';
 import { recordSitterAuditEvent } from '@/lib/audit-events';
 import { env } from '@/lib/env';
@@ -356,7 +355,9 @@ export async function POST(request: NextRequest) {
 
     // Verify webhook signature
     const signature = request.headers.get('X-Twilio-Signature') || '';
-    const webhookUrl = `${env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/twilio/inbound`;
+    // Use TWILIO_WEBHOOK_URL if set, otherwise construct from request
+    const webhookUrl = env.TWILIO_WEBHOOK_URL || 
+      `${request.nextUrl.origin}/api/twilio/inbound`;
     
     const provider = new TwilioProvider();
     const isValid = provider.verifyWebhook(rawBody, signature, webhookUrl);
