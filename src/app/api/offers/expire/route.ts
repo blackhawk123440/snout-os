@@ -96,13 +96,10 @@ export async function POST(request: NextRequest) {
         }
 
         const dispatchStatus = booking.dispatchStatus || 'auto';
-        const isManualDispatch = dispatchStatus === 'manual_required' || 
-                                 dispatchStatus === 'manual_in_progress' ||
-                                 dispatchStatus === 'assigned' ||
-                                 (await isBookingFlaggedForManualDispatch(offer.bookingId));
         
         // Only create offers if dispatchStatus is 'auto' (automation is active)
-        if (dispatchStatus === 'auto' && !isManualDispatch) {
+        // Automation never fights manual control (manual_required, manual_in_progress, assigned)
+        if (dispatchStatus === 'auto') {
           try {
             // Check attempt count to prevent infinite loops
             const attemptCount = await getBookingAttemptCount(offer.orgId, offer.bookingId);
