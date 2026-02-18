@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
 import { prisma } from '@/lib/db';
+import { isOwnerMailbox } from '@/lib/messaging/mailbox-helpers';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -121,11 +122,15 @@ export async function GET(request: NextRequest) {
     }
     
     // Handle scope filter: 'internal' means owner inbox (front_desk threads)
-    // Owner inbox should NOT include sitter threads (assignedSitterId should be null)
+    // Owner inbox should NOT include sitter mailbox threads
+    // Sitter mailbox = assignedSitterId IS NOT NULL AND scope IN ('client_booking', 'client_general')
+    // Owner mailbox = scope = 'internal' OR (assignedSitterId IS NULL AND scope = 'owner_sitter')
     if (searchParams.get('scope') === 'internal' || searchParams.get('inbox') === 'owner') {
       filters.threadType = 'front_desk';
-      // Explicitly exclude sitter-assigned threads from owner inbox
+      // Explicitly exclude sitter mailbox threads from owner inbox
       filters.assignedSitterId = null;
+      // Also exclude client_booking/client_general threads (sitter mailbox)
+      filters.scope = { notIn: ['client_booking', 'client_general'] };
     }
 
     // Use try-catch for each relation to handle missing models gracefully

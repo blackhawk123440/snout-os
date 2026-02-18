@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { isSitterMailbox } from '@/lib/messaging/mailbox-helpers';
 
 export async function GET(
   request: NextRequest,
@@ -46,12 +47,13 @@ export async function GET(
   }
 
   try {
-    // Fetch threads scoped to this sitter
-    // Only return threads where assignedSitterId === sitterId
+    // Fetch threads scoped to this sitter (sitter mailbox only)
+    // Only return threads where assignedSitterId === sitterId AND scope indicates sitter mailbox
     const threads = await (prisma as any).messageThread.findMany({
       where: {
         orgId,
         assignedSitterId: sitterId,
+        scope: { in: ['client_booking', 'client_general'] }, // Sitter mailbox threads only
         // Exclude closed/archived threads by default (can add filter later)
         status: { notIn: ['closed', 'archived'] },
       },
