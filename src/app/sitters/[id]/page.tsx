@@ -292,9 +292,9 @@ function SitterDetailContent() {
     { id: 'activity', label: 'Activity' },
   ];
 
-  // Check if user has edit permissions (owner/admin)
+  // Check if user has edit permissions (owner only for now)
   const { user } = useAuth();
-  const canEdit = user?.role === 'owner' || user?.role === 'admin';
+  const canEdit = user?.role === 'owner';
 
   return (
     <AppShell>
