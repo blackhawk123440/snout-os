@@ -34,6 +34,9 @@ model Booking {
   pricingSnapshot      String?                @db.Text // JSON string of CanonicalPricingBreakdown (Phase 2)
   status               String                 @default("pending")
   assignmentType       String? // "direct" or "pool" - null means not yet assigned
+  dispatchStatus       String                 @default("auto") // auto | manual_required | manual_in_progress | assigned
+  manualDispatchReason String?                @db.Text
+  manualDispatchAt     DateTime?
   notes                String?
   stripePaymentLinkUrl String?
   tipLinkUrl           String?

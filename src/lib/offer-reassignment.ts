@@ -60,49 +60,125 @@ export async function getSittersInCooldown(
 
 /**
  * Mark booking as requiring manual dispatch
+ * 
+ * Idempotent: Only updates if not already in manual_required state
  */
 export async function markBookingForManualDispatch(
   orgId: string,
   bookingId: string,
   reason: string
 ): Promise<void> {
-  // Use notes field to flag for manual dispatch (since there's no dedicated field)
-  // Format: "[MANUAL_DISPATCH] reason"
+  // Check current state (idempotent check)
   const booking = await (prisma as any).booking.findUnique({
     where: { id: bookingId },
-    select: { notes: true },
+    select: {
+      dispatchStatus: true,
+      manualDispatchReason: true,
+      notes: true,
+    },
   });
 
-  const existingNotes = booking?.notes || '';
-  const manualDispatchFlag = `[MANUAL_DISPATCH] ${reason}`;
-  
-  // Only add flag if not already present
-  if (!existingNotes.includes('[MANUAL_DISPATCH]')) {
-    const updatedNotes = existingNotes
-      ? `${existingNotes}\n${manualDispatchFlag}`
-      : manualDispatchFlag;
-
-    await (prisma as any).booking.update({
-      where: { id: bookingId },
-      data: {
-        notes: updatedNotes,
-        status: 'pending', // Ensure it's in pool
-        sitterId: null, // Ensure unassigned
-      },
-    });
+  if (!booking) {
+    throw new Error(`Booking ${bookingId} not found`);
   }
+
+  // If already in manual_required state, skip update (idempotent)
+  if (booking.dispatchStatus === 'manual_required') {
+    return;
+  }
+
+  const now = new Date();
+  
+  // Update to manual_required state
+  await (prisma as any).booking.update({
+    where: { id: bookingId },
+    data: {
+      dispatchStatus: 'manual_required',
+      manualDispatchReason: reason,
+      manualDispatchAt: now,
+      status: 'pending', // Ensure it's in pool
+      sitterId: null, // Ensure unassigned
+    },
+  });
 }
 
 /**
  * Check if booking is flagged for manual dispatch
+ * 
+ * Backward compatible: Also checks notes field for legacy [MANUAL_DISPATCH] flag
  */
 export async function isBookingFlaggedForManualDispatch(
   bookingId: string
 ): Promise<boolean> {
   const booking = await (prisma as any).booking.findUnique({
     where: { id: bookingId },
-    select: { notes: true },
+    select: {
+      dispatchStatus: true,
+      notes: true,
+    },
   });
 
-  return booking?.notes?.includes('[MANUAL_DISPATCH]') || false;
+  if (!booking) {
+    return false;
+  }
+
+  // Check new first-class field
+  if (booking.dispatchStatus === 'manual_required' || booking.dispatchStatus === 'manual_in_progress') {
+    return true;
+  }
+
+  // Backward compatibility: Check notes for legacy flag
+  if (booking.notes?.includes('[MANUAL_DISPATCH]')) {
+    // Migrate on read (lazy migration)
+    try {
+      await migrateLegacyManualDispatchFlag(bookingId, booking.notes);
+    } catch (error) {
+      console.error(`[Manual Dispatch] Failed to migrate legacy flag for booking ${bookingId}:`, error);
+    }
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Migrate legacy [MANUAL_DISPATCH] flag from notes to dispatchStatus
+ * 
+ * This is called lazily when reading a booking with the legacy flag.
+ */
+async function migrateLegacyManualDispatchFlag(
+  bookingId: string,
+  notes: string | null
+): Promise<void> {
+  if (!notes?.includes('[MANUAL_DISPATCH]')) {
+    return;
+  }
+
+  // Extract reason from notes
+  const match = notes.match(/\[MANUAL_DISPATCH\]\s*(.+?)(?:\n|$)/);
+  const reason = match ? match[1].trim() : 'Legacy manual dispatch flag';
+
+  // Update to new field structure
+  await (prisma as any).booking.update({
+    where: { id: bookingId },
+    data: {
+      dispatchStatus: 'manual_required',
+      manualDispatchReason: reason,
+      manualDispatchAt: new Date(),
+    },
+  });
+
+  // Optionally clean up notes (remove the flag, keep other notes)
+  const cleanedNotes = notes
+    .replace(/\[MANUAL_DISPATCH\][^\n]*\n?/g, '')
+    .trim();
+  
+  if (cleanedNotes !== notes) {
+    await (prisma as any).booking.update({
+      where: { id: bookingId },
+      data: {
+        notes: cleanedNotes || null,
+      },
+    });
+  }
 }

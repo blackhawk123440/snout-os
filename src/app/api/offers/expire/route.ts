@@ -89,7 +89,13 @@ export async function POST(request: NextRequest) {
 
         // Optionally: Create new offer for next eligible sitter
         // Skip if booking is already flagged for manual dispatch
-        if (offer.bookingId && offer.booking && !(await isBookingFlaggedForManualDispatch(offer.bookingId))) {
+        // Check dispatchStatus directly for performance (backward compatible via isBookingFlaggedForManualDispatch)
+        const booking = offer.booking;
+        const isManualDispatch = booking?.dispatchStatus === 'manual_required' || 
+                                 booking?.dispatchStatus === 'manual_in_progress' ||
+                                 (await isBookingFlaggedForManualDispatch(offer.bookingId));
+        
+        if (offer.bookingId && booking && !isManualDispatch) {
           try {
             // Check attempt count to prevent infinite loops
             const attemptCount = await getBookingAttemptCount(offer.orgId, offer.bookingId);
