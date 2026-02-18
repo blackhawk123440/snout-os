@@ -88,18 +88,21 @@ export async function POST(request: NextRequest) {
         }
 
         // Optionally: Create new offer for next eligible sitter
-        // Skip if booking is already flagged for manual dispatch
-        // Check dispatchStatus directly for performance (backward compatible via isBookingFlaggedForManualDispatch)
+        // Skip if booking is already flagged for manual dispatch or in manual_in_progress
+        // Automation never fights manual control
         const booking = offer.booking;
         if (!offer.bookingId || !booking) {
           continue; // Skip if no booking
         }
 
-        const isManualDispatch = booking.dispatchStatus === 'manual_required' || 
-                                 booking.dispatchStatus === 'manual_in_progress' ||
+        const dispatchStatus = booking.dispatchStatus || 'auto';
+        const isManualDispatch = dispatchStatus === 'manual_required' || 
+                                 dispatchStatus === 'manual_in_progress' ||
+                                 dispatchStatus === 'assigned' ||
                                  (await isBookingFlaggedForManualDispatch(offer.bookingId));
         
-        if (!isManualDispatch) {
+        // Only create offers if dispatchStatus is 'auto' (automation is active)
+        if (dispatchStatus === 'auto' && !isManualDispatch) {
           try {
             // Check attempt count to prevent infinite loops
             const attemptCount = await getBookingAttemptCount(offer.orgId, offer.bookingId);
