@@ -9,6 +9,8 @@
 import { Card, Badge, SectionHeader, Skeleton, EmptyState } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useQuery } from '@tanstack/react-query';
+import { TierProgression } from './TierProgression';
+import { toCanonicalTierName } from '@/lib/tiers/tier-name-mapper';
 
 interface TierDetailsData {
   currentTier: {
@@ -71,7 +73,17 @@ export function TierTab({ sitterId }: TierTabProps) {
     return `${(rate * 100).toFixed(0)}%`;
   };
 
+  // Use canonical tier names (Trainee/Certified/Trusted/Elite) for display
+  const getCanonicalTierName = (tierName: string): string => {
+    return toCanonicalTierName(tierName);
+  };
+
   const tierColors: Record<string, string> = {
+    Trainee: tokens.colors.neutral[500],
+    Certified: tokens.colors.neutral[400],
+    Trusted: tokens.colors.warning.DEFAULT,
+    Elite: tokens.colors.info.DEFAULT,
+    // Legacy support
     Bronze: tokens.colors.neutral[500],
     Silver: tokens.colors.neutral[400],
     Gold: tokens.colors.warning.DEFAULT,
@@ -130,8 +142,16 @@ export function TierTab({ sitterId }: TierTabProps) {
   const metrics = data.metrics7d || data.metrics30d;
   const improvementHints = generateImprovementHints(data.metrics7d);
 
+  const canonicalTierName = data?.currentTier ? getCanonicalTierName(data.currentTier.name) : null;
+
   return (
     <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      {/* Tier Progression */}
+      <TierProgression 
+        currentTierName={canonicalTierName}
+        metrics={data?.metrics7d || null}
+      />
+
       {/* Current Tier Panel */}
       {data && data.currentTier && (
         <Card style={{ padding: tokens.spacing[4] }}>
@@ -141,13 +161,13 @@ export function TierTab({ sitterId }: TierTabProps) {
               <Badge
                 variant="default"
                 style={{
-                  backgroundColor: tierColors[data.currentTier.name] || tokens.colors.neutral[500],
+                  backgroundColor: tierColors[canonicalTierName || data.currentTier.name] || tokens.colors.neutral[500],
                   color: 'white',
                   fontSize: tokens.typography.fontSize.lg[0],
                   padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
                 }}
               >
-                {data.currentTier.name}
+                {canonicalTierName || data.currentTier.name}
               </Badge>
               <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                 Assigned {new Date(data.currentTier.assignedAt).toLocaleDateString()}
@@ -266,26 +286,28 @@ export function TierTab({ sitterId }: TierTabProps) {
         <Card style={{ padding: tokens.spacing[4] }}>
           <SectionHeader title="Tier History" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
-            {data.history.map((entry, i) => (
-              <div
-                key={entry.id}
-                style={{
-                  padding: tokens.spacing[3],
-                  borderLeft: `3px solid ${tierColors[entry.tierName] || tokens.colors.neutral[500]}`,
-                  backgroundColor: tokens.colors.neutral[50],
-                  borderRadius: tokens.borderRadius.md,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[1] }}>
-                  <Badge
-                    variant="default"
-                    style={{
-                      backgroundColor: tierColors[entry.tierName] || tokens.colors.neutral[500],
-                      color: 'white',
-                    }}
-                  >
-                    {entry.tierName}
-                  </Badge>
+            {data.history.map((entry, i) => {
+              const canonicalName = getCanonicalTierName(entry.tierName);
+              return (
+                <div
+                  key={entry.id}
+                  style={{
+                    padding: tokens.spacing[3],
+                    borderLeft: `3px solid ${tierColors[canonicalName] || tokens.colors.neutral[500]}`,
+                    backgroundColor: tokens.colors.neutral[50],
+                    borderRadius: tokens.borderRadius.md,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[1] }}>
+                    <Badge
+                      variant="default"
+                      style={{
+                        backgroundColor: tierColors[canonicalName] || tokens.colors.neutral[500],
+                        color: 'white',
+                      }}
+                    >
+                      {canonicalName}
+                    </Badge>
                   <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                     {new Date(entry.assignedAt).toLocaleDateString()}
                   </div>
@@ -296,7 +318,8 @@ export function TierTab({ sitterId }: TierTabProps) {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       )}

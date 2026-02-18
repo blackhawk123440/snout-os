@@ -44,22 +44,42 @@ export async function GET(
       return NextResponse.json({ error: 'Organization not found' }, { status: 400 });
     }
 
-    // Fetch events from EventLog model (filtered by sitterId in metadata)
+    // Fetch events from EventLog model (filtered by sitterId in metadata or bookingId)
+    const bookingIds = await getBookingIdsForSitter(orgId, sitterId);
+    
     const events = await (prisma as any).eventLog.findMany({
       where: {
         OR: [
-          { bookingId: { in: await getBookingIdsForSitter(orgId, sitterId) } },
-          // Also check metadata for sitterId
+          { bookingId: { in: bookingIds } },
+          // Include messaging errors for this org (owner-visible)
+          {
+            eventType: 'messaging.routing_failed',
+            metadata: {
+              contains: `"orgId":"${orgId}"`,
+            },
+          },
         ],
       },
       orderBy: {
         createdAt: 'desc',
       },
-      take: 50,
+      take: 100, // Increased to include messaging errors
     });
 
     // Filter events that are related to this sitter (check metadata)
+    // Also include org-level messaging errors (owner-visible)
     const sitterEvents = events.filter((e: any) => {
+      // Include messaging errors for owner visibility
+      if (e.eventType === 'messaging.routing_failed') {
+        try {
+          const metadata = JSON.parse(e.metadata || '{}');
+          return metadata.orgId === orgId;
+        } catch {
+          return false;
+        }
+      }
+      
+      // Filter by sitterId in metadata
       if (!e.metadata) return false;
       try {
         const metadata = JSON.parse(e.metadata);

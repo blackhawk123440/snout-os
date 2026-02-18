@@ -9,6 +9,7 @@
 import { Card, Badge, Button, SectionHeader, Skeleton, EmptyState } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useQuery } from '@tanstack/react-query';
+import { toCanonicalTierName } from '@/lib/tiers/tier-name-mapper';
 
 interface TierSummaryData {
   currentTier: {
@@ -53,6 +54,11 @@ export function TierSummaryCard({ sitterId, onViewDetails }: TierSummaryCardProp
   };
 
   const tierColors: Record<string, string> = {
+    Trainee: tokens.colors.neutral[500],
+    Certified: tokens.colors.neutral[400],
+    Trusted: tokens.colors.warning.DEFAULT,
+    Elite: tokens.colors.info.DEFAULT,
+    // Legacy support
     Bronze: tokens.colors.neutral[500],
     Silver: tokens.colors.neutral[400],
     Gold: tokens.colors.warning.DEFAULT,
@@ -95,21 +101,24 @@ export function TierSummaryCard({ sitterId, onViewDetails }: TierSummaryCardProp
       <SectionHeader title="Tier Summary" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
         {/* Current Tier Badge */}
-        {data.currentTier && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-            <Badge
-              variant="default"
-              style={{
-                backgroundColor: tierColors[data.currentTier.name] || tokens.colors.neutral[500],
-                color: 'white',
-                fontSize: tokens.typography.fontSize.base[0],
-                padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-              }}
-            >
-              {data.currentTier.name}
-            </Badge>
-          </div>
-        )}
+        {data.currentTier && (() => {
+          const canonicalName = toCanonicalTierName(data.currentTier.name);
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+              <Badge
+                variant="default"
+                style={{
+                  backgroundColor: tierColors[canonicalName] || tokens.colors.neutral[500],
+                  color: 'white',
+                  fontSize: tokens.typography.fontSize.base[0],
+                  padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+                }}
+              >
+                {canonicalName}
+              </Badge>
+            </div>
+          );
+        })()}
 
         {/* Metrics */}
         {data.metrics && (

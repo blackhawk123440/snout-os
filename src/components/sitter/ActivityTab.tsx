@@ -63,8 +63,18 @@ export function ActivityTab({ sitterId }: ActivityTabProps) {
       'admin.override': 'Admin Override',
       'booking.assigned': 'Booking Assigned',
       'booking.completed': 'Booking Completed',
+      'messaging.routing_failed': 'Messaging Error',
+      'message.inbound_received': 'Message Received',
+      'message.outbound_sent': 'Message Sent',
     };
     return labels[eventType] || eventType;
+  };
+
+  const getRemediationGuidance = (event: ActivityEvent): string | null => {
+    if (event.eventType === 'messaging.routing_failed' && event.payload?.remediation) {
+      return event.payload.remediation;
+    }
+    return null;
   };
 
   const getActorTypeLabel = (actorType: string) => {
@@ -106,50 +116,105 @@ export function ActivityTab({ sitterId }: ActivityTabProps) {
       <Card style={{ padding: tokens.spacing[4] }}>
         <SectionHeader title="Activity Log" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
-          {data.map((event) => (
-            <div
-              key={event.id}
-              style={{
-                padding: tokens.spacing[3],
-                borderLeft: `3px solid ${tokens.colors.primary.DEFAULT}`,
-                backgroundColor: tokens.colors.neutral[50],
-                borderRadius: tokens.borderRadius.md,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[2] }}>
-                <div>
-                  <div style={{
-                    fontWeight: tokens.typography.fontWeight.semibold,
-                    marginBottom: tokens.spacing[1],
-                  }}>
-                    {getEventTypeLabel(event.eventType)}
+          {data.map((event) => {
+            const isError = event.eventType === 'messaging.routing_failed';
+            const remediation = getRemediationGuidance(event);
+            
+            return (
+              <div
+                key={event.id}
+                style={{
+                  padding: tokens.spacing[3],
+                  borderLeft: `3px solid ${isError ? tokens.colors.error.DEFAULT : tokens.colors.primary.DEFAULT}`,
+                  backgroundColor: isError ? tokens.colors.error[50] : tokens.colors.neutral[50],
+                  borderRadius: tokens.borderRadius.md,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[2] }}>
+                  <div>
+                    <div style={{
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      marginBottom: tokens.spacing[1],
+                    }}>
+                      {getEventTypeLabel(event.eventType)}
+                    </div>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.sm[0],
+                      color: tokens.colors.text.secondary,
+                    }}>
+                      {formatTimestamp(event.timestamp)}
+                    </div>
                   </div>
+                  <Badge variant={isError ? 'error' : 'default'}>
+                    {getActorTypeLabel(event.actorType)}
+                  </Badge>
+                </div>
+                
+                {/* Show remediation guidance for errors */}
+                {remediation && (
                   <div style={{
+                    padding: tokens.spacing[2],
+                    marginTop: tokens.spacing[2],
+                    marginBottom: tokens.spacing[2],
+                    backgroundColor: tokens.colors.warning[50],
+                    border: `1px solid ${tokens.colors.warning[200]}`,
+                    borderRadius: tokens.borderRadius.md,
                     fontSize: tokens.typography.fontSize.sm[0],
+                  }}>
+                    <div style={{
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      marginBottom: tokens.spacing[1],
+                      color: tokens.colors.warning[900],
+                    }}>
+                      <i className="fas fa-info-circle" style={{ marginRight: tokens.spacing[1] }} />
+                      What to do:
+                    </div>
+                    <div style={{ color: tokens.colors.text.secondary }}>
+                      {remediation}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Show error details */}
+                {isError && event.payload && (
+                  <div style={{
+                    marginTop: tokens.spacing[2],
+                    padding: tokens.spacing[2],
+                    backgroundColor: tokens.colors.neutral[100],
+                    borderRadius: tokens.borderRadius.sm,
+                    fontSize: tokens.typography.fontSize.xs[0],
+                    fontFamily: 'monospace',
                     color: tokens.colors.text.secondary,
                   }}>
-                    {formatTimestamp(event.timestamp)}
+                    <div style={{ marginBottom: tokens.spacing[1] }}>
+                      <strong>From:</strong> {event.payload.fromNumber || 'N/A'}
+                    </div>
+                    <div style={{ marginBottom: tokens.spacing[1] }}>
+                      <strong>To:</strong> {event.payload.toNumber || 'N/A'}
+                    </div>
+                    <div>
+                      <strong>Reason:</strong> {event.payload.reason || 'Unknown'}
+                    </div>
                   </div>
-                </div>
-                <Badge variant="default">
-                  {getActorTypeLabel(event.actorType)}
-                </Badge>
+                )}
+                
+                {/* Show other payload data for non-error events */}
+                {!isError && event.payload && Object.keys(event.payload).length > 0 && (
+                  <div style={{
+                    fontSize: tokens.typography.fontSize.xs[0],
+                    color: tokens.colors.text.secondary,
+                    fontFamily: 'monospace',
+                    backgroundColor: tokens.colors.neutral[100],
+                    padding: tokens.spacing[2],
+                    borderRadius: tokens.borderRadius.sm,
+                    marginTop: tokens.spacing[2],
+                  }}>
+                    {JSON.stringify(event.payload, null, 2)}
+                  </div>
+                )}
               </div>
-              {event.payload && Object.keys(event.payload).length > 0 && (
-                <div style={{
-                  fontSize: tokens.typography.fontSize.xs[0],
-                  color: tokens.colors.text.secondary,
-                  fontFamily: 'monospace',
-                  backgroundColor: tokens.colors.neutral[100],
-                  padding: tokens.spacing[2],
-                  borderRadius: tokens.borderRadius.sm,
-                  marginTop: tokens.spacing[2],
-                }}>
-                  {JSON.stringify(event.payload, null, 2)}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
     </div>

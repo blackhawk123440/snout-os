@@ -374,6 +374,36 @@ export async function POST(request: NextRequest) {
 
     if (!isValid) {
       console.error('[Twilio Webhook] Invalid signature');
+      
+      // Record signature verification failure as EventLog
+      try {
+        // Try to get orgId from number for better context
+        let orgIdForLog = 'unknown';
+        try {
+          orgIdForLog = await getOrgIdFromNumber(to);
+        } catch {
+          // Ignore - orgId will be 'unknown'
+        }
+        
+        await recordSitterAuditEvent({
+          orgId: orgIdForLog,
+          sitterId: 'system',
+          eventType: 'messaging.routing_failed',
+          actorType: 'system',
+          actorId: 'system',
+          entityType: 'message',
+          metadata: {
+            fromNumber: from,
+            toNumber: to,
+            reason: 'Invalid webhook signature',
+            messageSid: messageSid,
+            remediation: 'Verify Twilio webhook URL and auth token configuration. Check webhook URL matches configured value.',
+          },
+        });
+      } catch (error) {
+        console.error('[Twilio Webhook] Failed to log signature failure:', error);
+      }
+      
       // Still return 200 + TwiML to avoid Twilio retries, but log error
       return twimlResponse('We couldn\'t verify this message. Please contact support.');
     }
@@ -384,6 +414,28 @@ export async function POST(request: NextRequest) {
       orgId = await getOrgIdFromNumber(to);
     } catch (error: any) {
       console.error(`[Twilio Webhook] Failed to resolve orgId from number ${to}:`, error);
+      
+      // Record orgId resolution failure as EventLog
+      try {
+        await recordSitterAuditEvent({
+          orgId: 'unknown',
+          sitterId: 'system',
+          eventType: 'messaging.routing_failed',
+          actorType: 'system',
+          actorId: 'system',
+          entityType: 'message',
+          metadata: {
+            fromNumber: from,
+            toNumber: to,
+            reason: `Failed to resolve orgId: ${error.message}`,
+            messageSid: messageSid,
+            remediation: 'Check number provisioning and organization mapping. Verify number exists in MessageNumber table.',
+          },
+        });
+      } catch (logError) {
+        console.error('[Twilio Webhook] Failed to log orgId resolution failure:', logError);
+      }
+      
       return twimlResponse('We couldn\'t match this message. Please contact support.');
     }
 
@@ -478,6 +530,28 @@ export async function POST(request: NextRequest) {
 
     if (!messageNumber || messageNumber.orgId !== orgId) {
       console.error(`[Twilio Webhook] Number ${to} not found or org mismatch`);
+      
+      // Record routing failure as EventLog
+      try {
+        await recordSitterAuditEvent({
+          orgId,
+          sitterId: 'system',
+          eventType: 'messaging.routing_failed',
+          actorType: 'system',
+          actorId: 'system',
+          entityType: 'message',
+          metadata: {
+            fromNumber: from,
+            toNumber: to,
+            reason: 'Number not found or org mismatch',
+            messageSid: messageSid,
+            remediation: 'Check booking assignment or re-provision number. Verify number is assigned to correct organization.',
+          },
+        });
+      } catch (error) {
+        console.error('[Twilio Webhook] Failed to log routing failure:', error);
+      }
+      
       return twimlResponse('We couldn\'t match this message. Please contact support.');
     }
 

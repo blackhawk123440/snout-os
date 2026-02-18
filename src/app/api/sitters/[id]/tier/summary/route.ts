@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { toCanonicalTierName } from '@/lib/tiers/tier-name-mapper';
 
 export async function GET(
   request: NextRequest,
@@ -60,7 +61,7 @@ export async function GET(
 
     return NextResponse.json({
       currentTier: latestHistory ? {
-        name: latestHistory.tierName || latestHistory.tier?.name || 'Bronze',
+        name: toCanonicalTierName(latestHistory.tierName || latestHistory.tier?.name || 'Bronze'),
         id: latestHistory.tierId,
       } : null,
       metrics: metricsWindow ? {

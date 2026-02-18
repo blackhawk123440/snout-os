@@ -18,4 +18,5 @@ export { CompletedBookings } from './CompletedBookings';
 export { PerformanceSnapshot } from './PerformanceSnapshot';
 export { SitterMessagesTab } from './SitterMessagesTab';
 export { SitterCalendarTab } from './SitterCalendarTab';
+export { TierProgression } from './TierProgression';
 
