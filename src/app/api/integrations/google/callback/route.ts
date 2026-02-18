@@ -63,9 +63,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate token expiry
-    const expiryDate = tokens.expiry_date
-      ? new Date(tokens.expiry_date)
-      : new Date(Date.now() + (tokens.expires_in || 3600) * 1000);
+    // Handle both expiry_date (number) and expires_in (seconds) formats
+    const expiryDate = (tokens as any).expiry_date
+      ? new Date((tokens as any).expiry_date)
+      : new Date(Date.now() + ((tokens as any).expires_in || 3600) * 1000);
 
     // Update sitter with tokens
     await (prisma as any).sitter.update({
