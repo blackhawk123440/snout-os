@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
             id: true,
             sitterId: true,
             status: true,
+            startAt: true,
+            endAt: true,
           },
         },
       },
