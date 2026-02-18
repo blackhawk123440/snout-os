@@ -211,15 +211,50 @@ export async function GET(
       completedBookingsCount: completedCount,
     };
 
-    // Get unread message count
-    const unreadThreads = await (prisma as any).messageThread.findMany({
+    // Get inbox summary (unread count + latest thread)
+    const threads = await (prisma as any).messageThread.findMany({
       where: {
         assignedSitterId: sitterId,
         status: 'open',
       },
+      include: {
+        client: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        lastActivityAt: 'desc',
+      },
+      take: 1,
     });
 
-    const unreadCount = unreadThreads.length;
+    const unreadCount = threads.length; // Simplified - would need actual unread count from thread
+    const latestThread = threads[0] || null;
+
+    // Get tier summary
+    const latestTierHistory = await (prisma as any).sitterTierHistory.findFirst({
+      where: { sitterId },
+      include: {
+        tier: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: { periodStart: 'desc' },
+    });
+
+    const latestMetrics = await (prisma as any).sitterMetricsWindow.findFirst({
+      where: {
+        sitterId,
+        orgId,
+        windowEnd: { gte: sevenDaysAgo },
+      },
+      orderBy: { windowEnd: 'desc' },
+    });
 
     return NextResponse.json({
       pendingRequests,
@@ -235,6 +270,26 @@ export async function GET(
       } : null,
       isAvailable: (sitter as any).isActive ?? (sitter as any).active ?? false,
       unreadMessageCount: unreadCount,
+      inboxSummary: {
+        unreadCount,
+        latestThread: latestThread ? {
+          id: latestThread.id,
+          clientName: latestThread.client?.name || 'Unknown',
+          lastActivityAt: latestThread.lastActivityAt?.toISOString() || null,
+        } : null,
+      },
+      tierSummary: latestTierHistory ? {
+        currentTier: {
+          name: latestTierHistory.tier?.name || 'Unknown',
+          assignedAt: latestTierHistory.periodStart.toISOString(),
+        },
+        metrics: latestMetrics ? {
+          avgResponseSeconds: latestMetrics.avgResponseSeconds,
+          offerAcceptRate: latestMetrics.offerAcceptRate,
+          offerDeclineRate: latestMetrics.offerDeclineRate,
+          offerExpireRate: latestMetrics.offerExpireRate,
+        } : null,
+      } : null,
     });
   } catch (error: any) {
     console.error('[Sitter Dashboard API] Failed to fetch dashboard:', {

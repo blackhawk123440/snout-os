@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { recordSitterStatusChanged } from '@/lib/audit-events';
 
 export async function GET(
   request: NextRequest,
@@ -92,6 +93,14 @@ export async function PATCH(
       personalPhone,
     } = body;
 
+    // Get current sitter to check for status changes
+    const currentSitter = await (prisma as any).sitter.findUnique({
+      where: { id: resolvedParams.id },
+      select: { active: true },
+    });
+
+    const oldStatus = currentSitter?.active ? 'active' : 'inactive';
+
     // Build update data object (only include fields that exist in schema)
     const updateData: any = {};
     
@@ -161,6 +170,19 @@ export async function PATCH(
       where: { id: resolvedParams.id },
       data: updateData as any, // Type assertion: runtime uses enterprise-messaging-dashboard schema
     }) as any;
+
+    // Record audit event if status changed
+    const newStatus = sitter.active ? 'active' : 'inactive';
+    if (oldStatus !== newStatus) {
+      const orgId = (session.user as any).orgId || (await import('@/lib/messaging/org-helpers')).getDefaultOrgId();
+      await recordSitterStatusChanged(
+        orgId,
+        resolvedParams.id,
+        oldStatus,
+        newStatus,
+        (session.user as any).id
+      );
+    }
 
     // Return sitter in format expected by frontend
     const nameParts = (sitter.name || '').split(' ');

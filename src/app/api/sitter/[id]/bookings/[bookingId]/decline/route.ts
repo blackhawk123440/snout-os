@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { recordOfferDeclined } from '@/lib/audit-events';
 
 export async function POST(
   request: NextRequest,
@@ -61,8 +62,10 @@ export async function POST(
       );
     }
 
+    const now = new Date();
+
     // Check if expired (still allow decline for tracking, but mark as expired)
-    const isExpired = offer.expiresAt && new Date(offer.expiresAt) < new Date();
+    const isExpired = offer.expiresAt && new Date(offer.expiresAt) < now;
 
     // Check if already accepted/declined (idempotency)
     if (offer.status === 'accepted' || offer.acceptedAt) {
@@ -79,7 +82,6 @@ export async function POST(
       );
     }
 
-    const now = new Date();
     const responseSeconds = Math.floor((now.getTime() - new Date(offer.offeredAt).getTime()) / 1000);
 
     // Update offer status
@@ -91,6 +93,17 @@ export async function POST(
         declineReason: isExpired ? 'expired' : 'declined',
       },
     });
+
+    // Record audit event
+    await recordOfferDeclined(
+      orgId,
+      sitterId,
+      bookingId,
+      offer.id,
+      responseSeconds,
+      isExpired ? 'expired' : 'declined',
+      (session.user as any).id
+    );
 
     // Update metrics window with response time
     await updateMetricsWindow(orgId, sitterId, responseSeconds, 'declined');

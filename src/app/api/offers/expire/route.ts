@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { recordOfferExpired } from '@/lib/audit-events';
 
 export async function POST(request: NextRequest) {
   // Optional: Require admin auth or API key for cron jobs
@@ -45,6 +46,14 @@ export async function POST(request: NextRequest) {
           status: 'expired',
         },
       });
+
+      // Record audit event
+      await recordOfferExpired(
+        offer.orgId,
+        offer.sitterId,
+        offer.bookingId || '',
+        offer.id
+      );
 
       expiredCount++;
 

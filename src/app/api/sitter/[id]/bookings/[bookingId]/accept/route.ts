@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { recordOfferAccepted } from '@/lib/audit-events';
 
 export async function POST(
   request: NextRequest,
@@ -43,7 +44,9 @@ export async function POST(
       );
     }
 
-    // Find the active offer for this booking and sitter
+    const now = new Date();
+
+    // Find the active offer for this booking and sitter (not expired)
     const offer = await (prisma as any).offerEvent.findFirst({
       where: {
         orgId,
@@ -51,21 +54,14 @@ export async function POST(
         bookingId: bookingId,
         status: 'sent',
         excluded: false,
+        expiresAt: { gt: now }, // Only non-expired offers
       },
     });
 
     if (!offer) {
       return NextResponse.json(
-        { error: 'No active offer found for this booking' },
+        { error: 'No active offer found for this booking. The offer may have expired or already been processed.' },
         { status: 404 }
-      );
-    }
-
-    // Check if expired
-    if (offer.expiresAt && new Date(offer.expiresAt) < new Date()) {
-      return NextResponse.json(
-        { error: 'Offer has expired' },
-        { status: 400 }
       );
     }
 
@@ -97,7 +93,6 @@ export async function POST(
       );
     }
 
-    const now = new Date();
     const responseSeconds = Math.floor((now.getTime() - new Date(offer.offeredAt).getTime()) / 1000);
 
     // Update offer status
@@ -117,6 +112,16 @@ export async function POST(
         status: 'confirmed',
       },
     });
+
+    // Record audit event
+    await recordOfferAccepted(
+      orgId,
+      sitterId,
+      bookingId,
+      offer.id,
+      responseSeconds,
+      (session.user as any).id
+    );
 
     // Update metrics window with response time
     await updateMetricsWindow(orgId, sitterId, responseSeconds, 'accepted');

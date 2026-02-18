@@ -8,6 +8,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { recordTierChanged } from '@/lib/audit-events';
 
 const prisma = new PrismaClient();
 
@@ -359,20 +360,22 @@ export async function recordTierChange(
   // Get current tier
   const sitter = await (prisma as any).sitter.findUnique({
     where: { id: sitterId },
-    select: { currentTierId: true },
+    include: { currentTier: true },
   });
 
+  const oldTierName = sitter?.currentTier?.name || null;
+  const oldTierId = sitter?.currentTierId || null;
+
   // Only record if tier changed
-  if (sitter?.currentTierId !== tierId) {
+  if (oldTierId !== tierId) {
     await (prisma as any).sitterTierHistory.create({
       data: {
+        orgId,
         sitterId,
-        tierId,
         tierName,
-        periodStart: new Date(),
-        reason: reasons.join('; '),
-        metadata: JSON.stringify(metrics),
         assignedAt: new Date(),
+        reasons: JSON.stringify(reasons),
+        metadata: JSON.stringify(metrics),
       },
     });
 
@@ -381,5 +384,14 @@ export async function recordTierChange(
       where: { id: sitterId },
       data: { currentTierId: tierId },
     });
+
+    // Record audit event for tier change
+    await recordTierChanged(
+      orgId,
+      sitterId,
+      oldTierName,
+      tierName,
+      reasons.join('; ')
+    );
   }
 }

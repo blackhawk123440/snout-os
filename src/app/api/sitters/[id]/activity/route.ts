@@ -9,6 +9,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
+/**
+ * Get booking IDs for a sitter (for filtering events)
+ */
+async function getBookingIdsForSitter(orgId: string, sitterId: string): Promise<string[]> {
+  const bookings = await (prisma as any).booking.findMany({
+    where: { sitterId },
+    select: { id: true },
+  });
+  return bookings.map((b: any) => b.id);
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -33,38 +44,48 @@ export async function GET(
       return NextResponse.json({ error: 'Organization not found' }, { status: 400 });
     }
 
-    // Check if AuditEvent model exists in Prisma schema
-    // If not, return foundation state (empty array)
-    try {
-      const events = await (prisma as any).auditEvent.findMany({
-        where: {
-          orgId,
-          entityType: 'sitter',
-          entityId: sitterId,
-        },
-        orderBy: {
-          ts: 'desc',
-        },
-        take: 50,
-      });
+    // Fetch events from EventLog model (filtered by sitterId in metadata)
+    const events = await (prisma as any).eventLog.findMany({
+      where: {
+        OR: [
+          { bookingId: { in: await getBookingIdsForSitter(orgId, sitterId) } },
+          // Also check metadata for sitterId
+        ],
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 50,
+    });
 
-      return NextResponse.json(events.map((e: any) => ({
+    // Filter events that are related to this sitter (check metadata)
+    const sitterEvents = events.filter((e: any) => {
+      if (!e.metadata) return false;
+      try {
+        const metadata = JSON.parse(e.metadata);
+        return metadata.sitterId === sitterId;
+      } catch {
+        return false;
+      }
+    });
+
+    return NextResponse.json(sitterEvents.map((e: any) => {
+      let metadata: any = {};
+      try {
+        metadata = JSON.parse(e.metadata || '{}');
+      } catch {}
+
+      return {
         id: e.id,
         eventType: e.eventType,
-        actorType: e.actorType,
-        actorId: e.actorId,
-        entityType: e.entityType,
-        entityId: e.entityId,
-        timestamp: e.ts.toISOString(),
-        payload: e.payload || {},
-      })));
-    } catch (error: any) {
-      // AuditEvent model may not exist - return empty array (foundation state)
-      if (error.message?.includes('model') || error.message?.includes('undefined')) {
-        return NextResponse.json([]);
-      }
-      throw error;
-    }
+        actorType: metadata.actorType || 'system',
+        actorId: metadata.actorId || null,
+        entityType: metadata.entityType || null,
+        entityId: metadata.entityId || null,
+        timestamp: e.createdAt.toISOString(),
+        payload: metadata,
+      };
+    }));
   } catch (error: any) {
     console.error('[Activity API] Error:', error);
     return NextResponse.json(

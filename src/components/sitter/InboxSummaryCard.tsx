@@ -30,15 +30,15 @@ export function InboxSummaryCard({ sitterId }: InboxSummaryCardProps) {
   const { data, isLoading } = useQuery<InboxSummaryData>({
     queryKey: ['sitter-inbox-summary', sitterId],
     queryFn: async () => {
-      // Try to get from dashboard API which includes unread count
-      const res = await fetch(`/api/sitter/me/dashboard`);
+      // Get from owner dashboard API which includes inboxSummary
+      const res = await fetch(`/api/sitters/${sitterId}/dashboard`);
       if (!res.ok) {
         return { unreadCount: 0 };
       }
       const dashboard = await res.json();
       return {
-        unreadCount: dashboard.unreadMessageCount || 0,
-        // Latest thread would need separate API call - simplified for now
+        unreadCount: dashboard.inboxSummary?.unreadCount || dashboard.unreadMessageCount || 0,
+        latestThread: dashboard.inboxSummary?.latestThread || undefined,
       };
     },
     retry: false,
