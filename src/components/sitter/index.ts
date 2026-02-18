@@ -16,4 +16,6 @@ export { PendingRequests } from './PendingRequests';
 export { UpcomingBookings } from './UpcomingBookings';
 export { CompletedBookings } from './CompletedBookings';
 export { PerformanceSnapshot } from './PerformanceSnapshot';
+export { SitterMessagesTab } from './SitterMessagesTab';
+export { SitterCalendarTab } from './SitterCalendarTab';
 

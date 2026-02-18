@@ -36,6 +36,7 @@ import { SitterProfileTab } from '@/components/sitter/SitterProfileTab';
 import { PerformanceTab } from '@/components/sitter/PerformanceTab';
 import { PayrollTab } from '@/components/sitter/PayrollTab';
 import { ActivityTab } from '@/components/sitter/ActivityTab';
+import { SitterCalendarTab } from '@/components/sitter/SitterCalendarTab';
 import { InboxSummaryCard } from '@/components/sitter/InboxSummaryCard';
 import { PendingRequests } from '@/components/sitter/PendingRequests';
 import { UpcomingBookings } from '@/components/sitter/UpcomingBookings';
@@ -92,7 +93,7 @@ interface SitterStats {
   upcomingCount: number;
 }
 
-type SitterTab = 'dashboard' | 'profile' | 'messages' | 'tier' | 'performance' | 'payroll' | 'activity';
+type SitterTab = 'dashboard' | 'profile' | 'messages' | 'calendar' | 'tier' | 'performance' | 'payroll' | 'activity';
 
 function SitterDetailContent() {
   const params = useParams();
@@ -106,7 +107,7 @@ function SitterDetailContent() {
 
   // Get tab from URL or default to dashboard
   const tabParam = searchParams.get('tab') as SitterTab | null;
-  const validTabs: SitterTab[] = ['dashboard', 'profile', 'messages', 'tier', 'performance', 'payroll', 'activity'];
+  const validTabs: SitterTab[] = ['dashboard', 'profile', 'messages', 'calendar', 'tier', 'performance', 'payroll', 'activity'];
   const [activeTab, setActiveTab] = useState<SitterTab>(
     (tabParam && validTabs.includes(tabParam)) ? tabParam : 'dashboard'
   );
@@ -290,6 +291,7 @@ function SitterDetailContent() {
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'profile', label: 'Profile' },
     { id: 'messages', label: 'Messages' },
+    { id: 'calendar', label: 'Calendar' },
     { id: 'tier', label: 'Tier' },
     { id: 'performance', label: 'Performance' },
     { id: 'payroll', label: 'Payroll' },
@@ -386,6 +388,10 @@ function SitterDetailContent() {
 
           <TabPanel id="messages">
             <SitterMessagesTab sitterId={sitterId} />
+          </TabPanel>
+
+          <TabPanel id="calendar">
+            <SitterCalendarTab sitterId={sitterId} />
           </TabPanel>
 
           <TabPanel id="tier">

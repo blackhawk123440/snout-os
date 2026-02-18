@@ -18,6 +18,7 @@ import { getSitterIdFromMaskedNumber } from '@/lib/messaging/number-sitter-mappi
 import { isAcceptCommand, isDeclineCommand } from '@/lib/messaging/sms-commands';
 import { recordSitterAuditEvent } from '@/lib/audit-events';
 import { processMessageEvent } from '@/lib/tiers/message-instrumentation';
+import { syncBookingToCalendar } from '@/lib/calendar-sync';
 import { env } from '@/lib/env';
 
 // TwiML response helper
@@ -147,6 +148,14 @@ async function handleAcceptCommand(
     await updateMetricsWindowForOffer(orgId, sitterId, responseSeconds, 'accepted');
   } catch (error) {
     console.error('[SMS Accept] Failed to update metrics:', error);
+  }
+
+  // Sync to Google Calendar (fail-open: don't block assignment)
+  try {
+    await syncBookingToCalendar(orgId, offer.bookingId, sitterId, 'Booking accepted via SMS');
+  } catch (error) {
+    console.error('[SMS Accept] Calendar sync failed:', error);
+    // Don't throw - booking assignment succeeds even if calendar sync fails
   }
 
   return {

@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/db';
 import { recordSitterAuditEvent } from '@/lib/audit-events';
+import { syncBookingToCalendar, deleteBookingCalendarEvent } from '@/lib/calendar-sync';
 
 export type DispatchStatus = 'auto' | 'manual_required' | 'manual_in_progress' | 'assigned';
 
@@ -95,6 +96,17 @@ export async function forceAssignSitter(
     throw new Error(`Sitter ${sitterId} is not active`);
   }
 
+  // If booking was previously assigned to a different sitter, delete their calendar event
+  const previousSitterId = booking.sitterId;
+  if (previousSitterId && previousSitterId !== sitterId) {
+    try {
+      await deleteBookingCalendarEvent(orgId, bookingId, previousSitterId, 'Booking reassigned to different sitter');
+    } catch (error) {
+      console.error('[Force Assign] Failed to delete previous sitter calendar event:', error);
+      // Don't throw - continue with assignment
+    }
+  }
+
   // Update booking
   await (prisma as any).booking.update({
     where: { id: bookingId },
@@ -123,6 +135,14 @@ export async function forceAssignSitter(
       sitterId,
     },
   });
+
+  // Sync to Google Calendar (fail-open: don't block assignment)
+  try {
+    await syncBookingToCalendar(orgId, bookingId, sitterId, 'Booking force-assigned by owner');
+  } catch (error) {
+    console.error('[Force Assign] Calendar sync failed:', error);
+    // Don't throw - booking assignment succeeds even if calendar sync fails
+  }
 }
 
 /**

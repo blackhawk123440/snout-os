@@ -60,6 +60,9 @@ const optionalEnvVars = {
   NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-secret-key-change-in-production' : undefined),
   // Chaos mode (staging/dev only, requires explicit opt-in)
   ALLOW_CHAOS_MODE: process.env.ALLOW_CHAOS_MODE,
+  // Google Calendar OAuth (optional)
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
 } as const;
 
 export function validateEnv() {
