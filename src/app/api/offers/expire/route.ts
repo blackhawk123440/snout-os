@@ -91,11 +91,15 @@ export async function POST(request: NextRequest) {
         // Skip if booking is already flagged for manual dispatch
         // Check dispatchStatus directly for performance (backward compatible via isBookingFlaggedForManualDispatch)
         const booking = offer.booking;
-        const isManualDispatch = booking?.dispatchStatus === 'manual_required' || 
-                                 booking?.dispatchStatus === 'manual_in_progress' ||
+        if (!offer.bookingId || !booking) {
+          continue; // Skip if no booking
+        }
+
+        const isManualDispatch = booking.dispatchStatus === 'manual_required' || 
+                                 booking.dispatchStatus === 'manual_in_progress' ||
                                  (await isBookingFlaggedForManualDispatch(offer.bookingId));
         
-        if (offer.bookingId && booking && !isManualDispatch) {
+        if (!isManualDispatch) {
           try {
             // Check attempt count to prevent infinite loops
             const attemptCount = await getBookingAttemptCount(offer.orgId, offer.bookingId);
