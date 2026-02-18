@@ -65,6 +65,7 @@ model Booking {
   customFields         CustomFieldValue[]
   eventLogs            EventLog[] // Phase 3: Event log entries for this booking
   statusHistory        BookingStatusHistory[] // Phase 7.3: Booking status change history
+  calendarEvents       BookingCalendarEvent[] // Google Calendar event mappings
 
   @@index([sitterId])
   @@index([status])
@@ -127,6 +128,12 @@ model Sitter {
   maskedNumber         SitterMaskedNumber?
   // Phase 2: Assignment windows (prepared for Phase 2)
   assignmentWindows    AssignmentWindow[]
+  // Google Calendar integration
+  googleAccessToken    String?   @db.Text // Encrypted access token
+  googleRefreshToken   String?   @db.Text // Encrypted refresh token
+  googleTokenExpiry    DateTime?
+  googleCalendarId     String?   @default("primary")
+  calendarSyncEnabled  Boolean   @default(false)
   // SRS System relations
   tierSnapshots        SitterTierSnapshot[]
   serviceEvents        SitterServiceEvent[]
@@ -135,6 +142,7 @@ model Sitter {
   visitEvents          VisitEvent[]
   compensation         SitterCompensation?
   metricsWindows       SitterMetricsWindow[]
+  calendarEvents       BookingCalendarEvent[]
 
   @@index([active])
   @@index([currentTierId])
@@ -1576,4 +1584,26 @@ model MessageResponseLink {
   @@index([orgId, requiresResponseEventId])
   @@index([responseEventId])
   @@index([withinAssignmentWindow, excluded])
+}
+
+// ============================================
+// GOOGLE CALENDAR INTEGRATION
+// ============================================
+
+model BookingCalendarEvent {
+  id                  String    @id @default(uuid())
+  bookingId           String
+  sitterId            String
+  googleCalendarEventId String // Google Calendar event ID
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  booking             Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sitter              Sitter    @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, sitterId]) // One event per booking-sitter pair
+  @@index([bookingId])
+  @@index([sitterId])
+  @@index([googleCalendarEventId])
 }
