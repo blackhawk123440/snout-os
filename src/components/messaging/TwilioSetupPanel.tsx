@@ -16,27 +16,35 @@ import { z } from 'zod';
 const providerStatusSchema = z.object({
   connected: z.boolean(),
   accountSid: z.string().nullable(),
-  hasAuthToken: z.boolean(),
+  hasAuthToken: z.boolean().optional(),
   lastTestedAt: z.string().nullable(),
   testResult: z.object({
     success: z.boolean(),
     message: z.string(),
-  }).nullable(),
-});
+  }).nullable().optional(),
+  checkedAt: z.string().optional(),
+  verified: z.boolean().optional(),
+  errorDetail: z.string().optional(),
+}).passthrough();
 
 const webhookStatusSchema = z.object({
   installed: z.boolean(),
   url: z.string().nullable(),
   lastReceivedAt: z.string().nullable(),
   status: z.string(),
-});
+  checkedAt: z.string().optional(),
+  verified: z.boolean().optional(),
+  errorDetail: z.string().optional(),
+  webhookUrlExpected: z.string().optional(),
+}).passthrough();
 
 const readinessSchema = z.object({
   provider: z.object({ ready: z.boolean(), message: z.string() }),
   numbers: z.object({ ready: z.boolean(), message: z.string() }),
   webhooks: z.object({ ready: z.boolean(), message: z.string() }),
   overall: z.boolean(),
-});
+  checkedAt: z.string().optional(),
+}).passthrough();
 
 function useProviderStatus() {
   return useQuery({
@@ -69,18 +77,34 @@ function useTestConnection() {
   });
 }
 
+const connectResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  verified: z.boolean().optional(),
+  ok: z.boolean().optional(),
+  orgId: z.string().optional(),
+  checkedAt: z.string().optional(),
+}).passthrough();
+
+const installResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  url: z.string().nullable().optional(),
+  verified: z.boolean().optional(),
+  webhookUrlConfigured: z.boolean().optional(),
+  orgId: z.string().optional(),
+  checkedAt: z.string().optional(),
+}).passthrough();
+
 function useConnectProvider() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: { accountSid: string; authToken: string }) =>
-      apiPost('/api/setup/provider/connect', params, z.object({
-        success: z.boolean(),
-        message: z.string(),
-      })),
+      apiPost('/api/setup/provider/connect', params, connectResponseSchema),
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['setup'] });
-      // Re-fetch provider status immediately
       await queryClient.refetchQueries({ queryKey: ['setup', 'provider', 'status'] });
+      await queryClient.refetchQueries({ queryKey: ['setup', 'readiness'] });
     },
   });
 }
@@ -88,15 +112,11 @@ function useConnectProvider() {
 function useInstallWebhooks() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => apiPost('/api/setup/webhooks/install', {}, z.object({
-      success: z.boolean(),
-      message: z.string(),
-      url: z.string().nullable(),
-    })),
+    mutationFn: () => apiPost('/api/setup/webhooks/install', {}, installResponseSchema),
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['setup'] });
-      // Re-fetch webhook status immediately
       await queryClient.refetchQueries({ queryKey: ['setup', 'webhooks', 'status'] });
+      await queryClient.refetchQueries({ queryKey: ['setup', 'readiness'] });
     },
   });
 }
@@ -125,6 +145,8 @@ export function TwilioSetupPanel() {
   const [testForm, setTestForm] = useState({ accountSid: '', authToken: '' });
   const [showTestSMSModal, setShowTestSMSModal] = useState(false);
   const [testSMSForm, setTestSMSForm] = useState({ destinationE164: '', fromClass: 'front_desk' as 'front_desk' | 'pool' | 'sitter' });
+  const [verificationFailedBanner, setVerificationFailedBanner] = useState<string | null>(null);
+  const [diagnosticsCopied, setDiagnosticsCopied] = useState(false);
 
   const testConnection = useTestConnection();
   const connectProvider = useConnectProvider();
@@ -148,23 +170,54 @@ export function TwilioSetupPanel() {
       alert('Please enter both Account SID and Auth Token');
       return;
     }
-
+    setVerificationFailedBanner(null);
     try {
-      await connectProvider.mutateAsync(connectForm);
-      setShowConnectModal(false);
-      setConnectForm({ accountSid: '', authToken: '' });
-      alert('Provider credentials saved successfully');
+      const result = await connectProvider.mutateAsync(connectForm);
+      if (result.verified === true) {
+        setShowConnectModal(false);
+        setConnectForm({ accountSid: '', authToken: '' });
+        alert('Provider connected and verified.');
+      } else if (result.verified === false) {
+        setVerificationFailedBanner('Connect reported success but verification failed. Use "Copy Setup Diagnostics" to debug.');
+      } else {
+        setShowConnectModal(false);
+        setConnectForm({ accountSid: '', authToken: '' });
+      }
     } catch (error: any) {
       alert(`Failed to save credentials: ${error.message}`);
     }
   };
 
   const handleInstallWebhooks = async () => {
+    setVerificationFailedBanner(null);
     try {
       const result = await installWebhooks.mutateAsync();
-      alert(result.message || 'Webhooks installed successfully');
+      const verified = result.verified === true || result.webhookUrlConfigured === true;
+      if (verified) {
+        alert('Webhooks installed and verified.');
+      } else if (result.success && result.verified === false) {
+        setVerificationFailedBanner('Install reported success but verification failed. Use "Copy Setup Diagnostics" to debug.');
+      } else if (!result.success) {
+        alert(result.message || 'Webhook install failed.');
+      }
     } catch (error: any) {
       alert(`Failed to install webhooks: ${error.message}`);
+    }
+  };
+
+  const handleCopyDiagnostics = async () => {
+    try {
+      const res = await fetch('/api/ops/twilio-setup-diagnostics');
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to fetch diagnostics');
+        return;
+      }
+      await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+      setDiagnosticsCopied(true);
+      setTimeout(() => setDiagnosticsCopied(false), 2000);
+    } catch (e: any) {
+      alert(e?.message || 'Failed to copy diagnostics');
     }
   };
 
@@ -181,7 +234,30 @@ export function TwilioSetupPanel() {
         <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
           Save credentials, test connection, install webhooks, and check readiness
         </p>
+        <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center', marginTop: tokens.spacing[2] }}>
+          <Button variant="secondary" size="sm" onClick={handleCopyDiagnostics}>
+            {diagnosticsCopied ? 'Copied' : 'Copy Setup Diagnostics'}
+          </Button>
+        </div>
       </div>
+
+      {verificationFailedBanner && (
+        <Card style={{ marginBottom: tokens.spacing[4], borderLeft: '4px solid #dc2626', backgroundColor: '#fef2f2' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: tokens.spacing[3] }}>
+            <p style={{ margin: 0, fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium }}>
+              {verificationFailedBanner}
+            </p>
+            <div style={{ display: 'flex', gap: tokens.spacing[2], flexShrink: 0 }}>
+              <Button variant="secondary" size="sm" onClick={handleCopyDiagnostics}>
+                Copy Setup Diagnostics
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setVerificationFailedBanner(null)}>
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Provider Status */}
       <Card style={{ marginBottom: tokens.spacing[4] }}>
@@ -214,6 +290,9 @@ export function TwilioSetupPanel() {
             </Badge>
             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
               <div>Account SID: {providerStatus.accountSid || 'Not set'}</div>
+              {providerStatus.checkedAt && (
+                <div>Last checked: {new Date(providerStatus.checkedAt).toLocaleString()}</div>
+              )}
               {providerStatus.lastTestedAt && (
                 <div>Last tested: {new Date(providerStatus.lastTestedAt).toLocaleString()}</div>
               )}
@@ -229,9 +308,19 @@ export function TwilioSetupPanel() {
         ) : (
           <div>
             <Badge variant="error">Not Connected</Badge>
+            {providerStatus?.errorDetail && (
+              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: '#dc2626', marginTop: tokens.spacing[2] }}>
+                {providerStatus.errorDetail}
+              </p>
+            )}
             <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
               Connect your Twilio account to enable messaging
             </p>
+            {providerStatus?.checkedAt && (
+              <div style={{ fontSize: tokens.typography.fontSize.xs?.[0] || '11px', color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                Last checked: {new Date(providerStatus.checkedAt).toLocaleString()}
+              </div>
+            )}
           </div>
         )}
       </Card>
@@ -259,18 +348,31 @@ export function TwilioSetupPanel() {
             </Badge>
             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
               <div>URL: <code style={{ fontFamily: 'monospace', fontSize: '11px' }}>{webhookStatus.url || 'Not set'}</code></div>
+              {webhookStatus.checkedAt && (
+                <div>Last checked: {new Date(webhookStatus.checkedAt).toLocaleString()}</div>
+              )}
               {webhookStatus.lastReceivedAt && (
                 <div>Last received: {new Date(webhookStatus.lastReceivedAt).toLocaleString()}</div>
               )}
-              <div>Status: <Badge variant={webhookStatus.status === 'active' ? 'success' : 'warning'}>{webhookStatus.status}</Badge></div>
+              <div>Status: <Badge variant={webhookStatus.status === 'installed' ? 'success' : 'warning'}>{webhookStatus.status}</Badge></div>
             </div>
           </div>
         ) : (
           <div>
             <Badge variant="error">Not Installed</Badge>
+            {webhookStatus?.errorDetail && (
+              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: '#dc2626', marginTop: tokens.spacing[2] }}>
+                {webhookStatus.errorDetail}
+              </p>
+            )}
             <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
               Install webhooks to receive inbound messages
             </p>
+            {webhookStatus?.checkedAt && (
+              <div style={{ fontSize: tokens.typography.fontSize.xs?.[0] || '11px', color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                Last checked: {new Date(webhookStatus.checkedAt).toLocaleString()}
+              </div>
+            )}
           </div>
         )}
       </Card>
@@ -344,6 +446,11 @@ export function TwilioSetupPanel() {
                 {readiness?.overall ? 'Ready' : 'Not Ready'}
               </Badge>
             </div>
+            {readiness?.checkedAt && (
+              <div style={{ fontSize: tokens.typography.fontSize.xs?.[0] || '11px', color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
+                Last checked: {new Date(readiness.checkedAt).toLocaleString()}
+              </div>
+            )}
           </div>
         </div>
       </Card>

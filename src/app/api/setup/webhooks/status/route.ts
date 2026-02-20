@@ -2,15 +2,15 @@
  * Webhook Status Route
  * 
  * GET /api/setup/webhooks/status
- * Checks if webhooks are configured in Twilio
- * Falls back to direct Twilio API check if NestJS API is not available
+ * Checks Twilio incoming phone numbers for smsUrl (same object install configures).
+ * Uses same URL normalization as install so status and install agree.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
 import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
-import { env } from '@/lib/env';
+import { getTwilioWebhookUrl, webhookUrlMatches } from '@/lib/setup/webhook-url';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -59,37 +59,33 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Fallback: Check Twilio directly
+  // Fallback: Check Twilio directly (same entity as install: incoming phone numbers)
+  const checkedAt = new Date().toISOString();
   try {
     const credentials = await getProviderCredentials(orgId);
-    
+
     if (!credentials) {
       return NextResponse.json({
         installed: false,
         url: null,
         lastReceivedAt: null,
         status: 'not_configured',
+        checkedAt,
+        verified: false,
       }, { status: 200 });
     }
 
-    // Get expected webhook URL
-    const expectedWebhookUrl = env.TWILIO_WEBHOOK_URL || 
-      `${env.WEBHOOK_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/messages/webhook/twilio`;
-
-    // Check Twilio numbers for webhook configuration
+    const expectedWebhookUrl = getTwilioWebhookUrl();
     const twilio = require('twilio');
     const client = twilio(credentials.accountSid, credentials.authToken);
-    
-    // Fetch all phone numbers and check their SMS webhook URLs
     const incomingNumbers = await client.incomingPhoneNumbers.list({ limit: 20 });
-    
+
     let installed = false;
     let configuredUrl: string | null = null;
-    
     for (const number of incomingNumbers) {
-      if (number.smsUrl && number.smsUrl.includes('/api/messages/webhook/twilio')) {
+      if (webhookUrlMatches(number.smsUrl)) {
         installed = true;
-        configuredUrl = number.smsUrl;
+        configuredUrl = number.smsUrl?.trim().replace(/\/+$/, '') || expectedWebhookUrl;
         break;
       }
     }
@@ -97,8 +93,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       installed,
       url: configuredUrl || (installed ? expectedWebhookUrl : null),
-      lastReceivedAt: null, // TODO: Store last webhook received timestamp
+      lastReceivedAt: null,
       status: installed ? 'installed' : 'not_installed',
+      checkedAt,
+      verified: installed,
+      webhookUrlExpected: expectedWebhookUrl,
     }, { status: 200 });
   } catch (error: any) {
     console.error('[Direct Twilio] Error checking webhook status:', error);
@@ -107,6 +106,9 @@ export async function GET(request: NextRequest) {
       url: null,
       lastReceivedAt: null,
       status: 'error',
-    }, { status: 200 }); // Return 200 with not installed status
+      checkedAt,
+      verified: false,
+      errorDetail: error?.message || 'Failed to check Twilio webhook configuration',
+    }, { status: 200 });
   }
 }

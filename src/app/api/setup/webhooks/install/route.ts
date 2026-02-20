@@ -2,15 +2,15 @@
  * Install Webhooks Route
  * 
  * POST /api/setup/webhooks/install
- * Configures webhooks in Twilio for all active phone numbers
- * Falls back to direct Twilio API if NestJS API is not available
+ * Configures webhooks on Twilio incoming phone numbers (same object status checks).
+ * Verifies by re-fetching numbers and checking smsUrl matches expected.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
 import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
-import { env } from '@/lib/env';
+import { getTwilioWebhookUrl, webhookUrlMatches } from '@/lib/setup/webhook-url';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -65,60 +65,85 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Fallback: Install webhooks directly via Twilio API
+  // Fallback: Install webhooks directly via Twilio API (phone numbers = same object status checks)
+  const checkedAt = new Date().toISOString();
   try {
     const credentials = await getProviderCredentials(orgId);
-    
+
     if (!credentials) {
       return NextResponse.json({
         success: false,
-        message: 'No credentials found. Please connect provider first.',
+        message: 'No credentials found. Connect provider first.',
         url: null,
+        verified: false,
+        webhookUrlConfigured: false,
+        orgId,
+        checkedAt,
       }, { status: 400 });
     }
 
-    // Get webhook URL
-    const webhookUrl = env.TWILIO_WEBHOOK_URL || 
-      `${env.WEBHOOK_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/messages/webhook/twilio`;
-
-    // Configure webhooks via Twilio API
+    const webhookUrl = getTwilioWebhookUrl();
     const twilio = require('twilio');
     const client = twilio(credentials.accountSid, credentials.authToken);
-    
-    // Fetch all phone numbers
+
     const incomingNumbers = await client.incomingPhoneNumbers.list({ limit: 100 });
-    
-    let allSucceeded = true;
     let configuredCount = 0;
-    
+    const errors: string[] = [];
+
     for (const number of incomingNumbers) {
       try {
-        // Update SMS webhook URL
         await client.incomingPhoneNumbers(number.sid).update({
           smsUrl: webhookUrl,
           smsMethod: 'POST',
         });
         configuredCount++;
       } catch (error: any) {
-        console.error(`[Webhook Install] Failed to configure webhook for ${number.phoneNumber}:`, error);
-        allSucceeded = false;
+        const msg = `${number.phoneNumber}: ${error?.message || 'Unknown error'}`;
+        console.error('[Webhook Install]', msg);
+        errors.push(msg);
       }
     }
 
     if (configuredCount === 0) {
       return NextResponse.json({
         success: false,
-        message: 'No phone numbers found to configure',
+        message: errors.length ? errors[0] : 'No phone numbers found to configure',
         url: null,
+        verified: false,
+        webhookUrlConfigured: false,
+        orgId,
+        checkedAt,
+        details: { errors },
       }, { status: 400 });
     }
 
+    // Verify: re-fetch numbers and confirm at least one has our webhook URL (same check as status)
+    let verified = false;
+    try {
+      const after = await client.incomingPhoneNumbers.list({ limit: 20 });
+      for (const n of after) {
+        if (webhookUrlMatches(n.smsUrl)) {
+          verified = true;
+          break;
+        }
+      }
+    } catch (verifyErr: any) {
+      console.error('[Webhook Install] Verify step failed:', verifyErr);
+    }
+
     return NextResponse.json({
-      success: allSucceeded,
-      message: allSucceeded 
-        ? `Webhooks installed successfully on ${configuredCount} number(s)`
-        : `Webhooks installed on ${configuredCount} number(s), but some failed`,
+      success: errors.length === 0,
+      message: verified
+        ? `Webhooks installed and verified on ${configuredCount} number(s)`
+        : errors.length
+          ? `Configured ${configuredCount} number(s) but some failed; verification ${verified ? 'passed' : 'failed'}`
+          : `Configured ${configuredCount} number(s); verification ${verified ? 'passed' : 'failed'}`,
       url: webhookUrl,
+      verified,
+      webhookUrlConfigured: verified,
+      orgId,
+      checkedAt,
+      details: errors.length ? { configuredCount, errors } : undefined,
     }, { status: 200 });
   } catch (error: any) {
     console.error('[Direct Twilio] Error installing webhooks:', error);
@@ -126,6 +151,10 @@ export async function POST(request: NextRequest) {
       success: false,
       message: error.message || 'Failed to install webhooks',
       url: null,
+      verified: false,
+      webhookUrlConfigured: false,
+      orgId,
+      checkedAt: new Date().toISOString(),
     }, { status: 500 });
   }
 }
