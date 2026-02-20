@@ -13,6 +13,7 @@ import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { isMessagingEnabled } from '@/lib/flags';
 import { ProofRunnerButton } from './ProofRunnerButton';
+import { MessagingDebugDrawer } from './MessagingDebugDrawer';
 
 interface DiagnosticsPanelProps {
   threadsCount: number;
@@ -233,6 +234,7 @@ export function DiagnosticsPanel({
                     Create Demo Data
                   </Button>
                 )}
+                <MessagingDebugDrawer />
                 <ProofRunnerButton />
               </div>
 

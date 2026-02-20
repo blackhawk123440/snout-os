@@ -77,8 +77,10 @@ function useConnectProvider() {
         success: z.boolean(),
         message: z.string(),
       })),
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['setup'] });
+      // Re-fetch provider status immediately
+      await queryClient.refetchQueries({ queryKey: ['setup', 'provider', 'status'] });
     },
   });
 }
@@ -91,8 +93,10 @@ function useInstallWebhooks() {
       message: z.string(),
       url: z.string().nullable(),
     })),
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['setup'] });
+      // Re-fetch provider status immediately
+      await queryClient.refetchQueries({ queryKey: ['setup', 'provider', 'status'] });
     },
   });
 }
@@ -106,10 +110,13 @@ export function TwilioSetupPanel() {
   const [connectForm, setConnectForm] = useState({ accountSid: '', authToken: '' });
   const [showTestModal, setShowTestModal] = useState(false);
   const [testForm, setTestForm] = useState({ accountSid: '', authToken: '' });
+  const [showTestSMSModal, setShowTestSMSModal] = useState(false);
+  const [testSMSForm, setTestSMSForm] = useState({ destinationE164: '', fromClass: 'front_desk' as 'front_desk' | 'pool' | 'sitter' });
 
   const testConnection = useTestConnection();
   const connectProvider = useConnectProvider();
   const installWebhooks = useInstallWebhooks();
+  const testSMS = useTestSMS();
 
   const handleTest = async () => {
     try {
@@ -190,7 +197,7 @@ export function TwilioSetupPanel() {
         {providerStatus?.connected ? (
           <div>
             <Badge variant="success" style={{ marginBottom: tokens.spacing[2] }}>
-              Connected
+              Connected ✓
             </Badge>
             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
               <div>Account SID: {providerStatus.accountSid || 'Not set'}</div>
@@ -235,10 +242,10 @@ export function TwilioSetupPanel() {
         {webhookStatus?.installed ? (
           <div>
             <Badge variant="success" style={{ marginBottom: tokens.spacing[2] }}>
-              Installed
+              Installed ✓
             </Badge>
             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-              <div>URL: {webhookStatus.url || 'Not set'}</div>
+              <div>URL: <code style={{ fontFamily: 'monospace', fontSize: '11px' }}>{webhookStatus.url || 'Not set'}</code></div>
               {webhookStatus.lastReceivedAt && (
                 <div>Last received: {new Date(webhookStatus.lastReceivedAt).toLocaleString()}</div>
               )}
@@ -253,6 +260,26 @@ export function TwilioSetupPanel() {
             </p>
           </div>
         )}
+      </Card>
+
+      {/* Test SMS */}
+      <Card style={{ marginBottom: tokens.spacing[4] }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[3] }}>
+          <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+            Test SMS
+          </h3>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowTestSMSModal(true)}
+            disabled={!providerStatus?.connected}
+          >
+            Send Test SMS
+          </Button>
+        </div>
+        <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+          Send a test SMS using the same send pipeline (chooseFromNumber + TwilioProvider.sendMessage)
+        </p>
       </Card>
 
       {/* Readiness Checks */}

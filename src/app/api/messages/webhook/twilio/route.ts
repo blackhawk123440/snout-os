@@ -307,6 +307,17 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Log thread resolution path
+    console.log('[Inbound Webhook] Thread resolution', {
+      toE164: to,
+      fromE164: from,
+      threadId: thread.id,
+      orgId,
+      clientId: client.id,
+      messageSid,
+      resolutionPath: `by (toE164=${to} masked number + fromE164=${from} sender) → threadId=${thread.id}`,
+    });
+
     console.log('[Inbound Webhook] Message stored successfully', {
       messageId: message.id,
       threadId: thread.id,
@@ -317,6 +328,23 @@ export async function POST(request: NextRequest) {
       messageSid,
       signatureValid: true, // Already validated above
     });
+
+    // Store webhook event for diagnostics (if table exists)
+    try {
+      // Note: We don't have a WebhookEvent table yet, so we'll log to console for now
+      // In production, this would be stored in a dedicated table
+      console.log('[Inbound Webhook] Event logged', {
+        messageSid,
+        fromE164: from,
+        toE164: to,
+        signatureValid: true,
+        orgId,
+        threadId: thread.id,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      // Ignore - webhook event logging is optional
+    }
 
     return NextResponse.json({
       received: true,
