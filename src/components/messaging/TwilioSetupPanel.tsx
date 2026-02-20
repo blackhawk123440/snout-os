@@ -95,8 +95,8 @@ function useInstallWebhooks() {
     })),
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['setup'] });
-      // Re-fetch provider status immediately
-      await queryClient.refetchQueries({ queryKey: ['setup', 'provider', 'status'] });
+      // Re-fetch webhook status immediately
+      await queryClient.refetchQueries({ queryKey: ['setup', 'webhooks', 'status'] });
     },
   });
 }
