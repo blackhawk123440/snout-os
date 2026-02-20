@@ -119,6 +119,8 @@ function SitterDetailContent() {
   const [stats, setStats] = useState<SitterStats | null>(null);
   const [performance, setPerformance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isAvailable, setIsAvailable] = useState<boolean>(true);
+  const [togglingAvailability, setTogglingAvailability] = useState(false);
 
   // Update URL when tab changes
   useEffect(() => {
@@ -154,6 +156,9 @@ function SitterDetailContent() {
         setPerformance(dashboardData.performance);
         if (dashboardData.stats) {
           setStats(dashboardData.stats);
+        }
+        if (typeof dashboardData.isAvailable === 'boolean') {
+          setIsAvailable(dashboardData.isAvailable);
         }
       }
     } catch (error) {
@@ -303,11 +308,27 @@ function SitterDetailContent() {
       {/* Global Header */}
       <SitterPageHeader
         sitter={sitter}
-        isAvailable={true} // TODO: Fetch from API
+        isAvailable={isAvailable}
         canEdit={canEdit}
-        onAvailabilityToggle={() => {
-          // TODO: Implement availability toggle
-          console.log('Toggle availability');
+        onAvailabilityToggle={async () => {
+          if (togglingAvailability || !sitterId) return;
+          setTogglingAvailability(true);
+          try {
+            const res = await fetch(`/api/sitters/${sitterId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ isActive: !isAvailable }),
+            });
+            if (res.ok) {
+              setIsAvailable(!isAvailable);
+              const data = await res.json();
+              if (data.sitter?.isActive !== undefined) setIsAvailable(data.sitter.isActive);
+            }
+          } catch (e) {
+            console.error('Failed to toggle availability:', e);
+          } finally {
+            setTogglingAvailability(false);
+          }
         }}
       />
 

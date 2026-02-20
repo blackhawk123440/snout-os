@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { Inject, forwardRef } from '@nestjs/common';
 import type { IProvider } from '../provider/provider.interface';
 import { AlertsService } from '../alerts/alerts.service';
+import { MessagingService } from '../messaging/messaging.service';
 import IORedis from 'ioredis';
 
 /**
@@ -27,6 +28,8 @@ export class AutomationWorker implements OnModuleInit {
     private audit: AuditService,
     @Inject(forwardRef(() => AlertsService))
     private alertsService: AlertsService,
+    @Inject(forwardRef(() => MessagingService))
+    private messagingService: MessagingService,
     @Inject('PROVIDER') private provider: IProvider,
   ) {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -194,14 +197,46 @@ export class AutomationWorker implements OnModuleInit {
     }
 
     switch (action.type) {
-      case 'sendSMS':
-        // Get recipient from context
-        const to = action.config?.to || context.recipientE164;
-        const from = action.config?.from || context.fromE164;
+      case 'sendSMS': {
         const body = this.renderTemplate(action.config?.template, context);
 
-        if (!to || !from || !body) {
-          throw new Error('Missing required SMS parameters');
+        if (!body) {
+          throw new Error('Missing required SMS body/template');
+        }
+
+        // When context has threadId + orgId, use MessagingService so routing (chooseFromNumber equivalent) is applied
+        const threadId = (context.threadId as string) || action.config?.threadId;
+        const orgId = (context.orgId as string) || action.config?.orgId;
+
+        if (threadId && orgId) {
+          try {
+            const sendResult = await this.messagingService.sendMessage({
+              orgId,
+              threadId,
+              body,
+              senderType: 'owner',
+              senderId: 'automation',
+            });
+            return {
+              success: true,
+              messageSid: sendResult.providerMessageSid,
+              messageId: sendResult.messageId,
+            };
+          } catch (err: any) {
+            this.logger.warn(`Automation sendSMS via MessagingService failed: ${err?.message}`);
+            return {
+              success: false,
+              error: err?.message || 'Send failed',
+            };
+          }
+        }
+
+        // Fallback: raw to/from (no thread-based routing)
+        const to = action.config?.to || context.recipientE164;
+        const from = action.config?.from || context.fromE164;
+
+        if (!to || !from) {
+          throw new Error('Missing required SMS parameters: need (threadId + orgId) or (to + from)');
         }
 
         const result = await this.provider.sendMessage({
@@ -211,6 +246,7 @@ export class AutomationWorker implements OnModuleInit {
         });
 
         return { success: result.success, messageSid: result.messageSid };
+      }
 
       default:
         throw new Error(`Unknown action type: ${action.type}`);

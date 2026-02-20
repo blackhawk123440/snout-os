@@ -6,6 +6,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
 import { ProviderModule } from '../provider/provider.module';
 import { AlertsModule } from '../alerts/alerts.module';
+import { MessagingModule } from '../messaging/messaging.module';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 
@@ -16,6 +17,7 @@ import IORedis from 'ioredis';
     AuditModule,
     ProviderModule,
     forwardRef(() => AlertsModule),
+    forwardRef(() => MessagingModule),
   ],
   providers: [
     MessageRetryWorker,
