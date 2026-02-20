@@ -95,13 +95,18 @@ export async function POST(request: NextRequest) {
       const startDate = mappedInput.startAt as Date;
       const endDate = mappedInput.endAt as Date;
       
-      // Extract pets array from Prisma nested create structure
-      const petsCreateValue: unknown = (mappedInput.pets as any)?.create;
-      const petsArray: Array<{ name: string; species: string }> = Array.isArray(petsCreateValue)
-        ? (petsCreateValue as Array<{ name: string; species: string }>)
-        : petsCreateValue 
-          ? [petsCreateValue as { name: string; species: string }]
-          : [];
+      // Extract pets array - mapper returns plain array, but we need to handle both formats
+      let petsArray: Array<{ name: string; species: string }> = [];
+      if (Array.isArray(mappedInput.pets)) {
+        // Mapper returns plain array
+        petsArray = mappedInput.pets;
+      } else if ((mappedInput.pets as any)?.create) {
+        // Prisma nested create format
+        const petsCreateValue = (mappedInput.pets as any).create;
+        petsArray = Array.isArray(petsCreateValue)
+          ? petsCreateValue
+          : petsCreateValue ? [petsCreateValue] : [];
+      }
       const petsCount = petsArray.length || 0;
       const quantity = mappedInput.quantity || 1;
       const afterHours = mappedInput.afterHours || false;
@@ -116,16 +121,21 @@ export async function POST(request: NextRequest) {
         afterHours
       );
 
-      // Build time slots array from mapped input if present
-      const timeSlotsCreateValue: unknown = (mappedInput.timeSlots as any)?.create;
-      const timeSlotsArray: Array<{ startAt: string | Date; endAt: string | Date; duration?: number }> = Array.isArray(timeSlotsCreateValue)
-        ? (timeSlotsCreateValue as Array<{ startAt: string | Date; endAt: string | Date; duration?: number }>)
-        : timeSlotsCreateValue
-          ? [timeSlotsCreateValue as { startAt: string | Date; endAt: string | Date; duration?: number }]
-          : [];
+      // Build time slots array from mapped input if present - handle both plain array and Prisma format
+      let timeSlotsArray: Array<{ startAt: string | Date; endAt: string | Date; duration?: number }> = [];
+      if (Array.isArray(mappedInput.timeSlots)) {
+        // Mapper returns plain array
+        timeSlotsArray = mappedInput.timeSlots;
+      } else if ((mappedInput.timeSlots as any)?.create) {
+        // Prisma nested create format
+        const timeSlotsCreateValue = (mappedInput.timeSlots as any).create;
+        timeSlotsArray = Array.isArray(timeSlotsCreateValue)
+          ? timeSlotsCreateValue
+          : timeSlotsCreateValue ? [timeSlotsCreateValue] : [];
+      }
       const timeSlotsData = timeSlotsArray.map((slot: { startAt: string | Date; endAt: string | Date; duration?: number }) => ({
-        startAt: slot.startAt as Date,
-        endAt: slot.endAt as Date,
+        startAt: slot.startAt instanceof Date ? slot.startAt : new Date(slot.startAt),
+        endAt: slot.endAt instanceof Date ? slot.endAt : new Date(slot.endAt),
         duration: slot.duration ?? 0, // Provide default duration if undefined
       }));
 
@@ -185,10 +195,29 @@ export async function POST(request: NextRequest) {
       }
 
       // Merge mapped input with calculated price (mapper sets totalPrice to 0, we override it)
+      // Convert pets and timeSlots to Prisma format if they're plain arrays
+      const { pets: _pets, timeSlots: _timeSlots, ...mappedInputWithoutRelations } = mappedInput;
       const bookingData = {
-        ...mappedInput,
+        ...mappedInputWithoutRelations,
         totalPrice, // Use calculated price (from new engine or old logic)
         ...(pricingSnapshot && { pricingSnapshot }), // Store snapshot if using new engine
+        // Convert pets to Prisma nested create format
+        pets: {
+          create: petsArray.map((pet: { name: string; species: string }) => ({
+            name: (pet.name || "Pet").trim(),
+            species: (pet.species || "Dog").trim(),
+          })),
+        },
+        // Convert timeSlots to Prisma nested create format
+        ...(timeSlotsData.length > 0 && {
+          timeSlots: {
+            create: timeSlotsData.map(slot => ({
+              startAt: slot.startAt,
+              endAt: slot.endAt,
+              duration: slot.duration,
+            })),
+          },
+        }),
       };
 
       // Create booking using mapped input (unchanged persistence logic)
