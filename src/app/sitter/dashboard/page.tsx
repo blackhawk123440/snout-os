@@ -85,10 +85,19 @@ function SitterDashboardContent() {
           sitterId={sitterId}
         />
 
-        {/* Upcoming Bookings - Chronological list */}
-        <UpcomingBookings 
-          bookings={dashboardData?.upcomingBookings ?? []}
-        />
+        {/* Today's Assignments - Chronological list */}
+        <Card style={{ padding: tokens.spacing[4] }}>
+          <h3 style={{ 
+            fontSize: tokens.typography.fontSize.lg[0], 
+            fontWeight: tokens.typography.fontWeight.semibold,
+            marginBottom: tokens.spacing[3],
+          }}>
+            Today's Assignments
+          </h3>
+          <UpcomingBookings 
+            bookings={dashboardData?.upcomingBookings ?? []}
+          />
+        </Card>
 
         {/* Completed Bookings - Collapsed by default */}
         <CompletedBookings 
