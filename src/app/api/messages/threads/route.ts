@@ -122,15 +122,12 @@ export async function GET(request: NextRequest) {
     }
     
     // Handle scope filter: 'internal' means owner inbox (front_desk threads)
-    // Owner inbox should NOT include sitter mailbox threads
-    // Sitter mailbox = assignedSitterId IS NOT NULL AND scope IN ('client_booking', 'client_general')
-    // Owner mailbox = scope = 'internal' OR (assignedSitterId IS NULL AND scope = 'owner_sitter')
+    // Owner inbox = front_desk threads (business/master number conversations)
+    // Sitter threads = assignment threads (sitterId IS NOT NULL)
     if (searchParams.get('scope') === 'internal' || searchParams.get('inbox') === 'owner') {
       filters.threadType = 'front_desk';
-      // Explicitly exclude sitter mailbox threads from owner inbox
-      filters.assignedSitterId = null;
-      // Also exclude client_booking/client_general threads (sitter mailbox)
-      filters.scope = { notIn: ['client_booking', 'client_general'] };
+      // Explicitly exclude sitter assignment threads from owner inbox
+      filters.sitterId = null;
     }
 
     // Use try-catch for each relation to handle missing models gracefully
