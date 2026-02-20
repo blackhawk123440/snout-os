@@ -350,14 +350,35 @@ This document provides step-by-step instructions for verifying that the messagin
 - [ ] Owner "Message Anyone" creates thread and sends via front_desk number
 - [ ] Inbound webhook validates signature and resolves thread correctly
 - [ ] Routing selects sitter masked number during active assignment window
-- [ ] Routing selects front_desk/pool number when no active window
+- [ ] Routing selects thread's default number (front_desk/pool) when no active window
 - [ ] Sitter inbox shows only threads with active windows
 - [ ] Sitter inbox blocks sends outside active window (403)
 - [ ] All sends use `chooseFromNumber()` function
 - [ ] All sends log routing decision with trace
 - [ ] Twilio Console shows correct From numbers
-- [ ] Database stores correct `fromNumberId` and `providerMessageSid`
+- [ ] Database stores correct `providerMessageSid` and delivery status
 - [ ] No client E164 exposed to sitter in UI or API responses
+- [ ] Twilio errors are logged and surfaced in UI
+- [ ] MessageDelivery records created for all sends (success and failure)
+
+## Playwright Tests
+
+Two Playwright tests have been added:
+
+1. **`tests/e2e/owner-send-message.spec.ts`**
+   - Tests owner can create thread by phone and send message
+   - Mocks Twilio API to avoid real SMS charges
+   - Verifies thread appears in list and message appears in thread
+
+2. **`tests/e2e/sitter-blocked-outside-window.spec.ts`**
+   - Tests sitter send outside active assignment window returns 403
+   - Verifies error code `WINDOW_NOT_ACTIVE` and window timestamps in response
+
+Run tests with:
+```bash
+npx playwright test tests/e2e/owner-send-message.spec.ts
+npx playwright test tests/e2e/sitter-blocked-outside-window.spec.ts
+```
 
 ## Common Issues
 
