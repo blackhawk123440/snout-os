@@ -2,101 +2,117 @@
  * Connect Provider Route
  * 
  * POST /api/setup/provider/connect
- * Proxies to NestJS API for connecting provider
+ * Saves Twilio credentials to database (encrypted)
+ * Falls back to direct Prisma if NestJS API is not available
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
+import { prisma } from '@/lib/db';
+import { encrypt } from '@/lib/messaging/encryption';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function POST(request: NextRequest) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
   const session = await auth();
 
   if (!session?.user) {
     return NextResponse.json(
-      { error: 'Unauthorized' },
+      { success: false, message: 'Unauthorized' },
       { status: 401 }
     );
   }
 
-  let apiToken: string;
-  try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
+  const user = session.user as any;
+  const orgId = user.orgId || 'default';
 
-  let body: string;
+  let body: { accountSid: string; authToken: string };
   try {
-    body = await request.text();
+    body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: 'Invalid request body' },
+      { success: false, message: 'Invalid request body' },
       { status: 400 }
     );
   }
 
-  const apiUrl = `${API_BASE_URL}/api/setup/provider/connect`;
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-      body,
-    });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
-        },
-      });
-    }
-
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
-      },
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward connect provider request:', error);
+  if (!body.accountSid || !body.authToken) {
     return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
+      { success: false, message: 'Account SID and Auth Token are required' },
+      { status: 400 }
     );
+  }
+
+  // Try NestJS API first if available
+  if (API_BASE_URL) {
+    try {
+      const apiToken = await mintApiJWT({
+        userId: user.id || user.email || '',
+        orgId,
+        role: user.role || (user.sitterId ? 'sitter' : 'owner'),
+        sitterId: user.sitterId || null,
+      });
+
+      const apiUrl = `${API_BASE_URL}/api/setup/provider/connect`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        // Ensure response matches expected schema
+        if (responseData.success !== undefined && responseData.message !== undefined) {
+          return NextResponse.json(responseData, { status: 200 });
+        }
+        // If API returns different format, normalize it
+        return NextResponse.json({
+          success: true,
+          message: responseData.message || 'Provider credentials saved successfully',
+        }, { status: 200 });
+      }
+    } catch (error: any) {
+      console.warn('[BFF Proxy] Failed to reach API, using fallback:', error.message);
+      // Fall through to Prisma fallback
+    }
+  }
+
+  // Fallback: Direct Prisma implementation
+  try {
+    // Encrypt credentials
+    const encryptedConfig = encrypt(JSON.stringify({
+      accountSid: body.accountSid,
+      authToken: body.authToken,
+    }));
+
+    // Upsert provider credential
+    await (prisma as any).providerCredential.upsert({
+      where: { orgId },
+      update: {
+        encryptedConfig,
+        updatedAt: new Date(),
+      },
+      create: {
+        orgId,
+        providerType: 'twilio',
+        encryptedConfig,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Provider credentials saved successfully',
+    }, { status: 200 });
+  } catch (error: any) {
+    console.error('[Direct Prisma] Error saving credentials:', error);
+    return NextResponse.json({
+      success: false,
+      message: error.message || 'Failed to save credentials',
+    }, { status: 500 });
   }
 }
