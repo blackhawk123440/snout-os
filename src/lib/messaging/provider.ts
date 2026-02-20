@@ -25,7 +25,8 @@ export interface SendMessageOptions {
   to: string; // E.164 format
   body: string;
   mediaUrls?: string[];
-  fromNumberSid?: string; // Optional: specific number to send from
+  fromNumberSid?: string; // Optional: specific number SID to send from
+  fromE164?: string; // Optional: explicit E164 to send from (takes precedence)
 }
 
 export interface SendMessageResult {

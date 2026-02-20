@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
 import { prisma } from '@/lib/db';
-import { getEffectiveNumberForThread } from '@/lib/messaging/dynamic-number-routing';
+import { chooseFromNumber } from '@/lib/messaging/choose-from-number';
 import { getMessagingProvider } from '@/lib/messaging/provider-factory';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -256,18 +256,20 @@ export async function POST(
       );
     }
 
-    // Get effective number via routing
-    const routingResult = await getEffectiveNumberForThread(orgId, threadId);
-    const fromNumber = await (prisma as any).messageNumber.findUnique({
-      where: { id: routingResult.numberId },
+    // Choose from number using unified routing function
+    const routingResult = await chooseFromNumber(threadId, orgId);
+    
+    // Log routing decision
+    console.log('[Send Message] Routing decision', {
+      orgId,
+      threadId,
+      chosenNumberId: routingResult.numberId,
+      chosenE164: routingResult.e164,
+      numberClass: routingResult.numberClass,
+      reason: routingResult.reason,
+      windowId: routingResult.windowId,
+      routingTrace: routingResult.routingTrace,
     });
-
-    if (!fromNumber) {
-      return NextResponse.json(
-        { error: 'No valid number available for sending' },
-        { status: 500 }
-      );
-    }
 
     // Get recipient E164
     const clientContact = thread.client.contacts?.[0];
@@ -278,12 +280,25 @@ export async function POST(
       );
     }
 
-    // Send via provider
+    // Send via provider with explicit E164
     const provider = await getMessagingProvider(orgId);
     const sendResult = await provider.sendMessage({
       to: clientContact.e164,
-      fromNumberSid: fromNumber.providerNumberSid || undefined,
+      fromE164: routingResult.e164, // Use actual E164 from chosen number
+      fromNumberSid: undefined, // Not needed when E164 is provided
       body: messageBody,
+    });
+    
+    // Log send result
+    console.log('[Send Message] Twilio send result', {
+      orgId,
+      threadId,
+      to: clientContact.e164,
+      from: routingResult.e164,
+      success: sendResult.success,
+      messageSid: sendResult.messageSid,
+      errorCode: sendResult.errorCode,
+      errorMessage: sendResult.errorMessage,
     });
 
     if (!sendResult.success) {

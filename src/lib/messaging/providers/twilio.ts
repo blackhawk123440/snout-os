@@ -201,28 +201,57 @@ export class TwilioProvider implements MessagingProvider {
     try {
       const client = await getTwilioClient(this.orgId);
       
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { env } = require('@/lib/env');
+      // Determine from number - use explicit E164 if provided, otherwise fallback
+      // CRITICAL: Use the actual E164 from the chosen masked number, not env vars
+      let fromNumber: string;
       
-      // Determine from number - prefer messaging service SID, then phone number
-      const fromNumber = options.fromNumberSid || 
-                         env.TWILIO_MESSAGING_SERVICE_SID || 
-                         env.TWILIO_PHONE_NUMBER;
+      if (options.fromNumberSid) {
+        // If number SID provided, we need to look up the E164
+        // For now, prefer explicit from E164 if provided
+        fromNumber = (options as any).fromE164 || options.fromNumberSid;
+      } else if ((options as any).fromE164) {
+        // Explicit E164 provided (from chooseFromNumber)
+        fromNumber = (options as any).fromE164;
+      } else {
+        // Fallback to env vars (for backward compatibility)
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { env } = require('@/lib/env');
+        fromNumber = env.TWILIO_MESSAGING_SERVICE_SID || env.TWILIO_PHONE_NUMBER || '';
+      }
+      
       if (!fromNumber) {
         return {
           success: false,
           errorCode: 'NO_FROM_NUMBER',
-          errorMessage: 'TWILIO_PHONE_NUMBER or TWILIO_MESSAGING_SERVICE_SID must be configured',
+          errorMessage: 'From number (E164 or SID) must be provided',
         };
       }
 
-      // Send message via Twilio API
+      // Log send attempt
+      console.log('[TwilioProvider.sendMessage]', {
+        orgId: this.orgId,
+        to: options.to,
+        from: fromNumber,
+        bodyLength: options.body?.length || 0,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Send message via Twilio API (REAL API CALL)
       const message = await client.messages.create({
         body: options.body,
-        from: fromNumber,
+        from: fromNumber, // Use actual E164 or number SID
         to: options.to,
-        // Media URLs would go here if Twilio supports it for SMS
-        // For MMS: statusCallback can be set for delivery status
+        // Status callback for delivery tracking
+        statusCallback: process.env.TWILIO_STATUS_CALLBACK_URL || undefined,
+      });
+
+      // Log success
+      console.log('[TwilioProvider.sendMessage] SUCCESS', {
+        orgId: this.orgId,
+        messageSid: message.sid,
+        to: options.to,
+        from: fromNumber,
+        status: message.status,
       });
 
       return {
@@ -230,7 +259,14 @@ export class TwilioProvider implements MessagingProvider {
         messageSid: message.sid,
       };
     } catch (error: any) {
-      console.error('[TwilioProvider] Send message error:', error);
+      console.error('[TwilioProvider.sendMessage] ERROR', {
+        orgId: this.orgId,
+        to: options.to,
+        errorCode: error.code,
+        errorMessage: error.message,
+        errorDetails: error,
+      });
+      
       return {
         success: false,
         errorCode: error.code || 'UNKNOWN_ERROR',
