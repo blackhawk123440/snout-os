@@ -15,7 +15,43 @@ This document provides step-by-step instructions for verifying that the messagin
 4. Browser DevTools access for network inspection
 5. Database access for verification queries
 
-## Test 1: Owner "Message Anyone" Flow
+## Test 1: Twilio Setup & Test SMS
+
+### Steps
+
+1. **Navigate to Twilio Setup**
+   - Go to `/messages` in staging dashboard
+   - Click "Twilio Setup" tab
+
+2. **Connect Provider**
+   - Click "Connect Provider" button
+   - Enter Account SID and Auth Token
+   - Click "Save Credentials"
+   - **Expected:** Status immediately updates to "Connected ✓" (green badge)
+   - **Verify:** Account SID is displayed below badge
+
+3. **Install Webhooks**
+   - Click "Install Webhooks" button
+   - **Expected:** Status immediately updates to "Installed ✓" (green badge)
+   - **Verify:** Webhook URL is displayed (e.g., `https://[domain]/api/messages/webhook/twilio`)
+   - **CRITICAL:** This URL must match exactly what's in Twilio Console
+
+4. **Send Test SMS**
+   - Click "Send Test SMS" button
+   - Enter destination E.164 (e.g., `+15551234567`)
+   - Select "From class": Front Desk
+   - Click "Send Test SMS"
+   - **Expected:** Success message with MessageSid (e.g., `SM...`)
+   - **Verify:** From E164 shown matches front_desk number
+
+### Screenshots Required
+
+1. **Twilio Setup tab** showing:
+   - Provider Connection: "Connected ✓" (green badge)
+   - Webhooks: "Installed ✓" (green badge) with URL displayed
+   - Test SMS modal with success message showing MessageSid
+
+## Test 2: Owner "Message Anyone" Flow
 
 ### Steps
 
@@ -101,7 +137,7 @@ This document provides step-by-step instructions for verifying that the messagin
    - Message row with `providerMessageSid` matching Twilio MessageSid
    - Thread row showing one thread per org+client (no duplicates)
 
-## Test 2: Inbound Webhook Flow
+## Test 3: Inbound Webhook Flow (Reply to Test SMS)
 
 ### Steps
 
@@ -169,7 +205,7 @@ This document provides step-by-step instructions for verifying that the messagin
 2. Owner inbox UI showing new inbound message
 3. Database query showing inbound message with correct threadId
 
-## Test 3: Routing - Sitter Masked Number During Active Window
+## Test 4: Routing - Sitter Masked Number During Active Window
 
 ### Prerequisites
 
@@ -232,7 +268,7 @@ This document provides step-by-step instructions for verifying that the messagin
 2. Twilio Console showing From = sitter masked number
 3. Database query showing `fromNumberId` = sitter masked number
 
-## Test 4: Sitter Inbox - Send During Active Window
+## Test 5: Sitter Inbox - Send During Active Window
 
 ### Steps
 
@@ -270,7 +306,7 @@ This document provides step-by-step instructions for verifying that the messagin
 3. Message sent successfully in UI
 4. Server logs showing successful send with sitter number
 
-## Test 5: Sitter Inbox - Blocked Outside Window
+## Test 6: Sitter Inbox - Blocked Outside Window
 
 ### Steps
 
@@ -308,7 +344,77 @@ This document provides step-by-step instructions for verifying that the messagin
 1. Sitter inbox showing blocked compose box
 2. API response showing 403 with WINDOW_NOT_ACTIVE code
 
-## Test 6: Routing Trace Storage
+## Test 7: Messaging Debug Drawer
+
+### Steps
+
+1. **Open Messaging Debug Drawer**
+   - Go to `/messages` in staging dashboard
+   - Click "Owner Inbox" tab
+   - In bottom-right corner, click "Show" in "Ops / Diagnostics" panel
+   - Click "Show Messaging Debug" button
+
+2. **Verify MessageDelivery Rows**
+   - **Expected:** Table showing last 50 MessageDelivery rows
+   - Columns: Created, Direction, Status, MessageSid, From, To, Error
+   - **Verify:** Recent test SMS shows:
+     - Status: "sent" (green badge)
+     - MessageSid: `SM...` (matches Twilio)
+     - From: Front desk number E164
+     - To: Test phone number
+     - Error: "-" (no errors)
+
+3. **Verify Webhook Events**
+   - **Expected:** Table showing last 50 inbound webhook events
+   - Columns: Created, MessageSid, From, To, Signature, ThreadId
+   - **Verify:** Recent reply shows:
+     - Signature: "Valid" (green badge)
+     - ThreadId: Matches thread from test SMS
+
+4. **Copy Diagnostics JSON**
+   - Click "Copy JSON" button
+   - **Expected:** JSON copied to clipboard with all delivery and webhook data
+
+### Screenshots Required
+
+1. **Messaging Debug drawer** showing:
+   - MessageDelivery table with test SMS row (status=sent, MessageSid visible)
+   - Webhook Events table with reply event (signatureValid=true, threadId visible)
+
+## Test 8: Sitter Dashboard Completeness
+
+### Steps
+
+1. **Navigate to Sitter Dashboard**
+   - Log in as sitter
+   - Go to `/sitter/dashboard` or `/sitter`
+
+2. **Verify Required Elements**
+   - **Expected:** "Your Level" (SRS card) visible
+   - **Expected:** "Messages" card with unread count and "Open Inbox" button
+   - **Expected:** "Today's Assignments" section (or "Upcoming Bookings")
+
+3. **Navigate to Inbox**
+   - Click "Open Inbox" button in Messages card
+   - **Expected:** Redirects to `/sitter/inbox`
+
+4. **Verify Owner View Sitter Page**
+   - Log in as owner
+   - Go to `/sitters/[id]` (replace [id] with sitter ID)
+   - **Expected:** Tabs visible: Dashboard | Profile | Messages | Tier | Performance | Payroll | Activity/Logs
+   - Click each tab to verify content loads
+
+### Screenshots Required
+
+1. **Sitter dashboard** showing:
+   - "Your Level" (SRS) card
+   - "Messages" card with unread count
+   - "Today's Assignments" or "Upcoming Bookings" section
+
+2. **Owner sitter detail page** showing:
+   - All tabs visible: Dashboard | Profile | Messages | Tier | Performance | Payroll | Activity/Logs
+
+## Test 9: Routing Trace Storage
 
 ### Steps
 
@@ -345,6 +451,55 @@ This document provides step-by-step instructions for verifying that the messagin
 1. Server logs showing routing trace for owner send
 2. Server logs showing routing trace for sitter send (with windowId)
 
+## Required Database Queries (Must Return Rows)
+
+After each test action, run these queries to verify data persistence:
+
+### Query 1: MessageDelivery with providerMessageSid
+
+```sql
+SELECT 
+  md.id,
+  md."createdAt",
+  md.status,
+  m."providerMessageSid",
+  m.direction,
+  md."providerErrorCode",
+  md."providerErrorMessage",
+  t."numberId",
+  mn.e164 as from_e164,
+  cc.e164 as to_e164,
+  t.id as thread_id
+FROM "MessageDelivery" md
+JOIN "Message" m ON md."messageId" = m.id
+JOIN "Thread" t ON m."threadId" = t.id
+JOIN "MessageNumber" mn ON t."numberId" = mn.id
+LEFT JOIN "ClientContact" cc ON t."clientId" = cc."clientId" AND cc."orgId" = t."orgId"
+WHERE m."providerMessageSid" IS NOT NULL
+ORDER BY md."createdAt" DESC
+LIMIT 10;
+```
+
+**Expected:** At least 1 row with:
+- `providerMessageSid` IS NOT NULL
+- `status` = 'sent' or 'delivered'
+- `from_e164` = masked number (front_desk/sitter/pool)
+- `to_e164` = real client phone number
+
+### Query 2: Inbound Webhook Events (from logs)
+
+Since we don't have a WebhookEvent table yet, check server logs for:
+```
+[Inbound Webhook] Signature validation { signatureValid: true, ... }
+[Inbound Webhook] Thread resolution { toE164: '...', fromE164: '...', threadId: '...' }
+[Inbound Webhook] Message stored successfully { messageSid: 'SM...', threadId: '...' }
+```
+
+**Expected:** Log entries showing:
+- `signatureValid: true`
+- `threadId` matches thread from outbound message
+- `messageSid` from Twilio
+
 ## Verification Checklist
 
 - [ ] Owner "Message Anyone" creates thread and sends via front_desk number
@@ -360,6 +515,38 @@ This document provides step-by-step instructions for verifying that the messagin
 - [ ] No client E164 exposed to sitter in UI or API responses
 - [ ] Twilio errors are logged and surfaced in UI
 - [ ] MessageDelivery records created for all sends (success and failure)
+
+## Definition of Done (Staging Verification)
+
+All of the following must pass in staging with screenshots:
+
+- [ ] **Twilio Setup**
+  - Screenshot: Twilio Setup tab showing "Connected ✓" and "Installed ✓"
+  - Screenshot: Test SMS modal showing success with MessageSid
+
+- [ ] **Owner Send**
+  - Screenshot: DevTools Network showing `POST /api/messages/threads` (200)
+  - Screenshot: DevTools Network showing `POST /api/messages/threads/:id/messages` (200)
+  - Screenshot: Twilio Console showing message with correct From/To numbers
+  - DB Query: MessageDelivery row with `providerMessageSid IS NOT NULL` and `fromE164=masked number`
+
+- [ ] **Inbound Reply**
+  - Screenshot: Owner inbox showing inbound reply in same thread
+  - Server Log: `[Inbound Webhook] Thread resolution` showing correct threadId
+  - Server Log: `signatureValid: true`
+
+- [ ] **Sitter Inbox**
+  - Screenshot: Sitter dashboard showing "Messages" card with link
+  - Screenshot: `/sitter/inbox` page showing threads with active windows
+  - Screenshot: Compose box blocked outside window (403 error visible)
+
+- [ ] **Messaging Debug Drawer**
+  - Screenshot: MessageDelivery table showing test SMS with MessageSid
+  - Screenshot: Webhook Events table showing reply with signatureValid=true
+
+- [ ] **Sitter Dashboard**
+  - Screenshot: Sitter dashboard showing "Your Level" (SRS), "Messages" card, "Today's Assignments"
+  - Screenshot: Owner sitter detail page showing all tabs (Dashboard | Profile | Messages | Tier | Performance | Payroll | Activity/Logs)
 
 ## Playwright Tests
 
