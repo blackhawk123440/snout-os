@@ -679,7 +679,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                     ? tokens.colors.primary.DEFAULT 
                     : day.isCurrentMonth 
                       ? 'transparent' 
-                      : tokens.colors.gray[50],
+                      : tokens.colors.neutral[50],
                   color: selectedDates.includes(day.dateStr)
                     ? 'white'
                     : day.isCurrentMonth

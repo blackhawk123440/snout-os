@@ -28,7 +28,7 @@ export default function NewBookingPage() {
     // Calculate startAt and endAt from selectedDates and dateTimes (matching HTML form logic)
     let startAt: string;
     let endAt: string;
-    let minutes: number | undefined;
+    let minutes: number = 0;
     let quantity: number;
     
     const isHouseSitting = values.service === 'Housesitting' || values.service === '24/7 Care';
@@ -72,6 +72,8 @@ export default function NewBookingPage() {
       
       // Quantity for house sitting is number of nights (number of days - 1)
       quantity = sortedDates.length - 1;
+      // For house sitting, minutes is not typically used, but set to 0
+      minutes = 0;
     } else {
       // For other services: use provided startAt/endAt or calculate from first date/time
       if (selectedDates.length > 0 && dateTimes[selectedDates[0]]?.length > 0) {
