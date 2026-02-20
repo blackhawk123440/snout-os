@@ -101,6 +101,19 @@ function useInstallWebhooks() {
   });
 }
 
+function useTestSMS() {
+  return useMutation({
+    mutationFn: (params: { destinationE164: string; fromClass: 'front_desk' | 'pool' | 'sitter' }) =>
+      apiPost('/api/setup/test-sms', params, z.object({
+        success: z.boolean(),
+        messageSid: z.string().nullable(),
+        error: z.string().nullable(),
+        errorCode: z.string().nullable(),
+        fromE164: z.string().nullable(),
+      })),
+  });
+}
+
 export function TwilioSetupPanel() {
   const { data: providerStatus, isLoading: providerLoading } = useProviderStatus();
   const { data: webhookStatus, isLoading: webhookLoading } = useWebhookStatus();
