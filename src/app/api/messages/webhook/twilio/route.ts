@@ -42,11 +42,24 @@ export async function POST(request: NextRequest) {
 
     // Verify webhook signature
     const signature = request.headers.get('X-Twilio-Signature') || '';
+    // CRITICAL: Use exact webhook URL that Twilio has configured
+    // This must match exactly what's in Twilio console
     const webhookUrl = env.TWILIO_WEBHOOK_URL || 
       `${request.nextUrl.origin}/api/messages/webhook/twilio`;
     
-    const provider = new TwilioProvider();
+    // Create provider - orgId will be resolved below
+    const provider = new TwilioProvider(undefined, undefined);
     const isValid = provider.verifyWebhook(rawBody, signature, webhookUrl);
+
+    // Log signature validation result
+    console.log('[Inbound Webhook] Signature validation', {
+      messageSid,
+      from,
+      to,
+      webhookUrl,
+      signatureValid: isValid,
+      hasSignature: !!signature,
+    });
 
     if (!isValid) {
       console.error('[Inbound Webhook] Invalid signature', {
@@ -54,6 +67,8 @@ export async function POST(request: NextRequest) {
         from,
         to,
         webhookUrl,
+        signatureLength: signature.length,
+        // Don't log full signature for security
       });
       
       // Return 200 to prevent Twilio retries, but log error
@@ -297,9 +312,10 @@ export async function POST(request: NextRequest) {
       threadId: thread.id,
       orgId,
       clientId: client.id,
-      from,
-      to,
+      fromE164: from,
+      toE164: to,
       messageSid,
+      signatureValid: true, // Already validated above
     });
 
     return NextResponse.json({

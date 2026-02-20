@@ -346,6 +346,18 @@ export async function POST(
     });
 
     if (!sendResult.success) {
+      // Log Twilio error details
+      console.error('[Send Message] Twilio send failed', {
+        orgId,
+        threadId,
+        to: clientContact.e164,
+        from: routingResult.e164,
+        errorCode: sendResult.errorCode,
+        errorMessage: sendResult.errorMessage,
+        twilioErrorCode: sendResult.errorCode,
+        twilioErrorMessage: sendResult.errorMessage,
+      });
+
       // Create failed message record
       const message = await (prisma as any).message.create({
         data: {
@@ -359,11 +371,28 @@ export async function POST(
         },
       });
 
+      // Create delivery record with error
+      await (prisma as any).messageDelivery.create({
+        data: {
+          messageId: message.id,
+          attemptNo: 1,
+          status: 'failed',
+          providerErrorCode: sendResult.errorCode || 'UNKNOWN_ERROR',
+          providerErrorMessage: sendResult.errorMessage || 'Failed to send message',
+        },
+      });
+
       return NextResponse.json(
         { 
           messageId: message.id,
           hasPolicyViolation: false,
           error: sendResult.errorMessage || 'Failed to send message',
+          errorCode: sendResult.errorCode,
+          // Surface Twilio error for UI
+          twilioError: {
+            code: sendResult.errorCode,
+            message: sendResult.errorMessage,
+          },
         },
         { status: 500 }
       );
@@ -379,6 +408,17 @@ export async function POST(
         senderId,
         body: messageBody,
         providerMessageSid: sendResult.messageSid || null,
+      },
+    });
+
+    // Create delivery record with success
+    await (prisma as any).messageDelivery.create({
+      data: {
+        messageId: message.id,
+        attemptNo: 1,
+        status: 'sent',
+        providerErrorCode: null,
+        providerErrorMessage: null,
       },
     });
 

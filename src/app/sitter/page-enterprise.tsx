@@ -267,6 +267,11 @@ function SitterPageContent() {
         description="Your pet care assignments and earnings"
         actions={
           <>
+            <Link href="/sitter/inbox">
+              <Button variant="primary" leftIcon={<i className="fas fa-inbox" />}>
+                Messages
+              </Button>
+            </Link>
             <Link href={`/sitter-dashboard?id=${sitterId}`}>
               <Button variant="secondary" leftIcon={<i className="fas fa-calendar-alt" />}>
                 Full Dashboard

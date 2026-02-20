@@ -104,67 +104,56 @@ export async function getEffectiveNumberForThread(
     explanation: 'No active assignment window found',
   });
 
-  // Step 2: Check if client is one-time / unassigned → use pool
-  // Note: We'd need to check client classification here
-  // For now, default to pool if no active window
-  const poolNumber = await (prisma as any).messageNumber.findFirst({
-    where: {
-      orgId,
-      class: 'pool',
-      status: 'active',
-    },
-    orderBy: { lastUsedAt: 'asc' },
-  });
-
-  if (poolNumber) {
+  // Step 2: Use thread's default number (front_desk/pool)
+  // This is the number assigned to the thread when it was created
+  if (thread.messageNumber) {
     trace.push({
       step: 2,
-      rule: 'Pool number for one-time/unassigned',
-      condition: 'No active window, pool number available',
+      rule: 'Thread default number',
+      condition: 'No active window, using thread default',
       result: true,
-      explanation: 'Using pool number for unassigned client',
+      explanation: `Using thread's default number: ${thread.messageNumber.class}`,
     });
 
     return {
-      numberId: poolNumber.id,
-      e164: poolNumber.e164,
-      numberClass: 'pool',
-      reason: 'No active assignment window - using pool number',
+      numberId: thread.messageNumber.id,
+      e164: thread.messageNumber.e164,
+      numberClass: thread.messageNumber.class as 'front_desk' | 'sitter' | 'pool',
+      reason: `No active assignment window - using thread's default ${thread.messageNumber.class} number`,
       routingTrace: trace,
     };
   }
 
   trace.push({
     step: 2,
-    rule: 'Pool number for one-time/unassigned',
-    condition: 'Pool exhausted',
+    rule: 'Thread default number',
+    condition: 'Thread has no assigned number',
     result: false,
-    explanation: 'No pool numbers available',
+    explanation: 'Thread has no assigned message number',
   });
 
-  // Step 3: Fallback to front desk
-  const frontDeskNumber = await (prisma as any).messageNumber.findFirst({
+  // Fallback: Try to find any available number (shouldn't happen in normal operation)
+  const fallbackNumber = await (prisma as any).messageNumber.findFirst({
     where: {
       orgId,
-      class: 'front_desk',
       status: 'active',
     },
   });
 
-  if (frontDeskNumber) {
+  if (fallbackNumber) {
     trace.push({
       step: 3,
-      rule: 'Front desk fallback',
-      condition: 'No active window, pool exhausted',
+      rule: 'Fallback number',
+      condition: 'Thread has no number, using any available',
       result: true,
-      explanation: 'Using front desk number as fallback',
+      explanation: `Using fallback number: ${fallbackNumber.class}`,
     });
 
     return {
-      numberId: frontDeskNumber.id,
-      e164: frontDeskNumber.e164,
-      numberClass: 'front_desk',
-      reason: 'No active window and pool exhausted - using front desk',
+      numberId: fallbackNumber.id,
+      e164: fallbackNumber.e164,
+      numberClass: fallbackNumber.class as 'front_desk' | 'sitter' | 'pool',
+      reason: `Thread has no assigned number - using fallback ${fallbackNumber.class} number`,
       routingTrace: trace,
     };
   }

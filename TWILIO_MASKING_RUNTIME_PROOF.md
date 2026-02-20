@@ -6,12 +6,14 @@ This document provides step-by-step instructions for verifying that the messagin
 
 1. Staging environment deployed with latest code
 2. Twilio account configured with:
-   - Account SID and Auth Token saved in provider credentials
-   - At least one front_desk number provisioned
+   - Account SID and Auth Token saved in provider credentials (via `/api/setup/provider/connect`)
+   - At least one front_desk number provisioned (via Messages → Numbers)
    - At least one sitter masked number provisioned
-   - Webhook URL configured: `https://[your-domain]/api/messages/webhook/twilio`
-3. Test phone number to receive SMS
+   - Webhook URL configured: `https://[your-staging-domain]/api/messages/webhook/twilio`
+   - **CRITICAL:** Webhook URL in Twilio Console must match exactly: `${TWILIO_WEBHOOK_URL || NEXT_PUBLIC_APP_URL}/api/messages/webhook/twilio`
+3. Test phone number to receive SMS (E.164 format: `+15551234567`)
 4. Browser DevTools access for network inspection
+5. Database access for verification queries
 
 ## Test 1: Owner "Message Anyone" Flow
 
@@ -47,12 +49,21 @@ This document provides step-by-step instructions for verifying that the messagin
 
 5. **Verify Database**
    ```sql
-   -- Find the message
-   SELECT id, "threadId", direction, "senderType", body, "providerMessageSid", "fromNumberId"
+   -- Find the message with providerMessageSid
+   SELECT id, "threadId", direction, "senderType", body, "providerMessageSid", "createdAt"
    FROM "Message"
    WHERE "providerMessageSid" = 'SM...' -- Use MessageSid from step 4
    ORDER BY "createdAt" DESC
    LIMIT 1;
+
+   -- Verify delivery record exists
+   SELECT md.id, md.status, md."providerErrorCode", md."providerErrorMessage"
+   FROM "MessageDelivery" md
+   JOIN "Message" m ON md."messageId" = m.id
+   WHERE m."providerMessageSid" = 'SM...'
+   ORDER BY md."attemptNo" DESC
+   LIMIT 1;
+   -- Expected: status = 'sent', no error codes
 
    -- Verify thread uniqueness (one thread per org+client)
    SELECT "orgId", "clientId", COUNT(*) as thread_count
@@ -62,20 +73,33 @@ This document provides step-by-step instructions for verifying that the messagin
    HAVING COUNT(*) > 1;
    -- Expected: 0 rows (no duplicates)
 
-   -- Verify from number
-   SELECT mn.id, mn.e164, mn.class, mn.status
-   FROM "MessageNumber" mn
-   JOIN "Message" m ON m."fromNumberId" = mn.id
-   WHERE m."providerMessageSid" = 'SM...';
-   -- Expected: front_desk number with correct E164
+   -- Verify thread's number matches front_desk
+   SELECT t.id, t."numberId", mn.e164, mn.class, mn.status
+   FROM "Thread" t
+   JOIN "MessageNumber" mn ON t."numberId" = mn.id
+   WHERE t.id = '...' -- Use threadId from step 3
+   AND mn.class = 'front_desk';
+   -- Expected: 1 row with front_desk number
    ```
 
 ### Screenshots Required
 
-1. DevTools Network tab showing `POST /api/messages/threads` (200)
-2. DevTools Network tab showing `POST /api/messages/threads/:id/messages` (200)
-3. Twilio Console showing message with correct From/To numbers
-4. Database query result showing `fromNumberId` matches front_desk number
+1. **DevTools Network tab** showing `POST /api/messages/threads` (200)
+   - Request payload: `{ phoneNumber: "+15551234567", initialMessage: "Hello..." }`
+   - Response: `{ threadId: "...", clientId: "...", reused: false }`
+2. **DevTools Network tab** showing `POST /api/messages/threads/:threadId/messages` (200)
+   - Request payload: `{ body: "Hello..." }`
+   - Response: `{ messageId: "...", providerMessageSid: "SM...", hasPolicyViolation: false }`
+3. **Twilio Console** → Messaging → Logs
+   - Filter by MessageSid from step 2
+   - Screenshot showing:
+     - From: Front desk number E164 (e.g., `+15559876543`)
+     - To: Test phone number
+     - Status: "delivered" or "sent"
+     - Body: "Hello, this is a test message"
+4. **Database query result** (see queries below)
+   - Message row with `providerMessageSid` matching Twilio MessageSid
+   - Thread row showing one thread per org+client (no duplicates)
 
 ## Test 2: Inbound Webhook Flow
 
