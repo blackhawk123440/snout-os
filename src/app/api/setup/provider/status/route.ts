@@ -2,90 +2,94 @@
  * Provider Status Route
  * 
  * GET /api/setup/provider/status
- * Proxies to NestJS API for provider status
+ * Returns provider connection status (connected/not connected)
+ * Falls back to direct Prisma if NestJS API is not available
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
+import { prisma } from '@/lib/db';
+import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function GET(request: NextRequest) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
   const session = await auth();
 
   if (!session?.user) {
     return NextResponse.json(
-      { error: 'Unauthorized' },
+      { connected: false, accountSid: null, lastTestedAt: null, testResult: null },
       { status: 401 }
     );
   }
 
-  let apiToken: string;
-  try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
+  const user = session.user as any;
+  const orgId = user.orgId || 'default';
 
-  const apiUrl = `${API_BASE_URL}/api/setup/provider/status`;
+  // Try NestJS API first if available
+  if (API_BASE_URL) {
+    try {
+      const apiToken = await mintApiJWT({
+        userId: user.id || user.email || '',
+        orgId,
+        role: user.role || (user.sitterId ? 'sitter' : 'owner'),
+        sitterId: user.sitterId || null,
+      });
 
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-    });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
+      const apiUrl = `${API_BASE_URL}/api/setup/provider/status`;
+      const response = await fetch(apiUrl, {
+        method: 'GET',
         headers: {
-          'Content-Type': contentType || 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`,
         },
       });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        // Ensure response matches expected schema
+        if (responseData.connected !== undefined) {
+          return NextResponse.json(responseData, { status: 200 });
+        }
+      }
+    } catch (error: any) {
+      console.warn('[BFF Proxy] Failed to reach API, using fallback:', error.message);
+      // Fall through to Prisma fallback
+    }
+  }
+
+  // Fallback: Direct Prisma implementation
+  try {
+    const credentials = await getProviderCredentials(orgId);
+    
+    if (!credentials) {
+      return NextResponse.json({
+        connected: false,
+        accountSid: null,
+        lastTestedAt: null,
+        testResult: null,
+      }, { status: 200 });
     }
 
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
-      },
-    });
+    // Mask account SID (show first 4 and last 4)
+    const maskedSid = credentials.accountSid 
+      ? `${credentials.accountSid.substring(0, 4)}...${credentials.accountSid.substring(credentials.accountSid.length - 4)}`
+      : null;
+
+    return NextResponse.json({
+      connected: true,
+      accountSid: maskedSid,
+      lastTestedAt: null, // TODO: Store test results in DB
+      testResult: null,
+    }, { status: 200 });
   } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward provider status request:', error);
-    return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
-    );
+    console.error('[Direct Prisma] Error fetching provider status:', error);
+    return NextResponse.json({
+      connected: false,
+      accountSid: null,
+      lastTestedAt: null,
+      testResult: null,
+    }, { status: 200 }); // Return 200 with not connected status
   }
 }

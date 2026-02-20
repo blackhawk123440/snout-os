@@ -2,101 +2,132 @@
  * Test Provider Connection Route
  * 
  * POST /api/setup/provider/test
- * Proxies to NestJS API for testing provider connection
+ * Tests Twilio connection with real API call
+ * Falls back to direct Twilio SDK if NestJS API is not available
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
+import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function POST(request: NextRequest) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
   const session = await auth();
 
   if (!session?.user) {
     return NextResponse.json(
-      { error: 'Unauthorized' },
+      { success: false, message: 'Unauthorized' },
       { status: 401 }
     );
   }
 
-  let apiToken: string;
-  try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
+  const user = session.user as any;
+  const orgId = user.orgId || 'default';
 
-  let body: string;
+  let body: { accountSid?: string; authToken?: string };
   try {
-    body = await request.text();
+    body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: 'Invalid request body' },
+      { success: false, message: 'Invalid request body' },
       { status: 400 }
     );
   }
 
-  const apiUrl = `${API_BASE_URL}/api/setup/provider/test`;
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-      body,
-    });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
-        },
+  // Try NestJS API first if available
+  if (API_BASE_URL) {
+    try {
+      const apiToken = await mintApiJWT({
+        userId: user.id || user.email || '',
+        orgId,
+        role: user.role || (user.sitterId ? 'sitter' : 'owner'),
+        sitterId: user.sitterId || null,
       });
+
+      const apiUrl = `${API_BASE_URL}/api/setup/provider/test`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        const responseData = await response.json();
+        // Ensure response matches expected schema
+        if (responseData.success !== undefined && responseData.message !== undefined) {
+          return NextResponse.json(responseData, { status: 200 });
+        }
+        return NextResponse.json({
+          success: true,
+          message: responseData.message || 'Connection test successful',
+        }, { status: 200 });
+      }
+    } catch (error: any) {
+      console.warn('[BFF Proxy] Failed to reach API, using fallback:', error.message);
+      // Fall through to direct Twilio test
+    }
+  }
+
+  // Fallback: Direct Twilio API test
+  try {
+    // Get credentials from request or database
+    let accountSid: string;
+    let authToken: string;
+
+    if (body.accountSid && body.authToken) {
+      // Use provided credentials
+      accountSid = body.accountSid;
+      authToken = body.authToken;
+    } else {
+      // Use saved credentials
+      const credentials = await getProviderCredentials(orgId);
+      if (!credentials) {
+        return NextResponse.json({
+          success: false,
+          message: 'No credentials found. Please save credentials first.',
+        }, { status: 400 });
+      }
+      accountSid = credentials.accountSid;
+      authToken = credentials.authToken;
     }
 
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
-      },
-    });
+    // Real Twilio API call: Fetch account details
+    const twilio = require('twilio');
+    const client = twilio(accountSid, authToken);
+    
+    // Test connection by fetching account info
+    const account = await client.api.accounts(accountSid).fetch();
+    
+    if (account && account.sid) {
+      return NextResponse.json({
+        success: true,
+        message: `Connection successful. Account: ${account.friendlyName || accountSid}`,
+      }, { status: 200 });
+    } else {
+      return NextResponse.json({
+        success: false,
+        message: 'Connection test failed: Invalid response from Twilio',
+      }, { status: 500 });
+    }
   } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward test connection request:', error);
-    return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
-    );
+    console.error('[Direct Twilio] Test connection error:', error);
+    
+    // Parse Twilio error messages
+    let errorMessage = 'Connection test failed';
+    if (error.message) {
+      errorMessage = error.message;
+    } else if (error.code) {
+      errorMessage = `Twilio error ${error.code}: ${error.message || 'Unknown error'}`;
+    }
+
+    return NextResponse.json({
+      success: false,
+      message: errorMessage,
+    }, { status: 500 });
   }
 }
