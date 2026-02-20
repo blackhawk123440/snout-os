@@ -1,124 +1,20 @@
 /**
- * Sitter Thread Messages Route
+ * Sitter Send Message Route
  * 
- * GET /api/sitter/threads/[id]/messages
- * POST /api/sitter/threads/[id]/messages
- * Proxies to NestJS API to get/send messages for a sitter thread.
+ * POST /api/sitter/threads/:id/messages
+ * Sends a message as a sitter (only during active assignment window)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { mintApiJWT } from '@/lib/api/jwt';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
-  const params = await context.params;
-  const threadId = params.id;
-
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
-  const user = session.user as any;
-  if (!user.sitterId && user.role !== 'sitter') {
-    return NextResponse.json(
-      { error: 'Access denied. Sitter access required.' },
-      { status: 403 }
-    );
-  }
-
-  let apiToken: string;
-  try {
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || 'sitter',
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
-
-  // API endpoint: GET /api/sitter/threads/:id/messages
-  const apiUrl = `${API_BASE_URL}/api/sitter/threads/${threadId}/messages`;
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-    });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
-        },
-      });
-    }
-
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
-      },
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward sitter messages request:', error);
-    return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
-    );
-  }
-}
+import { prisma } from '@/lib/db';
+import { chooseFromNumber } from '@/lib/messaging/choose-from-number';
+import { getMessagingProvider } from '@/lib/messaging/provider-factory';
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
-  const params = await context.params;
-  const threadId = params.id;
-
   const session = await auth();
 
   if (!session?.user) {
@@ -129,28 +25,19 @@ export async function POST(
   }
 
   const user = session.user as any;
-  if (!user.sitterId && user.role !== 'sitter') {
+  
+  // Must be a sitter
+  if (!user.sitterId) {
     return NextResponse.json(
-      { error: 'Access denied. Sitter access required.' },
+      { error: 'Sitter access required' },
       { status: 403 }
     );
   }
 
-  let apiToken: string;
-  try {
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || 'sitter',
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
+  const orgId = user.orgId || 'default';
+  const sitterId = user.sitterId;
+  const params = await context.params;
+  const threadId = params.id;
 
   let body: { body: string };
   try {
@@ -162,50 +49,201 @@ export async function POST(
     );
   }
 
-  // API endpoint: POST /api/sitter/threads/:id/messages
-  // Body: { body: string }
-  const apiUrl = `${API_BASE_URL}/api/sitter/threads/${threadId}/messages`;
+  const messageBody = body.body?.trim();
+  if (!messageBody) {
+    return NextResponse.json(
+      { error: 'Message body is required' },
+      { status: 400 }
+    );
+  }
 
   try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
+    // Load thread with assignment windows
+    const thread = await (prisma as any).thread.findUnique({
+      where: { id: threadId },
+      include: {
+        client: {
+          include: { contacts: true },
+        },
+        assignmentWindows: {
+          where: {
+            sitterId,
+          },
+          orderBy: { startsAt: 'desc' },
+          take: 1,
+        },
       },
-      body: JSON.stringify(body),
     });
 
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
+    if (!thread) {
+      return NextResponse.json(
+        { error: 'Thread not found' },
+        { status: 404 }
+      );
     }
 
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
+    // Check org scoping
+    if (thread.orgId !== orgId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
+    // CRITICAL: Check assignment window is active
+    const now = new Date();
+    const activeWindow = thread.assignmentWindows?.[0];
+    
+    if (!activeWindow) {
+      console.log('[Sitter Send] Blocked - no assignment window', {
+        sitterId,
+        threadId,
+      });
+      
+      return NextResponse.json(
+        { 
+          error: 'No assignment window found for this thread',
+          code: 'NO_WINDOW',
+        },
+        { status: 403 }
+      );
+    }
+
+    if (activeWindow.sitterId !== sitterId) {
+      console.log('[Sitter Send] Blocked - window belongs to different sitter', {
+        sitterId,
+        threadId,
+        windowSitterId: activeWindow.sitterId,
+      });
+      
+      return NextResponse.json(
+        { 
+          error: 'This thread is not assigned to you',
+          code: 'WRONG_SITTER',
+        },
+        { status: 403 }
+      );
+    }
+
+    // Check window is actually active (time-based)
+    if (now < activeWindow.startsAt || now > activeWindow.endsAt) {
+      console.log('[Sitter Send] Blocked - window not active', {
+        sitterId,
+        threadId,
+        now: now.toISOString(),
+        windowStart: activeWindow.startsAt.toISOString(),
+        windowEnd: activeWindow.endsAt.toISOString(),
+      });
+      
+      return NextResponse.json(
+        { 
+          error: 'Assignment window is not active. Messages can only be sent during active assignment windows.',
+          code: 'WINDOW_NOT_ACTIVE',
+          windowStartsAt: activeWindow.startsAt.toISOString(),
+          windowEndsAt: activeWindow.endsAt.toISOString(),
+        },
+        { status: 403 }
+      );
+    }
+
+    // Choose from number (will use sitter's masked number during active window)
+    const routingResult = await chooseFromNumber(threadId, orgId, now);
+    
+    // Log routing decision
+    console.log('[Sitter Send] Routing decision', {
+      orgId,
+      sitterId,
+      threadId,
+      chosenNumberId: routingResult.numberId,
+      chosenE164: routingResult.e164,
+      numberClass: routingResult.numberClass,
+      windowId: routingResult.windowId,
+      reason: routingResult.reason,
+    });
+
+    // Get recipient E164
+    const clientContact = thread.client.contacts?.[0];
+    if (!clientContact?.e164) {
+      return NextResponse.json(
+        { error: 'Client contact not found' },
+        { status: 400 }
+      );
+    }
+
+    // Send via provider with explicit E164
+    const provider = await getMessagingProvider(orgId);
+    const sendResult = await provider.sendMessage({
+      to: clientContact.e164,
+      fromE164: routingResult.e164, // Use actual E164 from chosen number
+      body: messageBody,
+    });
+    
+    // Log send result
+    console.log('[Sitter Send] Twilio send result', {
+      orgId,
+      sitterId,
+      threadId,
+      to: clientContact.e164,
+      from: routingResult.e164,
+      success: sendResult.success,
+      messageSid: sendResult.messageSid,
+      errorCode: sendResult.errorCode,
+    });
+
+    if (!sendResult.success) {
+      // Create failed message record
+      const message = await (prisma as any).message.create({
+        data: {
+          orgId,
+          threadId,
+          direction: 'outbound',
+          senderType: 'sitter',
+          senderId: sitterId,
+          body: messageBody,
+          providerMessageSid: null,
         },
       });
+
+      return NextResponse.json(
+        { 
+          messageId: message.id,
+          error: sendResult.errorMessage || 'Failed to send message',
+        },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
+    // Create successful message record
+    const message = await (prisma as any).message.create({
+      data: {
+        orgId,
+        threadId,
+        direction: 'outbound',
+        senderType: 'sitter',
+        senderId: sitterId,
+        body: messageBody,
+        providerMessageSid: sendResult.messageSid || null,
       },
     });
+
+    // Update thread activity
+    await (prisma as any).thread.update({
+      where: { id: threadId },
+      data: {
+        lastActivityAt: new Date(),
+      },
+    });
+
+    return NextResponse.json({
+      messageId: message.id,
+      providerMessageSid: sendResult.messageSid,
+    }, { status: 200 });
+
   } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward sitter send message request:', error);
+    console.error('[Sitter Send] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
+      { error: 'Failed to send message', details: error.message },
+      { status: 500 }
     );
   }
 }

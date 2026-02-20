@@ -256,6 +256,50 @@ export async function POST(
       );
     }
 
+    // CRITICAL: If sender is a sitter, check assignment window
+    if (user.sitterId) {
+      const now = new Date();
+      const activeWindow = thread.assignmentWindows?.[0];
+      
+      if (!activeWindow || activeWindow.sitterId !== user.sitterId) {
+        console.log('[Send Message] Sitter blocked - no active window', {
+          sitterId: user.sitterId,
+          threadId,
+          hasWindow: !!activeWindow,
+          windowSitterId: activeWindow?.sitterId,
+        });
+        
+        return NextResponse.json(
+          { 
+            error: 'Cannot send message outside active assignment window',
+            code: 'WINDOW_NOT_ACTIVE',
+          },
+          { status: 403 }
+        );
+      }
+
+      // Check window is actually active (time-based)
+      if (now < activeWindow.startsAt || now > activeWindow.endsAt) {
+        console.log('[Send Message] Sitter blocked - window not active', {
+          sitterId: user.sitterId,
+          threadId,
+          now: now.toISOString(),
+          windowStart: activeWindow.startsAt.toISOString(),
+          windowEnd: activeWindow.endsAt.toISOString(),
+        });
+        
+        return NextResponse.json(
+          { 
+            error: 'Assignment window is not active. Messages can only be sent during active assignment windows.',
+            code: 'WINDOW_NOT_ACTIVE',
+            windowStartsAt: activeWindow.startsAt.toISOString(),
+            windowEndsAt: activeWindow.endsAt.toISOString(),
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // Choose from number using unified routing function
     const routingResult = await chooseFromNumber(threadId, orgId);
     

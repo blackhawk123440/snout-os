@@ -2,23 +2,14 @@
  * Sitter Threads Route
  * 
  * GET /api/sitter/threads
- * Proxies to NestJS API to get threads for the authenticated sitter.
+ * Returns threads for the authenticated sitter with active assignment windows
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { mintApiJWT } from '@/lib/api/jwt';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { prisma } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
   const session = await auth();
 
   if (!session?.user) {
@@ -28,74 +19,84 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Verify user is a sitter
   const user = session.user as any;
-  if (!user.sitterId && user.role !== 'sitter') {
+  
+  // Must be a sitter
+  if (!user.sitterId) {
     return NextResponse.json(
-      { error: 'Access denied. Sitter access required.' },
+      { error: 'Sitter access required' },
       { status: 403 }
     );
   }
 
-  let apiToken: string;
-  try {
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || 'sitter',
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
-
-  // API endpoint: GET /api/sitter/threads
-  const apiUrl = `${API_BASE_URL}/api/sitter/threads`;
+  const orgId = user.orgId || 'default';
+  const sitterId = user.sitterId;
+  const now = new Date();
 
   try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-    });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
+    // Find threads with active assignment windows for this sitter
+    const threads = await (prisma as any).thread.findMany({
+      where: {
+        orgId,
+        sitterId,
+        status: 'active',
+        assignmentWindows: {
+          some: {
+            sitterId,
+            startsAt: { lte: now },
+            endsAt: { gte: now },
+          },
         },
-      });
-    }
-
-    // API returns threads array directly
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
       },
+      include: {
+        client: {
+          include: {
+            contacts: {
+              where: {
+                orgId,
+              },
+              select: {
+                e164: true, // Only return E164, not full contact (privacy)
+              },
+            },
+          },
+        },
+        messageNumber: {
+          select: {
+            id: true,
+            e164: true,
+            class: true,
+            status: true,
+          },
+        },
+        assignmentWindows: {
+          where: {
+            sitterId,
+            startsAt: { lte: now },
+            endsAt: { gte: now },
+          },
+          orderBy: { startsAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { lastActivityAt: 'desc' },
     });
+
+    // Transform to hide client E164 from sitter
+    const transformedThreads = threads.map((thread: any) => ({
+      ...thread,
+      client: {
+        ...thread.client,
+        contacts: [], // Remove E164 - sitter should never see client phone
+      },
+    }));
+
+    return NextResponse.json(transformedThreads, { status: 200 });
   } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward sitter threads request:', error);
+    console.error('[Sitter Threads] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
+      { error: 'Failed to fetch threads', details: error.message },
+      { status: 500 }
     );
   }
 }
