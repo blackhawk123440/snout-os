@@ -1,194 +1,387 @@
-# Twilio Masking System - Runtime Proof
+# Twilio Masking Runtime Proof
 
-## Status: IN PROGRESS
+This document provides step-by-step instructions for verifying that the messaging system correctly routes messages through Twilio with proper number masking.
 
-This document tracks the end-to-end proof that the Twilio masking system works correctly.
+## Prerequisites
 
-## Test Plan
+1. Staging environment deployed with latest code
+2. Twilio account configured with:
+   - Account SID and Auth Token saved in provider credentials
+   - At least one front_desk number provisioned
+   - At least one sitter masked number provisioned
+   - Webhook URL configured: `https://[your-domain]/api/messages/webhook/twilio`
+3. Test phone number to receive SMS
+4. Browser DevTools access for network inspection
 
-### Phase 1: Twilio Setup (Foundation)
-- [ ] **1.1** Connect Provider: Save credentials successfully
-- [ ] **1.2** Test Connection: Real Twilio API call returns success
-- [ ] **1.3** Install Webhooks: Webhooks configured in Twilio dashboard
-- [ ] **1.4** Readiness Check: All checks pass
+## Test 1: Owner "Message Anyone" Flow
 
-**Network Calls:**
-- `POST /api/setup/provider/connect` → 200, `{success: true, message: "..."}`
-- `POST /api/setup/provider/test` → 200, `{success: true, message: "..."}`
-- `POST /api/setup/webhooks/install` → 200, `{success: true, url: "..."}`
-- `GET /api/setup/readiness` → 200, `{provider: {ready: true}, numbers: {ready: true}, webhooks: {ready: true}, overall: true}`
+### Steps
 
-**DB Verification:**
+1. **Navigate to Owner Inbox**
+   - Go to `/messages` in staging dashboard
+   - Click "Owner Inbox" tab
+   - Click "New Message" button
+
+2. **Create New Conversation**
+   - Enter test phone number in E.164 format (e.g., `+15551234567`)
+   - Enter initial message: "Hello, this is a test message"
+   - Click "Send"
+
+3. **Verify Network Calls**
+   - Open DevTools → Network tab
+   - Filter by "threads"
+   - **Expected:** `POST /api/messages/threads` returns 200
+     - Response: `{ threadId: "...", clientId: "...", reused: false }`
+   - Filter by "messages"
+   - **Expected:** `POST /api/messages/threads/:threadId/messages` returns 200
+     - Response: `{ messageId: "...", providerMessageSid: "SM...", hasPolicyViolation: false }`
+
+4. **Verify Twilio Console**
+   - Log into Twilio Console → Messaging → Logs
+   - Find message with MessageSid matching `providerMessageSid` from step 3
+   - **Expected:**
+     - From: Front desk number E164 (e.g., `+15559876543`)
+     - To: Test phone number
+     - Status: "delivered" or "sent"
+     - Body: "Hello, this is a test message"
+
+5. **Verify Database**
+   ```sql
+   -- Find the message
+   SELECT id, "threadId", direction, "senderType", body, "providerMessageSid", "fromNumberId"
+   FROM "Message"
+   WHERE "providerMessageSid" = 'SM...' -- Use MessageSid from step 4
+   ORDER BY "createdAt" DESC
+   LIMIT 1;
+
+   -- Verify thread uniqueness (one thread per org+client)
+   SELECT "orgId", "clientId", COUNT(*) as thread_count
+   FROM "Thread"
+   WHERE "orgId" = '...' AND "clientId" = '...' -- Use IDs from step 3
+   GROUP BY "orgId", "clientId"
+   HAVING COUNT(*) > 1;
+   -- Expected: 0 rows (no duplicates)
+
+   -- Verify from number
+   SELECT mn.id, mn.e164, mn.class, mn.status
+   FROM "MessageNumber" mn
+   JOIN "Message" m ON m."fromNumberId" = mn.id
+   WHERE m."providerMessageSid" = 'SM...';
+   -- Expected: front_desk number with correct E164
+   ```
+
+### Screenshots Required
+
+1. DevTools Network tab showing `POST /api/messages/threads` (200)
+2. DevTools Network tab showing `POST /api/messages/threads/:id/messages` (200)
+3. Twilio Console showing message with correct From/To numbers
+4. Database query result showing `fromNumberId` matches front_desk number
+
+## Test 2: Inbound Webhook Flow
+
+### Steps
+
+1. **Send SMS to Front Desk Number**
+   - From test phone, send SMS to front desk number
+   - Message: "This is a test reply"
+
+2. **Verify Webhook Receives Request**
+   - Check server logs for: `[Inbound Webhook] Received`
+   - **Expected log:**
+     ```
+     [Inbound Webhook] Received {
+       messageSid: 'SM...',
+       from: '+15551234567',
+       to: '+15559876543',
+       bodyLength: 20
+     }
+     ```
+
+3. **Verify Signature Validation**
+   - Check logs for: `[Inbound Webhook] Resolved orgId`
+   - **Expected:** No "Invalid signature" errors
+
+4. **Verify Thread Resolution**
+   - Check logs for: `[Inbound Webhook] Message stored successfully`
+   - **Expected log:**
+     ```
+     [Inbound Webhook] Message stored successfully {
+       messageId: '...',
+       threadId: '...',
+       orgId: '...',
+       clientId: '...',
+       from: '+15551234567',
+       to: '+15559876543',
+       messageSid: 'SM...'
+     }
+     ```
+
+5. **Verify Message Appears in UI**
+   - Refresh owner inbox
+   - **Expected:** New message appears in thread list
+   - Click thread to view messages
+   - **Expected:** Inbound message visible with correct timestamp
+
+6. **Verify Database**
+   ```sql
+   -- Find inbound message
+   SELECT id, "threadId", direction, "senderType", body, "providerMessageSid"
+   FROM "Message"
+   WHERE direction = 'inbound'
+   ORDER BY "createdAt" DESC
+   LIMIT 1;
+
+   -- Verify thread activity updated
+   SELECT id, "lastActivityAt"
+   FROM "Thread"
+   WHERE id = '...' -- Use threadId from step 4
+   ORDER BY "lastActivityAt" DESC;
+   -- Expected: lastActivityAt updated to recent timestamp
+   ```
+
+### Screenshots Required
+
+1. Server logs showing webhook receipt and processing
+2. Owner inbox UI showing new inbound message
+3. Database query showing inbound message with correct threadId
+
+## Test 3: Routing - Sitter Masked Number During Active Window
+
+### Prerequisites
+
+- Create a booking with assignment window
+- Assign sitter to booking
+- Ensure sitter has assigned masked number
+
+### Steps
+
+1. **Verify Assignment Window Active**
+   ```sql
+   SELECT id, "threadId", "sitterId", "startsAt", "endsAt"
+   FROM "AssignmentWindow"
+   WHERE "sitterId" = '...' -- Use sitter ID
+   AND "startsAt" <= NOW()
+   AND "endsAt" >= NOW();
+   -- Expected: At least one active window
+   ```
+
+2. **Send Message from Owner Inbox**
+   - Navigate to thread for assigned client
+   - Send message: "Test message during active window"
+
+3. **Verify Routing Decision**
+   - Check server logs for: `[Send Message] Routing decision`
+   - **Expected log:**
+     ```
+     [Send Message] Routing decision {
+       orgId: '...',
+       threadId: '...',
+       chosenNumberId: '...',
+       chosenE164: '+1555...', -- Sitter masked number
+       numberClass: 'sitter',
+       windowId: '...',
+       reason: 'Active assignment window for sitter ...'
+     }
+     ```
+
+4. **Verify Twilio Send**
+   - Check logs for: `[Send Message] Twilio send result`
+   - **Expected:** `success: true, messageSid: 'SM...'`
+   - Verify in Twilio Console:
+     - From: Sitter masked number E164
+     - To: Client phone number
+
+5. **Verify Database**
+   ```sql
+   -- Verify from number is sitter masked number
+   SELECT m.id, m."providerMessageSid", mn.e164, mn.class
+   FROM "Message" m
+   JOIN "MessageNumber" mn ON m."fromNumberId" = mn.id
+   WHERE m."providerMessageSid" = 'SM...' -- Use MessageSid from step 4
+   AND mn.class = 'sitter';
+   -- Expected: 1 row with sitter masked number
+   ```
+
+### Screenshots Required
+
+1. Server logs showing routing decision with `numberClass: 'sitter'`
+2. Twilio Console showing From = sitter masked number
+3. Database query showing `fromNumberId` = sitter masked number
+
+## Test 4: Sitter Inbox - Send During Active Window
+
+### Steps
+
+1. **Navigate to Sitter Inbox**
+   - Log in as sitter
+   - Navigate to `/sitter/inbox`
+
+2. **Verify Thread List**
+   - **Expected:** Only threads with active assignment windows visible
+   - Each thread shows:
+     - Client name
+     - Window status: "✓ Active" or "Inactive"
+     - Assigned masked number (not client E164)
+
+3. **Send Message During Active Window**
+   - Select thread with active window
+   - Type message: "Hello from sitter"
+   - Click "Send"
+   - **Expected:** Message sends successfully (200 response)
+
+4. **Verify Window Check**
+   - Check server logs for: `[Sitter Send] Routing decision`
+   - **Expected:** No "WINDOW_NOT_ACTIVE" errors
+   - Verify routing uses sitter masked number
+
+5. **Verify Message in UI**
+   - **Expected:** Outbound message appears in thread
+   - Message shows "You" as sender
+   - No client E164 visible anywhere
+
+### Screenshots Required
+
+1. Sitter inbox showing thread list with active windows
+2. Compose box enabled (not blocked)
+3. Message sent successfully in UI
+4. Server logs showing successful send with sitter number
+
+## Test 5: Sitter Inbox - Blocked Outside Window
+
+### Steps
+
+1. **Wait for Window to Expire OR Use Thread with Expired Window**
+   - Select thread where assignment window has ended
+
+2. **Verify Compose Box Blocked**
+   - **Expected:** Compose box shows warning:
+     ```
+     Cannot send messages
+     Your assignment window is not currently active. Messages can only be sent during active assignment windows.
+     ```
+   - Textarea and Send button should be disabled/hidden
+
+3. **Attempt Send via API (if possible)**
+   - Use curl or Postman to send:
+     ```bash
+     curl -X POST https://[domain]/api/sitter/threads/[threadId]/messages \
+       -H "Cookie: [session]" \
+       -H "Content-Type: application/json" \
+       -d '{"body": "Test"}'
+     ```
+   - **Expected:** 403 response with:
+     ```json
+     {
+       "error": "Assignment window is not active. Messages can only be sent during active assignment windows.",
+       "code": "WINDOW_NOT_ACTIVE",
+       "windowStartsAt": "...",
+       "windowEndsAt": "..."
+     }
+     ```
+
+### Screenshots Required
+
+1. Sitter inbox showing blocked compose box
+2. API response showing 403 with WINDOW_NOT_ACTIVE code
+
+## Test 6: Routing Trace Storage
+
+### Steps
+
+1. **Send Message from Any Source**
+   - Owner inbox, sitter inbox, or automation
+
+2. **Check Server Logs for Routing Trace**
+   - Look for: `[chooseFromNumber]` or `[Send Message] Routing decision`
+   - **Expected:** Log includes `routingTrace` array with steps:
+     ```json
+     {
+       "routingTrace": [
+         {
+           "step": 1,
+           "rule": "Active assignment window with sitter",
+           "condition": "...",
+           "result": true/false,
+           "explanation": "..."
+         }
+       ]
+     }
+     ```
+
+3. **Verify Routing Decision Logged**
+   - All sends should log:
+     - `chosenNumberId`
+     - `chosenE164`
+     - `numberClass`
+     - `windowId` (if applicable)
+     - `reason`
+
+### Screenshots Required
+
+1. Server logs showing routing trace for owner send
+2. Server logs showing routing trace for sitter send (with windowId)
+
+## Verification Checklist
+
+- [ ] Owner "Message Anyone" creates thread and sends via front_desk number
+- [ ] Inbound webhook validates signature and resolves thread correctly
+- [ ] Routing selects sitter masked number during active assignment window
+- [ ] Routing selects front_desk/pool number when no active window
+- [ ] Sitter inbox shows only threads with active windows
+- [ ] Sitter inbox blocks sends outside active window (403)
+- [ ] All sends use `chooseFromNumber()` function
+- [ ] All sends log routing decision with trace
+- [ ] Twilio Console shows correct From numbers
+- [ ] Database stores correct `fromNumberId` and `providerMessageSid`
+- [ ] No client E164 exposed to sitter in UI or API responses
+
+## Common Issues
+
+### Issue: 500 Error on `/api/messages/threads`
+- **Check:** Server logs for Prisma errors
+- **Fix:** Verify database schema matches Prisma schema
+
+### Issue: Webhook Returns 200 but Message Not Stored
+- **Check:** Server logs for "Message stored successfully"
+- **Fix:** Verify thread resolution logic and database constraints
+
+### Issue: Wrong From Number in Twilio
+- **Check:** Server logs for routing decision
+- **Fix:** Verify `chooseFromNumber()` is called and returns correct number
+
+### Issue: Sitter Can Send Outside Window
+- **Check:** Server logs for window validation
+- **Fix:** Verify `AssignmentWindow` query includes time checks
+
+## Database Queries for Verification
+
 ```sql
-SELECT orgId, providerType, encryptedConfig IS NOT NULL as has_credentials
-FROM "ProviderCredential"
-WHERE orgId = '<org-id>';
--- Expected: 1 row with has_credentials = true
-```
+-- Verify unique index exists
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE tablename = 'ClientContact'
+AND indexdef LIKE '%orgId_e164%';
+-- Expected: UNIQUE index on (orgId, e164)
 
-### Phase 2: Owner "Message Anyone"
-- [ ] **2.1** UI: Click "New Message" button
-- [ ] **2.2** Enter phone number: `+15551234567`
-- [ ] **2.3** Enter message: "Test message"
-- [ ] **2.4** Send: Thread created, message sent
-
-**Network Calls:**
-- `POST /api/messages/threads` → 200, `{threadId: "...", clientId: "...", reused: false}`
-- `POST /api/messages/threads/:id/messages` → 200, `{messageId: "...", hasPolicyViolation: false}`
-
-**DB Verification:**
-```sql
--- Verify one thread per org+client
-SELECT orgId, "clientId", COUNT(*) as thread_count
+-- Verify no duplicate threads per org+client
+SELECT "orgId", "clientId", COUNT(*) as count
 FROM "Thread"
-WHERE orgId = '<org-id>' AND "clientId" = '<client-id>'
-GROUP BY orgId, "clientId";
--- Expected: 1 row with thread_count = 1
+GROUP BY "orgId", "clientId"
+HAVING COUNT(*) > 1;
+-- Expected: 0 rows
 
--- Verify message sent with correct from number
-SELECT m.id, m."threadId", t."numberId", mn.e164 as from_number, m.body
+-- Verify routing decisions (check recent messages)
+SELECT 
+  m.id,
+  m."providerMessageSid",
+  m.direction,
+  m."senderType",
+  mn.e164 as from_e164,
+  mn.class as from_class,
+  t."threadType"
 FROM "Message" m
+JOIN "MessageNumber" mn ON m."fromNumberId" = mn.id
 JOIN "Thread" t ON m."threadId" = t.id
-JOIN "MessageNumber" mn ON t."numberId" = mn.id
-WHERE m."threadId" = '<thread-id>' AND m.direction = 'outbound'
 ORDER BY m."createdAt" DESC
-LIMIT 1;
--- Expected: from_number = front_desk/master number
+LIMIT 10;
 ```
-
-### Phase 3: Inbound Webhook
-- [ ] **3.1** Client replies to number
-- [ ] **3.2** Webhook received and validated
-- [ ] **3.3** Thread resolved/created
-- [ ] **3.4** Message stored in correct thread
-
-**Network Calls:**
-- `POST /api/messages/webhook/twilio` → 200, `{received: true}`
-
-**DB Verification:**
-```sql
--- Verify inbound message in correct thread
-SELECT m.id, m."threadId", m.direction, m.body, m."providerMessageSid"
-FROM "Message" m
-WHERE m."providerMessageSid" = '<twilio-message-sid>';
--- Expected: 1 row with direction = 'inbound', threadId matches owner thread
-```
-
-### Phase 4: Sitter Routing (Active Window)
-- [ ] **4.1** Booking confirmed creates AssignmentWindow
-- [ ] **4.2** Owner sends message during active window
-- [ ] **4.3** Message routes via sitter's masked number
-- [ ] **4.4** Client sees sitter masked number, not personal
-
-**Network Calls:**
-- `POST /api/messages/threads/:id/messages` → 200
-- Check request body: `fromNumberSid` = sitter's assigned masked number
-
-**DB Verification:**
-```sql
--- Verify AssignmentWindow created
-SELECT id, "sitterId", "threadId", "startsAt", "endsAt", status
-FROM "AssignmentWindow"
-WHERE "threadId" = '<thread-id>' AND status = 'active'
-ORDER BY "startsAt" DESC
-LIMIT 1;
--- Expected: 1 row with active window
-
--- Verify message sent from sitter number
-SELECT m.id, t."numberId", mn.e164, mn.class, mn."assignedSitterId"
-FROM "Message" m
-JOIN "Thread" t ON m."threadId" = t.id
-JOIN "MessageNumber" mn ON t."numberId" = mn.id
-WHERE m."threadId" = '<thread-id>' AND m.direction = 'outbound'
-ORDER BY m."createdAt" DESC
-LIMIT 1;
--- Expected: numberId points to sitter's assigned masked number
-```
-
-### Phase 5: Sitter Inbox
-- [ ] **5.1** Sitter navigates to `/sitter/inbox`
-- [ ] **5.2** Sees only threads with active windows
-- [ ] **5.3** Can send message during active window
-- [ ] **5.4** Cannot send outside window (UI disabled with reason)
-
-**Network Calls:**
-- `GET /api/messages/threads?sitterId=<sitter-id>` → 200, array of threads
-- `POST /api/messages/threads/:id/messages` (during window) → 200
-- `POST /api/messages/threads/:id/messages` (outside window) → 403 or blocked
-
-**DB Verification:**
-```sql
--- Verify sitter only sees threads with active windows
-SELECT t.id, t."clientId", aw."startsAt", aw."endsAt"
-FROM "Thread" t
-JOIN "AssignmentWindow" aw ON t.id = aw."threadId"
-WHERE aw."sitterId" = '<sitter-id>'
-  AND aw.status = 'active'
-  AND NOW() BETWEEN aw."startsAt" AND aw."endsAt";
--- Expected: Only threads with active windows
-```
-
-### Phase 6: Masking Verification
-- [ ] **6.1** Sitter never sees client E164 in UI
-- [ ] **6.2** Client never sees sitter personal number
-- [ ] **6.3** Messages route through correct masked number
-
-**UI Verification:**
-- Sitter inbox: Client name shown, no phone number visible
-- Owner inbox: Can see client phone (owner privilege)
-- Message "from" field: Shows masked number, not personal
-
-**DB Verification:**
-```sql
--- Verify sitter numbers are masked (not personal)
-SELECT id, e164, class, "assignedSitterId", status
-FROM "MessageNumber"
-WHERE "assignedSitterId" IS NOT NULL;
--- Expected: All have class = 'sitter', e164 is masked number (not personal)
-```
-
-## Screenshots Required
-
-1. **Twilio Setup Tab:**
-   - Provider Status: Connected ✅
-   - Webhook Status: Installed ✅
-   - Readiness: Ready ✅
-
-2. **Owner Inbox:**
-   - "New Message" button visible
-   - Thread list shows created threads
-   - Message view shows sent/received messages
-
-3. **Network Tab (DevTools):**
-   - All API calls return 200
-   - Request/response bodies visible
-   - No 500/404 errors
-
-4. **Sitter Inbox:**
-   - Active threads listed
-   - Compose box enabled during window
-   - Compose box disabled with message outside window
-
-5. **Database Queries:**
-   - Screenshot of SQL results proving uniqueness
-   - Screenshot of message records with correct from numbers
-
-## Current Issues (To Fix)
-
-1. ❌ Setup endpoints fail when `NEXT_PUBLIC_API_URL` not set
-2. ❌ No Prisma fallback for provider status/test/webhook endpoints
-3. ❌ Test connection doesn't call real Twilio API
-4. ❌ Webhook install doesn't actually configure Twilio
-5. ❌ Readiness check endpoint missing or broken
-6. ❌ Inbound webhook may not validate signature correctly
-7. ❌ Send message may not use correct from number
-8. ❌ Routing logic may not check AssignmentWindow correctly
-
-## Next Steps
-
-1. Implement Prisma fallbacks for all setup endpoints
-2. Add real Twilio API calls for test connection
-3. Implement webhook installation via Twilio API
-4. Fix readiness check to validate actual state
-5. Add comprehensive logging
-6. Test end-to-end and document results

@@ -1,8 +1,8 @@
 /**
- * Sitter Send Message Route
+ * Sitter Thread Messages Route
  * 
- * POST /api/sitter/threads/:id/messages
- * Sends a message as a sitter (only during active assignment window)
+ * GET /api/sitter/threads/:id/messages - Get messages
+ * POST /api/sitter/threads/:id/messages - Send message
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,6 +10,72 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { chooseFromNumber } from '@/lib/messaging/choose-from-number';
 import { getMessagingProvider } from '@/lib/messaging/provider-factory';
+
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+
+  if (!session?.user) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  const user = session.user as any;
+  
+  if (!user.sitterId) {
+    return NextResponse.json(
+      { error: 'Sitter access required' },
+      { status: 403 }
+    );
+  }
+
+  const orgId = user.orgId || 'default';
+  const sitterId = user.sitterId;
+  const params = await context.params;
+  const threadId = params.id;
+
+  try {
+    const thread = await (prisma as any).thread.findUnique({
+      where: { id: threadId },
+      select: {
+        id: true,
+        orgId: true,
+        sitterId: true,
+      },
+    });
+
+    if (!thread || thread.orgId !== orgId || thread.sitterId !== sitterId) {
+      return NextResponse.json(
+        { error: 'Thread not found' },
+        { status: 404 }
+      );
+    }
+
+    const messages = await (prisma as any).message.findMany({
+      where: { threadId, orgId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        deliveries: {
+          orderBy: { attemptNo: 'desc' },
+          take: 1,
+        },
+        policyViolations: true,
+      },
+    });
+
+    return NextResponse.json(messages, { status: 200 });
+  } catch (error: any) {
+    console.error('[Sitter Messages GET] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch messages', details: error.message },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(
   request: NextRequest,
