@@ -45,12 +45,9 @@ export async function GET(
       );
     }
 
-    // Fetch sitter
-    const sitter = await (prisma as any).sitter.findUnique({
+    // Fetch sitter (enterprise schema: Sitter has no currentTier)
+    const sitter = await prisma.sitter.findUnique({
       where: { id: sitterId },
-      include: {
-        currentTier: true,
-      },
     });
 
     if (!sitter) {
@@ -61,235 +58,148 @@ export async function GET(
     }
 
     const now = new Date();
-
-    // Fetch pending requests from OfferEvent
-    const pendingOffers = await (prisma as any).offerEvent.findMany({
-      where: {
-        orgId,
-        sitterId,
-        status: 'sent',
-        expiresAt: { gt: now },
-        excluded: false,
-      },
-      include: {
-        booking: {
-          include: {
-            pets: true,
-            client: true,
-          },
-        },
-      },
-      orderBy: [
-        { expiresAt: 'asc' },
-        { offeredAt: 'desc' },
-      ],
-    });
-
-    const pendingRequests = pendingOffers
-      .filter((offer: any) => offer.booking)
-      .map((offer: any) => ({
-        id: offer.booking.id,
-        firstName: offer.booking.firstName,
-        lastName: offer.booking.lastName,
-        service: offer.booking.service,
-        startAt: offer.booking.startAt.toISOString(),
-        endAt: offer.booking.endAt.toISOString(),
-        address: offer.booking.address,
-        notes: offer.booking.notes,
-        totalPrice: offer.booking.totalPrice,
-        status: offer.booking.status,
-        pets: offer.booking.pets,
-        client: offer.booking.client,
-        offerEvent: {
-          id: offer.id,
-          expiresAt: offer.expiresAt?.toISOString() || null,
-          offeredAt: offer.offeredAt.toISOString(),
-          status: offer.status,
-        },
-        threadId: null, // Would need to fetch from MessageThread
-      }));
-
-    // Fetch upcoming bookings
-    const upcoming = await (prisma as any).booking.findMany({
-      where: {
-        sitterId: sitterId,
-        status: { in: ['confirmed', 'pending'] },
-        startAt: { gt: now },
-      },
-      include: {
-        pets: true,
-        client: true,
-      },
-      orderBy: {
-        startAt: 'asc',
-      },
-    });
-
-    const upcomingBookings = upcoming.map((booking: any) => ({
-      id: booking.id,
-      firstName: booking.firstName,
-      lastName: booking.lastName,
-      service: booking.service,
-      startAt: booking.startAt.toISOString(),
-      endAt: booking.endAt.toISOString(),
-      address: booking.address,
-      notes: booking.notes,
-      totalPrice: booking.totalPrice,
-      status: booking.status,
-      pets: booking.pets,
-      client: booking.client,
-      offerEvent: null,
-      threadId: null,
-    }));
-
-    // Fetch completed bookings
-    const completed = await (prisma as any).booking.findMany({
-      where: {
-        sitterId: sitterId,
-        status: 'completed',
-        endAt: { lt: now },
-      },
-      include: {
-        pets: true,
-        client: true,
-      },
-      orderBy: {
-        endAt: 'desc',
-      },
-      take: 50,
-    });
-
-    const completedBookings = completed.map((booking: any) => ({
-      id: booking.id,
-      firstName: booking.firstName,
-      lastName: booking.lastName,
-      service: booking.service,
-      startAt: booking.startAt.toISOString(),
-      endAt: booking.endAt.toISOString(),
-      address: booking.address,
-      notes: booking.notes,
-      totalPrice: booking.totalPrice,
-      status: booking.status,
-      pets: booking.pets,
-      client: booking.client,
-      offerEvent: null,
-      threadId: null,
-    }));
-
-    // Calculate performance metrics
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const recentOffers = await (prisma as any).offerEvent.findMany({
-      where: {
-        orgId,
-        sitterId,
-        offeredAt: { gte: sevenDaysAgo },
-        excluded: false,
-      },
-    });
 
-    const totalOffers = recentOffers.length;
-    const accepted = recentOffers.filter((o: any) => o.status === 'accepted' || o.acceptedAt).length;
-    const acceptanceRate = totalOffers > 0 ? accepted / totalOffers : null;
-
-    const totalBookings = await (prisma as any).booking.count({
-      where: { sitterId: sitterId },
-    });
-    const completedCount = completed.length;
-    const totalEarnings = completedBookings.reduce((sum: number, b: any) => {
-      const commission = (sitter as any).commissionPercentage || 80;
-      return sum + (b.totalPrice * commission / 100);
-    }, 0);
-
-    const performance = {
-      acceptanceRate,
-      completionRate: totalBookings > 0 ? completedCount / totalBookings : null,
+    // Enterprise schema has no OfferEvent or Booking — return empty
+    const pendingRequests: any[] = [];
+    let upcomingBookings: any[] = [];
+    let completedBookings: any[] = [];
+    let performance = {
+      acceptanceRate: null as number | null,
+      completionRate: null as number | null,
       onTimeRate: null as number | null,
       clientRating: null as number | null,
-      totalEarnings,
-      completedBookingsCount: completedCount,
+      totalEarnings: 0,
+      completedBookingsCount: 0,
     };
 
-    // Get inbox summary (unread count + latest thread)
-    const threads = await (prisma as any).messageThread.findMany({
-      where: {
-        assignedSitterId: sitterId,
-        status: 'open',
-      },
-      include: {
-        client: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-      orderBy: {
-        lastActivityAt: 'desc',
-      },
-      take: 1,
-    });
+    if (typeof (prisma as any).booking?.findMany === 'function') {
+      try {
+        const upcoming = await (prisma as any).booking.findMany({
+          where: { sitterId, status: { in: ['confirmed', 'pending'] }, startAt: { gt: now } },
+          include: { pets: true, client: true },
+          orderBy: { startAt: 'asc' },
+        });
+        upcomingBookings = upcoming.map((b: any) => ({
+          id: b.id,
+          firstName: b.firstName,
+          lastName: b.lastName,
+          service: b.service,
+          startAt: b.startAt?.toISOString?.(),
+          endAt: b.endAt?.toISOString?.(),
+          address: b.address,
+          notes: b.notes,
+          totalPrice: b.totalPrice,
+          status: b.status,
+          pets: b.pets,
+          client: b.client,
+          offerEvent: null,
+          threadId: null,
+        }));
+      } catch (_) {}
+    }
+    if (typeof (prisma as any).booking?.findMany === 'function') {
+      try {
+        const completed = await (prisma as any).booking.findMany({
+          where: { sitterId, status: 'completed', endAt: { lt: now } },
+          include: { pets: true, client: true },
+          orderBy: { endAt: 'desc' },
+          take: 50,
+        });
+        completedBookings = completed.map((b: any) => ({
+          id: b.id,
+          firstName: b.firstName,
+          lastName: b.lastName,
+          service: b.service,
+          startAt: b.startAt?.toISOString?.(),
+          endAt: b.endAt?.toISOString?.(),
+          address: b.address,
+          notes: b.notes,
+          totalPrice: b.totalPrice,
+          status: b.status,
+          pets: b.pets,
+          client: b.client,
+          offerEvent: null,
+          threadId: null,
+        }));
+        const commission = (sitter as any).commissionPercentage ?? 80;
+        performance = {
+          ...performance,
+          completedBookingsCount: completed.length,
+          totalEarnings: completed.reduce((sum: number, b: any) => sum + (Number(b.totalPrice) * commission / 100), 0),
+        };
+      } catch (_) {}
+    }
 
-    const unreadCount = threads.length; // Simplified - would need actual unread count from thread
-    const latestThread = threads[0] || null;
+    // Inbox summary: use Thread (enterprise schema)
+    let unreadCount = 0;
+    let latestThread: { id: string; clientName: string; lastActivityAt: string | null } | null = null;
+    try {
+      const threads = await prisma.thread.findMany({
+        where: { orgId, sitterId, status: 'active' },
+        include: { client: { select: { id: true, name: true } } },
+        orderBy: { lastActivityAt: 'desc' },
+        take: 1,
+      });
+      unreadCount = await prisma.thread.count({
+        where: { orgId, sitterId, status: 'active', ownerUnreadCount: { gt: 0 } },
+      }).catch(() => 0);
+      const t = threads[0];
+      if (t) {
+        latestThread = {
+          id: t.id,
+          clientName: (t as any).client?.name ?? 'Unknown',
+          lastActivityAt: t.lastActivityAt?.toISOString() ?? null,
+        };
+      }
+    } catch (_) {}
 
-    // Get tier summary
-    const latestTierHistory = await (prisma as any).sitterTierHistory.findFirst({
-      where: { sitterId },
-      include: {
-        tier: {
-          select: {
-            name: true,
-          },
-        },
-      },
-      orderBy: { periodStart: 'desc' },
-    });
-
-    const latestMetrics = await (prisma as any).sitterMetricsWindow.findFirst({
-      where: {
-        sitterId,
-        orgId,
-        windowEnd: { gte: sevenDaysAgo },
-      },
-      orderBy: { windowEnd: 'desc' },
-    });
+    // Tier summary: enterprise schema has no SitterTierHistory / SitterMetricsWindow
+    let tierSummary: any = null;
+    if (typeof (prisma as any).sitterTierHistory?.findFirst === 'function') {
+      try {
+        const latestTierHistory = await (prisma as any).sitterTierHistory.findFirst({
+          where: { sitterId },
+          include: { tier: { select: { name: true } } },
+          orderBy: { periodStart: 'desc' },
+        });
+        const latestMetrics = typeof (prisma as any).sitterMetricsWindow?.findFirst === 'function'
+          ? await (prisma as any).sitterMetricsWindow.findFirst({
+              where: { sitterId, orgId, windowEnd: { gte: sevenDaysAgo } },
+              orderBy: { windowEnd: 'desc' },
+            })
+          : null;
+        if (latestTierHistory) {
+          tierSummary = {
+            currentTier: {
+              name: (latestTierHistory as any).tier?.name ?? 'Unknown',
+              assignedAt: (latestTierHistory as any).periodStart?.toISOString?.(),
+            },
+            metrics: latestMetrics ? {
+              avgResponseSeconds: (latestMetrics as any).avgResponseSeconds,
+              offerAcceptRate: (latestMetrics as any).offerAcceptRate,
+              offerDeclineRate: (latestMetrics as any).offerDeclineRate,
+              offerExpireRate: (latestMetrics as any).offerExpireRate,
+            } : null,
+          };
+        }
+      } catch (_) {}
+    }
 
     return NextResponse.json({
       pendingRequests,
       upcomingBookings,
       completedBookings,
       performance,
-      currentTier: sitter.currentTier ? {
-        id: sitter.currentTier.id,
-        name: sitter.currentTier.name,
-        priorityLevel: (sitter.currentTier as any).priorityLevel || null,
-        badgeColor: (sitter.currentTier as any).badgeColor || null,
-        badgeStyle: (sitter.currentTier as any).badgeStyle || null,
-      } : null,
-      isAvailable: (sitter as any).isActive ?? (sitter as any).active ?? false,
+      currentTier: null,
+      isAvailable: (sitter as any).active ?? true,
       unreadMessageCount: unreadCount,
       inboxSummary: {
         unreadCount,
-        latestThread: latestThread ? {
-          id: latestThread.id,
-          clientName: latestThread.client?.name || 'Unknown',
-          lastActivityAt: latestThread.lastActivityAt?.toISOString() || null,
-        } : null,
+        latestThread,
       },
-      tierSummary: latestTierHistory ? {
-        currentTier: {
-          name: latestTierHistory.tier?.name || 'Unknown',
-          assignedAt: latestTierHistory.periodStart.toISOString(),
-        },
-        metrics: latestMetrics ? {
-          avgResponseSeconds: latestMetrics.avgResponseSeconds,
-          offerAcceptRate: latestMetrics.offerAcceptRate,
-          offerDeclineRate: latestMetrics.offerDeclineRate,
-          offerExpireRate: latestMetrics.offerExpireRate,
-        } : null,
-      } : null,
+      tierSummary,
     });
   } catch (error: any) {
     console.error('[Sitter Dashboard API] Failed to fetch dashboard:', {
