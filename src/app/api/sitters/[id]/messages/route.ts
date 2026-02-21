@@ -44,7 +44,7 @@ export async function GET(
   }
 
   try {
-    const threads = await prisma.thread.findMany({
+    const threads = await (prisma as any).thread.findMany({
       where: {
         orgId,
         sitterId,

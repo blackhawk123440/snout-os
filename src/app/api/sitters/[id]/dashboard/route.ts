@@ -136,13 +136,13 @@ export async function GET(
     let unreadCount = 0;
     let latestThread: { id: string; clientName: string; lastActivityAt: string | null } | null = null;
     try {
-      const threads = await prisma.thread.findMany({
+      const threads = await (prisma as any).thread.findMany({
         where: { orgId, sitterId, status: 'active' },
         include: { client: { select: { id: true, name: true } } },
         orderBy: { lastActivityAt: 'desc' },
         take: 1,
       });
-      unreadCount = await prisma.thread.count({
+      unreadCount = await (prisma as any).thread.count({
         where: { orgId, sitterId, status: 'active', ownerUnreadCount: { gt: 0 } },
       }).catch(() => 0);
       const t = threads[0];
