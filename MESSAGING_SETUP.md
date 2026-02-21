@@ -36,3 +36,11 @@ Connect and provider status both use the app’s Prisma client and `DATABASE_URL
 2. Set `ENCRYPTION_KEY` (step 2).
 3. In the dashboard, open Setup → Twilio: enter Account SID and Auth Token → Save.
 4. The UI should show **Connected** and, after installing webhooks, **Ready** in one place (no more “Ready” in one spot and “Not Ready” or “Error checking webhooks” in another).
+
+## "Twilio rejected the credentials" / "Authenticate" when installing webhooks
+
+If Connect shows **Connected** but **Install Webhooks** fails with an authentication error:
+
+- **Re-enter credentials**: In Connect Provider, paste Account SID and Auth Token again (no leading/trailing spaces; Auth Token is the secret, not the SID).
+- **Same account**: Use the same Twilio account that owns the phone numbers you want to configure.
+- **Regenerate token**: In Twilio Console → Account → API keys & tokens, create a new Auth Token if the current one was rotated or revoked, then update in the dashboard and try again.

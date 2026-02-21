@@ -54,7 +54,35 @@ export async function POST(request: NextRequest) {
       ? `${credentials.accountSid.substring(0, 4)}...${credentials.accountSid.substring(credentials.accountSid.length - 4)}`
       : null;
 
-    const incomingNumbers = await client.incomingPhoneNumbers.list({ limit: 100 });
+    let incomingNumbers: { sid: string; phoneNumber?: string; smsUrl?: string | null }[];
+    try {
+      incomingNumbers = await client.incomingPhoneNumbers.list({ limit: 100 });
+    } catch (twilioErr: any) {
+      const isAuthError =
+        twilioErr?.code === 20003 ||
+        /authenticat/i.test(twilioErr?.message || '') ||
+        twilioErr?.status === 401;
+      const message = isAuthError
+        ? 'Twilio rejected the credentials. Check Account SID and Auth Token in Connect Provider, then try again.'
+        : twilioErr?.message || 'Failed to list Twilio numbers';
+      console.error('[Webhook Install] Twilio error:', twilioErr?.code, twilioErr?.message);
+      return NextResponse.json({
+        success: false,
+        message,
+        webhookTarget: 'incoming_phone_numbers',
+        numbersFetchedCount: 0,
+        numbersUpdatedCount: 0,
+        accountSidMasked,
+        firstTwilioError: twilioErr?.message ?? null,
+        url: null,
+        verified: false,
+        webhookUrlConfigured: false,
+        orgId,
+        checkedAt,
+        updatedNumbers: [],
+      }, { status: isAuthError ? 400 : 500 });
+    }
+
     const numbersFetchedCount = incomingNumbers.length;
 
     if (numbersFetchedCount === 0) {
@@ -140,9 +168,16 @@ export async function POST(request: NextRequest) {
     }, { status: 200 });
   } catch (error: any) {
     console.error('[Direct Twilio] Error installing webhooks:', error);
+    const isAuthError =
+      error?.code === 20003 ||
+      /authenticat/i.test(error?.message || '') ||
+      error?.status === 401;
+    const message = isAuthError
+      ? 'Twilio rejected the credentials. Check Account SID and Auth Token in Connect Provider, then try again.'
+      : error?.message || 'Failed to install webhooks';
     return NextResponse.json({
       success: false,
-      message: error.message || 'Failed to install webhooks',
+      message,
       webhookTarget: 'incoming_phone_numbers',
       numbersFetchedCount: 0,
       numbersUpdatedCount: 0,
@@ -154,6 +189,6 @@ export async function POST(request: NextRequest) {
       orgId,
       checkedAt: new Date().toISOString(),
       updatedNumbers: [],
-    }, { status: 500 });
+    }, { status: isAuthError ? 400 : 500 });
   }
 }
