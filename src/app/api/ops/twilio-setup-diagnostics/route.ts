@@ -2,8 +2,8 @@
  * Twilio Setup Diagnostics
  *
  * GET /api/ops/twilio-setup-diagnostics
- * Returns deterministic diagnostics for the Twilio Setup tab.
- * Owner-only, non-prod only.
+ * Returns safe diagnostics for the Twilio Setup tab (masked SID, webhook URLs; no secrets).
+ * Owner-only. Available in all environments.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -21,10 +21,6 @@ export async function GET(request: NextRequest) {
   const user = session.user as any;
   if (user.role !== 'owner' && !user.orgId) {
     return NextResponse.json({ error: 'Owner access required' }, { status: 403 });
-  }
-
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
   }
 
   const orgId = user.orgId || 'default';
