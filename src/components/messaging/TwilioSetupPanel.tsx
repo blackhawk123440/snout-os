@@ -568,6 +568,70 @@ export function TwilioSetupPanel() {
           </div>
         </Modal>
       )}
+
+      {/* Test SMS Modal - enter phone number to send test SMS */}
+      {showTestSMSModal && (
+        <Modal isOpen={showTestSMSModal} title="Send Test SMS" onClose={() => setShowTestSMSModal(false)}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+              Enter your phone number in E.164 format (e.g. +15551234567). The test message will be sent from your connected Twilio number.
+            </p>
+            <div>
+              <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500, marginBottom: tokens.spacing[1] }}>
+                Phone number
+              </label>
+              <Input
+                type="tel"
+                placeholder="+15551234567"
+                value={testSMSForm.destinationE164}
+                onChange={(e) => setTestSMSForm((f) => ({ ...f, destinationE164: e.target.value }))}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500, marginBottom: tokens.spacing[1] }}>
+                Send from
+              </label>
+              <select
+                value={testSMSForm.fromClass}
+                onChange={(e) => setTestSMSForm((f) => ({ ...f, fromClass: e.target.value as 'front_desk' | 'pool' | 'sitter' }))}
+                style={{
+                  width: '100%',
+                  padding: tokens.spacing[2],
+                  borderRadius: 4,
+                  border: `1px solid ${tokens.colors.border?.default ?? '#ccc'}`,
+                  fontSize: tokens.typography.fontSize.sm[0],
+                }}
+              >
+                <option value="front_desk">Front desk</option>
+                <option value="pool">Pool</option>
+                <option value="sitter">Sitter</option>
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: tokens.spacing[2], justifyContent: 'flex-end' }}>
+              <Button onClick={() => setShowTestSMSModal(false)} variant="secondary">
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  testSMS.mutate(testSMSForm, {
+                    onSuccess: () => {
+                      setShowTestSMSModal(false);
+                      setTestSMSForm({ destinationE164: '', fromClass: 'front_desk' });
+                      alert('Test SMS sent.');
+                    },
+                    onError: (err: any) => alert(err?.message || 'Failed to send test SMS'),
+                  });
+                }}
+                disabled={!testSMSForm.destinationE164.trim() || testSMS.isPending}
+              >
+                {testSMS.isPending ? 'Sending...' : 'Send Test SMS'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
