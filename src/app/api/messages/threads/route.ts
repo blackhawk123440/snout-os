@@ -73,14 +73,16 @@ export async function GET(request: NextRequest) {
       filters.sitterId = null;
     }
 
-    let threads: any[];
+    let rows: any[];
     try {
-      threads = await prisma.thread.findMany({
+      rows = await prisma.thread.findMany({
         where: filters,
         include: {
-          client: { select: { id: true, name: true } },
+          client: {
+            include: { contacts: { select: { e164: true } } },
+          },
           sitter: { select: { id: true, name: true } },
-          messageNumber: { select: { id: true, e164: true, class: true } },
+          messageNumber: { select: { id: true, e164: true, class: true, status: true } },
           assignmentWindows: {
             where: { endsAt: { gte: new Date() } },
             orderBy: { startsAt: 'desc' },
@@ -91,11 +93,43 @@ export async function GET(request: NextRequest) {
       });
     } catch (relErr: any) {
       console.warn('[Threads] Full include failed:', relErr?.message);
-      threads = await prisma.thread.findMany({
+      rows = await prisma.thread.findMany({
         where: filters,
         orderBy: { lastActivityAt: 'desc' },
       });
     }
+
+    // Normalize to match frontend threadSchema (required fields + ISO dates)
+    const threads = rows.map((t: any) => ({
+      id: t.id,
+      orgId: t.orgId,
+      clientId: t.clientId,
+      sitterId: t.sitterId ?? null,
+      numberId: t.numberId,
+      threadType: t.threadType ?? 'other',
+      status: t.status ?? 'active',
+      ownerUnreadCount: t.ownerUnreadCount ?? 0,
+      lastActivityAt: t.lastActivityAt?.toISOString?.() ?? t.createdAt?.toISOString?.() ?? new Date().toISOString(),
+      client: {
+        id: t.client?.id ?? '',
+        name: t.client?.name ?? 'Unknown',
+        contacts: Array.isArray(t.client?.contacts) ? t.client.contacts.map((c: any) => ({ e164: c.e164 ?? '' })) : [],
+      },
+      sitter: t.sitter ? { id: t.sitter.id, name: t.sitter.name } : null,
+      messageNumber: t.messageNumber
+        ? {
+            id: t.messageNumber.id,
+            e164: t.messageNumber.e164 ?? '',
+            class: t.messageNumber.class ?? 'front_desk',
+            status: t.messageNumber.status ?? 'active',
+          }
+        : { id: '', e164: '', class: 'front_desk', status: 'active' },
+      assignmentWindows: (t.assignmentWindows ?? []).map((w: any) => ({
+        id: w.id,
+        startsAt: w.startsAt?.toISOString?.() ?? '',
+        endsAt: w.endsAt?.toISOString?.() ?? '',
+      })),
+    }));
 
     return NextResponse.json(
       { threads },
