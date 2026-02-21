@@ -1,15 +1,14 @@
 /**
  * Sitter Messages API
- * 
+ *
  * GET: Fetch threads for a specific sitter (sitter-scoped inbox)
- * Returns ONLY threads where assignedSitterId === sitterId
+ * Returns threads where sitterId === sitterId (enterprise schema: Thread)
  * Owner can view sitter's inbox via this endpoint (read-only visibility)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { isSitterMailbox } from '@/lib/messaging/mailbox-helpers';
 
 export async function GET(
   request: NextRequest,
@@ -28,7 +27,6 @@ export async function GET(
   const resolvedParams = await params;
   const sitterId = resolvedParams.id;
 
-  // Get orgId from session or use default
   const orgId = user.orgId || (await import('@/lib/messaging/org-helpers')).getDefaultOrgId();
 
   if (!orgId) {
@@ -38,7 +36,6 @@ export async function GET(
     );
   }
 
-  // Permission check: sitter can only view their own threads, owner/admin can view any sitter's threads
   if (user.role === 'sitter' && user.sitterId !== sitterId) {
     return NextResponse.json(
       { error: 'Forbidden: You can only view your own messages' },
@@ -47,86 +44,50 @@ export async function GET(
   }
 
   try {
-    // Fetch threads scoped to this sitter (sitter mailbox only)
-    // Only return threads where assignedSitterId === sitterId AND scope indicates sitter mailbox
-    const threads = await (prisma as any).messageThread.findMany({
+    const threads = await prisma.thread.findMany({
       where: {
         orgId,
-        assignedSitterId: sitterId,
-        scope: { in: ['client_booking', 'client_general'] }, // Sitter mailbox threads only
-        // Exclude closed/archived threads by default (can add filter later)
-        status: { notIn: ['closed', 'archived'] },
+        sitterId,
+        status: 'active',
       },
       include: {
         client: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        booking: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            startAt: true,
-            endAt: true,
-            service: true,
-          },
+          select: { id: true, name: true },
         },
         messageNumber: {
-          select: {
-            id: true,
-            e164: true,
-            numberClass: true,
-          },
+          select: { id: true, e164: true, class: true },
         },
-        events: {
+        messages: {
           orderBy: { createdAt: 'desc' },
-          take: 1, // Latest message only
-          select: {
-            id: true,
-            direction: true,
-            body: true,
-            createdAt: true,
-            actorType: true,
-          },
+          take: 1,
+          select: { id: true, direction: true, body: true, createdAt: true, senderType: true },
         },
         assignmentWindows: {
-          where: {
-            endsAt: { gte: new Date() }, // Active windows only
-          },
+          where: { endsAt: { gte: new Date() } },
           orderBy: { startsAt: 'desc' },
           take: 1,
         },
       },
-      orderBy: {
-        lastMessageAt: 'desc',
-      },
+      orderBy: { lastActivityAt: 'desc' },
     });
 
-    // Transform to match frontend expectations
     const transformedThreads = threads.map((thread: any) => ({
       id: thread.id,
-      clientName: thread.client?.name || 'Unknown Client',
-      bookingId: thread.bookingId,
-      booking: thread.booking ? {
-        id: thread.booking.id,
-        clientName: `${thread.booking.firstName} ${thread.booking.lastName}`,
-        service: thread.booking.service,
-        startAt: thread.booking.startAt?.toISOString(),
-        endAt: thread.booking.endAt?.toISOString(),
-      } : null,
-      lastMessage: thread.events?.[0] ? {
-        id: thread.events[0].id,
-        body: thread.events[0].body,
-        direction: thread.events[0].direction,
-        createdAt: thread.events[0].createdAt.toISOString(),
-        actorType: thread.events[0].actorType,
-      } : null,
-      lastMessageAt: thread.lastMessageAt?.toISOString() || thread.createdAt.toISOString(),
-      hasActiveWindow: (thread.assignmentWindows?.length || 0) > 0,
-      maskedNumber: thread.maskedNumberE164,
+      clientName: thread.client?.name ?? 'Unknown Client',
+      bookingId: null,
+      booking: null,
+      lastMessage: thread.messages?.[0]
+        ? {
+            id: thread.messages[0].id,
+            body: thread.messages[0].body,
+            direction: thread.messages[0].direction,
+            createdAt: thread.messages[0].createdAt.toISOString(),
+            actorType: thread.messages[0].senderType,
+          }
+        : null,
+      lastMessageAt: thread.lastActivityAt?.toISOString() ?? thread.createdAt.toISOString(),
+      hasActiveWindow: (thread.assignmentWindows?.length ?? 0) > 0,
+      maskedNumber: thread.messageNumber?.e164 ?? null,
       status: thread.status,
     }));
 
@@ -137,7 +98,7 @@ export async function GET(
   } catch (error: any) {
     console.error('[Sitter Messages API] Failed to fetch threads:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch sitter messages', message: error.message },
+      { error: 'Failed to fetch sitter messages', message: error?.message },
       { status: 500 }
     );
   }
