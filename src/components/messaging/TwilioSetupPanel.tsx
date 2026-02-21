@@ -140,6 +140,23 @@ function useInstallWebhooks() {
   });
 }
 
+const syncNumbersResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  synced: z.number(),
+}).passthrough();
+
+function useSyncNumbers() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiPost('/api/setup/numbers/sync', {}, syncNumbersResponseSchema),
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ['setup'] });
+      await queryClient.refetchQueries({ queryKey: ['setup', 'readiness'] });
+    },
+  });
+}
+
 function useTestSMS() {
   return useMutation({
     mutationFn: (params: { destinationE164: string; fromClass: 'front_desk' | 'pool' | 'sitter' }) =>
@@ -170,6 +187,7 @@ export function TwilioSetupPanel() {
   const testConnection = useTestConnection();
   const connectProvider = useConnectProvider();
   const installWebhooks = useInstallWebhooks();
+  const syncNumbers = useSyncNumbers();
   const testSMS = useTestSMS();
 
   const handleTest = async () => {
@@ -410,17 +428,27 @@ export function TwilioSetupPanel() {
           <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
             Test SMS
           </h3>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowTestSMSModal(true)}
-            disabled={!providerStatus?.connected}
-          >
-            Send Test SMS
-          </Button>
+          <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => syncNumbers.mutate(undefined, { onSuccess: (d) => alert(d?.message ?? 'Numbers synced.'), onError: (e: any) => alert(e?.message ?? 'Sync failed.') })}
+              disabled={!providerStatus?.connected || syncNumbers.isPending}
+            >
+              {syncNumbers.isPending ? 'Syncing...' : 'Sync numbers'}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowTestSMSModal(true)}
+              disabled={!providerStatus?.connected}
+            >
+              Send Test SMS
+            </Button>
+          </div>
         </div>
         <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-          Send a test SMS using the same send pipeline (chooseFromNumber + TwilioProvider.sendMessage)
+          Sync Twilio numbers into the app first if Test SMS says no number. Then send a test SMS using the same send pipeline.
         </p>
       </Card>
 

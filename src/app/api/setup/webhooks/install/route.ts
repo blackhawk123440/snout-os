@@ -151,6 +151,41 @@ export async function POST(request: NextRequest) {
     const configuredCount = updatedNumbers.length;
     const firstTwilioError = errors[0] ?? null;
 
+    // Sync Twilio numbers into MessageNumber so Test SMS and send pipeline have numbers
+    try {
+      const org = (prisma as any).organization;
+      await org.upsert({
+        where: { id: orgId },
+        create: { id: orgId, name: orgId === 'default' ? 'Default' : orgId },
+        update: {},
+      });
+      let index = 0;
+      for (const u of updatedNumbers) {
+        const e164 = u.e164.startsWith('+') ? u.e164 : `+${u.e164}`;
+        const numberClass = index === 0 ? 'front_desk' : 'pool';
+        await (prisma as any).messageNumber.upsert({
+          where: { e164 },
+          create: {
+            orgId,
+            e164,
+            class: numberClass,
+            status: 'active',
+            providerType: 'twilio',
+            providerNumberSid: u.phoneNumberSid,
+          },
+          update: {
+            orgId,
+            status: 'active',
+            providerNumberSid: u.phoneNumberSid,
+          },
+        });
+        index++;
+      }
+    } catch (syncErr: any) {
+      console.error('[Webhook Install] Sync numbers to MessageNumber failed:', syncErr?.message);
+      // Don't fail the request - webhooks are installed; user can retry or sync later
+    }
+
     return NextResponse.json({
       success: errors.length === 0,
       message: verified
