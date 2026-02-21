@@ -27,11 +27,13 @@ export async function GET(request: NextRequest) {
   const out: {
     orgId: string;
     credentialsExist: boolean;
+    credentialSource?: 'database' | 'environment';
     accountSidUsed: string | null;
     webhookTarget: string;
     webhookUrlExpected: string;
     twilioConfiguredUrls: Array<{ phoneNumber: string; sid: string; smsUrl: string | null }>;
     errors: string[];
+    hint?: string;
     checkedAt: string;
   } = {
     orgId,
@@ -47,6 +49,7 @@ export async function GET(request: NextRequest) {
   try {
     const credentials = await getProviderCredentials(orgId);
     out.credentialsExist = !!credentials;
+    out.credentialSource = credentials?.source;
     out.accountSidUsed = credentials?.accountSid
       ? `${credentials.accountSid.substring(0, 4)}...${credentials.accountSid.substring(credentials.accountSid.length - 4)}`
       : null;
@@ -74,7 +77,12 @@ export async function GET(request: NextRequest) {
       out.errors.push('No incoming phone numbers in Twilio account.');
     }
   } catch (err: any) {
-    out.errors.push(err?.message || String(err));
+    const msg = err?.message || String(err);
+    out.errors.push(msg);
+    const isAuthError = err?.code === 20003 || /authenticat/i.test(msg) || err?.status === 401;
+    if (isAuthError) {
+      out.hint = 'Twilio rejected the stored Auth Token. In Twilio Console go to Account → API keys & tokens, copy the Auth Token (or create a new one), then in this app open Connect Provider, paste Account SID and the (new) Auth Token, Save, then Install Webhooks.';
+    }
   }
 
   return NextResponse.json(out, { status: 200 });
