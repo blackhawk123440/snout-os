@@ -88,16 +88,12 @@ export async function resolveInboundSms(
 ): Promise<InboundRoutingResult> {
   const { orgId, toNumberE164, fromNumberE164, now } = params;
 
-  // Find client by phone number
-  // Note: Client model doesn't have phone field - use ClientContact instead
-  const clientContact = await (prisma as any).clientContact.findFirst({
-    where: {
-      e164: fromNumberE164,
-    },
-    include: { client: true },
-  });
-  
-  const client = clientContact?.client || null;
+  // Find client by phone (raw SQL to avoid ClientContact.orgld bug)
+  const { findClientContactByPhone } = await import('./client-contact-lookup');
+  const clientContactRow = await findClientContactByPhone(orgId, fromNumberE164);
+  const client = clientContactRow
+    ? await (prisma as any).client.findUnique({ where: { id: clientContactRow.clientId } })
+    : null;
 
   if (!client) {
     // No client found - route to owner inbox

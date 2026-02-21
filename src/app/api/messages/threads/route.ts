@@ -6,9 +6,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
 import { prisma } from '@/lib/db';
+import { createClientContact, findClientContactByPhone } from '@/lib/messaging/client-contact-lookup';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -238,43 +240,33 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Fallback: Direct Prisma implementation
+  // Fallback: Direct Prisma implementation (ClientContact via raw SQL to avoid orgld bug)
   try {
-    // CRITICAL: Use upsert to enforce one phone per org at DB level
-    // This prevents duplicates even under concurrent requests.
-    // The UNIQUE constraint on ClientContact(orgId, e164) ensures atomicity.
-    const contact = await (prisma as any).clientContact.upsert({
-      where: {
-        orgId_e164: {
-          orgId,
-          e164: normalizedPhone,
-        },
-      },
-      update: {
-        // Contact exists, no update needed
-      },
-      create: {
+    const existingContact = await findClientContactByPhone(orgId, normalizedPhone);
+    let client: { id: string };
+
+    if (existingContact) {
+      const fetched = await (prisma as any).client.findUnique({
+        where: { id: existingContact.clientId },
+      });
+      if (!fetched) {
+        return NextResponse.json({ error: 'Client not found for contact' }, { status: 500 });
+      }
+      client = fetched;
+    } else {
+      const guestClient = await (prisma as any).client.create({
+        data: { orgId, name: `Guest (${normalizedPhone})` },
+      });
+      await createClientContact({
+        id: randomUUID(),
         orgId,
+        clientId: guestClient.id,
         e164: normalizedPhone,
         label: 'Mobile',
         verified: false,
-        client: {
-          create: {
-            orgId,
-            name: `Guest (${normalizedPhone})`,
-          },
-        },
-      },
-      include: {
-        client: {
-          include: {
-            contacts: true,
-          },
-        },
-      },
-    });
-
-    const client = contact.client;
+      });
+      client = guestClient;
+    }
 
     // Find or create thread (one thread per client per org)
     let thread = await (prisma as any).thread.findUnique({

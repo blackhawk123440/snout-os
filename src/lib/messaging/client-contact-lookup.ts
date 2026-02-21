@@ -15,22 +15,24 @@ export type ClientContactRow = {
 };
 
 /**
- * Find a ClientContact by orgId and e164. Uses raw SQL so the correct "orgId" column is used.
+ * Find a ClientContact by orgId and e164. Uses $queryRawUnsafe so Prisma never
+ * rewrites column names (generated client can reference "orgld" instead of "orgId").
  */
 export async function findClientContactByPhone(
   orgId: string,
   e164: string
 ): Promise<ClientContactRow | null> {
-  const rows = await prisma.$queryRaw<ClientContactRow[]>`
-    SELECT id, "orgId", "clientId", e164, label, verified FROM "ClientContact"
-    WHERE "orgId" = ${orgId} AND e164 = ${e164}
-    LIMIT 1
-  `;
+  const rows = await prisma.$queryRawUnsafe<ClientContactRow[]>(
+    'SELECT id, "orgId", "clientId", e164, label, verified FROM "ClientContact" WHERE "orgId" = $1 AND e164 = $2 LIMIT 1',
+    orgId,
+    e164
+  );
   return rows[0] ?? null;
 }
 
 /**
- * Insert a ClientContact. Uses raw SQL so the "orgId" column is used correctly.
+ * Insert a ClientContact. Uses $executeRawUnsafe so the "orgId" column is used
+ * and Prisma does not rewrite to "orgld".
  */
 export async function createClientContact(params: {
   id: string;
@@ -41,8 +43,13 @@ export async function createClientContact(params: {
   verified?: boolean;
 }): Promise<void> {
   const { id, orgId, clientId, e164, label = 'Mobile', verified = false } = params;
-  await prisma.$executeRaw`
-    INSERT INTO "ClientContact" (id, "orgId", "clientId", e164, label, verified, "createdAt")
-    VALUES (${id}, ${orgId}, ${clientId}, ${e164}, ${label}, ${verified}, NOW())
-  `;
+  await prisma.$executeRawUnsafe(
+    'INSERT INTO "ClientContact" (id, "orgId", "clientId", e164, label, verified, "createdAt") VALUES ($1, $2, $3, $4, $5, $6, NOW())',
+    id,
+    orgId,
+    clientId,
+    e164,
+    label,
+    verified
+  );
 }

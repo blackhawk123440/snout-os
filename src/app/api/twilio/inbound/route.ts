@@ -555,23 +555,19 @@ export async function POST(request: NextRequest) {
       return twimlResponse('We couldn\'t match this message. Please contact support.');
     }
 
-    // Find client by phone
-    const clientContact = await (prisma as any).clientContact.findFirst({
-      where: {
-        e164: from,
-        orgId,
-      },
-      include: {
-        client: {
-          select: {
-            id: true,
-            orgId: true,
-          },
-        },
-      },
-    });
+    // Find client by phone (raw SQL to avoid ClientContact.orgld bug)
+    const { findClientContactByPhone } = await import('@/lib/messaging/client-contact-lookup');
+    const clientContactRow = await findClientContactByPhone(orgId, from);
+    const clientContact = clientContactRow
+      ? {
+          client: await (prisma as any).client.findUnique({
+            where: { id: clientContactRow.clientId },
+            select: { id: true, orgId: true },
+          }),
+        }
+      : null;
 
-    if (!clientContact || !clientContact.client) {
+    if (!clientContact?.client) {
       // No client found - route to owner inbox
       const ownerThread = await (prisma as any).messageThread.findFirst({
         where: {
@@ -622,7 +618,7 @@ export async function POST(request: NextRequest) {
       return twimlResponse('');
     }
 
-    const clientId = clientContact.client.id;
+    const clientId = clientContact!.client.id;
 
     // Determine thread scope based on number class and sitter assignment
     let threadScope: string;
