@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 
     let rows: any[];
     try {
-      rows = await prisma.thread.findMany({
+      rows = await (prisma as any).thread.findMany({
         where: filters,
         include: {
           client: {
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       });
     } catch (relErr: any) {
       console.warn('[Threads] Full include failed:', relErr?.message);
-      rows = await prisma.thread.findMany({
+      rows = await (prisma as any).thread.findMany({
         where: filters,
         orderBy: { lastActivityAt: 'desc' },
       });
