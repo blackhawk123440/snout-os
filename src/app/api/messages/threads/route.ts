@@ -9,7 +9,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
 import { prisma } from '@/lib/db';
-import { isOwnerMailbox } from '@/lib/messaging/mailbox-helpers';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -27,174 +26,85 @@ export async function GET(request: NextRequest) {
   const user = session.user as any;
   const orgId = user.orgId || 'default';
 
-  // If API_BASE_URL is set, proxy to NestJS API
-  if (API_BASE_URL) {
+  const searchParams = request.nextUrl.searchParams;
 
-    // Mint API JWT token from session
-    let apiToken: string;
+  // Try NestJS proxy when API_BASE_URL is set; on 5xx or network error, fall through to Prisma
+  if (API_BASE_URL) {
     try {
-      apiToken = await mintApiJWT({
+      const apiToken = await mintApiJWT({
         userId: user.id || user.email || '',
         orgId,
         role: user.role || (user.sitterId ? 'sitter' : 'owner'),
         sitterId: user.sitterId || null,
       });
-    } catch (error: any) {
-      console.error('[BFF Proxy] Failed to mint API JWT:', error);
-      return NextResponse.json(
-        { error: 'Failed to authenticate with API' },
-        { status: 500 }
-      );
-    }
-
-  // Preserve query string
-  const searchParams = request.nextUrl.searchParams.toString();
-  const apiUrl = `${API_BASE_URL}/api/messages/threads${searchParams ? `?${searchParams}` : ''}`;
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-    });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
-        },
+      const qs = searchParams.toString();
+      const apiUrl = `${API_BASE_URL}/api/messages/threads${qs ? `?${qs}` : ''}`;
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiToken}` },
       });
-    }
-
-    // Transform API response to match frontend expectations
-    // API returns array directly, but frontend expects { threads: Thread[] }
-    const transformedResponse = Array.isArray(responseData)
-      ? { threads: responseData }
-      : responseData;
-
-    return NextResponse.json(transformedResponse, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
-      },
-    });
+      const contentType = response.headers.get('content-type');
+      const responseData = contentType?.includes('application/json')
+        ? await response.json()
+        : await response.text();
+      if (response.ok) {
+        const transformed = Array.isArray(responseData) ? { threads: responseData } : responseData;
+        return NextResponse.json(transformed, { status: response.status });
+      }
+      if (response.status >= 500) {
+        console.warn('[BFF Proxy] API returned', response.status, '- using Prisma fallback');
+      } else {
+        return NextResponse.json(responseData, { status: response.status });
+      }
     } catch (error: any) {
-      console.error('[BFF Proxy] Failed to forward threads request:', error);
-      return NextResponse.json(
-        { error: 'Failed to reach API server', message: error.message },
-        { status: 502 }
-      );
+      console.warn('[BFF Proxy] Threads request failed, using Prisma fallback:', error?.message);
     }
   }
 
-  // Fallback: Direct Prisma implementation
+  // Direct Prisma (enterprise schema: Thread)
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const filters: any = {
-      orgId,
-    };
-
-    // Apply filters from query params
-    if (searchParams.get('sitterId')) {
-      filters.sitterId = searchParams.get('sitterId');
-    }
-    if (searchParams.get('clientId')) {
-      filters.clientId = searchParams.get('clientId');
-    }
-    if (searchParams.get('status')) {
-      filters.status = searchParams.get('status');
-    }
-    if (searchParams.get('unreadOnly') === 'true') {
-      filters.ownerUnreadCount = { gt: 0 };
-    }
-    
-    // Handle scope filter: 'internal' means owner inbox (front_desk threads)
-    // Owner inbox = front_desk threads (business/master number conversations)
-    // Sitter threads = assignment threads (sitterId IS NOT NULL)
+    const filters: any = { orgId };
+    if (searchParams.get('sitterId')) filters.sitterId = searchParams.get('sitterId');
+    if (searchParams.get('clientId')) filters.clientId = searchParams.get('clientId');
+    if (searchParams.get('status')) filters.status = searchParams.get('status');
+    if (searchParams.get('unreadOnly') === 'true') filters.ownerUnreadCount = { gt: 0 };
     if (searchParams.get('scope') === 'internal' || searchParams.get('inbox') === 'owner') {
       filters.threadType = 'front_desk';
-      // Explicitly exclude sitter assignment threads from owner inbox
       filters.sitterId = null;
     }
 
-    // Use try-catch for each relation to handle missing models gracefully
     let threads: any[];
     try {
-      threads = await (prisma as any).thread.findMany({
+      threads = await prisma.thread.findMany({
         where: filters,
         include: {
-          client: {
-            include: {
-              contacts: {
-                where: {
-                  orgId, // Ensure contacts are scoped to org
-                },
-              },
-            },
-          },
-          sitter: true,
-          messageNumber: true,
+          client: { select: { id: true, name: true } },
+          sitter: { select: { id: true, name: true } },
+          messageNumber: { select: { id: true, e164: true, class: true } },
           assignmentWindows: {
-            where: {
-              endsAt: { gte: new Date() },
-            },
+            where: { endsAt: { gte: new Date() } },
             orderBy: { startsAt: 'desc' },
             take: 1,
           },
         },
         orderBy: { lastActivityAt: 'desc' },
       });
-    } catch (relationError: any) {
-      // If relation fails, try without relations
-      console.warn('[Direct Prisma] Relation error, trying without relations:', relationError.message);
-      threads = await (prisma as any).thread.findMany({
+    } catch (relErr: any) {
+      console.warn('[Threads] Full include failed:', relErr?.message);
+      threads = await prisma.thread.findMany({
         where: filters,
         orderBy: { lastActivityAt: 'desc' },
       });
     }
 
-    return NextResponse.json({ threads }, {
-      status: 200,
-      headers: {
-        'X-Snout-Route': 'prisma-fallback',
-        'X-Snout-OrgId': orgId,
-      },
-    });
-  } catch (error: any) {
-    console.error('[Direct Prisma] Error fetching threads:', error);
-    console.error('[Direct Prisma] Error stack:', error.stack);
-    console.error('[Direct Prisma] Error name:', error.name);
-    console.error('[Direct Prisma] Error code:', error.code);
-    console.error('[Direct Prisma] Prisma client available:', !!prisma);
-    console.error('[Direct Prisma] Thread model available:', !!(prisma as any).thread);
-    
-    // Check if it's a Prisma model not found error
-    if (error.message?.includes('model') || error.message?.includes('undefined')) {
-      console.error('[Direct Prisma] Prisma model may not be available. Check schema generation.');
-    }
-    
     return NextResponse.json(
-      { 
-        error: 'Failed to fetch threads', 
-        details: error.message,
-        errorName: error.name,
-        errorCode: error.code,
-        // Only include stack in development
-        ...(process.env.NODE_ENV === 'development' ? { stack: error.stack } : {}),
-      },
+      { threads },
+      { status: 200, headers: { 'X-Snout-Route': 'prisma-fallback', 'X-Snout-OrgId': orgId } }
+    );
+  } catch (error: any) {
+    console.error('[Threads] Prisma error:', error?.message);
+    return NextResponse.json(
+      { error: 'Failed to fetch threads', details: error?.message },
       { status: 500 }
     );
   }
