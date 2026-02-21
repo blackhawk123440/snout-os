@@ -75,31 +75,21 @@ export async function GET(request: NextRequest) {
       filters.sitterId = null;
     }
 
-    let rows: any[];
-    try {
-      rows = await (prisma as any).thread.findMany({
-        where: filters,
-        include: {
-          client: {
-            include: { contacts: { select: { e164: true } } },
-          },
-          sitter: { select: { id: true, name: true } },
-          messageNumber: { select: { id: true, e164: true, class: true, status: true } },
-          assignmentWindows: {
-            where: { endsAt: { gte: new Date() } },
-            orderBy: { startsAt: 'desc' },
-            take: 1,
-          },
+    // Don't include client.contacts (ClientContact) - it hits orgld bug; we return [] for contacts
+    const rows = await (prisma as any).thread.findMany({
+      where: filters,
+      include: {
+        client: { select: { id: true, name: true } },
+        sitter: { select: { id: true, name: true } },
+        messageNumber: { select: { id: true, e164: true, class: true, status: true } },
+        assignmentWindows: {
+          where: { endsAt: { gte: new Date() } },
+          orderBy: { startsAt: 'desc' },
+          take: 1,
         },
-        orderBy: { lastActivityAt: 'desc' },
-      });
-    } catch (relErr: any) {
-      console.warn('[Threads] Full include failed:', relErr?.message);
-      rows = await (prisma as any).thread.findMany({
-        where: filters,
-        orderBy: { lastActivityAt: 'desc' },
-      });
-    }
+      },
+      orderBy: { lastActivityAt: 'desc' },
+    });
 
     // Normalize to match frontend threadSchema (required fields + ISO dates)
     const threads = rows.map((t: any) => ({
