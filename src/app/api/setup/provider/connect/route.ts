@@ -35,7 +35,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!body.accountSid || !body.authToken) {
+  const accountSid = String(body.accountSid ?? '').trim();
+  const authToken = String(body.authToken ?? '').trim();
+  if (!accountSid || !authToken) {
     return NextResponse.json(
       { success: false, message: 'Account SID and Auth Token are required' },
       { status: 400 }
@@ -47,8 +49,8 @@ export async function POST(request: NextRequest) {
     let encryptedConfig: string;
     try {
       encryptedConfig = encrypt(JSON.stringify({
-        accountSid: body.accountSid,
-        authToken: body.authToken,
+        accountSid,
+        authToken,
       }));
     } catch (encErr: any) {
       console.error('[Connect] Encryption failed:', encErr);
@@ -79,10 +81,10 @@ export async function POST(request: NextRequest) {
 
     // Verify: read back from same store status endpoint uses
     const verifiedCreds = await getProviderCredentials(orgId);
-    const verified = !!verifiedCreds && verifiedCreds.accountSid === body.accountSid;
+    const readBackOk = !!verifiedCreds && verifiedCreds.accountSid === accountSid;
     const checkedAt = new Date().toISOString();
 
-    if (!verified) {
+    if (!readBackOk) {
       return NextResponse.json({
         success: false,
         message: 'Credentials saved but verification failed. Check diagnostics.',
@@ -93,13 +95,36 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
 
+    // Verify Twilio accepts these credentials (same API used by webhook install)
+    try {
+      const twilio = require('twilio');
+      const client = twilio(verifiedCreds!.accountSid, verifiedCreds!.authToken);
+      await client.incomingPhoneNumbers.list({ limit: 1 });
+    } catch (twilioErr: any) {
+      const isAuthError =
+        twilioErr?.code === 20003 ||
+        /authenticat/i.test(twilioErr?.message || '') ||
+        twilioErr?.status === 401;
+      console.error('[Connect] Twilio verification failed:', twilioErr?.code, twilioErr?.message);
+      return NextResponse.json({
+        success: false,
+        message: isAuthError
+          ? 'Twilio rejected the credentials. Check Account SID and Auth Token (e.g. no extra spaces, use the secret Auth Token from Twilio Console).'
+          : twilioErr?.message || 'Twilio verification failed.',
+        verified: false,
+        ok: false,
+        orgId,
+        checkedAt,
+      }, { status: 200 });
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Provider credentials saved and verified',
+      message: 'Provider credentials saved and verified with Twilio',
       verified: true,
       ok: true,
       orgId,
-      providerAccountSid: body.accountSid?.substring(0, 4) + '...',
+      providerAccountSid: accountSid.substring(0, 4) + '...',
       checkedAt,
     }, { status: 200 });
   } catch (error: any) {

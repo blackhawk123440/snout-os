@@ -34,8 +34,8 @@ export async function getProviderCredentials(orgId: string): Promise<ProviderCre
   if (!credential) {
       return env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN
         ? {
-            accountSid: env.TWILIO_ACCOUNT_SID,
-            authToken: env.TWILIO_AUTH_TOKEN,
+            accountSid: String(env.TWILIO_ACCOUNT_SID).trim(),
+            authToken: String(env.TWILIO_AUTH_TOKEN).trim(),
             source: 'environment',
           }
         : null;
@@ -43,16 +43,16 @@ export async function getProviderCredentials(orgId: string): Promise<ProviderCre
     const decrypted = decrypt(credential.encryptedConfig);
     const config = JSON.parse(decrypted);
     return {
-      accountSid: config.accountSid,
-      authToken: config.authToken,
+      accountSid: String(config.accountSid ?? '').trim(),
+      authToken: String(config.authToken ?? '').trim(),
       source: 'database',
     };
   } catch (error) {
     console.error('[provider-credentials] Failed to load/decrypt credentials:', error);
     if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
       return {
-        accountSid: env.TWILIO_ACCOUNT_SID,
-        authToken: env.TWILIO_AUTH_TOKEN,
+        accountSid: String(env.TWILIO_ACCOUNT_SID).trim(),
+        authToken: String(env.TWILIO_AUTH_TOKEN).trim(),
         source: 'environment',
       };
     }
