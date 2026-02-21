@@ -8,12 +8,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { mintApiJWT } from '@/lib/api/jwt';
 import { prisma } from '@/lib/db';
 import { encrypt } from '@/lib/messaging/encryption';
 import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -45,52 +42,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Try NestJS API first if available
-  if (API_BASE_URL) {
-    try {
-      const apiToken = await mintApiJWT({
-        userId: user.id || user.email || '',
-        orgId,
-        role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-        sitterId: user.sitterId || null,
-      });
-
-      const apiUrl = `${API_BASE_URL}/api/setup/provider/connect`;
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiToken}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (response.ok) {
-        const responseData = await response.json();
-        // Ensure response matches expected schema
-        if (responseData.success !== undefined && responseData.message !== undefined) {
-          return NextResponse.json(responseData, { status: 200 });
-        }
-        // If API returns different format, normalize it
-        return NextResponse.json({
-          success: true,
-          message: responseData.message || 'Provider credentials saved successfully',
-        }, { status: 200 });
-      }
-    } catch (error: any) {
-      console.warn('[BFF Proxy] Failed to reach API, using fallback:', error.message);
-      // Fall through to Prisma fallback
-    }
-  }
-
-  // Fallback: Direct Prisma implementation
+  // Always use direct Prisma so connect and status use the same DB (dashboard self-contained).
   try {
-    const encryptedConfig = encrypt(JSON.stringify({
-      accountSid: body.accountSid,
-      authToken: body.authToken,
-    }));
+    let encryptedConfig: string;
+    try {
+      encryptedConfig = encrypt(JSON.stringify({
+        accountSid: body.accountSid,
+        authToken: body.authToken,
+      }));
+    } catch (encErr: any) {
+      console.error('[Connect] Encryption failed:', encErr);
+      return NextResponse.json({
+        success: false,
+        message: process.env.NODE_ENV === 'development'
+          ? `Encryption failed: ${encErr?.message}. Set ENCRYPTION_KEY in .env.`
+          : 'Server configuration error. Contact support.',
+        verified: false,
+        ok: false,
+        orgId,
+        checkedAt: new Date().toISOString(),
+      }, { status: 500 });
+    }
 
-    await (prisma as any).providerCredential.upsert({
+    await prisma.providerCredential.upsert({
       where: { orgId },
       update: {
         encryptedConfig,

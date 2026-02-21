@@ -389,6 +389,23 @@ model Alert {
 }
 
 // ============================================
+// PROVIDER CREDENTIALS (Twilio etc.)
+// ============================================
+// Used by Next.js setup routes (connect/status) and provider-credentials.ts.
+// Encrypted at rest; orgId can be "default" or organization id.
+
+model ProviderCredential {
+  id             String   @id @default(uuid())
+  orgId          String   @unique
+  providerType   String   @default("twilio")
+  encryptedConfig String  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([orgId])
+}
+
+// ============================================
 // AUDIT & OBSERVABILITY
 // ============================================
 

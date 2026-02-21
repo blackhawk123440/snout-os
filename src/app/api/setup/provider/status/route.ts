@@ -3,16 +3,12 @@
  * 
  * GET /api/setup/provider/status
  * Returns provider connection status (connected/not connected)
- * Falls back to direct Prisma if NestJS API is not available
+ * Reads from same DB as connect (ProviderCredential) so status matches after connect.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { mintApiJWT } from '@/lib/api/jwt';
-import { prisma } from '@/lib/db';
 import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -27,39 +23,6 @@ export async function GET(request: NextRequest) {
   const user = session.user as any;
   const orgId = user.orgId || 'default';
 
-  // Try NestJS API first if available
-  if (API_BASE_URL) {
-    try {
-      const apiToken = await mintApiJWT({
-        userId: user.id || user.email || '',
-        orgId,
-        role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-        sitterId: user.sitterId || null,
-      });
-
-      const apiUrl = `${API_BASE_URL}/api/setup/provider/status`;
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiToken}`,
-        },
-      });
-
-      if (response.ok) {
-        const responseData = await response.json();
-        // Ensure response matches expected schema
-        if (responseData.connected !== undefined) {
-          return NextResponse.json(responseData, { status: 200 });
-        }
-      }
-    } catch (error: any) {
-      console.warn('[BFF Proxy] Failed to reach API, using fallback:', error.message);
-      // Fall through to Prisma fallback
-    }
-  }
-
-  // Fallback: Direct Prisma implementation
   const checkedAt = new Date().toISOString();
   try {
     const credentials = await getProviderCredentials(orgId);

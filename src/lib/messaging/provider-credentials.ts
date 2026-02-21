@@ -26,35 +26,36 @@ export interface ProviderCredentials {
  * @returns Provider credentials or null if not configured
  */
 export async function getProviderCredentials(orgId: string): Promise<ProviderCredentials | null> {
-  // Note: ProviderCredential model doesn't exist in messaging dashboard schema
-  // Try database first (using type assertion)
-  const credential = await (prisma as any).providerCredential?.findUnique({
-    where: { orgId },
-  }) || null;
+  try {
+    const credential = await prisma.providerCredential.findUnique({
+      where: { orgId },
+    });
 
-  if (credential) {
-    try {
-      const decrypted = decrypt(credential.encryptedConfig);
-      const config = JSON.parse(decrypted);
-      return {
-        accountSid: config.accountSid,
-        authToken: config.authToken,
-        source: 'database',
-      };
-    } catch (error) {
-      console.error('[provider-credentials] Failed to decrypt credentials:', error);
-      // Fall through to env fallback
+  if (!credential) {
+      return env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN
+        ? {
+            accountSid: env.TWILIO_ACCOUNT_SID,
+            authToken: env.TWILIO_AUTH_TOKEN,
+            source: 'environment',
+          }
+        : null;
     }
-  }
-
-  // Fallback to environment variables (development only)
-  if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
+    const decrypted = decrypt(credential.encryptedConfig);
+    const config = JSON.parse(decrypted);
     return {
-      accountSid: env.TWILIO_ACCOUNT_SID,
-      authToken: env.TWILIO_AUTH_TOKEN,
-      source: 'environment',
+      accountSid: config.accountSid,
+      authToken: config.authToken,
+      source: 'database',
     };
+  } catch (error) {
+    console.error('[provider-credentials] Failed to load/decrypt credentials:', error);
+    if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
+      return {
+        accountSid: env.TWILIO_ACCOUNT_SID,
+        authToken: env.TWILIO_AUTH_TOKEN,
+        source: 'environment',
+      };
+    }
+    return null;
   }
-
-  return null;
 }
