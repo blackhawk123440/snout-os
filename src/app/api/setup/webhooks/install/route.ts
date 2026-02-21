@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
 import { getTwilioWebhookUrl, webhookUrlMatches } from '@/lib/setup/webhook-url';
 
@@ -30,9 +31,13 @@ export async function POST(request: NextRequest) {
     const credentials = await getProviderCredentials(orgId);
 
     if (!credentials) {
+      const hasRow = await prisma.providerCredential.findUnique({ where: { orgId }, select: { id: true } }).catch(() => null);
+      const message = hasRow
+        ? 'Credentials could not be read. Save your Account SID and Auth Token again in Connect Provider, then try Install Webhooks.'
+        : 'No credentials found. Connect provider first.';
       return NextResponse.json({
         success: false,
-        message: 'No credentials found. Connect provider first.',
+        message,
         webhookTarget: 'incoming_phone_numbers',
         numbersFetchedCount: 0,
         numbersUpdatedCount: 0,
@@ -63,12 +68,13 @@ export async function POST(request: NextRequest) {
         /authenticat/i.test(twilioErr?.message || '') ||
         twilioErr?.status === 401;
       const message = isAuthError
-        ? 'Twilio rejected the credentials. Check Account SID and Auth Token in Connect Provider, then try again.'
+        ? 'Twilio rejected the credentials. Save your Account SID and Auth Token again in Connect Provider, then click Install Webhooks right after.'
         : twilioErr?.message || 'Failed to list Twilio numbers';
-      console.error('[Webhook Install] Twilio error:', twilioErr?.code, twilioErr?.message);
+      console.error('[Webhook Install] Twilio error:', twilioErr?.code, twilioErr?.message, 'source:', credentials.source, 'orgId:', orgId);
       return NextResponse.json({
         success: false,
         message,
+        credentialSource: credentials.source,
         webhookTarget: 'incoming_phone_numbers',
         numbersFetchedCount: 0,
         numbersUpdatedCount: 0,
