@@ -73,7 +73,7 @@ model Client {
 
 model ClientContact {
   id        String   @id @default(uuid())
-  orgId     String   // Added for org-scoped uniqueness
+  orgId     String   @map("orgId") // Force DB column name (avoids orgld typo in generated client)
   clientId  String
   e164      String   // E.164 format
   label     String?  // e.g., "Mobile", "Home"
