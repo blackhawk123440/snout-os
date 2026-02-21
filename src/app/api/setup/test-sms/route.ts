@@ -6,9 +6,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { chooseFromNumber } from '@/lib/messaging/choose-from-number';
+import { createClientContact, findClientContactByPhone } from '@/lib/messaging/client-contact-lookup';
 import { getMessagingProvider } from '@/lib/messaging/provider-factory';
 
 export async function POST(request: NextRequest) {
@@ -44,38 +46,24 @@ export async function POST(request: NextRequest) {
   try {
     // Find or create a test thread for this destination
     const normalizedPhone = body.destinationE164.startsWith('+') ? body.destinationE164 : `+${body.destinationE164}`;
-    
-    // Find client contact
-    let clientContact = await (prisma as any).clientContact.findFirst({
-      where: {
-        orgId,
-        e164: normalizedPhone,
-      },
-      include: {
-        client: true,
-      },
-    });
 
-    if (!clientContact) {
-      // Create guest client
+    // Find or create client contact (raw SQL to avoid ClientContact.orgld generated-client bug)
+    let clientId: string;
+    const existing = await findClientContactByPhone(orgId, normalizedPhone);
+    if (existing) {
+      clientId = existing.clientId;
+    } else {
       const guestClient = await (prisma as any).client.create({
-        data: {
-          orgId,
-          name: `Test (${normalizedPhone})`,
-        },
+        data: { orgId, name: `Test (${normalizedPhone})` },
       });
-
-      clientContact = await (prisma as any).clientContact.create({
-        data: {
-          orgId,
-          clientId: guestClient.id,
-          e164: normalizedPhone,
-          label: 'Mobile',
-          verified: false,
-        },
-        include: {
-          client: true,
-        },
+      clientId = guestClient.id;
+      await createClientContact({
+        id: randomUUID(),
+        orgId,
+        clientId,
+        e164: normalizedPhone,
+        label: 'Mobile',
+        verified: false,
       });
     }
 
@@ -84,7 +72,7 @@ export async function POST(request: NextRequest) {
       where: {
         orgId_clientId: {
           orgId,
-          clientId: clientContact.client.id,
+          clientId,
         },
       },
     });
@@ -109,13 +97,13 @@ export async function POST(request: NextRequest) {
       thread = await (prisma as any).thread.create({
         data: {
           orgId,
-          clientId: clientContact.client.id,
+          clientId,
           numberId: messageNumber.id,
           threadType: body.fromClass === 'sitter' ? 'assignment' : 'front_desk',
           status: 'active',
           participants: {
             create: [
-              { participantType: 'client', participantId: clientContact.client.id },
+              { participantType: 'client', participantId: clientId },
             ],
           },
         },

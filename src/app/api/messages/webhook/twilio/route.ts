@@ -8,7 +8,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/db';
+import { createClientContact, findClientContactByPhone } from '@/lib/messaging/client-contact-lookup';
 import { TwilioProvider } from '@/lib/messaging/providers/twilio';
 import { getOrgIdFromNumber } from '@/lib/messaging/number-org-mapping';
 import { env } from '@/lib/env';
@@ -122,113 +124,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find client contact by From number
-    const clientContact = await (prisma as any).clientContact.findFirst({
-      where: {
-        orgId,
-        e164: from,
-      },
-      include: {
-        client: true,
-      },
-    });
+    // Find client contact by From number (raw SQL to avoid ClientContact.orgld bug)
+    const existingContact = await findClientContactByPhone(orgId, from);
+    let client: { id: string };
 
-    if (!clientContact) {
+    if (!existingContact) {
       console.warn('[Inbound Webhook] Client contact not found - creating guest', {
         from,
         orgId,
         messageSid,
       });
-      
-      // Create guest client and contact
       const guestClient = await (prisma as any).client.create({
-        data: {
-          orgId,
-          name: `Guest (${from})`,
-        },
+        data: { orgId, name: `Guest (${from})` },
       });
-
-      const newContact = await (prisma as any).clientContact.create({
-        data: {
-          orgId,
-          clientId: guestClient.id,
-          e164: from,
-          label: 'Mobile',
-          verified: false,
-        },
-        include: {
-          client: true,
-        },
-      });
-
-      // Use new contact
-      const resolvedContact = newContact;
-      const client = guestClient;
-
-      // Find or create thread
-      let thread = await (prisma as any).thread.findUnique({
-        where: {
-          orgId_clientId: {
-            orgId,
-            clientId: client.id,
-          },
-        },
-      });
-
-      if (!thread) {
-        thread = await (prisma as any).thread.create({
-          data: {
-            orgId,
-            clientId: client.id,
-            numberId: messageNumber.id,
-            threadType: messageNumber.class === 'sitter' ? 'assignment' : 'front_desk',
-            status: 'active',
-            participants: {
-              create: [
-                { participantType: 'client', participantId: client.id },
-              ],
-            },
-          },
-        });
-      }
-
-      // Create inbound message
-      const message = await (prisma as any).message.create({
-        data: {
-          orgId,
-          threadId: thread.id,
-          direction: 'inbound',
-          senderType: 'client',
-          senderId: client.id,
-          body: messageBody,
-          providerMessageSid: messageSid,
-        },
-      });
-
-      // Update thread activity
-      await (prisma as any).thread.update({
-        where: { id: thread.id },
-        data: {
-          lastActivityAt: new Date(),
-        },
-      });
-
-      console.log('[Inbound Webhook] Message stored', {
-        messageId: message.id,
-        threadId: thread.id,
+      await createClientContact({
+        id: randomUUID(),
         orgId,
-        messageSid,
+        clientId: guestClient.id,
+        e164: from,
+        label: 'Mobile',
+        verified: false,
       });
-
-      return NextResponse.json({
-        received: true,
-        messageId: message.id,
-        threadId: thread.id,
-      }, { status: 200 });
+      client = guestClient;
+    } else {
+      const fetched = await (prisma as any).client.findUnique({
+        where: { id: existingContact.clientId },
+      });
+      if (!fetched) throw new Error(`Client ${existingContact.clientId} not found`);
+      client = fetched;
     }
 
-    // Client contact exists - find or create thread
-    const client = clientContact.client;
+    // Find or create thread
 
     // Find thread (one per org+client)
     let thread = await (prisma as any).thread.findUnique({
