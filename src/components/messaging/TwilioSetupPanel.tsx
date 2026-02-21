@@ -27,6 +27,13 @@ const providerStatusSchema = z.object({
   errorDetail: z.string().optional(),
 }).passthrough();
 
+const webhookNumberInfoSchema = z.object({
+  phoneNumberSid: z.string(),
+  e164: z.string(),
+  smsUrl: z.string().nullable(),
+  verified: z.boolean(),
+}).passthrough();
+
 const webhookStatusSchema = z.object({
   installed: z.boolean(),
   url: z.string().nullable(),
@@ -35,7 +42,9 @@ const webhookStatusSchema = z.object({
   checkedAt: z.string().optional(),
   verified: z.boolean().optional(),
   errorDetail: z.string().optional(),
-  webhookUrlExpected: z.string().optional(),
+  webhookUrlExpected: z.string().nullable().optional(),
+  matchedNumbers: z.array(webhookNumberInfoSchema).optional(),
+  unmatchedNumbers: z.array(webhookNumberInfoSchema).optional(),
 }).passthrough();
 
 const readinessSchema = z.object({
@@ -86,6 +95,14 @@ const connectResponseSchema = z.object({
   checkedAt: z.string().optional(),
 }).passthrough();
 
+const updatedNumberSchema = z.object({
+  phoneNumberSid: z.string(),
+  e164: z.string(),
+  oldSmsUrl: z.string().nullable(),
+  newSmsUrl: z.string(),
+  verified: z.boolean(),
+}).passthrough();
+
 const installResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
@@ -94,6 +111,8 @@ const installResponseSchema = z.object({
   webhookUrlConfigured: z.boolean().optional(),
   orgId: z.string().optional(),
   checkedAt: z.string().optional(),
+  updatedNumbers: z.array(updatedNumberSchema).optional(),
+  webhookUrlExpected: z.string().optional(),
 }).passthrough();
 
 function useConnectProvider() {
@@ -347,6 +366,9 @@ export function TwilioSetupPanel() {
               Installed ✓
             </Badge>
             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+              {(webhookStatus.matchedNumbers?.length ?? 0) > 0 && (
+                <div>Installed on {webhookStatus.matchedNumbers!.length} number{webhookStatus.matchedNumbers!.length !== 1 ? 's' : ''}</div>
+              )}
               <div>URL: <code style={{ fontFamily: 'monospace', fontSize: '11px' }}>{webhookStatus.url || 'Not set'}</code></div>
               {webhookStatus.checkedAt && (
                 <div>Last checked: {new Date(webhookStatus.checkedAt).toLocaleString()}</div>
@@ -365,6 +387,11 @@ export function TwilioSetupPanel() {
                 {webhookStatus.errorDetail}
               </p>
             )}
+            {webhookStatus?.unmatchedNumbers?.length ? (
+              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: '#dc2626', marginTop: tokens.spacing[2] }}>
+                First mismatch: {webhookStatus.unmatchedNumbers[0].e164} → {webhookStatus.unmatchedNumbers[0].smsUrl || 'not set'}
+              </p>
+            ) : null}
             <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
               Install webhooks to receive inbound messages
             </p>

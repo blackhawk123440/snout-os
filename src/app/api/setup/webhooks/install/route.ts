@@ -2,8 +2,9 @@
  * Install Webhooks Route
  * 
  * POST /api/setup/webhooks/install
- * Configures webhooks on Twilio incoming phone numbers (same object status checks).
- * Verifies by re-fetching numbers and checking smsUrl matches expected.
+ * Configures webhooks on Twilio IncomingPhoneNumbers (per-number smsUrl), not Messaging Service.
+ * Returns updatedNumbers[], numbersFetchedCount, numbersUpdatedCount, accountSidMasked, firstTwilioError.
+ * 409 when numbersFetchedCount === 0 (no Twilio numbers for this account).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -74,29 +75,59 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         message: 'No credentials found. Connect provider first.',
+        webhookTarget: 'incoming_phone_numbers',
+        numbersFetchedCount: 0,
+        numbersUpdatedCount: 0,
+        accountSidMasked: null,
+        firstTwilioError: null,
         url: null,
         verified: false,
         webhookUrlConfigured: false,
         orgId,
         checkedAt,
+        updatedNumbers: [],
       }, { status: 400 });
     }
 
-    const webhookUrl = getTwilioWebhookUrl();
+    const newSmsUrl = getTwilioWebhookUrl();
     const twilio = require('twilio');
     const client = twilio(credentials.accountSid, credentials.authToken);
+    const accountSidMasked = credentials.accountSid
+      ? `${credentials.accountSid.substring(0, 4)}...${credentials.accountSid.substring(credentials.accountSid.length - 4)}`
+      : null;
 
     const incomingNumbers = await client.incomingPhoneNumbers.list({ limit: 100 });
-    let configuredCount = 0;
-    const errors: string[] = [];
+    const numbersFetchedCount = incomingNumbers.length;
 
+    if (numbersFetchedCount === 0) {
+      return NextResponse.json({
+        success: false,
+        message: 'No Twilio numbers found for this account',
+        webhookTarget: 'incoming_phone_numbers',
+        numbersFetchedCount: 0,
+        numbersUpdatedCount: 0,
+        accountSidMasked,
+        firstTwilioError: null,
+        url: null,
+        verified: false,
+        orgId,
+        checkedAt,
+        updatedNumbers: [],
+      }, { status: 409 });
+    }
+
+    const beforeMap = new Map<string, string | null>();
+    for (const n of incomingNumbers) beforeMap.set(n.sid, n.smsUrl ?? null);
+
+    const errors: string[] = [];
+    let numbersUpdatedCount = 0;
     for (const number of incomingNumbers) {
       try {
         await client.incomingPhoneNumbers(number.sid).update({
-          smsUrl: webhookUrl,
+          smsUrl: newSmsUrl,
           smsMethod: 'POST',
         });
-        configuredCount++;
+        numbersUpdatedCount++;
       } catch (error: any) {
         const msg = `${number.phoneNumber}: ${error?.message || 'Unknown error'}`;
         console.error('[Webhook Install]', msg);
@@ -104,32 +135,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (configuredCount === 0) {
-      return NextResponse.json({
-        success: false,
-        message: errors.length ? errors[0] : 'No phone numbers found to configure',
-        url: null,
-        verified: false,
-        webhookUrlConfigured: false,
-        orgId,
-        checkedAt,
-        details: { errors },
-      }, { status: 400 });
+    // Re-fetch and build updatedNumbers with per-number verified (same normalization as status)
+    const after = await client.incomingPhoneNumbers.list({ limit: 100 });
+    const updatedNumbers: Array<{
+      phoneNumberSid: string;
+      e164: string;
+      oldSmsUrl: string | null;
+      newSmsUrl: string;
+      verified: boolean;
+    }> = [];
+    for (const n of after) {
+      const oldSmsUrl = beforeMap.get(n.sid) ?? null;
+      const verified = webhookUrlMatches(n.smsUrl);
+      updatedNumbers.push({
+        phoneNumberSid: n.sid,
+        e164: n.phoneNumber || '',
+        oldSmsUrl,
+        newSmsUrl,
+        verified,
+      });
     }
-
-    // Verify: re-fetch numbers and confirm at least one has our webhook URL (same check as status)
-    let verified = false;
-    try {
-      const after = await client.incomingPhoneNumbers.list({ limit: 20 });
-      for (const n of after) {
-        if (webhookUrlMatches(n.smsUrl)) {
-          verified = true;
-          break;
-        }
-      }
-    } catch (verifyErr: any) {
-      console.error('[Webhook Install] Verify step failed:', verifyErr);
-    }
+    const verified = updatedNumbers.some((u) => u.verified);
+    const configuredCount = updatedNumbers.length;
+    const firstTwilioError = errors[0] ?? null;
 
     return NextResponse.json({
       success: errors.length === 0,
@@ -138,11 +166,18 @@ export async function POST(request: NextRequest) {
         : errors.length
           ? `Configured ${configuredCount} number(s) but some failed; verification ${verified ? 'passed' : 'failed'}`
           : `Configured ${configuredCount} number(s); verification ${verified ? 'passed' : 'failed'}`,
-      url: webhookUrl,
+      webhookTarget: 'incoming_phone_numbers',
+      numbersFetchedCount,
+      numbersUpdatedCount,
+      accountSidMasked,
+      firstTwilioError,
+      url: newSmsUrl,
       verified,
       webhookUrlConfigured: verified,
       orgId,
       checkedAt,
+      updatedNumbers,
+      webhookUrlExpected: newSmsUrl,
       details: errors.length ? { configuredCount, errors } : undefined,
     }, { status: 200 });
   } catch (error: any) {
@@ -150,11 +185,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: false,
       message: error.message || 'Failed to install webhooks',
+      webhookTarget: 'incoming_phone_numbers',
+      numbersFetchedCount: 0,
+      numbersUpdatedCount: 0,
+      accountSidMasked: null,
+      firstTwilioError: error?.message ?? null,
       url: null,
       verified: false,
       webhookUrlConfigured: false,
       orgId,
       checkedAt: new Date().toISOString(),
+      updatedNumbers: [],
     }, { status: 500 });
   }
 }

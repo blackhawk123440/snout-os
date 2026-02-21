@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
 import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
-import { getTwilioWebhookUrl, webhookUrlMatches } from '@/lib/setup/webhook-url';
+import { getWebhookStatusForOrg } from '@/lib/setup/webhook-status';
 import { prisma } from '@/lib/db';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -99,22 +99,14 @@ export async function GET(request: NextRequest) {
 
     let webhooksReady = false;
     let webhooksMessage = 'Webhooks not installed';
-    if (credentials) {
-      try {
-        const twilio = require('twilio');
-        const client = twilio(credentials.accountSid, credentials.authToken);
-        const incomingNumbers = await client.incomingPhoneNumbers.list({ limit: 20 });
-        for (const number of incomingNumbers) {
-          if (webhookUrlMatches(number.smsUrl)) {
-            webhooksReady = true;
-            webhooksMessage = 'Webhooks installed';
-            break;
-          }
-        }
-        if (!webhooksReady) webhooksMessage = 'Webhooks not installed. Click "Install Webhooks" to configure.';
-      } catch (err: any) {
-        webhooksMessage = err?.message || 'Error checking webhooks';
-      }
+    const webhookStatus = await getWebhookStatusForOrg(orgId);
+    if (webhookStatus) {
+      webhooksReady = webhookStatus.installed;
+      webhooksMessage = webhookStatus.installed
+        ? 'Webhooks installed'
+        : webhookStatus.unmatchedNumbers.length > 0
+          ? 'Webhooks not installed. Click "Install Webhooks" to configure.'
+          : 'No phone numbers to configure.';
     } else {
       webhooksMessage = 'Provider not connected';
     }

@@ -2,6 +2,10 @@
 
 This document defines how the Twilio Setup tab (`/messages?tab=setup`) behaves and how to verify it. Success is only shown when backend + DB + Twilio state are actually correct.
 
+## Twilio object used
+
+We configure and check **IncomingPhoneNumbers** (per-number `smsUrl`), **not** Messaging Service. All install and status logic uses `client.incomingPhoneNumbers.list()` and `client.incomingPhoneNumbers(sid).update({ smsUrl, smsMethod })`. If you need Messaging Service inbound URL instead, install/status would need to be implemented against the service SID and its inbound request URL.
+
 ## Exact network calls
 
 | Action | Method | Endpoint | When |
@@ -51,11 +55,13 @@ After Connect: UI refetches `provider/status` and `readiness`. After Install: UI
 
 - `installed: boolean`
 - `url: string | null`
-- `status: 'installed' | 'not_installed' | 'error' | 'not_configured'`
-- `checkedAt?: string`
-- `verified?: boolean`
-- `errorDetail?: string`
-- `webhookUrlExpected?: string`
+- `status: 'installed' | 'not_installed' | 'error' | 'not_configured' | 'no_numbers'`
+- `webhookTarget: 'incoming_phone_numbers'` — we use Twilio **IncomingPhoneNumbers** (per-number smsUrl), not Messaging Service
+- `numbersFetchedCount: number` — total from `IncomingPhoneNumbers.list()`
+- `accountSidMasked: string | null`
+- `firstTwilioError: string | null` — first Twilio API error if any
+- `checkedAt?: string`, `verified?: boolean`, `errorDetail?: string`, `webhookUrlExpected`, `matchedNumbers[]`, `unmatchedNumbers[]`
+- **409** when `numbersFetchedCount === 0`: body `message: "No Twilio numbers found for this account"` — UI must not toast success
 
 ### POST /api/setup/provider/connect
 
@@ -68,14 +74,13 @@ After Connect: UI refetches `provider/status` and `readiness`. After Install: UI
 
 ### POST /api/setup/webhooks/install
 
-- `success: boolean`
-- `message: string`
-- `url?: string | null`
-- `verified?: boolean` — true when at least one number has smsUrl matching expected
-- `webhookUrlConfigured?: boolean`
-- `orgId?: string`
-- `checkedAt?: string`
-- `details?: { configuredCount?, errors? }`
+- `webhookTarget: 'incoming_phone_numbers'` — IncomingPhoneNumbers only (not Messaging Service)
+- `numbersFetchedCount: number` — count from `IncomingPhoneNumbers.list()` before update
+- `numbersUpdatedCount: number` — count of numbers successfully updated
+- `accountSidMasked: string | null`
+- `firstTwilioError: string | null` — first error from Twilio during update (if any)
+- `success: boolean`, `message: string`, `url?: string | null`, `verified?: boolean`, `webhookUrlConfigured?: boolean`, `orgId?: string`, `checkedAt?: string`, `updatedNumbers[]`, `details?`
+- **409** when `numbersFetchedCount === 0`: `message: "No Twilio numbers found for this account"` — do not toast success
 
 ### GET /api/ops/twilio-setup-diagnostics (owner, non-prod)
 
