@@ -10,6 +10,7 @@ import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
 import { prisma } from '@/lib/db';
 import { chooseFromNumber } from '@/lib/messaging/choose-from-number';
+import { getClientE164ForClient } from '@/lib/messaging/client-contact-lookup';
 import { getMessagingProvider } from '@/lib/messaging/provider-factory';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -214,9 +215,7 @@ export async function POST(
       where: { id: threadId },
       include: {
         messageNumber: true,
-        client: {
-          include: { contacts: true },
-        },
+        client: { select: { id: true, name: true } },
         sitter: true,
         assignmentWindows: {
           where: {
@@ -315,9 +314,9 @@ export async function POST(
       routingTrace: routingResult.routingTrace,
     });
 
-    // Get recipient E164
-    const clientContact = thread.client.contacts?.[0];
-    if (!clientContact?.e164) {
+    // Get recipient E164 (raw SQL to avoid ClientContact.orgld)
+    const toE164 = await getClientE164ForClient(thread.orgId, thread.clientId);
+    if (!toE164) {
       return NextResponse.json(
         { error: 'Client contact not found' },
         { status: 400 }
@@ -327,7 +326,7 @@ export async function POST(
     // Send via provider with explicit E164
     const provider = await getMessagingProvider(orgId);
     const sendResult = await provider.sendMessage({
-      to: clientContact.e164,
+      to: toE164,
       fromE164: routingResult.e164, // Use actual E164 from chosen number
       fromNumberSid: undefined, // Not needed when E164 is provided
       body: messageBody,
@@ -337,7 +336,7 @@ export async function POST(
     console.log('[Send Message] Twilio send result', {
       orgId,
       threadId,
-      to: clientContact.e164,
+      to: toE164,
       from: routingResult.e164,
       success: sendResult.success,
       messageSid: sendResult.messageSid,
@@ -350,7 +349,7 @@ export async function POST(
       console.error('[Send Message] Twilio send failed', {
         orgId,
         threadId,
-        to: clientContact.e164,
+        to: toE164,
         from: routingResult.e164,
         errorCode: sendResult.errorCode,
         errorMessage: sendResult.errorMessage,

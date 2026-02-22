@@ -31,6 +31,21 @@ export async function findClientContactByPhone(
 }
 
 /**
+ * Get the first E.164 for a client (by orgId + clientId). Uses raw SQL to avoid ClientContact.orgld.
+ */
+export async function getClientE164ForClient(
+  orgId: string,
+  clientId: string
+): Promise<string | null> {
+  const rows = await prisma.$queryRawUnsafe<{ e164: string }[]>(
+    'SELECT e164 FROM "ClientContact" WHERE "orgId" = $1 AND "clientId" = $2 LIMIT 1',
+    orgId,
+    clientId
+  );
+  return rows[0]?.e164 ?? null;
+}
+
+/**
  * Insert a ClientContact. Uses $executeRawUnsafe so the "orgId" column is used
  * and Prisma does not rewrite to "orgld".
  */

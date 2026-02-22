@@ -49,18 +49,7 @@ export async function GET(request: NextRequest) {
         },
       },
       include: {
-        client: {
-          include: {
-            contacts: {
-              where: {
-                orgId,
-              },
-              select: {
-                e164: true, // Only return E164, not full contact (privacy)
-              },
-            },
-          },
-        },
+        client: { select: { id: true, name: true } },
         messageNumber: {
           select: {
             id: true,
@@ -82,13 +71,10 @@ export async function GET(request: NextRequest) {
       orderBy: { lastActivityAt: 'desc' },
     });
 
-    // Transform to hide client E164 from sitter
+    // Sitter never sees client phone (no contacts included; ClientContact avoided for orgld bug)
     const transformedThreads = threads.map((thread: any) => ({
       ...thread,
-      client: {
-        ...thread.client,
-        contacts: [], // Remove E164 - sitter should never see client phone
-      },
+      client: { ...thread.client, contacts: [] },
     }));
 
     return NextResponse.json(transformedThreads, { status: 200 });

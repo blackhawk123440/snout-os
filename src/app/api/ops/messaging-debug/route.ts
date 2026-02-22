@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getClientE164ForClient } from '@/lib/messaging/client-contact-lookup';
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -51,18 +52,9 @@ export async function GET(request: NextRequest) {
             thread: {
               select: {
                 id: true,
-                client: {
-                  select: {
-                    id: true,
-                    name: true,
-                    contacts: {
-                      select: {
-                        e164: true,
-                      },
-                      take: 1,
-                    },
-                  },
-                },
+                orgId: true,
+                clientId: true,
+                client: { select: { id: true, name: true } },
               },
             },
           },
@@ -70,12 +62,20 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Resolve toE164 per thread (raw SQL to avoid ClientContact.orgld)
+    const toE164ByThread = new Map<string, string | null>();
+    for (const d of deliveries) {
+      const thread = d.message?.thread;
+      if (!thread?.id || toE164ByThread.has(thread.id)) continue;
+      const e164 = await getClientE164ForClient(thread.orgId, thread.clientId);
+      toE164ByThread.set(thread.id, e164);
+    }
+
     // Transform to include fromE164 and toE164
     const transformedDeliveries = deliveries.map((delivery: any) => {
       const message = delivery.message;
       const thread = message?.thread;
-      const clientContact = thread?.client?.contacts?.[0];
-      
+
       return {
         id: delivery.id,
         createdAt: delivery.createdAt,
@@ -84,8 +84,8 @@ export async function GET(request: NextRequest) {
         providerMessageSid: message?.providerMessageSid,
         errorCode: delivery.providerErrorCode,
         errorMessage: delivery.providerErrorMessage,
-        fromE164: null, // We don't store this in MessageDelivery, need to get from thread's number
-        toE164: clientContact?.e164 || null,
+        fromE164: null,
+        toE164: thread?.id ? toE164ByThread.get(thread.id) ?? null : null,
         threadId: message?.threadId,
         messageId: message?.id,
       };

@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { chooseFromNumber } from '@/lib/messaging/choose-from-number';
+import { getClientE164ForClient } from '@/lib/messaging/client-contact-lookup';
 import { getMessagingProvider } from '@/lib/messaging/provider-factory';
 
 export async function GET(
@@ -128,9 +129,7 @@ export async function POST(
     const thread = await (prisma as any).thread.findUnique({
       where: { id: threadId },
       include: {
-        client: {
-          include: { contacts: true },
-        },
+        client: { select: { id: true, name: true } },
         assignmentWindows: {
           where: {
             sitterId,
@@ -227,9 +226,9 @@ export async function POST(
       reason: routingResult.reason,
     });
 
-    // Get recipient E164
-    const clientContact = thread.client.contacts?.[0];
-    if (!clientContact?.e164) {
+    // Get recipient E164 (raw SQL to avoid ClientContact.orgld)
+    const toE164 = await getClientE164ForClient(thread.orgId, thread.clientId);
+    if (!toE164) {
       return NextResponse.json(
         { error: 'Client contact not found' },
         { status: 400 }
@@ -239,7 +238,7 @@ export async function POST(
     // Send via provider with explicit E164
     const provider = await getMessagingProvider(orgId);
     const sendResult = await provider.sendMessage({
-      to: clientContact.e164,
+      to: toE164,
       fromE164: routingResult.e164, // Use actual E164 from chosen number
       body: messageBody,
     });
@@ -249,7 +248,7 @@ export async function POST(
       orgId,
       sitterId,
       threadId,
-      to: clientContact.e164,
+      to: toE164,
       from: routingResult.e164,
       success: sendResult.success,
       messageSid: sendResult.messageSid,
@@ -262,7 +261,7 @@ export async function POST(
         orgId,
         sitterId,
         threadId,
-        to: clientContact.e164,
+        to: toE164,
         from: routingResult.e164,
         errorCode: sendResult.errorCode,
         errorMessage: sendResult.errorMessage,
