@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
+import { normalizeE164 } from '@/lib/messaging/phone-utils';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -52,9 +53,7 @@ export async function POST(request: NextRequest) {
 
     let index = 0;
     for (const n of list) {
-      const e164 = (n.phoneNumber || '').toString().startsWith('+')
-        ? (n.phoneNumber || '').toString()
-        : `+${(n.phoneNumber || '').toString()}`;
+      const e164 = normalizeE164((n.phoneNumber || '').toString());
       const numberClass = index === 0 ? 'front_desk' : 'pool';
       await (prisma as any).messageNumber.upsert({
         where: { e164 },

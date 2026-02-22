@@ -13,6 +13,7 @@ import { prisma } from '@/lib/db';
 import { createClientContact, findClientContactByPhone } from '@/lib/messaging/client-contact-lookup';
 import { TwilioProvider } from '@/lib/messaging/providers/twilio';
 import { getOrgIdFromNumber } from '@/lib/messaging/number-org-mapping';
+import { normalizeE164 } from '@/lib/messaging/phone-utils';
 import { env } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
@@ -102,11 +103,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find the message number (To number)
+    // Find the message number (To number); normalize E.164 so sitter/masked numbers match
+    const toNorm = normalizeE164(to);
     const messageNumber = await (prisma as any).messageNumber.findFirst({
       where: {
         orgId,
-        e164: to,
+        OR: [{ e164: toNorm }, { e164: to }],
         status: 'active',
       },
     });

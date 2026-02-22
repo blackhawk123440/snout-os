@@ -5,6 +5,7 @@
  */
 
 import { prisma } from '@/lib/db';
+import { normalizeE164 } from './phone-utils';
 
 /**
  * Get sitter ID from Twilio phone number (E.164 format)
@@ -15,14 +16,15 @@ import { prisma } from '@/lib/db';
  * @returns Sitter ID if number is assigned to a sitter, null otherwise
  */
 export async function getSitterIdFromNumber(toNumberE164: string): Promise<string | null> {
+  const normalized = normalizeE164(toNumberE164);
   const messageNumber = await (prisma as any).messageNumber.findFirst({
     where: {
-      e164: toNumberE164,
+      OR: [{ e164: normalized }, { e164: toNumberE164 }],
       status: 'active',
     },
     select: {
       assignedSitterId: true,
-      numberClass: true,
+      class: true,
     },
   });
 
@@ -30,8 +32,8 @@ export async function getSitterIdFromNumber(toNumberE164: string): Promise<strin
     return null;
   }
 
-  // Only return sitterId if number class is 'sitter'
-  if (messageNumber.numberClass === 'sitter' && messageNumber.assignedSitterId) {
+  // Enterprise schema uses "class" not "numberClass"
+  if (messageNumber.class === 'sitter' && messageNumber.assignedSitterId) {
     return messageNumber.assignedSitterId;
   }
 
@@ -39,41 +41,8 @@ export async function getSitterIdFromNumber(toNumberE164: string): Promise<strin
 }
 
 /**
- * Get sitter ID from masked number via SitterMaskedNumber
- * 
- * Alternative lookup path for sitter-assigned numbers.
+ * Get sitter ID from masked number (same as getSitterIdFromNumber; enterprise schema has no SitterMaskedNumber).
  */
 export async function getSitterIdFromMaskedNumber(toNumberE164: string): Promise<string | null> {
-  // First try MessageNumber lookup
-  const sitterId = await getSitterIdFromNumber(toNumberE164);
-  if (sitterId) {
-    return sitterId;
-  }
-
-  // Fallback: Check SitterMaskedNumber via MessageNumber relation
-  const messageNumber = await (prisma as any).messageNumber.findFirst({
-    where: {
-      e164: toNumberE164,
-      status: 'active',
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (!messageNumber) {
-    return null;
-  }
-
-  const sitterMaskedNumber = await (prisma as any).sitterMaskedNumber.findFirst({
-    where: {
-      messageNumberId: messageNumber.id,
-      status: 'active',
-    },
-    select: {
-      sitterId: true,
-    },
-  });
-
-  return sitterMaskedNumber?.sitterId || null;
+  return getSitterIdFromNumber(toNumberE164);
 }

@@ -12,6 +12,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
 import { getTwilioWebhookUrl, webhookUrlMatches } from '@/lib/setup/webhook-url';
+import { normalizeE164 } from '@/lib/messaging/phone-utils';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
       });
       let index = 0;
       for (const u of updatedNumbers) {
-        const e164 = u.e164.startsWith('+') ? u.e164 : `+${u.e164}`;
+        const e164 = normalizeE164(u.e164);
         const numberClass = index === 0 ? 'front_desk' : 'pool';
         await (prisma as any).messageNumber.upsert({
           where: { e164 },

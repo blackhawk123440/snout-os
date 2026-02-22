@@ -7,22 +7,22 @@
 
 import { prisma } from '@/lib/db';
 import { NotFoundError } from './errors';
+import { normalizeE164 } from './phone-utils';
 
 /**
  * Get organization ID from a Twilio phone number (E.164 format)
  * 
- * This function looks up the MessageNumber record for the given phone number
- * and returns its associated orgId.
+ * Normalizes the input so +12562039373 and 2562039373 both match.
  * 
- * @param toNumberE164 - The "to" phone number in E.164 format (e.g., +15551234567)
+ * @param toNumberE164 - The "to" phone number (e.g., +12562039373 or 2562039373)
  * @returns Organization ID
  * @throws NotFoundError if the number is not found or inactive
  */
 export async function getOrgIdFromNumber(toNumberE164: string): Promise<string> {
-  // Find the MessageNumber record for this phone number
+  const normalized = normalizeE164(toNumberE164);
   const messageNumber = await prisma.messageNumber.findFirst({
     where: {
-      e164: toNumberE164,
+      OR: [{ e164: normalized }, { e164: toNumberE164 }],
       status: 'active',
     },
     select: {
