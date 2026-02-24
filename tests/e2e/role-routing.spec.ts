@@ -20,8 +20,7 @@
 
 import { test, expect } from '@playwright/test';
 
-// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000';
 
 test.describe('Role-Based Routing', () => {
   test('Owner login redirects to /dashboard', async ({ page }) => {

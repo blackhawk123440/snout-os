@@ -42,7 +42,7 @@ async function getTwilioClient(orgId?: string): Promise<any> {
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
     const twilio = require('twilio');
     twilioLib = twilio;
     
@@ -86,7 +86,7 @@ export class TwilioProvider implements MessagingProvider {
 
   constructor(webhookAuthToken?: string, orgId?: string) {
     // Use provided token or fall back to env var
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
     const { env } = require('@/lib/env');
     this.webhookAuthToken = webhookAuthToken || env.TWILIO_WEBHOOK_AUTH_TOKEN || '';
     this.orgId = orgId;
@@ -105,7 +105,7 @@ export class TwilioProvider implements MessagingProvider {
 
     try {
       // Webhook verification doesn't need credentials, just the library
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
       const twilio = require('twilio');
       // Twilio webhook signature verification uses crypto
       // Use Twilio's validateRequest method from twilio library
@@ -214,7 +214,7 @@ export class TwilioProvider implements MessagingProvider {
         fromNumber = (options as any).fromE164;
       } else {
         // Fallback to env vars (for backward compatibility)
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
         const { env } = require('@/lib/env');
         fromNumber = env.TWILIO_MESSAGING_SERVICE_SID || env.TWILIO_PHONE_NUMBER || '';
       }
@@ -277,7 +277,7 @@ export class TwilioProvider implements MessagingProvider {
 
   async createSession(options: CreateSessionOptions): Promise<CreateSessionResult> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
       const { env } = require('@/lib/env');
       const client = await getTwilioClient(this.orgId);
 
@@ -322,7 +322,7 @@ export class TwilioProvider implements MessagingProvider {
 
   async createParticipant(options: CreateParticipantOptions): Promise<CreateParticipantResult> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
       const { env } = require('@/lib/env');
       const client = await getTwilioClient(this.orgId);
       const proxyServiceSid = env.TWILIO_PROXY_SERVICE_SID;
@@ -366,7 +366,7 @@ export class TwilioProvider implements MessagingProvider {
 
   async sendViaProxy(options: SendViaProxyOptions): Promise<SendViaProxyResult> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
       const { env } = require('@/lib/env');
       const client = await getTwilioClient(this.orgId);
       const proxyServiceSid = env.TWILIO_PROXY_SERVICE_SID;
@@ -405,7 +405,7 @@ export class TwilioProvider implements MessagingProvider {
 
   async updateSessionParticipants(options: UpdateSessionParticipantsOptions): Promise<{ success: boolean; error?: string }> {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
       const { env } = require('@/lib/env');
       const client = await getTwilioClient(this.orgId);
       const proxyServiceSid = env.TWILIO_PROXY_SERVICE_SID;

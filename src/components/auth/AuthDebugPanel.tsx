@@ -62,11 +62,6 @@ export function AuthDebugPanel() {
   const [cookies, setCookies] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Only show for owners in development
-  if (process.env.NODE_ENV !== 'development' && !isOwner) {
-    return null;
-  }
-
   useEffect(() => {
     checkAuthState();
     checkCookies();
@@ -154,6 +149,10 @@ export function AuthDebugPanel() {
     c.startsWith('next-auth.session-token') || 
     c.startsWith('__Secure-next-auth.session-token')
   );
+
+  if (process.env.NODE_ENV !== 'development' && !isOwner) {
+    return null;
+  }
 
   return (
     <Card
