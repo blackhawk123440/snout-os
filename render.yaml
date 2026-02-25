@@ -13,8 +13,8 @@ services:
     plan: starter
     region: oregon
     rootDir: .
-    buildCommand: pnpm install && prisma generate --schema=prisma/schema.prisma && prisma db push --accept-data-loss && next build
-    startCommand: next start
+    buildCommand: npm install && npm run build
+    startCommand: npx prisma db push --accept-data-loss && npm run start
     envVars:
       - key: NODE_ENV
         value: production
@@ -27,6 +27,8 @@ services:
         generateValue: true
       - key: NEXT_PUBLIC_ENABLE_MESSAGING_V1
         value: "true"
+      - key: OPENAI_API_KEY
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: snout-os-db
