@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 /**
  * POST /api/bookings/[id]/daily-delight
  * Generate and store an AI Daily Delight report for a pet on this booking.
+ * Optionally sends the report via SMS to the client (when Twilio is configured).
  * Body: { petId?: string } — if omitted, uses the booking's first pet.
  */
 export async function POST(
@@ -27,7 +28,7 @@ export async function POST(
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    include: { pets: true },
+    include: { pets: true, client: true },
   });
 
   if (!booking) {
@@ -43,5 +44,33 @@ export async function POST(
   }
 
   const report = await ai.generateDailyDelight(petId, bookingId);
+
+  // Auto-send report via SMS when Twilio is configured
+  const client = booking.client;
+  const clientPhone = client?.phone?.trim();
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+
+  if (accountSid && fromNumber && clientPhone && report) {
+    try {
+      const twilio = require('twilio') as typeof import('twilio');
+      const authToken = process.env.TWILIO_AUTH_TOKEN;
+      if (authToken) {
+        const clientName = client
+          ? `${client.firstName} ${client.lastName}`.trim() || 'Your sitter'
+          : 'Your sitter';
+        const smsBody = `🐾 Daily Delight from ${clientName}'s sitter:\n\n${report}\n\n- Snout OS`;
+        const twilioClient = twilio(accountSid, authToken);
+        await twilioClient.messages.create({
+          body: smsBody,
+          from: fromNumber,
+          to: clientPhone.startsWith('+') ? clientPhone : `+1${clientPhone.replace(/\D/g, '')}`,
+        });
+      }
+    } catch (e) {
+      console.error('[daily-delight] SMS send failed (non-blocking):', e);
+    }
+  }
+
   return NextResponse.json({ report });
 }

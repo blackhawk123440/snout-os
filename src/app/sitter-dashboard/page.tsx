@@ -24,6 +24,7 @@ import {
   Flex,
   Grid,
   GridCol,
+  useToast,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -130,6 +131,8 @@ function SitterDashboardContent() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [acceptingJobId, setAcceptingJobId] = useState<string | null>(null);
+  const [sendingDelightBookingId, setSendingDelightBookingId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (sitterId) {
@@ -153,6 +156,28 @@ function SitterDashboardContent() {
       console.error("Failed to fetch dashboard data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendDelight = async (bookingId: string) => {
+    setSendingDelightBookingId(bookingId);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/daily-delight`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast({ message: data.error || 'Failed to send Daily Delight', variant: 'error' });
+        return;
+      }
+      const report = data.report;
+      showToast({
+        message: report ? `Daily Delight sent! ${report}` : 'Daily Delight sent to client!',
+        variant: 'success',
+        duration: 6000,
+      });
+    } catch {
+      showToast({ message: 'Failed to send Daily Delight', variant: 'error' });
+    } finally {
+      setSendingDelightBookingId(null);
     }
   };
 
@@ -1106,6 +1131,16 @@ function SitterDashboardContent() {
                                       {formatTime(job.timeSlots[0].startAt)}
                                     </div>
                                   )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => { e.stopPropagation(); handleSendDelight(job.bookingId); }}
+                                    disabled={sendingDelightBookingId === job.bookingId}
+                                    className="text-amber-500 border-amber-500 hover:bg-amber-500 hover:text-black"
+                                    style={{ marginTop: tokens.spacing[1], fontSize: tokens.typography.fontSize.xs[0], padding: '2px 6px' }}
+                                  >
+                                    {sendingDelightBookingId === job.bookingId ? '…' : '✨ Delight'}
+                                  </Button>
                                 </Card>
                               ))}
                             </Flex>
@@ -1168,6 +1203,14 @@ function SitterDashboardContent() {
                             {/* Status and Sitter Pool Controls - Desktop */}
                             <div style={{ marginTop: tokens.spacing[3] }}>
                               <Flex gap={2} wrap>
+                                <Button
+                                  onClick={() => handleSendDelight(job.bookingId)}
+                                  variant="outline"
+                                  disabled={sendingDelightBookingId === job.bookingId}
+                                  className="text-amber-500 border-amber-500 hover:bg-amber-500 hover:text-black"
+                                >
+                                  {sendingDelightBookingId === job.bookingId ? 'Sending…' : '✨ Send Daily Delight'}
+                                </Button>
                                 <BookingStatusInlineControl
                                   bookingId={job.bookingId}
                                   currentStatus={job.status === "needs_response" ? "pending" : job.status === "accepted" ? "confirmed" : job.status === "completed" ? "completed" : "cancelled"}
