@@ -1133,7 +1133,7 @@ function SitterDashboardContent() {
                                   )}
                                   <Button
                                     size="sm"
-                                    variant="outline"
+                                    variant="secondary"
                                     onClick={(e) => { e.stopPropagation(); handleSendDelight(job.bookingId); }}
                                     disabled={sendingDelightBookingId === job.bookingId}
                                     className="text-amber-500 border-amber-500 hover:bg-amber-500 hover:text-black"
@@ -1205,7 +1205,7 @@ function SitterDashboardContent() {
                               <Flex gap={2} wrap>
                                 <Button
                                   onClick={() => handleSendDelight(job.bookingId)}
-                                  variant="outline"
+                                  variant="secondary"
                                   disabled={sendingDelightBookingId === job.bookingId}
                                   className="text-amber-500 border-amber-500 hover:bg-amber-500 hover:text-black"
                                 >
