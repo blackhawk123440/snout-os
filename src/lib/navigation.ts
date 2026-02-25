@@ -27,5 +27,6 @@ export const navigation: NavItem[] = [
     href: '/messages',
     icon: 'fas fa-comments',
   },
+  { label: 'Pricing', href: '/pricing', icon: 'fas fa-tag' },
   { label: 'Settings', href: '/settings', icon: 'fas fa-cog' },
 ];

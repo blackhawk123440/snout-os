@@ -15,6 +15,7 @@ import { extractRequestMetadata, redactMappingReport } from "@/lib/form-mapper-h
 import { calculateCanonicalPricing, type PricingEngineInput } from "@/lib/pricing-engine-v1";
 import { compareAndLogPricing } from "@/lib/pricing-parity-harness";
 import { serializePricingSnapshot } from "@/lib/pricing-snapshot-helpers";
+import { calendarSync } from "@/lib/calendar-sync";
 
 const parseOrigins = (value?: string | null) => {
   if (!value) return [];
@@ -237,6 +238,12 @@ export async function POST(request: NextRequest) {
         await emitBookingCreated(booking);
       } catch (eventError) {
         console.error("[Form] Failed to emit booking created event (non-blocking):", eventError);
+      }
+
+      try {
+        await calendarSync.syncBookingToGoogle(booking.id);
+      } catch (syncError) {
+        console.error("[Form] Failed to sync booking to Google Calendar (non-blocking):", syncError);
       }
 
       // Phase 3.3: Move automation execution to worker queue
@@ -714,6 +721,12 @@ export async function POST(request: NextRequest) {
       await emitBookingCreated(booking);
     } catch (eventError) {
       console.error("[Form] Failed to emit booking created event (non-blocking):", eventError);
+    }
+
+    try {
+      await calendarSync.syncBookingToGoogle(booking.id);
+    } catch (syncError) {
+      console.error("[Form] Failed to sync booking to Google Calendar (non-blocking):", syncError);
     }
 
     // Phase 3.3: Move automation execution to worker queue

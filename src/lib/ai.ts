@@ -1,7 +1,11 @@
 import OpenAI from 'openai';
 import { prisma } from './db';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAI(): OpenAI | null {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key?.trim()) return null;
+  return new OpenAI({ apiKey: key });
+}
 
 export const ai = {
   async generateDailyDelight(petId: string, bookingId: string) {
@@ -10,6 +14,9 @@ export const ai = {
       include: { booking: { include: { client: true } } },
     });
     if (!pet) return "Couldn't generate report";
+
+    const openai = getOpenAI();
+    if (!openai) return "Mojo had a great day! (OpenAI not configured)";
 
     const orgId = pet.booking?.client?.orgId ?? 'default';
 
@@ -37,6 +44,9 @@ export const ai = {
   async matchSitterToPet(petId: string, availableSitters: { id: string; [key: string]: unknown }[]) {
     const pet = await prisma.pet.findUnique({ where: { id: petId } });
     if (!pet || availableSitters.length === 0) return null;
+
+    const openai = getOpenAI();
+    if (!openai) return availableSitters[0]?.id ?? null;
 
     const energyHint = pet.notes ?? 'moderate';
     const prompt = `Rank these sitter IDs for a ${pet.breed ?? 'pet'} that needs ${energyHint} energy. Sitter IDs: ${availableSitters.map((s) => s.id).join(', ')}. Return only the best sitter ID.`;

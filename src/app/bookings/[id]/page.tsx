@@ -29,6 +29,7 @@ import {
   Flex,
   Grid,
   GridCol,
+  useToast,
 } from '@/components/ui';
 import { BookingScheduleDisplay, isOvernightRangeService } from '@/components/booking';
 import { SitterAssignmentDisplay, SitterTierBadge, SitterInfo } from '@/components/sitter';
@@ -132,7 +133,9 @@ export default function BookingDetailPage() {
   const [showPaymentLinkConfirm, setShowPaymentLinkConfirm] = useState(false);
   const [showTipLinkConfirm, setShowTipLinkConfirm] = useState(false);
   const [showMoreActionsModal, setShowMoreActionsModal] = useState(false);
-  
+  const [generatingDelight, setGeneratingDelight] = useState(false);
+
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (bookingId) {
@@ -456,6 +459,37 @@ Total: ${formatCurrency(booking.totalPrice)}`;
       alert('Failed to copy booking details');
     }
     setShowMoreActionsModal(false);
+  };
+
+  const handleDailyDelight = async () => {
+    if (!booking || !bookingId) return;
+    const petId = booking.pets?.[0]?.id;
+    if (!petId) {
+      showToast({ message: 'No pets on this booking', variant: 'error' });
+      return;
+    }
+    setGeneratingDelight(true);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/daily-delight`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ petId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast({ message: data.error || "Couldn't generate report", variant: 'error' });
+        return;
+      }
+      showToast({
+        message: data.report ? `Daily Delight: ${data.report}` : 'Daily Delight sent!',
+        variant: 'success',
+        duration: 6000,
+      });
+    } catch {
+      showToast({ message: "Couldn't generate report", variant: 'error' });
+    } finally {
+      setGeneratingDelight(false);
+    }
   };
 
   const handleCancelBooking = async () => {
@@ -1014,6 +1048,19 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                       </div>
                     ))}
                   </div>
+                  <div style={{ marginTop: tokens.spacing[4] }}>
+                    <Button
+                      onClick={handleDailyDelight}
+                      disabled={generatingDelight}
+                      variant="primary"
+                      style={{
+                        background: 'linear-gradient(to right, #f59e0b, #f97316)',
+                        width: '100%',
+                      }}
+                    >
+                      {generatingDelight ? 'Generating magic...' : '✨ Send AI Daily Delight Report'}
+                    </Button>
+                  </div>
                 </Card>
               )}
 
@@ -1514,6 +1561,21 @@ Total: ${formatCurrency(booking.totalPrice)}`;
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+            {booking.pets.length > 0 && (
+              <div style={{ marginTop: tokens.spacing[4] }}>
+                <Button
+                  onClick={handleDailyDelight}
+                  disabled={generatingDelight}
+                  variant="primary"
+                  style={{
+                    background: 'linear-gradient(to right, #f59e0b, #f97316)',
+                    width: '100%',
+                  }}
+                >
+                  {generatingDelight ? 'Generating magic...' : '✨ Send AI Daily Delight Report'}
+                </Button>
               </div>
             )}
             {booking.notes && (
