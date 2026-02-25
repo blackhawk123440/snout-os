@@ -22,7 +22,8 @@ const allowedEmbedOrigins = [
 ].filter(Boolean);
 
 const nextConfig = {
-  serverExternalPackages: ["@prisma/client"],
+  outputFileTracingRoot: __dirname,
+  serverExternalPackages: ["@prisma/client", "twilio"],
   images: {
     domains: ["localhost"],
   },
@@ -62,16 +63,17 @@ const nextConfig = {
   },
   webpack: (config) => {
     config.resolve.alias["@"] = path.resolve(__dirname, "src");
-    // Exclude enterprise-messaging-dashboard, scripts, and prisma seed files from compilation
     config.module.rules.push({
       test: /\.ts$/,
       exclude: [
         /node_modules/,
         /enterprise-messaging-dashboard/,
         /scripts/,
-        /prisma\/seed.*\.ts$/, // Exclude prisma seed files (they use different schema)
+        /prisma\/seed.*\.ts$/,
       ],
     });
+    // Suppress "Critical dependency" warning from dynamic imports in runtime-proof
+    config.module.exprContextCritical = false;
     return config;
   },
   // Exclude enterprise-messaging-dashboard from TypeScript checking
