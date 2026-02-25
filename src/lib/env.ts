@@ -83,10 +83,6 @@ export function validateEnv() {
     // Individual API routes will handle missing env vars gracefully
   }
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'H2',location:'src/lib/env.ts:82',message:'validateEnv result',data:{missing,missingCount:missing.length,nodeEnv:process.env.NODE_ENV || 'NOT SET'},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-
   return {
     ...requiredEnvVars,
     ...optionalEnvVars,

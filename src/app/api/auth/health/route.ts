@@ -39,10 +39,6 @@ export async function GET() {
       sessionResult.error = error?.message || 'Unknown error';
     }
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'H4',location:'src/app/api/auth/health/route.ts:41',message:'auth health computed',data:{secretPresent,secretLength,secretValid:secretLength >= 32,nextAuthUrlSet:nextAuthUrl !== 'NOT SET',nodeEnv:process.env.NODE_ENV || 'NOT SET',nextPublicApiUrlSet:!!process.env.NEXT_PUBLIC_API_URL,sessionHasUser:sessionResult.hasSession,sessionError:sessionResult.error},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
     return NextResponse.json({
       status: 'ok',
       env: {
@@ -61,10 +57,6 @@ export async function GET() {
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'H4',location:'src/app/api/auth/health/route.ts:60',message:'auth health error',data:{error:error?.message || 'Unknown error'},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
     return NextResponse.json({
       status: 'error',
       error: error?.message || 'Unknown error',

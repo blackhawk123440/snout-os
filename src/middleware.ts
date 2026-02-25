@@ -21,13 +21,6 @@ export async function middleware(request: NextRequest) {
   const enableAuthProtection = env.ENABLE_AUTH_PROTECTION !== false; // Default true unless explicitly false
   const enableSitterAuth = env.ENABLE_SITTER_AUTH !== false; // Default true unless explicitly false
   const enablePermissionChecks = env.ENABLE_PERMISSION_CHECKS !== false; // Default true unless explicitly false
-  const isHealthPath = pathname === "/api/health" || pathname === "/api/auth/health" || pathname === "/api/auth/config-check";
-
-  if (isHealthPath) {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'H1',location:'src/middleware.ts:23',message:'health path request observed',data:{pathname,method:request.method,enableAuthProtection,enableSitterAuth,enablePermissionChecks,publicRoute:isPublicRoute(pathname),protectedRoute:isProtectedRoute(pathname),sitterRoute:isSitterRoute(pathname),sitterRestrictedRoute:isSitterRestrictedRoute(pathname)},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-  }
 
   // Phase 5.1: If sitter auth is enabled, check sitter restrictions first
   if (enableSitterAuth) {

@@ -94,9 +94,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!credentials?.email || !credentials?.password) {
           console.log('[NextAuth] Missing credentials');
           outcome = "missing_credentials";
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'auth-debug-pre',hypothesisId:'H1',location:'src/lib/auth.ts:87',message:'authorize outcome',data:{outcome,hasEmail,hasPassword,enableE2eAuth},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
           return null;
         }
 
@@ -130,18 +127,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           console.error('[NextAuth] Error code:', error?.code);
           console.error('[NextAuth] Error stack:', error?.stack);
           outcome = "db_error";
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'auth-debug-pre',hypothesisId:'H1',location:'src/lib/auth.ts:119',message:'authorize outcome',data:{outcome,hasEmail,hasPassword,enableE2eAuth,userFound,userHasPasswordHash,errorMessage:error?.message || 'Unknown error'},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
           return null;
         }
 
         if (!user) {
           console.log('[NextAuth] User not found in database');
           outcome = "user_not_found";
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'auth-debug-pre',hypothesisId:'H1',location:'src/lib/auth.ts:130',message:'authorize outcome',data:{outcome,hasEmail,hasPassword,enableE2eAuth,userFound,userHasPasswordHash},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
           return null;
         }
 
@@ -167,18 +158,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               } else {
                 console.log('[NextAuth] Password invalid');
                 outcome = "password_invalid";
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'auth-debug-pre',hypothesisId:'H1',location:'src/lib/auth.ts:155',message:'authorize outcome',data:{outcome,hasEmail,hasPassword,enableE2eAuth,userFound,userHasPasswordHash,passwordValid,bypassedPassword},timestamp:Date.now()})}).catch(()=>{});
-                // #endregion
                 return null;
               }
             }
           } catch (error: any) {
             console.error('[NextAuth] Password comparison error:', error);
             outcome = "password_compare_error";
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'auth-debug-pre',hypothesisId:'H1',location:'src/lib/auth.ts:164',message:'authorize outcome',data:{outcome,hasEmail,hasPassword,enableE2eAuth,userFound,userHasPasswordHash,errorMessage:error?.message || 'Unknown error'},timestamp:Date.now()})}).catch(()=>{});
-            // #endregion
             return null;
           }
         } else {
@@ -189,9 +174,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         console.log('[NextAuth] Authentication successful for:', user.email);
         outcome = "success";
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'auth-debug-pre',hypothesisId:'H1',location:'src/lib/auth.ts:177',message:'authorize outcome',data:{outcome,hasEmail,hasPassword,enableE2eAuth,userFound,userHasPasswordHash,passwordValid,bypassedPassword},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         return {
           id: user.id,
           email: user.email,
@@ -226,9 +208,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // This means our manually created JWT isn't being decoded correctly
         console.warn('[NextAuth] Session callback received null token - JWT decode may have failed');
       }
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'auth-debug-pre',hypothesisId:'H3',location:'src/lib/auth.ts:201',message:'session callback',data:{tokenPresent:!!token,tokenHasId:!!token?.id,sessionUserHasId:!!session.user?.id,sessionUserHasEmail:!!session.user?.email},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       return session;
     },
     async jwt({ token, user }: any) {

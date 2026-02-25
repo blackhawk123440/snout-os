@@ -32,10 +32,6 @@ export async function GET() {
     .filter(([_, check]) => check.required && !check.set)
     .map(([key, _]) => key);
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/9e5ae23b-cce3-4d45-9753-b6e23d53220c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:'pre-fix',hypothesisId:'H2',location:'src/app/api/auth/config-check/route.ts:35',message:'config check computed',data:{allRequiredSet,missing,checks:{NEXTAUTH_SECRET:checks.NEXTAUTH_SECRET.set,NEXTAUTH_URL:checks.NEXTAUTH_URL.set,DATABASE_URL:checks.DATABASE_URL.set}},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-
   return NextResponse.json({
     status: allRequiredSet ? 'ok' : 'error',
     message: allRequiredSet 
