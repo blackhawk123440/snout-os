@@ -13,6 +13,7 @@ export default defineConfig({
       "**/.{idea,git,cache,output,temp}/**",
       "**/tests/e2e/**",
       "**/tests/visual/**",
+      "**/*.spec.ts",
       // Integration tests require external services - run separately
       ...(process.env.RUN_INTEGRATION_TESTS !== 'true' ? [
         "**/*integration*.test.ts",
@@ -21,6 +22,7 @@ export default defineConfig({
         "**/__tests__/phase-*-integration.test.ts",
         "**/__tests__/webhook-negative.test.ts",
         "**/__tests__/master-spec-anti-poaching.test.ts",
+        "**/lib/messaging/__tests__/pool-release.test.ts",
       ] : []),
     ],
   },

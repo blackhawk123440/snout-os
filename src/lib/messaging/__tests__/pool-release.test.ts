@@ -49,6 +49,7 @@ describe('Pool Release Job', () => {
         orgId,
         messageNumberId: poolNumber.id,
         numberClass: 'pool',
+        scope: 'client_general',
         status: 'open',
       },
     });
@@ -109,6 +110,7 @@ describe('Pool Release Job', () => {
         orgId,
         messageNumberId: poolNumber.id,
         numberClass: 'pool',
+        scope: 'client_general',
         status: 'open',
         lastMessageAt: twoDaysAgo,
       },
@@ -159,6 +161,7 @@ describe('Pool Release Job', () => {
         orgId,
         messageNumberId: poolNumber.id,
         numberClass: 'pool',
+        scope: 'client_general',
         status: 'open',
         createdAt: twoDaysAgo,
       },
