@@ -262,17 +262,42 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const {
-      firstName,
-      lastName,
-      phone,
-      email,
-      isActive = true,
-      commissionPercentage = 80.0,
-      personalPhone,
-      openphonePhone,
-      phoneType,
-    } = body;
+    const normalizeString = (value: unknown): string => {
+      if (typeof value === 'string') return value.trim();
+      if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+      return '';
+    };
+    const normalizeOptionalString = (value: unknown): string | null => {
+      const normalized = normalizeString(value);
+      return normalized.length > 0 ? normalized : null;
+    };
+    const parseBoolean = (value: unknown, defaultValue: boolean): boolean => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        const lowered = value.trim().toLowerCase();
+        if (lowered === 'true') return true;
+        if (lowered === 'false') return false;
+      }
+      return defaultValue;
+    };
+    const parseCommission = (value: unknown): number => {
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string') {
+        const parsed = Number(value.trim());
+        if (Number.isFinite(parsed)) return parsed;
+      }
+      return 80.0;
+    };
+
+    const firstName = normalizeString(body?.firstName);
+    const lastName = normalizeString(body?.lastName);
+    const phone = normalizeString(body?.phone);
+    const email = normalizeString(body?.email);
+    const isActive = parseBoolean(body?.isActive, true);
+    const commissionPercentage = parseCommission(body?.commissionPercentage);
+    const personalPhone = normalizeOptionalString(body?.personalPhone);
+    const openphonePhone = normalizeOptionalString(body?.openphonePhone);
+    const phoneType = normalizeOptionalString(body?.phoneType);
 
     // Validate required fields
     if (!firstName || !lastName) {
@@ -281,20 +306,30 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (!Number.isFinite(commissionPercentage) || commissionPercentage < 0 || commissionPercentage > 100) {
+      return NextResponse.json(
+        { error: 'Invalid commissionPercentage. Must be a number between 0 and 100.' },
+        { status: 400 }
+      );
+    }
 
     const orgId = ctx.orgId;
 
-    // Combine firstName and lastName into name (schema requirement)
-    const name = `${firstName} ${lastName}`.trim();
-
-    // Create sitter using Prisma (enterprise-messaging-dashboard schema: id, orgId, userId, name, active, createdAt, updatedAt)
+    // Create sitter using current Prisma schema fields.
     const sitter = await prisma.sitter.create({
       data: {
         orgId,
-        name,
+        firstName,
+        lastName,
+        phone: phone || '',
+        email: email || '',
         active: isActive,
-      } as any, // Type assertion: runtime uses enterprise-messaging-dashboard schema
-    }) as any;
+        commissionPercentage,
+        personalPhone: personalPhone || null,
+        openphonePhone: openphonePhone || null,
+        phoneType: phoneType || null,
+      },
+    });
 
     // If sitter is active, assign a dedicated masked number (persistent assignment)
     if (isActive === true) {
@@ -314,16 +349,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       sitter: {
         id: sitter.id,
-        firstName,
-        lastName,
-        name: sitter.name || '',
-        phone: phone || null,
-        email: email || null,
-        personalPhone: personalPhone || null,
-        openphonePhone: openphonePhone || null,
-        phoneType: phoneType || null,
+        firstName: sitter.firstName,
+        lastName: sitter.lastName,
+        name: `${sitter.firstName} ${sitter.lastName}`.trim(),
+        phone: sitter.phone || null,
+        email: sitter.email || null,
+        personalPhone: sitter.personalPhone || null,
+        openphonePhone: sitter.openphonePhone || null,
+        phoneType: sitter.phoneType || null,
         isActive: sitter.active,
-        commissionPercentage: commissionPercentage || 80.0,
+        commissionPercentage: sitter.commissionPercentage ?? 80.0,
         createdAt: sitter.createdAt,
         updatedAt: sitter.updatedAt,
         currentTier: null,
