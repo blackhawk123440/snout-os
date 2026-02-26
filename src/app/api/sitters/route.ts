@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
             where: {
               orgId,
               assignedSitterId: { in: sitterIds },
-              class: 'sitter',
+              numberClass: 'sitter',
               status: 'active',
             },
             select: {
@@ -182,7 +182,7 @@ export async function GET(request: NextRequest) {
       where: {
         orgId,
         assignedSitterId: { in: sitterIds },
-        class: 'sitter',
+        numberClass: 'sitter',
         status: 'active',
       },
       select: {

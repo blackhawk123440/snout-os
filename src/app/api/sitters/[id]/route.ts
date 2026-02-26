@@ -156,7 +156,7 @@ export async function PATCH(
             assignedNumbers: {
               where: {
                 status: 'active',
-                class: 'sitter',
+                numberClass: 'sitter',
               },
             },
           },
