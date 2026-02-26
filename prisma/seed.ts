@@ -135,9 +135,49 @@ async function seedTestUsers(defaultOrgId: string) {
     },
   });
   console.log(`✅ Created/updated sitter user: ${sitterUser.email} (sitterId: ${sitterUser.sitterId})`);
+
+  // Additional sitter: carsonmc123440@gmail.com
+  const carsonPasswordHash = await bcrypt.hash("god2die4", 10);
+  let carsonSitter = await prisma.sitter.findFirst({
+    where: { orgId: defaultOrgId, email: "carsonmc123440@gmail.com" },
+  });
+  if (!carsonSitter) {
+    carsonSitter = await prisma.sitter.create({
+      data: {
+        orgId: defaultOrgId,
+        firstName: "Carson",
+        lastName: "Mc",
+        email: "carsonmc123440@gmail.com",
+        phone: "",
+        active: true,
+      },
+    });
+    console.log(`✅ Created sitter record: ${carsonSitter.id} (carsonmc123440@gmail.com)`);
+  }
+  const carsonUser = await prisma.user.upsert({
+    where: { email: "carsonmc123440@gmail.com" },
+    update: {
+      passwordHash: carsonPasswordHash,
+      name: "Carson Mc",
+      orgId: defaultOrgId,
+      role: "SITTER",
+      sitterId: carsonSitter.id,
+    },
+    create: {
+      orgId: defaultOrgId,
+      role: "SITTER",
+      email: "carsonmc123440@gmail.com",
+      name: "Carson Mc",
+      passwordHash: carsonPasswordHash,
+      emailVerified: new Date(),
+      sitterId: carsonSitter.id,
+    },
+  });
+  console.log(`✅ Created/updated sitter user: ${carsonUser.email} (sitterId: ${carsonUser.sitterId})`);
+
   console.log("🔐 Dev sitter credentials:");
-  console.log("   email: sitter@example.com");
-  console.log("   password: password123");
+  console.log("   sitter@example.com / password123");
+  console.log("   carsonmc123440@gmail.com / god2die4");
 }
 
 async function seedTiers() {
