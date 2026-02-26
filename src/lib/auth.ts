@@ -139,7 +139,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         console.log('[NextAuth] User found, checking password...');
         console.log('[NextAuth] User has passwordHash:', !!user.passwordHash);
 
-        // Check password (if passwordHash exists)
+        // Credentials auth requires a bcrypt password hash.
         if (user.passwordHash) {
           try {
             const isValid = await bcrypt.compare(
@@ -168,8 +168,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
         } else {
           console.log('[NextAuth] No password hash found for user');
-          // For users without password hash (legacy/admin setup), allow login for now
-          // TODO: Phase 2.3 - enforce password setup
+          outcome = "missing_password_hash";
+          return null;
         }
 
         console.log('[NextAuth] Authentication successful for:', user.email);

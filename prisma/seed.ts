@@ -6,8 +6,14 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding database...");
 
-  // Seed test users first (for E2E tests)
-  await seedTestUsers();
+  const defaultOrgId = await ensureDefaultOrg();
+
+  // Seed test users only in non-production environments.
+  if (process.env.NODE_ENV !== "production") {
+    await seedTestUsers(defaultOrgId);
+  } else {
+    console.log("⏭️ Skipping dev auth user seeding in production");
+  }
 
   // Seed canonical tiers first
   await seedTiers();
@@ -49,12 +55,23 @@ async function main() {
   console.log("✨ Seed completed successfully");
 }
 
-async function seedTestUsers() {
+async function ensureDefaultOrg() {
+  const defaultOrgId = "default";
+  await prisma.org.upsert({
+    where: { id: defaultOrgId },
+    update: { name: "Default Org", mode: "personal" },
+    create: { id: defaultOrgId, name: "Default Org", mode: "personal" },
+  });
+  console.log(`✅ Ensured default org: ${defaultOrgId}`);
+  return defaultOrgId;
+}
+
+async function seedTestUsers(defaultOrgId: string) {
   console.log("🌱 Seeding test users...");
 
   // Hash passwords
   const ownerPasswordHash = await bcrypt.hash("password", 10);
-  const sitterPasswordHash = await bcrypt.hash("password", 10);
+  const sitterPasswordHash = await bcrypt.hash("password123", 10);
 
   // Create or update owner user (no sitterId)
   const owner = await prisma.user.upsert({
@@ -63,8 +80,12 @@ async function seedTestUsers() {
       passwordHash: ownerPasswordHash,
       name: "Test Owner",
       sitterId: null, // Ensure owner has no sitterId
+      orgId: defaultOrgId,
+      role: "OWNER",
     },
     create: {
+      orgId: defaultOrgId,
+      role: "OWNER",
       email: "owner@example.com",
       name: "Test Owner",
       passwordHash: ownerPasswordHash,
@@ -76,12 +97,13 @@ async function seedTestUsers() {
 
   // Create or update sitter record first
   let sitterRecord = await prisma.sitter.findFirst({
-    where: { email: "sitter@example.com" },
+    where: { orgId: defaultOrgId, email: "sitter@example.com" },
   });
 
   if (!sitterRecord) {
     sitterRecord = await prisma.sitter.create({
       data: {
+        orgId: defaultOrgId,
         firstName: "Test",
         lastName: "Sitter",
         email: "sitter@example.com",
@@ -98,9 +120,13 @@ async function seedTestUsers() {
     update: {
       passwordHash: sitterPasswordHash,
       name: "Test Sitter",
+      orgId: defaultOrgId,
+      role: "SITTER",
       sitterId: sitterRecord.id, // Link to sitter record
     },
     create: {
+      orgId: defaultOrgId,
+      role: "SITTER",
       email: "sitter@example.com",
       name: "Test Sitter",
       passwordHash: sitterPasswordHash,
@@ -109,6 +135,9 @@ async function seedTestUsers() {
     },
   });
   console.log(`✅ Created/updated sitter user: ${sitterUser.email} (sitterId: ${sitterUser.sitterId})`);
+  console.log("🔐 Dev sitter credentials:");
+  console.log("   email: sitter@example.com");
+  console.log("   password: password123");
 }
 
 async function seedTiers() {
