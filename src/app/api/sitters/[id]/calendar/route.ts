@@ -5,36 +5,38 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getRequestContext } from '@/lib/request-context';
+import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
+import { whereOrg } from '@/lib/org-scope';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) {
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+    requireAnyRole(ctx, ['owner', 'admin', 'sitter']);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const user = session.user as any;
   const resolvedParams = await params;
   const sitterId = resolvedParams.id;
-  const orgId = user.orgId || (await import('@/lib/messaging/org-helpers')).getDefaultOrgId();
-
-  if (!orgId) {
-    return NextResponse.json({ error: 'Organization not found' }, { status: 400 });
-  }
 
   // Permission check: sitter can only view their own calendar, owner/admin can view any
-  if (user.role === 'sitter' && user.sitterId !== sitterId) {
+  if (ctx.role === 'sitter' && ctx.sitterId !== sitterId) {
     return NextResponse.json({ error: 'Forbidden: You can only view your own calendar' }, { status: 403 });
   }
 
   try {
     // Fetch sitter with calendar fields
     const sitter = await (prisma as any).sitter.findUnique({
-      where: { id: sitterId },
+      where: whereOrg(ctx.orgId, { id: sitterId }),
       select: {
         id: true,
         googleAccessToken: true,
@@ -56,7 +58,7 @@ export async function GET(
     // Get last sync time from most recent calendar event (updatedAt serves as lastSyncAt)
     const lastCalendarEvent = await (prisma as any).bookingCalendarEvent.findFirst({
       where: {
-        sitterId,
+        ...whereOrg(ctx.orgId, { sitterId }),
       },
       orderBy: {
         updatedAt: 'desc',
@@ -73,8 +75,7 @@ export async function GET(
     const now = new Date();
     const upcomingBookings = await (prisma as any).booking.findMany({
       where: {
-        orgId,
-        sitterId,
+        ...whereOrg(ctx.orgId, { sitterId }),
         status: { in: ['confirmed', 'pending'] },
         startAt: { gte: now },
       },

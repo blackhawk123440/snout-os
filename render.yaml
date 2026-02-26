@@ -13,8 +13,10 @@ services:
     plan: starter
     region: oregon
     rootDir: .
-    buildCommand: npm install && npm run build
-    startCommand: npx prisma db push --accept-data-loss && npm run start
+    buildCommand: pnpm install --frozen-lockfile && pnpm prisma generate && pnpm run build
+    # Do not mutate DB schema during web startup.
+    # Apply migrations intentionally via a separate one-off command/job (for example: `pnpm prisma migrate deploy`).
+    startCommand: pnpm run start
     envVars:
       - key: NODE_ENV
         value: production

@@ -6,48 +6,33 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getRequestContext } from '@/lib/request-context';
+import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
+import { whereOrg } from '@/lib/org-scope';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
-  // Owner/admin only
-  const user = session.user as any;
-  if (user.role !== 'owner' && user.role !== 'admin') {
-    return NextResponse.json(
-      { error: 'Forbidden' },
-      { status: 403 }
-    );
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+    requireAnyRole(ctx, ['owner', 'admin']);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const resolvedParams = await params;
     const sitterId = resolvedParams.id;
     
-    // Get orgId from session or use default
-    const orgId = user.orgId || (await import('@/lib/messaging/org-helpers')).getDefaultOrgId();
-
-    if (!orgId) {
-      return NextResponse.json(
-        { error: 'Organization not found' },
-        { status: 400 }
-      );
-    }
-
     // Fetch sitter (enterprise schema: Sitter has no currentTier)
-    const sitter = await prisma.sitter.findUnique({
-      where: { id: sitterId },
+    const sitter = await prisma.sitter.findFirst({
+      where: whereOrg(ctx.orgId, { id: sitterId }),
     });
 
     if (!sitter) {
@@ -77,7 +62,7 @@ export async function GET(
     if (typeof (prisma as any).booking?.findMany === 'function') {
       try {
         const upcoming = await (prisma as any).booking.findMany({
-          where: { sitterId, status: { in: ['confirmed', 'pending'] }, startAt: { gt: now } },
+          where: whereOrg(ctx.orgId, { sitterId, status: { in: ['confirmed', 'pending'] }, startAt: { gt: now } }),
           include: { pets: true, client: true },
           orderBy: { startAt: 'asc' },
         });
@@ -102,7 +87,7 @@ export async function GET(
     if (typeof (prisma as any).booking?.findMany === 'function') {
       try {
         const completed = await (prisma as any).booking.findMany({
-          where: { sitterId, status: 'completed', endAt: { lt: now } },
+          where: whereOrg(ctx.orgId, { sitterId, status: 'completed', endAt: { lt: now } }),
           include: { pets: true, client: true },
           orderBy: { endAt: 'desc' },
           take: 50,
@@ -137,13 +122,13 @@ export async function GET(
     let latestThread: { id: string; clientName: string; lastActivityAt: string | null } | null = null;
     try {
       const threads = await (prisma as any).thread.findMany({
-        where: { orgId, sitterId, status: 'active' },
+        where: whereOrg(ctx.orgId, { sitterId, status: 'active' }),
         include: { client: { select: { id: true, name: true } } },
         orderBy: { lastActivityAt: 'desc' },
         take: 1,
       });
       unreadCount = await (prisma as any).thread.count({
-        where: { orgId, sitterId, status: 'active', ownerUnreadCount: { gt: 0 } },
+        where: whereOrg(ctx.orgId, { sitterId, status: 'active', ownerUnreadCount: { gt: 0 } }),
       }).catch(() => 0);
       const t = threads[0];
       if (t) {
@@ -160,13 +145,13 @@ export async function GET(
     if (typeof (prisma as any).sitterTierHistory?.findFirst === 'function') {
       try {
         const latestTierHistory = await (prisma as any).sitterTierHistory.findFirst({
-          where: { sitterId },
+          where: whereOrg(ctx.orgId, { sitterId }),
           include: { tier: { select: { name: true } } },
           orderBy: { periodStart: 'desc' },
         });
         const latestMetrics = typeof (prisma as any).sitterMetricsWindow?.findFirst === 'function'
           ? await (prisma as any).sitterMetricsWindow.findFirst({
-              where: { sitterId, orgId, windowEnd: { gte: sevenDaysAgo } },
+              where: whereOrg(ctx.orgId, { sitterId, windowEnd: { gte: sevenDaysAgo } }),
               orderBy: { windowEnd: 'desc' },
             })
           : null;

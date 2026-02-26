@@ -6,17 +6,22 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
 import { prisma } from '@/lib/db';
+import { getRequestContext } from '@/lib/request-context';
+import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export async function GET(request: NextRequest) {
-  // Get NextAuth session
-  const session = await auth();
-
-  if (!session?.user) {
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+    requireAnyRole(ctx, ['owner', 'admin', 'sitter']);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.json(
       { error: 'Unauthorized' },
       { 
@@ -29,11 +34,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const user = session.user as any;
-  const orgId = user.orgId || 'default';
+  const orgId = ctx.orgId;
   
   // Fail loudly if orgId is missing in staging
-  if (process.env.NODE_ENV === 'production' && (!user.orgId || user.orgId === 'default')) {
+  if (process.env.NODE_ENV === 'production' && (!orgId || orgId === 'default')) {
     return NextResponse.json(
       { error: 'Organization ID missing. Please contact support.', details: 'orgId is required but was not found in session.' },
       { 
@@ -53,10 +57,10 @@ export async function GET(request: NextRequest) {
       // Mint API JWT token from session
       // (user and orgId already declared above)
       const apiToken = await mintApiJWT({
-        userId: user.id || user.email || '',
+        userId: ctx.userId || '',
         orgId,
-        role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-        sitterId: user.sitterId || null,
+        role: ctx.role,
+        sitterId: ctx.sitterId || null,
       });
 
       // Map to API endpoint: /api/sitters -> /api/numbers/sitters
@@ -90,6 +94,9 @@ export async function GET(request: NextRequest) {
         sitters = responseData;
       } else if (responseData.sitters && Array.isArray(responseData.sitters)) {
         sitters = responseData.sitters;
+      }
+      if (ctx.role === 'sitter' && ctx.sitterId) {
+        sitters = sitters.filter((s: any) => s.id === ctx.sitterId);
       }
 
       // If backend API doesn't include assignedNumberId, fetch it from Prisma
@@ -162,6 +169,7 @@ export async function GET(request: NextRequest) {
     const sitters = await (prisma as any).sitter.findMany({
       where: {
         orgId, // CRITICAL: Filter by orgId
+        ...(ctx.role === 'sitter' && ctx.sitterId ? { id: ctx.sitterId } : {}),
       },
       orderBy: {
         createdAt: 'desc',
@@ -241,14 +249,15 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  // Get NextAuth session
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+    requireAnyRole(ctx, ['owner', 'admin']);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -273,9 +282,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get orgId from session
-    const user = session.user as any;
-    const orgId = user.orgId || 'default';
+    const orgId = ctx.orgId;
 
     // Combine firstName and lastName into name (schema requirement)
     const name = `${firstName} ${lastName}`.trim();

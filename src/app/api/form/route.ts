@@ -16,6 +16,7 @@ import { calculateCanonicalPricing, type PricingEngineInput } from "@/lib/pricin
 import { compareAndLogPricing } from "@/lib/pricing-parity-harness";
 import { serializePricingSnapshot } from "@/lib/pricing-snapshot-helpers";
 import { calendarSync } from "@/lib/calendar-sync";
+import { getPublicOrgContext } from "@/lib/request-context";
 
 const parseOrigins = (value?: string | null) => {
   if (!value) return [];
@@ -61,6 +62,18 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    let orgId: string;
+    try {
+      orgId = getPublicOrgContext().orgId;
+    } catch (error) {
+      return NextResponse.json(
+        {
+          error: "Public booking is disabled in SaaS mode until org binding is configured",
+        },
+        { status: 403, headers: buildCorsHeaders(request) }
+      );
+    }
+
     const body = await request.json();
     
     // Phase 1: Check feature flag for mapper
@@ -200,11 +213,13 @@ export async function POST(request: NextRequest) {
       const { pets: _pets, timeSlots: _timeSlots, ...mappedInputWithoutRelations } = mappedInput;
       const bookingData = {
         ...mappedInputWithoutRelations,
+        orgId,
         totalPrice, // Use calculated price (from new engine or old logic)
         ...(pricingSnapshot && { pricingSnapshot }), // Store snapshot if using new engine
         // Convert pets to Prisma nested create format
         pets: {
           create: petsArray.map((pet: { name: string; species: string }) => ({
+            orgId,
             name: (pet.name || "Pet").trim(),
             species: (pet.species || "Dog").trim(),
           })),
@@ -213,6 +228,7 @@ export async function POST(request: NextRequest) {
         ...(timeSlotsData.length > 0 && {
           timeSlots: {
             create: timeSlotsData.map(slot => ({
+              orgId,
               startAt: slot.startAt,
               endAt: slot.endAt,
               duration: slot.duration,
@@ -625,6 +641,7 @@ export async function POST(request: NextRequest) {
 
     // Create booking with timeSlots
     const bookingData = {
+      orgId,
       firstName: trimmedFirstName,
       lastName: trimmedLastName,
       phone: formatPhoneForAPI(trimmedPhone),
@@ -643,6 +660,7 @@ export async function POST(request: NextRequest) {
       holiday: priceCalculation.holidayApplied,
       pets: {
         create: pets.map(pet => ({
+          orgId,
           name: (pet.name || "Pet").trim(),
           species: (pet.species || "Dog").trim(),
         })),
@@ -677,6 +695,7 @@ export async function POST(request: NextRequest) {
       timeSlots: timeSlotsData.length > 0
         ? {
             create: timeSlotsData.map(slot => ({
+              orgId,
               startAt: slot.startAt,
               endAt: slot.endAt,
               duration: slot.duration,

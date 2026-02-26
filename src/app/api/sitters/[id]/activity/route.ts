@@ -6,15 +6,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getRequestContext } from '@/lib/request-context';
+import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
+import { whereOrg } from '@/lib/org-scope';
 
 /**
  * Get booking IDs for a sitter (for filtering events)
  */
 async function getBookingIdsForSitter(orgId: string, sitterId: string): Promise<string[]> {
   const bookings = await (prisma as any).booking.findMany({
-    where: { sitterId },
+    where: whereOrg(orgId, { sitterId }),
     select: { id: true },
   });
   return bookings.map((b: any) => b.id);
@@ -24,38 +26,34 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) {
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+    requireAnyRole(ctx, ['owner', 'admin']);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Owner/admin only
-  const user = session.user as any;
-  if (user.role !== 'owner' && user.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {
     const resolvedParams = await params;
     const sitterId = resolvedParams.id;
-    const orgId = user.orgId;
-
-    if (!orgId) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 400 });
-    }
 
     // Fetch events from EventLog model (filtered by sitterId in metadata or bookingId)
-    const bookingIds = await getBookingIdsForSitter(orgId, sitterId);
+    const bookingIds = await getBookingIdsForSitter(ctx.orgId, sitterId);
     
     const events = await (prisma as any).eventLog.findMany({
       where: {
+        orgId: ctx.orgId,
         OR: [
           { bookingId: { in: bookingIds } },
           // Include messaging errors for this org (owner-visible)
           {
             eventType: 'messaging.routing_failed',
             metadata: {
-              contains: `"orgId":"${orgId}"`,
+              contains: `"orgId":"${ctx.orgId}"`,
             },
           },
         ],
@@ -73,7 +71,7 @@ export async function GET(
       if (e.eventType === 'messaging.routing_failed') {
         try {
           const metadata = JSON.parse(e.metadata || '{}');
-          return metadata.orgId === orgId;
+          return metadata.orgId === ctx.orgId;
         } catch {
           return false;
         }

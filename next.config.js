@@ -8,12 +8,16 @@ const parseOrigins = (value) => {
     .filter(Boolean);
 };
 
-const allowedEmbedOrigins = [
+const isPersonalMode = process.env.NEXT_PUBLIC_PERSONAL_MODE === "true";
+const personalEmbedOrigins = [
   "https://snout-form.onrender.com",
   "https://backend-291r.onrender.com",
   "https://www.snoutservices.com",
   "https://snoutservices.com",
   "https://leahs-supercool-site-c731e5.webflow.io",
+];
+const allowedEmbedOrigins = [
+  ...(isPersonalMode ? personalEmbedOrigins : []),
   ...parseOrigins(process.env.NEXT_PUBLIC_WEBFLOW_ORIGIN),
   process.env.NEXT_PUBLIC_APP_URL,
   process.env.NEXT_PUBLIC_BASE_URL,

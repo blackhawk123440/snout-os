@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { ai } from '@/lib/ai';
 import { prisma } from '@/lib/db';
+import { getRequestContext } from '@/lib/request-context';
+import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
+import { whereOrg } from '@/lib/org-scope';
 
 /**
  * POST /api/bookings/[id]/daily-delight
@@ -13,8 +15,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) {
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+    requireAnyRole(ctx, ['owner', 'admin', 'sitter']);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -27,12 +35,16 @@ export async function POST(
   }
 
   const booking = await prisma.booking.findUnique({
-    where: { id: bookingId },
+    where: whereOrg(ctx.orgId, { id: bookingId }),
     include: { pets: true, client: true },
   });
 
   if (!booking) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
+  }
+
+  if (ctx.role === 'sitter' && ctx.sitterId && booking.sitterId !== ctx.sitterId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const petId = body.petId ?? booking.pets?.[0]?.id;

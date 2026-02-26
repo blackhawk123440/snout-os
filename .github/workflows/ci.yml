@@ -62,7 +62,9 @@ jobs:
 
       - name: Check UI Constitution violations
         run: pnpm exec tsx scripts/check-ui-constitution.ts
-        continue-on-error: true
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
 
       - name: Build application
         run: pnpm run build
@@ -107,6 +109,9 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps
 
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
       - name: Build application
         run: pnpm run build
 
@@ -127,23 +132,30 @@ jobs:
       - name: Run proof-pack tests
         run: |
           mkdir -p proof-pack
-          pnpm run test:ui:smoke || true
-          pnpm run test -- src/lib/messaging/__tests__/pool-capacity.test.ts src/lib/messaging/__tests__/pool-release.test.ts src/lib/messaging/__tests__/invariants.test.ts --reporter=json --outputFile=proof-pack/test-output.json || true
+          pnpm run test:ui:smoke
+          pnpm run test -- src/lib/messaging/__tests__/pool-capacity.test.ts src/lib/messaging/__tests__/pool-release.test.ts src/lib/messaging/__tests__/invariants.test.ts --reporter=json --outputFile=proof-pack/test-output.json
         env:
           CI: true
           BASE_URL: "http://localhost:3000"
           OWNER_EMAIL: "owner@example.com"
           OWNER_PASSWORD: "password"
-        continue-on-error: true
 
       - name: Capture screenshots
         run: |
-          pnpm run test:ui -- tests/e2e/rotation-settings-persistence.spec.ts --screenshot=only-on-failure || true
+          pnpm run test:ui -- tests/e2e/rotation-settings-persistence.spec.ts --screenshot=only-on-failure
           mkdir -p proof-pack/screenshots
           cp -r test-results/*/screenshots/* proof-pack/screenshots/ 2>/dev/null || true
         env:
           BASE_URL: "http://localhost:3000"
-        continue-on-error: true
+
+      - name: Release gate summary
+        if: ${{ success() }}
+        run: |
+          echo "Release gate checks passed:"
+          echo "- build: PASS"
+          echo "- smoke tests: PASS"
+          echo "- unit tests: PASS"
+          exit 0
 
       - name: Stop application
         if: always()

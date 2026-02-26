@@ -7,27 +7,35 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { recordSitterStatusChanged } from '@/lib/audit-events';
+import { getRequestContext } from '@/lib/request-context';
+import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
+import { whereOrg } from '@/lib/org-scope';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+    requireAnyRole(ctx, ['owner', 'admin', 'sitter']);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const resolvedParams = await params;
-    const sitter = await prisma.sitter.findUnique({
-      where: { id: resolvedParams.id },
+    if (ctx.role === 'sitter' && ctx.sitterId !== resolvedParams.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const sitter = await prisma.sitter.findFirst({
+      where: whereOrg(ctx.orgId, { id: resolvedParams.id }),
     }) as any; // Type assertion: runtime uses enterprise-messaging-dashboard schema (name field)
 
     if (!sitter) {
@@ -71,17 +79,23 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+    requireAnyRole(ctx, ['owner', 'admin', 'sitter']);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const resolvedParams = await params;
+    if (ctx.role === 'sitter' && ctx.sitterId !== resolvedParams.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await request.json();
     const {
       firstName: bodyFirstName,
@@ -95,7 +109,7 @@ export async function PATCH(
 
     // Get current sitter to check for status changes
     const currentSitter = await (prisma as any).sitter.findUnique({
-      where: { id: resolvedParams.id },
+      where: whereOrg(ctx.orgId, { id: resolvedParams.id }),
       select: { active: true },
     });
 
@@ -107,8 +121,8 @@ export async function PATCH(
     // Schema only has: id, orgId, userId, name, active, createdAt, updatedAt
     if (bodyFirstName !== undefined || bodyLastName !== undefined) {
       // Combine firstName and lastName into name
-      const existingSitter = await prisma.sitter.findUnique({
-        where: { id: resolvedParams.id },
+      const existingSitter = await prisma.sitter.findFirst({
+        where: whereOrg(ctx.orgId, { id: resolvedParams.id }),
       }) as any; // Type assertion: runtime uses enterprise-messaging-dashboard schema
       
       if (bodyFirstName !== undefined && bodyLastName !== undefined) {
@@ -132,13 +146,12 @@ export async function PATCH(
       // If activating sitter and they don't have a number, assign one
       if (isActive === true) {
         // Get orgId from session user
-        const sessionUser = session.user as any;
-        const orgId = sessionUser.orgId || 'default';
+        const orgId = ctx.orgId;
         
         // Check if sitter already has an assigned number
         // Note: Use (prisma as any) because assignedNumbers relation may not be in frontend schema
         const existingSitter = await (prisma as any).sitter.findUnique({
-          where: { id: resolvedParams.id },
+          where: whereOrg(ctx.orgId, { id: resolvedParams.id }),
           include: {
             assignedNumbers: {
               where: {
@@ -166,21 +179,28 @@ export async function PATCH(
       }
     }
 
+    const scopedSitter = await prisma.sitter.findFirst({
+      where: whereOrg(ctx.orgId, { id: resolvedParams.id }),
+      select: { id: true },
+    });
+    if (!scopedSitter) {
+      return NextResponse.json({ error: 'Sitter not found' }, { status: 404 });
+    }
+
     const sitter = await prisma.sitter.update({
-      where: { id: resolvedParams.id },
+      where: { id: scopedSitter.id },
       data: updateData as any, // Type assertion: runtime uses enterprise-messaging-dashboard schema
     }) as any;
 
     // Record audit event if status changed
     const newStatus = sitter.active ? 'active' : 'inactive';
     if (oldStatus !== newStatus) {
-      const orgId = (session.user as any).orgId || (await import('@/lib/messaging/org-helpers')).getDefaultOrgId();
       await recordSitterStatusChanged(
-        orgId,
+        ctx.orgId,
         resolvedParams.id,
         oldStatus,
         newStatus,
-        (session.user as any).id
+        ctx.userId || 'system'
       );
     }
 
@@ -224,20 +244,25 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+    requireAnyRole(ctx, ['owner', 'admin']);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const resolvedParams = await params;
-    await prisma.sitter.delete({
-      where: { id: resolvedParams.id },
+    const result = await prisma.sitter.deleteMany({
+      where: whereOrg(ctx.orgId, { id: resolvedParams.id }),
     });
+    if (result.count === 0) {
+      return NextResponse.json({ error: 'Sitter not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

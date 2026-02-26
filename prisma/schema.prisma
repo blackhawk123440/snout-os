@@ -7,6 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Org {
+  id          String   @id
+  name        String
+  mode        String   @default("personal") // personal | saas
+  brandingJson String? @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Rate {
   id        String    @id @default(uuid())
   service   String
@@ -20,6 +29,7 @@ model Rate {
 
 model Booking {
   id                   String                 @id @default(uuid())
+  orgId                String                 @default("default")
   firstName            String
   lastName             String
   phone                String
@@ -68,6 +78,9 @@ model Booking {
   petHealthLogs        PetHealthLog[]
 
   @@index([sitterId])
+  @@index([orgId])
+  @@index([orgId, startAt])
+  @@index([orgId, sitterId])
   @@index([status])
   @@index([createdAt])
   @@index([clientId])
@@ -75,6 +88,7 @@ model Booking {
 
 model Pet {
   id           String             @id @default(uuid())
+  orgId        String             @default("default")
   name         String
   species      String
   breed        String?
@@ -86,10 +100,12 @@ model Pet {
   healthLogs   PetHealthLog[]
 
   @@index([bookingId])
+  @@index([orgId])
 }
 
 model TimeSlot {
   id        String   @id @default(uuid())
+  orgId     String   @default("default")
   startAt   DateTime
   endAt     DateTime
   duration  Int
@@ -98,10 +114,12 @@ model TimeSlot {
   createdAt DateTime @default(now())
 
   @@index([bookingId])
+  @@index([orgId])
 }
 
 model Sitter {
   id                   String              @id @default(uuid())
+  orgId                String              @default("default")
   firstName            String              @default("")
   lastName             String              @default("")
   phone                String              @default("")
@@ -146,11 +164,13 @@ model Sitter {
 
   // @@unique([email])   // re-add after backfill
   @@index([active])
+  @@index([orgId])
   @@index([currentTierId])
 }
 
 model SitterPoolOffer {
   id               String   @id @default(uuid())
+  orgId            String   @default("default")
   bookingId        String
   sitterId         String?
   sitterIds        String?
@@ -165,12 +185,14 @@ model SitterPoolOffer {
   sitter           Sitter?  @relation(fields: [sitterId], references: [id], onDelete: Cascade)
 
   @@index([bookingId])
+  @@index([orgId])
   @@index([sitterId])
   @@index([status])
 }
 
 model BookingSitterPool {
   id              String   @id @default(uuid())
+  orgId           String   @default("default")
   bookingId       String
   sitterId        String
   createdAt       DateTime @default(now())
@@ -179,12 +201,14 @@ model BookingSitterPool {
   sitter          Sitter   @relation("SitterPoolMembers", fields: [sitterId], references: [id], onDelete: Cascade)
 
   @@unique([bookingId, sitterId])
+  @@index([orgId])
   @@index([bookingId])
   @@index([sitterId])
 }
 
 model Message {
   id        String   @id @default(uuid())
+  orgId     String   @default("default")
   direction String   @default("outbound")
   from      String   @default("")
   to        String   @default("")
@@ -195,6 +219,7 @@ model Message {
   createdAt DateTime @default(now())
 
   @@index([bookingId])
+  @@index([orgId])
   @@index([direction])
 }
 
@@ -212,6 +237,7 @@ model Setting {
 
 model Report {
   id             String    @id @default(uuid())
+  orgId          String    @default("default")
   bookingId      String?
   booking        Booking?  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   content        String
@@ -222,6 +248,7 @@ model Report {
   updatedAt      DateTime  @updatedAt
 
   @@index([bookingId])
+  @@index([orgId])
 }
 
 model GoogleCalendarAccount {
@@ -244,6 +271,7 @@ model GoogleCalendarAccount {
 
 model Automation {
   id          String   @id @default(uuid())
+  orgId       String   @default("default")
   name        String
   description String?
   isEnabled   Boolean  @default(true)
@@ -263,6 +291,7 @@ model Automation {
   runs            AutomationRun[]
 
   @@index([isEnabled])
+  @@index([orgId])
   @@index([status])
   @@index([scope])
   @@index([createdAt])
@@ -332,6 +361,7 @@ model AutomationTemplate {
 
 model AutomationRun {
   id               String     @id @default(uuid())
+  orgId            String     @default("default")
   automationId     String
   automation       Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
   triggeredAt      DateTime   @default(now())
@@ -347,6 +377,7 @@ model AutomationRun {
   steps AutomationRunStep[]
 
   @@index([automationId])
+  @@index([orgId])
   @@index([status])
   @@index([triggeredAt])
   @@index([targetEntityType, targetEntityId])
@@ -356,6 +387,7 @@ model AutomationRun {
 
 model AutomationRunStep {
   id              String        @id @default(uuid())
+  orgId           String        @default("default")
   automationRunId String
   automationRun   AutomationRun @relation(fields: [automationRunId], references: [id], onDelete: Cascade)
   stepType        String // "conditionCheck", "actionExecute"
@@ -366,6 +398,7 @@ model AutomationRunStep {
   createdAt       DateTime      @default(now())
 
   @@index([automationRunId])
+  @@index([orgId])
   @@index([stepType])
   @@index([status])
 }
@@ -398,6 +431,7 @@ model CustomField {
 
 model CustomFieldValue {
   id            String      @id @default(uuid())
+  orgId         String      @default("default")
   customFieldId String
   customField   CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
   entityId      String // ID of the client, pet, sitter, or booking
@@ -414,6 +448,7 @@ model CustomFieldValue {
   bookingId     String?
 
   @@unique([customFieldId, entityId])
+  @@index([orgId])
   @@index([entityId])
   @@index([petId])
   @@index([sitterId])
@@ -498,6 +533,7 @@ model Discount {
 
 model DiscountUsage {
   id         String   @id @default(uuid())
+  orgId      String   @default("default")
   discountId String
   discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
   bookingId  String
@@ -506,6 +542,7 @@ model DiscountUsage {
   usedAt     DateTime @default(now())
 
   @@unique([bookingId]) // One discount per booking
+  @@index([orgId])
   @@index([discountId])
   @@index([bookingId])
 }
@@ -729,6 +766,7 @@ model BookingTag {
 
 model BookingTagAssignment {
   id        String     @id @default(uuid())
+  orgId     String     @default("default")
   bookingId String
   tagId     String
   tag       BookingTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
@@ -736,6 +774,7 @@ model BookingTagAssignment {
   createdAt DateTime   @default(now())
 
   @@unique([bookingId, tagId])
+  @@index([orgId])
   @@index([bookingId])
   @@index([tagId])
 }
@@ -777,6 +816,8 @@ model BusinessSettings {
 
 model User {
   id            String    @id @default(uuid())
+  orgId         String    @default("default")
+  role          String    @default("owner")
   name          String?
   email         String?   @unique
   emailVerified DateTime?
@@ -791,6 +832,7 @@ model User {
   sitter        Sitter?   @relation(fields: [sitterId], references: [id], onDelete: SetNull)
 
   @@index([email])
+  @@index([orgId])
   @@index([sitterId])
 }
 
@@ -838,6 +880,7 @@ model VerificationToken {
 
 model BaselineSnapshot {
   id                   String   @id @default(uuid())
+  orgId                String   @default("default")
   bookingId            String
   timestamp            DateTime @default(now())
   bookingFormTotal     Float?
@@ -849,6 +892,7 @@ model BaselineSnapshot {
   calculatedBreakdown  String?  @db.Text // JSON string
   notes                String?  @db.Text
 
+  @@index([orgId])
   @@index([bookingId])
   @@index([timestamp])
 }
@@ -872,6 +916,7 @@ model FeatureFlag {
 
 model EventLog {
   id             String   @id @default(uuid())
+  orgId          String   @default("default")
   eventType      String // e.g., "automation.run", "booking.created", "payment.success"
   automationType String? // Automation type if eventType is "automation.run" (e.g., "bookingConfirmation", "nightBeforeReminder")
   status         String // "success", "failed", "skipped", "pending"
@@ -881,6 +926,7 @@ model EventLog {
   booking        Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
   createdAt      DateTime @default(now())
 
+  @@index([orgId])
   @@index([eventType])
   @@index([automationType])
   @@index([status])
@@ -894,6 +940,7 @@ model EventLog {
 
 model BookingStatusHistory {
   id         String   @id @default(uuid())
+  orgId      String   @default("default")
   bookingId  String
   booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   fromStatus String? // Previous status (null for initial status)
@@ -903,6 +950,7 @@ model BookingStatusHistory {
   metadata   String?  @db.Text // JSON string for additional context
   createdAt  DateTime @default(now())
 
+  @@index([orgId])
   @@index([bookingId])
   @@index([toStatus])
   @@index([createdAt])
@@ -912,6 +960,7 @@ model BookingStatusHistory {
 // Stripe Payment Read Models
 model StripeCharge {
   id              String    @id // Stripe charge ID
+  orgId           String    @default("default")
   amount          Int // Amount in cents
   amountRefunded  Int       @default(0)
   currency        String    @default("usd")
@@ -929,6 +978,7 @@ model StripeCharge {
   createdAt       DateTime // Stripe created timestamp
   syncedAt        DateTime  @default(now()) @updatedAt
 
+  @@index([orgId])
   @@index([customerId])
   @@index([bookingId])
   @@index([status])
@@ -1597,6 +1647,7 @@ model MessageResponseLink {
 
 model BookingCalendarEvent {
   id                  String    @id @default(uuid())
+  orgId               String    @default("default")
   bookingId           String
   sitterId            String
   googleCalendarEventId String // Google Calendar event ID
@@ -1608,6 +1659,7 @@ model BookingCalendarEvent {
   sitter              Sitter    @relation(fields: [sitterId], references: [id], onDelete: Cascade)
 
   @@unique([bookingId, sitterId]) // One event per booking-sitter pair
+  @@index([orgId])
   @@index([bookingId])
   @@index([sitterId])
   @@index([googleCalendarEventId])
