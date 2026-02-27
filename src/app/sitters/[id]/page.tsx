@@ -307,29 +307,39 @@ function SitterDetailContent() {
     <AppShell>
       {/* Global Header */}
       <SitterPageHeader
-        sitter={sitter}
-        isAvailable={isAvailable}
-        canEdit={canEdit}
-        onAvailabilityToggle={async () => {
-          if (togglingAvailability || !sitterId) return;
-          setTogglingAvailability(true);
-          try {
-            const res = await fetch(`/api/sitters/${sitterId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ isActive: !isAvailable }),
-            });
-            if (res.ok) {
-              setIsAvailable(!isAvailable);
-              const data = await res.json();
-              if (data.sitter?.isActive !== undefined) setIsAvailable(data.sitter.isActive);
-            }
-          } catch (e) {
-            console.error('Failed to toggle availability:', e);
-          } finally {
-            setTogglingAvailability(false);
-          }
-        }}
+        title={sitter ? `${sitter.firstName} ${sitter.lastName}`.trim() || 'Sitter' : 'Sitter'}
+        subtitle={isAvailable ? 'Available' : 'Off'}
+        action={
+          canEdit && (
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={togglingAvailability}
+              onClick={async () => {
+                if (togglingAvailability || !sitterId) return;
+                setTogglingAvailability(true);
+                try {
+                  const res = await fetch(`/api/sitters/${sitterId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isActive: !isAvailable }),
+                  });
+                  if (res.ok) {
+                    setIsAvailable(!isAvailable);
+                    const data = await res.json();
+                    if (data.sitter?.isActive !== undefined) setIsAvailable(data.sitter.isActive);
+                  }
+                } catch (e) {
+                  console.error('Failed to toggle availability:', e);
+                } finally {
+                  setTogglingAvailability(false);
+                }
+              }}
+            >
+              {togglingAvailability ? 'Updating…' : isAvailable ? 'Set off' : 'Set available'}
+            </Button>
+          )
+        }
       />
 
       <div style={{ padding: tokens.spacing[4] }}>
