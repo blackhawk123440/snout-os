@@ -41,7 +41,10 @@ export async function middleware(request: NextRequest) {
         if (pathname.startsWith('/messages')) {
           return NextResponse.redirect(new URL('/sitter/inbox', request.url));
         }
-        // Other restricted routes return 403
+        // Page routes: redirect to sitter today (avoids 403 on HTML, better UX)
+        if (!pathname.startsWith('/api/')) {
+          return NextResponse.redirect(new URL('/sitter/today', request.url));
+        }
         return NextResponse.json(
           { error: "Access denied: This route is not available to sitters" },
           { status: 403 }

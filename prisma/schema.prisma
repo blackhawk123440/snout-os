@@ -149,6 +149,7 @@ model Sitter {
   googleTokenExpiry    DateTime?
   googleCalendarId     String?   @default("primary")
   calendarSyncEnabled  Boolean   @default(false)
+  availabilityEnabled  Boolean   @default(true) // Sitter-managed: available for new bookings
   // SRS System relations
   tierSnapshots        SitterTierSnapshot[]
   serviceEvents        SitterServiceEvent[]

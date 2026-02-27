@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SitterAppShell } from "@/components/layout/SitterAppShell";
 
 export const metadata: Metadata = {
   title: "Sitter Dashboard - Snout OS",
@@ -10,5 +11,5 @@ export default function SitterLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return <SitterAppShell>{children}</SitterAppShell>;
 }

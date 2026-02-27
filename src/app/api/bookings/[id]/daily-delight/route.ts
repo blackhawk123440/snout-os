@@ -27,7 +27,7 @@ export async function POST(
   }
 
   const { id: bookingId } = await params;
-  let body: { petId?: string } = {};
+  let body: { petId?: string; tone?: 'warm' | 'playful' | 'professional' } = {};
   try {
     body = await request.json();
   } catch {
@@ -55,7 +55,7 @@ export async function POST(
     );
   }
 
-  const report = await ai.generateDailyDelight(petId, bookingId);
+  const report = await ai.generateDailyDelight(petId, bookingId, body.tone);
 
   // Auto-send report via SMS when Twilio is configured
   const client = booking.client;

@@ -8,7 +8,7 @@ function getOpenAI(): OpenAI | null {
 }
 
 export const ai = {
-  async generateDailyDelight(petId: string, bookingId: string) {
+  async generateDailyDelight(petId: string, bookingId: string, tone?: 'warm' | 'playful' | 'professional') {
     const pet = await prisma.pet.findUnique({
       where: { id: petId },
       include: { booking: { include: { client: true } } },
@@ -20,7 +20,14 @@ export const ai = {
 
     const orgId = pet.booking?.client?.orgId ?? 'default';
 
-    const prompt = `Write a warm, fun 2-sentence daily delight report for ${pet.name} (${pet.breed ?? 'pet'}). Make it emotional and shareable.`;
+    const tonePrompt =
+      tone === 'playful'
+        ? 'Write a playful, fun 2-sentence daily delight report. Use light humor and energy.'
+        : tone === 'professional'
+          ? 'Write a concise, professional 2-sentence daily delight report. Keep it informative and reassuring.'
+          : 'Write a warm, fun 2-sentence daily delight report. Make it emotional and shareable.';
+
+    const prompt = `${tonePrompt} For ${pet.name} (${pet.breed ?? 'pet'}).`;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',

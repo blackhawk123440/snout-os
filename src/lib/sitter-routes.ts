@@ -50,6 +50,12 @@ export function isSitterRestrictedRoute(pathname: string): boolean {
   if (pathname.startsWith('/numbers')) return true;
   if (pathname.startsWith('/assignments')) return true;
   if (pathname.startsWith('/messages')) return true; // Sitters must use /sitter/inbox
+  if (pathname.startsWith('/calendar')) return true;
+  if (pathname.startsWith('/clients')) return true;
+  if (pathname.startsWith('/integrations')) return true;
+  if (pathname.startsWith('/templates')) return true;
+  if (pathname.startsWith('/automation')) return true;
+  if (pathname === '/' || pathname === '') return true; // Root dashboard is owner-only
   // Payment admin routes
   if (pathname.startsWith("/api/payments")) {
     return true;

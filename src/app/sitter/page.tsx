@@ -1,7 +1,6 @@
 /**
  * Sitter Landing Page
- * 
- * Redirects /sitter to /sitter/dashboard
+ * Canonical entrypoint: /sitter → /sitter/today
  */
 
 'use client';
@@ -17,9 +16,9 @@ export default function SitterPage() {
   useEffect(() => {
     if (!loading) {
       if (isSitter) {
-        router.replace('/sitter/dashboard');
+        router.replace('/sitter/today');
       } else {
-        router.replace('/messages'); // Redirect non-sitters
+        router.replace('/login');
       }
     }
   }, [loading, isSitter, router]);

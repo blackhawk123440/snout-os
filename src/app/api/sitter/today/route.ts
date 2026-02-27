@@ -72,12 +72,13 @@ export async function GET() {
       }
     }
 
+    const toIso = (d: Date) => (d instanceof Date ? d.toISOString() : String(d));
     const payload = bookings.map((booking: any) => ({
       id: booking.id,
       status: booking.status,
       service: booking.service,
-      startAt: booking.startAt,
-      endAt: booking.endAt,
+      startAt: toIso(booking.startAt),
+      endAt: toIso(booking.endAt),
       address: booking.address,
       clientName:
         `${booking.client?.firstName || booking.firstName || ''} ${booking.client?.lastName || booking.lastName || ''}`.trim() ||

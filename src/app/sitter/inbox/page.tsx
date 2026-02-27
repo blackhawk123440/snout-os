@@ -10,8 +10,8 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
-import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader, Card, Button, EmptyState, Skeleton } from '@/components/ui';
+import { FeatureStatusPill } from '@/components/sitter/FeatureStatusPill';
 import { useAuth } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
 import { useSitterThreads, useSitterMessages, useSitterSendMessage, type SitterThread, type SitterMessage } from '@/lib/api/sitter-hooks';
@@ -23,6 +23,7 @@ function SitterInboxContent() {
   const router = useRouter();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [composeMessage, setComposeMessage] = useState('');
+  const [threadSearch, setThreadSearch] = useState('');
   
   const { data: threads = [], isLoading: threadsLoading } = useSitterThreads();
   const { data: messages = [], isLoading: messagesLoading } = useSitterMessages(selectedThreadId);
@@ -71,7 +72,7 @@ function SitterInboxContent() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader
         title="My Inbox"
         description="Messages from clients during your active assignments"
@@ -82,6 +83,20 @@ function SitterInboxContent() {
         <div className="w-1/3 flex flex-col min-h-0" style={{ borderRight: `1px solid ${tokens.colors.border.default}`, backgroundColor: tokens.colors.neutral[50] }}>
           <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
             <h2 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>Active Assignments</h2>
+            <input
+              type="search"
+              placeholder="Search threads..."
+              value={threadSearch}
+              onChange={(e) => setThreadSearch(e.target.value)}
+              style={{
+                marginTop: tokens.spacing[2],
+                width: '100%',
+                padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+                border: `1px solid ${tokens.colors.border.default}`,
+                borderRadius: tokens.borderRadius.sm,
+                fontSize: tokens.typography.fontSize.sm[0],
+              }}
+            />
           </div>
           
           <div className="flex-1 min-h-0 overflow-y-auto">
@@ -212,6 +227,14 @@ function SitterInboxContent() {
                 )}
               </div>
 
+              {/* AI suggested reply placeholder */}
+              <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}`, backgroundColor: tokens.colors.primary[50], display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: tokens.spacing[2] }}>
+                <p style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.primary[800] }}>
+                  AI suggested reply
+                </p>
+                <FeatureStatusPill featureKey="ai_suggested_reply" />
+              </div>
+
               {/* Compose Box - Pinned Bottom */}
               <div className="flex-shrink-0" style={{ padding: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
                 {!isWindowActive ? (
@@ -266,7 +289,7 @@ function SitterInboxContent() {
           )}
         </div>
       </div>
-    </AppShell>
+    </>
   );
 }
 
