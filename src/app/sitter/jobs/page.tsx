@@ -142,8 +142,8 @@ export default function SitterJobsPage() {
         ]}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as TabId)}
-      />
-      {loading ? (
+      >
+        {loading ? (
         <div className="mt-4">
           <SitterSkeletonList count={3} />
         </div>
@@ -164,6 +164,7 @@ export default function SitterJobsPage() {
           {currentList.map(renderJobCard)}
         </div>
       )}
+      </Tabs>
     </div>
   );
 }
