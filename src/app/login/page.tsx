@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 
 type SessionUser = {
@@ -19,7 +19,6 @@ const getRedirectForRole = (user: SessionUser): string => {
 
 export default function LoginPage() {
   const router = useRouter();
-  useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
