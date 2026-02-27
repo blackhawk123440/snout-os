@@ -1,8 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { PageHeader, Button } from '@/components/ui';
-import { FeatureStatusPill } from '@/components/sitter/FeatureStatusPill';
+import { Button } from '@/components/ui';
+import {
+  SitterCard,
+  SitterCardHeader,
+  SitterCardBody,
+  SitterPageHeader,
+  SitterSkeletonList,
+  SitterErrorState,
+  FeatureStatusPill,
+} from '@/components/sitter';
 
 interface BlockOffDay {
   id: string;
@@ -93,24 +101,28 @@ export default function SitterAvailabilityPage() {
   };
 
   return (
-    <>
-      <PageHeader title="Availability" description="When you're available for bookings" />
-      <div className="mx-auto max-w-3xl px-4 pb-8 pt-2">
-        {loading ? (
-          <div className="animate-pulse space-y-4 rounded-xl border border-neutral-200 bg-white p-6">
-            <div className="h-6 w-32 rounded bg-neutral-200" />
-            <div className="h-4 w-full rounded bg-neutral-100" />
-          </div>
-        ) : error ? (
-          <div className="rounded-xl border border-dashed border-neutral-200 bg-white p-10 text-center">
-            <p className="text-sm text-neutral-600">{error}</p>
-            <Button variant="secondary" size="md" className="mt-4" onClick={() => void load()}>
-              Try again
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="rounded-xl border border-neutral-200 bg-white p-6">
+    <div className="mx-auto max-w-3xl pb-8">
+      <SitterPageHeader
+        title="Availability"
+        subtitle="When you're available for bookings"
+        action={
+          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+            Refresh
+          </Button>
+        }
+      />
+      {loading ? (
+        <SitterSkeletonList count={2} />
+      ) : error ? (
+        <SitterErrorState
+          title="Couldn't load availability"
+          subtitle={error}
+          onRetry={() => void load()}
+        />
+      ) : (
+        <div className="space-y-4">
+          <SitterCard>
+            <SitterCardBody>
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="font-medium text-neutral-900">Available for new bookings</p>
@@ -133,17 +145,21 @@ export default function SitterAvailabilityPage() {
                   />
                 </button>
               </div>
-            </div>
+            </SitterCardBody>
+          </SitterCard>
 
-            <div className="rounded-xl border border-neutral-200 bg-white p-6">
-              <p className="mb-2 font-medium text-neutral-900">Block off dates</p>
+          <SitterCard>
+            <SitterCardHeader>
+              <p className="font-medium text-neutral-900">Block off dates</p>
+            </SitterCardHeader>
+            <SitterCardBody>
               <p className="mb-3 text-sm text-neutral-500">Days you&apos;re not available</p>
               <div className="flex flex-wrap gap-2">
                 <input
                   type="date"
                   value={newBlockDate}
                   onChange={(e) => setNewBlockDate(e.target.value)}
-                  className="rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+                  className="rounded-xl border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
                 <Button variant="secondary" size="md" onClick={() => void addBlockOff()} disabled={!newBlockDate || adding}>
                   {adding ? 'Adding...' : 'Add'}
@@ -161,18 +177,20 @@ export default function SitterAvailabilityPage() {
                   ))}
                 </ul>
               )}
-            </div>
+            </SitterCardBody>
+          </SitterCard>
 
-            <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 p-4">
+          <SitterCard className="border-dashed">
+            <SitterCardBody>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-neutral-700">Recurring blocks</p>
                 <FeatureStatusPill featureKey="recurring_blocks" />
               </div>
-              <p className="mt-1 text-xs text-neutral-500">Weekly recurring unavailability</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
+              <p className="mt-1 text-xs text-neutral-500">Weekly recurring unavailability (coming soon)</p>
+            </SitterCardBody>
+          </SitterCard>
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,22 +1,41 @@
 /**
  * Sitter Inbox Page
- * 
- * Sitter-specific messaging inbox showing only threads assigned to the sitter
- * with active assignment windows.
+ * Thread list + message view with standardized rows and suggested reply panel.
  */
 
 'use client';
 
-'use client';
-
 import { Suspense, useState, useEffect } from 'react';
-import { PageHeader, Card, Button, EmptyState, Skeleton } from '@/components/ui';
-import { FeatureStatusPill } from '@/components/sitter/FeatureStatusPill';
+import { Button } from '@/components/ui';
+import {
+  SitterPageHeader,
+  SitterSkeletonList,
+  SitterEmptyState,
+  FeatureStatusPill,
+} from '@/components/sitter';
 import { useAuth } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
-import { useSitterThreads, useSitterMessages, useSitterSendMessage, type SitterThread, type SitterMessage } from '@/lib/api/sitter-hooks';
-import { formatDistanceToNow } from 'date-fns';
-import { tokens } from '@/lib/design-tokens';
+import {
+  useSitterThreads,
+  useSitterMessages,
+  useSitterSendMessage,
+  type SitterThread,
+  type SitterMessage,
+} from '@/lib/api/sitter-hooks';
+import { formatDistanceToNow, format } from 'date-fns';
+
+const formatThreadTime = (d: Date) => {
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  return isToday ? format(d, 'h:mm a') : format(d, 'MMM d');
+};
+
+const SUGGESTED_REPLIES = [
+  'On my way! 🐾',
+  'All done—they had a great time!',
+  'Quick question about their routine',
+  'See you at the next visit!',
+];
 
 function SitterInboxContent() {
   const { user, isSitter, loading: authLoading } = useAuth();
@@ -24,14 +43,16 @@ function SitterInboxContent() {
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [composeMessage, setComposeMessage] = useState('');
   const [threadSearch, setThreadSearch] = useState('');
-  
-  const { data: threads = [], isLoading: threadsLoading } = useSitterThreads();
+  const [suggestedTone, setSuggestedTone] = useState<'warm' | 'professional'>('warm');
+
+  const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useSitterThreads();
   const { data: messages = [], isLoading: messagesLoading } = useSitterMessages(selectedThreadId);
   const sendMessage = useSitterSendMessage();
-  
-  const selectedThread = threads.find(t => t.id === selectedThreadId);
+
+  const selectedThread = threads.find((t) => t.id === selectedThreadId);
   const activeWindow = selectedThread?.assignmentWindows?.[0];
-  const isWindowActive = activeWindow && new Date() >= activeWindow.startsAt && new Date() <= activeWindow.endsAt;
+  const isWindowActive =
+    activeWindow && new Date() >= activeWindow.startsAt && new Date() <= activeWindow.endsAt;
 
   useEffect(() => {
     if (!authLoading && !isSitter) {
@@ -47,259 +68,291 @@ function SitterInboxContent() {
 
   const handleSend = async () => {
     if (!selectedThreadId || !composeMessage.trim() || !isWindowActive) return;
-    
     try {
-      await sendMessage.mutateAsync({
-        threadId: selectedThreadId,
-        body: composeMessage,
-      });
+      await sendMessage.mutateAsync({ threadId: selectedThreadId, body: composeMessage });
       setComposeMessage('');
-    } catch (error: any) {
-      alert(`Failed to send: ${error.message}`);
+    } catch {
+      // Fail-soft
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      void handleSend();
     }
   };
 
   if (authLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div>Loading...</div>
+      <div className="mx-auto max-w-4xl pb-8">
+        <SitterPageHeader title="Inbox" subtitle="Messages from clients" />
+        <SitterSkeletonList count={4} />
       </div>
     );
   }
 
-  if (!isSitter) {
-    return null;
-  }
+  if (!isSitter) return null;
+
+  const filteredThreads = threadSearch.trim()
+    ? threads.filter((t) =>
+        t.client?.name?.toLowerCase().includes(threadSearch.toLowerCase())
+      )
+    : threads;
 
   return (
-    <>
-      <PageHeader
-        title="My Inbox"
-        description="Messages from clients during your active assignments"
+    <div className="mx-auto max-w-4xl pb-8">
+      <SitterPageHeader
+        title="Inbox"
+        subtitle="Messages from clients during your active assignments"
       />
-      
-      <div className="flex flex-1 min-h-0 overflow-hidden h-full">
-        {/* Left: Thread List */}
-        <div className="w-1/3 flex flex-col min-h-0" style={{ borderRight: `1px solid ${tokens.colors.border.default}`, backgroundColor: tokens.colors.neutral[50] }}>
-          <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
-            <h2 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>Active Assignments</h2>
+
+      <div className="flex min-h-[60vh] flex-col gap-0 rounded-2xl border border-neutral-200 bg-white shadow-sm md:flex-row">
+        {/* Thread list */}
+        <div className="flex w-full flex-col border-b border-neutral-200 md:w-80 md:border-b-0 md:border-r">
+          <div className="border-b border-neutral-200 p-4">
             <input
               type="search"
               placeholder="Search threads..."
               value={threadSearch}
               onChange={(e) => setThreadSearch(e.target.value)}
-              style={{
-                marginTop: tokens.spacing[2],
-                width: '100%',
-                padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-                border: `1px solid ${tokens.colors.border.default}`,
-                borderRadius: tokens.borderRadius.sm,
-                fontSize: tokens.typography.fontSize.sm[0],
-              }}
+              className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </div>
-          
-          <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto">
             {threadsLoading ? (
-              <div style={{ padding: tokens.spacing[4] }}>
-                <Skeleton height={60} />
-                <Skeleton height={60} />
+              <div className="p-4">
+                <SitterSkeletonList count={3} />
               </div>
-            ) : threads.length === 0 ? (
-              <div style={{ padding: tokens.spacing[4], textAlign: 'center' }}>
-                <EmptyState
+            ) : threadsError ? (
+              <div className="p-4">
+                <SitterEmptyState
+                  title="Couldn't load threads"
+                  subtitle="Give it another try in a moment."
+                />
+              </div>
+            ) : filteredThreads.length === 0 ? (
+              <div className="p-4">
+                <SitterEmptyState
                   title="No active assignments"
-                  description="You don't have any active assignment windows with messages"
-                  icon={<i className="fas fa-inbox" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                  subtitle="Messages will appear here when you have visits."
                 />
               </div>
             ) : (
-              threads.map((thread) => {
-                const threadWindow = thread.assignmentWindows?.[0];
-                const isThreadWindowActive = threadWindow && new Date() >= threadWindow.startsAt && new Date() <= threadWindow.endsAt;
-                
+              filteredThreads.map((thread) => {
+                const tw = thread.assignmentWindows?.[0];
+                const isActive =
+                  tw && new Date() >= tw.startsAt && new Date() <= tw.endsAt;
+                const isSelected = selectedThreadId === thread.id;
+                const displayName = thread.client?.name || 'Client';
+                const initial = displayName.charAt(0).toUpperCase();
+                const lastMsg = isSelected && messages.length > 0 ? messages[messages.length - 1] : null;
+                const preview = lastMsg
+                  ? ((lastMsg.redactedBody || lastMsg.body || '').slice(0, 50) + ((lastMsg.body?.length ?? 0) > 50 ? '…' : ''))
+                  : 'Tap to view messages';
+
                 return (
-                  <Card
+                  <button
                     key={thread.id}
+                    type="button"
                     onClick={() => setSelectedThreadId(thread.id)}
-                    style={{
-                      margin: tokens.spacing[2],
-                      padding: tokens.spacing[3],
-                      cursor: 'pointer',
-                      backgroundColor: selectedThreadId === thread.id ? tokens.colors.primary[50] : 'white',
-                      border: selectedThreadId === thread.id ? `2px solid ${tokens.colors.primary.DEFAULT}` : `1px solid ${tokens.colors.border.default}`,
-                    }}
+                    className={`flex min-h-[72px] min-w-0 items-center gap-3 border-b border-neutral-100 px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
+                      isSelected ? 'bg-blue-50' : 'hover:bg-neutral-50'
+                    }`}
                   >
-                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
-                      {thread.client.name}
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-800">
+                      {initial}
                     </div>
-                    {threadWindow && (
-                      <div style={{ 
-                        fontSize: tokens.typography.fontSize.xs[0], 
-                        color: isThreadWindowActive ? tokens.colors.success[700] : tokens.colors.text.secondary,
-                        marginBottom: tokens.spacing[0.5]
-                      }}>
-                        {isThreadWindowActive ? '✓ Active' : 'Inactive'} • {formatDistanceToNow(new Date(threadWindow.endsAt), { addSuffix: true })}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-neutral-900">
+                        {displayName} • {formatThreadTime(thread.lastActivityAt)}
+                      </p>
+                      <p className="truncate text-xs text-neutral-500">{preview}</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            isActive ? 'bg-green-100 text-green-800' : 'bg-neutral-100 text-neutral-600'
+                          }`}
+                        >
+                          {isActive ? 'Active' : 'Inactive'}
+                        </span>
+                        {/* Unread badge placeholder */}
+                        {false && (
+                          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-medium text-white">
+                            1
+                          </span>
+                        )}
                       </div>
-                    )}
-                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
-                      {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
                     </div>
-                  </Card>
+                  </button>
                 );
               })
             )}
           </div>
         </div>
 
-        {/* Right: Message View */}
-        <div className="flex-1 min-h-0 flex flex-col">
+        {/* Message view */}
+        <div className="flex flex-1 flex-col min-h-0">
           {selectedThreadId ? (
             <>
-              {/* Thread Header */}
-              <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
-                <div style={{ marginBottom: tokens.spacing[3] }}>
-                  <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
-                    {selectedThread?.client.name || 'Unknown'}
-                  </h3>
-                  {user && (
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                      {user.name || user.email} • {selectedThread?.messageNumber?.e164 ? `Assigned number: ${selectedThread.messageNumber.e164}` : 'No assigned number'}
-                    </div>
-                  )}
+              {/* Thread header bar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 bg-white p-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-800">
+                    {(selectedThread?.client?.name || '?').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-neutral-900">
+                      {selectedThread?.client?.name || 'Unknown'}
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      {activeWindow
+                        ? `Active until ${format(activeWindow.endsAt, 'MMM d, h:mm a')}`
+                        : 'Window inactive'}
+                    </p>
+                  </div>
                 </div>
-                {activeWindow ? (
-                  <div style={{ 
-                    padding: tokens.spacing[2], 
-                    backgroundColor: tokens.colors.success[50], 
-                    borderRadius: tokens.radius.sm,
-                    fontSize: tokens.typography.fontSize.sm[0],
-                    color: tokens.colors.success[800]
-                  }}>
-                    ✓ Active assignment window ends {formatDistanceToNow(new Date(activeWindow.endsAt), { addSuffix: true })}
-                  </div>
-                ) : (
-                  <div style={{ 
-                    padding: tokens.spacing[2], 
-                    backgroundColor: tokens.colors.warning[50], 
-                    borderRadius: tokens.radius.sm,
-                    fontSize: tokens.typography.fontSize.sm[0],
-                    color: tokens.colors.warning[800]
-                  }}>
-                    ⚠ Assignment window is not active. You cannot send messages outside your active assignment window.
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => router.push('/sitter/today')}>
+                    Details
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => router.push('/sitter/today')}>
+                    ✨ Daily Delight
+                  </Button>
+                </div>
               </div>
 
               {/* Messages */}
-              <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: tokens.spacing[4] }}>
+              <div className="flex-1 overflow-y-auto p-4">
                 {messagesLoading ? (
-                  <div style={{ textAlign: 'center' }}>
-                    <Skeleton height={100} />
-                    <Skeleton height={100} />
-                  </div>
+                  <SitterSkeletonList count={2} />
                 ) : messages.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: tokens.colors.text.secondary }}>No messages yet</div>
+                  <p className="py-8 text-center text-sm text-neutral-500">No messages yet. Say hi! 👋</p>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-                    {messages.map((message) => (
-                      <Card
-                        key={message.id}
-                        style={{
-                          maxWidth: message.direction === 'outbound' ? '80%' : '100%',
-                          marginLeft: message.direction === 'outbound' ? 'auto' : 0,
-                          backgroundColor: message.direction === 'inbound' ? tokens.colors.neutral[100] : tokens.colors.primary[50],
-                          padding: tokens.spacing[3],
-                        }}
+                  <div className="space-y-4">
+                    {messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                          msg.direction === 'outbound'
+                            ? 'ml-auto bg-blue-100 text-neutral-900'
+                            : 'bg-neutral-100 text-neutral-900'
+                        }`}
                       >
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[1] }}>
-                          {message.direction === 'inbound' ? selectedThread?.client.name : 'You'}
-                        </div>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
-                          {formatDistanceToNow(message.createdAt, { addSuffix: true })}
-                        </div>
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
-                          {message.redactedBody || message.body}
-                        </div>
-                      </Card>
+                        <p className="text-xs font-medium text-neutral-600">
+                          {msg.direction === 'inbound' ? selectedThread?.client?.name : 'You'} •{' '}
+                          {formatDistanceToNow(msg.createdAt, { addSuffix: true })}
+                        </p>
+                        <p className="mt-1 text-sm">{msg.redactedBody || msg.body}</p>
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* AI suggested reply placeholder */}
-              <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}`, backgroundColor: tokens.colors.primary[50], display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: tokens.spacing[2] }}>
-                <p style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.primary[800] }}>
-                  AI suggested reply
-                </p>
-                <FeatureStatusPill featureKey="ai_suggested_reply" />
+              {/* Suggested reply panel (Beta) */}
+              <div className="border-t border-neutral-200 bg-amber-50/50 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-sm font-medium text-neutral-800">Suggested replies</span>
+                  <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900">
+                    🧪 Beta
+                  </span>
+                </div>
+                <div className="mb-3 flex gap-2">
+                  {SUGGESTED_REPLIES.map((s, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setComposeMessage((prev) => (prev ? `${prev} ${s}` : s))}
+                      className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-700 transition hover:border-amber-300 hover:bg-amber-50"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-neutral-500">Tone:</span>
+                  <button
+                    type="button"
+                    onClick={() => setSuggestedTone('warm')}
+                    className={`rounded-lg px-2 py-1 text-xs font-medium ${
+                      suggestedTone === 'warm' ? 'bg-amber-200 text-amber-900' : 'text-neutral-600 hover:bg-neutral-100'
+                    }`}
+                  >
+                    Warm
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSuggestedTone('professional')}
+                    className={`rounded-lg px-2 py-1 text-xs font-medium ${
+                      suggestedTone === 'professional' ? 'bg-amber-200 text-amber-900' : 'text-neutral-600 hover:bg-neutral-100'
+                    }`}
+                  >
+                    Professional
+                  </button>
+                </div>
               </div>
 
-              {/* Compose Box - Pinned Bottom */}
-              <div className="flex-shrink-0" style={{ padding: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
+              {/* Compose */}
+              <div className="border-t border-neutral-200 p-4">
                 {!isWindowActive ? (
-                  <div style={{ 
-                    padding: tokens.spacing[3], 
-                    backgroundColor: tokens.colors.warning[50], 
-                    borderRadius: tokens.radius.sm, 
-                    color: tokens.colors.warning[800],
-                    fontSize: tokens.typography.fontSize.sm[0],
-                    lineHeight: 1.5
-                  }}>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
-                      Cannot send messages
-                    </div>
-                    <div>
-                      Your assignment window is not currently active. Messages can only be sent during active assignment windows. Contact the owner if you need to communicate outside your window.
-                    </div>
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    <p className="font-medium">Can&apos;t send right now</p>
+                    <p className="mt-0.5 text-xs">
+                      Messages are only available during your active assignment window.
+                    </p>
                   </div>
                 ) : (
-                  <>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      aria-label="Add attachment"
+                      className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-neutral-300 text-neutral-500 hover:bg-neutral-50"
+                    >
+                      <i className="fas fa-paperclip" />
+                    </button>
                     <textarea
                       value={composeMessage}
                       onChange={(e) => setComposeMessage(e.target.value)}
+                      onKeyDown={handleKeyDown}
                       placeholder="Type a message..."
-                      style={{
-                        width: '100%',
-                        border: `1px solid ${tokens.colors.border.default}`,
-                        borderRadius: tokens.radius.sm,
-                        padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-                        marginBottom: tokens.spacing[2],
-                        resize: 'none',
-                        fontSize: tokens.typography.fontSize.sm[0],
-                        fontFamily: 'inherit',
-                      }}
-                      rows={3}
+                      rows={2}
+                      className="min-h-[44px] flex-1 resize-none rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     />
                     <Button
                       variant="primary"
-                      onClick={handleSend}
+                      size="md"
+                      onClick={() => void handleSend()}
                       disabled={!composeMessage.trim() || sendMessage.isPending}
+                      className="shrink-0"
                     >
-                      {sendMessage.isPending ? 'Sending...' : 'Send'}
+                      {sendMessage.isPending ? 'Sending…' : 'Send'}
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </>
           ) : (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.colors.text.secondary }}>
-              Select a thread to view messages
+            <div className="flex flex-1 items-center justify-center p-8 text-center text-neutral-500">
+              <p>Select a thread to view messages</p>
             </div>
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
 export default function SitterInboxPage() {
   return (
-    <Suspense fallback={
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div>Loading...</div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-4xl pb-8">
+          <SitterPageHeader title="Inbox" subtitle="Loading…" />
+          <SitterSkeletonList count={4} />
+        </div>
+      }
+    >
       <SitterInboxContent />
     </Suspense>
   );

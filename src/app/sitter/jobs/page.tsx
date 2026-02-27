@@ -2,7 +2,17 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { PageHeader, Button, Tabs, TabPanel } from '@/components/ui';
+import { Button, Tabs } from '@/components/ui';
+import {
+  SitterCard,
+  SitterCardHeader,
+  SitterCardBody,
+  SitterCardActions,
+  SitterPageHeader,
+  SitterSkeletonList,
+  SitterEmptyState,
+  SitterErrorState,
+} from '@/components/sitter';
 
 type TabId = 'active' | 'upcoming' | 'completed';
 
@@ -77,80 +87,83 @@ export default function SitterJobsPage() {
     .sort((a, b) => b.startAt.localeCompare(a.startAt));
 
   const renderJobCard = (job: Job) => (
-    <article key={job.id} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <div>
-          <p className="font-semibold text-neutral-900">{job.clientName}</p>
-          <p className="text-sm text-neutral-600">{job.service}</p>
+    <SitterCard key={job.id} onClick={() => router.push(`/sitter/bookings/${job.id}`)}>
+      <SitterCardHeader>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="font-semibold text-neutral-900">{job.clientName}</p>
+            <p className="text-sm text-neutral-600">{job.service}</p>
+          </div>
+          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(job.status)}`}>
+            {job.status.replace('_', ' ')}
+          </span>
         </div>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(job.status)}`}>
-          {job.status.replace('_', ' ')}
-        </span>
-      </div>
-      <p className="text-sm text-neutral-600">{formatDate(job.startAt)} · {formatTime(job.startAt)}</p>
-      {job.address && <p className="mt-1 truncate text-xs text-neutral-500">{job.address}</p>}
-      <div className="mt-3 flex gap-2">
+      </SitterCardHeader>
+      <SitterCardBody>
+        <p className="text-sm text-neutral-600">{formatDate(job.startAt)} · {formatTime(job.startAt)}</p>
+        {job.address && <p className="mt-1 truncate text-xs text-neutral-500">{job.address}</p>}
+      </SitterCardBody>
+      <SitterCardActions stopPropagation>
         <Button variant="secondary" size="sm" onClick={() => router.push(`/sitter/bookings/${job.id}`)}>
-          View details
+          Details
         </Button>
         {job.threadId && (
           <Button variant="secondary" size="sm" onClick={() => router.push(`/sitter/inbox?thread=${job.threadId}`)}>
-            Open chat
+            Message
           </Button>
         )}
-      </div>
-    </article>
+      </SitterCardActions>
+    </SitterCard>
   );
 
+  const currentList = activeTab === 'active' ? active : activeTab === 'upcoming' ? upcoming : completed;
+  const emptyConfig: { title: string; subtitle: string; cta?: { label: string; onClick: () => void } } = {
+    active: { title: 'No active jobs', subtitle: 'Check Calendar for upcoming visits.', cta: { label: 'Open Calendar', onClick: () => router.push('/sitter/calendar') } },
+    upcoming: { title: 'No upcoming jobs', subtitle: 'New bookings will appear here.' },
+    completed: { title: 'No completed jobs yet', subtitle: 'Finished visits will show up here.' },
+  }[activeTab];
+
   return (
-    <>
-      <PageHeader title="Jobs" description="Active, upcoming, and completed" />
-      <div className="mx-auto max-w-3xl px-4 pb-8 pt-2">
-        <Tabs
-          tabs={[
-            { id: 'active', label: 'Active' },
-            { id: 'upcoming', label: 'Upcoming' },
-            { id: 'completed', label: 'Completed' },
-          ]}
-          activeTab={activeTab}
-          onTabChange={(id) => setActiveTab(id as TabId)}
-        />
-        {loading ? (
-          <div className="mt-4 space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse rounded-xl border border-neutral-200 bg-white p-4">
-                <div className="mb-2 h-4 w-1/2 rounded bg-neutral-200" />
-                <div className="h-3 w-1/3 rounded bg-neutral-100" />
-              </div>
-            ))}
-          </div>
-        ) : error ? (
-          <div className="mt-4 rounded-xl border border-dashed border-neutral-200 bg-white p-10 text-center">
-            <p className="text-sm text-neutral-600">{error}</p>
-            <Button variant="secondary" size="md" className="mt-4" onClick={() => void loadBookings()}>
-              Try again
-            </Button>
-          </div>
-        ) : (
-          <div className="mt-4 space-y-4">
-            {activeTab === 'active' && (active.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
-                No active jobs. Check Calendar for upcoming.
-              </p>
-            ) : active.map(renderJobCard))}
-            {activeTab === 'upcoming' && (upcoming.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
-                No upcoming jobs.
-              </p>
-            ) : upcoming.map(renderJobCard))}
-            {activeTab === 'completed' && (completed.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
-                No completed jobs yet.
-              </p>
-            ) : completed.map(renderJobCard))}
-          </div>
-        )}
-      </div>
-    </>
+    <div className="mx-auto max-w-3xl pb-8">
+      <SitterPageHeader
+        title="Jobs"
+        subtitle="Active, upcoming, and completed"
+        action={
+          <Button variant="secondary" size="sm" onClick={() => void loadBookings()} disabled={loading}>
+            Refresh
+          </Button>
+        }
+      />
+      <Tabs
+        tabs={[
+          { id: 'active', label: 'Active' },
+          { id: 'upcoming', label: 'Upcoming' },
+          { id: 'completed', label: 'Completed' },
+        ]}
+        activeTab={activeTab}
+        onTabChange={(id) => setActiveTab(id as TabId)}
+      />
+      {loading ? (
+        <div className="mt-4">
+          <SitterSkeletonList count={3} />
+        </div>
+      ) : error ? (
+        <div className="mt-4">
+          <SitterErrorState title="Couldn't load jobs" subtitle={error} onRetry={() => void loadBookings()} />
+        </div>
+      ) : currentList.length === 0 ? (
+        <div className="mt-4">
+          <SitterEmptyState
+            title={emptyConfig.title}
+            subtitle={emptyConfig.subtitle}
+            cta={emptyConfig.cta}
+          />
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          {currentList.map(renderJobCard)}
+        </div>
+      )}
+    </div>
   );
 }

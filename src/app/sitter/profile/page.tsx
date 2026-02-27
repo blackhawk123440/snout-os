@@ -2,9 +2,17 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { PageHeader, Button } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { SITTER_PROFILE_LINKS } from '@/lib/sitter-nav';
-import { FeatureStatusPill } from '@/components/sitter/FeatureStatusPill';
+import {
+  SitterCard,
+  SitterCardHeader,
+  SitterCardBody,
+  SitterPageHeader,
+  SitterSkeletonList,
+  SitterErrorState,
+  FeatureStatusPill,
+} from '@/components/sitter';
 
 interface SitterProfile {
   id: string;
@@ -112,49 +120,42 @@ export default function SitterProfilePage() {
   };
 
   return (
-    <>
-      <PageHeader title="Profile" description="Your sitter profile" />
-      <div className="mx-auto max-w-3xl px-4 pb-8 pt-2">
-        {loading ? (
-          <div className="animate-pulse space-y-4 rounded-xl border border-gray-200 bg-white p-6">
-            <div className="h-6 w-32 rounded bg-gray-200" />
-            <div className="h-4 w-full rounded bg-gray-100" />
-            <div className="h-4 w-3/4 rounded bg-gray-100" />
-          </div>
-        ) : error ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-            <p className="text-sm text-gray-600">{error}</p>
-            <button
-              type="button"
-              onClick={() => void loadProfile()}
-              className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              Try again
-            </button>
-          </div>
-        ) : profile ? (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center gap-4">
+    <div className="mx-auto max-w-3xl pb-8">
+      <SitterPageHeader title="Profile" subtitle="Your sitter profile" />
+      {loading ? (
+        <SitterSkeletonList count={2} />
+      ) : error ? (
+        <SitterErrorState
+          title="Couldn't load profile"
+          subtitle={error}
+          onRetry={() => void loadProfile()}
+        />
+      ) : profile ? (
+        <div className="space-y-4">
+          <SitterCard>
+            <SitterCardHeader>
+              <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-xl font-semibold text-blue-600">
                   {profile.name.charAt(0).toUpperCase() || 'S'}
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-gray-900">{profile.name}</p>
-                  <p className="text-sm text-gray-600">{profile.email}</p>
+                  <p className="text-lg font-semibold text-neutral-900">{profile.name}</p>
+                  <p className="text-sm text-neutral-600">{profile.email}</p>
                 </div>
               </div>
+            </SitterCardHeader>
+            <SitterCardBody>
               <dl className="space-y-3 text-sm">
                 <div>
-                  <dt className="font-medium text-gray-500">Phone</dt>
-                  <dd className="text-gray-900">{profile.phone || '—'}</dd>
+                  <dt className="font-medium text-neutral-500">Phone</dt>
+                  <dd className="text-neutral-900">{profile.phone || '—'}</dd>
                 </div>
                 <div>
-                  <dt className="font-medium text-gray-500">Status</dt>
+                  <dt className="font-medium text-neutral-500">Status</dt>
                   <dd>
                     <span
                       className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        profile.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'
+                        profile.active ? 'bg-green-100 text-green-800' : 'bg-neutral-100 text-neutral-700'
                       }`}
                     >
                       {profile.active ? 'Active' : 'Inactive'}
@@ -162,39 +163,49 @@ export default function SitterProfilePage() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="font-medium text-gray-500">Commission</dt>
-                  <dd className="text-gray-900">{profile.commissionPercentage}%</dd>
+                  <dt className="font-medium text-neutral-500">Commission</dt>
+                  <dd className="text-neutral-900">{profile.commissionPercentage}%</dd>
                 </div>
               </dl>
-            </div>
+            </SitterCardBody>
+          </SitterCard>
 
-            <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 p-4">
+          <SitterCard className="border-dashed">
+            <SitterCardBody>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-neutral-700">Verification status</p>
                 <FeatureStatusPill featureKey="verification" />
               </div>
-            </div>
-            <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 p-4">
+            </SitterCardBody>
+          </SitterCard>
+          <SitterCard className="border-dashed">
+            <SitterCardBody>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-neutral-700">Documents</p>
                 <FeatureStatusPill featureKey="documents" />
               </div>
-            </div>
-            <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 p-4">
+            </SitterCardBody>
+          </SitterCard>
+          <SitterCard className="border-dashed">
+            <SitterCardBody>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-neutral-700">Offline mode</p>
                 <FeatureStatusPill featureKey="offline_mode" />
               </div>
-            </div>
+            </SitterCardBody>
+          </SitterCard>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-base font-semibold text-gray-900">Dashboard</h3>
+          <SitterCard>
+            <SitterCardHeader>
+              <h3 className="text-base font-semibold text-neutral-900">Dashboard</h3>
+            </SitterCardHeader>
+            <SitterCardBody className="pt-0">
               <nav className="space-y-1">
                 {SITTER_PROFILE_LINKS.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+                    className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                   >
                     <i className={`${item.icon} w-5 text-center text-neutral-500`} />
                     {item.label}
@@ -202,10 +213,14 @@ export default function SitterProfilePage() {
                   </Link>
                 ))}
               </nav>
-            </div>
+            </SitterCardBody>
+          </SitterCard>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-base font-semibold text-gray-900">Availability</h3>
+          <SitterCard>
+            <SitterCardHeader>
+              <h3 className="text-base font-semibold text-neutral-900">Availability</h3>
+            </SitterCardHeader>
+            <SitterCardBody>
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-900">Available for new bookings</p>
@@ -230,14 +245,14 @@ export default function SitterProfilePage() {
               </div>
 
               <div className="mt-6">
-                <p className="mb-2 text-sm font-medium text-gray-900">Block off days</p>
-                <p className="mb-3 text-xs text-gray-500">Days you&apos;re not available (no drag/drop yet)</p>
+                <p className="mb-2 text-sm font-medium text-neutral-900">Block off days</p>
+                <p className="mb-3 text-xs text-neutral-500">Days you&apos;re not available</p>
                 <div className="flex flex-wrap gap-2">
                   <input
                     type="date"
                     value={newBlockDate}
                     onChange={(e) => setNewBlockDate(e.target.value)}
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                    className="rounded-xl border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
                   <Button
                     variant="secondary"
@@ -251,7 +266,7 @@ export default function SitterProfilePage() {
                 {blockOffs.length > 0 && (
                   <ul className="mt-3 space-y-1">
                     {blockOffs.map((b) => (
-                      <li key={b.id} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm">
+                      <li key={b.id} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-sm">
                         <span>{new Date(b.date + 'T12:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         <button
                           type="button"
@@ -265,10 +280,10 @@ export default function SitterProfilePage() {
                   </ul>
                 )}
               </div>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </>
+            </SitterCardBody>
+          </SitterCard>
+        </div>
+      ) : null}
+    </div>
   );
 }
