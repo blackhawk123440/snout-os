@@ -113,9 +113,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               passwordHash: true,
               orgId: true,
               role: true,
-              sitter: {
-                select: { id: true },
-              },
+              sitter: { select: { id: true } },
+              client: { select: { id: true } },
             },
           });
           console.log('[NextAuth] User query result:', user ? 'Found' : 'Not found');
@@ -172,6 +171,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        // Resolve clientId: from User.client relation, or by Client lookup (orgId + email)
+        let clientId: string | null = (user as any).client?.id || null;
+        if (!clientId && (user as any).role === 'client' && (user as any).orgId && user.email) {
+          const client = await (prisma as any).client.findFirst({
+            where: { orgId: (user as any).orgId, email: user.email },
+            select: { id: true },
+          });
+          clientId = client?.id || null;
+        }
+
         console.log('[NextAuth] Authentication successful for:', user.email);
         outcome = "success";
         return {
@@ -181,6 +190,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           orgId: (user as any).orgId,
           role: (user as any).role,
           sitterId: (user as any).sitter?.id || null,
+          clientId,
         };
       },
     }),
@@ -203,6 +213,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (token.orgId) (session.user as any).orgId = token.orgId;
         if (token.role) (session.user as any).role = token.role;
         if (token.sitterId) (session.user as any).sitterId = token.sitterId;
+        if (token.clientId) (session.user as any).clientId = token.clientId;
       } else {
         // If token is null/undefined, NextAuth couldn't decode the JWT
         // This means our manually created JWT isn't being decoded correctly
@@ -218,6 +229,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.orgId = (user as any).orgId;
         token.role = (user as any).role;
         token.sitterId = (user as any).sitterId;
+        token.clientId = (user as any).clientId;
       }
       return token;
     },

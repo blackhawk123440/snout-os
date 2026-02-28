@@ -37,6 +37,10 @@ export function isPublicRoute(pathname: string): boolean {
     // NextAuth routes (must be public for auth to work)
     "/api/auth/",
     "/login",
+
+    // E2E test auth - route is public so setup can call it; the route itself
+    // returns 403 in production (NODE_ENV check) and requires x-e2e-key
+    "/api/ops/e2e-login",
   ];
 
   // Exact match

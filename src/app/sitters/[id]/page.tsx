@@ -31,7 +31,7 @@ import { SitterTierBadge } from '@/components/sitter';
 import { TierSummaryCard } from '@/components/sitter/TierSummaryCard';
 import { TierTab } from '@/components/sitter/TierTab';
 import { SitterMessagesTab } from '@/components/sitter/SitterMessagesTab';
-import { SitterPageHeader } from '@/components/sitter/SitterPageHeader';
+import { SitterPageHeader } from '@/components/sitter';
 import { SitterProfileTab } from '@/components/sitter/SitterProfileTab';
 import { PerformanceTab } from '@/components/sitter/PerformanceTab';
 import { PayrollTab } from '@/components/sitter/PayrollTab';

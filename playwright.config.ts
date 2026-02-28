@@ -76,6 +76,14 @@ export default defineConfig({
         storageState: path.join(__dirname, 'tests/.auth/sitter.json'),
       },
     },
+    {
+      name: 'client-mobile',
+      use: {
+        ...devices['iPhone 13'],
+        viewport: { width: 390, height: 844 },
+        storageState: path.join(__dirname, 'tests/.auth/client.json'),
+      },
+    },
     // Legacy projects without storageState (for tests that don't need auth)
     {
       name: 'mobile',
@@ -117,6 +125,8 @@ export default defineConfig({
       ENABLE_OPS_SEED: 'true',
       ENABLE_MESSAGING_V1: 'true',
       NEXT_PUBLIC_ENABLE_MESSAGING_V1: 'true',
+      ENABLE_E2E_AUTH: 'true',
+      E2E_AUTH_KEY: process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production',
     },
   },
 });

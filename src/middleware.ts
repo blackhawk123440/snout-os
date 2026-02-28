@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isPublicRoute } from "@/lib/public-routes";
 import { isProtectedRoute } from "@/lib/protected-routes";
 import { isSitterRoute, isSitterRestrictedRoute } from "@/lib/sitter-routes";
+import { isClientRoute } from "@/lib/client-routes";
 import { env } from "@/lib/env";
 import { getSessionSafe } from "@/lib/auth-helpers";
 import { getCurrentSitterId } from "@/lib/sitter-helpers";
@@ -22,11 +23,27 @@ export async function middleware(request: NextRequest) {
   const enableSitterAuth = env.ENABLE_SITTER_AUTH !== false; // Default true unless explicitly false
   const enablePermissionChecks = env.ENABLE_PERMISSION_CHECKS !== false; // Default true unless explicitly false
 
+  // Get session to check role
+  const session = await getSessionSafe();
+
+  // Client role: redirect owner/sitter routes to client portal
+  const isClient = session?.user && (
+    (session.user as any).clientId ||
+    (session.user as any).role === 'client'
+  );
+  if (isClient && !pathname.startsWith('/api/')) {
+    if (isClientRoute(pathname)) {
+      return NextResponse.next();
+    }
+    // Client trying to access non-client route -> redirect to client home
+    if (pathname.startsWith('/sitter') || pathname.startsWith('/dashboard') || pathname.startsWith('/calendar') ||
+        (pathname.startsWith('/bookings') && pathname !== '/bookings/new') || pathname.startsWith('/clients') || pathname === '/' || pathname === '') {
+      return NextResponse.redirect(new URL('/client/home', request.url));
+    }
+  }
+
   // Phase 5.1: If sitter auth is enabled, check sitter restrictions first
   if (enableSitterAuth) {
-    // Get session to check role
-    const session = await getSessionSafe();
-    
     // Check if user is a sitter (has sitterId in session or role === 'sitter')
     const isSitter = session?.user && (
       (session.user as any).sitterId || 

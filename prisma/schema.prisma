@@ -742,6 +742,7 @@ model Client {
   bookings      Booking[]
   threads       MessageThread[]
   loyaltyRewards LoyaltyReward[]
+  user          User?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
@@ -831,10 +832,14 @@ model User {
   // Link to Sitter if this user is a sitter (one-to-one relation)
   sitterId      String?   @unique
   sitter        Sitter?   @relation(fields: [sitterId], references: [id], onDelete: SetNull)
+  // Link to Client if this user is a client (one-to-one relation)
+  clientId      String?   @unique
+  client        Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
 
   @@index([email])
   @@index([orgId])
   @@index([sitterId])
+  @@index([clientId])
 }
 
 model Account {

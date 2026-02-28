@@ -11,6 +11,7 @@ async function main() {
   // Seed test users only in non-production environments.
   if (process.env.NODE_ENV !== "production") {
     await seedTestUsers(defaultOrgId);
+    await seedDevClientData(defaultOrgId);
   } else {
     console.log("⏭️ Skipping dev auth user seeding in production");
   }
@@ -175,9 +176,284 @@ async function seedTestUsers(defaultOrgId: string) {
   });
   console.log(`✅ Created/updated sitter user: ${carsonUser.email} (sitterId: ${carsonUser.sitterId})`);
 
-  console.log("🔐 Dev sitter credentials:");
+  // Create or update client user + client profile
+  const clientPasswordHash = await bcrypt.hash("password", 10);
+  const clientPhone = "+15551112222";
+  let clientRecord = await prisma.client.findFirst({
+    where: { orgId: defaultOrgId, phone: clientPhone },
+  });
+  if (!clientRecord) {
+    clientRecord = await prisma.client.create({
+      data: {
+        orgId: defaultOrgId,
+        firstName: "Test",
+        lastName: "Client",
+        email: "client@example.com",
+        phone: clientPhone,
+      },
+    });
+    console.log(`✅ Created client record: ${clientRecord.id}`);
+  }
+  const clientUser = await prisma.user.upsert({
+    where: { email: "client@example.com" },
+    update: {
+      passwordHash: clientPasswordHash,
+      name: "Test Client",
+      orgId: defaultOrgId,
+      role: "client",
+      clientId: clientRecord.id,
+    },
+    create: {
+      orgId: defaultOrgId,
+      role: "client",
+      email: "client@example.com",
+      name: "Test Client",
+      passwordHash: clientPasswordHash,
+      emailVerified: new Date(),
+      clientId: clientRecord.id,
+    },
+  });
+  console.log(`✅ Created/updated client user: ${clientUser.email} (clientId: ${clientUser.clientId})`);
+
+  // Client: blackhawk123440@gmail.com
+  const blackhawkPasswordHash = await bcrypt.hash("god2die4", 10);
+  const blackhawkPhone = "+15551113333";
+  let blackhawkClient = await prisma.client.findFirst({
+    where: { orgId: defaultOrgId, phone: blackhawkPhone },
+  });
+  if (!blackhawkClient) {
+    blackhawkClient = await prisma.client.create({
+      data: {
+        orgId: defaultOrgId,
+        firstName: "Blackhawk",
+        lastName: "Client",
+        email: "blackhawk123440@gmail.com",
+        phone: blackhawkPhone,
+      },
+    });
+    console.log(`✅ Created client record: ${blackhawkClient.id} (blackhawk123440@gmail.com)`);
+  }
+  const blackhawkUser = await prisma.user.upsert({
+    where: { email: "blackhawk123440@gmail.com" },
+    update: {
+      passwordHash: blackhawkPasswordHash,
+      name: "Blackhawk Client",
+      orgId: defaultOrgId,
+      role: "client",
+      clientId: blackhawkClient.id,
+    },
+    create: {
+      orgId: defaultOrgId,
+      role: "client",
+      email: "blackhawk123440@gmail.com",
+      name: "Blackhawk Client",
+      passwordHash: blackhawkPasswordHash,
+      emailVerified: new Date(),
+      clientId: blackhawkClient.id,
+    },
+  });
+  console.log(`✅ Created/updated client user: ${blackhawkUser.email} (clientId: ${blackhawkUser.clientId})`);
+
+  console.log("🔐 Dev credentials:");
+  console.log("   owner@example.com / password");
   console.log("   sitter@example.com / password123");
-  console.log("   carsonmc123440@gmail.com / god2die4");
+  console.log("   client@example.com / password");
+  console.log("   blackhawk123440@gmail.com / god2die4 (client)");
+  console.log("   carsonmc123440@gmail.com / god2die4 (sitter)");
+}
+
+async function seedDevClientData(defaultOrgId: string) {
+  console.log("🌱 Seeding dev client data (booking, pet, thread, report)...");
+
+  const sitterRecord = await prisma.sitter.findFirst({
+    where: { orgId: defaultOrgId, email: "sitter@example.com" },
+  });
+  const clientRecord = await prisma.client.findFirst({
+    where: { orgId: defaultOrgId, phone: "+15551112222" },
+  });
+  const blackhawkClient = await prisma.client.findFirst({
+    where: { orgId: defaultOrgId, phone: "+15551113333" },
+  });
+  if (!sitterRecord || !clientRecord) {
+    console.log("⏭️ Skipping dev client data (sitter or client not found)");
+    return;
+  }
+
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(10, 0, 0, 0);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setHours(11, 0, 0, 0);
+
+  let booking = await prisma.booking.findFirst({
+    where: {
+      orgId: defaultOrgId,
+      clientId: clientRecord.id,
+      sitterId: sitterRecord.id,
+    },
+  });
+
+  if (!booking) {
+    booking = await prisma.booking.create({
+      data: {
+        orgId: defaultOrgId,
+        firstName: clientRecord.firstName,
+        lastName: clientRecord.lastName,
+        phone: clientRecord.phone,
+        email: clientRecord.email,
+        service: "Dog Walking",
+        startAt: todayStart,
+        endAt: todayEnd,
+        totalPrice: 32,
+        status: "confirmed",
+        sitterId: sitterRecord.id,
+        clientId: clientRecord.id,
+      },
+    });
+    console.log(`✅ Created booking: ${booking.id} (today, assigned to sitter)`);
+  }
+
+  let pet = await prisma.pet.findFirst({
+    where: { bookingId: booking.id },
+  });
+  if (!pet) {
+    pet = await prisma.pet.create({
+      data: {
+        orgId: defaultOrgId,
+        name: "Buddy",
+        species: "Dog",
+        breed: "Golden Retriever",
+        bookingId: booking.id,
+      },
+    });
+    console.log(`✅ Created pet: ${pet.name}`);
+  }
+
+  let thread = await prisma.messageThread.findFirst({
+    where: {
+      orgId: defaultOrgId,
+      clientId: clientRecord.id,
+      bookingId: booking.id,
+    },
+  });
+  if (!thread) {
+    thread = await prisma.messageThread.create({
+      data: {
+        orgId: defaultOrgId,
+        scope: "client_booking",
+        clientId: clientRecord.id,
+        assignedSitterId: sitterRecord.id,
+        bookingId: booking.id,
+        status: "open",
+      },
+    });
+    console.log(`✅ Created message thread: ${thread.id}`);
+
+    await prisma.messageEvent.create({
+      data: {
+        threadId: thread.id,
+        orgId: defaultOrgId,
+        direction: "outbound",
+        actorType: "system",
+        body: "Your Dog Walking visit is confirmed for today. Your sitter will reach out if needed.",
+        deliveryStatus: "sent",
+      },
+    });
+    await prisma.messageThread.update({
+      where: { id: thread.id },
+      data: { lastMessageAt: new Date() },
+    });
+  }
+
+  const existingReport = await prisma.report.findFirst({
+    where: { bookingId: booking.id },
+  });
+  if (!existingReport) {
+    await prisma.report.create({
+      data: {
+        orgId: defaultOrgId,
+        bookingId: booking.id,
+        content: "Buddy had a great walk today! We did a 30-minute loop around the neighborhood. He was excited to see me and very well-behaved. Plenty of water and treats given. 💛",
+        visitStarted: todayStart,
+        visitCompleted: todayEnd,
+      },
+    });
+    console.log(`✅ Created report card for booking`);
+  }
+
+  // Same data for blackhawk client (so they see data on login)
+  if (blackhawkClient) {
+    let bhBooking = await prisma.booking.findFirst({
+      where: {
+        orgId: defaultOrgId,
+        clientId: blackhawkClient.id,
+        sitterId: sitterRecord.id,
+      },
+    });
+    if (!bhBooking) {
+      bhBooking = await prisma.booking.create({
+        data: {
+          orgId: defaultOrgId,
+          firstName: blackhawkClient.firstName,
+          lastName: blackhawkClient.lastName,
+          phone: blackhawkClient.phone,
+          email: blackhawkClient.email,
+          service: "Drop-ins",
+          startAt: todayStart,
+          endAt: todayEnd,
+          totalPrice: 32,
+          status: "confirmed",
+          sitterId: sitterRecord.id,
+          clientId: blackhawkClient.id,
+        },
+      });
+      await prisma.pet.create({
+        data: {
+          orgId: defaultOrgId,
+          name: "Max",
+          species: "Dog",
+          breed: "Labrador",
+          bookingId: bhBooking.id,
+        },
+      });
+      const bhThread = await prisma.messageThread.create({
+        data: {
+          orgId: defaultOrgId,
+          scope: "client_booking",
+          clientId: blackhawkClient.id,
+          assignedSitterId: sitterRecord.id,
+          bookingId: bhBooking.id,
+          status: "open",
+        },
+      });
+      await prisma.messageEvent.create({
+        data: {
+          threadId: bhThread.id,
+          orgId: defaultOrgId,
+          direction: "outbound",
+          actorType: "system",
+          body: "Your Drop-ins visit is confirmed for today.",
+          deliveryStatus: "sent",
+        },
+      });
+      await prisma.messageThread.update({
+        where: { id: bhThread.id },
+        data: { lastMessageAt: new Date() },
+      });
+      await prisma.report.create({
+        data: {
+          orgId: defaultOrgId,
+          bookingId: bhBooking.id,
+          content: "Max was great! Fed him and gave him a short walk. Happy and relaxed. 💛",
+          visitStarted: todayStart,
+          visitCompleted: todayEnd,
+        },
+      });
+      console.log(`✅ Created dev data for blackhawk client`);
+    }
+  }
+
+  console.log("✨ Dev client data ready: Today + Client home will show real data");
 }
 
 async function seedTiers() {

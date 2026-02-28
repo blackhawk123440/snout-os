@@ -13,6 +13,7 @@ const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 const E2E_AUTH_KEY = process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production';
 const OWNER_EMAIL = process.env.OWNER_EMAIL || 'owner@example.com';
 const SITTER_EMAIL = process.env.SITTER_EMAIL || 'sitter@example.com';
+const CLIENT_EMAIL = process.env.CLIENT_EMAIL || 'client@example.com';
 
 async function globalSetup(config: FullConfig) {
   // Create .auth directory if it doesn't exist
@@ -195,6 +196,64 @@ async function globalSetup(config: FullConfig) {
     console.log('[Global Setup] Sitter storage state saved');
 
     await sitterContext.close();
+
+    // Create new context for client
+    const clientContext = await browser.newContext();
+
+    // Authenticate as client
+    console.log('[Global Setup] Authenticating as client...');
+    const clientResponse = await clientContext.request.post(`${BASE_URL}/api/ops/e2e-login`, {
+      data: {
+        role: 'client',
+        email: CLIENT_EMAIL,
+      },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-e2e-key': E2E_AUTH_KEY,
+      },
+    });
+
+    if (clientResponse.ok()) {
+      const clientSetCookieHeader = clientResponse.headers()['set-cookie'];
+      if (clientSetCookieHeader) {
+        const cookieStrings = Array.isArray(clientSetCookieHeader) ? clientSetCookieHeader : [clientSetCookieHeader];
+        const cookies = cookieStrings.map(cookieStr => {
+          const parts = cookieStr.split(';').map(p => p.trim());
+          const [nameValue] = parts;
+          const [name, value] = nameValue.split('=');
+          const cookie: any = {
+            name: name.trim(),
+            value: value.trim(),
+            domain: new URL(BASE_URL).hostname,
+            path: '/',
+          };
+          for (const part of parts.slice(1)) {
+            const lower = part.toLowerCase();
+            if (lower.startsWith('max-age=')) {
+              const maxAge = parseInt(part.split('=')[1]);
+              cookie.expires = Math.floor(Date.now() / 1000) + maxAge;
+            } else if (lower === 'httponly') cookie.httpOnly = true;
+            else if (lower === 'secure') cookie.secure = true;
+            else if (lower.startsWith('samesite=')) {
+              const sameSiteValue = part.split('=')[1] || 'Lax';
+              cookie.sameSite = sameSiteValue.charAt(0).toUpperCase() + sameSiteValue.slice(1).toLowerCase() as 'Strict' | 'Lax' | 'None';
+            }
+          }
+          return cookie;
+        });
+        if (cookies.length > 0) {
+          await clientContext.addCookies(cookies);
+          console.log(`[Global Setup] Added ${cookies.length} cookie(s) to client context`);
+        }
+      }
+      await clientContext.storageState({ path: path.join(authDir, 'client.json') });
+      console.log('[Global Setup] Client storage state saved');
+    } else {
+      console.warn('[Global Setup] Client authentication failed (client user may not exist) - client snapshots will skip');
+      await clientContext.storageState({ path: path.join(authDir, 'client.json') });
+    }
+
+    await clientContext.close();
   } catch (error) {
     console.error('[Global Setup] Error:', error);
     throw error;

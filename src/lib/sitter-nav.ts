@@ -45,6 +45,7 @@ export const FEATURE_STATUS: Record<string, FeatureStatus> = {
   verification: 'coming_soon',
   documents: 'coming_soon',
   recurring_blocks: 'coming_soon',
+  messages: 'coming_soon',
 };
 
 export function getFeatureStatus(key: string): FeatureStatus {

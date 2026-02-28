@@ -13,8 +13,9 @@ interface User {
   id: string;
   email: string;
   name: string | null;
-  role: 'owner' | 'sitter';
+  role: 'owner' | 'sitter' | 'client';
   sitterId?: string | null;
+  clientId?: string | null;
 }
 
 interface UseAuthReturn {
@@ -22,6 +23,7 @@ interface UseAuthReturn {
   loading: boolean;
   isOwner: boolean;
   isSitter: boolean;
+  isClient: boolean;
 }
 
 export function useAuth(): UseAuthReturn {
@@ -34,15 +36,20 @@ export function useAuth(): UseAuthReturn {
 
     const sessionUser = session.user as any;
     const hasSitterId = !!sessionUser.sitterId;
+    const hasClientId = !!sessionUser.clientId;
     const sessionRole = sessionUser.role as string | undefined;
     const normalizedRole =
-      sessionRole === 'sitter'
-        ? 'sitter'
-        : sessionRole === 'owner'
-          ? 'owner'
-          : hasSitterId
-            ? 'sitter'
-            : 'owner';
+      sessionRole === 'client'
+        ? 'client'
+        : sessionRole === 'sitter'
+          ? 'sitter'
+          : sessionRole === 'owner'
+            ? 'owner'
+            : hasClientId
+              ? 'client'
+              : hasSitterId
+                ? 'sitter'
+                : 'owner';
     
     return {
       id: sessionUser.id || '',
@@ -50,17 +57,20 @@ export function useAuth(): UseAuthReturn {
       name: sessionUser.name || null,
       role: normalizedRole,
       sitterId: sessionUser.sitterId || null,
+      clientId: sessionUser.clientId || null,
     };
   }, [session]);
 
   const loading = status === 'loading';
   const isOwner = user?.role === 'owner' || false;
   const isSitter = user?.role === 'sitter' || false;
+  const isClient = user?.role === 'client' || false;
 
   return {
     user,
     loading,
     isOwner,
     isSitter,
+    isClient,
   };
 }

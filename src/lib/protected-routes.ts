@@ -185,6 +185,11 @@ export function isProtectedRoute(pathname: string): boolean {
     return true;
   }
 
+  // Client portal (protected for clients)
+  if (pathname.startsWith("/client")) {
+    return true;
+  }
+
   // Root dashboard page (admin)
   if (pathname === "/") {
     return true;

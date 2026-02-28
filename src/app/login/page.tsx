@@ -7,14 +7,15 @@ import { signIn } from 'next-auth/react';
 type SessionUser = {
   role?: string;
   sitterId?: string | null;
+  clientId?: string | null;
 };
 
 const getRedirectForRole = (user: SessionUser): string => {
   const normalizedRole = String(user.role || '').toUpperCase();
+  if (normalizedRole === 'CLIENT' || !!user.clientId) return '/client/home';
   if (normalizedRole === 'SITTER' || !!user.sitterId) return '/sitter/today';
-  if (normalizedRole === 'OWNER' || normalizedRole === 'ADMIN') return '/calendar';
-  if (normalizedRole === 'CLIENT') return '/bookings';
-  return '/bookings';
+  if (normalizedRole === 'OWNER' || normalizedRole === 'ADMIN') return '/dashboard';
+  return '/dashboard';
 };
 
 export default function LoginPage() {

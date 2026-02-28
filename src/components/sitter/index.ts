@@ -6,7 +6,7 @@ export { SitterAssignmentDisplay, type SitterAssignmentDisplayProps, type Sitter
 export { SitterTierBadge, type SitterTierBadgeProps, type TierInfo } from './SitterTierBadge';
 export { SitterSRSCard } from './SitterSRSCard';
 export { OwnerSRSCard } from './OwnerSRSCard';
-export { SitterPageHeader } from './SitterPageHeader';
+export { AppPageHeader as SitterPageHeader } from '@/components/app';
 export { SitterProfileTab } from './SitterProfileTab';
 export { PerformanceTab } from './PerformanceTab';
 export { PayrollTab } from './PayrollTab';
@@ -21,13 +21,13 @@ export { SitterCalendarTab } from './SitterCalendarTab';
 export { TierProgression } from './TierProgression';
 export { FeatureStatusPill } from './FeatureStatusPill';
 export {
-  SitterCard,
-  SitterCardHeader,
-  SitterCardBody,
-  SitterCardActions,
-} from './SitterCard';
-export { SitterSkeletonList } from './SitterSkeletonList';
-export { SitterEmptyState } from './SitterEmptyState';
-export { SitterErrorState } from './SitterErrorState';
+  AppCard as SitterCard,
+  AppCardHeader as SitterCardHeader,
+  AppCardBody as SitterCardBody,
+  AppCardActions as SitterCardActions,
+} from '@/components/app';
+export { AppSkeletonList as SitterSkeletonList } from '@/components/app';
+export { AppEmptyState as SitterEmptyState } from '@/components/app';
+export { AppErrorState as SitterErrorState } from '@/components/app';
 export { SitterOfflineBanner } from './SitterOfflineBanner';
 export { DailyDelightModal, type DailyDelightModalProps, type DailyDelightBooking } from './DailyDelightModal';

@@ -8,6 +8,7 @@ export interface RequestContext {
   role: AppRole;
   userId: string | null;
   sitterId: string | null;
+  clientId: string | null;
 }
 
 const normalizeRole = (role: unknown): AppRole => {
@@ -32,6 +33,7 @@ export async function getRequestContext(): Promise<RequestContext> {
   const role = normalizeRole(user.role);
   const userId = typeof user.id === "string" ? user.id : null;
   const sitterId = typeof user.sitterId === "string" ? user.sitterId : null;
+  const clientId = typeof user.clientId === "string" ? user.clientId : null;
 
   if (isPersonalMode()) {
     return {
@@ -39,6 +41,7 @@ export async function getRequestContext(): Promise<RequestContext> {
       role,
       userId,
       sitterId,
+      clientId,
     };
   }
 
@@ -52,6 +55,7 @@ export async function getRequestContext(): Promise<RequestContext> {
     role,
     userId,
     sitterId,
+    clientId,
   };
 }
 
@@ -65,5 +69,6 @@ export function getPublicOrgContext(): RequestContext {
     role: "public",
     userId: null,
     sitterId: null,
+    clientId: null,
   };
 }
