@@ -123,7 +123,7 @@ export default function CommandCenterPage() {
               <AppCardHeader title="Needs Attention" />
               <AppCardBody>
                 {STUB_NEEDS_ATTENTION.length === 0 ? (
-                  <AppEmptyState message="All caught up" />
+                  <AppEmptyState title="All caught up" />
                 ) : (
                   <ul className="divide-y divide-neutral-100">
                     {STUB_NEEDS_ATTENTION.map((item) => (
@@ -145,7 +145,7 @@ export default function CommandCenterPage() {
               <AppCardHeader title="Activity Timeline" />
               <AppCardBody>
                 {STUB_TIMELINE.length === 0 ? (
-                  <AppEmptyState message="No recent activity" />
+                  <AppEmptyState title="No recent activity" />
                 ) : (
                   <ul className="space-y-3">
                     {STUB_TIMELINE.map((e) => (
