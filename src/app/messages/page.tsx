@@ -10,7 +10,8 @@
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
-import { PageHeader, Tabs, TabPanel } from '@/components/ui';
+import { AppPageHeader } from '@/components/app';
+import { Tabs, TabPanel } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
@@ -41,7 +42,7 @@ function MessagesPageContent() {
   if (!isOwner) {
     return (
       <AppShell>
-        <PageHeader title="Messages" />
+        <AppPageHeader title="Messages" />
         <div style={{ padding: tokens.spacing[6] }}>
           <div>Access denied. Owner access required.</div>
         </div>
@@ -54,9 +55,9 @@ function MessagesPageContent() {
 
   return (
     <AppShell>
-      <PageHeader
+      <AppPageHeader
         title="Messages"
-        description="Manage all messaging operations from one place"
+        subtitle="Manage all messaging operations from one place"
       />
       <div className="flex flex-col h-full min-h-0" style={{ padding: 0 }}>
         <Tabs
@@ -106,7 +107,7 @@ export default function MessagesPage() {
   return (
     <Suspense fallback={
       <AppShell>
-        <PageHeader title="Messages" />
+        <AppPageHeader title="Messages" />
         <div style={{ padding: tokens.spacing[4] }}>
           <div>Loading...</div>
         </div>

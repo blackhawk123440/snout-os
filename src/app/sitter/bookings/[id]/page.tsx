@@ -98,11 +98,33 @@ export default function SitterBookingDetailPage() {
     void loadBooking();
   }, [loadBooking]);
 
+  const getGeo = (): Promise<{ lat: number; lng: number } | null> =>
+    new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    });
+
   const handleCheckIn = async () => {
     if (!id) return;
     setCheckingIn(true);
     try {
-      const res = await fetch(`/api/bookings/${id}/check-in`, { method: 'POST' });
+      const geo = await getGeo();
+      if (!geo) {
+        alert("Couldn't get location — continuing without it.");
+      }
+      const body = geo ? JSON.stringify({ lat: geo.lat, lng: geo.lng }) : undefined;
+      const res = await fetch(`/api/bookings/${id}/check-in`, {
+        method: 'POST',
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body,
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         alert(data.error || 'Check-in failed');
@@ -118,7 +140,16 @@ export default function SitterBookingDetailPage() {
     if (!id) return;
     setCheckingOut(true);
     try {
-      const res = await fetch(`/api/bookings/${id}/check-out`, { method: 'POST' });
+      const geo = await getGeo();
+      if (!geo) {
+        alert("Couldn't get location — continuing without it.");
+      }
+      const body = geo ? JSON.stringify({ lat: geo.lat, lng: geo.lng }) : undefined;
+      const res = await fetch(`/api/bookings/${id}/check-out`, {
+        method: 'POST',
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body,
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         alert(data.error || 'Check-out failed');

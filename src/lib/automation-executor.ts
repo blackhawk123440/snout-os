@@ -54,16 +54,23 @@ export async function executeAutomationForRecipient(
     };
   }
 
-  // Note: Booking model not available in messaging dashboard schema
-  // This automation executor is for the original booking system only
-  // For messaging dashboard, automations are handled by NestJS API
   let booking: any = null;
   if (context.bookingId) {
-    // Booking model doesn't exist in API schema - return error
-    return {
-      success: false,
-      error: `Booking model not available in messaging dashboard schema`,
-    };
+    booking = await prisma.booking.findUnique({
+      where: { id: context.bookingId },
+      include: {
+        pets: true,
+        timeSlots: true,
+        sitter: true,
+        client: true,
+      },
+    });
+    if (!booking) {
+      return {
+        success: false,
+        error: `Booking not found: ${context.bookingId}`,
+      };
+    }
   }
 
   // Execute based on automation type and recipient

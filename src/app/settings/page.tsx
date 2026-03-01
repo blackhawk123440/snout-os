@@ -9,7 +9,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  PageHeader,
   Tabs,
   TabPanel,
   Card,
@@ -24,6 +23,7 @@ import {
   GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppPageHeader } from '@/components/app';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 
@@ -368,10 +368,10 @@ export default function SettingsPage() {
 
   return (
     <AppShell>
-      <PageHeader
+      <AppPageHeader
         title="Settings"
-        description="Configure business settings, integrations, and automations"
-        actions={
+        subtitle="Configure business settings, integrations, and automations"
+        action={
           <Button variant="primary" onClick={handleSave} isLoading={saving}>
             Save Settings
           </Button>

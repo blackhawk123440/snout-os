@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-const CARD_BASE = 'rounded-2xl border border-neutral-200 bg-white shadow-sm';
+const CARD_BASE = 'rounded-2xl border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] shadow-sm';
 
 export interface AppCardProps {
   children: React.ReactNode;
@@ -25,12 +25,17 @@ export function AppCard({ children, className = '', onClick }: AppCardProps) {
 }
 
 export interface AppCardHeaderProps {
-  children: React.ReactNode;
+  title?: string;
+  children?: React.ReactNode;
   className?: string;
 }
 
-export function AppCardHeader({ children, className = '' }: AppCardHeaderProps) {
-  return <div className={`px-5 pt-5 pb-3 ${className}`}>{children}</div>;
+export function AppCardHeader({ title, children, className = '' }: AppCardHeaderProps) {
+  return (
+    <div className={`${className}`} style={{ padding: 'var(--density-padding)' }}>
+      {title ? <h3 className="text-base font-semibold text-[var(--color-text-primary)]">{title}</h3> : children}
+    </div>
+  );
 }
 
 export interface AppCardBodyProps {
@@ -39,7 +44,11 @@ export interface AppCardBodyProps {
 }
 
 export function AppCardBody({ children, className = '' }: AppCardBodyProps) {
-  return <div className={`px-5 py-3 text-sm text-neutral-700 ${className}`}>{children}</div>;
+  return (
+    <div className={`text-sm text-[var(--color-text-primary)] ${className}`} style={{ padding: 'var(--density-padding)' }}>
+      {children}
+    </div>
+  );
 }
 
 export interface AppCardActionsProps {

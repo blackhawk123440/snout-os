@@ -36,8 +36,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
     // Client trying to access non-client route -> redirect to client home
-    if (pathname.startsWith('/sitter') || pathname.startsWith('/dashboard') || pathname.startsWith('/calendar') ||
-        (pathname.startsWith('/bookings') && pathname !== '/bookings/new') || pathname.startsWith('/clients') || pathname === '/' || pathname === '') {
+    if (pathname.startsWith('/sitter') || pathname.startsWith('/dashboard') || pathname.startsWith('/owner-dashboard') ||
+        pathname.startsWith('/calendar') || (pathname.startsWith('/bookings') && pathname !== '/bookings/new') ||
+        pathname.startsWith('/clients') || pathname === '/' || pathname === '') {
       return NextResponse.redirect(new URL('/client/home', request.url));
     }
   }

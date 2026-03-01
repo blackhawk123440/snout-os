@@ -13,6 +13,22 @@ export interface NavItem {
   children?: NavItem[];
 }
 
+/** Canonical owner portal navigation (enterprise-grade) */
+export const ownerNavigation: NavItem[] = [
+  { label: 'Command Center', href: '/command-center', icon: 'fas fa-th-large' },
+  { label: 'Bookings', href: '/bookings', icon: 'fas fa-calendar-check' },
+  { label: 'Calendar', href: '/calendar', icon: 'fas fa-calendar' },
+  { label: 'Dispatch', href: '/dispatch', icon: 'fas fa-truck' },
+  { label: 'Clients', href: '/clients', icon: 'fas fa-users' },
+  { label: 'Sitters', href: '/bookings/sitters', icon: 'fas fa-user-friends' },
+  { label: 'Messaging', href: '/messages', icon: 'fas fa-comments' },
+  { label: 'Automations', href: '/automation', icon: 'fas fa-robot' },
+  { label: 'Finance', href: '/finance', icon: 'fas fa-credit-card' },
+  { label: 'Analytics', href: '/analytics', icon: 'fas fa-chart-line' },
+  { label: 'Integrations', href: '/integrations', icon: 'fas fa-plug' },
+  { label: 'Settings', href: '/settings', icon: 'fas fa-cog' },
+];
+
 export const navigation: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: 'fas fa-tachometer-alt' },
   { label: 'Bookings', href: '/bookings', icon: 'fas fa-calendar-check' },

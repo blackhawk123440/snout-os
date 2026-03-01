@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { BuildHash } from "@/components/ui/BuildHash";
 import { tokens } from '@/lib/design-tokens';
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Snout OS - Pet Care Management System",
@@ -15,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="overflow-x-hidden">
+    <html lang="en" className={`${inter.variable} overflow-x-hidden font-sans`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
         <meta name="format-detection" content="telephone=no" />
@@ -69,7 +72,7 @@ export default function RootLayout({
           }
         `}} />
       </head>
-      <body className="overflow-x-hidden w-full" style={{ WebkitTextSizeAdjust: '100%', textSizeAdjust: '100%' }}>
+      <body className="overflow-x-hidden w-full font-sans antialiased" style={{ fontFamily: 'var(--font-inter), sans-serif', WebkitTextSizeAdjust: '100%', textSizeAdjust: '100%' }}>
         <Providers>
           <div className="w-full min-h-screen">
             {children}

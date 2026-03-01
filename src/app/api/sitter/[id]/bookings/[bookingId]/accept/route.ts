@@ -11,6 +11,8 @@ import { prisma } from '@/lib/db';
 import { recordOfferAccepted, recordOfferAcceptBlocked } from '@/lib/audit-events';
 import { checkSitterEligibility } from '@/lib/sitter-eligibility';
 import { syncBookingToCalendar } from '@/lib/calendar-sync';
+import { emitBookingUpdated } from '@/lib/event-emitter';
+import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 
 export async function POST(
   request: NextRequest,
@@ -106,6 +108,8 @@ export async function POST(
       },
     });
 
+    const previousStatus = booking?.status ?? 'pending';
+
     // Assign booking to sitter
     await (prisma as any).booking.update({
       where: { id: bookingId },
@@ -114,6 +118,19 @@ export async function POST(
         status: 'confirmed',
       },
     });
+
+    if (previousStatus !== 'confirmed') {
+      try {
+        await ensureEventQueueBridge();
+        const updated = await (prisma as any).booking.findUnique({
+          where: { id: bookingId },
+          include: { pets: true, timeSlots: true, sitter: true, client: true },
+        });
+        if (updated) await emitBookingUpdated(updated, previousStatus);
+      } catch (err) {
+        console.error('[Accept Booking] Failed to emit booking.status.changed:', err);
+      }
+    }
 
     // Record audit event
     await recordOfferAccepted(

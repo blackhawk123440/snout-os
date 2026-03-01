@@ -1,7 +1,5 @@
 /**
- * Clients List Page - Enterprise Rebuild
- * 
- * Complete rebuild using design system and components.
+ * Clients List Page - Normalized with App design system
  */
 
 'use client';
@@ -9,25 +7,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  PageHeader,
-  Table,
-  Button,
-  Input,
-  Select,
-  Card,
-  EmptyState,
-  Skeleton,
-  MobileFilterBar,
-  Flex,
-  Grid,
-  GridCol,
-} from '@/components/ui';
+  AppPageHeader,
+  AppFilterBar,
+  AppTable,
+  AppDrawer,
+  AppErrorState,
+  SavedViewsDropdown,
+} from '@/components/app';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
-import { useMobile } from '@/lib/use-mobile';
-import { TableColumn } from '@/components/ui/Table';
 
-interface Client {
+interface Client extends Record<string, unknown> {
   id: string;
   firstName: string;
   lastName: string;
@@ -42,16 +32,19 @@ interface Client {
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'recent' | 'bookings'>('name');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const isMobile = useMobile();
+  const [error, setError] = useState<string | null>(null);
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [savedView, setSavedView] = useState('all');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetchClients();
   }, []);
 
   const fetchClients = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch('/api/clients').catch(() => null);
       if (response?.ok) {
@@ -61,227 +54,153 @@ export default function ClientsPage() {
           lastBooking: c.lastBooking ? new Date(c.lastBooking) : null,
         })));
       }
-    } catch (error) {
-      console.error('Failed to fetch clients:', error);
+    } catch (err) {
+      setError('Failed to load clients');
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredAndSortedClients = useMemo(() => {
-    let filtered = clients;
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (c) =>
-          c.firstName.toLowerCase().includes(term) ||
-          c.lastName.toLowerCase().includes(term) ||
-          c.phone.includes(term) ||
-          c.email.toLowerCase().includes(term)
-      );
-    }
-
-    filtered = [...filtered].sort((a, b) => {
-      if (sortBy === 'name') {
-        return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
-      } else if (sortBy === 'recent') {
-        const aDate = a.lastBooking ? new Date(a.lastBooking).getTime() : 0;
-        const bDate = b.lastBooking ? new Date(b.lastBooking).getTime() : 0;
-        return bDate - aDate;
-      } else {
-        return (b.totalBookings || 0) - (a.totalBookings || 0);
-      }
-    });
-
-    return filtered;
-  }, [clients, searchTerm, sortBy]);
-
   const formatDate = (date: Date | string | null | undefined) => {
     if (!date) return 'Never';
     const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  const columns: TableColumn<Client>[] = [
-    {
-      key: 'name',
-      header: 'Client',
-      mobileLabel: 'Client',
-      mobileOrder: 1,
-      render: (row) => (
-        <div>
-          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-            {row.firstName} {row.lastName}
-          </div>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-            }}
-          >
-            {row.email}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'contact',
-      header: 'Contact',
-      mobileLabel: 'Phone',
-      mobileOrder: 2,
-      render: (row) => (
-        <div
-          style={{
-            fontSize: tokens.typography.fontSize.base[0],
-            color: tokens.colors.text.primary,
-          }}
-        >
-          {row.phone}
-        </div>
-      ),
-    },
-    {
-      key: 'pets',
-      header: 'Pets',
-      mobileLabel: 'Pets',
-      mobileOrder: 3,
-      render: (row) => (
-        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-          {row.petCount || 0}
-        </div>
-      ),
-      align: 'center',
-    },
-    {
-      key: 'bookings',
-      header: 'Total Bookings',
-      mobileLabel: 'Total Bookings',
-      mobileOrder: 4,
-      render: (row) => (
-        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-          {row.totalBookings || 0}
-        </div>
-      ),
-      align: 'center',
-    },
-    {
-      key: 'lastBooking',
-      header: 'Last Booking',
-      mobileLabel: 'Last Booking',
-      mobileOrder: 5,
-      render: (row) => (
-        <div
-          style={{
-            fontSize: tokens.typography.fontSize.sm[0],
-            color: tokens.colors.text.secondary,
-          }}
-        >
-          {formatDate(row.lastBooking)}
-        </div>
-      ),
-    },
-  ];
+  const filteredClients = useMemo(() => {
+    let filtered = clients;
+    const search = filterValues.search?.toLowerCase();
+    if (search) {
+      filtered = filtered.filter(
+        (c) =>
+          c.firstName.toLowerCase().includes(search) ||
+          c.lastName.toLowerCase().includes(search) ||
+          c.phone.includes(search) ||
+          c.email.toLowerCase().includes(search)
+      );
+    }
+    const sortBy = filterValues.sort || 'name';
+    filtered = [...filtered].sort((a, b) => {
+      if (sortBy === 'name') {
+        return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+      }
+      if (sortBy === 'recent') {
+        const aDate = a.lastBooking ? new Date(a.lastBooking).getTime() : 0;
+        const bDate = b.lastBooking ? new Date(b.lastBooking).getTime() : 0;
+        return bDate - aDate;
+      }
+      return (b.totalBookings || 0) - (a.totalBookings || 0);
+    });
+    return filtered;
+  }, [clients, filterValues]);
+
+  const selectedClient = useMemo(() => clients.find((c) => c.id === selectedId), [clients, selectedId]);
 
   return (
     <AppShell>
-      <PageHeader
+      <AppPageHeader
         title="Clients"
-        description="Manage client information and contact details"
-        actions={
-          !isMobile ? undefined : (
-            <Link href="/clients/new">
-              <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
-                New Client
-              </Button>
-            </Link>
-          )
+        subtitle="Manage client information and contact details"
+        action={
+          <Link
+            href="/clients/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-teal-600)] px-4 py-2 text-sm font-medium text-white no-underline transition hover:bg-[var(--color-teal-700)]"
+          >
+            <i className="fas fa-plus" />
+            New Client
+          </Link>
         }
       />
 
-      {/* Filters and Search */}
-      {isMobile ? (
-        <MobileFilterBar
-          activeFilter={sortBy}
-          onFilterChange={(filterId) => setSortBy(filterId as any)}
-          sticky
-          options={[
-            { id: 'name', label: 'Name' },
-            { id: 'recent', label: 'Recent' },
-            { id: 'bookings', label: 'Bookings' },
+      {error && <AppErrorState message={error} onRetry={fetchClients} />}
+
+      <div className="mb-4 flex flex-wrap items-center gap-4">
+        <SavedViewsDropdown value={savedView} onChange={setSavedView} />
+        <AppFilterBar
+          filters={[
+            { key: 'search', label: 'Search', type: 'search', placeholder: 'Name, email, phone...' },
+            {
+              key: 'sort',
+              label: 'Sort',
+              type: 'select',
+              options: [
+                { value: 'name', label: 'Name' },
+                { value: 'recent', label: 'Most Recent' },
+                { value: 'bookings', label: 'Most Bookings' },
+              ],
+            },
           ]}
+          values={filterValues}
+          onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
+          onClear={() => setFilterValues({})}
         />
-      ) : (
-        <div style={{ marginBottom: tokens.spacing[4] }}>
-          <Card>
-            <div>
-              <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
-                <GridCol span={12} md={6}>
-                  <Input
-                    placeholder="Search clients..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    leftIcon={<i className="fas fa-search" />}
-                  />
-                </GridCol>
-                <GridCol span={12} md={3}>
-                  <Select
-                    label="Sort By"
-                    options={[
-                      { value: 'name', label: 'Name' },
-                      { value: 'recent', label: 'Most Recent' },
-                      { value: 'bookings', label: 'Most Bookings' },
-                    ]}
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
-                  />
-                </GridCol>
-                <GridCol span={12} md={3}>
-                  <Link href="/clients/new">
-                    <Button variant="primary" leftIcon={<i className="fas fa-plus" />} style={{ width: '100%' }}>
-                      New Client
-                    </Button>
-                  </Link>
-                </GridCol>
-              </Grid>
-            </div>
-          </Card>
-        </div>
-      )}
+      </div>
 
-      {/* Mobile Search */}
-      {isMobile && (
-        <Card style={{ marginBottom: tokens.spacing[4] }}>
-          <Input
-            placeholder="Search clients..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            leftIcon={<i className="fas fa-search" />}
-          />
-        </Card>
-      )}
+      <AppTable<Client>
+          columns={[
+            {
+              key: 'name',
+              header: 'Client',
+              render: (r) => (
+                <div>
+                  <div className="font-medium text-[var(--color-text-primary)]">
+                    {r.firstName} {r.lastName}
+                  </div>
+                  <div className="text-xs text-[var(--color-text-secondary)]">{r.email}</div>
+                </div>
+              ),
+            },
+            { key: 'phone', header: 'Phone' },
+            {
+              key: 'pets',
+              header: 'Pets',
+              render: (r) => String(r.petCount ?? 0),
+            },
+            {
+              key: 'bookings',
+              header: 'Bookings',
+              render: (r) => String(r.totalBookings ?? 0),
+            },
+            {
+              key: 'lastBooking',
+              header: 'Last Booking',
+              render: (r) => formatDate(r.lastBooking),
+            },
+          ]}
+          data={filteredClients}
+          keyExtractor={(r) => r.id}
+          onRowClick={(r) => setSelectedId(r.id)}
+          emptyMessage="No clients found. Add your first client to get started."
+          loading={loading}
+          selectable
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          onBulkAction={(actionId) => console.log('Bulk action', actionId, selectedIds)}
+          columnPicker
+        />
 
-      {/* Clients Table */}
-      <Card padding={!loading}>
-        {loading ? (
-          <Skeleton height="400px" />
-        ) : (
-          <Table
-            columns={columns}
-            data={filteredAndSortedClients}
-            emptyMessage="No clients found. Add your first client to get started."
-            onRowClick={(row) => {
-              window.location.href = `/clients/${row.id}`;
-            }}
-            keyExtractor={(row) => row.id}
-          />
+      <AppDrawer
+        isOpen={!!selectedId}
+        onClose={() => setSelectedId(null)}
+        title={selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : ''}
+      >
+        {selectedClient && (
+          <div className="space-y-4 text-sm">
+            <p className="text-[var(--color-text-secondary)]">{selectedClient.email}</p>
+            <p className="text-[var(--color-text-secondary)]">{selectedClient.phone}</p>
+            <p className="text-[var(--color-text-secondary)]">{selectedClient.address || '—'}</p>
+            <p>
+              Pets: {selectedClient.petCount ?? 0} · Bookings: {selectedClient.totalBookings ?? 0}
+            </p>
+            <Link
+              href={`/clients/${selectedClient.id}`}
+              className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-border-default)] px-4 py-2 text-sm font-medium no-underline hover:bg-[var(--color-surface-secondary)]"
+            >
+              View full profile
+            </Link>
+          </div>
         )}
-      </Card>
+      </AppDrawer>
     </AppShell>
   );
 }
-

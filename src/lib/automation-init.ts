@@ -6,6 +6,7 @@
  */
 
 import { initializeAutomationEngine } from "./automation-engine";
+import { initializeEventQueueBridge } from "./event-queue-bridge";
 
 let initialized = false;
 
@@ -16,6 +17,7 @@ export function initAutomationEngine() {
   
   try {
     initializeAutomationEngine();
+    initializeEventQueueBridge();
     initialized = true;
     
     if (process.env.NODE_ENV !== "test") {

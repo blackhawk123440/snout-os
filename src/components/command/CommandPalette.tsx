@@ -29,6 +29,7 @@ export function CommandPalette({ context }: CommandPaletteProps) {
   const isMobile = useMobile();
   const {
     isOpen,
+    open,
     close,
     searchQuery,
     setSearchQuery,
@@ -42,6 +43,13 @@ export function CommandPalette({ context }: CommandPaletteProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [selectedCommand, setSelectedCommand] = useState<Command | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Global: listen for open-command-palette event (e.g. from topbar search)
+  useEffect(() => {
+    const handler = () => open();
+    window.addEventListener('open-command-palette', handler);
+    return () => window.removeEventListener('open-command-palette', handler);
+  }, [open]);
 
   // Focus input when palette opens
   useEffect(() => {

@@ -8,6 +8,80 @@
 'use client';
 
 import React, { useState } from 'react';
+
+function SuggestSittersSection({
+  bookingId,
+  sitters,
+  selectedSitterId,
+  onSelect,
+}: {
+  bookingId: string;
+  sitters: Array<{ id: string; firstName: string; lastName: string }>;
+  selectedSitterId: string;
+  onSelect: (id: string) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<Array<{ sitterId: string; firstName: string; lastName: string; score: number; reasons: string[] }> | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSuggest = async () => {
+    setLoading(true);
+    setSuggestions(null);
+    try {
+      const res = await fetch(`/api/ops/bookings/${bookingId}/sitter-suggestions`);
+      const json = await res.json();
+      if (res.ok && json.suggestions) setSuggestions(json.suggestions);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+      <Button
+        variant="tertiary"
+        size="sm"
+        onClick={handleSuggest}
+        disabled={loading || sitters.length === 0}
+        isLoading={loading}
+      >
+        {loading ? 'Loading...' : 'Suggest sitters'}
+      </Button>
+      {suggestions && suggestions.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], padding: tokens.spacing[2], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.md }}>
+          <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary }}>
+            AI suggestions
+          </div>
+          {suggestions.map((s) => (
+            <button
+              key={s.sitterId}
+              type="button"
+              onClick={() => onSelect(s.sitterId)}
+              style={{
+                padding: tokens.spacing[2],
+                textAlign: 'left',
+                border: `1px solid ${selectedSitterId === s.sitterId ? tokens.colors.primary.DEFAULT : tokens.colors.border.default}`,
+                borderRadius: tokens.borderRadius.sm,
+                backgroundColor: selectedSitterId === s.sitterId ? tokens.colors.primary[100] : tokens.colors.background.primary,
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                {s.firstName} {s.lastName} (score: {s.score})
+              </div>
+              {s.reasons?.length > 0 && (
+                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                  {s.reasons.join(' • ')}
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
@@ -172,6 +246,12 @@ export const BookingRowActions: React.FC<BookingRowActionsProps> = ({
         >
           <TabPanel id="direct">
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+              <SuggestSittersSection
+                bookingId={bookingId}
+                sitters={sitters}
+                selectedSitterId={selectedSitterId}
+                onSelect={(id) => setSelectedSitterId(id)}
+              />
               <Select
                 label="Select Sitter"
                 value={selectedSitterId}

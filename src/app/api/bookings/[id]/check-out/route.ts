@@ -3,13 +3,16 @@ import { prisma } from '@/lib/db';
 import { getRequestContext } from '@/lib/request-context';
 import { requireRole, ForbiddenError } from '@/lib/rbac';
 import { whereOrg } from '@/lib/org-scope';
+import { emitVisitCompleted } from '@/lib/event-emitter';
+import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 
 /**
  * POST /api/bookings/[id]/check-out
  * Updates booking status to completed for sitter check-out. Requires SITTER role.
+ * Accepts optional body: { lat?: number; lng?: number } for GPS capture.
  */
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   let ctx;
@@ -48,10 +51,35 @@ export async function POST(
       );
     }
 
+    const body = await request.json().catch(() => ({}));
+    const lat = typeof body.lat === 'number' ? body.lat : null;
+    const lng = typeof body.lng === 'number' ? body.lng : null;
+
     await prisma.booking.update({
       where: { id },
       data: { status: 'completed' },
     });
+
+    if (lat != null && lng != null) {
+      await prisma.eventLog.create({
+        data: {
+          orgId: ctx.orgId,
+          eventType: 'sitter.check_out',
+          status: 'success',
+          bookingId: id,
+          metadata: JSON.stringify({ lat, lng, sitterId: ctx.sitterId }),
+        },
+      });
+    }
+
+    const updated = await prisma.booking.findUnique({
+      where: { id },
+      include: { sitter: true, pets: true },
+    });
+    if (updated) {
+      await ensureEventQueueBridge();
+      await emitVisitCompleted(updated, {});
+    }
 
     return NextResponse.json({ ok: true, status: 'completed' });
   } catch (error: unknown) {

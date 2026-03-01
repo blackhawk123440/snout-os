@@ -37,6 +37,7 @@ import { useCommands } from '@/hooks/useCommands';
 import { useMobile } from '@/lib/use-mobile';
 import { tokens } from '@/lib/design-tokens';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppPageHeader, AppErrorState } from '@/components/app';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { createCalendarEventCommands } from '@/commands/calendar-commands';
 import { registerCommand } from '@/commands/registry';
@@ -379,15 +380,7 @@ export default function CalendarPage() {
 
     if (error) {
       return (
-        <ErrorState
-          title="Failed to load calendar"
-          message={error}
-          action={
-            <Button onClick={fetchData}>
-              Retry
-            </Button>
-          }
-        />
+        <AppErrorState message={error} onRetry={fetchData} />
       );
     }
 
@@ -536,9 +529,9 @@ export default function CalendarPage() {
 
   return (
     <AppShell>
-      <PageHeader
+      <AppPageHeader
         title="Calendar"
-        actions={
+        action={
           <Flex align="center" gap={1.5}> {/* Phase E: Migrated to AppShell - combined left/right actions */}
             {isMobile && (
               <IconButton
@@ -564,15 +557,7 @@ export default function CalendarPage() {
           <Skeleton height="600px" />
         </div>
       ) : error && bookings.length === 0 ? (
-        <ErrorState
-          title="Failed to load calendar"
-          message={error}
-          action={
-            <Button onClick={fetchData}>
-              Retry
-            </Button>
-          }
-        />
+        <AppErrorState message={error} onRetry={fetchData} />
       ) : (
         <Grid>
           {!isMobile && (

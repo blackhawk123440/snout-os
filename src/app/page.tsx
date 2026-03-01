@@ -2,35 +2,42 @@
  * Dashboard Home Page - Enterprise Rebuild
  * 
  * Complete rebuild using design system and components.
- * Zero legacy styling - all through components and tokens.
+ * Real-time metrics via /api/ops/metrics (poll every 15s).
+ * Revenue forecast chart via /api/ops/forecast/revenue.
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageHeader, StatCard, Card, Button, Skeleton } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line } from 'react-chartjs-2';
 
-interface DashboardStats {
-  totalBookings: number;
-  activeSitters: number;
-  totalRevenue: number;
-  happyClients: number;
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
+interface MetricsData {
+  activeVisitsCount: number;
+  openBookingsCount: number;
+  revenueYTD: number;
+  retentionRate: number;
+  timestamp?: string;
+}
+
+interface ForecastData {
+  daily: { date: string; amount: number }[];
+  aiCommentary: string;
 }
 
 export default function DashboardHomePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalBookings: 0,
-    activeSitters: 0,
-    totalRevenue: 0,
-    happyClients: 0,
-  });
+  const [metrics, setMetrics] = useState<MetricsData | null>(null);
+  const [forecast, setForecast] = useState<ForecastData | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Redirect based on authentication and role
@@ -39,55 +46,72 @@ export default function DashboardHomePage() {
       if (!user) {
         router.push('/login?redirect=/');
       } else {
-        // If user is a sitter, redirect to sitter inbox
         const isSitter = (user as any).sitterId;
         if (isSitter) {
           router.push('/sitter/inbox');
+        } else {
+          // Owners: canonical home is Command Center
+          router.replace('/command-center');
         }
-        // Owners stay on dashboard
       }
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (user) {
-      fetchStats();
-    }
-  }, [user]);
-
-  const fetchStats = async () => {
+  const fetchMetrics = useCallback(async () => {
     try {
-      // Note: These endpoints are from the legacy booking system
-      // They may not exist if only using the messaging dashboard
+      const res = await fetch('/api/ops/metrics');
+      if (res.ok) {
+        const data = await res.json();
+        setMetrics(data);
+      }
+    } catch {
+      // Fallback: try legacy endpoints
       const [bookingsRes, sittersRes] = await Promise.all([
         fetch('/api/bookings').catch(() => null),
         fetch('/api/sitters').catch(() => null),
       ]);
-
       const bookings = bookingsRes?.ok ? await bookingsRes.json() : { bookings: [] };
       const sitters = sittersRes?.ok ? await sittersRes.json() : { sitters: [] };
-
       const activeBookings = (bookings.bookings || []).filter(
         (b: any) => b.status !== 'cancelled' && b.status !== 'completed'
       );
-      const activeSitters = (Array.isArray(sitters) ? sitters : []).filter((s: any) => s.active !== false);
-      const totalRevenue = (bookings.bookings || []).reduce(
-        (sum: number, b: any) => sum + (b.totalPrice || 0),
-        0
-      );
-
-      setStats({
-        totalBookings: activeBookings.length,
-        activeSitters: activeSitters.length,
-        totalRevenue,
-        happyClients: Math.floor(activeBookings.length * 0.95),
+      setMetrics({
+        activeVisitsCount: activeBookings.filter((b: any) => b.status === 'in_progress').length,
+        openBookingsCount: activeBookings.length,
+        revenueYTD: (bookings.bookings || []).reduce((s: number, b: any) => s + (b.totalPrice || 0), 0),
+        retentionRate: 0,
       });
-    } catch (error) {
-      console.error('Failed to fetch stats:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const fetchForecast = useCallback(async () => {
+    try {
+      // Deterministic only (fast). Use ?ai=true for AI commentary.
+      const res = await fetch('/api/ops/forecast/revenue?range=90d');
+      if (res.ok) {
+        const data = await res.json();
+        setForecast(data);
+      }
+    } catch {
+      setForecast(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchMetrics();
+      fetchForecast();
+    }
+  }, [user, fetchMetrics, fetchForecast]);
+
+  // Poll metrics every 15s
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(fetchMetrics, 15000);
+    return () => clearInterval(interval);
+  }, [user, fetchMetrics]);
 
   // Show loading while checking auth
   if (authLoading) {
@@ -117,13 +141,13 @@ export default function DashboardHomePage() {
         }
       />
 
-      {/* Stats Grid - Phase D: Command surface hierarchy */}
+      {/* Real-time metrics (poll every 15s) */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: tokens.spacing[2], // Phase E: Token-only - disciplined spacing (8px)
-          marginBottom: tokens.spacing[4], // Phase D: Minimal separation - anchored feel
+          gap: tokens.spacing[2],
+          marginBottom: tokens.spacing[4],
         }}
       >
         {loading ? (
@@ -133,40 +157,91 @@ export default function DashboardHomePage() {
             <Skeleton height="120px" />
             <Skeleton height="120px" />
           </>
-        ) : (
+        ) : metrics ? (
           <>
-            {/* Active Bookings - Phase D: Command center focus */}
-            <div style={{ 
+            <div style={{
               border: `1px solid ${tokens.colors.border.default}`,
-              borderRadius: tokens.radius.sm,
+              borderRadius: tokens.borderRadius.sm,
               padding: tokens.spacing[1],
-              boxShadow: tokens.shadow.md, // Phase D: Stronger emphasis - operational anchor
+              boxShadow: tokens.shadows.md,
             }}>
               <StatCard
-                label="Active Bookings"
-                value={stats.totalBookings}
-                icon={<i className="fas fa-calendar-check" />}
+                label="Active Visits (GPS)"
+                value={metrics.activeVisitsCount}
+                icon={<i className="fas fa-map-marker-alt" />}
               />
             </div>
             <StatCard
-              label="Active Sitters"
-              value={stats.activeSitters}
-              icon={<i className="fas fa-user-friends" />}
+              label="Open Bookings"
+              value={metrics.openBookingsCount}
+              icon={<i className="fas fa-calendar-check" />}
             />
             <StatCard
-              label="Total Revenue"
-              value={`$${stats.totalRevenue.toFixed(2)}`}
+              label="Revenue YTD"
+              value={`$${metrics.revenueYTD.toFixed(2)}`}
               icon={<i className="fas fa-dollar-sign" />}
             />
-            {/* Phase D: Neutral, operational - remove "Happy" */}
             <StatCard
-              label="Active Clients"
-              value={stats.happyClients}
+              label="Retention %"
+              value={`${metrics.retentionRate}%`}
               icon={<i className="fas fa-users" />}
             />
           </>
+        ) : (
+          <Skeleton height="120px" />
         )}
       </div>
+
+      {/* Revenue forecast chart */}
+      {forecast && forecast.daily.length > 0 && (
+        <Card
+          header={
+            <div style={{
+              fontSize: tokens.typography.fontSize.base[0],
+              fontWeight: tokens.typography.fontWeight.medium,
+              color: tokens.colors.text.secondary,
+            }}>
+              Revenue (last 90 days)
+            </div>
+          }
+        >
+          <div style={{ padding: tokens.spacing[4], minHeight: 200 }}>
+            <Line
+              data={{
+                labels: forecast.daily.slice(-30).map((d) => d.date.slice(5)),
+                datasets: [{
+                  label: 'Revenue ($)',
+                  data: forecast.daily.slice(-30).map((d) => d.amount),
+                  borderColor: tokens.colors.primary.DEFAULT,
+                  backgroundColor: tokens.colors.primary[100],
+                  tension: 0.2,
+                }],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                  legend: { display: false },
+                },
+                scales: {
+                  y: { beginAtZero: true },
+                },
+              }}
+            />
+          </div>
+          {forecast.aiCommentary && (
+            <div style={{
+              padding: tokens.spacing[4],
+              paddingTop: 0,
+              fontSize: tokens.typography.fontSize.sm[0],
+              color: tokens.colors.text.secondary,
+              fontStyle: 'italic',
+            }}>
+              {forecast.aiCommentary}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Quick Actions - Phase B6: Secondary to stats */}
       <Card

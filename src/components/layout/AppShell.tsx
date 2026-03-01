@@ -13,8 +13,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
-import { navigation, type NavItem } from '@/lib/navigation';
+import { ownerNavigation, navigation, type NavItem } from '@/lib/navigation';
 import { useAuth } from '@/lib/auth-client';
+import { useTheme } from '@/lib/theme-context';
 
 export type { NavItem } from '@/lib/navigation';
 
@@ -27,10 +28,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const router = useRouter();
   const isMobile = useMobile();
   const { user, isOwner, isSitter } = useAuth();
+  const { mode, toggleMode, density, setDensity } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  // Filter navigation by role
-  const filteredNavigation = navigation.filter((item) => {
+  // Use owner nav for owners, legacy nav filtered for others
+  const baseNav = isOwner ? ownerNavigation : navigation;
+  const filteredNavigation = baseNav.filter((item) => {
     // Sitters should not see owner-only pages
     if (isSitter) {
       // Sitters can see: Dashboard (redirected to inbox), Messages (redirected to sitter inbox)
@@ -99,8 +102,8 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   }, [sidebarOpen]);
 
   const isActive = (href: string) => {
-    if (href === '/') {
-      return pathname === '/';
+    if (href === '/' || href === '/command-center') {
+      return pathname === '/' || pathname === '/command-center';
     }
     return pathname.startsWith(href);
   };
@@ -440,7 +443,77 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           >
             <i className={`fas ${sidebarOpen ? 'fa-times' : 'fa-bars'}`} />
           </button>
+          {/* Global search stub - opens Command Palette (Cmd+K) */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: tokens.spacing[2],
+              flex: 1,
+              maxWidth: isMobile ? 100 : 240,
+              marginLeft: tokens.spacing[4],
+              padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+              borderRadius: tokens.borderRadius.md,
+              border: `1px solid ${tokens.colors.border.default}`,
+              backgroundColor: tokens.colors.background.secondary,
+              color: tokens.colors.text.tertiary,
+              fontSize: tokens.typography.fontSize.sm[0],
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
+            aria-label="Search (Cmd+K)"
+          >
+            <i className="fas fa-search" style={{ color: tokens.colors.text.tertiary }} />
+            <span>Search...</span>
+            <span style={{ marginLeft: 'auto', fontSize: tokens.typography.fontSize.xs[0] }}>⌘K</span>
+          </button>
           <div style={{ flex: 1 }} />
+          {/* Theme + density (owners) */}
+          {isOwner && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: tokens.spacing[2],
+                marginRight: tokens.spacing[3],
+              }}
+            >
+              <select
+                value={density}
+                onChange={(e) => setDensity(e.target.value as 'compact' | 'comfortable' | 'spacious')}
+                style={{
+                  padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                  borderRadius: tokens.borderRadius.md,
+                  border: `1px solid ${tokens.colors.border.default}`,
+                  fontSize: tokens.typography.fontSize.sm[0],
+                  color: tokens.colors.text.secondary,
+                  backgroundColor: 'transparent',
+                }}
+                aria-label="UI density"
+              >
+                <option value="compact">Compact</option>
+                <option value="comfortable">Comfortable</option>
+                <option value="spacious">Spacious</option>
+              </select>
+              <button
+                type="button"
+                onClick={toggleMode}
+                style={{
+                  padding: tokens.spacing[2],
+                  borderRadius: tokens.borderRadius.md,
+                  border: 'none',
+                  background: 'transparent',
+                  color: tokens.colors.text.secondary,
+                  cursor: 'pointer',
+                }}
+                aria-label={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                <i className={mode === 'dark' ? 'fas fa-sun' : 'fas fa-moon'} />
+              </button>
+            </div>
+          )}
           {/* User menu with logout */}
           <div
             style={{

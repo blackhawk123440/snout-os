@@ -40,6 +40,7 @@ import { useCommands } from '@/hooks/useCommands';
 import { useMobile } from '@/lib/use-mobile';
 import { tokens } from '@/lib/design-tokens';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppPageHeader, AppErrorState, AppEmptyState, AppStatusPill, AppDrawer } from '@/components/app';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { registerCommand } from '@/commands/registry';
 import { createCalendarEventCommands } from '@/commands/calendar-commands';
@@ -477,15 +478,7 @@ export default function BookingsPage() {
           <Skeleton height="600px" />
         </div>
       ) : error && bookings.length === 0 ? (
-        <ErrorState
-          title="Failed to load bookings"
-          message={error}
-          action={
-            <Button onClick={fetchData}>
-              Retry
-            </Button>
-          }
-        />
+        <AppErrorState message={error} onRetry={fetchData} />
       ) : (
         <>
           {/* Overview Section - Phase D: Operational instrument */}

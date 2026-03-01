@@ -10,7 +10,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  PageHeader,
   Card,
   Button,
   Input,
@@ -22,6 +21,7 @@ import {
   GridCol,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppPageHeader } from '@/components/app';
 import { tokens } from '@/lib/design-tokens';
 
 interface IntegrationStatus {
@@ -332,10 +332,10 @@ export default function IntegrationsPage() {
 
   return (
     <AppShell>
-      <PageHeader
+      <AppPageHeader
         title="Integrations Dashboard"
-        description="Manage and test all your third-party integrations"
-        actions={
+        subtitle="Manage and test all your third-party integrations"
+        action={
           <Link href="/automation">
             <Button variant="secondary" leftIcon={<i className="fas fa-robot" />}>
               Automation

@@ -10,7 +10,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  PageHeader,
   Card,
   Button,
   Input,
@@ -30,6 +29,7 @@ import {
   Section,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
+import { AppPageHeader, AppErrorState } from '@/components/app';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { MessageTemplatePreview } from '@/components/messaging';
@@ -677,7 +677,7 @@ export default function AutomationPage() {
   if (loading) {
     return (
       <AppShell>
-        <PageHeader title="Automations" description="Configure automated messages and notifications" />
+        <AppPageHeader title="Automations" subtitle="Configure automated messages and notifications" />
         <Card>
           <Skeleton height="400px" />
         </Card>
@@ -688,29 +688,18 @@ export default function AutomationPage() {
   if (error && !settings) {
     return (
       <AppShell>
-        <PageHeader title="Automations" description="Configure automated messages and notifications" />
-        <Card>
-          <EmptyState
-            icon="⚠️"
-            title="Failed to Load Automations"
-            description={error}
-            action={{
-              label: 'Retry',
-              onClick: fetchSettings,
-              variant: 'primary',
-            }}
-          />
-        </Card>
+        <AppPageHeader title="Automations" subtitle="Configure automated messages and notifications" />
+        <AppErrorState message={error} onRetry={fetchSettings} />
       </AppShell>
     );
   }
 
   return (
     <AppShell>
-      <PageHeader
+      <AppPageHeader
         title="Automations"
-        description="Configure automated messages and notifications"
-        actions={
+        subtitle="Configure automated messages and notifications"
+        action={
           <>
             <Link href="/integrations">
               <Button variant="secondary" leftIcon={<i className="fas fa-plug" />}>

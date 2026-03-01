@@ -59,6 +59,12 @@ export default function ClientHomePage() {
     void load();
   }, [load]);
 
+  // Poll reports every 45s for real-time feed
+  useEffect(() => {
+    const interval = setInterval(load, 45000);
+    return () => clearInterval(interval);
+  }, [load]);
+
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 

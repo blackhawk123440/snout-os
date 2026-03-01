@@ -8,6 +8,8 @@
 import { prisma } from '@/lib/db';
 import { recordSitterAuditEvent } from '@/lib/audit-events';
 import { syncBookingToCalendar, deleteBookingCalendarEvent } from '@/lib/calendar-sync';
+import { emitBookingUpdated } from '@/lib/event-emitter';
+import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 
 export type DispatchStatus = 'auto' | 'manual_required' | 'manual_in_progress' | 'assigned';
 
@@ -110,6 +112,8 @@ export async function forceAssignSitter(
     }
   }
 
+  const previousStatus = booking.status;
+
   // Update booking
   await (prisma as any).booking.update({
     where: { id: bookingId },
@@ -119,6 +123,19 @@ export async function forceAssignSitter(
       status: 'confirmed',
     },
   });
+
+  if (previousStatus !== 'confirmed') {
+    try {
+      await ensureEventQueueBridge();
+      const updated = await (prisma as any).booking.findUnique({
+        where: { id: bookingId },
+        include: { pets: true, timeSlots: true, sitter: true, client: true },
+      });
+      if (updated) await emitBookingUpdated(updated, previousStatus);
+    } catch (err) {
+      console.error('[Force Assign] Failed to emit booking.status.changed:', err);
+    }
+  }
 
   // Record audit event
   await recordSitterAuditEvent({

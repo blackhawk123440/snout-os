@@ -266,10 +266,32 @@ export default function SitterTodayPage() {
     void loadBookings();
   }, [loadBookings]);
 
+  const getGeo = (): Promise<{ lat: number; lng: number } | null> =>
+    new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    });
+
   const handleCheckIn = async (bookingId: string) => {
     setCheckingInId(bookingId);
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/check-in`, { method: 'POST' });
+      const geo = await getGeo();
+      if (!geo) {
+        showToast({ message: "Couldn't get location — continuing without it.", variant: 'warning' });
+      }
+      const body = geo ? JSON.stringify({ lat: geo.lat, lng: geo.lng }) : undefined;
+      const res = await fetch(`/api/bookings/${bookingId}/check-in`, {
+        method: 'POST',
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body,
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         showToast({ message: data.error || 'Check in failed', variant: 'error' });
@@ -287,7 +309,16 @@ export default function SitterTodayPage() {
   const handleCheckOut = async (bookingId: string) => {
     setCheckingOutId(bookingId);
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/check-out`, { method: 'POST' });
+      const geo = await getGeo();
+      if (!geo) {
+        showToast({ message: "Couldn't get location — continuing without it.", variant: 'warning' });
+      }
+      const body = geo ? JSON.stringify({ lat: geo.lat, lng: geo.lng }) : undefined;
+      const res = await fetch(`/api/bookings/${bookingId}/check-out`, {
+        method: 'POST',
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body,
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         showToast({ message: data.error || 'Check out failed', variant: 'error' });
@@ -311,6 +342,19 @@ export default function SitterTodayPage() {
     setDelightBooking(booking);
   };
 
+  const [routeUrl, setRouteUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (bookings.length > 0) {
+      const today = new Date().toISOString().slice(0, 10);
+      fetch(`/api/sitter/route?date=${today}`)
+        .then((r) => r.json())
+        .then((d) => setRouteUrl(d.googleMapsUrl || null))
+        .catch(() => setRouteUrl(null));
+    } else {
+      setRouteUrl(null);
+    }
+  }, [bookings.length]);
+
   return (
     <>
       <div className="mx-auto max-w-3xl pb-8">
@@ -318,9 +362,22 @@ export default function SitterTodayPage() {
           title="Today"
           subtitle={`${todayLabel} · You have ${bookings.length} ${bookings.length === 1 ? 'visit' : 'visits'}`}
           action={
-            <Button variant="secondary" size="sm" onClick={() => void loadBookings()} disabled={loading}>
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              {routeUrl && (
+                <a
+                  href={routeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <i className="fas fa-map-marker-alt mr-1.5" />
+                  Open in Maps
+                </a>
+              )}
+              <Button variant="secondary" size="sm" onClick={() => void loadBookings()} disabled={loading}>
+                Refresh
+              </Button>
+            </div>
           }
         />
         {!loading && bookings.length > 0 && (

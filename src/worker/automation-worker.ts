@@ -1,23 +1,58 @@
 import { prisma } from "@/lib/db";
-import { sendSMS } from "@/lib/openphone";
-import { getOwnerPhone } from "@/lib/phone-utils";
+import { enqueueAutomation } from "@/lib/automation-queue";
 
 export async function processReminders() {
   try {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
-    
+
     const dayAfter = new Date(tomorrow);
     dayAfter.setDate(dayAfter.getDate() + 1);
 
-    // Note: Booking model not available in messaging dashboard schema
-    // Return empty - reminder processing not available
-    return { processed: 0 };
-    
-    // Original code (commented out - Booking model not available):
-    // const tomorrowBookings = await prisma.booking.findMany({ ... });
-    // ... (Booking model queries disabled)
+    const tomorrowBookings = await prisma.booking.findMany({
+      where: {
+        status: { in: ["pending", "confirmed"] },
+        startAt: { gte: tomorrow, lt: dayAfter },
+      },
+      include: { pets: true, timeSlots: true, sitter: true },
+    });
+
+    let processed = 0;
+    for (const booking of tomorrowBookings) {
+      try {
+        await enqueueAutomation(
+          "nightBeforeReminder",
+          "client",
+          {
+            bookingId: booking.id,
+            firstName: booking.firstName,
+            lastName: booking.lastName,
+            phone: booking.phone,
+            service: booking.service,
+          },
+          `nightBeforeReminder:client:${booking.id}:${tomorrow.toISOString().slice(0, 10)}`
+        );
+        if (booking.sitterId) {
+          await enqueueAutomation(
+            "nightBeforeReminder",
+            "sitter",
+            {
+              bookingId: booking.id,
+              sitterId: booking.sitterId,
+              firstName: booking.firstName,
+              lastName: booking.lastName,
+              service: booking.service,
+            },
+            `nightBeforeReminder:sitter:${booking.id}:${tomorrow.toISOString().slice(0, 10)}`
+          );
+        }
+        processed++;
+      } catch (err) {
+        console.error(`[Reminders] Failed to enqueue for booking ${booking.id}:`, err);
+      }
+    }
+    return { processed };
   } catch (error) {
     console.error("Failed to process reminders:", error);
     throw error;
@@ -28,23 +63,30 @@ export async function processDailySummary() {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Note: Booking model not available in messaging dashboard schema
-    // Return empty stats - daily summary not available
+    const todayBookings = await prisma.booking.findMany({
+      where: { startAt: { gte: today, lt: tomorrow } },
+    });
+
+    const byStatus = todayBookings.reduce(
+      (acc, b) => {
+        acc[b.status] = (acc[b.status] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+    const completed = todayBookings.filter((b) => b.status === "completed");
+    const revenue = completed.reduce((s, b) => s + (b.totalPrice || 0), 0);
+
     return {
-      total: 0,
-      pending: 0,
-      confirmed: 0,
-      completed: 0,
-      revenue: 0,
+      total: todayBookings.length,
+      pending: byStatus.pending || 0,
+      confirmed: byStatus.confirmed || 0,
+      completed: byStatus.completed || 0,
+      revenue,
     };
-    
-    // Original code (commented out - Booking model not available):
-    // const todayBookings = await prisma.booking.findMany({ ... });
-    // ... (Booking model queries disabled)
   } catch (error) {
     console.error("Failed to process daily summary:", error);
     throw error;

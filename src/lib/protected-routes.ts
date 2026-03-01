@@ -195,6 +195,22 @@ export function isProtectedRoute(pathname: string): boolean {
     return true;
   }
 
+  // Owner dashboard (alias for main dashboard)
+  if (pathname.startsWith("/owner-dashboard")) {
+    return true;
+  }
+
+  // Ops/metrics and forecast APIs (owner-only)
+  if (pathname.startsWith("/api/ops/metrics")) {
+    return true;
+  }
+  if (pathname.startsWith("/api/ops/forecast")) {
+    return true;
+  }
+  if (pathname.startsWith("/api/ops/bookings")) {
+    return true;
+  }
+
   // Ops/proof page (owner-only verification)
   if (pathname.startsWith("/ops/proof")) {
     return true;
