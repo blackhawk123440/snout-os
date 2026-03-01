@@ -63,6 +63,9 @@ jobs:
       - name: Check UI Constitution violations
         run: pnpm exec tsx scripts/check-ui-constitution.ts
 
+      - name: Feature Completion Gate audit
+        run: pnpm run feature:audit
+
       - name: Generate Prisma client
         run: pnpm prisma generate
 
@@ -134,6 +137,12 @@ jobs:
           mkdir -p proof-pack
           pnpm run test:ui:smoke
           pnpm run test -- src/lib/messaging/__tests__/pool-capacity.test.ts src/lib/messaging/__tests__/pool-release.test.ts src/lib/messaging/__tests__/invariants.test.ts --reporter=json --outputFile=proof-pack/test-output.json
+
+      - name: Run snapshot suites (owner, sitter, client)
+        run: |
+          pnpm exec playwright test tests/e2e/owner-snapshots.spec.ts --project=owner-desktop
+          pnpm exec playwright test tests/e2e/sitter-snapshots.spec.ts --project=sitter-desktop
+          pnpm exec playwright test tests/e2e/client-snapshots.spec.ts --project=client-mobile
         env:
           CI: true
           BASE_URL: "http://localhost:3000"

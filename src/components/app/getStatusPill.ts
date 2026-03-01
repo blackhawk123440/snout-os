@@ -1,6 +1,6 @@
 /**
- * getStatusPill - Consistent status pill styling
- * Maps common status strings to visual variants.
+ * getStatusPill - Consistent status pill styling (single source of truth)
+ * Maps common status strings to visual variants. Use everywhere - no page-specific status names.
  */
 
 export type StatusPillVariant = 'default' | 'success' | 'warning' | 'error' | 'info';
@@ -11,10 +11,11 @@ export interface StatusPillConfig {
 }
 
 const STATUS_MAP: Record<string, StatusPillConfig> = {
-  // Booking
+  // Booking (canonical: pending, confirmed, in_progress, completed, cancelled)
   pending: { variant: 'warning', label: 'Pending' },
   confirmed: { variant: 'success', label: 'Confirmed' },
   in_progress: { variant: 'info', label: 'In progress' },
+  'in-progress': { variant: 'info', label: 'In progress' },
   completed: { variant: 'success', label: 'Completed' },
   cancelled: { variant: 'error', label: 'Cancelled' },
   // Payment
@@ -34,6 +35,12 @@ const STATUS_MAP: Record<string, StatusPillConfig> = {
 };
 
 export function getStatusPill(status: string): StatusPillConfig {
-  const normalized = String(status || '').toLowerCase().replace(/\s+/g, '_');
-  return STATUS_MAP[normalized] ?? { variant: 'default', label: status || '—' };
+  const s = String(status || '').toLowerCase().trim();
+  const normalized = s.replace(/\s+/g, '_').replace(/-/g, '_');
+  return STATUS_MAP[s] ?? STATUS_MAP[normalized] ?? { variant: 'default', label: status || '—' };
+}
+
+/** Canonical booking status labels - use instead of hardcoding */
+export function getBookingStatusLabel(status: string): string {
+  return getStatusPill(status).label;
 }

@@ -3,12 +3,13 @@
 import React from 'react';
 import { getStatusPill, type StatusPillVariant } from './getStatusPill';
 
+/* WCAG AA: bg/foreground pairs chosen for 4.5:1+ contrast */
 const VARIANT_CLASSES: Record<StatusPillVariant, string> = {
-  default: 'bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]',
-  success: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
-  warning: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
-  error: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
-  info: 'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300',
+  default: 'bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)]',
+  success: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/50 dark:text-emerald-100',
+  warning: 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100',
+  error: 'bg-red-100 text-red-900 dark:bg-red-900/50 dark:text-red-100',
+  info: 'bg-sky-100 text-sky-900 dark:bg-sky-900/50 dark:text-sky-100',
 };
 
 export interface AppStatCardProps {

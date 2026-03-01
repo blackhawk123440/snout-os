@@ -28,6 +28,9 @@ export interface AppTableProps<T> {
   onBulkAction?: (actionId: string, ids: string[]) => void;
   /** Column picker - show visibility toggle */
   columnPicker?: boolean;
+  /** Controlled column visibility (for persistence) */
+  visibleColumns?: Set<string>;
+  onVisibleColumnsChange?: (visible: Set<string>) => void;
 }
 
 const DEFAULT_BULK_ACTIONS = [
@@ -50,10 +53,14 @@ export function AppTable<T extends Record<string, unknown>>({
   bulkActions = DEFAULT_BULK_ACTIONS,
   onBulkAction,
   columnPicker = false,
+  visibleColumns: controlledVisible,
+  onVisibleColumnsChange,
 }: AppTableProps<T>) {
-  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+  const [internalVisible, setInternalVisible] = useState<Set<string>>(
     () => new Set(columns.map((c) => c.key))
   );
+  const visibleColumns = controlledVisible ?? internalVisible;
+  const setVisibleColumns = onVisibleColumnsChange ?? setInternalVisible;
   const [columnPickerOpen, setColumnPickerOpen] = useState(false);
 
   const displayColumns = columns.filter((c) => visibleColumns.has(c.key));
@@ -125,7 +132,7 @@ export function AppTable<T extends Record<string, unknown>>({
                 key={a.id}
                 type="button"
                 onClick={() => onBulkAction?.(a.id, selectedIds)}
-                className="flex items-center gap-2 rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]"
+                className="flex items-center gap-2 rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-offset-2"
               >
                 {a.icon && <i className={a.icon} />}
                 {a.label}
@@ -174,8 +181,9 @@ export function AppTable<T extends Record<string, unknown>>({
                     <button
                       type="button"
                       onClick={() => setColumnPickerOpen(!columnPickerOpen)}
-                      className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                      className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)]"
                       aria-label="Column picker"
+                      aria-expanded={columnPickerOpen}
                     >
                       <i className="fas fa-columns" />
                     </button>
@@ -196,12 +204,10 @@ export function AppTable<T extends Record<string, unknown>>({
                                 type="checkbox"
                                 checked={visibleColumns.has(col.key)}
                                 onChange={() => {
-                                  setVisibleColumns((prev) => {
-                                    const next = new Set(prev);
-                                    if (next.has(col.key)) next.delete(col.key);
-                                    else next.add(col.key);
-                                    return next;
-                                  });
+                                  const next = new Set(visibleColumns);
+                                  if (next.has(col.key)) next.delete(col.key);
+                                  else next.add(col.key);
+                                  setVisibleColumns(next);
                                 }}
                               />
                               {col.header}

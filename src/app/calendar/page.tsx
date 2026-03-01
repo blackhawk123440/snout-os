@@ -10,7 +10,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  PageHeader,
   Section,
   Grid,
   GridCol,
@@ -19,15 +18,10 @@ import {
   Button,
   IconButton,
   Tabs,
-  Select,
-  Switch,
   DataTable,
   CardList,
   Skeleton,
   EmptyState,
-  ErrorState,
-  Drawer,
-  BottomSheet,
   Flex,
   useToast,
 } from '@/components/ui';
@@ -37,7 +31,7 @@ import { useCommands } from '@/hooks/useCommands';
 import { useMobile } from '@/lib/use-mobile';
 import { tokens } from '@/lib/design-tokens';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppPageHeader, AppErrorState } from '@/components/app';
+import { AppPageHeader, AppErrorState, AppFilterBar, AppDrawer } from '@/components/app';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { createCalendarEventCommands } from '@/commands/calendar-commands';
 import { registerCommand } from '@/commands/registry';
@@ -97,16 +91,17 @@ export default function CalendarPage() {
   const [showBookingDrawer, setShowBookingDrawer] = useState(false);
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
 
-  // View and filters
   const [viewMode, setViewMode] = useState<CalendarView>('month');
-  const [filterService, setFilterService] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterSitter, setFilterSitter] = useState<string>('all');
-  const [filterLocationZone, setFilterLocationZone] = useState<string>('all');
-  const [filterPaidStatus, setFilterPaidStatus] = useState<string>('all');
-  const [showCompleted, setShowCompleted] = useState(true);
-  const [showUnpaid, setShowUnpaid] = useState(true);
-  const [showConflicts, setShowConflicts] = useState(true);
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({
+    service: 'all',
+    status: 'all',
+    sitter: 'all',
+    locationZone: 'all',
+    paid: 'all',
+    completed: 'all',
+    unpaid: 'all',
+    conflicts: 'all',
+  });
 
   // Feature flags
   const ENABLE_CALENDAR_V1 = process.env.NEXT_PUBLIC_ENABLE_CALENDAR_V1 === 'true';
@@ -213,20 +208,25 @@ export default function CalendarPage() {
     fetchData();
   }, [fetchData]);
 
-  // Filter bookings
   const filteredBookings = useMemo(() => {
+    const svc = filterValues.service ?? 'all';
+    const st = filterValues.status ?? 'all';
+    const sit = filterValues.sitter ?? 'all';
+    const loc = filterValues.locationZone ?? 'all';
+    const paid = filterValues.paid ?? 'all';
+    const completed = filterValues.completed ?? 'all';
+    const unpaid = filterValues.unpaid ?? 'all';
     return bookings.filter((booking) => {
-      if (filterService !== 'all' && booking.service !== filterService) return false;
-      if (filterStatus !== 'all' && booking.status !== filterStatus) return false;
-      if (filterSitter !== 'all' && booking.sitter?.id !== filterSitter) return false;
-      if (filterLocationZone !== 'all' && booking.locationZone !== filterLocationZone) return false;
-      if (filterPaidStatus !== 'all' && booking.paidStatus !== filterPaidStatus) return false;
-      if (!showCompleted && booking.status === 'completed') return false;
-      if (!showUnpaid && booking.paidStatus === 'unpaid') return false;
-      // TODO: conflict detection
+      if (svc !== 'all' && booking.service !== svc) return false;
+      if (st !== 'all' && booking.status !== st) return false;
+      if (sit !== 'all' && booking.sitter?.id !== sit) return false;
+      if (loc !== 'all' && booking.locationZone !== loc) return false;
+      if (paid !== 'all' && booking.paidStatus !== paid) return false;
+      if (completed === 'hide' && booking.status === 'completed') return false;
+      if (unpaid === 'hide' && booking.paidStatus === 'unpaid') return false;
       return true;
     });
-  }, [bookings, filterService, filterStatus, filterSitter, filterLocationZone, filterPaidStatus, showCompleted, showUnpaid]);
+  }, [bookings, filterValues]);
 
   // Get bookings for selected date/range
   const selectedBookings = useMemo(() => {
@@ -412,89 +412,40 @@ export default function CalendarPage() {
     );
   };
 
-  // Filters panel
-  const filtersPanel = (
-    <>
-      <Tabs 
-        tabs={[
-          { id: 'day', label: 'Day' },
-          { id: 'week', label: 'Week' },
-          { id: 'month', label: 'Month' },
-        ]}
-        activeTab={viewMode}
-        onTabChange={(tabId: string) => setViewMode(tabId as CalendarView)}
-      >
-        <div />
-      </Tabs>
-
-      <Section>
-        <Select
-          label="Service Type"
-          value={filterService}
-          onChange={(e) => setFilterService(e.target.value)}
-          options={[
-            { value: 'all', label: 'All Services' },
-            { value: 'Dog Walking', label: 'Dog Walking' },
-            { value: 'Drop-in Visit', label: 'Drop-in Visit' },
-            { value: 'Housesitting', label: 'Housesitting' },
-            { value: '24/7 Care', label: '24/7 Care' },
-          ]}
-        />
-
-        <Select
-          label="Status"
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          options={[
-            { value: 'all', label: 'All Statuses' },
-            { value: 'pending', label: 'Pending' },
-            { value: 'confirmed', label: 'Confirmed' },
-            { value: 'completed', label: 'Completed' },
-            { value: 'cancelled', label: 'Cancelled' },
-          ]}
-        />
-
-        <Select
-          label="Sitter"
-          value={filterSitter}
-          onChange={(e) => setFilterSitter(e.target.value)}
-          options={[
-            { value: 'all', label: 'All Sitters' },
-            ...sitters.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })),
-          ]}
-        />
-
-        <Select
-          label="Paid Status"
-          value={filterPaidStatus}
-          onChange={(e) => setFilterPaidStatus(e.target.value)}
-          options={[
-            { value: 'all', label: 'All' },
-            { value: 'paid', label: 'Paid' },
-            { value: 'unpaid', label: 'Unpaid' },
-            { value: 'partial', label: 'Partial' },
-          ]}
-        />
-
-        <Flex direction="column" gap={2}>
-          <Switch
-            label="Show Completed"
-            checked={showCompleted}
-            onChange={setShowCompleted}
-          />
-          <Switch
-            label="Show Unpaid"
-            checked={showUnpaid}
-            onChange={setShowUnpaid}
-          />
-          <Switch
-            label="Show Conflicts"
-            checked={showConflicts}
-            onChange={setShowConflicts}
-          />
-        </Flex>
-      </Section>
-    </>
+  const calendarFilterBar = (
+    <AppFilterBar
+      filters={[
+        { key: 'service', label: 'Service', type: 'select', options: [
+          { value: 'all', label: 'All' }, { value: 'Dog Walking', label: 'Dog Walking' },
+          { value: 'Drop-in Visit', label: 'Drop-in Visit' }, { value: 'Housesitting', label: 'Housesitting' },
+          { value: '24/7 Care', label: '24/7 Care' },
+        ]},
+        { key: 'status', label: 'Status', type: 'select', options: [
+          { value: 'all', label: 'All' }, { value: 'pending', label: 'Pending' },
+          { value: 'confirmed', label: 'Confirmed' }, { value: 'completed', label: 'Completed' },
+          { value: 'cancelled', label: 'Cancelled' },
+        ]},
+        { key: 'sitter', label: 'Sitter', type: 'select', options: [
+          { value: 'all', label: 'All' }, ...sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })),
+        ]},
+        { key: 'paid', label: 'Paid', type: 'select', options: [
+          { value: 'all', label: 'All' }, { value: 'paid', label: 'Paid' },
+          { value: 'unpaid', label: 'Unpaid' }, { value: 'partial', label: 'Partial' },
+        ]},
+        { key: 'completed', label: 'Completed', type: 'select', options: [
+          { value: 'all', label: 'Show' }, { value: 'hide', label: 'Hide' },
+        ]},
+        { key: 'unpaid', label: 'Unpaid', type: 'select', options: [
+          { value: 'all', label: 'Show' }, { value: 'hide', label: 'Hide' },
+        ]},
+      ]}
+      values={filterValues}
+      onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
+      onClear={() => setFilterValues({
+        service: 'all', status: 'all', sitter: 'all', locationZone: 'all',
+        paid: 'all', completed: 'all', unpaid: 'all', conflicts: 'all',
+      })}
+    />
   );
 
   // Agenda summary
@@ -564,8 +515,19 @@ export default function CalendarPage() {
             <GridCol span={3}>
               <Flex direction="column" gap={4}>
                 <FrostedCard>
-                  <div style={{ padding: tokens.spacing[4] }}>
-                    {filtersPanel}
+                  <div style={{ padding: tokens.spacing[4] }} className="space-y-4">
+                    <Tabs
+                      tabs={[
+                        { id: 'day', label: 'Day' },
+                        { id: 'week', label: 'Week' },
+                        { id: 'month', label: 'Month' },
+                      ]}
+                      activeTab={viewMode}
+                      onTabChange={(tabId: string) => setViewMode(tabId as CalendarView)}
+                    >
+                      <div />
+                    </Tabs>
+                    {calendarFilterBar}
                   </div>
                 </FrostedCard>
 
@@ -850,28 +812,36 @@ export default function CalendarPage() {
         </Grid>
       )}
 
-      {/* Mobile Filters Drawer */}
       {isMobile && (
-        <Drawer
+        <AppDrawer
           isOpen={showFiltersDrawer}
           onClose={() => setShowFiltersDrawer(false)}
-          placement="left"
           title="Filters"
+          side="left"
         >
-          <div style={{ padding: tokens.spacing[4] }}>
-            {filtersPanel}
+          <div style={{ padding: tokens.spacing[4] }} className="space-y-4">
+            <Tabs
+              tabs={[
+                { id: 'day', label: 'Day' },
+                { id: 'week', label: 'Week' },
+                { id: 'month', label: 'Month' },
+              ]}
+              activeTab={viewMode}
+              onTabChange={(tabId: string) => setViewMode(tabId as CalendarView)}
+            >
+              <div />
+            </Tabs>
+            {calendarFilterBar}
           </div>
-        </Drawer>
+        </AppDrawer>
       )}
 
-      {/* Booking Detail Drawer */}
-      <Drawer
+      <AppDrawer
         isOpen={showBookingDrawer}
         onClose={() => {
           setShowBookingDrawer(false);
           setSelectedBooking(null);
         }}
-        placement="right"
         title={selectedBooking ? `${selectedBooking.firstName} ${selectedBooking.lastName}` : 'Booking Details'}
       >
         {selectedBooking && (
@@ -938,7 +908,7 @@ export default function CalendarPage() {
             </Flex>
           </div>
         )}
-      </Drawer>
+      </AppDrawer>
     </AppShell>
   );
 }

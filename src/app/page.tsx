@@ -15,10 +15,12 @@ import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import dynamic from 'next/dynamic';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+const RevenueChart = dynamic(
+  () => import('@/components/charts/RevenueChart').then((m) => m.RevenueChart),
+  { ssr: false, loading: () => <div style={{ minHeight: 200, background: 'var(--color-surface-secondary)' }} /> }
+);
 
 interface MetricsData {
   activeVisitsCount: number;
@@ -205,41 +207,7 @@ export default function DashboardHomePage() {
             </div>
           }
         >
-          <div style={{ padding: tokens.spacing[4], minHeight: 200 }}>
-            <Line
-              data={{
-                labels: forecast.daily.slice(-30).map((d) => d.date.slice(5)),
-                datasets: [{
-                  label: 'Revenue ($)',
-                  data: forecast.daily.slice(-30).map((d) => d.amount),
-                  borderColor: tokens.colors.primary.DEFAULT,
-                  backgroundColor: tokens.colors.primary[100],
-                  tension: 0.2,
-                }],
-              }}
-              options={{
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                  legend: { display: false },
-                },
-                scales: {
-                  y: { beginAtZero: true },
-                },
-              }}
-            />
-          </div>
-          {forecast.aiCommentary && (
-            <div style={{
-              padding: tokens.spacing[4],
-              paddingTop: 0,
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-              fontStyle: 'italic',
-            }}>
-              {forecast.aiCommentary}
-            </div>
-          )}
+          <RevenueChart daily={forecast.daily} aiCommentary={forecast.aiCommentary} />
         </Card>
       )}
 

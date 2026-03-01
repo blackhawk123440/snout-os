@@ -15,7 +15,9 @@ import {
   AppDrawer,
   AppErrorState,
   SavedViewsDropdown,
+  BulkActionsConfirmModal,
 } from '@/components/app';
+import { usePersistedFilters } from '@/hooks/usePersistedTableState';
 import { useAuth } from '@/lib/auth-client';
 import { tokens } from '@/lib/design-tokens';
 
@@ -27,10 +29,10 @@ const STUB_DISPATCH = [
 export default function DispatchPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-  const [savedView, setSavedView] = useState('all');
+  const { values: filterValues, setOne: setFilterValue, clear: clearFilters } = usePersistedFilters('dispatch', { status: '', search: '' });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkConfirm, setBulkConfirm] = useState<{ actionId: string; actionLabel: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,19 +67,18 @@ export default function DispatchPage() {
       {error && <AppErrorState message={error} onRetry={() => setError(null)} />}
 
       <div className="mb-4 flex flex-wrap items-center gap-4">
-        <SavedViewsDropdown value={savedView} onChange={setSavedView} />
+        <SavedViewsDropdown persistKey="dispatch" />
         <AppFilterBar
-        filters={[
-          { key: 'status', label: 'Status', type: 'select', options: [
-            { value: 'pending', label: 'Pending' },
-            { value: 'in_progress', label: 'In Progress' },
-            { value: 'completed', label: 'Completed' },
-          ]},
-          { key: 'search', label: 'Search', type: 'search', placeholder: 'Client or sitter...' },
-        ]}
-        values={filterValues}
-        onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
-        onClear={() => setFilterValues({})}
+          filters={[
+            { key: 'status', label: 'Status', type: 'select', options: [
+              { value: '', label: 'All' }, { value: 'pending', label: 'Pending' },
+              { value: 'in_progress', label: 'In Progress' }, { value: 'completed', label: 'Completed' },
+            ]},
+            { key: 'search', label: 'Search', type: 'search', placeholder: 'Client or sitter...' },
+          ]}
+          values={filterValues}
+          onChange={(k, v) => setFilterValue(k, v)}
+          onClear={clearFilters}
         />
       </div>
 
@@ -97,10 +98,25 @@ export default function DispatchPage() {
           selectable
           selectedIds={selectedIds}
           onSelectionChange={setSelectedIds}
-          onBulkAction={(actionId, ids) => console.log('Bulk action', actionId, ids)}
+          onBulkAction={(actionId) => {
+            const labels: Record<string, string> = { assign: 'Assign', message: 'Message', export: 'Export' };
+            setBulkConfirm({ actionId, actionLabel: labels[actionId] ?? actionId });
+          }}
           columnPicker
         />
       </div>
+
+      <BulkActionsConfirmModal
+        isOpen={!!bulkConfirm}
+        onClose={() => setBulkConfirm(null)}
+        actionId={bulkConfirm?.actionId ?? ''}
+        actionLabel={bulkConfirm?.actionLabel ?? ''}
+        selectedCount={selectedIds.length}
+        onConfirm={() => {
+          console.log('Bulk action confirmed', bulkConfirm?.actionId, selectedIds);
+          setSelectedIds([]);
+        }}
+      />
 
       <AppDrawer
         isOpen={!!selectedId}

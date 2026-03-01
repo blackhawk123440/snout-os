@@ -14,7 +14,9 @@ import {
   AppErrorState,
   SavedViewsDropdown,
   AppStatusPill,
+  BulkActionsConfirmModal,
 } from '@/components/app';
+import { usePersistedColumnVisibility, usePersistedFilters } from '@/hooks/usePersistedTableState';
 import { AppShell } from '@/components/layout/AppShell';
 import { SitterTierBadge } from '@/components/sitter';
 
@@ -37,10 +39,12 @@ export default function SittersPage() {
   const [tiers, setTiers] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-  const [savedView, setSavedView] = useState('all');
+  const { values: filterValues, setOne: setFilterValue, clear: clearFilters } = usePersistedFilters('sitters', { search: '', tier: 'all', status: 'all', sort: 'name' });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkConfirm, setBulkConfirm] = useState<{ actionId: string; actionLabel: string } | null>(null);
+
+  const [visibleColumns, setVisibleColumns] = usePersistedColumnVisibility('sitters', ['name', 'email', 'phone', 'tier', 'status', 'created']);
 
   useEffect(() => {
     fetchSitters();
@@ -88,7 +92,7 @@ export default function SittersPage() {
 
   const filteredSitters = useMemo(() => {
     let filtered = sitters;
-    const search = filterValues.search?.toLowerCase();
+    const search = (filterValues.search ?? '').toLowerCase();
     if (search) {
       filtered = filtered.filter(
         (s) =>
@@ -98,14 +102,16 @@ export default function SittersPage() {
           s.phone.includes(search)
       );
     }
-    if (filterValues.tier !== 'all' && filterValues.tier) {
-      filtered = filtered.filter((s) => s.currentTier?.id === filterValues.tier);
+    const tier = filterValues.tier ?? 'all';
+    if (tier !== 'all') {
+      filtered = filtered.filter((s) => s.currentTier?.id === tier);
     }
-    if (filterValues.status !== 'all' && filterValues.status) {
-      const active = filterValues.status === 'active';
+    const status = filterValues.status ?? 'all';
+    if (status !== 'all') {
+      const active = status === 'active';
       filtered = filtered.filter((s) => s.isActive === active);
     }
-    const sortBy = filterValues.sort || 'name';
+    const sortBy = filterValues.sort ?? 'name';
     filtered = [...filtered].sort((a, b) => {
       if (sortBy === 'name') return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
       if (sortBy === 'tier') return (b.currentTier?.priorityLevel ?? 0) - (a.currentTier?.priorityLevel ?? 0);
@@ -147,7 +153,7 @@ export default function SittersPage() {
       {error && <AppErrorState message={error} onRetry={fetchSitters} />}
 
       <div className="mb-4 flex flex-wrap items-center gap-4">
-        <SavedViewsDropdown value={savedView} onChange={setSavedView} />
+        <SavedViewsDropdown persistKey="sitters" />
         <AppFilterBar
           filters={[
             { key: 'search', label: 'Search', type: 'search', placeholder: 'Name, email, phone...' },
@@ -174,12 +180,14 @@ export default function SittersPage() {
             },
           ]}
           values={filterValues}
-          onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
-          onClear={() => setFilterValues({})}
+          onChange={(k, v) => setFilterValue(k, v)}
+          onClear={clearFilters}
         />
       </div>
 
       <AppTable<Sitter>
+        visibleColumns={visibleColumns}
+        onVisibleColumnsChange={setVisibleColumns}
         columns={[
           {
             key: 'name',
@@ -227,8 +235,23 @@ export default function SittersPage() {
         selectable
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
-        onBulkAction={(actionId) => console.log('Bulk action', actionId, selectedIds)}
+        onBulkAction={(actionId) => {
+          const labels: Record<string, string> = { assign: 'Assign', message: 'Message', export: 'Export' };
+          setBulkConfirm({ actionId, actionLabel: labels[actionId] ?? actionId });
+        }}
         columnPicker
+      />
+
+      <BulkActionsConfirmModal
+        isOpen={!!bulkConfirm}
+        onClose={() => setBulkConfirm(null)}
+        actionId={bulkConfirm?.actionId ?? ''}
+        actionLabel={bulkConfirm?.actionLabel ?? ''}
+        selectedCount={selectedIds.length}
+        onConfirm={() => {
+          console.log('Bulk action confirmed', bulkConfirm?.actionId, selectedIds);
+          setSelectedIds([]);
+        }}
       />
 
       <AppDrawer

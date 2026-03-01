@@ -272,30 +272,22 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
         onSeed={handleSeed}
       />
 
-      {/* Left: Thread List */}
-      <div className="w-1/3 flex flex-col min-h-0" style={{ borderRight: `1px solid ${tokens.colors.border.default}`, backgroundColor: tokens.colors.neutral[50] }}>
+      {/* Left: Thread List - App design system */}
+      <div className="w-1/3 flex flex-col min-h-0 border-r border-[var(--color-border-default)] bg-[var(--color-surface-secondary)]">
         {/* Filters */}
-        <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
-          <h2 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[3] }}>Threads</h2>
+        <div className="border-b border-[var(--color-border-default)] bg-[var(--color-surface-primary)]" style={{ padding: 'var(--density-padding)' }}>
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-3">Threads</h2>
 
-          {/* Search */}
           <input
             type="text"
             placeholder="Search threads..."
-            style={{
-              width: '100%',
-              border: `1px solid ${tokens.colors.border.default}`,
-              borderRadius: tokens.radius.sm,
-              padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-              marginBottom: tokens.spacing[3],
-              fontSize: tokens.typography.fontSize.sm[0],
-            }}
+            className="w-full rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-teal-500)] focus:outline-none focus:ring-1 focus:ring-[var(--color-teal-500)] mb-3"
             value={filters.search || ''}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            aria-label="Search threads"
           />
 
-          {/* Filter Buttons */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
+          <div className="flex flex-wrap gap-2">
             <Button
               variant={filters.unreadOnly ? 'primary' : 'secondary'}
               size="sm"
@@ -379,53 +371,45 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
               <div
                 key={thread.id}
                 onClick={() => setSelectedThreadId(thread.id)}
-                style={{
-                  padding: tokens.spacing[4],
-                  borderBottom: `1px solid ${tokens.colors.border.default}`,
-                  cursor: 'pointer',
-                  backgroundColor: selectedThreadId === thread.id ? tokens.colors.primary[50] : 'white',
-                  borderLeft: selectedThreadId === thread.id ? `4px solid ${tokens.colors.primary.DEFAULT}` : 'none',
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedThreadId !== thread.id) {
-                    e.currentTarget.style.backgroundColor = tokens.colors.neutral[50];
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedThreadId !== thread.id) {
-                    e.currentTarget.style.backgroundColor = 'white';
-                  }
-                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === 'Enter' && setSelectedThreadId(thread.id)}
+                className={`cursor-pointer border-b border-[var(--color-border-default)] transition hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-inset ${
+                  selectedThreadId === thread.id
+                    ? 'bg-[var(--color-teal-50)] dark:bg-teal-900/20 border-l-4 border-l-[var(--color-teal-500)]'
+                    : 'bg-[var(--color-surface-primary)]'
+                }`}
+                style={{ padding: 'var(--density-row) var(--density-padding)' }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[1] }}>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
+                <div className="flex justify-between items-start mb-1">
+                  <div className="font-medium text-sm text-[var(--color-text-primary)]">
                     {thread.client.name || 'Unknown'}
                   </div>
                   {thread.ownerUnreadCount > 0 && (
                     <Badge variant="info">{thread.ownerUnreadCount}</Badge>
                   )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[1], marginBottom: tokens.spacing[1] }}>
-                  <Badge 
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge
                     variant={
                       thread.messageNumber.class === 'front_desk' ? 'default' :
                       thread.messageNumber.class === 'pool' ? 'info' :
                       thread.messageNumber.class === 'sitter' ? 'success' : 'default'
                     }
-                    style={{ fontSize: tokens.typography.fontSize.xs[0] }}
+                    className="text-xs"
                   >
                     {thread.messageNumber.class}
                   </Badge>
-                  <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                  <span className="text-xs text-[var(--color-text-secondary)]">
                     {thread.messageNumber.e164}
                   </span>
                 </div>
                 {thread.sitter && (
-                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                  <div className="text-xs text-[var(--color-text-secondary)] mb-1">
                     Assigned to {thread.sitter.name}
                   </div>
                 )}
-                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>
+                <div className="text-xs text-[var(--color-text-tertiary)]">
                   {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
                 </div>
               </div>
@@ -438,14 +422,14 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
       <div className="flex-1 min-h-0 flex flex-col">
         {selectedThreadId ? (
           <>
-            {/* Thread Header */}
-            <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+            {/* Thread Header - App design system */}
+            <div className="border-b border-[var(--color-border-default)] bg-[var(--color-surface-primary)]" style={{ padding: 'var(--density-padding)' }}>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
                     {selectedThread?.client.name || 'Unknown'}
                   </h3>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
+                  <div className="text-sm text-[var(--color-text-secondary)] flex flex-col gap-1">
                     <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
                       <span>Business Number:</span>
                       <span style={{ fontFamily: 'monospace' }}>{selectedThread?.messageNumber.e164}</span>
@@ -493,7 +477,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
             </div>
 
             {/* Messages */}
-            <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: tokens.spacing[4] }}>
+            <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: 'var(--density-padding)' }}>
               {messagesLoading ? (
                 <div style={{ textAlign: 'center', color: tokens.colors.text.secondary }}>
                   <Skeleton height={100} />
@@ -598,37 +582,30 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
               )}
             </div>
 
-            {/* Compose Box - Pinned Bottom */}
-            <div className="flex-shrink-0" style={{ padding: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}`, backgroundColor: 'white' }}>
+            {/* Compose Box - App design system */}
+            <div className="flex-shrink-0 border-t border-[var(--color-border-default)] bg-[var(--color-surface-primary)]" style={{ padding: 'var(--density-padding)' }}>
               <textarea
                 value={composeMessage}
                 onChange={(e) => setComposeMessage(e.target.value)}
                 placeholder="Type a message..."
-                style={{
-                  width: '100%',
-                  border: `1px solid ${tokens.colors.border.default}`,
-                  borderRadius: tokens.radius.sm,
-                  padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-                  marginBottom: tokens.spacing[2],
-                  resize: 'none',
-                  fontSize: tokens.typography.fontSize.sm[0],
-                  fontFamily: 'inherit',
-                }}
+                className="w-full rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-2 mb-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-teal-500)] focus:outline-none focus:ring-1 focus:ring-[var(--color-teal-500)] resize-none font-inherit"
                 rows={3}
+                aria-label="Compose message"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                     handleSendMessage();
                   }
                 }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
-                  Press {navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl'}+Enter to send
+              <div className="flex justify-between items-center">
+                <div className="text-xs text-[var(--color-text-secondary)]">
+                  Press {typeof navigator !== 'undefined' && navigator.platform?.includes('Mac') ? 'Cmd' : 'Ctrl'}+Enter to send
                 </div>
                 <Button
                   variant="primary"
                   onClick={() => handleSendMessage()}
                   disabled={!composeMessage.trim() || sendMessage.isPending}
+                  className="focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-offset-2"
                 >
                   {sendMessage.isPending ? 'Sending...' : 'Send'}
                 </Button>
@@ -636,7 +613,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
             </div>
           </>
         ) : (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: tokens.colors.text.secondary }}>
+          <div className="flex-1 flex items-center justify-center text-[var(--color-text-secondary)]">
             Select a thread to view messages
           </div>
         )}

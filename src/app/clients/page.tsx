@@ -13,7 +13,9 @@ import {
   AppDrawer,
   AppErrorState,
   SavedViewsDropdown,
+  BulkActionsConfirmModal,
 } from '@/components/app';
+import { usePersistedColumnVisibility, usePersistedFilters } from '@/hooks/usePersistedTableState';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 
@@ -33,10 +35,12 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-  const [savedView, setSavedView] = useState('all');
+  const { values: filterValues, setOne: setFilterValue, clear: clearFilters } = usePersistedFilters('clients', { search: '', sort: 'name' });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkConfirm, setBulkConfirm] = useState<{ actionId: string; actionLabel: string } | null>(null);
+
+  const [visibleColumns, setVisibleColumns] = usePersistedColumnVisibility('clients', ['name', 'phone', 'pets', 'bookings', 'lastBooking']);
 
   useEffect(() => {
     fetchClients();
@@ -69,7 +73,7 @@ export default function ClientsPage() {
 
   const filteredClients = useMemo(() => {
     let filtered = clients;
-    const search = filterValues.search?.toLowerCase();
+    const search = (filterValues.search ?? '').toLowerCase();
     if (search) {
       filtered = filtered.filter(
         (c) =>
@@ -79,7 +83,7 @@ export default function ClientsPage() {
           c.email.toLowerCase().includes(search)
       );
     }
-    const sortBy = filterValues.sort || 'name';
+    const sortBy = filterValues.sort ?? 'name';
     filtered = [...filtered].sort((a, b) => {
       if (sortBy === 'name') {
         return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
@@ -115,7 +119,7 @@ export default function ClientsPage() {
       {error && <AppErrorState message={error} onRetry={fetchClients} />}
 
       <div className="mb-4 flex flex-wrap items-center gap-4">
-        <SavedViewsDropdown value={savedView} onChange={setSavedView} />
+        <SavedViewsDropdown persistKey="clients" />
         <AppFilterBar
           filters={[
             { key: 'search', label: 'Search', type: 'search', placeholder: 'Name, email, phone...' },
@@ -131,12 +135,14 @@ export default function ClientsPage() {
             },
           ]}
           values={filterValues}
-          onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
-          onClear={() => setFilterValues({})}
+          onChange={(k, v) => setFilterValue(k, v)}
+          onClear={clearFilters}
         />
       </div>
 
       <AppTable<Client>
+          visibleColumns={visibleColumns}
+          onVisibleColumnsChange={setVisibleColumns}
           columns={[
             {
               key: 'name',
@@ -175,9 +181,24 @@ export default function ClientsPage() {
           selectable
           selectedIds={selectedIds}
           onSelectionChange={setSelectedIds}
-          onBulkAction={(actionId) => console.log('Bulk action', actionId, selectedIds)}
+          onBulkAction={(actionId) => {
+            const labels: Record<string, string> = { assign: 'Assign', message: 'Message', export: 'Export' };
+            setBulkConfirm({ actionId, actionLabel: labels[actionId] ?? actionId });
+          }}
           columnPicker
         />
+
+      <BulkActionsConfirmModal
+        isOpen={!!bulkConfirm}
+        onClose={() => setBulkConfirm(null)}
+        actionId={bulkConfirm?.actionId ?? ''}
+        actionLabel={bulkConfirm?.actionLabel ?? ''}
+        selectedCount={selectedIds.length}
+        onConfirm={() => {
+          console.log('Bulk action confirmed', bulkConfirm?.actionId, selectedIds);
+          setSelectedIds([]);
+        }}
+      />
 
       <AppDrawer
         isOpen={!!selectedId}

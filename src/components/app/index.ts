@@ -25,3 +25,4 @@ export { AppSidebar } from './AppSidebar';
 export { AppToolbar } from './AppToolbar';
 export { SavedViewsDropdown } from './SavedViewsDropdown';
 export { AppChartCard } from './AppChartCard';
+export { BulkActionsConfirmModal } from './BulkActionsConfirmModal';

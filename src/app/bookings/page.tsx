@@ -10,7 +10,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  PageHeader,
   Section,
   Grid,
   GridCol,
@@ -18,18 +17,13 @@ import {
   Panel,
   Button,
   IconButton,
-  Input,
   Select,
   Switch,
-  Badge,
   StatCard,
   DataTable,
   CardList,
   Skeleton,
   EmptyState,
-  ErrorState,
-  Drawer,
-  BottomSheet,
   Flex,
   DataRow,
   useToast,
@@ -40,7 +34,14 @@ import { useCommands } from '@/hooks/useCommands';
 import { useMobile } from '@/lib/use-mobile';
 import { tokens } from '@/lib/design-tokens';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppPageHeader, AppErrorState, AppEmptyState, AppStatusPill, AppDrawer } from '@/components/app';
+import {
+  AppPageHeader,
+  AppErrorState,
+  AppFilterBar,
+  AppDrawer,
+  SavedViewsDropdown,
+  AppStatusPill,
+} from '@/components/app';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { registerCommand } from '@/commands/registry';
 import { createCalendarEventCommands } from '@/commands/calendar-commands';
@@ -108,24 +109,22 @@ export default function BookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showBookingDrawer, setShowBookingDrawer] = useState(false);
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
-  const [showSearchBar, setShowSearchBar] = useState(false);
 
-  // Filters
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterService, setFilterService] = useState<string>('all');
-  const [filterSitter, setFilterSitter] = useState<string>('all');
-  const [filterPaidStatus, setFilterPaidStatus] = useState<string>('all');
-  const [showCompleted, setShowCompleted] = useState(false);
+  // Filters (unified for AppFilterBar + optional mobile drawer)
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({
+    search: '',
+    status: 'all',
+    service: 'all',
+    sitter: 'all',
+    paid: 'all',
+    completed: 'hide', // hide | all | only
+  });
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 300);
+    const timer = setTimeout(() => setDebouncedSearch(filterValues.search ?? ''), 300);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [filterValues.search]);
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -236,39 +235,33 @@ export default function BookingsPage() {
   }, [bookings, ENABLE_RESONANCE_V1]);
 
   const filteredBookings = useMemo(() => {
+    const status = filterValues.status ?? 'all';
+    const service = filterValues.service ?? 'all';
+    const sitter = filterValues.sitter ?? 'all';
+    const paid = filterValues.paid ?? 'all';
+    const completed = filterValues.completed ?? 'hide';
     return bookings.filter((booking) => {
-      // Search
-      if (debouncedSearchTerm) {
-        const search = debouncedSearchTerm.toLowerCase();
-        const matchesSearch = 
+      if (debouncedSearch) {
+        const search = debouncedSearch.toLowerCase();
+        const matchesSearch =
           `${booking.firstName} ${booking.lastName}`.toLowerCase().includes(search) ||
           booking.address?.toLowerCase().includes(search) ||
-          booking.pets?.some(p => p.name?.toLowerCase().includes(search));
+          booking.pets?.some((p) => p.name?.toLowerCase().includes(search));
         if (!matchesSearch) return false;
       }
-
-      // Status filter
-      if (filterStatus !== 'all' && booking.status !== filterStatus) return false;
-
-      // Service filter
-      if (filterService !== 'all' && booking.service !== filterService) return false;
-
-      // Sitter filter
-      if (filterSitter !== 'all' && booking.sitter?.id !== filterSitter) return false;
-
-      // Paid status filter
-      if (filterPaidStatus !== 'all' && booking.paidStatus !== filterPaidStatus) return false;
-
-      // Show completed
-      if (!showCompleted && booking.status === 'completed') return false;
-
+      if (status !== 'all' && booking.status !== status) return false;
+      if (service !== 'all' && booking.service !== service) return false;
+      if (sitter !== 'all' && booking.sitter?.id !== sitter) return false;
+      if (paid !== 'all' && booking.paidStatus !== paid) return false;
+      if (completed === 'hide' && booking.status === 'completed') return false;
+      if (completed === 'only' && booking.status !== 'completed') return false;
       return true;
     }).sort((a, b) => {
       const aDate = new Date(a.startAt).getTime();
       const bDate = new Date(b.startAt).getTime();
       return aDate - bDate;
     });
-  }, [bookings, debouncedSearchTerm, filterStatus, filterService, filterSitter, filterPaidStatus, showCompleted]);
+  }, [bookings, debouncedSearch, filterValues]);
 
   // Register booking commands when selected
   useEffect(() => {
@@ -362,116 +355,112 @@ export default function BookingsPage() {
     return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   };
 
-  // Count active filters
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (filterStatus !== 'all') count++;
-    if (filterService !== 'all') count++;
-    if (filterSitter !== 'all') count++;
-    if (filterPaidStatus !== 'all') count++;
-    if (showCompleted) count++;
+    if ((filterValues.status ?? 'all') !== 'all') count++;
+    if ((filterValues.service ?? 'all') !== 'all') count++;
+    if ((filterValues.sitter ?? 'all') !== 'all') count++;
+    if ((filterValues.paid ?? 'all') !== 'all') count++;
+    if ((filterValues.completed ?? 'hide') !== 'hide') count++;
+    if (filterValues.search?.trim()) count++;
     return count;
-  }, [filterStatus, filterService, filterSitter, filterPaidStatus, showCompleted]);
+  }, [filterValues]);
 
-  // Filters panel (for drawer)
-  const filtersPanel = (
-    <Flex direction="column" gap={4}>
-      <Select
-        label="Status"
-        value={filterStatus}
-        onChange={(e) => setFilterStatus(e.target.value)}
-        options={[
-          { value: 'all', label: 'All Statuses' },
-          { value: 'pending', label: 'Pending' },
-          { value: 'confirmed', label: 'Confirmed' },
-          { value: 'in-progress', label: 'In Progress' },
-          { value: 'completed', label: 'Completed' },
-          { value: 'cancelled', label: 'Cancelled' },
-        ]}
-      />
-
-      <Select
-        label="Service Type"
-        value={filterService}
-        onChange={(e) => setFilterService(e.target.value)}
-        options={[
-          { value: 'all', label: 'All Services' },
-          { value: 'Dog Walking', label: 'Dog Walking' },
-          { value: 'Drop-in Visit', label: 'Drop-in Visit' },
-          { value: 'Housesitting', label: 'Housesitting' },
-          { value: '24/7 Care', label: '24/7 Care' },
-        ]}
-      />
-
-      <Select
-        label="Sitter"
-        value={filterSitter}
-        onChange={(e) => setFilterSitter(e.target.value)}
-        options={[
-          { value: 'all', label: 'All Sitters' },
-          ...sitters.map(s => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })),
-        ]}
-      />
-
-      <Select
-        label="Paid Status"
-        value={filterPaidStatus}
-        onChange={(e) => setFilterPaidStatus(e.target.value)}
-        options={[
-          { value: 'all', label: 'All' },
-          { value: 'paid', label: 'Paid' },
-          { value: 'unpaid', label: 'Unpaid' },
-          { value: 'partial', label: 'Partial' },
-        ]}
-      />
-
-      <Switch
-        label="Show Completed"
-        checked={showCompleted}
-        onChange={setShowCompleted}
-      />
-    </Flex>
-  );
+  const clearFilters = () =>
+    setFilterValues({
+      search: '',
+      status: 'all',
+      service: 'all',
+      sitter: 'all',
+      paid: 'all',
+      completed: 'hide',
+    });
 
   return (
     <AppShell>
-      <PageHeader
+      <AppPageHeader
         title="Bookings"
-        actions={
-          <Flex align="center" gap={1.5}> {/* Phase E: Migrated to AppShell - actions preserved */}
-            <IconButton
-              icon={<i className="fas fa-search" />}
-              onClick={() => setShowSearchBar(!showSearchBar)}
-              aria-label="Toggle search"
-            />
-            <Flex align="center" gap={1}>
-              <IconButton
-                icon={<i className="fas fa-filter" />}
-                onClick={() => setShowFiltersDrawer(true)}
-                aria-label="Open filters"
-              />
-              {activeFilterCount > 0 && (
-                <Badge variant="default">{activeFilterCount}</Badge>
-              )}
-            </Flex>
-            <Button onClick={() => router.push('/bookings/new')}>
-              New Booking
-            </Button>
-          </Flex>
+        subtitle="Manage bookings and assignments"
+        action={
+          <Button onClick={() => router.push('/bookings/new')}>
+            New Booking
+          </Button>
         }
       />
 
-      {/* Inline Search Bar - Phase C: Tighter, more operational */}
-      {showSearchBar && (
-        <div style={{ padding: `${tokens.spacing[2]} ${tokens.spacing[4]}` }}> {/* Phase C: Reduced vertical padding */}
-          <Input
-            placeholder="Search by name, phone, or service..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            autoFocus
+      <div className="mb-4 flex flex-wrap items-center gap-4">
+        <SavedViewsDropdown persistKey="bookings" />
+        <AppFilterBar
+          filters={[
+            { key: 'search', label: 'Search', type: 'search', placeholder: 'Name, address, pet...' },
+            {
+              key: 'status',
+              label: 'Status',
+              type: 'select',
+              options: [
+                { value: 'all', label: 'All' },
+                { value: 'pending', label: 'Pending' },
+                { value: 'confirmed', label: 'Confirmed' },
+                { value: 'in-progress', label: 'In progress' },
+                { value: 'completed', label: 'Completed' },
+                { value: 'cancelled', label: 'Cancelled' },
+              ],
+            },
+            {
+              key: 'service',
+              label: 'Service',
+              type: 'select',
+              options: [
+                { value: 'all', label: 'All' },
+                { value: 'Dog Walking', label: 'Dog Walking' },
+                { value: 'Drop-in Visit', label: 'Drop-in Visit' },
+                { value: 'Housesitting', label: 'Housesitting' },
+                { value: '24/7 Care', label: '24/7 Care' },
+              ],
+            },
+            {
+              key: 'sitter',
+              label: 'Sitter',
+              type: 'select',
+              options: [
+                { value: 'all', label: 'All' },
+                ...sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })),
+              ],
+            },
+            {
+              key: 'paid',
+              label: 'Paid',
+              type: 'select',
+              options: [
+                { value: 'all', label: 'All' },
+                { value: 'paid', label: 'Paid' },
+                { value: 'unpaid', label: 'Unpaid' },
+                { value: 'partial', label: 'Partial' },
+              ],
+            },
+            {
+              key: 'completed',
+              label: 'Completed',
+              type: 'select',
+              options: [
+                { value: 'hide', label: 'Hide' },
+                { value: 'all', label: 'Show all' },
+                { value: 'only', label: 'Completed only' },
+              ],
+            },
+          ]}
+          values={filterValues}
+          onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
+          onClear={activeFilterCount > 0 ? clearFilters : undefined}
+        />
+        {isMobile && (
+          <IconButton
+            icon={<i className="fas fa-filter" />}
+            onClick={() => setShowFiltersDrawer(true)}
+            aria-label="Open filters"
           />
-        </div>
-      )}
+        )}
+      </div>
 
       {loading && bookings.length === 0 ? (
         <div style={{ padding: tokens.spacing[6] }}>
@@ -605,17 +594,13 @@ export default function BookingsPage() {
                               </div>
                             )}
                           </div>
-                          <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'default'}>
-                            {booking.status}
-                          </Badge>
+                          <AppStatusPill status={booking.status} />
                         </Flex>
                         <DataRow label="Date" value={formatDateTime(booking.startAt)} />
                         <DataRow label="Sitter" value={booking.sitter ? `${booking.sitter.firstName} ${booking.sitter.lastName}` : 'Unassigned'} />
                         <DataRow label="Total" value={`$${booking.totalPrice.toFixed(2)}`} />
                         {booking.paidStatus && (
-                          <Badge variant={booking.paidStatus === 'paid' ? 'success' : 'warning'}>
-                            {booking.paidStatus}
-                          </Badge>
+                          <AppStatusPill status={booking.paidStatus} />
                         )}
                       </Flex>
                     </div>
@@ -646,9 +631,7 @@ export default function BookingsPage() {
                       header: 'Status',
                       render: (booking: Booking) => (
                         <Flex direction="column" gap={1}>
-                          <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'default'}>
-                            {booking.status}
-                          </Badge>
+                          <AppStatusPill status={booking.status} />
                           {ENABLE_RESONANCE_V1 && (
                             <SignalStack 
                               signals={getBookingSignals(booking.id)} 
@@ -673,9 +656,7 @@ export default function BookingsPage() {
                       key: 'paid',
                       header: 'Paid',
                       render: (booking: Booking) => booking.paidStatus ? (
-                        <Badge variant={booking.paidStatus === 'paid' ? 'success' : 'warning'}>
-                          {booking.paidStatus}
-                        </Badge>
+                        <AppStatusPill status={booking.paidStatus} />
                       ) : null,
                     },
                   ]}
@@ -693,106 +674,72 @@ export default function BookingsPage() {
         </>
       )}
 
-      {/* Filters Drawer */}
-      <Drawer
+      <AppDrawer
         isOpen={showFiltersDrawer}
         onClose={() => setShowFiltersDrawer(false)}
-        placement={isMobile ? "left" : "right"}
         title="Filters"
+        side={isMobile ? 'left' : 'right'}
       >
-        <div style={{ padding: tokens.spacing[4] }}>
-          {filtersPanel}
-          <div style={{ marginTop: tokens.spacing[4] }}>
-          <Flex direction="column" gap={2}>
-            <Button 
-              variant="primary" 
-              onClick={() => setShowFiltersDrawer(false)}
-            >
-              Apply Filters
-            </Button>
-            {activeFilterCount > 0 && (
-              <Button 
-                variant="ghost" 
-                onClick={() => {
-                  setFilterStatus('all');
-                  setFilterService('all');
-                  setFilterSitter('all');
-                  setFilterPaidStatus('all');
-                  setShowCompleted(false);
-                }}
-              >
-                Clear All Filters
-              </Button>
-            )}
-          </Flex>
-          </div>
+        <div style={{ padding: tokens.spacing[4] }} className="space-y-4">
+          <AppFilterBar
+            filters={[
+              { key: 'status', label: 'Status', type: 'select', options: [
+                { value: 'all', label: 'All' }, { value: 'pending', label: 'Pending' },
+                { value: 'confirmed', label: 'Confirmed' }, { value: 'in-progress', label: 'In progress' },
+                { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' },
+              ]},
+              { key: 'service', label: 'Service', type: 'select', options: [
+                { value: 'all', label: 'All' }, { value: 'Dog Walking', label: 'Dog Walking' },
+                { value: 'Drop-in Visit', label: 'Drop-in Visit' }, { value: 'Housesitting', label: 'Housesitting' },
+                { value: '24/7 Care', label: '24/7 Care' },
+              ]},
+              { key: 'sitter', label: 'Sitter', type: 'select', options: [
+                { value: 'all', label: 'All' }, ...sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })),
+              ]},
+              { key: 'paid', label: 'Paid', type: 'select', options: [
+                { value: 'all', label: 'All' }, { value: 'paid', label: 'Paid' },
+                { value: 'unpaid', label: 'Unpaid' }, { value: 'partial', label: 'Partial' },
+              ]},
+              { key: 'completed', label: 'Completed', type: 'select', options: [
+                { value: 'hide', label: 'Hide' }, { value: 'all', label: 'Show all' }, { value: 'only', label: 'Completed only' },
+              ]},
+            ]}
+            values={filterValues}
+            onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
+            onClear={activeFilterCount > 0 ? clearFilters : undefined}
+          />
+          <Button variant="primary" onClick={() => setShowFiltersDrawer(false)}>Apply</Button>
         </div>
-      </Drawer>
+      </AppDrawer>
 
-      {/* Booking Details Drawer */}
-      {isMobile ? (
-        <BottomSheet
-          isOpen={showBookingDrawer}
-          onClose={() => {
-            setShowBookingDrawer(false);
-            setSelectedBooking(null);
-          }}
-          title={selectedBooking ? `${selectedBooking.firstName} ${selectedBooking.lastName}` : 'Booking Details'}
-          dragHandle
-        >
-          {selectedBooking && (
-            <BookingDetailsContent
-              booking={selectedBooking}
-              commandContext={bookingCommandContext}
-              getBookingSignals={getBookingSignals}
-              onCommandSelect={(command: Command) => {
-                command.execute(bookingCommandContext).then((result: CommandResult) => {
-                  if (result.status === 'success') {
-                    showToast({ variant: 'success', message: result.message || 'Command executed' });
-                    if (result.redirect) {
-                      router.push(result.redirect);
-                    }
-                    fetchData(); // Refresh data
-                  } else {
-                    showToast({ variant: 'error', message: result.message || 'Command failed' });
-                  }
-                });
-              }}
-            />
-          )}
-        </BottomSheet>
-      ) : (
-        <Drawer
-          isOpen={showBookingDrawer}
-          onClose={() => {
-            setShowBookingDrawer(false);
-            setSelectedBooking(null);
-          }}
-          placement="right"
-          title={selectedBooking ? `${selectedBooking.firstName} ${selectedBooking.lastName}` : 'Booking Details'}
-        >
-          {selectedBooking && (
-            <BookingDetailsContent
-              booking={selectedBooking}
-              commandContext={bookingCommandContext}
-              getBookingSignals={getBookingSignals}
-              onCommandSelect={(command: Command) => {
-                command.execute(bookingCommandContext).then((result: CommandResult) => {
-                  if (result.status === 'success') {
-                    showToast({ variant: 'success', message: result.message || 'Command executed' });
-                    if (result.redirect) {
-                      router.push(result.redirect);
-                    }
-                    fetchData(); // Refresh data
-                  } else {
-                    showToast({ variant: 'error', message: result.message || 'Command failed' });
-                  }
-                });
-              }}
-            />
-          )}
-        </Drawer>
-      )}
+      <AppDrawer
+        isOpen={showBookingDrawer}
+        onClose={() => {
+          setShowBookingDrawer(false);
+          setSelectedBooking(null);
+        }}
+        title={selectedBooking ? `${selectedBooking.firstName} ${selectedBooking.lastName}` : 'Booking Details'}
+        side="right"
+      >
+        {selectedBooking && (
+          <BookingDetailsContent
+            booking={selectedBooking}
+            commandContext={bookingCommandContext}
+            getBookingSignals={getBookingSignals}
+            onCommandSelect={(command: Command) => {
+              command.execute(bookingCommandContext).then((result: CommandResult) => {
+                if (result.status === 'success') {
+                  showToast({ variant: 'success', message: result.message || 'Command executed' });
+                  if (result.redirect) router.push(result.redirect);
+                  fetchData();
+                } else {
+                  showToast({ variant: 'error', message: result.message || 'Command failed' });
+                }
+              });
+            }}
+          />
+        )}
+      </AppDrawer>
     </AppShell>
   );
 }
@@ -839,13 +786,9 @@ function BookingDetailsContent({ booking, commandContext, onCommandSelect, getBo
               {booking.service}
             </div>
             <Flex gap={2}>
-              <Badge variant={booking.status === 'confirmed' ? 'success' : booking.status === 'pending' ? 'warning' : 'default'}>
-                {booking.status}
-              </Badge>
+              <AppStatusPill status={booking.status} />
               {booking.paidStatus && (
-                <Badge variant={booking.paidStatus === 'paid' ? 'success' : 'warning'}>
-                  {booking.paidStatus}
-                </Badge>
+                <AppStatusPill status={booking.paidStatus} />
               )}
             </Flex>
           </Flex>
