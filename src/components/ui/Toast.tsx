@@ -19,6 +19,7 @@
 'use client';
 
 import { ReactNode, createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { setToastHandler } from '@/lib/toast';
 import { tokens } from '@/lib/design-tokens';
 import { IconButton } from './IconButton';
 import { cn } from './utils';
@@ -65,6 +66,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  useEffect(() => {
+    setToastHandler((message, variant, opts) => {
+      showToast({ message, variant, duration: opts?.duration });
+    });
+    return () => setToastHandler(null);
+  }, [showToast]);
 
   return (
     <ToastContext.Provider value={{ toasts, showToast, dismissToast }}>

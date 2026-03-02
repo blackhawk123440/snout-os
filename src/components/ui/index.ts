@@ -50,7 +50,9 @@ export { DataRow, type DataRowProps } from './DataRow';
 export { DataTable, type DataTableProps, type DataTableColumn } from './DataTable';
 export { CardList, type CardListProps } from './CardList';
 export { Skeleton, type SkeletonProps } from './Skeleton';
+export { TableSkeleton, CardSkeleton, PageSkeleton } from './loading-state';
 export { EmptyState, type EmptyStateProps } from './EmptyState';
+export { StatusChip, type StatusChipProps, type StatusChipVariant } from './status-chip';
 export { ErrorState, type ErrorStateProps } from './ErrorState';
 
 // Legacy Components (for backward compatibility)

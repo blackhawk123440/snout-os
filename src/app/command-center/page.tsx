@@ -9,17 +9,15 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AppShell } from '@/components/layout/AppShell';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import {
-  AppPageHeader,
   AppStatCard,
-  AppFilterBar,
-  AppSkeletonList,
-  AppEmptyState,
   AppErrorState,
   AppCard,
   AppCardHeader,
   AppCardBody,
 } from '@/components/app';
+import { PageSkeleton, EmptyState } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { motion } from 'framer-motion';
@@ -95,28 +93,25 @@ export default function CommandCenterPage() {
 
   return (
     <AppShell>
-      <AppPageHeader
-        title="Command Center"
-        subtitle="Real-time overview of your pet care operations"
-        action={
-          <Link
-            href="/bookings"
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-teal-600)] px-4 py-2 text-sm font-medium text-white no-underline transition hover:bg-[var(--color-teal-700)]"
-          >
-            View Bookings
-          </Link>
-        }
-      />
+      <LayoutWrapper variant="wide">
+        <PageHeader
+          title="Command Center"
+          subtitle="Real-time overview of your pet care operations"
+          actions={
+            <Link
+              href="/bookings"
+              className="inline-flex items-center gap-2 rounded-md border border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)] px-4 py-2 text-sm font-medium text-white no-underline transition hover:opacity-90"
+            >
+              View Bookings
+            </Link>
+          }
+        />
 
-      {error && <AppErrorState message={error} onRetry={() => setError(null)} />}
+        {error && <AppErrorState message={error} onRetry={() => setError(null)} />}
 
-      {loading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-xl border border-neutral-200 bg-neutral-100" />
-          ))}
-        </div>
-      ) : (
+        {loading ? (
+          <PageSkeleton />
+        ) : (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -157,10 +152,10 @@ export default function CommandCenterPage() {
               <AppCardHeader title="Needs Attention" />
               <AppCardBody>
                 {STUB_NEEDS_ATTENTION.length === 0 ? (
-                  <AppEmptyState
+                  <EmptyState
                     title="All caught up"
-                    subtitle="No items need your attention right now."
-                    cta={{ label: 'View bookings', onClick: () => router.push('/bookings') }}
+                    description="No items need your attention right now."
+                    primaryAction={{ label: 'View bookings', onClick: () => router.push('/bookings') }}
                   />
                 ) : (
                   <ul className="divide-y divide-neutral-100">
@@ -183,10 +178,10 @@ export default function CommandCenterPage() {
               <AppCardHeader title="Activity Timeline" />
               <AppCardBody>
                 {STUB_TIMELINE.length === 0 ? (
-                  <AppEmptyState
+                  <EmptyState
                     title="No recent activity"
-                    subtitle="Activity will appear here as sitters check in and bookings are created."
-                    cta={{ label: 'View bookings', onClick: () => router.push('/bookings') }}
+                    description="Activity will appear here as sitters check in and bookings are created."
+                    primaryAction={{ label: 'View bookings', onClick: () => router.push('/bookings') }}
                   />
                 ) : (
                   <ul className="space-y-3">
@@ -224,7 +219,8 @@ export default function CommandCenterPage() {
             </AppCard>
           </div>
         </motion.div>
-      )}
+        )}
+      </LayoutWrapper>
     </AppShell>
   );
 }

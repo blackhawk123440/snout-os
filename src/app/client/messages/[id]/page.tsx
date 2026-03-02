@@ -2,14 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import {
-  AppCard,
-  AppCardBody,
-  AppPageHeader,
-  AppSkeletonList,
-  AppErrorState,
-} from '@/components/app';
-import { useToast } from '@/components/ui';
+import { LayoutWrapper, PageHeader } from '@/components/layout';
+import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
+import { toastSuccess } from '@/lib/toast';
 
 interface Message {
   id: string;
@@ -38,7 +33,6 @@ export default function ClientMessageThreadPage() {
   const [error, setError] = useState<string | null>(null);
   const [composerValue, setComposerValue] = useState('');
   const [sending, setSending] = useState(false);
-  const { showToast } = useToast();
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -87,7 +81,7 @@ export default function ClientMessageThreadPage() {
             ? { ...prev, messages: [...prev.messages, json] }
             : prev
         );
-        showToast({ message: 'Message sent', variant: 'success' });
+        toastSuccess('Message sent');
         void load();
       }
     } finally {
@@ -99,22 +93,26 @@ export default function ClientMessageThreadPage() {
     new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col pb-8" style={{ minHeight: '60vh' }}>
-      <AppPageHeader
+    <LayoutWrapper variant="narrow">
+      <PageHeader
         title={thread?.sitter?.name || thread?.booking?.service || 'Conversation'}
         subtitle={thread?.booking?.service}
-        action={
+        actions={
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="text-sm font-medium text-[var(--color-accent-primary)] hover:underline"
           >
             Back
           </button>
         }
       />
       {loading ? (
-        <AppSkeletonList count={3} />
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-lg bg-[var(--color-surface-secondary)]" />
+          ))}
+        </div>
       ) : error ? (
         <AppErrorState title="Couldn't load thread" subtitle={error} onRetry={() => void load()} />
       ) : thread ? (
@@ -175,6 +173,6 @@ export default function ClientMessageThreadPage() {
           </div>
         </>
       ) : null}
-    </div>
+    </LayoutWrapper>
   );
 }

@@ -8,8 +8,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
+import { LayoutWrapper, PageHeader } from '@/components/layout';
 import {
-  AppPageHeader,
   AppFilterBar,
   AppTable,
   AppDrawer,
@@ -52,17 +52,18 @@ export default function DispatchPage() {
 
   return (
     <AppShell>
-      <AppPageHeader
-        title="Dispatch"
-        subtitle="Assign and manage visit schedules"
-        action={
-          <Button type="button" variant="secondary">
-            New Assignment
-          </Button>
-        }
-      />
+      <LayoutWrapper variant="wide">
+        <PageHeader
+          title="Dispatch"
+          subtitle="Assign and manage visit schedules"
+          actions={
+            <Button type="button" variant="secondary">
+              New Assignment
+            </Button>
+          }
+        />
 
-      {error && <AppErrorState message={error} onRetry={() => setError(null)} />}
+        {error && <AppErrorState message={error} onRetry={() => setError(null)} />}
 
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <SavedViewsDropdown persistKey="dispatch" />
@@ -127,6 +128,7 @@ export default function DispatchPage() {
           </div>
         )}
       </AppDrawer>
+      </LayoutWrapper>
     </AppShell>
   );
 }

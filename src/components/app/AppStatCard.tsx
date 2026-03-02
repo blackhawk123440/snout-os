@@ -1,16 +1,8 @@
 'use client';
 
 import React from 'react';
-import { getStatusPill, type StatusPillVariant } from './getStatusPill';
-
-/* WCAG AA: bg/foreground pairs chosen for 4.5:1+ contrast */
-const VARIANT_CLASSES: Record<StatusPillVariant, string> = {
-  default: 'bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)]',
-  success: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/50 dark:text-emerald-100',
-  warning: 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100',
-  error: 'bg-red-100 text-red-900 dark:bg-red-900/50 dark:text-red-100',
-  info: 'bg-sky-100 text-sky-900 dark:bg-sky-900/50 dark:text-sky-100',
-};
+import { getStatusPill } from './getStatusPill';
+import { StatusChip, type StatusChipVariant } from '@/components/ui/status-chip';
 
 export interface AppStatCardProps {
   label: string;
@@ -48,6 +40,14 @@ export function AppStatCard({ label, value, icon, trend, sublabel, className = '
   );
 }
 
+const PILL_TO_CHIP: Record<string, StatusChipVariant> = {
+  default: 'neutral',
+  success: 'success',
+  warning: 'warning',
+  error: 'danger',
+  info: 'info',
+};
+
 export interface AppStatusPillProps {
   status: string;
   className?: string;
@@ -56,10 +56,8 @@ export interface AppStatusPillProps {
 export function AppStatusPill({ status, className = '' }: AppStatusPillProps) {
   const { variant, label } = getStatusPill(status);
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${VARIANT_CLASSES[variant]} ${className}`}
-    >
+    <StatusChip variant={PILL_TO_CHIP[variant] ?? 'neutral'} className={className}>
       {label}
-    </span>
+    </StatusChip>
   );
 }

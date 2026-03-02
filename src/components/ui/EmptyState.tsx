@@ -1,22 +1,26 @@
 /**
  * EmptyState Component
- * 
- * Empty data state display with icon, title, and optional action.
+ * Enterprise empty data state. No playful copy. Optional icon. primaryAction + secondaryAction.
  */
 
 import React from 'react';
 import { tokens } from '@/lib/design-tokens';
 import { Button, ButtonProps } from './Button';
+import { cn } from './utils';
 
 export interface EmptyStateProps {
   icon?: React.ReactNode | string;
   title: string;
   description?: string;
+  /** @deprecated Use primaryAction instead */
   action?: {
     label: string;
     onClick: () => void;
     variant?: ButtonProps['variant'];
   };
+  primaryAction?: { label: string; onClick: () => void };
+  secondaryAction?: { label: string; onClick: () => void };
+  className?: string;
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
@@ -24,64 +28,49 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   title,
   description,
   action,
+  primaryAction,
+  secondaryAction,
+  className,
 }) => {
+  const hasPrimary = primaryAction ?? action;
+  const hasSecondary = secondaryAction;
+
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: `${tokens.spacing[6]} ${tokens.spacing[5]}`, // Phase B5: Tighter operational padding
-        textAlign: 'center',
-      }}
+      className={cn(
+        'flex flex-col items-center justify-center rounded-lg border border-dashed border-[var(--color-border-muted)] bg-[var(--color-surface-secondary)] px-8 py-12 text-center',
+        className
+      )}
     >
       {icon && (
         <div
-          style={{
-            marginBottom: tokens.spacing[2], // Phase B5: Tighter spacing
-            fontSize: tokens.typography.fontSize['2xl'][0], // Phase B5: Smaller, more restrained
-            opacity: 0.3, // Phase B5: Very subtle
-            color: tokens.colors.text.tertiary,
-          }}
+          className="mb-4 text-[var(--color-text-tertiary)] opacity-60"
+          style={typeof icon === 'string' ? undefined : { fontSize: tokens.typography.fontSize['2xl'][0] }}
         >
           {typeof icon === 'string' ? icon : icon}
         </div>
       )}
-      <h3
-        style={{
-          fontSize: tokens.typography.fontSize.sm[0], // Phase B5: Smaller, serious tone
-          fontWeight: tokens.typography.fontWeight.medium,
-          color: tokens.colors.text.secondary,
-          margin: 0,
-          marginBottom: description ? tokens.spacing[1] : tokens.spacing[2],
-          letterSpacing: '-0.01em', // Phase B5: Tight tracking
-        }}
-      >
-        {title}
-      </h3>
+      <p className="text-sm font-medium text-[var(--color-text-primary)]">{title}</p>
       {description && (
-        <p
-          style={{
-            fontSize: tokens.typography.fontSize.xs[0], // Phase B5: Smaller copy
-            color: tokens.colors.text.tertiary,
-            margin: 0,
-            marginBottom: action ? tokens.spacing[3] : 0,
-            maxWidth: '20rem', // Phase B5: Narrower, focused
-            lineHeight: '1.4',
-          }}
-        >
-          {description}
-        </p>
+        <p className="mt-1 max-w-sm text-sm text-[var(--color-text-tertiary)]">{description}</p>
       )}
-      {action && (
-        <Button 
-          variant={action.variant || 'secondary'}
-          size="sm"
-          onClick={action.onClick}
-        >
-          {action.label}
-        </Button>
+      {(hasPrimary || hasSecondary) && (
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          {hasPrimary && (
+            <Button
+              variant={action?.variant ?? 'primary'}
+              size="sm"
+              onClick={(primaryAction ?? action)!.onClick}
+            >
+              {(primaryAction ?? action)!.label}
+            </Button>
+          )}
+          {hasSecondary && (
+            <Button variant="secondary" size="sm" onClick={secondaryAction!.onClick}>
+              {secondaryAction!.label}
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );

@@ -9,8 +9,9 @@ import { useSSE } from '@/hooks/useSSE';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppPageHeader, AppCard, AppCardBody, AppEmptyState, AppErrorState } from '@/components/app';
-import { Button } from '@/components/ui';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
+import { Button, EmptyState, TableSkeleton } from '@/components/ui';
 
 interface FailureItem {
   id: string;
@@ -96,11 +97,13 @@ export default function AutomationFailuresPage() {
 
   return (
     <AppShell>
-      <AppPageHeader
-        title="Automation Failures"
-        subtitle="Failed, dead, and recent automation jobs from EventLog."
-      />
-      <div className="mb-4 flex gap-2">
+      <LayoutWrapper>
+        <PageHeader
+          title="Automation Failures"
+          subtitle="Failed, dead, and recent automation jobs from EventLog."
+        />
+        <Section>
+          <div className="mb-4 flex gap-2">
         {(['fail', 'dead', 'success'] as Tab[]).map((t) => (
           <button
             key={t}
@@ -117,16 +120,13 @@ export default function AutomationFailuresPage() {
         ))}
       </div>
       {loading ? (
-        <div className="animate-pulse space-y-4">
-          <div className="h-24 rounded-xl bg-neutral-100" />
-          <div className="h-24 rounded-xl bg-neutral-100" />
-        </div>
+        <TableSkeleton rows={5} cols={3} />
       ) : error ? (
         <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void load()} />
       ) : items.length === 0 ? (
-        <AppEmptyState
+        <EmptyState
           title={tab === 'success' ? 'No recent successes' : `No ${tab} events`}
-          subtitle={tab === 'success' ? 'Successful automation runs will appear here.' : 'Jobs are processing successfully.'}
+          description={tab === 'success' ? 'Successful automation runs will appear here.' : 'Jobs are processing successfully.'}
         />
       ) : (
         <div className="space-y-4">
@@ -176,6 +176,8 @@ export default function AutomationFailuresPage() {
           ))}
         </div>
       )}
+        </Section>
+      </LayoutWrapper>
     </AppShell>
   );
 }

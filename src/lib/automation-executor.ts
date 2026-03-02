@@ -933,7 +933,6 @@ async function executePostVisitThankYou(
       });
     }
     
-    const orgId = booking.orgId || "default";
     if (result.success) {
       await logEventFromLogger("review.sent", "success", {
         orgId,
