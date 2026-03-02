@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/db';
+import { getScopedDb } from '@/lib/tenancy';
 import { auth } from '@/lib/auth';
 
 const GetQuerySchema = z.object({
@@ -27,13 +27,12 @@ export async function GET(req: NextRequest) {
   const { sitterId, clientId, status, unreadOnly, scope, inbox, limit, cursor } = parsed.data;
 
   const where: {
-    orgId: string;
     assignedSitterId?: string | null;
     clientId?: string;
     status?: string;
     threadType?: string;
     ownerUnreadCount?: { gt: number };
-  } = { orgId };
+  } = {};
   if (sitterId) where.assignedSitterId = sitterId;
   if (clientId) where.clientId = clientId;
   if (status) where.status = status;
@@ -43,7 +42,8 @@ export async function GET(req: NextRequest) {
     where.assignedSitterId = null;
   }
 
-  const rows = await prisma.messageThread.findMany({
+  const db = getScopedDb({ orgId });
+  const rows = await db.messageThread.findMany({
     where,
     take: limit + 1,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
@@ -127,14 +127,14 @@ export async function POST(req: NextRequest) {
   const { phoneNumber, initialMessage } = parsed.data;
   const normalizedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
 
-  let client = await prisma.client.findUnique({
+  const db = getScopedDb({ orgId });
+  let client = await db.client.findUnique({
     where: { orgId_phone: { orgId, phone: normalizedPhone } },
   });
 
   if (!client) {
-    client = await prisma.client.create({
+    client = await db.client.create({
       data: {
-        orgId,
         firstName: 'Guest',
         lastName: normalizedPhone,
         phone: normalizedPhone,
@@ -142,14 +142,14 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  let thread = await prisma.messageThread.findFirst({
-    where: { orgId, clientId: client.id },
+  let thread = await db.messageThread.findFirst({
+    where: { clientId: client.id },
   });
   const reused = !!thread;
 
   if (!thread) {
-    const frontDeskNumber = await prisma.messageNumber.findFirst({
-      where: { orgId, numberClass: 'front_desk', status: 'active' },
+    const frontDeskNumber = await db.messageNumber.findFirst({
+      where: { numberClass: 'front_desk', status: 'active' },
     });
 
     if (!frontDeskNumber) {
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    thread = await prisma.messageThread.create({
+    thread = await db.messageThread.create({
       data: {
         orgId,
         clientId: client.id,
@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
 
     const clientName = `${client.firstName} ${client.lastName}`.trim() || 'Client';
     const userId = (session.user as { id?: string; email?: string }).id ?? (session.user as { email?: string }).email ?? '';
-    await prisma.messageParticipant.createMany({
+    await db.messageParticipant.createMany({
       data: [
         {
           threadId: thread.id,

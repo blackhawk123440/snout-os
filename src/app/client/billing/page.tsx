@@ -20,6 +20,13 @@ interface BillingData {
     paymentLink: string | null;
     paymentStatus: string;
   }>;
+  payments: Array<{
+    id: string;
+    amount: number;
+    status: string;
+    createdAt: string;
+    bookingId: string | null;
+  }>;
   loyalty: { points: number; tier: string };
 }
 
@@ -86,6 +93,27 @@ export default function ClientBillingPage() {
               </p>
             </AppCardBody>
           </AppCard>
+
+          {data.payments.length > 0 && (
+            <>
+              <h2 className="text-lg font-semibold text-neutral-900">Payment history</h2>
+              <div className="mb-6 space-y-2">
+                {data.payments.slice(0, 10).map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3"
+                  >
+                    <div>
+                      <p className="font-medium text-neutral-900">${p.amount.toFixed(2)}</p>
+                      <p className="text-xs text-neutral-500">
+                        {new Date(p.createdAt).toLocaleDateString()} · {p.status}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           <h2 className="text-lg font-semibold text-neutral-900">Invoices</h2>
           {data.invoices.length > 0 ? (

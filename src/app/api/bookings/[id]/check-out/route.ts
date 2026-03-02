@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { getScopedDb } from '@/lib/tenancy';
 import { getRequestContext } from '@/lib/request-context';
 import { requireRole, ForbiddenError } from '@/lib/rbac';
-import { whereOrg } from '@/lib/org-scope';
 import { emitVisitCompleted } from '@/lib/event-emitter';
 import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
+import { publish, channels } from '@/lib/realtime/bus';
 
 /**
  * POST /api/bookings/[id]/check-out
@@ -31,13 +31,11 @@ export async function POST(
   }
 
   const { id } = await params;
+  const db = getScopedDb(ctx);
 
   try {
-    const booking = await prisma.booking.findFirst({
-      where: whereOrg(ctx.orgId, {
-        id,
-        sitterId: ctx.sitterId,
-      }),
+    const booking = await db.booking.findFirst({
+      where: { id, sitterId: ctx.sitterId },
     });
 
     if (!booking) {
@@ -55,13 +53,13 @@ export async function POST(
     const lat = typeof body.lat === 'number' ? body.lat : null;
     const lng = typeof body.lng === 'number' ? body.lng : null;
 
-    await prisma.booking.update({
+    await db.booking.update({
       where: { id },
       data: { status: 'completed' },
     });
 
     if (lat != null && lng != null) {
-      await prisma.eventLog.create({
+      await db.eventLog.create({
         data: {
           orgId: ctx.orgId,
           eventType: 'sitter.check_out',
@@ -72,13 +70,20 @@ export async function POST(
       });
     }
 
-    const updated = await prisma.booking.findUnique({
+    const updated = await db.booking.findUnique({
       where: { id },
       include: { sitter: true, pets: true },
     });
     if (updated) {
       await ensureEventQueueBridge();
       await emitVisitCompleted(updated, {});
+      if (updated.sitterId) {
+        publish(channels.sitterToday(updated.orgId ?? ctx.orgId, updated.sitterId), {
+          type: 'visit.checkout',
+          bookingId: id,
+          ts: Date.now(),
+        }).catch(() => {});
+      }
     }
 
     return NextResponse.json({ ok: true, status: 'completed' });

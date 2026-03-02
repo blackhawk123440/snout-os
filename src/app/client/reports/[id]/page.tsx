@@ -101,6 +101,38 @@ export default function ClientReportDetailPage() {
             </AppCardHeader>
             <AppCardBody>
               <div className="whitespace-pre-wrap text-sm text-neutral-700">{report.content}</div>
+              {report.mediaUrls && (() => {
+                let urls: string[] = [];
+                try {
+                  urls = typeof report.mediaUrls === 'string'
+                    ? (JSON.parse(report.mediaUrls) as string[])
+                    : Array.isArray(report.mediaUrls)
+                      ? report.mediaUrls
+                      : [];
+                } catch {
+                  urls = [];
+                }
+                if (urls.length === 0) return null;
+                return (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {urls.map((url) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block overflow-hidden rounded-lg border border-neutral-200"
+                      >
+                        <img
+                          src={url}
+                          alt="Visit photo"
+                          className="h-32 w-32 object-cover"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                );
+              })()}
             </AppCardBody>
           </AppCard>
         </div>

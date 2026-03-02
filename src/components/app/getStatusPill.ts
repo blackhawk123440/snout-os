@@ -27,6 +27,10 @@ const STATUS_MAP: Record<string, StatusPillConfig> = {
   manual_required: { variant: 'warning', label: 'Needs attention' },
   manual_in_progress: { variant: 'info', label: 'In progress' },
   assigned: { variant: 'success', label: 'Assigned' },
+  // Visit (in_progress/'in-progress' already defined above for Booking)
+  scheduled: { variant: 'info', label: 'Scheduled' },
+  // Message delivery (if available)
+  sent: { variant: 'success', label: 'Sent' },
   // Generic
   active: { variant: 'success', label: 'Active' },
   inactive: { variant: 'default', label: 'Inactive' },

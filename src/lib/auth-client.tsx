@@ -14,6 +14,7 @@ interface User {
   email: string;
   name: string | null;
   role: 'owner' | 'sitter' | 'client';
+  orgId?: string | null;
   sitterId?: string | null;
   clientId?: string | null;
 }
@@ -56,6 +57,7 @@ export function useAuth(): UseAuthReturn {
       email: sessionUser.email || '',
       name: sessionUser.name || null,
       role: normalizedRole,
+      orgId: sessionUser.orgId || null,
       sitterId: sessionUser.sitterId || null,
       clientId: sessionUser.clientId || null,
     };

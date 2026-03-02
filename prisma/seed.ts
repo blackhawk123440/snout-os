@@ -70,7 +70,8 @@ async function ensureDefaultOrg() {
 async function seedTestUsers(defaultOrgId: string) {
   console.log("🌱 Seeding test users...");
 
-  // Hash passwords
+  // Hash passwords (e2e-test-password for Playwright E2E; also "password" for manual dev)
+  const e2ePasswordHash = await bcrypt.hash("e2e-test-password", 10);
   const ownerPasswordHash = await bcrypt.hash("password", 10);
   const sitterPasswordHash = await bcrypt.hash("password123", 10);
 
@@ -78,7 +79,7 @@ async function seedTestUsers(defaultOrgId: string) {
   const owner = await prisma.user.upsert({
     where: { email: "owner@example.com" },
     update: {
-      passwordHash: ownerPasswordHash,
+      passwordHash: e2ePasswordHash,
       name: "Test Owner",
       sitterId: null, // Ensure owner has no sitterId
       orgId: defaultOrgId,
@@ -89,7 +90,7 @@ async function seedTestUsers(defaultOrgId: string) {
       role: "OWNER",
       email: "owner@example.com",
       name: "Test Owner",
-      passwordHash: ownerPasswordHash,
+      passwordHash: e2ePasswordHash,
       emailVerified: new Date(),
       sitterId: null, // Owner has no sitterId
     },
@@ -119,7 +120,7 @@ async function seedTestUsers(defaultOrgId: string) {
   const sitterUser = await prisma.user.upsert({
     where: { email: "sitter@example.com" },
     update: {
-      passwordHash: sitterPasswordHash,
+      passwordHash: e2ePasswordHash,
       name: "Test Sitter",
       orgId: defaultOrgId,
       role: "SITTER",
@@ -130,7 +131,7 @@ async function seedTestUsers(defaultOrgId: string) {
       role: "SITTER",
       email: "sitter@example.com",
       name: "Test Sitter",
-      passwordHash: sitterPasswordHash,
+      passwordHash: e2ePasswordHash,
       emailVerified: new Date(),
       sitterId: sitterRecord.id, // Link to sitter record
     },
@@ -197,7 +198,7 @@ async function seedTestUsers(defaultOrgId: string) {
   const clientUser = await prisma.user.upsert({
     where: { email: "client@example.com" },
     update: {
-      passwordHash: clientPasswordHash,
+      passwordHash: e2ePasswordHash,
       name: "Test Client",
       orgId: defaultOrgId,
       role: "client",
@@ -208,7 +209,7 @@ async function seedTestUsers(defaultOrgId: string) {
       role: "client",
       email: "client@example.com",
       name: "Test Client",
-      passwordHash: clientPasswordHash,
+      passwordHash: e2ePasswordHash,
       emailVerified: new Date(),
       clientId: clientRecord.id,
     },

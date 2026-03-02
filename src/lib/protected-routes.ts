@@ -211,8 +211,13 @@ export function isProtectedRoute(pathname: string): boolean {
     return true;
   }
 
-  // Ops/proof page (owner-only verification)
-  if (pathname.startsWith("/ops/proof")) {
+  // Ops pages (owner-only: proof, automation-failures, etc.)
+  if (pathname.startsWith("/ops")) {
+    return true;
+  }
+
+  // Ops API routes (owner/admin only)
+  if (pathname.startsWith("/api/ops")) {
     return true;
   }
 

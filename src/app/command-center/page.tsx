@@ -24,13 +24,18 @@ import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { motion } from 'framer-motion';
 
-// Stub data
-const STUB_KPIS = [
-  { label: 'Active Visits', value: 12, icon: 'fas fa-map-marker-alt', trend: 8 },
-  { label: 'Open Bookings', value: 47, icon: 'fas fa-calendar-check', trend: -2 },
-  { label: 'Revenue YTD', value: '$24,580', icon: 'fas fa-dollar-sign', trend: 14 },
-  { label: 'Retention %', value: '92%', icon: 'fas fa-users', trend: 3 },
-];
+interface Stats {
+  bookingsCreated: number;
+  visitsCompleted: number;
+  revenue: number;
+  messagesSent: number;
+  trends: {
+    bookingsCreated: number;
+    visitsCompleted: number;
+    revenue: number;
+    messagesSent: number;
+  };
+}
 
 const STUB_NEEDS_ATTENTION = [
   { id: '1', type: 'booking', title: 'Booking #1024 needs sitter assignment', time: '2m ago' },
@@ -49,6 +54,7 @@ export default function CommandCenterPage() {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     if (!authLoading) {
@@ -61,9 +67,22 @@ export default function CommandCenterPage() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(t);
-  }, []);
+    if (!user) return;
+    let cancelled = false;
+    setLoading(true);
+    fetch('/api/ops/stats?range=7d')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) setStats(data);
+      })
+      .catch(() => {
+        if (!cancelled) setStats(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [user]);
 
   if (authLoading) {
     return (
@@ -104,17 +123,32 @@ export default function CommandCenterPage() {
           transition={{ duration: 0.2 }}
           className="space-y-6"
         >
-          {/* KPI Grid */}
+          {/* KPI Grid - This week stats */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {STUB_KPIS.map((kpi, i) => (
-              <AppStatCard
-                key={kpi.label}
-                label={kpi.label}
-                value={kpi.value}
-                icon={<i className={kpi.icon} />}
-                trend={kpi.trend != null ? { value: kpi.trend } : undefined}
-              />
-            ))}
+            <AppStatCard
+              label="Bookings (7d)"
+              value={stats?.bookingsCreated ?? '—'}
+              icon={<i className="fas fa-calendar-plus" />}
+              trend={stats?.trends?.bookingsCreated != null ? { value: stats.trends.bookingsCreated } : undefined}
+            />
+            <AppStatCard
+              label="Visits completed (7d)"
+              value={stats?.visitsCompleted ?? '—'}
+              icon={<i className="fas fa-check-circle" />}
+              trend={stats?.trends?.visitsCompleted != null ? { value: stats.trends.visitsCompleted } : undefined}
+            />
+            <AppStatCard
+              label="Revenue (7d)"
+              value={stats?.revenue != null ? `$${stats.revenue.toFixed(0)}` : '—'}
+              icon={<i className="fas fa-dollar-sign" />}
+              trend={stats?.trends?.revenue != null ? { value: stats.trends.revenue } : undefined}
+            />
+            <AppStatCard
+              label="Messages sent (7d)"
+              value={stats?.messagesSent ?? '—'}
+              icon={<i className="fas fa-comment" />}
+              trend={stats?.trends?.messagesSent != null ? { value: stats.trends.messagesSent } : undefined}
+            />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
@@ -123,7 +157,11 @@ export default function CommandCenterPage() {
               <AppCardHeader title="Needs Attention" />
               <AppCardBody>
                 {STUB_NEEDS_ATTENTION.length === 0 ? (
-                  <AppEmptyState title="All caught up" />
+                  <AppEmptyState
+                    title="All caught up"
+                    subtitle="No items need your attention right now."
+                    cta={{ label: 'View bookings', onClick: () => router.push('/bookings') }}
+                  />
                 ) : (
                   <ul className="divide-y divide-neutral-100">
                     {STUB_NEEDS_ATTENTION.map((item) => (
@@ -145,7 +183,11 @@ export default function CommandCenterPage() {
               <AppCardHeader title="Activity Timeline" />
               <AppCardBody>
                 {STUB_TIMELINE.length === 0 ? (
-                  <AppEmptyState title="No recent activity" />
+                  <AppEmptyState
+                    title="No recent activity"
+                    subtitle="Activity will appear here as sitters check in and bookings are created."
+                    cta={{ label: 'View bookings', onClick: () => router.push('/bookings') }}
+                  />
                 ) : (
                   <ul className="space-y-3">
                     {STUB_TIMELINE.map((e) => (

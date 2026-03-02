@@ -32,6 +32,7 @@ export async function findClientContactByPhone(
 
 /**
  * Get the first E.164 for a client (by orgId + clientId). Uses raw SQL to avoid ClientContact.orgld.
+ * Falls back to Client.phone when no ClientContact exists.
  */
 export async function getClientE164ForClient(
   orgId: string,
@@ -42,7 +43,18 @@ export async function getClientE164ForClient(
     orgId,
     clientId
   );
-  return rows[0]?.e164 ?? null;
+  const fromContact = rows[0]?.e164;
+  if (fromContact) return fromContact;
+
+  const client = await prisma.client.findFirst({
+    where: { id: clientId, orgId },
+    select: { phone: true },
+  });
+  const phone = client?.phone?.trim();
+  if (phone) {
+    return phone.startsWith('+') ? phone : `+${phone}`;
+  }
+  return null;
 }
 
 /**

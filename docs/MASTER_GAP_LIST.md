@@ -2,6 +2,7 @@
 
 This document audits the "Complete In-Home Pet Care Platform Specification" against the current repo and lists:
 - Status: Present / Partial / Missing
+- Effort: EASY (hours) / MED (1–3 days) / HARD (multi-day+)
 - What's required to finish
 - Exact file(s) to modify (or create)
 
@@ -9,6 +10,22 @@ Legend:
 - Present = implemented and reasonably wired end-to-end
 - Partial = exists, but stubbed, placeholder UI, missing automation, missing security, or missing integration depth
 - Missing = not implemented or not evidenced in repo
+
+**Correction note:** BullMQ, ioredis, automation queue worker, and OpenAI AI code ARE present in the repo. Do not claim otherwise.
+
+---
+
+## Quick wins — "Easy stuff first" batch
+
+Do these to make the app feel less "half-real" immediately:
+
+| # | Item | Effort |
+|---|------|--------|
+| 13 | Decide OpenPhone vs Twilio; make docs + dependencies match reality | EASY |
+| 33 | Add rate limiting middleware for public endpoints (booking form, login, messaging) | EASY–MED |
+| 3 | Standardize TanStack Query provider wiring (one consistent root setup) | EASY |
+| 2 | Enforce design system usage (lint rule / component policy / refactor offenders) | EASY–MED |
+| 35 | Ensure critical actions write audit/event logs consistently (mostly wiring) | EASY |
 
 ---
 
@@ -32,16 +49,16 @@ Files:
 - tailwind.config.js (styling)
 
 ### 1.2 "Shadcn/UI for components"
-Status: Partial  
-Reason: UI system exists, but "shadcn" usage isn't guaranteed from the spec alone.
+Status: Partial | Effort: EASY–MED  
+Reason: UI system exists, but "shadcn" usage isn't guaranteed from the spec alone. Design system (App* primitives) not enforced.
 Finish:
 - Standardize on one component source of truth (App* primitives already created)
 Files:
 - src/components/app/* (AppCard/AppPageHeader/etc)
 
 ### 1.3 TanStack Query
-Status: Present (dependency) / Partial (wiring depends per page)  
-Evidence: @tanstack/react-query is in dependencies.  
+Status: Present (dependency) / Partial (wiring depends per page) | Effort: EASY  
+Evidence: @tanstack/react-query is in dependencies. Provider/query client usage may vary by page.  
 Files:
 - package.json
 Finish:
@@ -51,8 +68,8 @@ Potential files:
 - src/lib/query-client.ts (if you create one)
 
 ### 1.4 Real-time with Socket.io
-Status: Missing  
-Evidence: No socket.io dependency in package.json.  
+Status: Missing | Effort: HARD  
+Evidence: No socket.io dependency in package.json. Inbox/ops feels stale; users must refresh.  
 Finish options:
 A) Add socket.io (server + client)  
 B) Use SSE / polling (simpler in Next.js)  
@@ -89,17 +106,15 @@ Finish:
 - Confirm DB role values normalize to lowercase consistently (or normalize in NextAuth callback).
 
 ### 1.8 Redis + BullMQ automations / queues
-Status: Partial  
-Evidence: BullMQ + ioredis deps, queue setup + scheduling exists.  
-But worker logic is currently stubbed/disabled.  
+Status: Partial | Effort: MED  
+Evidence: BullMQ + ioredis deps, queue setup + scheduling exists. Worker execution in production not guaranteed (Render/Vercel don't run background workers by default).  
 Files:
 - src/lib/queue.ts
 - src/worker/automation-worker.ts
 
 ### 1.9 AI layer: OpenAI (gpt-4o-mini) for Daily Delight & matching
-Status: Partial  
-Evidence: ai.generateDailyDelight + matchSitterToPet exist and use gpt-4o-mini.  
-But other AI features are noted as "all here" without implementations.  
+Status: Partial | Effort: HARD  
+Evidence: ai.generateDailyDelight + matchSitterToPet exist and use gpt-4o-mini. Dynamic pricing / sentiment / alerts noted but not implemented. Prompt templates + auditability missing. No AI endpoints for pricing/sentiment/marketing. No cost controls / per-org limits.  
 Files:
 - src/lib/ai.ts
 Finish:
@@ -131,8 +146,8 @@ Files to modify/create:
 - src/lib/queue.ts (job types + schedules)
 
 ### 2.2 Owner/Admin Dashboard (ops command center)
-Status: Partial  
-Reason: UI routes exist (dashboard/ops), but analytics + map + "production ops" is not proven.
+Status: Partial | Effort: MED  
+Reason: UI routes exist (dashboard/ops), but analytics, "needs attention", ops signals not wired. Not proven operational.
 Finish:
 - Add real analytics queries (revenue, retention, sitter performance)
 - Add "Needs attention" queue that's actually wired to events/automations
@@ -142,8 +157,8 @@ Files (likely):
 - src/app/api/ops/**
 
 ### 2.3 Sitter Dashboard (jobs, calendar, inbox, earnings, pets, reports, availability)
-Status: Present (UI surface) / Partial (real data depth)
-Reality: UI is now complete and polished; integrations are still placeholders.
+Status: Present (UI surface) / Partial (real data depth) | Effort: MED  
+Reality: UI polished; data correctness + edge cases unclear. Today + core sitter data depth not guaranteed.
 Finish:
 - Ensure Today actually returns bookings for sitter consistently
 - Route optimization (Google Maps)
@@ -154,7 +169,8 @@ Files:
 - src/app/api/bookings/[id]/check-in, check-out, daily-delight
 
 ### 2.4 Client Portal (home, bookings, pets, messages, reports)
-Status: Present (UI + basic APIs) / Partial (billing + realtime + full messaging provider)
+Status: Present (UI + basic APIs) / Partial (billing + realtime + full messaging depth) | Effort: MED–HARD  
+Gap: Billing + realtime + full messaging depth missing.
 Finish:
 - Payments (invoices/receipts) pages + endpoints
 - Realtime updates (polling/SSE/socket)
@@ -163,8 +179,8 @@ Files:
 - src/app/api/client/**
 
 ### 2.5 Scheduling / Calendar (availability + bookings calendar)
-Status: Partial  
-Evidence: googleapis dependency exists; calendar UI exists; bidirectional sync is not evidenced as complete.
+Status: Partial | Effort: HARD  
+Evidence: googleapis dependency exists; calendar UI exists. Bidirectional Google sync not evidenced complete. Conflict policy not documented/implemented. Route optimization / maps integration not finished.
 Finish:
 - Implement and document bidirectional sync + conflict policy
 - Persist external event IDs per sitter/calendar
@@ -175,8 +191,8 @@ Files (existing folder per repo structure):
 - prisma/schema.prisma (BookingCalendarEvent etc.)
 
 ### 2.6 Messaging (in-app + SMS provider)
-Status: Partial  
-Reality: app has messaging APIs and client/sitter inbox UIs; SMS provider in worker is OpenPhone, not Twilio.
+Status: Partial | Effort: HARD  
+Reality: UI + APIs exist; realtime isn't there; full provider + delivery guarantees not proven. OpenPhone implemented; Twilio dependency exists; spec/docs must match reality. Retries, statuses, delivery logs, admin "why didn't it send?" tooling incomplete.
 Evidence: automation-worker imports sendSMS from openphone; openphone implementation exists; twilio dependency exists but is not proven as the active provider.  
 Files:
 - src/worker/automation-worker.ts (uses OpenPhone)
@@ -191,8 +207,8 @@ If Twilio:
 - Implement src/lib/twilio.ts + route handlers, update worker + message routing
 
 ### 2.7 Payments (owner billing + client invoices + payouts later)
-Status: Partial  
-Evidence: stripe.ts supports payment links + invoices + lightweight analytics; no Connect payout flows shown.
+Status: Partial | Effort: HARD  
+Evidence: Stripe exists but persistence of payment state incomplete (needs webhook receiver + DB persistence). Invoices/receipts UX incomplete in client portal. No ledger/correctness layer proven. Connect payouts not shown.
 Files:
 - src/lib/stripe.ts
 Finish:
@@ -204,8 +220,8 @@ Potential files:
 - src/lib/stripe.ts (Connect + payout logic)
 
 ### 2.8 Pet Profiles (medical notes, allergies, meds, home instructions)
-Status: Partial  
-Evidence: Pet model exists (used by ai.ts); client/sitter pet pages exist.
+Status: Partial | Effort: MED  
+Evidence: Pet model exists; client/sitter pet pages exist. Structured meds/vaccines/instructions completeness unclear. Emergency Vet "action" missing (compose summary + location + notify owner/client).
 Files:
 - prisma/schema.prisma (Pet + related models)
 - src/app/sitter/pets/**
@@ -215,8 +231,8 @@ Finish:
 - Add "Emergency Vet" action that composes summary + location and notifies owner/client
 
 ### 2.9 Report Cards / Daily Delight history
-Status: Partial  
-Evidence: ai.ts generates text and stores PetHealthLog; client reports routes exist now.
+Status: Partial | Effort: MED  
+Evidence: ai.ts generates text and stores PetHealthLog; client reports routes exist. Media upload persistence + attachments incomplete. "Send to client" pipeline not fully automated (SMS + in-app).
 Files:
 - src/lib/ai.ts
 - src/app/api/bookings/[id]/daily-delight/route.ts
@@ -226,8 +242,8 @@ Finish:
 - Ensure "send to client" pipeline is automated (SMS + in-app)
 
 ### 2.10 Availability (toggle, block-off dates, recurring blocks)
-Status: Partial  
-Evidence: sitter availability endpoints/pages exist now; recurring blocks are placeholder.
+Status: Partial | Effort: HARD  
+Evidence: sitter availability endpoints/pages exist. Recurring blocks + merge logic into availability search are placeholder.
 Files:
 - src/app/sitter/availability/**
 - src/app/api/sitter/availability/**
@@ -240,8 +256,8 @@ Finish:
 ## 3) Automations (The backbone)
 
 ### 3.1 Booking-created automations (confirmation + reminders + review request)
-Status: Missing (behavior) / Partial (infrastructure)
-Evidence: queue exists; automation worker returns empty and explicitly disables booking queries.  
+Status: Missing (behavior) / Partial (infrastructure) | Effort: MED  
+Evidence: queue exists; automation worker returns empty. Booking submit does not reliably trigger automation cascade. Domain event standardization incomplete (BookingCreated/VisitStarted/VisitCompleted/DelightSent not unified).  
 Files:
 - src/lib/queue.ts (job scheduling exists)
 - src/worker/automation-worker.ts (currently stubbed)
@@ -278,8 +294,8 @@ Finish:
 - Add endpoints for sentiment/pricing/matching
 
 ### 4.2 SMS provider: OpenPhone vs Twilio
-Status: Partial  
-Evidence: OpenPhone is implemented; Twilio is installed but not confirmed as used.  
+Status: Partial | Effort: EASY  
+Evidence: OpenPhone is implemented; Twilio is installed but not confirmed as used. Decide provider; make docs + dependencies match reality.  
 Files:
 - src/lib/openphone.ts
 - package.json (twilio dependency exists)
@@ -316,8 +332,8 @@ Files:
 - src/middleware.ts
 
 ### 5.2 Org isolation (tenant isolation)
-Status: Present (foundation) / Partial (coverage)
-Evidence: request-context + RBAC exist; need route-by-route audit.
+Status: Present (foundation) / Partial (coverage) | Effort: HARD  
+Evidence: request-context + RBAC exist. Must audit every API route for ctx.orgId + whereOrg() usage and test it. Tenant isolation tests missing for highest-risk endpoints.
 Files:
 - src/lib/request-context.ts
 - src/lib/rbac.ts
@@ -326,7 +342,7 @@ Finish:
 - Add tenant isolation tests for the highest-risk endpoints
 
 ### 5.3 Rate limiting / abuse prevention
-Status: Missing  
+Status: Missing | Effort: EASY–MED  
 Finish:
 - Add rate limit middleware for public endpoints (booking form, login)
 Files to create:
@@ -334,7 +350,7 @@ Files to create:
 - apply in: src/app/api/form/route.ts, auth routes, messaging routes
 
 ### 5.4 GDPR export / client data export
-Status: Missing  
+Status: Missing | Effort: MED  
 Finish:
 - Implement export endpoint returning client's data bundle
 Files:
@@ -353,8 +369,8 @@ Files:
 - src/**/__tests__/**
 
 ### 6.2 E2E tests (Playwright)
-Status: Present / Partial  
-Evidence: Playwright config exists; snapshot suites exist for sitter/client now.
+Status: Present / Partial | Effort: MED–HARD  
+Evidence: Playwright config exists; snapshot suites exist. Snapshot/E2E stabilization gaps (freeze time, fixtures/mocks). Missing critical E2E booking flow: client books → sitter sees → check-in/out → delight → client sees report.
 Files:
 - playwright.config.ts
 - tests/e2e/*
@@ -368,7 +384,7 @@ Finish:
 ## 7) Business "Completeness" Features (not UI polish)
 
 ### 7.1 Revenue/retention analytics
-Status: Missing/Partial  
+Status: Missing/Partial | Effort: HARD  
 Finish:
 - Define analytics tables or computed views
 - Build owner dashboards based on them
@@ -377,7 +393,7 @@ Files:
 - src/app/dashboard/**
 
 ### 7.2 Audit logs
-Status: Partial  
+Status: Partial | Effort: EASY (mostly wiring)  
 Finish:
 - Ensure all critical actions log events (booking create/update, message send, payout)
 Files:
@@ -387,27 +403,38 @@ Files:
 
 ## 8) Hard "Production Readiness" Gates (do these before calling it deployable)
 
-1) Worker actually processes reminders/reviews (not stubbed)
-   - src/worker/automation-worker.ts
-2) Decide SMS provider and finish it
-   - src/lib/openphone.ts OR create src/lib/twilio.ts and wire it
-3) Calendar sync rules documented + implemented
-   - src/app/api/integrations/google/**
-4) Payments state persisted via webhooks
-   - src/app/api/stripe/webhooks/route.ts (or equivalent)
-5) Rate limiting on public routes
-   - src/lib/rate-limit.ts + apply to api routes
-6) Tenant isolation tests for all client/sitter endpoints
-   - tests + route guards
+| # | Gate | Effort |
+|---|------|--------|
+| 1 | Worker actually processes reminders/reviews (not stubbed) | MED |
+| 2 | Decide SMS provider and finish it (OpenPhone vs Twilio; docs + code match) | EASY |
+| 3 | Calendar sync rules documented + implemented | HARD |
+| 4 | Payments state persisted via webhooks | HARD |
+| 5 | Rate limiting on public routes | EASY–MED |
+| 6 | Tenant isolation tests for all client/sitter endpoints | MED |
+
+Files:
+- src/worker/automation-worker.ts
+- src/lib/openphone.ts OR src/lib/twilio.ts
+- src/app/api/integrations/google/**
+- src/app/api/webhooks/stripe/route.ts (or equivalent)
+- src/lib/rate-limit.ts
+
+---
+
+## 9) PWA / Offline (mobile sitters in bad-signal homes)
+
+### 9.1 PWA + offline support
+Status: Missing | Effort: HARD  
+Finish: Manifest + service worker + offline caching/sync.
 
 ---
 
 ## Evidence anchors (for this audit)
-- Dependencies: Next.js, Prisma, TanStack Query, BullMQ/Redis, OpenAI, Stripe, Twilio, googleapis: package.json
+- Dependencies: Next.js, Prisma, TanStack Query, BullMQ, ioredis, OpenAI, Stripe, Twilio, googleapis: package.json
 - AI implementation: src/lib/ai.ts
 - Stripe helper implementation: src/lib/stripe.ts
 - Queue scheduling + workers: src/lib/queue.ts
-- Automation worker is stubbed (returns empty): src/worker/automation-worker.ts
+- Automation worker: src/worker/automation-worker.ts (processReminders, processDailySummary exist; production worker execution depends on Render/Vercel worker setup)
 - Personal mode + org lock + public booking restriction: src/lib/request-context.ts
 - RBAC helper: src/lib/rbac.ts
 - Auth gating middleware: src/middleware.ts

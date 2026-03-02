@@ -1,4 +1,13 @@
 const path = require("path");
+const { withSentryConfig } = require("@sentry/nextjs");
+
+const withSerwistInit = require("@serwist/next").default;
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
+  additionalPrecacheEntries: [{ url: "/offline", revision: "offline-v1" }],
+});
 
 const parseOrigins = (value) => {
   if (!value) return [];
@@ -48,7 +57,17 @@ const nextConfig = {
       : ["'self'"];
     const cspFrameAncestors = frameAncestors.join(" ");
 
+    const securityHeaders = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      // CSP: permissive baseline; tighten as needed (NextAuth, images, etc.)
+      { key: "Content-Security-Policy", value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self'; connect-src 'self' https: wss:; frame-ancestors ${cspFrameAncestors}` },
+    ];
+
     return [
+      { source: "/:path*", headers: securityHeaders },
       {
         source: "/booking-form",
         headers: [
@@ -86,6 +105,12 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+const configWithSerwist = withSerwist(nextConfig);
+
+module.exports = withSentryConfig(configWithSerwist, {
+  org: process.env.SENTRY_ORG || "snout",
+  project: process.env.SENTRY_PROJECT || "snout-os",
+  silent: !process.env.CI,
+});
 
 

@@ -46,8 +46,11 @@ export async function GET(request: NextRequest) {
     // Generate state token with sitterId for callback
     const state = Buffer.from(JSON.stringify({ sitterId, userId: user.id })).toString('base64');
 
-    // Scopes: calendar.events for creating/updating events
-    const scopes = ['https://www.googleapis.com/auth/calendar.events'];
+    // Scopes: calendar.events for sync, calendar.freebusy for "Respect Google Busy"
+    const scopes = [
+      'https://www.googleapis.com/auth/calendar.events',
+      'https://www.googleapis.com/auth/calendar.freebusy',
+    ];
 
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline', // Required to get refresh token

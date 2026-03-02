@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { makeNextRequest } from '@/test/utils/nextRequest';
+import { prisma } from '@/lib/db';
 
 vi.mock('@/lib/db', () => ({
   prisma: {
-    messageThread: { findMany: vi.fn().mockResolvedValue([]) },
+    messageThread: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
   },
 }));
 
@@ -36,16 +41,17 @@ describe('Messaging Routes Compatibility', () => {
   });
 
   describe('GET /api/messages/threads/[id]', () => {
-    it('returns 500 when API server is not configured', async () => {
+    it('returns 404 when thread not found (Prisma source of truth)', async () => {
+      (prisma as any).messageThread.findFirst.mockResolvedValue(null);
       const { GET } = await import('@/app/api/messages/threads/[id]/route');
       const req = makeNextRequest('http://localhost/api/messages/threads/thread-1', {
         method: 'GET',
       });
       const res = await GET(req, { params: Promise.resolve({ id: 'thread-1' }) });
 
-      expect(res.status).toBe(500);
+      expect(res.status).toBe(404);
       const body = await res.json();
-      expect(body.error).toContain('API server not configured');
+      expect(body.error).toBe('Thread not found');
     });
   });
 

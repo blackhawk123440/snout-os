@@ -50,20 +50,20 @@ export async function chooseFromNumber(
   // Extract window ID if sitter number was chosen
   let windowId: string | undefined;
   if (routingResult.numberClass === 'sitter') {
-    const thread = await (prisma as any).thread.findUnique({
+    const thread = await prisma.messageThread.findUnique({
       where: { id: threadId },
       include: {
         assignmentWindows: {
           where: {
-            startsAt: { lte: now },
-            endsAt: { gte: now },
+            startAt: { lte: now },
+            endAt: { gte: now },
           },
-          orderBy: { startsAt: 'desc' },
+          orderBy: { startAt: 'desc' },
           take: 1,
         },
       },
     });
-    
+
     if (thread?.assignmentWindows?.[0]) {
       windowId = thread.assignmentWindows[0].id;
     }

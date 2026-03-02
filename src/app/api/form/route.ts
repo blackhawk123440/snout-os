@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { checkRateLimit, getRateLimitIdentifier, rateLimitResponse } from "@/lib/rate-limit";
 import { calculateBookingPrice } from "@/lib/rates";
 import { formatPhoneForAPI } from "@/lib/phone-format";
 import { formatPetsByQuantity, calculatePriceBreakdown, formatDatesAndTimesForMessage, formatDateForMessage, formatTimeForMessage } from "@/lib/booking-utils";
@@ -8,6 +9,7 @@ import { sendOwnerAlert } from "@/lib/sms-templates";
 import { getOwnerPhone } from "@/lib/phone-utils";
 // Phase 3.3: Removed direct automation execution imports - automations now go through queue
 import { emitBookingCreated } from "@/lib/event-emitter";
+import { emitAndEnqueueBookingEvent } from "@/lib/booking/booking-events";
 import { env } from "@/lib/env";
 import { validateAndMapFormPayload } from "@/lib/form-to-booking-mapper";
 import { extractRequestMetadata, redactMappingReport } from "@/lib/form-mapper-helpers";
@@ -15,7 +17,8 @@ import { extractRequestMetadata, redactMappingReport } from "@/lib/form-mapper-h
 import { calculateCanonicalPricing, type PricingEngineInput } from "@/lib/pricing-engine-v1";
 import { compareAndLogPricing } from "@/lib/pricing-parity-harness";
 import { serializePricingSnapshot } from "@/lib/pricing-snapshot-helpers";
-import { calendarSync } from "@/lib/calendar-sync";
+import { enqueueCalendarSync } from "@/lib/calendar-queue";
+import { ensureEventQueueBridge } from "@/lib/event-queue-bridge-init";
 import { getPublicOrgContext } from "@/lib/request-context";
 
 const parseOrigins = (value?: string | null) => {
@@ -61,6 +64,15 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const id = getRateLimitIdentifier(request);
+  const rl = await checkRateLimit(id, { keyPrefix: "form", limit: 20, windowSec: 60 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests", retryAfter: rl.retryAfter },
+      { status: 429, headers: { ...buildCorsHeaders(request), "Retry-After": String(rl.retryAfter ?? 60) } }
+    );
+  }
+
   try {
     let orgId: string;
     try {
@@ -249,59 +261,32 @@ export async function POST(request: NextRequest) {
       });
 
       // Rest of the flow is unchanged (automation, messaging, etc.)
-      // Make these non-blocking so booking creation success isn't affected
+      await ensureEventQueueBridge();
       try {
         await emitBookingCreated(booking);
       } catch (eventError) {
         console.error("[Form] Failed to emit booking created event (non-blocking):", eventError);
       }
 
-      try {
-        await calendarSync.syncBookingToGoogle(booking.id);
-      } catch (syncError) {
-        console.error("[Form] Failed to sync booking to Google Calendar (non-blocking):", syncError);
-      }
+      emitAndEnqueueBookingEvent("booking.created", {
+        orgId,
+        bookingId: booking.id,
+        clientId: booking.clientId ?? undefined,
+        sitterId: booking.sitterId ?? undefined,
+        occurredAt: new Date().toISOString(),
+        metadata: {
+          service: booking.service,
+          status: booking.status,
+          firstName: booking.firstName,
+          lastName: booking.lastName,
+          phone: mappedInput.phone,
+        },
+      }).catch((err) => console.error("[Form] emitAndEnqueueBookingEvent failed:", err));
 
-      // Phase 3.3: Move automation execution to worker queue
-      // Per Master Spec Line 259: "Move every automation execution to the worker queue"
-      // Enqueue automation jobs instead of executing directly
-      // Make these non-blocking so booking creation success isn't affected
-      try {
-        const { enqueueAutomation } = await import("@/lib/automation-queue");
-        
-        // Enqueue client notification job
-        await enqueueAutomation(
-          "ownerNewBookingAlert",
-          "client",
-          {
-            bookingId: booking.id,
-            firstName: booking.firstName,
-            lastName: booking.lastName,
-            phone: mappedInput.phone,
-            service: booking.service,
-          },
-          `ownerNewBookingAlert:client:${booking.id}` // Idempotency key
-        ).catch((err) => {
-          console.error("[Form] Failed to enqueue client notification (non-blocking):", err);
-        });
-
-        // Enqueue owner notification job
-        await enqueueAutomation(
-          "ownerNewBookingAlert",
-          "owner",
-          {
-            bookingId: booking.id,
-            firstName: booking.firstName,
-            lastName: booking.lastName,
-            phone: mappedInput.phone,
-            service: booking.service,
-          },
-          `ownerNewBookingAlert:owner:${booking.id}` // Idempotency key
-        ).catch((err) => {
-          console.error("[Form] Failed to enqueue owner notification (non-blocking):", err);
-        });
-      } catch (automationError) {
-        console.error("[Form] Failed to enqueue automations (non-blocking):", automationError);
+      if (booking.sitterId) {
+        enqueueCalendarSync({ type: 'upsert', bookingId: booking.id, orgId }).catch((e) =>
+          console.error("[Form] calendar sync enqueue failed:", e)
+        );
       }
 
       return NextResponse.json({
@@ -734,60 +719,30 @@ export async function POST(request: NextRequest) {
       notesLength: booking.notes ? booking.notes.length : 0,
     });
 
-    // Emit booking.created event for Automation Center
-    // Make this non-blocking so booking creation success isn't affected
+    await ensureEventQueueBridge();
     try {
       await emitBookingCreated(booking);
     } catch (eventError) {
       console.error("[Form] Failed to emit booking created event (non-blocking):", eventError);
     }
-
-    try {
-      await calendarSync.syncBookingToGoogle(booking.id);
-    } catch (syncError) {
-      console.error("[Form] Failed to sync booking to Google Calendar (non-blocking):", syncError);
-    }
-
-    // Phase 3.3: Move automation execution to worker queue
-    // Per Master Spec Line 259: "Move every automation execution to the worker queue"
-    // Enqueue automation jobs instead of executing directly
-    // Make these non-blocking so booking creation success isn't affected
-    try {
-      const { enqueueAutomation } = await import("@/lib/automation-queue");
-      
-      // Enqueue client notification job
-      await enqueueAutomation(
-        "ownerNewBookingAlert",
-        "client",
-        {
-          bookingId: booking.id,
-          firstName: trimmedFirstName,
-          lastName: trimmedLastName,
-          phone: trimmedPhone,
-          service: booking.service,
-        },
-        `ownerNewBookingAlert:client:${booking.id}` // Idempotency key
-      ).catch((err) => {
-        console.error("[Form] Failed to enqueue client notification (non-blocking):", err);
-      });
-
-      // Enqueue owner notification job
-      await enqueueAutomation(
-        "ownerNewBookingAlert",
-        "owner",
-        {
-          bookingId: booking.id,
-          firstName: trimmedFirstName,
-          lastName: trimmedLastName,
-          phone: trimmedPhone,
-          service: booking.service,
-        },
-        `ownerNewBookingAlert:owner:${booking.id}` // Idempotency key
-      ).catch((err) => {
-        console.error("[Form] Failed to enqueue owner notification (non-blocking):", err);
-      });
-    } catch (automationError) {
-      console.error("[Form] Failed to enqueue automations (non-blocking):", automationError);
+    emitAndEnqueueBookingEvent("booking.created", {
+      orgId,
+      bookingId: booking.id,
+      clientId: booking.clientId ?? undefined,
+      sitterId: booking.sitterId ?? undefined,
+      occurredAt: new Date().toISOString(),
+      metadata: {
+        service: booking.service,
+        status: booking.status,
+        firstName: booking.firstName,
+        lastName: booking.lastName,
+        phone: booking.phone,
+      },
+    }).catch((err) => console.error("[Form] emitAndEnqueueBookingEvent failed:", err));
+    if (booking.sitterId) {
+      enqueueCalendarSync({ type: 'upsert', bookingId: booking.id, orgId }).catch((e) =>
+        console.error("[Form] calendar sync enqueue failed:", e)
+      );
     }
 
     return NextResponse.json({

@@ -10,7 +10,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { recordOfferAccepted, recordOfferAcceptBlocked } from '@/lib/audit-events';
 import { checkSitterEligibility } from '@/lib/sitter-eligibility';
-import { syncBookingToCalendar } from '@/lib/calendar-sync';
+import { enqueueCalendarSync } from '@/lib/calendar-queue';
 import { emitBookingUpdated } from '@/lib/event-emitter';
 import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 
@@ -145,13 +145,10 @@ export async function POST(
     // Update metrics window with response time
     await updateMetricsWindow(orgId, sitterId, responseSeconds, 'accepted');
 
-    // Sync to Google Calendar (fail-open: don't block assignment)
-    try {
-      await syncBookingToCalendar(orgId, bookingId, sitterId, 'Booking accepted via app');
-    } catch (error) {
-      console.error('[Accept Booking] Calendar sync failed:', error);
-      // Don't throw - booking assignment succeeds even if calendar sync fails
-    }
+    // Enqueue calendar sync (fail-open)
+    enqueueCalendarSync({ type: 'upsert', bookingId, orgId }).catch((e) =>
+      console.error('[Accept Booking] calendar sync enqueue failed:', e)
+    );
 
     // Trigger tier recomputation (async, don't wait)
     try {

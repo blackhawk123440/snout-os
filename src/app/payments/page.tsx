@@ -40,6 +40,8 @@ interface Payment {
   description?: string;
   paymentMethod?: string;
   currency?: string;
+  lastError?: string;
+  bookingId?: string;
 }
 
 interface Analytics {
@@ -375,9 +377,24 @@ export default function PaymentsPage() {
       mobileLabel: 'Status',
       mobileOrder: 3,
       render: (payment) => (
-        <Badge variant={getStatusBadgeVariant(payment.status)}>
-          {getStatusLabel(payment.status)}
-        </Badge>
+        <div>
+          <Badge variant={getStatusBadgeVariant(payment.status)}>
+            {getStatusLabel(payment.status)}
+          </Badge>
+          {payment.status === 'failed' && payment.lastError && (
+            <div
+              style={{
+                fontSize: tokens.typography.fontSize.xs[0],
+                color: tokens.colors.error.DEFAULT,
+                marginTop: tokens.spacing[1],
+                maxWidth: 200,
+              }}
+              title={payment.lastError}
+            >
+              {payment.lastError.slice(0, 50)}{payment.lastError.length > 50 ? '…' : ''}
+            </div>
+          )}
+        </div>
       ),
       align: 'center',
     },

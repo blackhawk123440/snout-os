@@ -1,9 +1,11 @@
 /**
  * Event Emitter Layer
- * 
+ *
  * This is the foundation for all automations. Every major action in the system
  * emits an event that the Automation Center can subscribe to.
  */
+
+import { logEvent } from '@/lib/log-event';
 
 type EventType =
   | "booking.created"
@@ -139,6 +141,20 @@ export async function emitBookingUpdated(booking: any, previousStatus?: string):
       service: booking.service,
     });
   }
+
+  // Audit log for booking updates (including cancel)
+  logEvent({
+    orgId: booking.orgId || 'default',
+    action: 'booking.updated',
+    entityType: 'booking',
+    entityId: booking.id,
+    bookingId: booking.id,
+    metadata: {
+      previousStatus,
+      newStatus: booking.status,
+      service: booking.service,
+    },
+  }).catch(() => {});
 }
 
 export async function emitSitterAssigned(booking: any, sitter: any): Promise<void> {

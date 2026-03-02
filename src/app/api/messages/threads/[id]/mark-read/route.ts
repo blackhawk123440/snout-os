@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
-import { prisma } from '@/lib/db';
+import { getScopedDb } from '@/lib/tenancy';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -78,16 +78,11 @@ export async function PATCH(
   }
 
   // Fallback: Direct Prisma implementation
+  const db = getScopedDb({ orgId });
   try {
-    // Update thread's ownerUnreadCount to 0
-    await (prisma as any).thread.update({
-      where: {
-        id: threadId,
-        orgId,
-      },
-      data: {
-        ownerUnreadCount: 0,
-      },
+    await db.messageThread.update({
+      where: { id: threadId },
+      data: { ownerUnreadCount: 0 },
     });
 
     return NextResponse.json({ success: true });

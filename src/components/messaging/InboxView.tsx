@@ -20,7 +20,7 @@ import {
   type Message,
 } from '@/lib/api/hooks';
 import { formatDistanceToNow } from 'date-fns';
-import { Card, Button, Badge, EmptyState, Skeleton } from '@/components/ui';
+import { Card, Button, Badge, EmptyState, Skeleton, Input, Textarea } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { isMessagingEnabled } from '@/lib/flags';
@@ -278,13 +278,15 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
         <div className="border-b border-[var(--color-border-default)] bg-[var(--color-surface-primary)]" style={{ padding: 'var(--density-padding)' }}>
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-3">Threads</h2>
 
-          <input
+          <Input
             type="text"
             placeholder="Search threads..."
-            className="w-full rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-teal-500)] focus:outline-none focus:ring-1 focus:ring-[var(--color-teal-500)] mb-3"
             value={filters.search || ''}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             aria-label="Search threads"
+            size="sm"
+            fullWidth
+            className="mb-3"
           />
 
           <div className="flex flex-wrap gap-2">
@@ -584,12 +586,14 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
 
             {/* Compose Box - App design system */}
             <div className="flex-shrink-0 border-t border-[var(--color-border-default)] bg-[var(--color-surface-primary)]" style={{ padding: 'var(--density-padding)' }}>
-              <textarea
+              <Textarea
                 value={composeMessage}
                 onChange={(e) => setComposeMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="w-full rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-2 mb-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-teal-500)] focus:outline-none focus:ring-1 focus:ring-[var(--color-teal-500)] resize-none font-inherit"
                 rows={3}
+                size="sm"
+                fullWidth
+                className="mb-2 resize-none"
                 aria-label="Compose message"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {

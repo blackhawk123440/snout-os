@@ -56,10 +56,12 @@ vi.mock("@/lib/event-emitter", () => ({
   },
 }));
 
-vi.mock("@/lib/calendar-sync", () => ({
-  calendarSync: {
-    syncBookingToGoogle: vi.fn(async () => undefined),
-  },
+vi.mock("@/lib/event-queue-bridge-init", () => ({
+  ensureEventQueueBridge: vi.fn(async () => undefined),
+}));
+
+vi.mock("@/lib/calendar-queue", () => ({
+  enqueueCalendarSync: vi.fn(async () => null),
 }));
 
 vi.mock("@/lib/env", () => ({

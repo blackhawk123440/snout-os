@@ -5,10 +5,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
 import { getRequestContext } from '@/lib/request-context';
 import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
-import { whereOrg } from '@/lib/org-scope';
 import { getSitterSuggestionsForBooking } from '@/lib/ai';
 
 export async function GET(

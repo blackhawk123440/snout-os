@@ -9,7 +9,8 @@
 
 import { Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
-import { logAutomationRun } from "./event-logger";
+import { logAutomationRun, logEventFromLogger } from "./event-logger";
+import { publish, channels } from "@/lib/realtime/bus";
 
 // Redis connection
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379");
@@ -117,24 +118,26 @@ export function createAutomationWorker(): Worker {
         return result;
       } catch (error: any) {
         const errorMessage = error?.message || String(error);
-        
-        // Log failure
+        const orgId = (context as any).orgId ?? 'default';
+
+        // Log automation.failed to EventLog for admin visibility (include context for retry)
         await logAutomationRun(
           automationType,
           "failed",
           {
+            orgId,
             bookingId: context.bookingId,
             error: errorMessage,
             metadata: {
               jobId,
               recipient,
+              context,
               stack: error?.stack,
-              message: `Automation failed: ${automationType} for ${recipient} - ${errorMessage}`
-            }
+              message: `Automation failed: ${automationType} for ${recipient} - ${errorMessage}`,
+            },
           }
         );
 
-        // Re-throw to trigger retry
         throw error;
       }
     },
@@ -151,6 +154,8 @@ export function createAutomationWorker(): Worker {
  */
 let automationWorker: Worker | null = null;
 
+const DEAD_LETTER_AFTER_ATTEMPTS = 3;
+
 export function initializeAutomationWorker(): Worker {
   if (!automationWorker) {
     automationWorker = createAutomationWorker();
@@ -159,8 +164,37 @@ export function initializeAutomationWorker(): Worker {
       console.log(`[Automation Queue] Job ${job.id} completed: ${job.data.automationType} for ${job.data.recipient}`);
     });
     
-    automationWorker.on("failed", (job, err) => {
+    automationWorker.on("failed", async (job, err) => {
       console.error(`[Automation Queue] Job ${job?.id} failed: ${job?.data?.automationType} for ${job?.data?.recipient}`, err);
+      try {
+        const { captureWorkerError } = await import("@/lib/worker-sentry");
+        captureWorkerError(err instanceof Error ? err : new Error(String(err)), {
+          jobName: `automation:${(job?.data as any)?.automationType}`,
+          orgId: (job?.data as any)?.context?.orgId,
+          bookingId: (job?.data as any)?.context?.bookingId,
+        });
+      } catch (_) {}
+      const attempts = (job?.attemptsMade ?? 0) + 1;
+      if (job && attempts >= DEAD_LETTER_AFTER_ATTEMPTS) {
+        try {
+          const orgId = (job.data as any).context?.orgId ?? "default";
+          await logEventFromLogger("automation.dead", "failed", {
+            orgId,
+            bookingId: (job.data as any).context?.bookingId,
+            error: err?.message || String(err),
+            metadata: {
+              automationType: (job.data as AutomationJobData).automationType,
+              recipient: (job.data as AutomationJobData).recipient,
+              context: (job.data as AutomationJobData).context,
+              jobId: job.id,
+              attempts,
+            },
+          });
+          publish(channels.opsFailures(orgId), { type: "automation.dead", ts: Date.now() }).catch(() => {});
+        } catch (e) {
+          console.error("[Automation Queue] Failed to log dead letter:", e);
+        }
+      }
     });
   }
   

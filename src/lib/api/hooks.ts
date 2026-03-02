@@ -3,6 +3,9 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRef } from 'react';
+import { useSSE } from '@/hooks/useSSE';
+import { usePageVisible } from '@/hooks/usePageVisible';
 import { apiGet, apiPost, apiPatch, apiDelete, ApiError } from './client';
 import { z } from 'zod';
 
@@ -185,8 +188,21 @@ const messageSchema = z.object({
 
 export type Message = z.infer<typeof messageSchema>;
 
-export function useMessages(threadId: string | null) {
-  return useQuery({
+export function useMessages(threadId: string | null, options?: { useSSE?: boolean }) {
+  const useSSEEnabled = options?.useSSE ?? true;
+  const refetchRef = useRef<() => void>();
+
+  const sseUrl = threadId && typeof window !== 'undefined'
+    ? `${window.location.origin}/api/realtime/messages/threads/${threadId}`
+    : null;
+  const pageVisible = usePageVisible();
+  const { error: sseError } = useSSE(
+    sseUrl,
+    () => refetchRef.current?.(),
+    !!threadId && useSSEEnabled && pageVisible
+  );
+
+  const query = useQuery({
     queryKey: ['messages', threadId],
     queryFn: () =>
       apiGet<Message[]>(
@@ -194,21 +210,20 @@ export function useMessages(threadId: string | null) {
         z.array(messageSchema),
       ),
     enabled: !!threadId,
-    // Prevent excessive refetching
-    refetchInterval: false,
-    refetchOnWindowFocus: false, // Disable to prevent 429s
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    staleTime: 10000, // Consider data fresh for 10 seconds
-    gcTime: 300000, // Keep in cache for 5 minutes
+    refetchInterval: threadId && sseError ? 8000 : false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    staleTime: 5000,
+    gcTime: 300000,
     retry: (failureCount, error: any) => {
-      // Don't retry on 429 (rate limit)
-      if (error?.status === 429 || error?.statusCode === 429) {
-        return false;
-      }
+      if (error?.status === 429 || error?.statusCode === 429) return false;
       return failureCount < 1;
     },
   });
+  refetchRef.current = query.refetch;
+
+  return query;
 }
 
 export function useSendMessage() {

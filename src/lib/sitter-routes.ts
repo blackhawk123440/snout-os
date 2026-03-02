@@ -114,6 +114,16 @@ export function isSitterRestrictedRoute(pathname: string): boolean {
     return true;
   }
 
+  // Ops pages (owner/admin only)
+  if (pathname.startsWith("/ops")) {
+    return true;
+  }
+
+  // Ops API routes
+  if (pathname.startsWith("/api/ops")) {
+    return true;
+  }
+
   return false;
 }
 

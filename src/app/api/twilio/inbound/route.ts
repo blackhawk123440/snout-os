@@ -18,8 +18,9 @@ import { getSitterIdFromMaskedNumber } from '@/lib/messaging/number-sitter-mappi
 import { isAcceptCommand, isDeclineCommand } from '@/lib/messaging/sms-commands';
 import { recordSitterAuditEvent } from '@/lib/audit-events';
 import { processMessageEvent } from '@/lib/tiers/message-instrumentation';
-import { syncBookingToCalendar } from '@/lib/calendar-sync';
+import { enqueueCalendarSync } from '@/lib/calendar-queue';
 import { env } from '@/lib/env';
+import { publish, channels } from '@/lib/realtime/bus';
 
 // TwiML response helper
 function twimlResponse(message: string): NextResponse {
@@ -150,13 +151,10 @@ async function handleAcceptCommand(
     console.error('[SMS Accept] Failed to update metrics:', error);
   }
 
-  // Sync to Google Calendar (fail-open: don't block assignment)
-  try {
-    await syncBookingToCalendar(orgId, offer.bookingId, sitterId, 'Booking accepted via SMS');
-  } catch (error) {
-    console.error('[SMS Accept] Calendar sync failed:', error);
-    // Don't throw - booking assignment succeeds even if calendar sync fails
-  }
+  // Enqueue calendar sync (fail-open)
+  enqueueCalendarSync({ type: 'upsert', bookingId: offer.bookingId, orgId }).catch((e) =>
+    console.error('[SMS Accept] calendar sync enqueue failed:', e)
+  );
 
   return {
     success: true,
@@ -707,6 +705,13 @@ export async function POST(request: NextRequest) {
           lastInboundAt: new Date(),
         },
       });
+
+      publish(channels.messagesThread(orgId, thread.id), {
+        type: 'message.new',
+        threadId: thread.id,
+        messageId: messageEventId,
+        ts: Date.now(),
+      }).catch(() => {});
 
       // Record audit event
       await recordSitterAuditEvent({

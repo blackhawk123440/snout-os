@@ -17,6 +17,7 @@ import {
   SavedViewsDropdown,
   BulkActionsConfirmModal,
 } from '@/components/app';
+import { Button } from '@/components/ui';
 import { usePersistedFilters } from '@/hooks/usePersistedTableState';
 import { useAuth } from '@/lib/auth-client';
 import { tokens } from '@/lib/design-tokens';
@@ -55,12 +56,9 @@ export default function DispatchPage() {
         title="Dispatch"
         subtitle="Assign and manage visit schedules"
         action={
-          <button
-            type="button"
-            className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-          >
+          <Button type="button" variant="secondary">
             New Assignment
-          </button>
+          </Button>
         }
       />
 

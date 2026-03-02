@@ -1,108 +1,199 @@
 /**
  * Stripe Webhook Handler
- * 
- * Handles Stripe webhook events, including payment success and booking confirmation.
- * Phase 3: Integrates with booking confirmed handler for thread + masking number creation.
+ *
+ * Handles: payment_intent.succeeded, payment_intent.payment_failed,
+ * charge.refunded, invoice.payment_succeeded.
+ * Persists to StripeCharge/StripeRefund, logs payment.completed/failed/refunded.
+ * Verifies webhook signature; rejects non-POST.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { emitPaymentSuccess } from '@/lib/event-emitter';
+import Stripe from 'stripe';
+import { getScopedDb } from '@/lib/tenancy';
 import { onBookingConfirmed } from '@/lib/bookings/booking-confirmed-handler';
+import { logEvent } from '@/lib/log-event';
+import {
+  persistPaymentSucceeded,
+  persistPaymentFailed,
+  persistRefund,
+} from '@/lib/stripe-webhook-persist';
 
 export async function POST(request: NextRequest) {
   try {
-    const event = await request.json();
+    const secret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!secret) {
+      console.error('[Stripe Webhook] STRIPE_WEBHOOK_SECRET not configured');
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+    }
 
-    // Handle successful payment
-    if (event.type === "payment_intent.succeeded" || event.type === "invoice.payment_succeeded") {
-      const paymentIntent = event.data.object as any;
-      const bookingId = paymentIntent.metadata?.bookingId;
-      
+    const signature = request.headers.get('stripe-signature');
+    if (!signature) {
+      return NextResponse.json({ error: 'Missing stripe-signature' }, { status: 400 });
+    }
+
+    const rawBody = await request.text();
+    let event: Stripe.Event;
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_dummy', { apiVersion: '2023-10-16' });
+      event = stripe.webhooks.constructEvent(rawBody, signature, secret);
+    } catch (err: any) {
+      console.warn('[Stripe Webhook] Signature verification failed:', err?.message);
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    }
+
+
+    // payment_intent.succeeded
+    if (event.type === 'payment_intent.succeeded') {
+      const pi = event.data.object as any;
+      const bookingId = pi.metadata?.bookingId;
+      const orgId = pi.metadata?.orgId || 'default';
+      const chargeId = typeof pi.latest_charge === 'string' ? pi.latest_charge : pi.latest_charge?.id;
+      const db = getScopedDb({ orgId });
+
+      await persistPaymentSucceeded(
+        db,
+        pi.id,
+        pi.amount,
+        pi.currency || 'usd',
+        orgId,
+        bookingId,
+        pi.receipt_email,
+        null,
+        chargeId || undefined
+      );
+
       if (bookingId) {
-        // Note: Booking model doesn't exist in enterprise-messaging-dashboard schema
-        // This webhook should be handled by the main app's booking system
-        // For Phase 3, we'll assume booking exists and is confirmed
-        // In production, this would fetch from the main app's database
-        
-        // Mock booking data for Phase 3 integration
-        // Note: In production, fetch actual booking from main app database
-        const previousStatus: string = 'pending';
-        const updatedBooking = {
-          id: bookingId,
-          status: 'confirmed' as string,
-          orgId: 'default', // Would come from actual booking
-          clientId: '', // Would come from actual booking
-          sitterId: null as string | null,
-          startAt: new Date(),
-          endAt: new Date(),
-        };
-        
-        const amount = paymentIntent.amount / 100; // Convert from cents
-        // Note: emitPaymentSuccess would need booking model - skipping for now
-        // await emitPaymentSuccess(updatedBooking, amount);
-
-        // Phase 3: Handle booking confirmation (thread + masking number + window)
-        // Only trigger when booking moves into CONFIRMED (not on every webhook)
-        if (previousStatus !== "confirmed" && updatedBooking.status === "confirmed") {
-          try {
-            const orgId = updatedBooking.orgId || 'default'; // TODO: Get actual orgId from booking
-            
-            await onBookingConfirmed({
-              bookingId,
-              orgId,
-              clientId: updatedBooking.clientId || '',
-              sitterId: updatedBooking.sitterId,
-              startAt: new Date(updatedBooking.startAt),
-              endAt: new Date(updatedBooking.endAt),
-              actorUserId: 'system', // System-triggered via webhook
-            });
-
-            // Emit audit event (using console.log - AuditEvent model structure differs)
-            console.log('[Stripe Webhook] Booking confirmed processed', {
-              eventType: 'booking.confirmed.processed',
-              status: 'success',
-              bookingId,
-              correlationId: bookingId,
-              source: 'stripe_webhook',
-              stripeEventType: event.type,
-            });
-
-                console.log(`[Stripe Webhook] Phase 3: Thread found/created and assignment window created for booking ${bookingId}`);
-          } catch (error: any) {
-            // Non-blocking: Log error but don't fail webhook
-            console.error(`[Stripe Webhook] Phase 3: Failed to create thread for booking ${bookingId}:`, error);
-            
-            // Emit audit event for failure
-            console.error('[Stripe Webhook] Booking confirmed processing failed', {
-              eventType: 'booking.confirmed.processed',
-              status: 'failed',
-              bookingId,
-              error: error.message,
-              correlationId: bookingId,
-              source: 'stripe_webhook',
+        const booking = await db.booking.findUnique({
+          where: { id: bookingId },
+          select: { orgId: true, clientId: true, sitterId: true, startAt: true, endAt: true, status: true },
+        });
+        if (booking) {
+          if (chargeId) {
+            await db.stripeCharge.updateMany({
+              where: { id: chargeId },
+              data: { orgId: booking.orgId || orgId, clientId: booking.clientId },
             });
           }
+          const previousStatus = booking.status || 'pending';
+          if (previousStatus !== 'confirmed') {
+            try {
+              await onBookingConfirmed({
+                bookingId,
+                orgId: booking.orgId || orgId,
+                clientId: booking.clientId || '',
+                sitterId: booking.sitterId,
+                startAt: new Date(booking.startAt),
+                endAt: new Date(booking.endAt),
+                actorUserId: 'system',
+              });
+              await db.booking.update({
+                where: { id: bookingId },
+                data: { status: 'confirmed', paymentStatus: 'paid' },
+              });
+            } catch (e: any) {
+              console.error('[Stripe Webhook] onBookingConfirmed failed:', e);
+            }
+          }
+          await logEvent({
+            orgId: booking.orgId || orgId,
+            actorUserId: 'system',
+            action: 'payment.completed',
+            entityType: 'payment',
+            entityId: pi.id,
+            bookingId,
+            status: 'success',
+            metadata: { stripeEventType: event.type },
+          }).catch(() => {});
+          const { enqueueAutomation } = await import('@/lib/automation-queue');
+          await enqueueAutomation(
+            'bookingConfirmation',
+            'client',
+            { bookingId },
+            `bookingConfirmation:client:${bookingId}:payment`
+          );
         }
+      }
+    }
 
-        // Phase 6.1: Trigger booking confirmation automation on payment success
-        const { enqueueAutomation } = await import("@/lib/automation-queue");
-        
-        // Enqueue booking confirmation for client
-        await enqueueAutomation(
-          "bookingConfirmation",
-          "client",
-          { bookingId },
-          `bookingConfirmation:client:${bookingId}:payment`
+    // payment_intent.payment_failed
+    if (event.type === 'payment_intent.payment_failed') {
+      const pi = event.data.object as any;
+      const err = pi.last_payment_error?.message || 'Payment failed';
+      const orgId = pi.metadata?.orgId || 'default';
+      const bookingId = pi.metadata?.bookingId;
+      const db = getScopedDb({ orgId });
+      await persistPaymentFailed(
+        db,
+        pi.id,
+        pi.amount,
+        pi.currency || 'usd',
+        orgId,
+        err,
+        bookingId,
+        pi.receipt_email
+      );
+    }
+
+    // charge.refunded
+    if (event.type === 'charge.refunded') {
+      const charge = event.data.object as any;
+      const refunds = charge.refunds?.data || [];
+      const orgId = charge.metadata?.orgId || 'default';
+      const db = getScopedDb({ orgId });
+      for (const r of refunds) {
+        await persistRefund(
+          db,
+          r.id,
+          charge.id,
+          r.amount,
+          r.currency || 'usd',
+          r.status || 'succeeded',
+          orgId,
+          charge.payment_intent
         );
       }
     }
 
-    return NextResponse.json({ received: true });
+    // invoice.payment_succeeded (legacy)
+    if (event.type === 'invoice.payment_succeeded') {
+      const inv = event.data.object as any;
+      const bookingId = inv.metadata?.bookingId;
+      const orgId = inv.metadata?.orgId || 'default';
+      const amount = inv.amount_paid || 0;
+      const chargeId = typeof inv.charge === 'string' ? inv.charge : inv.charge?.id;
+      const db = getScopedDb({ orgId });
+      if (chargeId) {
+        await persistPaymentSucceeded(
+          db,
+          inv.payment_intent || chargeId,
+          amount,
+          inv.currency || 'usd',
+          orgId,
+          bookingId,
+          inv.customer_email,
+          inv.customer_name,
+          chargeId
+        );
+      }
+      if (bookingId) {
+        await logEvent({
+          orgId,
+          actorUserId: 'system',
+          action: 'payment.completed',
+          entityType: 'payment',
+          entityId: inv.id,
+          bookingId,
+          status: 'success',
+          metadata: { stripeEventType: event.type },
+        }).catch(() => {});
+      }
+    }
+
+    return NextResponse.json({ received: true }, { status: 200 });
   } catch (error: any) {
-    console.error("[Stripe Webhook] Error:", error);
+    console.error('[Stripe Webhook] Error:', error);
     return NextResponse.json(
-      { error: "Webhook handler failed", message: error.message },
+      { error: 'Webhook handler failed', message: error.message },
       { status: 500 }
     );
   }

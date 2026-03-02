@@ -94,9 +94,12 @@ export async function initializeQueues() {
     await scheduleReconciliation(); // Phase 7.2: Pricing reconciliation
     
     // Phase 3.3: Initialize automation worker
-    // Per Master Spec Line 259: "Move every automation execution to the worker queue"
     const { initializeAutomationWorker } = await import("./automation-queue");
     initializeAutomationWorker();
+
+    // Calendar sync worker (one-way Snout → Google)
+    const { initializeCalendarWorker } = await import("./calendar-queue");
+    initializeCalendarWorker();
 
     // Initialize pool release worker (runs every 5 minutes)
     const { initializePoolReleaseWorker, schedulePoolRelease } = await import("./pool-release-queue");

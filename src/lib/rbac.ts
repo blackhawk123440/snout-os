@@ -18,3 +18,18 @@ export function requireAnyRole(ctx: RequestContext, roles: AppRole[]): void {
     throw new ForbiddenError();
   }
 }
+
+/** Require owner or admin. Use for /ops and admin-only routes. */
+export function requireOwnerOrAdmin(ctx: RequestContext): void {
+  requireAnyRole(ctx, ["owner", "admin"]);
+}
+
+/**
+ * Assert entity belongs to user's org. Reject if not.
+ * Use when loading entities to prevent cross-org leaks.
+ */
+export function assertOrgAccess(entityOrgId: string | null | undefined, ctxOrgId: string): void {
+  if (!entityOrgId || entityOrgId !== ctxOrgId) {
+    throw new ForbiddenError("Access denied: organization mismatch");
+  }
+}

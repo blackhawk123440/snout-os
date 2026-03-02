@@ -170,9 +170,9 @@ export default function SitterAvailabilityPage() {
                   {blockOffs.map((b) => (
                     <li key={b.id} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-sm">
                       <span>{new Date(b.date + 'T12:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                      <button type="button" onClick={() => void removeBlockOff(b.id)} className="text-red-600 hover:text-red-700">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => void removeBlockOff(b.id)} className="text-red-600 hover:text-red-700">
                         Remove
-                      </button>
+                      </Button>
                     </li>
                   ))}
                 </ul>

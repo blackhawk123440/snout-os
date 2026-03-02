@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { getScopedDb } from '@/lib/tenancy';
 import { getRequestContext } from '@/lib/request-context';
 import { requireRole, ForbiddenError } from '@/lib/rbac';
-import { whereOrg } from '@/lib/org-scope';
 import { emitSitterCheckedIn } from '@/lib/event-emitter';
+import { publish, channels } from '@/lib/realtime/bus';
 
 /**
  * POST /api/bookings/[id]/check-in
@@ -30,13 +30,11 @@ export async function POST(
   }
 
   const { id } = await params;
+  const db = getScopedDb(ctx);
 
   try {
-    const booking = await prisma.booking.findFirst({
-      where: whereOrg(ctx.orgId, {
-        id,
-        sitterId: ctx.sitterId,
-      }),
+    const booking = await db.booking.findFirst({
+      where: { id, sitterId: ctx.sitterId },
     });
 
     if (!booking) {
@@ -54,13 +52,13 @@ export async function POST(
     const lat = typeof body.lat === 'number' ? body.lat : null;
     const lng = typeof body.lng === 'number' ? body.lng : null;
 
-    await prisma.booking.update({
+    await db.booking.update({
       where: { id },
       data: { status: 'in_progress' },
     });
 
     if (lat != null && lng != null) {
-      await prisma.eventLog.create({
+      await db.eventLog.create({
         data: {
           orgId: ctx.orgId,
           eventType: 'sitter.check_in',
@@ -71,12 +69,20 @@ export async function POST(
       });
     }
 
-    const updated = await prisma.booking.findUnique({
+    const updated = await db.booking.findUnique({
       where: { id },
       include: { sitter: true },
     });
     if (updated?.sitter) {
       await emitSitterCheckedIn(updated, updated.sitter);
+    }
+
+    if (updated?.sitterId) {
+      publish(channels.sitterToday(updated.orgId ?? ctx.orgId, updated.sitterId), {
+        type: 'visit.checkin',
+        bookingId: id,
+        ts: Date.now(),
+      }).catch(() => {});
     }
 
     return NextResponse.json({ ok: true, status: 'in_progress' });

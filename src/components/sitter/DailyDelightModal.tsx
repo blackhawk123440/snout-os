@@ -1,7 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Button, Modal, useToast } from '@/components/ui';
+import { useAuth } from '@/lib/auth-client';
+import { useOffline } from '@/hooks/useOffline';
+import {
+  addPendingPhoto,
+  removePendingPhoto,
+  getPendingPhotosForBooking,
+  enqueueAction,
+} from '@/lib/offline';
+
+const MAX_PHOTOS = 5;
+const MAX_SIZE_MB = 5;
+const ACCEPT = 'image/jpeg,image/png,image/webp';
+
+type PendingPhotoEntry = { id: string; objectUrl: string };
 
 export interface DailyDelightBooking {
   id: string;
@@ -40,26 +54,133 @@ export interface DailyDelightModalProps {
 
 export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModalProps) {
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const { isOnline, refreshQueuedCount } = useOffline();
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState('');
   const [tone, setTone] = useState<ToneOption>('warm');
   const [isStubDraft, setIsStubDraft] = useState(false);
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+  const [pendingPhotos, setPendingPhotos] = useState<PendingPhotoEntry[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const orgId = user?.orgId || 'default';
+  const sitterId = user?.sitterId || '';
+
+  const loadPendingPhotos = useCallback(async () => {
+    if (!booking) return;
+    const photos = await getPendingPhotosForBooking(booking.id);
+    const entries: PendingPhotoEntry[] = photos.map((p) => ({
+      id: p.id,
+      objectUrl: URL.createObjectURL(p.blob),
+    }));
+    setPendingPhotos(entries);
+  }, [booking?.id]);
 
   useEffect(() => {
     if (!isOpen || !booking) return;
     setDraft('');
     setIsStubDraft(false);
     setLoading(false);
-  }, [isOpen, booking]);
+    setMediaUrls([]);
+    setPendingPhotos([]);
+    if (!isOnline) void loadPendingPhotos();
+  }, [isOpen, booking?.id, isOnline, loadPendingPhotos]);
+
+  const pendingRef = useRef<PendingPhotoEntry[]>([]);
+  pendingRef.current = pendingPhotos;
+  useEffect(
+    () => () => pendingRef.current.forEach((p) => URL.revokeObjectURL(p.objectUrl)),
+    []
+  );
+
+  const totalCount = mediaUrls.length + pendingPhotos.length;
+  const remaining = MAX_PHOTOS - totalCount;
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length || !booking) return;
+    if (remaining <= 0) {
+      showToast({ message: `Maximum ${MAX_PHOTOS} photos allowed`, variant: 'error' });
+      return;
+    }
+    const toAdd = Array.from(files).slice(0, remaining);
+    for (const f of toAdd) {
+      if (f.size > MAX_SIZE_MB * 1024 * 1024) {
+        showToast({ message: `${f.name} is too large (max ${MAX_SIZE_MB}MB)`, variant: 'error' });
+        continue;
+      }
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
+        showToast({ message: `${f.name}: only JPEG, PNG, WebP allowed`, variant: 'error' });
+        continue;
+      }
+    }
+    setUploading(true);
+    try {
+      if (isOnline) {
+        const formData = new FormData();
+        formData.set('bookingId', booking.id);
+        toAdd.forEach((f) => formData.append('files', f));
+        const res = await fetch('/api/upload/report-media', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showToast({ message: data.error || 'Upload failed', variant: 'error' });
+          return;
+        }
+        setMediaUrls((prev) => [...prev, ...(data.urls || [])].slice(0, MAX_PHOTOS));
+        showToast({ message: 'Photos added', variant: 'success' });
+      } else {
+        for (const f of toAdd) {
+          const id = await addPendingPhoto(booking.id, f, f.type);
+          setPendingPhotos((prev) => {
+            const next = [...prev, { id, objectUrl: URL.createObjectURL(f) }];
+            return next.slice(0, MAX_PHOTOS);
+          });
+        }
+        showToast({ message: 'Photos queued for upload — will sync when online', variant: 'success' });
+        void refreshQueuedCount();
+      }
+    } catch {
+      showToast({ message: 'Failed to add photos', variant: 'error' });
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const removePhoto = (urlOrId: string) => {
+    if (mediaUrls.includes(urlOrId)) {
+      setMediaUrls((prev) => prev.filter((u) => u !== urlOrId));
+      return;
+    }
+    const entry = pendingPhotos.find((p) => p.id === urlOrId || p.objectUrl === urlOrId);
+    if (entry) {
+      URL.revokeObjectURL(entry.objectUrl);
+      void removePendingPhoto(entry.id);
+      setPendingPhotos((prev) => prev.filter((p) => p.id !== entry.id));
+    }
+  };
 
   const generate = async () => {
     if (!booking) return;
+    if (!isOnline) {
+      const fallback = buildStubDelight(booking);
+      setDraft(fallback);
+      setIsStubDraft(true);
+      showToast({ message: 'Offline — using a local draft. Edit and send when ready.', variant: 'info' });
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(`/api/bookings/${booking.id}/daily-delight`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tone }),
+        body: JSON.stringify({ tone, mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -82,13 +203,51 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
     }
   };
 
-  const handleSend = () => {
-    if (!draft.trim()) {
+  const handleSend = async () => {
+    if (!draft.trim() || !booking) {
       showToast({ message: 'Add or generate content first', variant: 'error' });
       return;
     }
-    showToast({ message: 'Sent 💛', variant: 'success' });
-    onClose();
+    setSending(true);
+    try {
+      if (isOnline) {
+        const res = await fetch(`/api/bookings/${booking.id}/daily-delight`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            report: draft.trim(),
+            tone,
+            mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          showToast({ message: data.error || 'Failed to send', variant: 'error' });
+          return;
+        }
+        showToast({ message: 'Sent 💛', variant: 'success' });
+        onClose();
+      } else {
+        const photoIds = pendingPhotos.map((p) => p.id);
+        await enqueueAction('delight.create', {
+          orgId,
+          sitterId,
+          bookingId: booking.id,
+          payload: { report: draft.trim(), tone, photoIds },
+        });
+        setPendingPhotos((prev) => {
+          prev.forEach((p) => URL.revokeObjectURL(p.objectUrl));
+          return [];
+        });
+        void refreshQueuedCount();
+        showToast({ message: 'Queued — will sync when online 💛', variant: 'success' });
+        onClose();
+      }
+    } catch {
+      showToast({ message: 'Failed to send', variant: 'error' });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -116,8 +275,8 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
           <Button variant="secondary" size="md" onClick={() => {}} disabled>
             Save draft
           </Button>
-          <Button variant="primary" size="md" onClick={handleSend} disabled={loading || !draft.trim()}>
-            Send
+          <Button variant="primary" size="md" onClick={() => void handleSend()} disabled={loading || sending || !draft.trim()}>
+            {sending ? 'Sending…' : 'Send'}
           </Button>
         </>
       }
@@ -135,8 +294,65 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
               </p>
             )}
           </div>
-          <div className="rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 p-6 text-center">
-            <p className="text-sm text-neutral-500">Add photos or media (coming soon)</p>
+          <div className="rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 p-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPT}
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+              disabled={uploading || mediaUrls.length >= MAX_PHOTOS}
+            />
+            {(mediaUrls.length > 0 || pendingPhotos.length > 0) && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {mediaUrls.map((url) => (
+                  <div key={url} className="relative">
+                    <img
+                      src={url}
+                      alt="Report photo"
+                      className="h-16 w-16 rounded-lg object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(url)}
+                      className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white hover:bg-red-600"
+                      aria-label="Remove photo"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                {pendingPhotos.map((p) => (
+                  <div key={p.id} className="relative">
+                    <img
+                      src={p.objectUrl}
+                      alt="Queued photo"
+                      className="h-16 w-16 rounded-lg object-cover ring-2 ring-amber-400"
+                    />
+                    <span className="absolute bottom-0 left-0 right-0 rounded-b-lg bg-amber-900/80 px-1 py-0.5 text-[10px] text-amber-100">
+                      Queued upload
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(p.id)}
+                      className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white hover:bg-red-600"
+                      aria-label="Remove photo"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || totalCount >= MAX_PHOTOS}
+              className="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-50"
+            >
+              {uploading ? 'Uploading…' : totalCount >= MAX_PHOTOS ? `${MAX_PHOTOS} photos max` : 'Add photos (optional)'}
+            </button>
           </div>
           <div className="rounded-2xl border border-neutral-200 bg-white p-4">
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-neutral-500">Tone</label>

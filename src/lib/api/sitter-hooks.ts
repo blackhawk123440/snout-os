@@ -3,6 +3,9 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRef } from 'react';
+import { useSSE } from '@/hooks/useSSE';
+import { usePageVisible } from '@/hooks/usePageVisible';
 import { apiGet, apiPost, apiPatch, ApiError } from './client';
 import { z } from 'zod';
 
@@ -90,7 +93,18 @@ export function useSitterThreads() {
 }
 
 export function useSitterMessages(threadId: string | null) {
-  return useQuery({
+  const refetchRef = useRef<() => void>();
+  const sseUrl = threadId && typeof window !== 'undefined'
+    ? `${window.location.origin}/api/realtime/messages/threads/${threadId}`
+    : null;
+  const pageVisible = usePageVisible();
+  const { error: sseError } = useSSE(
+    sseUrl,
+    () => refetchRef.current?.(),
+    !!threadId && pageVisible
+  );
+
+  const query = useQuery({
     queryKey: ['sitter', 'threads', threadId, 'messages'],
     queryFn: async () => {
       if (!threadId) return [];
@@ -101,13 +115,12 @@ export function useSitterMessages(threadId: string | null) {
       return response;
     },
     enabled: !!threadId,
-    refetchInterval: (query) => {
-      if (typeof document !== 'undefined' && document.hidden) {
-        return false;
-      }
-      return 3000; // Poll every 3s when page is visible
-    },
+    refetchInterval: threadId && sseError && pageVisible ? 3000 : false,
+    refetchOnWindowFocus: false,
   });
+  refetchRef.current = query.refetch;
+
+  return query;
 }
 
 export function useSitterSendMessage() {

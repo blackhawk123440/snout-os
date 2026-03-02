@@ -15,6 +15,8 @@ env:
   OPENAI_API_KEY: sk-dummy
   ENABLE_MESSAGING_V1: "true"
   NEXT_PUBLIC_ENABLE_MESSAGING_V1: "true"
+  ENABLE_E2E_LOGIN: "true"
+  E2E_AUTH_KEY: test-e2e-key-change-in-production
 
 jobs:
   build-and-test:
@@ -57,17 +59,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      - name: Apply database schema
+        run: pnpm prisma db push --accept-data-loss
+
+      - name: Run lint
+        run: pnpm run lint
+
+      - name: Check no raw prisma in high-risk API routes
+        run: pnpm run check:no-raw-prisma
+
       - name: Run TypeScript type check
         run: pnpm run typecheck
+
+      - name: Run core tests
+        run: pnpm run test:core
 
       - name: Check UI Constitution violations
         run: pnpm exec tsx scripts/check-ui-constitution.ts
 
       - name: Feature Completion Gate audit
         run: pnpm run feature:audit
-
-      - name: Generate Prisma client
-        run: pnpm prisma generate
 
       - name: Build application
         run: pnpm run build
@@ -120,6 +134,11 @@ jobs:
 
       - name: Apply database schema
         run: pnpm prisma db push --accept-data-loss
+
+      - name: Seed database for E2E
+        run: pnpm prisma db seed
+        env:
+          NODE_ENV: development
 
       - name: Start application
         run: |

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   AppCard,
   AppCardHeader,
@@ -10,6 +11,7 @@ import {
   AppSkeletonList,
   AppEmptyState,
   AppErrorState,
+  AppStatusPill,
 } from '@/components/app';
 
 interface HomeData {
@@ -94,14 +96,22 @@ export default function ClientHomePage() {
             <AppCardBody>
               <p className="font-semibold text-neutral-900">Welcome back, {data.clientName?.split(' ')[0] || 'there'} 🐾</p>
               <p className="mt-1 text-sm text-neutral-600">Your next visit is just a tap away.</p>
-              <a
+              <Link
                 href="/bookings/new"
                 className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
               >
                 Book a visit
-              </a>
+              </Link>
             </AppCardBody>
           </AppCard>
+
+          {!data.latestReport && data.recentBookings?.length > 0 && (
+            <AppEmptyState
+              title="No visit reports yet"
+              subtitle="Your sitter will send updates after each visit. Check back after your next appointment."
+              cta={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
+            />
+          )}
 
           {data.latestReport && (
             <div>
@@ -141,9 +151,7 @@ export default function ClientHomePage() {
                     <AppCardHeader>
                       <div className="flex items-center justify-between">
                         <p className="font-semibold text-neutral-900">{b.service}</p>
-                        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700">
-                          {b.status}
-                        </span>
+                        <AppStatusPill status={b.status} />
                       </div>
                     </AppCardHeader>
                     <AppCardBody>

@@ -6,7 +6,6 @@
 const requiredEnvVars = {
   NODE_ENV: process.env.NODE_ENV || "development",
   DATABASE_URL: process.env.DATABASE_URL,
-  OPENPHONE_API_KEY: process.env.OPENPHONE_API_KEY,
 } as const;
 
 const optionalEnvVars = {

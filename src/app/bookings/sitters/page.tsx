@@ -19,6 +19,7 @@ import {
 import { usePersistedColumnVisibility, usePersistedFilters } from '@/hooks/usePersistedTableState';
 import { AppShell } from '@/components/layout/AppShell';
 import { SitterTierBadge } from '@/components/sitter';
+import { Button } from '@/components/ui';
 
 interface Sitter extends Record<string, unknown> {
   id: string;
@@ -138,14 +139,14 @@ export default function SittersPage() {
               <i className="fas fa-arrow-left" />
               Back to Bookings
             </Link>
-            <button
+            <Button
               type="button"
+              variant="primary"
+              leftIcon={<i className="fas fa-plus" />}
               onClick={() => window.location.href = '/bookings/sitters?add=1'}
-              className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-teal-600)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--color-teal-700)]"
             >
-              <i className="fas fa-plus" />
               Add Sitter
-            </button>
+            </Button>
           </div>
         }
       />

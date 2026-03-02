@@ -21,6 +21,9 @@ test.describe("Smoke Tests", () => {
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
     expect(data).toHaveProperty("status");
+    expect(data).toHaveProperty("db");
+    expect(data).toHaveProperty("redis");
+    expect(data).toHaveProperty("version");
   });
 });
 

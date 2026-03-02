@@ -24,7 +24,7 @@ export async function enforceThreadBoundSending(
   threadId: string,
   orgId: string
 ): Promise<{ valid: boolean; violation?: InvariantViolation }> {
-  const thread = await (prisma as any).thread.findUnique({
+  const thread = await prisma.messageThread.findUnique({
     where: { id: threadId },
     select: { id: true, orgId: true },
   });
@@ -64,7 +64,7 @@ export async function enforceFromNumberMatchesThread(
   threadId: string,
   fromNumberE164: string
 ): Promise<{ valid: boolean; violation?: InvariantViolation; expectedNumber?: string }> {
-  const thread = await (prisma as any).thread.findUnique({
+  const thread = await prisma.messageThread.findUnique({
     where: { id: threadId },
     include: {
       messageNumber: {
@@ -101,8 +101,8 @@ export async function enforceFromNumberMatchesThread(
       valid: false,
       violation: {
         invariant: 'from-number-matches-thread',
-        violation: `from_number (${fromNumberE164}) does not match thread.messageNumber.e164 (${expectedNumber})`,
-        context: { threadId, fromNumberE164, expectedNumber },
+        violation: 'from_number does not match thread.messageNumber.e164',
+        context: { threadId, expectedNumber: expectedNumber ? '***' + expectedNumber.slice(-4) : undefined },
       },
       expectedNumber,
     };
@@ -122,9 +122,9 @@ export async function enforcePoolUnknownSenderRouting(
   fromNumberE164: string,
   orgId: string
 ): Promise<{ valid: boolean; violation?: InvariantViolation; routedToOwner: boolean }> {
-  const messageNumber = await (prisma as any).messageNumber.findUnique({
+  const messageNumber = await prisma.messageNumber.findUnique({
     where: { id: messageNumberId },
-    select: { id: true, class: true, orgId: true },
+    select: { id: true, numberClass: true, orgId: true },
   });
 
   if (!messageNumber) {
@@ -152,20 +152,18 @@ export async function enforcePoolUnknownSenderRouting(
   }
 
   // Check if this is a pool number
-  if (messageNumber.class !== 'pool') {
+  if (messageNumber.numberClass !== 'pool') {
     // Not a pool number - invariant doesn't apply
     return { valid: true, routedToOwner: false };
   }
 
-  // Check if thread exists for this sender
-  // Note: Thread model uses ThreadParticipant, not participants with realE164
-  // This check needs to be done via ThreadParticipant model
-  const existingThread = await (prisma as any).thread.findFirst({
+  const existingThread = await prisma.messageThread.findFirst({
     where: {
       orgId,
       participants: {
         some: {
-          // Note: ThreadParticipant doesn't have realE164 - this needs API implementation
+          role: 'client',
+          realE164: fromNumberE164,
         },
       },
     },

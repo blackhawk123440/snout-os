@@ -53,6 +53,11 @@ export default function ClientReportsPage() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
+  }, [load]);
+
   const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : '';
 
@@ -82,7 +87,8 @@ export default function ClientReportsPage() {
       ) : reports.length === 0 ? (
         <AppEmptyState
           title="No reports yet"
-          subtitle="Visit reports from your sitter will appear here."
+          subtitle="Visit reports from your sitter will appear here after each visit."
+          cta={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
         />
       ) : (
         <div className="space-y-4">

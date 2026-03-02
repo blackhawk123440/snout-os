@@ -7,7 +7,7 @@
 
 import { prisma } from '@/lib/db';
 import { recordSitterAuditEvent } from '@/lib/audit-events';
-import { syncBookingToCalendar, deleteBookingCalendarEvent } from '@/lib/calendar-sync';
+import { enqueueCalendarSync } from '@/lib/calendar-queue';
 import { emitBookingUpdated } from '@/lib/event-emitter';
 import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 
@@ -98,18 +98,15 @@ export async function forceAssignSitter(
     throw new Error(`Sitter ${sitterId} is not active`);
   }
 
-  // Reassignment: Delete old sitter's calendar event BEFORE updating booking
-  // This ensures we don't create duplicate events if deletion fails
+  // Reassignment: Enqueue delete of old sitter's calendar event
   const previousSitterId = booking.sitterId;
   if (previousSitterId && previousSitterId !== sitterId) {
-    try {
-      // Delete old event gracefully (handles missing event case)
-      await deleteBookingCalendarEvent(orgId, bookingId, previousSitterId, 'Booking reassigned to different sitter');
-    } catch (error) {
-      console.error('[Force Assign] Failed to delete previous sitter calendar event:', error);
-      // Don't throw - continue with assignment even if deletion fails
-      // deleteBookingCalendarEvent already handles missing events gracefully
-    }
+    enqueueCalendarSync({
+      type: 'delete',
+      bookingId,
+      sitterId: previousSitterId,
+      orgId,
+    }).catch((e) => console.error('[Force Assign] calendar delete enqueue failed:', e));
   }
 
   const previousStatus = booking.status;
@@ -156,14 +153,10 @@ export async function forceAssignSitter(
     },
   });
 
-  // Sync to Google Calendar for new sitter (fail-open: don't block assignment)
-  // This happens AFTER deletion to ensure clean state
-  try {
-    await syncBookingToCalendar(orgId, bookingId, sitterId, 'Booking force-assigned by owner');
-  } catch (error) {
-    console.error('[Force Assign] Calendar sync failed:', error);
-    // Don't throw - booking assignment succeeds even if calendar sync fails
-  }
+  // Enqueue calendar sync for new sitter (fail-open)
+  enqueueCalendarSync({ type: 'upsert', bookingId, orgId }).catch((e) =>
+    console.error('[Force Assign] calendar sync enqueue failed:', e)
+  );
 }
 
 /**

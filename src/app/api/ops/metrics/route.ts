@@ -5,10 +5,9 @@
  */
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { getScopedDb } from '@/lib/tenancy';
 import { getRequestContext } from '@/lib/request-context';
 import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
-import { whereOrg } from '@/lib/org-scope';
 
 export async function GET() {
   let ctx;
@@ -22,35 +21,31 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const orgId = ctx.orgId;
+  const db = getScopedDb(ctx);
   const now = new Date();
   const ytdStart = new Date(now.getFullYear(), 0, 1);
 
   try {
-    // Active visits: in_progress bookings (sitter checked in)
-    const activeVisitsCount = await prisma.booking.count({
-      where: whereOrg(orgId, { status: 'in_progress' }),
+    const activeVisitsCount = await db.booking.count({
+      where: { status: 'in_progress' },
     });
 
-    // Open bookings: pending, confirmed, in_progress (not completed/cancelled)
-    const openBookingsCount = await prisma.booking.count({
-      where: whereOrg(orgId, {
+    const openBookingsCount = await db.booking.count({
+      where: {
         status: { in: ['pending', 'confirmed', 'in_progress'] },
-      }),
+      },
     });
 
-    // Revenue YTD: from paid bookings or StripeCharge
     const [paidBookingsSum, stripeChargesSum] = await Promise.all([
-      prisma.booking.aggregate({
-        where: whereOrg(orgId, {
+      db.booking.aggregate({
+        where: {
           paymentStatus: 'paid',
           startAt: { gte: ytdStart },
-        }),
+        },
         _sum: { totalPrice: true },
       }),
-      prisma.stripeCharge.aggregate({
+      db.stripeCharge.aggregate({
         where: {
-          orgId,
           status: 'succeeded',
           createdAt: { gte: ytdStart },
         },
@@ -66,12 +61,12 @@ export async function GET() {
     const ninetyDaysAgo = new Date(now);
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    const clientsWithBookings = await prisma.booking.groupBy({
+    const clientsWithBookings = await db.booking.groupBy({
       by: ['clientId'],
-      where: whereOrg(orgId, {
+      where: {
         startAt: { gte: ninetyDaysAgo },
         clientId: { not: null },
-      }),
+      },
       _count: { id: true },
     });
 

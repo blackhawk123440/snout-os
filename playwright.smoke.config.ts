@@ -11,6 +11,9 @@ import * as path from 'path';
 export default defineConfig({
   testDir: './tests',
   testMatch: [
+    '**/smoke.spec.ts',
+    '**/smoke-closed-loop.spec.ts',
+    '**/smoke-ops.spec.ts',
     '**/role-routing.spec.ts',
     '**/messaging-features.spec.ts',
     '**/pool-exhausted-confirmation.spec.ts',
@@ -55,6 +58,14 @@ export default defineConfig({
         storageState: path.join(__dirname, 'tests', '.auth', 'sitter.json'),
       },
     },
+    {
+      name: 'client',
+      use: {
+        ...devices['iPhone 13'],
+        viewport: { width: 390, height: 844 },
+        storageState: path.join(__dirname, 'tests', '.auth', 'client.json'),
+      },
+    },
   ],
 
   // webServer: In CI, the server is started manually, so reuseExistingServer will skip starting it
@@ -74,6 +85,8 @@ export default defineConfig({
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test_secret',
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.BASE_URL || 'http://localhost:3000',
       ENABLE_OPS_SEED: 'true',
+      ENABLE_E2E_LOGIN: 'true',
+      E2E_AUTH_KEY: process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production',
       ENABLE_MESSAGING_V1: 'true',
       NEXT_PUBLIC_ENABLE_MESSAGING_V1: 'true',
     },

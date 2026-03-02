@@ -85,21 +85,16 @@ describe('Number Assignment Helpers', () => {
   });
 
   describe('assignSitterMaskedNumber', () => {
-    it('should return existing active masked number', async () => {
-      const mockMaskedNumber = {
-        id: 'sitter-masked-1',
-        sitterId: 'sitter-1',
-        messageNumberId: 'number-1',
+    it('should return existing active masked number (via MessageNumber.assignedSitterId)', async () => {
+      const mockNumber = {
+        id: 'number-1',
+        e164: '+15551234568',
+        assignedSitterId: 'sitter-1',
+        numberClass: 'sitter',
         status: 'active',
-        messageNumber: {
-          id: 'number-1',
-          e164: '+15551234568',
-        },
       };
 
-      (prisma.sitterMaskedNumber.findUnique as any).mockResolvedValue(
-        mockMaskedNumber
-      );
+      (prisma.messageNumber.findFirst as any).mockResolvedValue(mockNumber);
 
       const result = await assignSitterMaskedNumber(
         'org-1',
@@ -109,7 +104,7 @@ describe('Number Assignment Helpers', () => {
 
       expect(result).toEqual({
         numberId: 'number-1',
-        sitterMaskedNumberId: 'sitter-masked-1',
+        sitterMaskedNumberId: 'number-1',
         e164: '+15551234568',
       });
     });
@@ -206,7 +201,7 @@ describe('Number Assignment Helpers', () => {
         where: { id: 'thread-1' },
         data: {
           messageNumberId: 'front-desk-1',
-          numberClass: 'front_desk', // Always derive from MessageNumber
+          numberClass: 'front_desk',
           maskedNumberE164: '+15551234567',
         },
       });
@@ -236,12 +231,11 @@ describe('Number Assignment Helpers', () => {
         { sitterId: 'sitter-1' }
       );
 
-      // Verify thread.numberClass is set to MessageNumber.numberClass
       expect(prisma.messageThread.update).toHaveBeenCalledWith({
         where: { id: 'thread-1' },
         data: {
           messageNumberId: 'sitter-1',
-          numberClass: 'sitter', // Derived from MessageNumber, not passed parameter
+          numberClass: 'sitter',
           maskedNumberE164: '+15551234568',
         },
       });

@@ -9,6 +9,7 @@ import {
   AppSkeletonList,
   AppErrorState,
 } from '@/components/app';
+import { useToast } from '@/components/ui';
 
 interface Message {
   id: string;
@@ -37,6 +38,7 @@ export default function ClientMessageThreadPage() {
   const [error, setError] = useState<string | null>(null);
   const [composerValue, setComposerValue] = useState('');
   const [sending, setSending] = useState(false);
+  const { showToast } = useToast();
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -85,6 +87,8 @@ export default function ClientMessageThreadPage() {
             ? { ...prev, messages: [...prev.messages, json] }
             : prev
         );
+        showToast({ message: 'Message sent', variant: 'success' });
+        void load();
       }
     } finally {
       setSending(false);

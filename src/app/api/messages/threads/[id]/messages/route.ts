@@ -1,105 +1,149 @@
 /**
  * Get Messages for Thread Route
- * 
+ *
  * GET /api/messages/threads/[id]/messages
- * Proxies to NestJS API to get messages for a thread.
+ * When NEXT_PUBLIC_API_URL is set: proxies to NestJS API.
+ * Otherwise: reads from Prisma MessageEvent (source of truth).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { mintApiJWT } from '@/lib/api/jwt';
-import { prisma } from '@/lib/db';
+import { getScopedDb } from '@/lib/tenancy';
 import { chooseFromNumber } from '@/lib/messaging/choose-from-number';
 import { getClientE164ForClient } from '@/lib/messaging/client-contact-lookup';
 import { getMessagingProvider } from '@/lib/messaging/provider-factory';
+import { checkRateLimit, getRateLimitIdentifier } from '@/lib/rate-limit';
+import { logEvent } from '@/lib/log-event';
+import { publish, channels } from '@/lib/realtime/bus';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+/** Map MessageEvent to Message shape expected by InboxView (deliveries array) */
+function messageEventToMessage(ev: {
+  id: string;
+  threadId: string;
+  direction: string;
+  actorType: string;
+  actorUserId: string | null;
+  body: string;
+  deliveryStatus: string;
+  providerMessageSid: string | null;
+  failureCode: string | null;
+  failureDetail: string | null;
+  providerErrorCode: string | null;
+  providerErrorMessage: string | null;
+  createdAt: Date;
+}) {
+  const delivery = {
+    id: ev.id,
+    attemptNo: 1,
+    status: ev.deliveryStatus as 'queued' | 'sent' | 'delivered' | 'failed',
+    providerErrorCode: ev.providerErrorCode ?? ev.failureCode,
+    providerErrorMessage: ev.providerErrorMessage ?? ev.failureDetail,
+    createdAt: ev.createdAt.toISOString(),
+  };
+  return {
+    id: ev.id,
+    threadId: ev.threadId,
+    direction: ev.direction as 'inbound' | 'outbound',
+    senderType: ev.actorType as 'client' | 'sitter' | 'owner' | 'system' | 'automation',
+    senderId: ev.actorUserId,
+    body: ev.body,
+    redactedBody: null as string | null,
+    hasPolicyViolation: false,
+    createdAt: ev.createdAt.toISOString(),
+    deliveries: [delivery],
+    policyViolations: [],
+  };
+}
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
   const params = await context.params;
   const threadId = params.id;
 
   const session = await auth();
-
   if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let apiToken: string;
-  try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
+  const orgId = (session.user as { orgId?: string }).orgId ?? 'default';
 
-  // API endpoint: GET /api/messages/threads/:threadId
-  const apiUrl = `${API_BASE_URL}/api/messages/threads/${threadId}`;
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-    });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
+  if (API_BASE_URL) {
+    let apiToken: string;
+    try {
+      const user = session.user as any;
+      apiToken = await mintApiJWT({
+        userId: user.id || user.email || '',
+        orgId,
+        role: user.role || (user.sitterId ? 'sitter' : 'owner'),
+        sitterId: user.sitterId || null,
+      });
+    } catch (error: any) {
+      console.error('[BFF Proxy] Failed to mint API JWT:', error);
+      return NextResponse.json({ error: 'Failed to authenticate with API' }, { status: 500 });
     }
 
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
+    const apiUrl = `${API_BASE_URL}/api/messages/threads/${threadId}`;
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'GET',
         headers: {
-          'Content-Type': contentType || 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`,
         },
       });
-    }
 
-    // API returns messages array directly
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
-      },
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward messages request:', error);
-    return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
-    );
+      const contentType = response.headers.get('content-type');
+      const responseData = contentType?.includes('application/json')
+        ? await response.json()
+        : await response.text();
+
+      if (!response.ok) {
+        return NextResponse.json(responseData, {
+          status: response.status,
+          headers: { 'Content-Type': contentType || 'application/json' },
+        });
+      }
+
+      return NextResponse.json(responseData, {
+        status: response.status,
+        headers: { 'Content-Type': contentType || 'application/json', 'X-Snout-Route': 'nestjs-proxy' },
+      });
+    } catch (error: any) {
+      console.error('[BFF Proxy] Failed to forward messages request:', error);
+      return NextResponse.json(
+        { error: 'Failed to reach API server', message: error.message },
+        { status: 502 }
+      );
+    }
   }
+
+  // Prisma source of truth (scoped by orgId)
+  const db = getScopedDb({ orgId });
+  const thread = await db.messageThread.findUnique({
+    where: { id: threadId },
+    select: { id: true, orgId: true },
+  });
+
+  if (!thread) {
+    return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
+  }
+
+  const events = await db.messageEvent.findMany({
+    where: { threadId },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  const messages = events.map((ev) => messageEventToMessage(ev));
+
+  return NextResponse.json(messages, {
+    status: 200,
+    headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': orgId },
+  });
 }
 
 export async function POST(
@@ -108,6 +152,15 @@ export async function POST(
 ) {
   const params = await context.params;
   const threadId = params.id;
+
+  const id = getRateLimitIdentifier(request);
+  const rl = await checkRateLimit(id, { keyPrefix: 'messages-send', limit: 30, windowSec: 60 });
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: 'Too many requests', retryAfter: rl.retryAfter },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter ?? 60) } }
+    );
+  }
 
   const session = await auth();
 
@@ -208,239 +261,155 @@ export async function POST(
     }
   }
 
-  // Fallback: Direct Prisma implementation
+  // Prisma source of truth (used when API not set or API request failed)
+  const db = getScopedDb({ orgId });
   try {
-    // Load thread with relationships
-    const thread = await (prisma as any).thread.findUnique({
+    const thread = await db.messageThread.findUnique({
       where: { id: threadId },
       include: {
         messageNumber: true,
-        client: { select: { id: true, name: true } },
-        sitter: true,
+        client: { select: { id: true, firstName: true, lastName: true } },
         assignmentWindows: {
           where: {
-            startsAt: { lte: new Date() },
-            endsAt: { gte: new Date() },
+            startAt: { lte: new Date() },
+            endAt: { gte: new Date() },
           },
-          include: {
-            sitter: {
-              include: {
-                assignedNumbers: {
-                  where: {
-                    status: 'active',
-                    class: 'sitter',
-                  },
-                },
-              },
-            },
-          },
-          orderBy: { startsAt: 'desc' },
+          orderBy: { startAt: 'desc' },
           take: 1,
         },
       },
     });
 
     if (!thread) {
-      return NextResponse.json(
-        { error: 'Thread not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
     }
 
-    // Check org scoping
-    if (thread.orgId !== orgId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      );
-    }
-
-    // CRITICAL: If sender is a sitter, check assignment window
     if (user.sitterId) {
       const now = new Date();
       const activeWindow = thread.assignmentWindows?.[0];
-      
       if (!activeWindow || activeWindow.sitterId !== user.sitterId) {
-        console.log('[Send Message] Sitter blocked - no active window', {
-          sitterId: user.sitterId,
-          threadId,
-          hasWindow: !!activeWindow,
-          windowSitterId: activeWindow?.sitterId,
-        });
-        
         return NextResponse.json(
-          { 
-            error: 'Cannot send message outside active assignment window',
-            code: 'WINDOW_NOT_ACTIVE',
-          },
+          { error: 'Cannot send message outside active assignment window', code: 'WINDOW_NOT_ACTIVE' },
           { status: 403 }
         );
       }
-
-      // Check window is actually active (time-based)
-      if (now < activeWindow.startsAt || now > activeWindow.endsAt) {
-        console.log('[Send Message] Sitter blocked - window not active', {
-          sitterId: user.sitterId,
-          threadId,
-          now: now.toISOString(),
-          windowStart: activeWindow.startsAt.toISOString(),
-          windowEnd: activeWindow.endsAt.toISOString(),
-        });
-        
+      if (now < activeWindow.startAt || now > activeWindow.endAt) {
         return NextResponse.json(
-          { 
-            error: 'Assignment window is not active. Messages can only be sent during active assignment windows.',
+          {
+            error: 'Assignment window is not active.',
             code: 'WINDOW_NOT_ACTIVE',
-            windowStartsAt: activeWindow.startsAt.toISOString(),
-            windowEndsAt: activeWindow.endsAt.toISOString(),
+            windowStartsAt: activeWindow.startAt.toISOString(),
+            windowEndsAt: activeWindow.endAt.toISOString(),
           },
           { status: 403 }
         );
       }
     }
 
-    // Choose from number using unified routing function
+    const clientId = thread.clientId;
+    if (!clientId) {
+      return NextResponse.json({ error: 'Thread has no client' }, { status: 400 });
+    }
+
     const routingResult = await chooseFromNumber(threadId, orgId);
-    
-    // Log routing decision
-    console.log('[Send Message] Routing decision', {
-      orgId,
-      threadId,
-      chosenNumberId: routingResult.numberId,
-      chosenE164: routingResult.e164,
-      numberClass: routingResult.numberClass,
-      reason: routingResult.reason,
-      windowId: routingResult.windowId,
-      routingTrace: routingResult.routingTrace,
-    });
-
-    // Get recipient E164 (raw SQL to avoid ClientContact.orgld)
-    const toE164 = await getClientE164ForClient(thread.orgId, thread.clientId);
+    const toE164 = await getClientE164ForClient(thread.orgId, clientId);
     if (!toE164) {
-      return NextResponse.json(
-        { error: 'Client contact not found' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Client contact not found' }, { status: 400 });
     }
 
-    // Send via provider with explicit E164
     const provider = await getMessagingProvider(orgId);
     const sendResult = await provider.sendMessage({
       to: toE164,
-      fromE164: routingResult.e164, // Use actual E164 from chosen number
-      fromNumberSid: undefined, // Not needed when E164 is provided
+      fromE164: routingResult.e164,
+      fromNumberSid: undefined,
       body: messageBody,
     });
-    
-    // Log send result
-    console.log('[Send Message] Twilio send result', {
-      orgId,
-      threadId,
-      to: toE164,
-      from: routingResult.e164,
-      success: sendResult.success,
-      messageSid: sendResult.messageSid,
-      errorCode: sendResult.errorCode,
-      errorMessage: sendResult.errorMessage,
+
+    const event = await db.messageEvent.create({
+      data: {
+        threadId,
+        orgId,
+        direction: 'outbound',
+        actorType: senderType,
+        actorUserId: senderId,
+        body: messageBody,
+        deliveryStatus: sendResult.success ? 'sent' : 'failed',
+        providerMessageSid: sendResult.messageSid ?? null,
+        failureCode: sendResult.success ? null : (sendResult.errorCode ?? 'UNKNOWN_ERROR'),
+        failureDetail: sendResult.success ? null : (sendResult.errorMessage ?? 'Failed to send message'),
+        providerErrorCode: sendResult.success ? null : (sendResult.errorCode ?? 'UNKNOWN_ERROR'),
+        providerErrorMessage: sendResult.success ? null : (sendResult.errorMessage ?? 'Failed to send message'),
+        attemptCount: 1,
+        lastAttemptAt: new Date(),
+      },
+    });
+
+    await db.messageThread.update({
+      where: { id: threadId },
+      data: {
+        lastMessageAt: new Date(),
+        lastOutboundAt: new Date(),
+      },
     });
 
     if (!sendResult.success) {
-      // Log Twilio error details
-      console.error('[Send Message] Twilio send failed', {
+      logEvent({
         orgId,
-        threadId,
-        to: toE164,
-        from: routingResult.e164,
-        errorCode: sendResult.errorCode,
-        errorMessage: sendResult.errorMessage,
-        twilioErrorCode: sendResult.errorCode,
-        twilioErrorMessage: sendResult.errorMessage,
-      });
-
-      // Create failed message record
-      const message = await (prisma as any).message.create({
-        data: {
-          orgId,
+        actorUserId: senderId,
+        action: 'message.failed',
+        entityType: 'message',
+        entityId: event.id,
+        metadata: {
           threadId,
-          direction: 'outbound',
-          senderType,
-          senderId,
-          body: messageBody,
-          providerMessageSid: null,
+          errorCode: sendResult.errorCode,
+          errorMessage: sendResult.errorMessage,
         },
-      });
-
-      // Create delivery record with error
-      await (prisma as any).messageDelivery.create({
-        data: {
-          messageId: message.id,
-          attemptNo: 1,
-          status: 'failed',
-          providerErrorCode: sendResult.errorCode || 'UNKNOWN_ERROR',
-          providerErrorMessage: sendResult.errorMessage || 'Failed to send message',
-        },
-      });
+      }).catch(() => {});
+      publish(channels.messagesThread(orgId, threadId), {
+        type: 'message.updated',
+        threadId,
+        messageId: event.id,
+        ts: Date.now(),
+      }).catch(() => {});
 
       return NextResponse.json(
-        { 
-          messageId: message.id,
+        {
+          messageId: event.id,
           hasPolicyViolation: false,
           error: sendResult.errorMessage || 'Failed to send message',
           errorCode: sendResult.errorCode,
-          // Surface Twilio error for UI
-          twilioError: {
-            code: sendResult.errorCode,
-            message: sendResult.errorMessage,
-          },
+          twilioError: { code: sendResult.errorCode, message: sendResult.errorMessage },
         },
         { status: 500 }
       );
     }
 
-    // Create successful message record
-    const message = await (prisma as any).message.create({
-      data: {
-        orgId,
-        threadId,
-        direction: 'outbound',
-        senderType,
-        senderId,
-        body: messageBody,
-        providerMessageSid: sendResult.messageSid || null,
-      },
-    });
+    logEvent({
+      orgId,
+      actorUserId: senderId,
+      action: 'message.sent',
+      entityType: 'message',
+      entityId: event.id,
+      metadata: { threadId, providerMessageSid: sendResult.messageSid },
+    }).catch(() => {});
+    publish(channels.messagesThread(orgId, threadId), {
+      type: 'message.new',
+      threadId,
+      messageId: event.id,
+      ts: Date.now(),
+    }).catch(() => {});
 
-    // Create delivery record with success
-    await (prisma as any).messageDelivery.create({
-      data: {
-        messageId: message.id,
-        attemptNo: 1,
-        status: 'sent',
-        providerErrorCode: null,
-        providerErrorMessage: null,
+    return NextResponse.json(
+      {
+        messageId: event.id,
+        providerMessageSid: sendResult.messageSid,
+        hasPolicyViolation: false,
       },
-    });
-
-    // Update thread activity
-    await (prisma as any).thread.update({
-      where: { id: threadId },
-      data: {
-        lastActivityAt: new Date(),
-        lastOutboundAt: new Date(),
-      },
-    });
-
-    return NextResponse.json({
-      messageId: message.id,
-      providerMessageSid: sendResult.messageSid,
-      hasPolicyViolation: false,
-    }, {
-      status: 200,
-      headers: {
-        'X-Snout-Route': 'prisma-fallback',
-        'X-Snout-OrgId': orgId,
-      },
-    });
+      {
+        status: 200,
+        headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': orgId },
+      }
+    );
   } catch (error: any) {
     console.error('[Direct Prisma] Error sending message:', error);
     return NextResponse.json(

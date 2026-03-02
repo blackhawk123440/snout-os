@@ -28,10 +28,10 @@ export async function getOrCreateFrontDeskNumber(
   provider: MessagingProvider
 ): Promise<{ numberId: string; e164: string }> {
   // Check for existing Front Desk number
-  const existing = await (prisma as any).messageNumber.findFirst({
+  const existing = await prisma.messageNumber.findFirst({
     where: {
       orgId,
-      class: 'front_desk',
+      numberClass: 'front_desk',
       status: 'active',
     },
   });
@@ -86,10 +86,10 @@ export async function assignSitterMaskedNumber(
   }
 
   // Find available sitter-class number
-  messageNumber = await (prisma as any).messageNumber.findFirst({
+  messageNumber = await prisma.messageNumber.findFirst({
     where: {
       orgId,
-      class: 'sitter',
+      numberClass: 'sitter',
       assignedSitterId: null,
       status: 'active',
     },
@@ -153,7 +153,7 @@ export async function getPoolNumber(
   // Find available pool numbers
   const whereClause: any = {
     orgId,
-    class: 'pool',
+    numberClass: 'pool',
     status: 'active',
   };
 
@@ -163,8 +163,7 @@ export async function getPoolNumber(
     };
   }
 
-  // Get all available pool numbers
-  let poolNumbers = await (prisma as any).messageNumber.findMany({
+  let poolNumbers = await prisma.messageNumber.findMany({
     where: whereClause,
   });
 
@@ -178,13 +177,12 @@ export async function getPoolNumber(
   
   // Get thread counts for each pool number
   const numberIds = poolNumbers.map((n: any) => n.id);
-  // Note: Thread model uses numberId, not messageNumberId, and status is 'active' | 'inactive'
-  const threadCounts = await (prisma as any).thread.groupBy({
-    by: ['numberId'],
+  const threadCounts = await prisma.messageThread.groupBy({
+    by: ['messageNumberId'],
     where: {
       orgId,
-      numberId: { in: numberIds },
-      status: 'active',
+      messageNumberId: { in: numberIds },
+      status: 'open',
     },
     _count: {
       id: true,
@@ -193,8 +191,8 @@ export async function getPoolNumber(
 
   const countMap = new Map<string, number>();
   for (const tc of threadCounts) {
-    if (tc.numberId) {
-      countMap.set(tc.numberId, tc._count.id);
+    if (tc.messageNumberId) {
+      countMap.set(tc.messageNumberId, tc._count.id);
     }
   }
 
@@ -290,11 +288,10 @@ export async function getPoolNumber(
     selected = availableNumbers[0];
   }
 
-  // Update lastUsedAt for rotation tracking
-  await (prisma as any).messageNumber.update({
+  await prisma.messageNumber.update({
     where: { id: selected.id },
     data: {
-      lastUsedAt: new Date(),
+      lastAssignedAt: new Date(),
     },
   });
 
@@ -421,7 +418,7 @@ export async function assignNumberToThread(
 
   // Update thread with number assignment
   // Ensure thread.numberClass matches MessageNumber.numberClass
-  const messageNumber = await (prisma as any).messageNumber.findUnique({
+  const messageNumber = await prisma.messageNumber.findUnique({
     where: { id: numberId },
   });
 
@@ -429,27 +426,26 @@ export async function assignNumberToThread(
     throw new Error(`MessageNumber ${numberId} not found`);
   }
 
-  // Validate number class matches
-  if (messageNumber.class !== numberClass) {
+  const numClass = messageNumber.numberClass ?? 'front_desk';
+  if (numClass !== numberClass) {
     throw new Error(
-      `Number class mismatch: MessageNumber has ${messageNumber.class}, expected ${numberClass}`
+      `Number class mismatch: MessageNumber has ${numClass}, expected ${numberClass}`
     );
   }
 
-  // Update thread
-  // Note: Thread model uses numberId, not messageNumberId, and doesn't have numberClass or maskedNumberE164
-  await (prisma as any).thread.update({
+  await prisma.messageThread.update({
     where: { id: threadId },
     data: {
-      numberId: numberId, // Thread model uses numberId
-      // numberClass and maskedNumberE164 are not on Thread model
+      messageNumberId: numberId,
+      numberClass: numClass,
+      maskedNumberE164: e164,
     },
   });
 
   return {
     numberId,
     e164,
-    numberClass: messageNumber.class,
+    numberClass: numClass as NumberClass,
   };
 }
 
@@ -469,38 +465,35 @@ export async function validatePoolNumberRouting(
   threadId?: string;
   reason?: string;
 }> {
-  const messageNumber = await (prisma as any).messageNumber.findUnique({
+  const messageNumber = await prisma.messageNumber.findUnique({
     where: { id: numberId },
   });
 
-  if (!messageNumber || messageNumber.class !== 'pool') {
+  if (!messageNumber || messageNumber.numberClass !== 'pool') {
     return {
       isValid: false,
       reason: 'Number is not a pool number',
     };
   }
 
-  // Find active threads using this pool number
-  // Note: Thread model uses numberId, not messageNumberId, and status is 'active' | 'inactive'
-  const activeThreads = await (prisma as any).thread.findMany({
+  const activeThreads = await prisma.messageThread.findMany({
     where: {
       orgId,
-      numberId: numberId, // Thread model uses numberId
-      status: 'active',
+      messageNumberId: numberId,
+      status: 'open',
     },
     include: {
       participants: {
         where: {
-          participantType: 'client', // ThreadParticipant uses participantType, not role
-          // Note: ThreadParticipant doesn't have realE164 - this check needs API implementation
+          role: 'client',
+          realE164: senderE164,
         },
       },
     },
   });
 
-  // Check if sender is a participant in any active thread
   const matchingThread = activeThreads.find(
-    (thread: any) => thread.participants.length > 0
+    (thread) => thread.participants.length > 0
   );
 
   if (matchingThread) {

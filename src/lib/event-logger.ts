@@ -17,77 +17,84 @@ export interface EventLogMetadata {
 }
 
 /**
- * Log an automation run event
- * 
- * Use this to log when an automation executes, succeeds, or fails.
+ * Log an automation run event to EventLog.
+ * Use for automation.execute, automation.failed, etc.
  */
 export async function logAutomationRun(
   automationType: string,
   status: EventLogStatus,
   options?: {
+    orgId?: string;
     bookingId?: string;
     error?: string;
     metadata?: EventLogMetadata;
   }
 ): Promise<void> {
   try {
-    // Note: eventLog model not available in API schema - use AuditEvent instead
-    // Cast to any to avoid type issues with Json fields
-    await (prisma as any).auditEvent.create({
+    await (prisma as any).eventLog.create({
       data: {
-        orgId: 'unknown', // Would need to be passed in
-        actorType: 'system',
-        eventType: `automation.run.${automationType}`,
-        correlationIds: {}, // Required field - empty object for system events
-        payload: {
+        orgId: options?.orgId ?? 'default',
+        eventType: status === 'failed' ? 'automation.failed' : `automation.run.${automationType}`,
+        automationType,
+        status,
+        error: options?.error ?? null,
+        bookingId: options?.bookingId ?? null,
+        metadata: JSON.stringify({
           automationType,
-          status,
-          bookingId: options?.bookingId,
-          error: options?.error,
           ...options?.metadata,
-        },
+        }),
       },
     });
   } catch (error) {
-    // Don't throw - logging failures shouldn't break the application
     console.error("[EventLog] Failed to log automation run:", error);
   }
 }
 
 /**
- * Log a general event (not automation-specific)
- * 
- * Use this for other events like booking.created, payment.success, etc.
+ * Log a general event (not automation-specific) to EventLog.
+ * Used by messaging, pricing-reconciliation, etc.
+ * Prefer logEvent from @/lib/log-event for booking/payment events.
  */
-export async function logEvent(
+export async function logEventFromLogger(
   eventType: string,
   status: EventLogStatus,
   options?: {
+    orgId?: string;
     bookingId?: string;
     error?: string;
     metadata?: EventLogMetadata;
   }
 ): Promise<void> {
   try {
-    // Note: eventLog model not available in API schema - use AuditEvent instead
-    // Cast to any to avoid type issues with Json fields
-    await (prisma as any).auditEvent.create({
+    await (prisma as any).eventLog.create({
       data: {
-        orgId: 'unknown', // Would need to be passed in
-        actorType: 'system',
+        orgId: options?.orgId ?? 'default',
         eventType,
-        correlationIds: {}, // Required field - empty object for system events
-        payload: {
-          status,
-          bookingId: options?.bookingId,
-          error: options?.error,
-          ...options?.metadata,
-        },
+        status,
+        error: options?.error ?? null,
+        bookingId: options?.bookingId ?? null,
+        metadata: JSON.stringify(options?.metadata ?? {}),
       },
     });
   } catch (error) {
-    // Don't throw - logging failures shouldn't break the application
     console.error("[EventLog] Failed to log event:", error);
   }
+}
+
+/**
+ * Log a general event. Alias for logEventFromLogger.
+ * Signature: (eventType, status, options) for backward compatibility with messaging/pricing-reconciliation.
+ */
+export async function logEvent(
+  eventType: string,
+  status: EventLogStatus,
+  options?: {
+    orgId?: string;
+    bookingId?: string;
+    error?: string;
+    metadata?: EventLogMetadata;
+  }
+): Promise<void> {
+  return logEventFromLogger(eventType, status, options);
 }
 

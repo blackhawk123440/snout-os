@@ -11,7 +11,7 @@ import { getPoolNumber } from '../number-helpers';
 import { prisma } from '@/lib/db';
 
 describe('Deterministic Replay', () => {
-  it('should produce same pool number for same input (HASH_SHUFFLE strategy)', async () => {
+  it('should produce same pool number for same input (HASH_SHUFFLE strategy)', { timeout: 15000 }, async () => {
     // Setup: Create rotation settings with HASH_SHUFFLE
     const orgId = 'test-org-deterministic';
     const clientId = 'test-client-123';

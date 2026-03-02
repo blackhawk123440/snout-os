@@ -149,6 +149,7 @@ model Sitter {
   googleTokenExpiry    DateTime?
   googleCalendarId     String?   @default("primary")
   calendarSyncEnabled  Boolean   @default(false)
+  respectGoogleBusy    Boolean   @default(false) // When true, block availability from Google busy
   availabilityEnabled  Boolean   @default(true) // Sitter-managed: available for new bookings
   // SRS System relations
   tierSnapshots        SitterTierSnapshot[]
@@ -971,10 +972,12 @@ model StripeCharge {
   amountRefunded  Int       @default(0)
   currency        String    @default("usd")
   status          String // succeeded, pending, failed
+  lastError       String?   @db.Text // Error message when status=failed
   description     String?   @db.Text
   customerId      String? // Stripe customer ID
   customerEmail   String?
   customerName    String?
+  clientId        String? // Client ID from booking for billing history
   paymentMethod   String? // card, bank_account, etc.
   paymentIntentId String? // Stripe payment intent ID
   invoiceId       String? // Stripe invoice ID
@@ -985,6 +988,7 @@ model StripeCharge {
   syncedAt        DateTime  @default(now()) @updatedAt
 
   @@index([orgId])
+  @@index([clientId])
   @@index([customerId])
   @@index([bookingId])
   @@index([status])
@@ -1652,13 +1656,15 @@ model MessageResponseLink {
 // ============================================
 
 model BookingCalendarEvent {
-  id                  String    @id @default(uuid())
-  orgId               String    @default("default")
-  bookingId           String
-  sitterId            String
-  googleCalendarEventId String // Google Calendar event ID
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                     String    @id @default(uuid())
+  orgId                  String    @default("default")
+  bookingId              String
+  sitterId               String
+  googleCalendarEventId  String?   // null if not yet synced or event deleted
+  payloadChecksum        String?   // Deterministic hash; skip update if unchanged
+  lastSyncedAt           DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   // Relations
   booking             Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)

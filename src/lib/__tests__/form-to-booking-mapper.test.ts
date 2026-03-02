@@ -285,13 +285,14 @@ describe("Form to Booking Mapper", () => {
       const { input } = mapFormPayloadToBookingInput(payload);
 
       expect(input.pets).toBeDefined();
-      expect(input.pets?.create).toHaveLength(3);
-      expect(input.pets?.create?.[0].name).toBe("Buddy");
-      expect(input.pets?.create?.[0].species).toBe("Dog");
-      expect(input.pets?.create?.[1].name).toBe("Whiskers");
-      expect(input.pets?.create?.[1].species).toBe("Cat");
-      expect(input.pets?.create?.[2].name).toBe("Tweety");
-      expect(input.pets?.create?.[2].species).toBe("Bird");
+      expect(Array.isArray(input.pets)).toBe(true);
+      expect(input.pets).toHaveLength(3);
+      expect(input.pets?.[0].name).toBe("Buddy");
+      expect(input.pets?.[0].species).toBe("Dog");
+      expect(input.pets?.[1].name).toBe("Whiskers");
+      expect(input.pets?.[1].species).toBe("Cat");
+      expect(input.pets?.[2].name).toBe("Tweety");
+      expect(input.pets?.[2].species).toBe("Bird");
     });
 
     it("should handle legacy petNames/petSpecies format", () => {
@@ -310,11 +311,11 @@ describe("Form to Booking Mapper", () => {
       const { input } = mapFormPayloadToBookingInput(payload);
 
       expect(input.pets).toBeDefined();
-      expect(input.pets?.create).toHaveLength(2);
-      expect(input.pets?.create?.[0].name).toBe("Max");
-      expect(input.pets?.create?.[0].species).toBe("Dog");
-      expect(input.pets?.create?.[1].name).toBe("Lucy");
-      expect(input.pets?.create?.[1].species).toBe("Dog");
+      expect(input.pets).toHaveLength(2);
+      expect(input.pets?.[0].name).toBe("Max");
+      expect(input.pets?.[0].species).toBe("Dog");
+      expect(input.pets?.[1].name).toBe("Lucy");
+      expect(input.pets?.[1].species).toBe("Dog");
     });
 
     it("should default to one pet when no pets provided", () => {
@@ -331,9 +332,9 @@ describe("Form to Booking Mapper", () => {
       const { input } = mapFormPayloadToBookingInput(payload);
 
       expect(input.pets).toBeDefined();
-      expect(input.pets?.create).toHaveLength(1);
-      expect(input.pets?.create?.[0].name).toBe("Pet 1");
-      expect(input.pets?.create?.[0].species).toBe("Dog");
+      expect(input.pets).toHaveLength(1);
+      expect(input.pets?.[0].name).toBe("Pet 1");
+      expect(input.pets?.[0].species).toBe("Dog");
     });
   });
 
@@ -411,9 +412,9 @@ describe("Form to Booking Mapper", () => {
       const { input } = mapFormPayloadToBookingInput(payload);
 
       expect(input.timeSlots).toBeDefined();
-      expect(input.timeSlots?.create).toHaveLength(2);
-      expect(input.timeSlots?.create?.[0].duration).toBe(30);
-      expect(input.timeSlots?.create?.[1].duration).toBe(60);
+      expect(input.timeSlots).toHaveLength(2);
+      expect(input.timeSlots?.[0].duration).toBe(30);
+      expect(input.timeSlots?.[1].duration).toBe(60);
     });
 
     it("should handle timeValue and durationValue alternative field names", () => {
@@ -436,8 +437,8 @@ describe("Form to Booking Mapper", () => {
       const { input } = mapFormPayloadToBookingInput(payload);
 
       expect(input.timeSlots).toBeDefined();
-      expect(input.timeSlots?.create).toHaveLength(1);
-      expect(input.timeSlots?.create?.[0].duration).toBe(45);
+      expect(input.timeSlots).toHaveLength(1);
+      expect(input.timeSlots?.[0].duration).toBe(45);
     });
   });
 

@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
+import { Input, Button } from '@/components/ui';
 
 type SessionUser = {
   role?: string;
@@ -62,51 +63,45 @@ export default function LoginPage() {
         <p className="mt-1 text-center text-sm text-neutral-600">Use your email and password to continue.</p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-neutral-700">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none ring-0 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              placeholder="you@example.com"
-            />
-          </div>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            label="Email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            fullWidth
+          />
 
-          <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium text-neutral-700">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none ring-0 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              placeholder="••••••••"
-            />
-          </div>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            label="Password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="••••••••"
+            fullWidth
+          />
 
           {error ? (
             <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
           ) : null}
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            variant="primary"
+            className="w-full"
+            isLoading={loading}
           >
             {loading ? 'Signing in...' : 'Sign in'}
-          </button>
+          </Button>
         </form>
       </div>
     </main>

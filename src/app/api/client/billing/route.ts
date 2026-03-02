@@ -4,10 +4,9 @@
  */
 
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { getScopedDb } from '@/lib/tenancy';
 import { getRequestContext } from '@/lib/request-context';
 import { ForbiddenError, requireRole } from '@/lib/rbac';
-import { whereOrg } from '@/lib/org-scope';
 
 export async function GET() {
   let ctx;
@@ -25,14 +24,15 @@ export async function GET() {
     return NextResponse.json({ error: 'Client profile missing' }, { status: 403 });
   }
 
+  const db = getScopedDb(ctx);
   try {
-    const [unpaidBookings, loyalty] = await Promise.all([
-      prisma.booking.findMany({
-        where: whereOrg(ctx.orgId, {
+    const [unpaidBookings, loyalty, paymentHistory] = await Promise.all([
+      db.booking.findMany({
+        where: {
           clientId: ctx.clientId,
           paymentStatus: { not: 'paid' },
           status: { not: 'cancelled' },
-        }),
+        },
         select: {
           id: true,
           service: true,
@@ -44,9 +44,15 @@ export async function GET() {
         orderBy: { startAt: 'desc' },
         take: 20,
       }),
-      prisma.loyaltyReward.findFirst({
-        where: { orgId: ctx.orgId, clientId: ctx.clientId },
+      db.loyaltyReward.findFirst({
+        where: { clientId: ctx.clientId },
         select: { points: true, tier: true },
+      }),
+      db.stripeCharge.findMany({
+        where: { clientId: ctx.clientId },
+        select: { id: true, amount: true, status: true, createdAt: true, bookingId: true },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
       }),
     ]);
 
@@ -59,8 +65,17 @@ export async function GET() {
       paymentStatus: b.paymentStatus,
     }));
 
+    const payments = (paymentHistory || []).map((p: any) => ({
+      id: p.id,
+      amount: p.amount / 100,
+      status: p.status,
+      createdAt: p.createdAt instanceof Date ? p.createdAt.toISOString() : p.createdAt,
+      bookingId: p.bookingId,
+    }));
+
     return NextResponse.json({
       invoices,
+      payments,
       loyalty: loyalty
         ? { points: loyalty.points, tier: loyalty.tier }
         : { points: 0, tier: 'bronze' },

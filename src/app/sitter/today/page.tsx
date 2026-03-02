@@ -3,6 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, useToast } from '@/components/ui';
+import { useAuth } from '@/lib/auth-client';
+import { useOffline } from '@/hooks/useOffline';
+import { useSSE } from '@/hooks/useSSE';
+import { usePageVisible } from '@/hooks/usePageVisible';
+import { saveTodayVisits, getTodayVisits } from '@/lib/offline';
+import { enqueueAction, getActionsForBooking } from '@/lib/offline';
 import {
   SitterCard,
   SitterCardHeader,
@@ -227,15 +233,20 @@ const formatTimeRange = (startAt: string, endAt: string) => {
   })}`;
 };
 
+const TODAY_KEY = () => new Date().toISOString().slice(0, 10);
+
 export default function SitterTodayPage() {
   const router = useRouter();
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const { isOnline, refreshQueuedCount } = useOffline();
   const [bookings, setBookings] = useState<TodayBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [checkingInId, setCheckingInId] = useState<string | null>(null);
   const [checkingOutId, setCheckingOutId] = useState<string | null>(null);
   const [delightBooking, setDelightBooking] = useState<TodayBooking | null>(null);
+  const [queuedByBooking, setQueuedByBooking] = useState<Record<string, string[]>>({});
 
   const todayLabel = useMemo(
     () => new Date().toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' }),
@@ -245,18 +256,42 @@ export default function SitterTodayPage() {
   const loadBookings = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
+    const dateKey = TODAY_KEY();
     try {
-      const res = await fetch('/api/sitter/today');
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setLoadError(data.error || 'Unable to load today\'s bookings');
-        setBookings([]);
-        return;
+      if (navigator.onLine) {
+        const res = await fetch('/api/sitter/today');
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const cached = await getTodayVisits(dateKey);
+          if (cached && Array.isArray((cached as { bookings?: unknown[] }).bookings)) {
+            setBookings((cached as { bookings: TodayBooking[] }).bookings);
+            setLoadError(null);
+          } else {
+            setLoadError(data.error || 'Unable to load today\'s bookings');
+            setBookings([]);
+          }
+          return;
+        }
+        const list = Array.isArray(data.bookings) ? data.bookings : [];
+        setBookings(list);
+        await saveTodayVisits(dateKey, { bookings: list });
+      } else {
+        const cached = await getTodayVisits(dateKey);
+        if (cached && Array.isArray((cached as { bookings?: unknown[] }).bookings)) {
+          setBookings((cached as { bookings: TodayBooking[] }).bookings);
+        } else {
+          setLoadError('Offline — no cached data. Connect to load.');
+          setBookings([]);
+        }
       }
-      setBookings(Array.isArray(data.bookings) ? data.bookings : []);
     } catch {
-      setLoadError('Unable to load today\'s bookings');
-      setBookings([]);
+      const cached = await getTodayVisits(dateKey);
+      if (cached && Array.isArray((cached as { bookings?: unknown[] }).bookings)) {
+        setBookings((cached as { bookings: TodayBooking[] }).bookings);
+      } else {
+        setLoadError('Unable to load today\'s bookings');
+        setBookings([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -265,6 +300,25 @@ export default function SitterTodayPage() {
   useEffect(() => {
     void loadBookings();
   }, [loadBookings]);
+
+  const sseUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/realtime/sitter/today` : null;
+  const pageVisible = usePageVisible();
+  useSSE(sseUrl, () => void loadBookings(), pageVisible);
+
+  useEffect(() => {
+    if (!bookings.length) return;
+    let cancelled = false;
+    Promise.all(
+      bookings.map(async (b) => {
+        const actions = await getActionsForBooking(b.id);
+        return [b.id, actions.map((a) => a.type)] as const;
+      })
+    ).then((pairs) => {
+      if (cancelled) return;
+      setQueuedByBooking(Object.fromEntries(pairs));
+    });
+    return () => { cancelled = true; };
+  }, [bookings, refreshQueuedCount]);
 
   const getGeo = (): Promise<{ lat: number; lng: number } | null> =>
     new Promise((resolve) => {
@@ -281,16 +335,26 @@ export default function SitterTodayPage() {
 
   const handleCheckIn = async (bookingId: string) => {
     setCheckingInId(bookingId);
+    const orgId = user?.orgId || 'default';
+    const sitterId = user?.sitterId || '';
     try {
       const geo = await getGeo();
-      if (!geo) {
+      if (!geo && navigator.onLine) {
         showToast({ message: "Couldn't get location — continuing without it.", variant: 'warning' });
       }
-      const body = geo ? JSON.stringify({ lat: geo.lat, lng: geo.lng }) : undefined;
+      const payload = geo ? { lat: geo.lat, lng: geo.lng } : {};
+      if (!navigator.onLine) {
+        await enqueueAction('visit.checkin', { orgId, sitterId, bookingId, payload });
+        setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress' } : b)));
+        setQueuedByBooking((prev) => ({ ...prev, [bookingId]: [...(prev[bookingId] || []), 'visit.checkin'] }));
+        showToast({ message: 'Check-in queued — will sync when online', variant: 'success' });
+        void refreshQueuedCount();
+        return;
+      }
       const res = await fetch(`/api/bookings/${bookingId}/check-in`, {
         method: 'POST',
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
-        body,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -299,6 +363,7 @@ export default function SitterTodayPage() {
       }
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress' } : b)));
       showToast({ message: 'Checked in successfully', variant: 'success' });
+      void loadBookings();
     } catch {
       showToast({ message: 'Check in failed', variant: 'error' });
     } finally {
@@ -308,16 +373,26 @@ export default function SitterTodayPage() {
 
   const handleCheckOut = async (bookingId: string) => {
     setCheckingOutId(bookingId);
+    const orgId = user?.orgId || 'default';
+    const sitterId = user?.sitterId || '';
     try {
       const geo = await getGeo();
-      if (!geo) {
+      if (!geo && navigator.onLine) {
         showToast({ message: "Couldn't get location — continuing without it.", variant: 'warning' });
       }
-      const body = geo ? JSON.stringify({ lat: geo.lat, lng: geo.lng }) : undefined;
+      const payload = geo ? { lat: geo.lat, lng: geo.lng } : {};
+      if (!navigator.onLine) {
+        await enqueueAction('visit.checkout', { orgId, sitterId, bookingId, payload });
+        setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b)));
+        setQueuedByBooking((prev) => ({ ...prev, [bookingId]: [...(prev[bookingId] || []), 'visit.checkout'] }));
+        showToast({ message: 'Check-out queued — will sync when online', variant: 'success' });
+        void refreshQueuedCount();
+        return;
+      }
       const res = await fetch(`/api/bookings/${bookingId}/check-out`, {
         method: 'POST',
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
-        body,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -326,6 +401,7 @@ export default function SitterTodayPage() {
       }
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b)));
       showToast({ message: 'Checked out successfully', variant: 'success' });
+      void loadBookings();
     } catch {
       showToast({ message: 'Check out failed', variant: 'error' });
     } finally {
@@ -462,9 +538,16 @@ export default function SitterTodayPage() {
                         )}
                       </div>
                     </div>
-                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(booking.status)}`}>
-                      {statusPillLabel(booking.status)}
-                    </span>
+                    <div className="flex shrink-0 flex-wrap items-center gap-1">
+                      {(queuedByBooking[booking.id]?.length ?? 0) > 0 && (
+                        <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900">
+                          Queued
+                        </span>
+                      )}
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(booking.status)}`}>
+                        {statusPillLabel(booking.status)}
+                      </span>
+                    </div>
                   </div>
                 </SitterCardHeader>
                 <SitterCardBody>

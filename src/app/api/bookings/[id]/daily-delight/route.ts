@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ai } from '@/lib/ai';
-import { prisma } from '@/lib/db';
+import { getScopedDb } from '@/lib/tenancy';
+import { publish, channels } from '@/lib/realtime/bus';
 import { getRequestContext } from '@/lib/request-context';
-import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
-import { whereOrg } from '@/lib/org-scope';
+import { requireAnyRole, assertOrgAccess, ForbiddenError } from '@/lib/rbac';
 
 /**
  * POST /api/bookings/[id]/daily-delight
@@ -27,15 +27,26 @@ export async function POST(
   }
 
   const { id: bookingId } = await params;
-  let body: { petId?: string; tone?: 'warm' | 'playful' | 'professional' } = {};
+  let body: {
+    petId?: string;
+    tone?: 'warm' | 'playful' | 'professional';
+    mediaUrls?: string[];
+    /** If provided, use this instead of AI generation (offline sync flow) */
+    report?: string;
+  } = {};
   try {
     body = await request.json();
   } catch {
     // optional body
   }
 
-  const booking = await prisma.booking.findUnique({
-    where: whereOrg(ctx.orgId, { id: bookingId }),
+  const mediaUrls = Array.isArray(body.mediaUrls)
+    ? body.mediaUrls.filter((u): u is string => typeof u === 'string').slice(0, 5)
+    : [];
+
+  const db = getScopedDb(ctx);
+  const booking = await db.booking.findUnique({
+    where: { id: bookingId },
     include: { pets: true, client: true },
   });
 
@@ -43,19 +54,53 @@ export async function POST(
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
   }
 
+  try {
+    assertOrgAccess(booking.orgId, ctx.orgId);
+  } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   if (ctx.role === 'sitter' && ctx.sitterId && booking.sitterId !== ctx.sitterId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const petId = body.petId ?? booking.pets?.[0]?.id;
-  if (!petId) {
+  if (!petId && !body.report) {
     return NextResponse.json(
       { error: 'No pets on this booking' },
       { status: 400 }
     );
   }
 
-  const report = await ai.generateDailyDelight(petId, bookingId, body.tone);
+  const report = typeof body.report === 'string' && body.report.trim()
+    ? body.report.trim()
+    : await ai.generateDailyDelight(petId!, bookingId, body.tone);
+
+  // Persist to Report so client portal can display it
+  if (report) {
+    try {
+      await db.report.create({
+        data: {
+          bookingId,
+          content: report,
+          mediaUrls: mediaUrls.length > 0 ? JSON.stringify(mediaUrls) : null,
+        },
+      });
+      const booking = await db.booking.findUnique({
+        where: { id: bookingId },
+        select: { sitterId: true, orgId: true },
+      });
+      if (booking?.sitterId) {
+        publish(channels.sitterToday(booking.orgId ?? 'default', booking.sitterId), {
+          type: 'delight.created',
+          bookingId,
+          ts: Date.now(),
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.error('[daily-delight] Failed to create Report (non-blocking):', e);
+    }
+  }
 
   // Auto-send report via SMS when Twilio is configured
   const client = booking.client;

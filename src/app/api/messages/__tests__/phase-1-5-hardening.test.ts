@@ -29,7 +29,7 @@ import {
 import { deactivateSitterMaskedNumber } from '../../../../lib/messaging/sitter-offboarding';
 import type { MessagingProvider } from '../../../../lib/messaging/provider';
 
-// Mock Prisma (using enterprise-messaging-dashboard schema)
+// Mock Prisma (MessageThread = thread for number-helpers; thread kept for pool-routing/owner-inbox)
 vi.mock('@/lib/db', () => ({
   prisma: {
     messageNumber: {
@@ -39,13 +39,21 @@ vi.mock('@/lib/db', () => ({
       update: vi.fn(),
       findMany: vi.fn(),
     },
-    thread: {
+    messageThread: {
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       findMany: vi.fn(),
       findUnique: vi.fn(),
       groupBy: vi.fn(), // Required for getPoolNumber
+    },
+    thread: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      groupBy: vi.fn(),
     },
     message: {
       create: vi.fn(),
@@ -106,7 +114,7 @@ describe('Phase 1.5 Hardening Tests', () => {
       const existingNumber = {
         id: 'number-1',
         orgId,
-        class: 'front_desk', // MessageNumber uses 'class' not 'numberClass'
+        numberClass: 'front_desk',
         status: 'active',
         e164: '+15551234567',
       };
@@ -127,7 +135,7 @@ describe('Phase 1.5 Hardening Tests', () => {
       expect(prisma.messageNumber.findFirst).toHaveBeenCalledWith({
         where: {
           orgId,
-          class: 'front_desk', // MessageNumber uses 'class' not 'numberClass'
+          numberClass: 'front_desk',
           status: 'active',
         },
       });
@@ -147,7 +155,7 @@ describe('Phase 1.5 Hardening Tests', () => {
       ];
 
       ((prisma as any).messageNumber.findMany as any).mockResolvedValue(poolNumbers);
-      ((prisma as any).thread.groupBy as any).mockResolvedValue([]); // No threads using pool numbers
+      ((prisma as any).messageThread.groupBy as any).mockResolvedValue([]); // No threads using pool numbers
       ((prisma as any).messageNumber.update as any).mockResolvedValue({ ...poolNumbers[0], lastUsedAt: new Date() });
 
       const result = await getPoolNumber(orgId);
@@ -155,11 +163,11 @@ describe('Phase 1.5 Hardening Tests', () => {
       expect(result).not.toBeNull();
       expect(result?.numberId).toBe('pool-1'); // Least recently assigned
       expect((prisma as any).messageNumber.findMany).toHaveBeenCalledWith({
-        where: {
+        where: expect.objectContaining({
           orgId,
-          class: 'pool', // MessageNumber uses 'class' not 'numberClass'
+          numberClass: 'pool',
           status: 'active',
-        },
+        }),
       });
     });
 
@@ -171,14 +179,14 @@ describe('Phase 1.5 Hardening Tests', () => {
       const poolNumber = {
         id: numberId,
         orgId,
-        class: 'pool', // MessageNumber uses 'class' not 'numberClass'
+        numberClass: 'pool',
         status: 'active',
       };
 
       ((prisma as any).messageNumber.findUnique as any).mockResolvedValue(poolNumber);
 
       // No active threads for this sender on this number
-      ((prisma as any).thread.findMany as any).mockResolvedValue([]);
+      ((prisma as any).messageThread.findMany as any).mockResolvedValue([]);
 
       const result = await validatePoolNumberRouting(numberId, senderE164, orgId);
 
@@ -288,7 +296,7 @@ describe('Phase 1.5 Hardening Tests', () => {
       // Should convert to pool, not reuse as sitter number
       ((prisma as any).messageNumber.update as any).mockResolvedValue({
         id: 'number-1',
-        class: 'pool', // MessageNumber uses 'class' not 'numberClass'
+        numberClass: 'pool',
       });
 
       // Should throw error requiring new sitter number (not reuse old one)
@@ -311,24 +319,24 @@ describe('Phase 1.5 Hardening Tests', () => {
       const messageNumber = {
         id: numberId,
         orgId,
-        class: 'front_desk', // MessageNumber uses 'class' not 'numberClass'
+        numberClass: 'front_desk',
         e164: '+15551234567',
       };
 
-      // Mock getOrCreateFrontDeskNumber lookup
       ((prisma as any).messageNumber.findFirst as any)
-        .mockResolvedValueOnce(messageNumber) // For getOrCreateFrontDeskNumber
-        .mockResolvedValueOnce(messageNumber); // For assignNumberToThread
+        .mockResolvedValueOnce(messageNumber)
+        .mockResolvedValueOnce(messageNumber);
       ((prisma as any).messageNumber.findUnique as any).mockResolvedValue(messageNumber);
-      ((prisma as any).thread.update as any).mockResolvedValue({ id: threadId });
+      ((prisma as any).messageThread.update as any).mockResolvedValue({ id: threadId });
 
       await assignNumberToThread(threadId, numberClass, orgId, mockProvider);
 
-      // Verify thread.numberId is updated (Thread model uses numberId, not messageNumberId, and doesn't have numberClass)
-      expect((prisma as any).thread.update).toHaveBeenCalledWith({
+      expect((prisma as any).messageThread.update).toHaveBeenCalledWith({
         where: { id: threadId },
         data: {
-          numberId: numberId, // Thread model uses numberId, not messageNumberId
+          messageNumberId: numberId,
+          numberClass: 'front_desk',
+          maskedNumberE164: '+15551234567',
         },
       });
     });
@@ -339,15 +347,16 @@ describe('Phase 1.5 Hardening Tests', () => {
       const orgId = 'org-1';
       const numberClass = 'front_desk';
 
-      const messageNumber = {
+      const frontDeskNumber = {
         id: numberId,
         orgId,
-        class: 'pool', // MessageNumber uses 'class' not 'numberClass' // Mismatch!
+        numberClass: 'front_desk',
         e164: '+15551234567',
       };
+      const poolNumber = { ...frontDeskNumber, numberClass: 'pool' };
 
-      ((prisma as any).messageNumber.findFirst as any).mockResolvedValue(messageNumber);
-      ((prisma as any).messageNumber.findUnique as any).mockResolvedValue(messageNumber);
+      ((prisma as any).messageNumber.findFirst as any).mockResolvedValue(frontDeskNumber);
+      ((prisma as any).messageNumber.findUnique as any).mockResolvedValue(poolNumber); // Simulates mismatch
 
       await expect(
         assignNumberToThread(threadId, numberClass, orgId, mockProvider)
@@ -576,14 +585,14 @@ describe('Phase 1.5 Hardening Tests', () => {
       const poolNumber = {
         id: numberId,
         orgId,
-        class: 'pool', // MessageNumber uses 'class' not 'numberClass'
+        numberClass: 'pool',
         status: 'active',
       };
 
       ((prisma as any).messageNumber.findUnique as any).mockResolvedValue(poolNumber);
 
-      // Thread exists but sender is not a participant
-      ((prisma as any).thread.findMany as any).mockResolvedValue([
+      // Thread exists but sender is not a participant (participants filtered by realE164)
+      ((prisma as any).messageThread.findMany as any).mockResolvedValue([
         {
           id: 'thread-1',
           participants: [], // Empty - sender not a participant
