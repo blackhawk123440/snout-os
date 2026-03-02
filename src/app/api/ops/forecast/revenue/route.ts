@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@/lib/request-context';
 import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
 import { getRevenueForecast } from '@/lib/ai';
+import { InvariantError, invariantErrorResponse } from '@/lib/invariant';
 
 export async function GET(request: NextRequest) {
   let ctx;
@@ -29,6 +30,9 @@ export async function GET(request: NextRequest) {
     const result = await getRevenueForecast(ctx.orgId, rangeDays, includeAi);
     return NextResponse.json(result);
   } catch (error: unknown) {
+    if (error instanceof InvariantError) {
+      return NextResponse.json(invariantErrorResponse(error), { status: error.code });
+    }
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: 'Failed to load forecast', message },

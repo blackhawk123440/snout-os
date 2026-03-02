@@ -4,6 +4,7 @@ import { getScopedDb } from '@/lib/tenancy';
 import { publish, channels } from '@/lib/realtime/bus';
 import { getRequestContext } from '@/lib/request-context';
 import { requireAnyRole, assertOrgAccess, ForbiddenError } from '@/lib/rbac';
+import { InvariantError, invariantErrorResponse } from '@/lib/invariant';
 
 /**
  * POST /api/bookings/[id]/daily-delight
@@ -72,9 +73,17 @@ export async function POST(
     );
   }
 
-  const report = typeof body.report === 'string' && body.report.trim()
-    ? body.report.trim()
-    : await ai.generateDailyDelight(petId!, bookingId, body.tone);
+  let report: string;
+  try {
+    report = typeof body.report === 'string' && body.report.trim()
+      ? body.report.trim()
+      : await ai.generateDailyDelight(petId!, bookingId, body.tone);
+  } catch (err) {
+    if (err instanceof InvariantError) {
+      return NextResponse.json(invariantErrorResponse(err), { status: err.code });
+    }
+    throw err;
+  }
 
   // Persist to Report so client portal can display it
   if (report) {

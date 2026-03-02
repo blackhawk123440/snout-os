@@ -54,6 +54,8 @@ interface Sitter {
   commissionPercentage: number;
   maskedNumber?: string;
   activeAssignmentWindowsCount?: number;
+  deletedAt?: string | null;
+  userId?: string | null;
   currentTier?: {
     id: string;
     name: string;
@@ -121,6 +123,7 @@ function SitterDetailContent() {
   const [loading, setLoading] = useState(true);
   const [isAvailable, setIsAvailable] = useState<boolean>(true);
   const [togglingAvailability, setTogglingAvailability] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // Update URL when tab changes
   useEffect(() => {
@@ -308,9 +311,11 @@ function SitterDetailContent() {
       {/* Global Header */}
       <SitterPageHeader
         title={sitter ? `${sitter.firstName} ${sitter.lastName}`.trim() || 'Sitter' : 'Sitter'}
-        subtitle={isAvailable ? 'Available' : 'Off'}
+        subtitle={sitter?.deletedAt ? 'Account deleted' : isAvailable ? 'Available' : 'Off'}
         action={
-          canEdit && (
+          <>
+            {sitter?.deletedAt && <Badge variant="error" className="mr-2">Deleted</Badge>}
+            {canEdit && (
             <Button
               variant="secondary"
               size="sm"
@@ -338,7 +343,33 @@ function SitterDetailContent() {
             >
               {togglingAvailability ? 'Updating…' : isAvailable ? 'Set off' : 'Set available'}
             </Button>
-          )
+            )}
+            {canEdit && sitter?.userId && !sitter?.deletedAt && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={deletingAccount}
+                className="ml-2 border-red-200 text-red-700 hover:bg-red-50"
+                onClick={async () => {
+                  if (!confirm('Soft delete this sitter account? They will be blocked from signing in.')) return;
+                  setDeletingAccount(true);
+                  try {
+                    const res = await fetch(`/api/ops/users/${sitter.userId}/delete`, { method: 'POST' });
+                    if (res.ok) {
+                      fetchSitterData();
+                    } else {
+                      const json = await res.json().catch(() => ({}));
+                      alert(json.error || 'Failed to delete');
+                    }
+                  } finally {
+                    setDeletingAccount(false);
+                  }
+                }}
+              >
+                {deletingAccount ? 'Deleting…' : 'Delete account'}
+              </Button>
+            )}
+          </>
         }
       />
 

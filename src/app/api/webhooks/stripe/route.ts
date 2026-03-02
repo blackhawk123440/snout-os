@@ -154,6 +154,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // account.updated (Stripe Connect - update payoutsEnabled/chargesEnabled)
+    if (event.type === 'account.updated') {
+      const account = event.data.object as Stripe.Account;
+      const accountId = account.id;
+      const { prisma } = await import('@/lib/db');
+      const existing = await (prisma as any).sitterStripeAccount.findFirst({
+        where: { accountId },
+      });
+      if (existing) {
+        const db = getScopedDb({ orgId: existing.orgId });
+        await db.sitterStripeAccount.update({
+          where: { id: existing.id },
+          data: {
+            payoutsEnabled: account.payouts_enabled ?? false,
+            chargesEnabled: account.charges_enabled ?? false,
+            onboardingStatus: account.details_submitted ? 'complete' : 'onboarding',
+          },
+        });
+      }
+    }
+
     // invoice.payment_succeeded (legacy)
     if (event.type === 'invoice.payment_succeeded') {
       const inv = event.data.object as any;

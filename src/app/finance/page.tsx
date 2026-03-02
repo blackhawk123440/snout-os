@@ -49,12 +49,26 @@ export default function FinancePage() {
         title="Finance"
         subtitle="Payments, invoices, and revenue"
         action={
-          <Link
-            href="/payments"
-            className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 no-underline hover:bg-neutral-50"
-          >
-            View Payments
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/ops/payouts"
+              className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 no-underline hover:bg-neutral-50"
+            >
+              Payouts
+            </Link>
+            <Link
+              href="/ops/finance/reconciliation"
+              className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 no-underline hover:bg-neutral-50"
+            >
+              Reconciliation
+            </Link>
+            <Link
+              href="/payments"
+              className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 no-underline hover:bg-neutral-50"
+            >
+              View Payments
+            </Link>
+          </div>
         }
       />
 

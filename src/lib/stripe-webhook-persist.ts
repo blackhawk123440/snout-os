@@ -1,11 +1,12 @@
 /**
  * Persist Stripe webhook events to DB (StripeCharge, StripeRefund).
- * Used by Stripe webhook handler.
+ * Also upserts LedgerEntry for charges/refunds.
  */
 
 import type { PrismaClient } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { logEvent } from '@/lib/log-event';
+import { upsertLedgerEntry } from '@/lib/finance/ledger';
 
 export async function persistPaymentSucceeded(
   db: PrismaClient,
@@ -20,7 +21,7 @@ export async function persistPaymentSucceeded(
 ): Promise<void> {
   try {
     const id = chargeId || paymentIntentId;
-    await db.stripeCharge.upsert({
+    const chargeRow = await db.stripeCharge.upsert({
       where: { id },
       update: {
         status: 'succeeded',
@@ -46,6 +47,17 @@ export async function persistPaymentSucceeded(
         createdAt: new Date(),
       },
     });
+    await upsertLedgerEntry(db, {
+      orgId,
+      entryType: 'charge',
+      source: 'stripe',
+      stripeId: id,
+      bookingId: bookingId || undefined,
+      amountCents: amount,
+      currency,
+      status: 'succeeded',
+      occurredAt: chargeRow.createdAt,
+    });
   } catch (err) {
     console.error('[stripe-webhook-persist] persistPaymentSucceeded failed:', err);
   }
@@ -63,7 +75,7 @@ export async function persistPaymentFailed(
 ): Promise<void> {
   try {
     const id = paymentIntentId;
-    await db.stripeCharge.upsert({
+    const chargeRow = await db.stripeCharge.upsert({
       where: { id },
       update: {
         status: 'failed',
@@ -87,6 +99,17 @@ export async function persistPaymentFailed(
         customerEmail: customerEmail || null,
         createdAt: new Date(),
       },
+    });
+    await upsertLedgerEntry(db, {
+      orgId,
+      entryType: 'charge',
+      source: 'stripe',
+      stripeId: id,
+      bookingId: bookingId || undefined,
+      amountCents: amount,
+      currency,
+      status: 'failed',
+      occurredAt: chargeRow.createdAt,
     });
 
     await logEvent({
@@ -114,7 +137,7 @@ export async function persistRefund(
   paymentIntentId?: string | null
 ): Promise<void> {
   try {
-    await prisma.stripeRefund.upsert({
+    const refundRow = await prisma.stripeRefund.upsert({
       where: { id: refundId },
       update: {
         amount,
@@ -132,6 +155,22 @@ export async function persistRefund(
         paymentIntentId: paymentIntentId || null,
         createdAt: new Date(),
       },
+    });
+    const charge = await db.stripeCharge.findFirst({
+      where: { id: chargeId },
+      select: { bookingId: true, clientId: true },
+    });
+    await upsertLedgerEntry(db, {
+      orgId,
+      entryType: 'refund',
+      source: 'stripe',
+      stripeId: refundId,
+      bookingId: charge?.bookingId ?? undefined,
+      clientId: charge?.clientId ?? undefined,
+      amountCents: amount,
+      currency,
+      status: status === 'succeeded' ? 'succeeded' : status === 'failed' ? 'failed' : 'pending',
+      occurredAt: refundRow.createdAt,
     });
 
     await db.stripeCharge.updateMany({

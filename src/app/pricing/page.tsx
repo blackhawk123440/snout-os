@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from '@/components/ui';
 
 export default function Pricing() {
   const [personalMode] = useState(process.env.NEXT_PUBLIC_PERSONAL_MODE === 'true');
@@ -27,9 +28,9 @@ export default function Pricing() {
                   <li key={f} className="flex items-center gap-3">✅ {f}</li>
                 ))}
               </ul>
-              <button className="w-full py-4 rounded-2xl bg-white text-black font-semibold hover:bg-amber-400">
+              <Button variant="primary" className="w-full py-4 rounded-2xl bg-white text-black font-semibold hover:bg-amber-400">
                 {personalMode && tier.name === 'Solo' ? 'Already using Solo' : 'Start free trial'}
-              </button>
+              </Button>
             </div>
           ))}
         </div>

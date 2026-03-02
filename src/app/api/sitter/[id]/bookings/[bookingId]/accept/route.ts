@@ -13,6 +13,7 @@ import { checkSitterEligibility } from '@/lib/sitter-eligibility';
 import { enqueueCalendarSync } from '@/lib/calendar-queue';
 import { emitBookingUpdated } from '@/lib/event-emitter';
 import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
+import { validateSitterAssignment } from '@/lib/availability/booking-conflict';
 
 export async function POST(
   request: NextRequest,
@@ -87,13 +88,40 @@ export async function POST(
     // Check if booking is already assigned to another sitter
     const booking = await (prisma as any).booking.findUnique({
       where: { id: bookingId },
-      select: { sitterId: true, status: true },
+      select: { sitterId: true, status: true, startAt: true, endAt: true },
     });
 
-    if (booking?.sitterId && booking.sitterId !== sitterId) {
+    if (!booking) {
+      return NextResponse.json(
+        { error: 'Booking not found' },
+        { status: 404 }
+      );
+    }
+
+    if (booking.sitterId && booking.sitterId !== sitterId) {
       return NextResponse.json(
         { error: 'Booking is already assigned to another sitter' },
         { status: 400 }
+      );
+    }
+
+    const conflictResult = await validateSitterAssignment({
+      db: prisma as any,
+      orgId,
+      sitterId,
+      start: booking.startAt,
+      end: booking.endAt,
+      excludeBookingId: bookingId,
+      respectGoogleBusy: true,
+    });
+
+    if (!conflictResult.ok) {
+      return NextResponse.json(
+        {
+          error: 'Availability conflict',
+          conflicts: conflictResult.conflicts,
+        },
+        { status: 409 }
       );
     }
 

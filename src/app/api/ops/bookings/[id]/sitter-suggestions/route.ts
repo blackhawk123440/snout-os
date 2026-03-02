@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { getRequestContext } from '@/lib/request-context';
 import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
 import { getSitterSuggestionsForBooking } from '@/lib/ai';
+import { InvariantError, invariantErrorResponse } from '@/lib/invariant';
 
 export async function GET(
   _request: Request,
@@ -30,6 +31,9 @@ export async function GET(
     const suggestions = await getSitterSuggestionsForBooking(bookingId, ctx.orgId);
     return NextResponse.json({ suggestions });
   } catch (error: unknown) {
+    if (error instanceof InvariantError) {
+      return NextResponse.json(invariantErrorResponse(error), { status: error.code });
+    }
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       { error: 'Failed to get sitter suggestions', message },

@@ -71,6 +71,9 @@ jobs:
       - name: Check no raw prisma in high-risk API routes
         run: pnpm run check:no-raw-prisma
 
+      - name: Check no raw UI primitives in app/components
+        run: pnpm run check:no-raw-ui
+
       - name: Run TypeScript type check
         run: pnpm run typecheck
 

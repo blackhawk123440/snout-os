@@ -1,5 +1,11 @@
 import OpenAI from 'openai';
 import { prisma } from './db';
+import { governedAICall } from './ai/governed-call';
+import { getPromptTemplate } from './ai/governance';
+
+function substituteTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? '');
+}
 
 function getOpenAI(): OpenAI | null {
   const key = process.env.OPENAI_API_KEY;
@@ -15,10 +21,9 @@ export const ai = {
     });
     if (!pet) return "Couldn't generate report";
 
-    const openai = getOpenAI();
-    if (!openai) return "Mojo had a great day! (OpenAI not configured)";
-
     const orgId = pet.booking?.client?.orgId ?? 'default';
+
+    if (!getOpenAI()) return "Mojo had a great day! (OpenAI not configured)";
 
     const tonePrompt =
       tone === 'playful'
@@ -27,14 +32,20 @@ export const ai = {
           ? 'Write a concise, professional 2-sentence daily delight report. Keep it informative and reassuring.'
           : 'Write a warm, fun 2-sentence daily delight report. Make it emotional and shareable.';
 
-    const prompt = `${tonePrompt} For ${pet.name} (${pet.breed ?? 'pet'}).`;
+    const template = await getPromptTemplate({ orgId, key: 'daily_delight' });
+    const prompt = template
+      ? substituteTemplate(template.template, { tonePrompt, petName: pet.name, breed: pet.breed ?? 'pet' })
+      : `${tonePrompt} For ${pet.name} (${pet.breed ?? 'pet'}).`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+    const result = await governedAICall({
+      orgId,
+      featureKey: 'daily_delight',
+      promptKey: 'daily_delight',
+      promptVersion: template?.version ?? 0,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const report = completion.choices[0]?.message?.content ?? "Mojo had a great day!";
+    const report = result.content ?? "Mojo had a great day!";
 
     await prisma.petHealthLog.create({
       data: {
@@ -48,23 +59,34 @@ export const ai = {
     return report;
   },
 
-  async matchSitterToPet(petId: string, availableSitters: { id: string; [key: string]: unknown }[]) {
+  async matchSitterToPet(petId: string, availableSitters: { id: string; [key: string]: unknown }[], orgId: string = 'default') {
     const pet = await prisma.pet.findUnique({ where: { id: petId } });
     if (!pet || availableSitters.length === 0) return null;
 
-    const openai = getOpenAI();
-    if (!openai) return availableSitters[0]?.id ?? null;
+    const oid = pet.orgId ?? orgId;
+    if (!getOpenAI()) return availableSitters[0]?.id ?? null;
 
     const energyHint = pet.notes ?? 'moderate';
-    const prompt = `Rank these sitter IDs for a ${pet.breed ?? 'pet'} that needs ${energyHint} energy. Sitter IDs: ${availableSitters.map((s) => s.id).join(', ')}. Return only the best sitter ID.`;
+    const sitterIds = availableSitters.map((s) => s.id).join(', ');
+    const template = await getPromptTemplate({ orgId: oid, key: 'sitter_match' });
+    const defaultPrompt = `Rank these sitter IDs for a ${pet.breed ?? 'pet'} that needs ${energyHint} energy. Sitter IDs: ${sitterIds}. Return only the best sitter ID.`;
+    const prompt = template
+      ? substituteTemplate(template.template, { breed: pet.breed ?? 'pet', energyHint, sitterIds })
+      : defaultPrompt;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const bestId = completion.choices[0]?.message?.content?.trim();
-    return availableSitters.find((s) => s.id === bestId)?.id ?? availableSitters[0]?.id ?? null;
+    try {
+      const result = await governedAICall({
+        orgId: oid,
+        featureKey: 'sitter_match',
+        promptKey: 'sitter_match',
+        promptVersion: template?.version ?? 0,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      const bestId = result.content?.trim();
+      return availableSitters.find((s) => s.id === bestId)?.id ?? availableSitters[0]?.id ?? null;
+    } catch {
+      return availableSitters[0]?.id ?? null;
+    }
   },
 
   // dynamic pricing, sentiment analysis, predictive alerts — all here
@@ -103,8 +125,7 @@ export async function getSitterSuggestionsForBooking(
 
   if (sitters.length === 0) return [];
 
-  const openai = getOpenAI();
-  if (!openai) {
+  if (!getOpenAI()) {
     return sitters.slice(0, 5).map((s, i) => ({
       sitterId: s.id,
       firstName: s.firstName,
@@ -118,21 +139,38 @@ export async function getSitterSuggestionsForBooking(
   const petNotes = booking.pets.map((p) => p.notes).filter(Boolean).join('; ') || 'none';
   const sitterList = sitters.map((s) => `${s.id}: ${s.firstName} ${s.lastName}`).join('\n');
 
-  const prompt = `You are matching sitters to a pet care booking.
+  const template = await getPromptTemplate({ orgId, key: 'sitter_suggestions' });
+  const defaultPrompt = `You are matching sitters to a pet care booking.
 Booking: ${booking.service}, pets: ${petBreeds}. Pet notes: ${petNotes}.
 Available sitters:
 ${sitterList}
 
 Return a JSON array of objects: [{ "sitterId": "uuid", "score": 0-100, "reasons": ["reason1", "reason2"] }]
 Rank by: fit for breed/energy, proximity (if known), history. Return max 5. Only valid sitter IDs.`;
+  const prompt = template
+    ? substituteTemplate(template.template, { service: booking.service, petBreeds, petNotes, sitterList })
+    : defaultPrompt;
 
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: prompt }],
-    response_format: { type: 'json_object' },
-  });
-
-  const raw = completion.choices[0]?.message?.content ?? '{}';
+  let raw = '{}';
+  try {
+    const result = await governedAICall({
+      orgId,
+      featureKey: 'sitter_suggestions',
+      promptKey: 'sitter_suggestions',
+      promptVersion: template?.version ?? 0,
+      messages: [{ role: 'user', content: prompt }],
+      responseFormat: { type: 'json_object' },
+    });
+    raw = result.content ?? '{}';
+  } catch {
+    return sitters.slice(0, 5).map((s, i) => ({
+      sitterId: s.id,
+      firstName: s.firstName,
+      lastName: s.lastName,
+      score: 100 - i * 10,
+      reasons: ['Available sitter'],
+    }));
+  }
   let parsed: { suggestions?: Array<{ sitterId: string; score: number; reasons: string[] }> };
   try {
     parsed = JSON.parse(raw);
@@ -194,21 +232,24 @@ export async function getRevenueForecast(
   const avgDaily = daily.length > 0 ? total / daily.length : 0;
 
   let aiCommentary = `Historical average: $${avgDaily.toFixed(2)}/day over ${daily.length} days with revenue.`;
-  if (includeAi) {
-    const openai = getOpenAI();
-    if (openai && daily.length >= 7) {
-      try {
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [{
-            role: 'user',
-            content: `Pet care business revenue last ${rangeDays}d: total $${total.toFixed(2)}, ${daily.length} days with revenue. Avg $${avgDaily.toFixed(2)}/day. In 1-2 sentences, give a brief forecast or trend insight.`,
-          }],
-        });
-        aiCommentary = completion.choices[0]?.message?.content ?? aiCommentary;
-      } catch {
-        // Fallback to deterministic on OpenAI failure
-      }
+  if (includeAi && getOpenAI() && daily.length >= 7) {
+    try {
+      const template = await getPromptTemplate({ orgId, key: 'revenue_forecast' });
+      const defaultContent = `Pet care business revenue last ${rangeDays}d: total $${total.toFixed(2)}, ${daily.length} days with revenue. Avg $${avgDaily.toFixed(2)}/day. In 1-2 sentences, give a brief forecast or trend insight.`;
+      const prompt = template
+        ? substituteTemplate(template.template, { rangeDays: String(rangeDays), total: total.toFixed(2), daysWithRevenue: String(daily.length), avgDaily: avgDaily.toFixed(2) })
+        : defaultContent;
+
+      const result = await governedAICall({
+        orgId,
+        featureKey: 'revenue_forecast',
+        promptKey: 'revenue_forecast',
+        promptVersion: template?.version ?? 0,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      aiCommentary = result.content ?? aiCommentary;
+    } catch {
+      // Fallback to deterministic on OpenAI failure
     }
   }
 

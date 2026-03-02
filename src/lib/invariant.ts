@@ -3,7 +3,7 @@
  * Throws with consistent 4xx shape instead of random 500s.
  */
 
-export type InvariantCode = 400 | 403 | 404 | 500;
+export type InvariantCode = 400 | 402 | 403 | 404 | 500;
 
 export interface InvariantMeta {
   orgId?: string;

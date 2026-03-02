@@ -10,6 +10,7 @@
 import { prisma } from "./db";
 import { shouldSendToRecipient, getMessageTemplate, replaceTemplateVariables } from "./automation-utils";
 import { sendMessage } from "./message-utils";
+import { logEventFromLogger } from "./event-logger";
 import { getOwnerPhone, getSitterPhone } from "./phone-utils";
 import { sendAutomationMessageViaThread } from "./bookings/automation-thread-sender";
 import { onBookingConfirmed } from "./bookings/booking-confirmed-handler";
@@ -353,6 +354,22 @@ async function executeNightBeforeReminder(
     return { success: false, error: "Booking required for nightBeforeReminder" };
   }
 
+  const orgId = booking.orgId || "default";
+
+  // Skip if booking cancelled
+  if (booking.status === "cancelled") {
+    await logEventFromLogger("reminder.failed", "skipped", {
+      orgId,
+      bookingId: booking.id,
+      metadata: { recipient, reason: "booking_cancelled" },
+    });
+    return {
+      success: true,
+      message: "Night before reminder skipped (booking cancelled)",
+      metadata: { skipped: true, reason: "cancelled" },
+    };
+  }
+
   // Skip if email is required but missing (for client reminders)
   if (recipient === "client" && !booking.email) {
     return {
@@ -478,16 +495,44 @@ async function executeNightBeforeReminder(
       });
     }
     
+    if (result.success) {
+      await logEventFromLogger("reminder.sent", "success", {
+        orgId,
+        bookingId: booking.id,
+        metadata: { recipient },
+      });
+    } else {
+      await logEventFromLogger("reminder.failed", "failed", {
+        orgId,
+        bookingId: booking.id,
+        error: result.error,
+        metadata: { recipient },
+      });
+    }
     return {
       success: result.success,
       message: result.success ? `${recipient} reminder sent` : result.error || `Failed to send ${recipient} reminder`,
       metadata: { recipient, phone: targetPhone, bookingId: booking.id, usedThread: result.usedThread },
     };
   }
-  
+
   // Owner/sitter reminders use old method
   const sent = await sendMessage(targetPhone, message, booking.id);
-  
+
+  if (sent) {
+    await logEventFromLogger("reminder.sent", "success", {
+      orgId,
+      bookingId: booking.id,
+      metadata: { recipient },
+    });
+  } else {
+    await logEventFromLogger("reminder.failed", "failed", {
+      orgId,
+      bookingId: booking.id,
+      metadata: { recipient },
+    });
+  }
+
   return {
     success: sent,
     message: sent ? `${recipient} reminder sent` : `Failed to send ${recipient} reminder`,
@@ -888,6 +933,21 @@ async function executePostVisitThankYou(
       });
     }
     
+    const orgId = booking.orgId || "default";
+    if (result.success) {
+      await logEventFromLogger("review.sent", "success", {
+        orgId,
+        bookingId: booking.id,
+        metadata: { recipient: "client" },
+      });
+    } else {
+      await logEventFromLogger("review.failed", "failed", {
+        orgId,
+        bookingId: booking.id,
+        error: result.error,
+        metadata: { recipient: "client" },
+      });
+    }
     return {
       success: result.success,
       message: result.success ? "Post visit thank you sent to client" : result.error || "Failed to send post visit thank you",
@@ -917,7 +977,20 @@ async function executePostVisitThankYou(
     });
 
     const sent = await sendMessage(sitterPhone, message, booking.id);
-    
+    const orgId = booking.orgId || "default";
+    if (sent) {
+      await logEventFromLogger("review.sent", "success", {
+        orgId,
+        bookingId: booking.id,
+        metadata: { recipient: "sitter" },
+      });
+    } else {
+      await logEventFromLogger("review.failed", "failed", {
+        orgId,
+        bookingId: booking.id,
+        metadata: { recipient: "sitter" },
+      });
+    }
     return {
       success: sent,
       message: sent ? "Post visit thank you sent to sitter" : "Failed to send sitter thank you",

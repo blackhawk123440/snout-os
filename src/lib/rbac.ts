@@ -7,6 +7,17 @@ export class ForbiddenError extends Error {
   }
 }
 
+/**
+ * Require clientId on session for client portal endpoints.
+ * Throws ForbiddenError (403) if ctx.clientId is missing.
+ * Use after requireRole(ctx, 'client').
+ */
+export function requireClientContext(ctx: RequestContext): asserts ctx is RequestContext & { clientId: string } {
+  if (!ctx.clientId) {
+    throw new ForbiddenError("Client profile missing on session");
+  }
+}
+
 export function requireRole(ctx: RequestContext, role: AppRole): void {
   if (ctx.role !== role) {
     throw new ForbiddenError();

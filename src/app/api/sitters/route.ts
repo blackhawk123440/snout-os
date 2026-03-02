@@ -144,6 +144,7 @@ export async function GET(request: NextRequest) {
         updatedAt: sitter.updatedAt,
         currentTier: sitter.currentTier || null,
         assignedNumberId: sitter.assignedNumberId || numberMap.get(sitter.id) || null,
+        deletedAt: sitter.deletedAt ?? null,
       }));
 
       return NextResponse.json({ sitters: transformedSitters }, {
@@ -221,7 +222,8 @@ export async function GET(request: NextRequest) {
         createdAt: sitter.createdAt,
         updatedAt: sitter.updatedAt,
         currentTier: null,
-        assignedNumberId: numberMap.get(sitter.id) || null, // Include persistent sitter number ID
+        assignedNumberId: numberMap.get(sitter.id) || null,
+        deletedAt: sitter.deletedAt ?? null,
       };
     });
 

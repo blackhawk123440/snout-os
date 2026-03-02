@@ -1,8 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '@/components/ui';
+import { Button, Modal } from '@/components/ui';
 import { SITTER_PROFILE_LINKS } from '@/lib/sitter-nav';
 import {
   SitterCard,
@@ -31,25 +32,38 @@ interface BlockOffDay {
   date: string;
 }
 
+interface StripeStatus {
+  connected: boolean;
+  onboardingStatus?: string;
+  payoutsEnabled?: boolean;
+  chargesEnabled?: boolean;
+}
+
 export default function SitterProfilePage() {
   const [profile, setProfile] = useState<SitterProfile | null>(null);
   const [blockOffs, setBlockOffs] = useState<BlockOffDay[]>([]);
+  const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [togglingAvailability, setTogglingAvailability] = useState(false);
   const [addingBlock, setAddingBlock] = useState(false);
+  const [connectingStripe, setConnectingStripe] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [newBlockDate, setNewBlockDate] = useState('');
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [meRes, availRes] = await Promise.all([
+      const [meRes, availRes, stripeRes] = await Promise.all([
         fetch('/api/sitter/me'),
         fetch('/api/sitter/availability'),
+        fetch('/api/sitter/stripe/status'),
       ]);
       const meJson = await meRes.json().catch(() => ({}));
       const availJson = await availRes.json().catch(() => ({}));
+      const stripeJson = await stripeRes.json().catch(() => ({}));
       if (!meRes.ok) {
         setError(meJson.error || 'Unable to load profile');
         setProfile(null);
@@ -57,6 +71,7 @@ export default function SitterProfilePage() {
       }
       setProfile({ ...meJson, availabilityEnabled: availJson.availabilityEnabled ?? meJson.availabilityEnabled ?? true });
       setBlockOffs(Array.isArray(availJson.blockOffDays) ? availJson.blockOffDays : []);
+      setStripeStatus(stripeRes.ok ? stripeJson : { connected: false });
     } catch {
       setError('Unable to load profile');
       setProfile(null);
@@ -65,9 +80,50 @@ export default function SitterProfilePage() {
     }
   }, []);
 
+  const searchParams = useSearchParams();
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
+  useEffect(() => {
+    if (searchParams?.get('stripe') === 'return' || searchParams?.get('stripe') === 'refresh') {
+      void loadProfile();
+    }
+  }, [searchParams, loadProfile]);
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/sitter/delete-account', { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      setDeleteModalOpen(false);
+      const { signOut } = await import('next-auth/react');
+      await signOut({ callbackUrl: '/login' });
+      window.location.href = '/login';
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to delete account');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const connectStripe = async () => {
+    setConnectingStripe(true);
+    try {
+      const res = await fetch('/api/sitter/stripe/connect', { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      if (json.onboardingUrl) {
+        window.location.href = json.onboardingUrl;
+      } else {
+        void loadProfile();
+      }
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to connect Stripe');
+    } finally {
+      setConnectingStripe(false);
+    }
+  };
 
   const toggleAvailability = async () => {
     if (!profile) return;
@@ -167,6 +223,26 @@ export default function SitterProfilePage() {
                   <dd className="text-neutral-900">{profile.commissionPercentage}%</dd>
                 </div>
               </dl>
+            </SitterCardBody>
+          </SitterCard>
+
+          <SitterCard>
+            <SitterCardHeader>
+              <p className="text-base font-semibold text-neutral-900">Stripe Connect</p>
+            </SitterCardHeader>
+            <SitterCardBody>
+              {stripeStatus?.connected && stripeStatus.payoutsEnabled ? (
+                <p className="text-sm text-green-700">Connected · Payouts enabled</p>
+              ) : stripeStatus?.connected ? (
+                <p className="text-sm text-amber-700">Connected · Complete onboarding to receive payouts</p>
+              ) : (
+                <>
+                  <p className="mb-3 text-sm text-neutral-600">Connect your Stripe account to receive payouts from completed bookings.</p>
+                  <Button variant="primary" size="md" onClick={() => void connectStripe()} disabled={connectingStripe}>
+                    {connectingStripe ? 'Connecting...' : 'Connect Stripe account'}
+                  </Button>
+                </>
+              )}
             </SitterCardBody>
           </SitterCard>
 
@@ -282,8 +358,53 @@ export default function SitterProfilePage() {
               </div>
             </SitterCardBody>
           </SitterCard>
+
+          <SitterCard className="border-red-200">
+            <SitterCardHeader>
+              <p className="text-base font-semibold text-neutral-900">Delete account</p>
+            </SitterCardHeader>
+            <SitterCardBody>
+              <p className="mb-3 text-sm text-neutral-600">
+                Permanently delete your sitter account. This cannot be undone. You will be signed out immediately.
+              </p>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setDeleteModalOpen(true)}
+                className="border-red-200 text-red-700 hover:bg-red-50"
+              >
+                Delete account
+              </Button>
+            </SitterCardBody>
+          </SitterCard>
         </div>
       ) : null}
+
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => !deleting && setDeleteModalOpen(false)}
+        title="Delete account"
+        size="sm"
+        footer={
+          <div className="flex gap-2 justify-end">
+            <Button variant="secondary" onClick={() => setDeleteModalOpen(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => void handleDeleteAccount()}
+              disabled={deleting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {deleting ? 'Deleting...' : 'Delete account'}
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-neutral-600">
+          Are you sure? This will permanently delete your sitter account. You will be signed out immediately and cannot sign in again.
+        </p>
+      </Modal>
     </div>
   );
 }

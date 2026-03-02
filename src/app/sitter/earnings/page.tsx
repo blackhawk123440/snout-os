@@ -43,6 +43,17 @@ interface CompletedJob {
   commissionPercentage: number;
 }
 
+interface PayoutTransfer {
+  id: string;
+  bookingId?: string | null;
+  stripeTransferId?: string | null;
+  amount: number;
+  currency: string;
+  status: string;
+  lastError?: string | null;
+  createdAt: string;
+}
+
 const formatDate = (d: string) =>
   new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 
@@ -50,8 +61,10 @@ export default function SitterEarningsPage() {
   const [periodTab, setPeriodTab] = useState<PeriodTab>('month');
   const [data, setData] = useState<EarningsData | null>(null);
   const [jobs, setJobs] = useState<CompletedJob[]>([]);
+  const [transfers, setTransfers] = useState<PayoutTransfer[]>([]);
   const [loading, setLoading] = useState(true);
   const [jobsLoading, setJobsLoading] = useState(true);
+  const [transfersLoading, setTransfersLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<CompletedJob | null>(null);
 
@@ -92,10 +105,28 @@ export default function SitterEarningsPage() {
     }
   }, []);
 
+  const loadTransfers = useCallback(async () => {
+    setTransfersLoading(true);
+    try {
+      const res = await fetch('/api/sitter/transfers');
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setTransfers([]);
+        return;
+      }
+      setTransfers(Array.isArray(json.transfers) ? json.transfers : []);
+    } catch {
+      setTransfers([]);
+    } finally {
+      setTransfersLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadEarnings();
     void loadJobs();
-  }, [loadEarnings, loadJobs]);
+    void loadTransfers();
+  }, [loadEarnings, loadJobs, loadTransfers]);
 
   return (
     <div className="mx-auto max-w-3xl pb-8">
@@ -175,6 +206,49 @@ export default function SitterEarningsPage() {
             <FeatureStatusPill featureKey="instant_payout" />
           </div>
 
+          <h3 className="text-base font-semibold text-neutral-900">Payout transfers</h3>
+          {transfersLoading ? (
+            <SitterSkeletonList count={2} />
+          ) : transfers.length === 0 ? (
+            <SitterEmptyState
+              title="No payouts yet"
+              subtitle="Transfers will appear here after completed bookings are paid out."
+            />
+          ) : (
+            <div className="space-y-2">
+              {transfers.map((t) => (
+                <SitterCard key={t.id}>
+                  <SitterCardBody className="flex flex-row items-center justify-between">
+                    <div>
+                      <p className="font-medium text-neutral-900">
+                        ${(t.amount / 100).toFixed(2)} {t.currency.toUpperCase()}
+                      </p>
+                      <p className="text-sm text-neutral-600">
+                        {t.createdAt ? formatDate(t.createdAt) : '—'} · {t.status}
+                        {t.lastError && (
+                          <span className="ml-1 text-red-600" title={t.lastError}>
+                            (failed)
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        t.status === 'paid'
+                          ? 'bg-green-100 text-green-800'
+                          : t.status === 'failed'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-neutral-100 text-neutral-700'
+                      }`}
+                    >
+                      {t.status}
+                    </span>
+                  </SitterCardBody>
+                </SitterCard>
+              ))}
+            </div>
+          )}
+
           <h3 className="text-base font-semibold text-neutral-900">Completed jobs</h3>
           {jobsLoading ? (
             <SitterSkeletonList count={2} />
@@ -202,7 +276,7 @@ export default function SitterEarningsPage() {
           )}
 
           <p className="text-center text-xs text-neutral-500">
-            Earnings are estimates based on completed bookings. No payments or payouts in this MVP.
+            Earnings are based on completed bookings. Payouts are sent to your connected Stripe account.
           </p>
         </div>
       ) : null}

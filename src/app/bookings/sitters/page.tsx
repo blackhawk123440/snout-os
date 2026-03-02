@@ -32,6 +32,7 @@ interface Sitter extends Record<string, unknown> {
   commissionPercentage?: number;
   createdAt: Date | string;
   updatedAt: Date | string;
+  deletedAt?: string | null;
   currentTier?: { id: string; name: string; priorityLevel: number } | null;
 }
 
@@ -195,8 +196,11 @@ export default function SittersPage() {
             header: 'Sitter',
             render: (r) => (
               <div>
-                <div className="font-medium text-[var(--color-text-primary)]">
+                <div className="flex items-center gap-2 font-medium text-[var(--color-text-primary)]">
                   {r.firstName} {r.lastName}
+                  {r.deletedAt && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Deleted</span>
+                  )}
                 </div>
                 <div className="text-xs text-[var(--color-text-secondary)]">{r.email}</div>
               </div>

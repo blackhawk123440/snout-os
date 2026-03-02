@@ -6,22 +6,19 @@
 import { NextResponse } from 'next/server';
 import { getScopedDb } from '@/lib/tenancy';
 import { getRequestContext } from '@/lib/request-context';
-import { ForbiddenError, requireRole } from '@/lib/rbac';
+import { ForbiddenError, requireRole, requireClientContext } from '@/lib/rbac';
 
 export async function GET() {
   let ctx;
   try {
     ctx = await getRequestContext();
     requireRole(ctx, 'client');
+    requireClientContext(ctx);
   } catch (error) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (!ctx.clientId) {
-    return NextResponse.json({ error: 'Client profile missing' }, { status: 403 });
   }
 
   const db = getScopedDb(ctx);

@@ -37,6 +37,11 @@ export const TENANT_MODELS = [
   'sitterTierSnapshot',
   'sitterServiceEvent',
   'sitterTimeOff',
+  'sitterAvailabilityRule',
+  'sitterAvailabilityOverride',
+  'sitterStripeAccount',
+  'payoutTransfer',
+  'sitterEarning',
   'offerEvent',
   'visitEvent',
   'sitterCompensation',
@@ -49,6 +54,11 @@ export const TENANT_MODELS = [
   'baselineSnapshot',
   'user',
   'bookingTagAssignment',
+  'orgAISettings',
+  'aiPromptTemplate',
+  'aiUsageLog',
+  'ledgerEntry',
+  'reconciliationRun',
 ] as const;
 
 export type TenantModelName = (typeof TENANT_MODELS)[number];

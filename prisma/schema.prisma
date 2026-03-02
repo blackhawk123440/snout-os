@@ -126,6 +126,7 @@ model Sitter {
   email                String              @default("")
   active               Boolean             @default(true)
   commissionPercentage Float               @default(80.0) // Percentage of booking totalPrice (70-80%)
+  deletedAt            DateTime?           // Soft delete - blocked from auth
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   bookings             Booking[]
@@ -151,6 +152,7 @@ model Sitter {
   calendarSyncEnabled  Boolean   @default(false)
   respectGoogleBusy    Boolean   @default(false) // When true, block availability from Google busy
   availabilityEnabled  Boolean   @default(true) // Sitter-managed: available for new bookings
+  timezone             String?   @default("America/Chicago") // IANA timezone for availability computation
   // SRS System relations
   tierSnapshots        SitterTierSnapshot[]
   serviceEvents        SitterServiceEvent[]
@@ -163,11 +165,17 @@ model Sitter {
   messageThreads       MessageThread[]
   petHealthLogs        PetHealthLog[]
   verifications        SitterVerification[]
+  availabilityRules    SitterAvailabilityRule[]
+  availabilityOverrides SitterAvailabilityOverride[]
+  stripeConnectAccount SitterStripeAccount?
+  payoutTransfers      PayoutTransfer[]
+  earnings             SitterEarning[]
 
   // @@unique([email])   // re-add after backfill
   @@index([active])
   @@index([orgId])
   @@index([currentTierId])
+  @@index([deletedAt])
 }
 
 model SitterPoolOffer {
@@ -739,6 +747,7 @@ model Client {
   lifetimeValue Float              @default(0)
   lastBookingAt DateTime?
   notes         String?
+  deletedAt     DateTime?          // Soft delete
   customFields  CustomFieldValue[]
   bookings      Booking[]
   threads       MessageThread[]
@@ -752,6 +761,7 @@ model Client {
   @@index([phone])
   @@index([email])
   @@index([orgId])
+  @@index([deletedAt])
 }
 
 // ============================================
@@ -826,6 +836,7 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String? // For credentials provider
+  deletedAt     DateTime? // Soft delete - blocked from auth
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
@@ -841,6 +852,7 @@ model User {
   @@index([orgId])
   @@index([sitterId])
   @@index([clientId])
+  @@index([deletedAt])
 }
 
 model Account {
@@ -1045,6 +1057,65 @@ model StripeBalanceTransaction {
   @@index([chargeId])
   @@index([payoutId])
   @@index([createdAt])
+}
+
+// Stripe Connect (sitter payouts)
+model SitterStripeAccount {
+  id               String   @id @default(uuid())
+  orgId            String   @default("default")
+  sitterId         String   @unique
+  accountId        String   // Stripe Connect account ID (acct_xxx)
+  onboardingStatus String   @default("pending") // pending, onboarding, complete
+  payoutsEnabled   Boolean  @default(false)
+  chargesEnabled   Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  sitter           Sitter   @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([accountId])
+}
+
+model PayoutTransfer {
+  id               String    @id @default(uuid())
+  orgId            String    @default("default")
+  sitterId         String
+  bookingId        String?
+  stripeTransferId String?   // Stripe Transfer ID (tr_xxx)
+  amount           Int       // Amount in cents
+  currency         String    @default("usd")
+  status           String    @default("pending") // pending, paid, failed
+  lastError        String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  sitter           Sitter    @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([sitterId])
+  @@index([bookingId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SitterEarning {
+  id          String   @id @default(uuid())
+  orgId       String   @default("default")
+  sitterId    String
+  bookingId   String
+  amountGross Float
+  platformFee  Float    @default(0)
+  tips        Float    @default(0)
+  netAmount   Float
+  createdAt   DateTime @default(now())
+
+  sitter      Sitter   @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, sitterId, bookingId])
+  @@index([orgId])
+  @@index([sitterId])
+  @@index([bookingId])
 }
 
 // Payroll Models
@@ -1509,6 +1580,41 @@ model SitterTimeOff {
   @@index([startsAt, endsAt])
 }
 
+model SitterAvailabilityRule {
+  id          String   @id @default(uuid())
+  orgId       String   @default("default")
+  sitterId    String
+  daysOfWeek  String   // JSON array: [0,1,2,3,4,5,6] 0=Sun, 6=Sat
+  startTime   String   // HH:mm in sitter timezone
+  endTime     String   // HH:mm in sitter timezone
+  timezone    String   @default("America/Chicago")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sitter      Sitter   @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, sitterId])
+  @@index([sitterId, active])
+}
+
+model SitterAvailabilityOverride {
+  id          String   @id @default(uuid())
+  orgId       String   @default("default")
+  sitterId    String
+  date        DateTime @db.Date
+  startTime   String   // HH:mm in sitter timezone
+  endTime     String   // HH:mm in sitter timezone
+  isAvailable Boolean  // true=add availability, false=blackout
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sitter      Sitter   @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, sitterId, date, startTime, endTime])
+  @@index([orgId, sitterId, date])
+}
+
 model OfferEvent {
   id                String    @id @default(uuid())
   orgId             String
@@ -1743,4 +1849,91 @@ model AnalyticsInsight {
   @@index([orgId])
   @@index([type])
   @@index([generatedAt])
+}
+
+// AI Governance
+model OrgAISettings {
+  id                  String   @id @default(uuid())
+  orgId               String   @unique
+  enabled             Boolean  @default(true)
+  monthlyBudgetCents  Int      @default(0)   // 0 = unlimited (see docs/AI_GOVERNANCE.md)
+  hardStop            Boolean  @default(false)
+  allowedModels       Json?    // optional array of model names
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([orgId])
+}
+
+model AIPromptTemplate {
+  id        String   @id @default(uuid())
+  orgId     String?  // null = global template
+  key       String   // e.g. daily_delight, sitter_match, pricing_suggestion
+  version   Int      @default(1)
+  template  String   @db.Text
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([orgId, key])
+  @@index([key])
+}
+
+model AIUsageLog {
+  id            String   @id @default(uuid())
+  orgId         String
+  userId        String?
+  featureKey    String
+  model         String
+  promptKey     String   @default("")
+  promptVersion Int      @default(0)
+  inputTokens   Int      @default(0)
+  outputTokens  Int      @default(0)
+  totalTokens   Int      @default(0)
+  costCents     Int      @default(0)
+  status        String   @default("succeeded") // succeeded | failed | blocked
+  error         String?  @db.Text
+  metadata      Json?
+  createdAt     DateTime @default(now())
+
+  @@index([orgId])
+  @@index([orgId, createdAt])
+  @@index([orgId, featureKey, createdAt])
+  @@index([featureKey])
+}
+
+// ============================================
+// LEDGER & RECONCILIATION
+// ============================================
+
+model LedgerEntry {
+  id          String   @id @default(cuid())
+  orgId       String
+  entryType   String   // charge | refund | payout | fee | adjustment
+  source      String   // stripe | internal
+  stripeId    String?  @unique // payment_intent/charge/refund/transfer id; unique when present
+  bookingId   String?
+  clientId    String?
+  sitterId    String?
+  amountCents Int      // positive; refunds use entryType=refund
+  currency    String   @default("usd")
+  status      String   @default("succeeded") // succeeded | failed | pending
+  occurredAt  DateTime // timestamp from provider
+  createdAt   DateTime @default(now())
+
+  @@index([orgId, occurredAt])
+  @@index([orgId, entryType, occurredAt])
+}
+
+model ReconciliationRun {
+  id           String   @id @default(cuid())
+  orgId        String
+  rangeStart   DateTime
+  rangeEnd     DateTime
+  status       String   @default("succeeded") // succeeded | failed
+  totalsJson   Json?    // sums by type
+  mismatchJson Json?    // missingInDb, missingInStripe, amountDiffs
+  createdAt    DateTime @default(now())
+
+  @@index([orgId])
+  @@index([orgId, createdAt])
 }

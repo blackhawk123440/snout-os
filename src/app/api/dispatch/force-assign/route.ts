@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { forceAssignSitter } from '@/lib/dispatch-control';
+import { AvailabilityConflictError } from '@/lib/availability/booking-conflict';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { bookingId, sitterId, reason } = body;
+    const { bookingId, sitterId, reason, force } = body;
 
     if (!bookingId || !sitterId) {
       return NextResponse.json(
@@ -53,7 +54,8 @@ export async function POST(request: NextRequest) {
       bookingId,
       sitterId,
       reason || 'Owner force assignment',
-      user.id
+      user.id,
+      { force: force === true }
     );
 
     return NextResponse.json({
@@ -61,6 +63,15 @@ export async function POST(request: NextRequest) {
       message: 'Sitter assigned successfully',
     });
   } catch (error: any) {
+    if (error instanceof AvailabilityConflictError) {
+      return NextResponse.json(
+        {
+          error: 'Availability conflict',
+          conflicts: error.conflicts,
+        },
+        { status: 409 }
+      );
+    }
     console.error('[Force Assign API] Failed to assign sitter:', error);
     return NextResponse.json(
       { error: 'Failed to assign sitter', message: error.message },

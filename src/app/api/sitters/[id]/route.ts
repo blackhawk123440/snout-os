@@ -36,6 +36,7 @@ export async function GET(
 
     const sitter = await prisma.sitter.findFirst({
       where: whereOrg(ctx.orgId, { id: resolvedParams.id }),
+      include: { user: { select: { id: true } } },
     }) as any; // Type assertion: runtime uses enterprise-messaging-dashboard schema (name field)
 
     if (!sitter) {
@@ -64,6 +65,8 @@ export async function GET(
         createdAt: sitter.createdAt,
         updatedAt: sitter.updatedAt,
         currentTier: null,
+        deletedAt: sitter.deletedAt ?? null,
+        userId: (sitter as any).user?.id ?? null,
       }
     });
   } catch (error: any) {

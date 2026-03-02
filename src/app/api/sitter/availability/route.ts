@@ -6,9 +6,10 @@ import { whereOrg } from '@/lib/org-scope';
 
 /**
  * GET /api/sitter/availability
- * Returns availability toggle + block-off days for current sitter.
+ * Returns availability toggle + block-off days + rules + overrides for current sitter.
+ * Query: ?preview=7 to include computed availability windows for next 7 days.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   let ctx;
   try {
     ctx = await getRequestContext();
@@ -34,17 +35,31 @@ export async function GET() {
     }
 
     const now = new Date();
-    const blockOffs = await prisma.sitterTimeOff.findMany({
-      where: whereOrg(ctx.orgId, {
-        sitterId: ctx.sitterId,
-        type: 'block',
-        endsAt: { gte: now },
+    const [blockOffs, rules, overrides] = await Promise.all([
+      prisma.sitterTimeOff.findMany({
+        where: whereOrg(ctx.orgId, {
+          sitterId: ctx.sitterId,
+          type: 'block',
+          endsAt: { gte: now },
+        }),
+        orderBy: { startsAt: 'asc' },
+        take: 30,
       }),
-      orderBy: { startsAt: 'asc' },
-      take: 30,
-    });
+      (prisma as any).sitterAvailabilityRule.findMany({
+        where: whereOrg(ctx.orgId, { sitterId: ctx.sitterId, active: true }),
+        orderBy: { createdAt: 'asc' },
+      }),
+      (prisma as any).sitterAvailabilityOverride.findMany({
+        where: whereOrg(ctx.orgId, {
+          sitterId: ctx.sitterId,
+          date: { gte: now },
+        }),
+        orderBy: { date: 'asc' },
+        take: 60,
+      }),
+    ]);
 
-    return NextResponse.json({
+    const result: Record<string, unknown> = {
       availabilityEnabled: (sitter as any).availabilityEnabled ?? true,
       blockOffDays: blockOffs.map((b) => ({
         id: b.id,
@@ -52,7 +67,43 @@ export async function GET() {
         startsAt: b.startsAt.toISOString(),
         endsAt: b.endsAt.toISOString(),
       })),
-    });
+      rules: (rules || []).map((r: any) => ({
+        id: r.id,
+        daysOfWeek: r.daysOfWeek,
+        startTime: r.startTime,
+        endTime: r.endTime,
+        timezone: r.timezone,
+      })),
+      overrides: (overrides || []).map((o: any) => ({
+        id: o.id,
+        date: o.date instanceof Date ? o.date.toISOString().slice(0, 10) : String(o.date).slice(0, 10),
+        startTime: o.startTime,
+        endTime: o.endTime,
+        isAvailable: o.isAvailable,
+      })),
+    };
+
+    const previewDays = request.nextUrl?.searchParams?.get('preview');
+    if (previewDays && parseInt(previewDays, 10) > 0) {
+      const { getAvailabilityWindows } = await import('@/lib/availability/engine');
+      const days = Math.min(parseInt(previewDays, 10), 14);
+      const end = new Date(now);
+      end.setDate(end.getDate() + days);
+      const windows = await getAvailabilityWindows({
+        db: prisma as any,
+        orgId: ctx.orgId,
+        sitterId: ctx.sitterId,
+        start: now,
+        end,
+        respectGoogleBusy: true,
+      });
+      result.preview = windows.map((w) => ({
+        start: w.start.toISOString(),
+        end: w.end.toISOString(),
+      }));
+    }
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(

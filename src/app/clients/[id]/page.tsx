@@ -34,6 +34,8 @@ interface Client {
   phone: string;
   email: string;
   address: string;
+  deletedAt?: string | null;
+  userId?: string | null;
 }
 
 interface Booking {
@@ -83,6 +85,7 @@ function ClientDetailContent() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<ClientStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (clientId) {
@@ -345,6 +348,11 @@ function ClientDetailContent() {
                 {/* Client Profile */}
                 <Card>
                   <SectionHeader title="Client Profile" />
+                  {client.deletedAt && (
+                    <div className="px-4 pt-2">
+                      <Badge variant="error">Deleted</Badge>
+                    </div>
+                  )}
                   <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
                     <div>
                       <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
@@ -417,6 +425,55 @@ function ClientDetailContent() {
                       onClick={() => window.location.href = `/messages?clientId=${client.id}`}
                     >
                       Send Message
+                    </Button>
+                    {client.userId && !client.deletedAt && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        style={{ width: '100%', borderColor: 'var(--color-red-200)', color: 'var(--color-red-700)' }}
+                        leftIcon={<i className="fas fa-user-minus" />}
+                        disabled={deletingAccount}
+                        onClick={async () => {
+                          if (!confirm('Soft delete this client account? They will be blocked from signing in.')) return;
+                          setDeletingAccount(true);
+                          try {
+                            const res = await fetch(`/api/ops/users/${client.userId}/delete`, { method: 'POST' });
+                            if (res.ok) {
+                              fetchClientData();
+                            } else {
+                              const json = await res.json().catch(() => ({}));
+                              alert(json.error || 'Failed to delete');
+                            }
+                          } finally {
+                            setDeletingAccount(false);
+                          }
+                        }}
+                      >
+                        {deletingAccount ? 'Deleting…' : 'Delete account'}
+                      </Button>
+                    )}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      style={{ width: '100%' }}
+                      leftIcon={<i className="fas fa-download" />}
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`/api/ops/clients/${client.id}/export`, { method: 'POST' });
+                          if (!res.ok) throw new Error('Export failed');
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `client-export-${client.id}-${Date.now()}.json`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        } catch {
+                          alert('Export failed. Please try again.');
+                        }
+                      }}
+                    >
+                      Export data
                     </Button>
                   </div>
                 </Card>

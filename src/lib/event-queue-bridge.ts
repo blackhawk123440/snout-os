@@ -13,6 +13,7 @@
 import { eventEmitter } from "./event-emitter";
 import { enqueueAutomation } from "./automation-queue";
 import { enqueueCalendarSync } from "./calendar-queue";
+import { logEventFromLogger } from "./event-logger";
 
 let initialized = false;
 
@@ -82,24 +83,46 @@ export function initializeEventQueueBridge(): void {
 
   eventEmitter.on("visit.completed", async (context: any) => {
     const bookingId = context.bookingId;
+    const orgId = context.booking?.orgId || "default";
     if (!bookingId) return;
     try {
       await enqueueAutomation(
         "postVisitThankYou",
         "client",
-        { bookingId },
+        { bookingId, orgId },
         `postVisitThankYou:client:${bookingId}`
       );
-      await enqueueAutomation(
-        "postVisitThankYou",
-        "sitter",
-        { bookingId, sitterId: context.booking?.sitterId },
-        `postVisitThankYou:sitter:${bookingId}`
-      );
-      // Payout ledger entry: when Stripe Connect + payout tables exist, enqueue here
-      // For now, no-op
+      await logEventFromLogger("review.scheduled", "success", {
+        orgId,
+        bookingId,
+        metadata: { recipient: "client" },
+      });
+      if (context.booking?.sitterId) {
+        await enqueueAutomation(
+          "postVisitThankYou",
+          "sitter",
+          { bookingId, sitterId: context.booking.sitterId, orgId },
+          `postVisitThankYou:sitter:${bookingId}`
+        );
+        await logEventFromLogger("review.scheduled", "success", {
+          orgId,
+          bookingId,
+          metadata: { recipient: "sitter" },
+        });
+        const { enqueuePayoutForBooking } = await import("@/lib/payout/payout-queue");
+        enqueuePayoutForBooking({
+          orgId,
+          bookingId,
+          sitterId: context.booking.sitterId,
+        }).catch((e) => console.error("[EventQueueBridge] Failed to enqueue payout:", e));
+      }
     } catch (err) {
       console.error("[EventQueueBridge] Failed to enqueue postVisitThankYou:", err);
+      await logEventFromLogger("review.scheduled", "failed", {
+        orgId,
+        bookingId,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   });
 }

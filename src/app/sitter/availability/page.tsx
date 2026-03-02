@@ -9,7 +9,6 @@ import {
   SitterPageHeader,
   SitterSkeletonList,
   SitterErrorState,
-  FeatureStatusPill,
 } from '@/components/sitter';
 
 interface BlockOffDay {
@@ -17,9 +16,33 @@ interface BlockOffDay {
   date: string;
 }
 
+interface AvailabilityRule {
+  id: string;
+  daysOfWeek: string;
+  startTime: string;
+  endTime: string;
+  timezone?: string;
+}
+
+interface AvailabilityOverride {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  isAvailable: boolean;
+}
+
+interface PreviewWindow {
+  start: string;
+  end: string;
+}
+
 export default function SitterAvailabilityPage() {
   const [availabilityEnabled, setAvailabilityEnabled] = useState(true);
   const [blockOffs, setBlockOffs] = useState<BlockOffDay[]>([]);
+  const [rules, setRules] = useState<AvailabilityRule[]>([]);
+  const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
+  const [preview, setPreview] = useState<PreviewWindow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toggling, setToggling] = useState(false);
@@ -30,19 +53,28 @@ export default function SitterAvailabilityPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/sitter/availability');
+      const res = await fetch('/api/sitter/availability?preview=7');
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(json.error || 'Unable to load availability');
         setAvailabilityEnabled(true);
         setBlockOffs([]);
+        setRules([]);
+        setOverrides([]);
+        setPreview([]);
         return;
       }
       setAvailabilityEnabled(json.availabilityEnabled ?? true);
       setBlockOffs(Array.isArray(json.blockOffDays) ? json.blockOffDays : []);
+      setRules(Array.isArray(json.rules) ? json.rules : []);
+      setOverrides(Array.isArray(json.overrides) ? json.overrides : []);
+      setPreview(Array.isArray(json.preview) ? json.preview : []);
     } catch {
       setError('Unable to load availability');
       setBlockOffs([]);
+      setRules([]);
+      setOverrides([]);
+      setPreview([]);
     } finally {
       setLoading(false);
     }
@@ -180,13 +212,57 @@ export default function SitterAvailabilityPage() {
             </SitterCardBody>
           </SitterCard>
 
-          <SitterCard className="border-dashed">
+          <SitterCard>
+            <SitterCardHeader>
+              <p className="font-medium text-neutral-900">Recurring availability</p>
+            </SitterCardHeader>
             <SitterCardBody>
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-neutral-700">Recurring blocks</p>
-                <FeatureStatusPill featureKey="recurring_blocks" />
-              </div>
-              <p className="mt-1 text-xs text-neutral-500">Weekly recurring unavailability (coming soon)</p>
+              <p className="mb-3 text-sm text-neutral-500">Weekly windows when you&apos;re available (e.g., Mon–Fri 9–5)</p>
+              {rules.length === 0 ? (
+                <p className="text-sm text-neutral-500">No recurring rules. Add rules via API or ops.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {rules.map((r) => {
+                    const days = (() => {
+                      try {
+                        const d = JSON.parse(r.daysOfWeek);
+                        return Array.isArray(d) ? d : [];
+                      } catch {
+                        return [];
+                      }
+                    })();
+                    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    const labels = days.map((i: number) => dayNames[i]).join(', ');
+                    return (
+                      <li key={r.id} className="rounded-lg bg-neutral-50 px-3 py-2 text-sm">
+                        {labels}: {r.startTime}–{r.endTime}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </SitterCardBody>
+          </SitterCard>
+
+          <SitterCard>
+            <SitterCardHeader>
+              <p className="font-medium text-neutral-900">Availability preview (next 7 days)</p>
+            </SitterCardHeader>
+            <SitterCardBody>
+              {preview.length === 0 ? (
+                <p className="text-sm text-neutral-500">No availability windows in the next 7 days. Add recurring rules above.</p>
+              ) : (
+                <ul className="space-y-1 text-sm">
+                  {preview.slice(0, 14).map((w, i) => (
+                    <li key={i} className="text-neutral-600">
+                      {new Date(w.start).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} – {new Date(w.end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </li>
+                  ))}
+                  {preview.length > 14 && (
+                    <li className="text-neutral-500">…and {preview.length - 14} more</li>
+                  )}
+                </ul>
+              )}
             </SitterCardBody>
           </SitterCard>
         </div>

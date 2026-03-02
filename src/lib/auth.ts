@@ -113,6 +113,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               passwordHash: true,
               orgId: true,
               role: true,
+              deletedAt: true,
               sitter: { select: { id: true } },
               client: { select: { id: true } },
             },
@@ -132,6 +133,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!user) {
           console.log('[NextAuth] User not found in database');
           outcome = "user_not_found";
+          return null;
+        }
+
+        if ((user as any).deletedAt) {
+          console.log('[NextAuth] Account has been deleted');
+          outcome = "account_deleted";
           return null;
         }
 

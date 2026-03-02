@@ -50,13 +50,19 @@ REDIS_URL=redis://localhost:6379 npm run worker
 
 **Production:** Run the worker as a separate process (e.g. Render Background Worker, `npm run worker`).
 
+## Remaining Gaps
+
+All previously documented gaps have been resolved except those listed in [docs/REMAINING_GAPS.md](docs/REMAINING_GAPS.md).
+
 ## Docs
 
 Project documentation lives in [`/docs`](docs/):
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Setup, tests, PR checks, quarantined tests
+- [docs/REMAINING_GAPS.md](docs/REMAINING_GAPS.md) — Post-hardening gap list
 - [docs/FEATURE_GATE.md](docs/FEATURE_GATE.md) — Feature completion gate
-- [docs/MASTER_GAP_LIST.md](docs/MASTER_GAP_LIST.md) — Spec vs repo audit
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Deployment guide
+- [docs/RELEASE.md](docs/RELEASE.md) — Release and rollback guide
 - [docs/UI_DONE_CHECKLIST.md](docs/UI_DONE_CHECKLIST.md) — UI consistency checklist
 - [docs/CLIENT_QA_CHECKLIST.md](docs/CLIENT_QA_CHECKLIST.md) — Client portal QA
 - [docs/SITTER_QA_CHECKLIST.md](docs/SITTER_QA_CHECKLIST.md) — Sitter dashboard QA

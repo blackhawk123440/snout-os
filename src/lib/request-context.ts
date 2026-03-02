@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { env } from "@/lib/env";
+import { prisma } from "@/lib/db";
 
 export type AppRole = "owner" | "admin" | "sitter" | "client" | "public";
 
@@ -29,9 +30,21 @@ export async function getRequestContext(): Promise<RequestContext> {
     throw new Error("Unauthorized");
   }
 
+  const userId = typeof (session.user as Record<string, unknown>).id === "string"
+    ? (session.user as Record<string, unknown>).id as string
+    : null;
+  if (userId) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { deletedAt: true },
+    });
+    if (dbUser?.deletedAt) {
+      throw new Error("Account has been deleted");
+    }
+  }
+
   const user = session.user as Record<string, unknown>;
   const role = normalizeRole(user.role);
-  const userId = typeof user.id === "string" ? user.id : null;
   const sitterId = typeof user.sitterId === "string" ? user.sitterId : null;
   const clientId = typeof user.clientId === "string" ? user.clientId : null;
 

@@ -5,19 +5,8 @@ import IORedis from "ioredis";
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379");
 
 // Create queues
-export const reminderQueue = new Queue("reminders", { connection });
 export const summaryQueue = new Queue("daily-summary", { connection });
 export const reconciliationQueue = new Queue("reconciliation", { connection }); // Phase 7.2: Price reconciliation
-
-// Create workers
-export const reminderWorker = new Worker(
-  "reminders",
-  async (job) => {
-    const { processReminders } = await import("../worker/automation-worker");
-    return await processReminders();
-  },
-  { connection }
-);
 
 export const summaryWorker = new Worker(
   "daily-summary",
@@ -38,21 +27,7 @@ export const reconciliationWorker = new Worker(
   { connection }
 );
 
-// Schedule jobs
-export async function scheduleReminders() {
-  // Schedule reminder processing every hour
-  await reminderQueue.add(
-    "process-reminders",
-    {},
-    {
-      repeat: {
-        pattern: "0 * * * *", // Every hour
-      },
-      removeOnComplete: 10,
-      removeOnFail: 5,
-    }
-  );
-}
+// Reminder scheduling: see reminder-scheduler-queue.ts (org-scoped, no global scan)
 
 export async function scheduleDailySummary() {
   // Schedule daily summary at 9 PM
@@ -89,7 +64,12 @@ export async function scheduleReconciliation() {
 // Initialize queues
 export async function initializeQueues() {
   try {
-    await scheduleReminders();
+    const { scheduleReminderDispatcher, initializeReminderSchedulerWorker } = await import(
+      "./reminder-scheduler-queue"
+    );
+    await scheduleReminderDispatcher();
+    initializeReminderSchedulerWorker();
+
     await scheduleDailySummary();
     await scheduleReconciliation(); // Phase 7.2: Pricing reconciliation
     
@@ -105,6 +85,14 @@ export async function initializeQueues() {
     const { initializePoolReleaseWorker, schedulePoolRelease } = await import("./pool-release-queue");
     initializePoolReleaseWorker();
     await schedulePoolRelease();
+
+    // Payout worker (Stripe Connect transfers on booking completion)
+    const { initializePayoutWorker } = await import("./payout/payout-queue");
+    initializePayoutWorker();
+
+    // Finance reconciliation worker (ledger vs Stripe)
+    const { initializeFinanceReconcileWorker } = await import("./finance/reconcile-queue");
+    initializeFinanceReconcileWorker();
   } catch (error) {
     console.error("Failed to initialize queues:", error);
   }

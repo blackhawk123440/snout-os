@@ -10,6 +10,7 @@ import { recordSitterAuditEvent } from '@/lib/audit-events';
 import { enqueueCalendarSync } from '@/lib/calendar-queue';
 import { emitBookingUpdated } from '@/lib/event-emitter';
 import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
+import { checkAssignmentAllowed } from '@/lib/availability/booking-conflict';
 
 export type DispatchStatus = 'auto' | 'manual_required' | 'manual_in_progress' | 'assigned';
 
@@ -48,31 +49,55 @@ export function isValidDispatchTransition(
 
 /**
  * Force assign a sitter to a booking (owner override)
- * 
+ *
  * Valid transitions:
  * - manual_required -> assigned
  * - manual_in_progress -> assigned
  * - auto -> assigned (if booking is unassigned)
+ *
+ * When force=false and conflicts exist, throws AvailabilityConflictError (caller returns 409).
+ * When force=true, logs override and proceeds.
  */
 export async function forceAssignSitter(
   orgId: string,
   bookingId: string,
   sitterId: string,
   reason: string,
-  actorId: string
+  actorId: string,
+  options?: { force?: boolean }
 ): Promise<void> {
-  // Get current booking state
+  // Get current booking state (need startAt/endAt for conflict check)
   const booking = await (prisma as any).booking.findUnique({
     where: { id: bookingId },
     select: {
       dispatchStatus: true,
       sitterId: true,
       status: true,
+      startAt: true,
+      endAt: true,
     },
   });
 
   if (!booking) {
     throw new Error(`Booking ${bookingId} not found`);
+  }
+
+  const { allowed, conflicts } = await checkAssignmentAllowed({
+    db: prisma as any,
+    orgId,
+    sitterId,
+    start: booking.startAt,
+    end: booking.endAt,
+    excludeBookingId: bookingId,
+    respectGoogleBusy: true,
+    force: options?.force ?? false,
+    actorUserId: actorId,
+    bookingId,
+  });
+
+  if (!allowed) {
+    const { AvailabilityConflictError } = await import('@/lib/availability/booking-conflict');
+    throw new AvailabilityConflictError('Sitter assignment conflicts with availability', conflicts);
   }
 
   const currentStatus: DispatchStatus = (booking.dispatchStatus || 'auto') as DispatchStatus;
