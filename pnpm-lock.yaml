@@ -59,6 +59,9 @@ importers:
       chart.js:
         specifier: ^4.5.1
         version: 4.5.1
+      cross-env:
+        specifier: ^10.1.0
+        version: 10.1.0
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -144,9 +147,6 @@ importers:
       '@vitest/ui':
         specifier: ^4.0.16
         version: 4.0.18(vitest@4.0.18)
-      cross-env:
-        specifier: ^10.1.0
-        version: 10.1.0
       eslint:
         specifier: ^8.0.0
         version: 8.57.1
