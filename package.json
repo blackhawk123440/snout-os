@@ -16,7 +16,7 @@
     "test:core": "vitest run --exclude '**/srs-engine.test.ts' --exclude '**/pool-capacity.test.ts' --exclude '**/one-thread-per-client.test.ts'",
     "test:integration": "RUN_INTEGRATION_TESTS=true vitest run --config vitest.config.ts",
     "test:ui": "playwright test",
-    "test:ui:smoke": "playwright test --config=playwright.smoke.config.ts",
+    "test:ui:smoke": "tsx scripts/smoke.ts",
     "e2e:smoke": "playwright test --config=playwright.smoke.config.ts tests/e2e/smoke.spec.ts tests/e2e/smoke-closed-loop.spec.ts tests/e2e/smoke-ops.spec.ts",
     "test:ui:visual": "playwright test",
     "test:ui:owner-snapshots": "playwright test tests/e2e/owner-snapshots.spec.ts --project=owner-desktop",

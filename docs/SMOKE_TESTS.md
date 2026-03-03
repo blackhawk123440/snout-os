@@ -5,10 +5,11 @@ Local and CI smoke test harness for Snout OS.
 ## Quick Start (Local)
 
 ```bash
-pnpm test:ui:smoke:local
+cp .env.smoke.example .env.smoke
+pnpm test:ui:smoke
 ```
 
-This single command:
+This single command (same in CI):
 1. Starts Postgres via Docker (port 5433)
 2. Resets DB (migrate + seed)
 3. Starts Next.js with smoke env
@@ -36,11 +37,11 @@ No real Stripe, Twilio, or Google credentials required.
 
 | Script | Description |
 |--------|-------------|
+| `pnpm test:ui:smoke` | **One command** – full harness locally, Playwright-only in CI |
+| `pnpm test:ui:smoke:local` | Full harness (alias when running test:ui:smoke locally) |
 | `pnpm db:smoke:up` | Start Postgres container |
 | `pnpm db:smoke:down` | Stop and remove container |
 | `pnpm db:smoke:reset` | Down -v, up, migrate, seed |
-| `pnpm test:ui:smoke:local` | Full harness: reset → server → tests → teardown |
-| `pnpm test:ui:smoke` | Playwright only (CI starts server separately) |
 
 ## CI
 
