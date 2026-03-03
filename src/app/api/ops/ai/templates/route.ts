@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRequestContext } from "@/lib/request-context";
 import { requireAnyRole, ForbiddenError } from "@/lib/rbac";
 import { getScopedDb } from "@/lib/tenancy";
-import { prisma } from "@/lib/db";
+import { getGlobalAIPromptTemplates } from "@/lib/ai/governance";
 
 export async function GET() {
   let ctx;
@@ -29,10 +29,7 @@ export async function GET() {
         where: {},
         orderBy: [{ key: "asc" }, { version: "desc" }],
       }),
-      prisma.aIPromptTemplate.findMany({
-        where: { orgId: null },
-        orderBy: [{ key: "asc" }, { version: "desc" }],
-      }),
+      getGlobalAIPromptTemplates(),
     ]);
     const items = [
       ...orgTemplates.map((t) => ({ ...t, scope: "org" as const })),

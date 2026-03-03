@@ -182,6 +182,17 @@ export async function getPromptTemplate(params: {
 }
 
 /**
+ * List all global (orgId=null) AI prompt templates. Used by ops API for template listing.
+ * Must use prisma directly since getScopedDb scopes to org.
+ */
+export async function getGlobalAIPromptTemplates() {
+  return prisma.aIPromptTemplate.findMany({
+    where: { orgId: null },
+    orderBy: [{ key: "asc" }, { version: "desc" }],
+  });
+}
+
+/**
  * Get or create default OrgAISettings for an org.
  */
 export async function getOrCreateOrgAISettings(orgId: string): Promise<{
