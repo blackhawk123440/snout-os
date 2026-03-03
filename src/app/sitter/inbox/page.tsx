@@ -31,7 +31,7 @@ const formatThreadTime = (d: Date) => {
 };
 
 const SUGGESTED_REPLIES = [
-  'On my way! 🐾',
+  'On my way',
   'All done—they had a great time!',
   'Quick question about their routine',
   'See you at the next visit!',

@@ -28,7 +28,19 @@ export interface StatusChipProps {
   className?: string;
 }
 
+const VARIANT_LABELS: Record<StatusChipVariant, string> = {
+  neutral: 'Status',
+  success: 'Success',
+  warning: 'Warning',
+  danger: 'Error',
+  info: 'Info',
+};
+
 export function StatusChip({ children, variant = 'neutral', className }: StatusChipProps) {
+  const label =
+    typeof children === 'string'
+      ? `${VARIANT_LABELS[variant]}: ${children}`
+      : VARIANT_LABELS[variant];
   return (
     <span
       className={cn(
@@ -37,6 +49,7 @@ export function StatusChip({ children, variant = 'neutral', className }: StatusC
         className
       )}
       role="status"
+      aria-label={label}
     >
       {children}
     </span>

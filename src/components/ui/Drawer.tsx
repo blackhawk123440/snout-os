@@ -48,16 +48,20 @@ export function Drawer({
 }: DrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const previousActiveRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
+      previousActiveRef.current = document.activeElement as HTMLElement | null;
       document.body.style.overflow = 'hidden';
       drawerRef.current?.focus();
     } else {
       document.body.style.overflow = '';
+      previousActiveRef.current?.focus?.();
     }
     return () => {
       document.body.style.overflow = '';
+      if (isOpen) previousActiveRef.current?.focus?.();
     };
   }, [isOpen]);
 

@@ -226,8 +226,14 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   color: var(--color-text-primary);
+}
+
+/* Finance-grade: tabular numbers for KPIs and money */
+.font-tabular,
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
 a {

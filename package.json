@@ -18,6 +18,7 @@
     "test:ui": "playwright test",
     "test:ui:smoke": "tsx scripts/smoke.ts",
     "e2e:smoke": "playwright test --config=playwright.smoke.config.ts tests/e2e/smoke.spec.ts tests/e2e/smoke-closed-loop.spec.ts tests/e2e/smoke-ops.spec.ts",
+    "test:e2e:a11y": "playwright test tests/e2e/a11y-smoke.spec.ts --project=owner-desktop",
     "test:ui:visual": "playwright test",
     "test:ui:owner-snapshots": "playwright test tests/e2e/owner-snapshots.spec.ts --project=owner-desktop",
     "test:ui:full": "playwright test",
@@ -33,7 +34,8 @@
     "feature:audit": "tsx scripts/feature-audit.ts",
     "check:no-raw-prisma": "tsx scripts/check-no-raw-prisma.ts",
     "check:no-raw-ui": "tsx scripts/check-no-raw-ui.ts",
-    "check-env": "tsx scripts/check-env.ts"
+    "check-env": "tsx scripts/check-env.ts",
+    "check:contrast": "tsx scripts/a11y/check-contrast.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
@@ -76,6 +78,7 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@eslint/js": "^10.0.1",
     "@lhci/cli": "^0.12.0",
     "@next/eslint-plugin-next": "^16.1.6",
@@ -86,6 +89,7 @@
     "eslint": "^8.0.0",
     "eslint-config-next": "^15.5.12",
     "fast-check": "^4.5.3",
+    "jsdom": "^28.1.0",
     "tsx": "^4.20.6",
     "vitest": "^4.0.16"
   },

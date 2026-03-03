@@ -17,6 +17,7 @@ import {
   StatCard,
   Table,
   TableColumn,
+  DataTableShell,
   Skeleton,
   EmptyState,
   MobileFilterBar,
@@ -615,7 +616,6 @@ export default function PaymentsPage() {
           <Skeleton height="400px" />
         ) : filteredPayments.length === 0 ? (
           <EmptyState
-            icon="💳"
             title="No payments found"
             description={
               searchTerm || statusFilter !== 'all'
@@ -624,12 +624,14 @@ export default function PaymentsPage() {
             }
           />
         ) : (
-          <Table
-            columns={paymentColumns}
-            data={filteredPayments}
-            emptyMessage="No payments found"
-            keyExtractor={(payment) => payment.id}
-          />
+          <DataTableShell>
+            <Table
+              columns={paymentColumns}
+              data={filteredPayments}
+              emptyMessage="No payments found"
+              keyExtractor={(payment) => payment.id}
+            />
+          </DataTableShell>
         )}
       </Card>
         </Section>
