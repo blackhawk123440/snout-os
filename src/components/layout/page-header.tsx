@@ -14,11 +14,13 @@ export interface PageHeaderProps {
   actions?: ReactNode;
   breadcrumbs?: ReactNode;
   className?: string;
+  /** Optional data-testid for stable E2E selectors */
+  testId?: string;
 }
 
-export function PageHeader({ title, subtitle, actions, breadcrumbs, className }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, actions, breadcrumbs, className, testId }: PageHeaderProps) {
   return (
-    <header className={cn('mb-6', className)}>
+    <header className={cn('mb-6', className)} data-testid={testId ?? 'page-header'}>
       {breadcrumbs && <div className="mb-2">{breadcrumbs}</div>}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">

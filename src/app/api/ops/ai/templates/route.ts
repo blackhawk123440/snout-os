@@ -57,9 +57,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { key: string; template: string; version?: number } = {};
+  let body: { key: string; template: string; version?: number };
   try {
-    body = await request.json();
+    const raw = await request.json();
+    body = raw as { key: string; template: string; version?: number };
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
