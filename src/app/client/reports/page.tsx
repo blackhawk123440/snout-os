@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
+import { InteractiveRow } from '@/components/ui/interactive-row';
 
 interface Report {
   id: string;
@@ -63,16 +64,7 @@ export default function ClientReportsPage() {
       <PageHeader
         title="Visit reports"
         subtitle="Updates from your sitter"
-        actions={
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={loading}
-            className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
-          >
-            Refresh
-          </button>
-        }
+        actions={<ClientRefreshButton onRefresh={load} loading={loading} />}
       />
       <Section>
       {loading ? (
@@ -88,24 +80,23 @@ export default function ClientReportsPage() {
       ) : (
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           {reports.map((r) => (
-            <div
+            <InteractiveRow
               key={r.id}
-              role="button"
-              tabIndex={0}
               onClick={() => router.push(`/client/reports/${r.id}`)}
-              onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/reports/${r.id}`)}
-              className="flex cursor-pointer flex-col border-b border-slate-200 px-4 py-3 last:border-b-0 hover:bg-slate-50"
+              className="last:border-b-0"
             >
-              <div className="flex items-center justify-between">
-                <p className="font-medium text-slate-900">
-                  {r.booking?.service || 'Visit report'}
-                </p>
+              <div className="flex flex-1 flex-col gap-0.5 px-4 py-2.5 lg:flex-row lg:items-center lg:justify-between lg:py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-slate-900">
+                    {r.booking?.service || 'Visit report'}
+                  </p>
+                  <p className="line-clamp-2 text-sm text-slate-500">{preview(r.content)}</p>
+                </div>
                 {r.createdAt && (
-                  <span className="text-xs text-slate-500 tabular-nums">{formatDate(r.createdAt)}</span>
+                  <span className="shrink-0 text-xs text-slate-500 tabular-nums">{formatDate(r.createdAt)}</span>
                 )}
               </div>
-              <p className="mt-0.5 line-clamp-2 text-sm text-slate-500">{preview(r.content)}</p>
-            </div>
+            </InteractiveRow>
           ))}
         </div>
       )}

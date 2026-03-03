@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/components/layout';
 import {
   AppCard,
   AppCardHeader,
@@ -10,6 +10,7 @@ import {
 } from '@/components/app';
 import { EmptyState, PageSkeleton, DataTableShell, Table } from '@/components/ui';
 import { StatusChip } from '@/components/ui/status-chip';
+import { AppStatusPill } from '@/components/app';
 
 interface BillingData {
   invoices: Array<{
@@ -67,16 +68,7 @@ export default function ClientBillingPage() {
       <PageHeader
         title="Billing"
         subtitle={data ? `${data.loyalty.points} loyalty points · ${data.loyalty.tier} tier` : 'Invoices & loyalty'}
-        actions={
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={loading}
-            className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
-          >
-            Refresh
-          </button>
-        }
+        actions={<ClientRefreshButton onRefresh={load} loading={loading} />}
       />
       <Section>
       {loading ? (
@@ -112,7 +104,7 @@ export default function ClientBillingPage() {
                     { key: 'date', header: 'Date', mobileOrder: 2, mobileLabel: 'Date', hideBelow: 'md', render: (p) =>
                       new Date(p.createdAt).toLocaleDateString()
                     },
-                    { key: 'status', header: 'Status', mobileOrder: 3, mobileLabel: 'Status', render: (p) => p.status },
+                    { key: 'status', header: 'Status', mobileOrder: 3, mobileLabel: 'Status', render: (p) => <AppStatusPill status={p.status} /> },
                   ]}
                   data={data.payments.slice(0, 10)}
                   keyExtractor={(p) => p.id}
@@ -135,15 +127,7 @@ export default function ClientBillingPage() {
                     <div className="min-w-0 flex-1 px-4 py-2.5 lg:py-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="font-medium text-slate-900">{inv.service}</p>
-                        <StatusChip
-                          variant={
-                            inv.paymentStatus === 'paid' ? 'success' :
-                            inv.paymentStatus === 'pending' ? 'warning' : 'neutral'
-                          }
-                          ariaLabel={`Invoice payment status: ${inv.paymentStatus}`}
-                        >
-                          {inv.paymentStatus}
-                        </StatusChip>
+                        <AppStatusPill status={inv.paymentStatus} />
                       </div>
                       <p className="mt-0.5 text-sm text-slate-500">{formatDate(inv.startAt)}</p>
                       <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">${inv.totalPrice.toFixed(2)}</p>

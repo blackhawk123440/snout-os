@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutWrapper, PageHeader } from '@/components/layout';
+import { LayoutWrapper, PageHeader, ClientRefreshButton } from '@/components/layout';
 import {
   AppCard,
   AppCardBody,
@@ -74,16 +74,7 @@ export default function ClientHomePage() {
       <PageHeader
         title="Home"
         subtitle={data ? `You have ${data.upcomingCount} upcoming visit${data.upcomingCount !== 1 ? 's' : ''}` : 'Your pet care hub'}
-        actions={
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={loading}
-            className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
-          >
-            Refresh
-          </button>
-        }
+        actions={<ClientRefreshButton onRefresh={load} loading={loading} />}
       />
       {loading ? (
         <PageSkeleton />

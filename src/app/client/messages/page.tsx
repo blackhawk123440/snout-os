@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
+import { InteractiveRow } from '@/components/ui/interactive-row';
 
 interface Thread {
   id: string;
@@ -53,16 +54,7 @@ export default function ClientMessagesPage() {
       <PageHeader
         title="Messages"
         subtitle="Chat with your sitter"
-        actions={
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={loading}
-            className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
-          >
-            Refresh
-          </button>
-        }
+        actions={<ClientRefreshButton onRefresh={load} loading={loading} />}
       />
       <Section>
       {loading ? (
@@ -77,31 +69,30 @@ export default function ClientMessagesPage() {
       ) : (
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           {threads.map((t) => (
-            <div
+            <InteractiveRow
               key={t.id}
-              role="button"
-              tabIndex={0}
               onClick={() => router.push(`/client/messages/${t.id}`)}
-              onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/messages/${t.id}`)}
-              className="flex cursor-pointer flex-col border-b border-slate-200 px-4 py-3 last:border-b-0 hover:bg-slate-50"
+              className="last:border-b-0"
             >
-              <div className="flex items-center justify-between">
-                <p className="font-medium text-slate-900">
-                  {t.sitter?.name || t.booking?.service || 'Conversation'}
-                </p>
+              <div className="flex flex-1 flex-col gap-0.5 px-4 py-2.5 lg:flex-row lg:items-center lg:justify-between lg:py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-slate-900">
+                    {t.sitter?.name || t.booking?.service || 'Conversation'}
+                  </p>
+                  {t.booking && (
+                    <p className="text-sm text-slate-500">
+                      {t.booking.service}
+                      {t.booking.startAt && ` · ${formatDate(t.booking.startAt)}`}
+                    </p>
+                  )}
+                </div>
                 {t.lastActivityAt && (
-                  <span className="text-xs text-slate-500 tabular-nums">
+                  <span className="shrink-0 text-xs text-slate-500 tabular-nums">
                     {formatDate(t.lastActivityAt)}
                   </span>
                 )}
               </div>
-              {t.booking && (
-                <p className="mt-0.5 text-sm text-slate-500">
-                  {t.booking.service}
-                  {t.booking.startAt && ` · ${formatDate(t.booking.startAt)}`}
-                </p>
-              )}
-            </div>
+            </InteractiveRow>
           ))}
         </div>
       )}

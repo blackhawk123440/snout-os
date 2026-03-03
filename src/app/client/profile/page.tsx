@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { signOut } from 'next-auth/react';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/components/layout';
 import {
   AppCard,
   AppCardBody,
@@ -71,16 +71,7 @@ export default function ClientProfilePage() {
       <PageHeader
         title="Profile"
         subtitle="Your account"
-        actions={
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={loading}
-            className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
-          >
-            Refresh
-          </button>
-        }
+        actions={<ClientRefreshButton onRefresh={load} loading={loading} />}
       />
       <Section>
       {loading ? (

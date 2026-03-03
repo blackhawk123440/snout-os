@@ -38,10 +38,18 @@ const STATUS_MAP: Record<string, StatusPillConfig> = {
   failed: { variant: 'error', label: 'Failed' },
 };
 
+function formatStatusLabel(raw: string): string {
+  if (!raw) return '—';
+  const s = raw.trim();
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase().replace(/_/g, ' ');
+}
+
 export function getStatusPill(status: string): StatusPillConfig {
   const s = String(status || '').toLowerCase().trim();
   const normalized = s.replace(/\s+/g, '_').replace(/-/g, '_');
-  return STATUS_MAP[s] ?? STATUS_MAP[normalized] ?? { variant: 'default', label: status || '—' };
+  const mapped = STATUS_MAP[s] ?? STATUS_MAP[normalized];
+  if (mapped) return mapped;
+  return { variant: 'default', label: formatStatusLabel(status || '') };
 }
 
 /** Canonical booking status labels - use instead of hardcoding */
