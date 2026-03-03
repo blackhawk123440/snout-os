@@ -87,11 +87,13 @@ export async function POST(req: NextRequest) {
   });
 
   const setCookie = signInRes.headers.get('set-cookie');
-  const res = NextResponse.json({ ok: signInRes.ok });
+  // NextAuth credentials callback returns 302 redirect on success; treat 302 + Set-Cookie as success
+  const success = signInRes.ok || (signInRes.status === 302 && !!setCookie);
+  const res = NextResponse.json({ ok: success });
   if (setCookie) {
     res.headers.set('Set-Cookie', setCookie);
   }
-  if (!signInRes.ok) {
+  if (!success) {
     return NextResponse.json({ error: 'Sign-in failed', status: signInRes.status }, { status: 500 });
   }
   return res;

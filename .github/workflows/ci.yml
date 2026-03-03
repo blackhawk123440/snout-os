@@ -162,6 +162,11 @@ jobs:
         run: |
           npx wait-on http://localhost:3000 --timeout 60000 || (cat /tmp/nextjs.log && exit 1)
 
+      - name: Warm up API (allow NextAuth/API to be ready)
+        run: |
+          curl -s -o /dev/null http://localhost:3000/api/health || true
+          sleep 3
+
       - name: Run proof-pack tests
         run: |
           mkdir -p proof-pack
