@@ -57,6 +57,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   const [overrideReason, setOverrideReason] = useState('');
   const [showPoolExhaustedConfirm, setShowPoolExhaustedConfirm] = useState(false);
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
+  const [pendingMessages, setPendingMessages] = useState<Array<{ tempId: string; body: string; status: 'sending' | 'failed'; error?: string }>>([]);
 
   // Apply filters to API call - explicitly pass each filter
   const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useThreads({
@@ -125,45 +126,78 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   const handleSendMessage = async (confirmPoolFallback = false) => {
     if (!selectedThreadId || !composeMessage.trim()) return;
 
+    const body = composeMessage.trim();
+    const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setPendingMessages((prev) => [...prev, { tempId, body, status: 'sending' }]);
+    setComposeMessage('');
+    setShowPoolExhaustedConfirm(false);
+
     try {
       await sendMessage.mutateAsync({
         threadId: selectedThreadId,
-        body: composeMessage,
+        body,
         forceSend: false,
         confirmPoolFallback,
       });
-      setComposeMessage('');
-      setShowPoolExhaustedConfirm(false);
+      setPendingMessages((prev) => prev.filter((p) => p.tempId !== tempId));
     } catch (error: any) {
-      // Handle API errors - check both error.response (axios) and error directly
       const errorData = error?.response?.data || error?.data || {};
       const errorCode = errorData.errorCode || error?.errorCode || error?.code;
-      
+      const errorMessage = errorData.userMessage || errorData.error || error.message || 'Failed to send';
+
       if (errorCode === 'POOL_EXHAUSTED') {
         setShowPoolExhaustedConfirm(true);
+        setPendingMessages((prev) => prev.filter((p) => p.tempId !== tempId));
+        setComposeMessage(body);
       } else if (error.message?.includes('Policy violation') || errorData.error?.includes('Policy violation')) {
         setShowPolicyOverride(selectedThreadId);
+        setPendingMessages((prev) => prev.filter((p) => p.tempId !== tempId));
+        setComposeMessage(body);
       } else {
-        const errorMessage = errorData.userMessage || errorData.error || error.message || 'Unknown error';
-        alert(`Failed to send: ${errorMessage}`);
+        setPendingMessages((prev) =>
+          prev.map((p) => (p.tempId === tempId ? { ...p, status: 'failed' as const, error: errorMessage } : p))
+        );
       }
     }
+  };
+
+  const handleRetryPending = (tempId: string) => {
+    const pending = pendingMessages.find((p) => p.tempId === tempId);
+    if (!pending || !selectedThreadId) return;
+    setPendingMessages((prev) => prev.map((p) => (p.tempId === tempId ? { ...p, status: 'sending' as const } : p)));
+    sendMessage
+      .mutateAsync({ threadId: selectedThreadId, body: pending.body, forceSend: false })
+      .then(() => setPendingMessages((prev) => prev.filter((p) => p.tempId !== tempId)))
+      .catch((err: any) => {
+        const msg = err?.response?.data?.userMessage || err?.message || 'Failed to send';
+        setPendingMessages((prev) =>
+          prev.map((p) => (p.tempId === tempId ? { ...p, status: 'failed' as const, error: msg } : p))
+        );
+      });
   };
 
   const handleOverrideAndSend = async () => {
     if (!selectedThreadId || !composeMessage.trim() || !overrideReason.trim()) return;
 
+    const body = composeMessage.trim();
+    const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setPendingMessages((prev) => [...prev, { tempId, body, status: 'sending' }]);
+    setComposeMessage('');
+    setOverrideReason('');
+    setShowPolicyOverride(null);
+
     try {
       await sendMessage.mutateAsync({
         threadId: selectedThreadId,
-        body: composeMessage,
+        body,
         forceSend: true,
       });
-      setComposeMessage('');
-      setOverrideReason('');
-      setShowPolicyOverride(null);
+      setPendingMessages((prev) => prev.filter((p) => p.tempId !== tempId));
     } catch (error: any) {
-      alert(`Failed to send: ${error.message}`);
+      const msg = error?.response?.data?.userMessage || error?.message || 'Failed to send';
+      setPendingMessages((prev) =>
+        prev.map((p) => (p.tempId === tempId ? { ...p, status: 'failed' as const, error: msg } : p))
+      );
     }
   };
 
@@ -485,7 +519,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                   <Skeleton height={100} />
                   <Skeleton height={100} />
                 </div>
-              ) : messages.length === 0 ? (
+              ) : messages.length === 0 && pendingMessages.length === 0 ? (
                 <div style={{ textAlign: 'center', color: tokens.colors.text.secondary }}>No messages yet</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
@@ -580,6 +614,67 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                       </Card>
                     );
                   })}
+                  {selectedThreadId &&
+                    pendingMessages.map((p) => (
+                      <Card
+                        key={p.tempId}
+                        style={{
+                          maxWidth: '80%',
+                          marginLeft: 'auto',
+                          backgroundColor: tokens.colors.primary[50],
+                          padding: tokens.spacing[3],
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[2] }}>
+                          <div>
+                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[0.5] }}>
+                              You
+                            </div>
+                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                              Just now
+                            </div>
+                          </div>
+                          <Badge
+                            variant={p.status === 'failed' ? 'error' : 'default'}
+                            style={{ fontSize: tokens.typography.fontSize.xs[0] }}
+                          >
+                            {p.status === 'sending' ? 'Sending' : 'Failed'}
+                          </Badge>
+                        </div>
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[2], lineHeight: 1.5 }}>
+                          {p.body}
+                        </div>
+                        {p.status === 'failed' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                            <Button
+                              variant="tertiary"
+                              size="sm"
+                              onClick={() => handleRetryPending(p.tempId)}
+                              disabled={sendMessage.isPending}
+                              leftIcon={<i className="fas fa-redo" />}
+                            >
+                              Retry
+                            </Button>
+                            {p.error && (
+                              <div
+                                style={{
+                                  fontSize: tokens.typography.fontSize.xs[0],
+                                  color: tokens.colors.error.DEFAULT,
+                                  backgroundColor: tokens.colors.error[50],
+                                  padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                                  borderRadius: tokens.radius.sm,
+                                  maxWidth: '100%',
+                                  wordBreak: 'break-word',
+                                }}
+                                title={p.error}
+                              >
+                                {p.error}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Card>
+                    ))}
                 </div>
               )}
             </div>

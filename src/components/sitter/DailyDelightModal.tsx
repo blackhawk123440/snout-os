@@ -64,6 +64,8 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhotoEntry[]>([]);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
+  const [sendError, setSendError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const orgId = user?.orgId || 'default';
@@ -87,6 +89,8 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
     setLoading(false);
     setMediaUrls([]);
     setPendingPhotos([]);
+    setSendStatus('idle');
+    setSendError(null);
     if (!isOnline) void loadPendingPhotos();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- booking?.id + loadPendingPhotos sufficient; full booking causes extra runs
   }, [isOpen, booking?.id, isOnline, loadPendingPhotos]);
@@ -211,6 +215,8 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
       return;
     }
     setSending(true);
+    setSendStatus('sending');
+    setSendError(null);
     try {
       if (isOnline) {
         const res = await fetch(`/api/bookings/${booking.id}/daily-delight`, {
@@ -224,11 +230,12 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          toastError(data.error || 'Failed to send');
+          setSendStatus('failed');
+          setSendError(data.error || 'Failed to send');
           return;
         }
-        toastSuccess('Sent');
-        onClose();
+        setSendStatus('sent');
+        setTimeout(() => onClose(), 1200);
       } else {
         const photoIds = pendingPhotos.map((p) => p.id);
         await enqueueAction('delight.create', {
@@ -246,7 +253,8 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
         onClose();
       }
     } catch {
-      toastError('Failed to send');
+      setSendStatus('failed');
+      setSendError('Failed to send');
     } finally {
       setSending(false);
     }
@@ -277,8 +285,13 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
           <Button variant="secondary" size="md" onClick={() => {}} disabled>
             Save draft
           </Button>
-          <Button variant="primary" size="md" onClick={() => void handleSend()} disabled={loading || sending || !draft.trim()}>
-            {sending ? 'Sending…' : 'Send'}
+          <Button
+            variant="primary"
+            size="md"
+            onClick={() => void handleSend()}
+            disabled={loading || sending || !draft.trim() || sendStatus === 'sent'}
+          >
+            {sendStatus === 'sent' ? 'Sent' : sending ? 'Sending…' : 'Send'}
           </Button>
         </>
       }
@@ -380,6 +393,20 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
           {isStubDraft && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               We filled in a warm draft so you can keep moving. Edit and send when ready.
+            </div>
+          )}
+          {sendStatus === 'failed' && sendError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+              <p className="font-medium">Failed to send</p>
+              <p className="mt-0.5 text-xs">{sendError}</p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void handleSend()}
+                className="mt-2"
+              >
+                Retry
+              </Button>
             </div>
           )}
         </div>

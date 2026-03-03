@@ -66,6 +66,19 @@ export default function ClientMessageThreadPage() {
   const handleSend = async () => {
     const body = composerValue.trim();
     if (!body || !id || sending) return;
+    const tempId = `pending-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: tempId,
+      body,
+      direction: 'outbound',
+      actorType: 'client',
+      createdAt: new Date().toISOString(),
+      isFromClient: true,
+    };
+    setComposerValue('');
+    setThread((prev) =>
+      prev ? { ...prev, messages: [...prev.messages, optimisticMsg] } : prev
+    );
     setSending(true);
     try {
       const res = await fetch(`/api/client/messages/${id}`, {
@@ -75,15 +88,23 @@ export default function ClientMessageThreadPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (res.ok) {
-        setComposerValue('');
-        setThread((prev) =>
-          prev
-            ? { ...prev, messages: [...prev.messages, json] }
-            : prev
-        );
         toastSuccess('Message sent');
         void load();
+      } else {
+        setThread((prev) =>
+          prev
+            ? { ...prev, messages: prev.messages.filter((m) => m.id !== tempId) }
+            : prev
+        );
+        setComposerValue(body);
       }
+    } catch {
+      setThread((prev) =>
+        prev
+          ? { ...prev, messages: prev.messages.filter((m) => m.id !== tempId) }
+          : prev
+      );
+      setComposerValue(body);
     } finally {
       setSending(false);
     }
@@ -126,29 +147,32 @@ export default function ClientMessageThreadPage() {
                 </AppCardBody>
               </AppCard>
             ) : (
-              thread.messages?.map((m) => (
-                <div
-                  key={m.id}
-                  className={`flex ${m.isFromClient ? 'justify-end' : 'justify-start'}`}
-                >
+              thread.messages?.map((m) => {
+                const isPending = String(m.id).startsWith('pending-');
+                return (
                   <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-2 ${
-                      m.isFromClient
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-neutral-100 text-neutral-900'
-                    }`}
+                    key={m.id}
+                    className={`flex ${m.isFromClient ? 'justify-end' : 'justify-start'}`}
                   >
-                    <p className="text-sm">{m.body}</p>
-                    <p
-                      className={`mt-1 text-[10px] ${
-                        m.isFromClient ? 'text-blue-100' : 'text-neutral-500'
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-2 ${
+                        m.isFromClient
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-neutral-100 text-neutral-900'
                       }`}
                     >
-                      {formatTime(m.createdAt)}
-                    </p>
+                      <p className="text-sm">{m.body}</p>
+                      <p
+                        className={`mt-1 text-[10px] ${
+                          m.isFromClient ? 'text-blue-100' : 'text-neutral-500'
+                        }`}
+                      >
+                        {isPending ? 'Sending…' : formatTime(m.createdAt)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
             <div ref={messagesEndRef} />
           </div>

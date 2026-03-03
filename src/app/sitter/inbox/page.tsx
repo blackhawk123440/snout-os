@@ -44,6 +44,7 @@ function SitterInboxContent() {
   const [composeMessage, setComposeMessage] = useState('');
   const [threadSearch, setThreadSearch] = useState('');
   const [suggestedTone, setSuggestedTone] = useState<'warm' | 'professional'>('warm');
+  const [pendingMessages, setPendingMessages] = useState<Array<{ tempId: string; body: string; status: 'sending' | 'failed'; error?: string }>>([]);
 
   const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useSitterThreads();
   const { data: messages = [], isLoading: messagesLoading } = useSitterMessages(selectedThreadId);
@@ -68,12 +69,34 @@ function SitterInboxContent() {
 
   const handleSend = async () => {
     if (!selectedThreadId || !composeMessage.trim() || !isWindowActive) return;
+    const body = composeMessage.trim();
+    const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    setPendingMessages((prev) => [...prev, { tempId, body, status: 'sending' }]);
+    setComposeMessage('');
     try {
-      await sendMessage.mutateAsync({ threadId: selectedThreadId, body: composeMessage });
-      setComposeMessage('');
-    } catch {
-      // Fail-soft
+      await sendMessage.mutateAsync({ threadId: selectedThreadId, body });
+      setPendingMessages((prev) => prev.filter((p) => p.tempId !== tempId));
+    } catch (err: any) {
+      const msg = err?.response?.data?.userMessage || err?.message || 'Failed to send';
+      setPendingMessages((prev) =>
+        prev.map((p) => (p.tempId === tempId ? { ...p, status: 'failed' as const, error: msg } : p))
+      );
     }
+  };
+
+  const handleRetryPending = (tempId: string) => {
+    const pending = pendingMessages.find((p) => p.tempId === tempId);
+    if (!pending || !selectedThreadId) return;
+    setPendingMessages((prev) => prev.map((p) => (p.tempId === tempId ? { ...p, status: 'sending' as const } : p)));
+    sendMessage
+      .mutateAsync({ threadId: selectedThreadId, body: pending.body })
+      .then(() => setPendingMessages((prev) => prev.filter((p) => p.tempId !== tempId)))
+      .catch((err: any) => {
+        const msg = err?.response?.data?.userMessage || err?.message || 'Failed to send';
+        setPendingMessages((prev) =>
+          prev.map((p) => (p.tempId === tempId ? { ...p, status: 'failed' as const, error: msg } : p))
+        );
+      });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -226,8 +249,8 @@ function SitterInboxContent() {
               <div className="flex-1 overflow-y-auto p-4">
                 {messagesLoading ? (
                   <SitterSkeletonList count={2} />
-                ) : messages.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-neutral-500">No messages yet. Say hi! 👋</p>
+                ) : messages.length === 0 && pendingMessages.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-neutral-500">No messages yet. Say hi!</p>
                 ) : (
                   <div className="space-y-4">
                     {messages.map((msg) => (
@@ -244,6 +267,35 @@ function SitterInboxContent() {
                           {formatDistanceToNow(msg.createdAt, { addSuffix: true })}
                         </p>
                         <p className="mt-1 text-sm">{msg.redactedBody || msg.body}</p>
+                      </div>
+                    ))}
+                    {pendingMessages.map((p) => (
+                      <div
+                        key={p.tempId}
+                        className="ml-auto max-w-[85%] rounded-2xl bg-blue-100 px-4 py-3 text-neutral-900"
+                      >
+                        <p className="text-xs font-medium text-neutral-600">
+                          You • {p.status === 'sending' ? 'Sending…' : 'Failed'}
+                        </p>
+                        <p className="mt-1 text-sm">{p.body}</p>
+                        {p.status === 'failed' && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleRetryPending(p.tempId)}
+                              disabled={sendMessage.isPending}
+                            >
+                              Retry
+                            </Button>
+                            {p.error && (
+                              <span className="text-xs text-red-600" title={p.error}>
+                                {p.error.slice(0, 60)}
+                                {p.error.length > 60 ? '…' : ''}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

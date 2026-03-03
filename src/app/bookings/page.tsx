@@ -16,7 +16,6 @@ import {
   FrostedCard,
   Panel,
   Button,
-  IconButton,
   Select,
   Switch,
   StatCard,
@@ -43,6 +42,8 @@ import {
   SavedViewsDropdown,
   AppStatusPill,
 } from '@/components/app';
+import { MobileFilterDrawer } from '@/components/app/MobileFilterDrawer';
+import { InteractiveRow } from '@/components/ui/interactive-row';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { registerCommand } from '@/commands/registry';
 import { createCalendarEventCommands } from '@/commands/calendar-commands';
@@ -109,9 +110,7 @@ export default function BookingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showBookingDrawer, setShowBookingDrawer] = useState(false);
-  const [showFiltersDrawer, setShowFiltersDrawer] = useState(false);
-
-  // Filters (unified for AppFilterBar + optional mobile drawer)
+  // Filters (unified for AppFilterBar + MobileFilterDrawer)
   const [filterValues, setFilterValues] = useState<Record<string, string>>({
     search: '',
     status: 'all',
@@ -392,76 +391,74 @@ export default function BookingsPage() {
 
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <SavedViewsDropdown persistKey="bookings" />
-        <AppFilterBar
-          filters={[
-            { key: 'search', label: 'Search', type: 'search', placeholder: 'Name, address, pet...' },
-            {
-              key: 'status',
-              label: 'Status',
-              type: 'select',
-              options: [
-                { value: 'all', label: 'All' },
-                { value: 'pending', label: 'Pending' },
-                { value: 'confirmed', label: 'Confirmed' },
-                { value: 'in-progress', label: 'In progress' },
-                { value: 'completed', label: 'Completed' },
-                { value: 'cancelled', label: 'Cancelled' },
-              ],
-            },
-            {
-              key: 'service',
-              label: 'Service',
-              type: 'select',
-              options: [
-                { value: 'all', label: 'All' },
-                { value: 'Dog Walking', label: 'Dog Walking' },
-                { value: 'Drop-in Visit', label: 'Drop-in Visit' },
-                { value: 'Housesitting', label: 'Housesitting' },
-                { value: '24/7 Care', label: '24/7 Care' },
-              ],
-            },
-            {
-              key: 'sitter',
-              label: 'Sitter',
-              type: 'select',
-              options: [
-                { value: 'all', label: 'All' },
-                ...sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })),
-              ],
-            },
-            {
-              key: 'paid',
-              label: 'Paid',
-              type: 'select',
-              options: [
-                { value: 'all', label: 'All' },
-                { value: 'paid', label: 'Paid' },
-                { value: 'unpaid', label: 'Unpaid' },
-                { value: 'partial', label: 'Partial' },
-              ],
-            },
-            {
-              key: 'completed',
-              label: 'Completed',
-              type: 'select',
-              options: [
-                { value: 'hide', label: 'Hide' },
-                { value: 'all', label: 'Show all' },
-                { value: 'only', label: 'Completed only' },
-              ],
-            },
-          ]}
-          values={filterValues}
-          onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
-          onClear={activeFilterCount > 0 ? clearFilters : undefined}
-        />
-        {isMobile && (
-          <IconButton
-            icon={<i className="fas fa-filter" />}
-            onClick={() => setShowFiltersDrawer(true)}
-            aria-label="Open filters"
+        <MobileFilterDrawer
+          triggerLabel="Filters"
+          activeCount={activeFilterCount}
+        >
+          <AppFilterBar
+            filters={[
+              { key: 'search', label: 'Search', type: 'search', placeholder: 'Name, address, pet...' },
+              {
+                key: 'status',
+                label: 'Status',
+                type: 'select',
+                options: [
+                  { value: 'all', label: 'All' },
+                  { value: 'pending', label: 'Pending' },
+                  { value: 'confirmed', label: 'Confirmed' },
+                  { value: 'in-progress', label: 'In progress' },
+                  { value: 'completed', label: 'Completed' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                ],
+              },
+              {
+                key: 'service',
+                label: 'Service',
+                type: 'select',
+                options: [
+                  { value: 'all', label: 'All' },
+                  { value: 'Dog Walking', label: 'Dog Walking' },
+                  { value: 'Drop-in Visit', label: 'Drop-in Visit' },
+                  { value: 'Housesitting', label: 'Housesitting' },
+                  { value: '24/7 Care', label: '24/7 Care' },
+                ],
+              },
+              {
+                key: 'sitter',
+                label: 'Sitter',
+                type: 'select',
+                options: [
+                  { value: 'all', label: 'All' },
+                  ...sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })),
+                ],
+              },
+              {
+                key: 'paid',
+                label: 'Paid',
+                type: 'select',
+                options: [
+                  { value: 'all', label: 'All' },
+                  { value: 'paid', label: 'Paid' },
+                  { value: 'unpaid', label: 'Unpaid' },
+                  { value: 'partial', label: 'Partial' },
+                ],
+              },
+              {
+                key: 'completed',
+                label: 'Completed',
+                type: 'select',
+                options: [
+                  { value: 'hide', label: 'Hide' },
+                  { value: 'all', label: 'Show all' },
+                  { value: 'only', label: 'Completed only' },
+                ],
+              },
+            ]}
+            values={filterValues}
+            onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
+            onClear={activeFilterCount > 0 ? clearFilters : undefined}
           />
-        )}
+        </MobileFilterDrawer>
       </div>
 
       {loading && bookings.length === 0 ? (
@@ -565,17 +562,12 @@ export default function BookingsPage() {
                 <CardList<Booking>
                   items={filteredBookings}
                   renderCard={(booking: Booking) => (
-                    <div
+                    <InteractiveRow
                       onClick={() => {
                         setSelectedBooking(booking);
                         setShowBookingDrawer(true);
                       }}
-                      style={{
-                        padding: tokens.spacing[4],
-                        border: `1px solid ${tokens.colors.border.default}`,
-                        borderRadius: tokens.radius.md,
-                        cursor: 'pointer',
-                      }}
+                      className="rounded-lg border border-[var(--color-border-default)] p-4 border-b-0"
                     >
                       <Flex direction="column" gap={2}>
                         <Flex justify="space-between" align="center">
@@ -605,7 +597,7 @@ export default function BookingsPage() {
                           <AppStatusPill status={booking.paidStatus} />
                         )}
                       </Flex>
-                    </div>
+                    </InteractiveRow>
                   )}
                   loading={false}
                   emptyMessage="No bookings"
@@ -675,44 +667,6 @@ export default function BookingsPage() {
           </Section>
         </>
       )}
-
-      <AppDrawer
-        isOpen={showFiltersDrawer}
-        onClose={() => setShowFiltersDrawer(false)}
-        title="Filters"
-        side={isMobile ? 'left' : 'right'}
-      >
-        <div style={{ padding: tokens.spacing[4] }} className="space-y-4">
-          <AppFilterBar
-            filters={[
-              { key: 'status', label: 'Status', type: 'select', options: [
-                { value: 'all', label: 'All' }, { value: 'pending', label: 'Pending' },
-                { value: 'confirmed', label: 'Confirmed' }, { value: 'in-progress', label: 'In progress' },
-                { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' },
-              ]},
-              { key: 'service', label: 'Service', type: 'select', options: [
-                { value: 'all', label: 'All' }, { value: 'Dog Walking', label: 'Dog Walking' },
-                { value: 'Drop-in Visit', label: 'Drop-in Visit' }, { value: 'Housesitting', label: 'Housesitting' },
-                { value: '24/7 Care', label: '24/7 Care' },
-              ]},
-              { key: 'sitter', label: 'Sitter', type: 'select', options: [
-                { value: 'all', label: 'All' }, ...sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })),
-              ]},
-              { key: 'paid', label: 'Paid', type: 'select', options: [
-                { value: 'all', label: 'All' }, { value: 'paid', label: 'Paid' },
-                { value: 'unpaid', label: 'Unpaid' }, { value: 'partial', label: 'Partial' },
-              ]},
-              { key: 'completed', label: 'Completed', type: 'select', options: [
-                { value: 'hide', label: 'Hide' }, { value: 'all', label: 'Show all' }, { value: 'only', label: 'Completed only' },
-              ]},
-            ]}
-            values={filterValues}
-            onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
-            onClear={activeFilterCount > 0 ? clearFilters : undefined}
-          />
-          <Button variant="primary" onClick={() => setShowFiltersDrawer(false)}>Apply</Button>
-        </div>
-      </AppDrawer>
 
       <AppDrawer
         isOpen={showBookingDrawer}

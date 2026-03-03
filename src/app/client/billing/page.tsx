@@ -8,7 +8,7 @@ import {
   AppCardBody,
   AppErrorState,
 } from '@/components/app';
-import { EmptyState, PageSkeleton } from '@/components/ui';
+import { EmptyState, PageSkeleton, DataTableShell } from '@/components/ui';
 import { StatusChip } from '@/components/ui/status-chip';
 
 interface BillingData {
@@ -98,7 +98,8 @@ export default function ClientBillingPage() {
           {data.payments.length > 0 && (
             <>
               <h2 className="text-lg font-semibold text-neutral-900">Payment history</h2>
-              <div className="mb-6 space-y-2">
+              <DataTableShell className="mb-6">
+              <div className="space-y-2">
                 {data.payments.slice(0, 10).map((p) => (
                   <div
                     key={p.id}
@@ -113,6 +114,7 @@ export default function ClientBillingPage() {
                   </div>
                 ))}
               </div>
+              </DataTableShell>
             </>
           )}
 

@@ -9,6 +9,7 @@ import {
   AppCardBody,
   AppErrorState,
 } from '@/components/app';
+import { InteractiveRow } from '@/components/ui/interactive-row';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 
 interface Thread {
@@ -82,7 +83,8 @@ export default function ClientMessagesPage() {
       ) : (
         <div className="space-y-3">
           {threads.map((t) => (
-            <AppCard key={t.id} onClick={() => router.push(`/client/messages/${t.id}`)}>
+            <InteractiveRow key={t.id} onClick={() => router.push(`/client/messages/${t.id}`)} className="border-b-0 rounded-lg">
+            <AppCard className="mb-0">
               <AppCardHeader>
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-neutral-900">
@@ -104,6 +106,7 @@ export default function ClientMessagesPage() {
                 )}
               </AppCardBody>
             </AppCard>
+            </InteractiveRow>
           ))}
         </div>
       )}

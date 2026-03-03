@@ -9,6 +9,7 @@ import {
   AppCardBody,
   AppErrorState,
 } from '@/components/app';
+import { InteractiveRow } from '@/components/ui/interactive-row';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 
 interface Report {
@@ -93,7 +94,8 @@ export default function ClientReportsPage() {
       ) : (
         <div className="space-y-4">
           {reports.map((r) => (
-            <AppCard key={r.id} onClick={() => router.push(`/client/reports/${r.id}`)}>
+            <InteractiveRow key={r.id} onClick={() => router.push(`/client/reports/${r.id}`)} className="border-b-0 rounded-lg">
+            <AppCard className="mb-0">
               <AppCardHeader>
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-neutral-900">
@@ -108,6 +110,7 @@ export default function ClientReportsPage() {
                 <p className="text-sm text-neutral-600 line-clamp-3">{preview(r.content)}</p>
               </AppCardBody>
             </AppCard>
+            </InteractiveRow>
           ))}
         </div>
       )}

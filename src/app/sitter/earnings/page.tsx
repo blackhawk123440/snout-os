@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Drawer } from '@/components/ui';
+import { Button, Drawer, DataTableShell } from '@/components/ui';
 import { LayoutWrapper } from '@/components/layout';
 import { StatusChip } from '@/components/ui/status-chip';
 import {
@@ -217,6 +217,7 @@ export default function SitterEarningsPage() {
               subtitle="Transfers will appear here after completed bookings are paid out."
             />
           ) : (
+            <DataTableShell>
             <div className="space-y-2">
               {transfers.map((t) => (
                 <SitterCard key={t.id}>
@@ -245,6 +246,7 @@ export default function SitterEarningsPage() {
                 </SitterCard>
               ))}
             </div>
+            </DataTableShell>
           )}
 
           <h3 className="text-base font-semibold text-neutral-900">Completed jobs</h3>

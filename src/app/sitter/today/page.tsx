@@ -21,6 +21,7 @@ import {
   SitterErrorState,
   DailyDelightModal,
 } from '@/components/sitter';
+import { OnboardingChecklist } from '@/components/app/OnboardingChecklist';
 
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'in_progress' | string;
 
@@ -178,7 +179,7 @@ function NextVisitHero({
             onClick={() => void onCheckIn(booking.id)}
             disabled={checkingInId === booking.id}
           >
-            {checkingInId === booking.id ? 'Checking in...' : 'Start Visit'}
+            {checkingInId === booking.id ? 'Saving…' : 'Start Visit'}
           </Button>
         )}
         {booking.status === 'in_progress' && (
@@ -188,14 +189,14 @@ function NextVisitHero({
             onClick={() => void onCheckOut(booking.id)}
             disabled={checkingOutId === booking.id}
           >
-            {checkingOutId === booking.id ? 'Checking out...' : 'Finish Visit'}
+            {checkingOutId === booking.id ? 'Saving…' : 'Finish Visit'}
           </Button>
         )}
         <Button variant="secondary" size="sm" onClick={() => onMessage(booking)}>
           Message
         </Button>
         <Button variant="secondary" size="sm" onClick={() => onDelight(booking)}>
-          ✨ Daily Delight
+          Daily Delight
         </Button>
         <Button variant="secondary" size="sm" onClick={() => router.push(`/sitter/bookings/${booking.id}`)}>
           Details
@@ -220,7 +221,7 @@ function QuickInsightsStrip({
       <span className="text-sm text-neutral-600">
         <span className="font-semibold text-neutral-900">{visitsRemaining}</span> visit{visitsRemaining !== 1 ? 's' : ''} remaining
       </span>
-      <span className="text-sm text-amber-700">You&apos;re doing great 🐾</span>
+      <span className="text-sm text-amber-700">On track</span>
     </div>
   );
 }
@@ -347,7 +348,7 @@ export default function SitterTodayPage() {
         await enqueueAction('visit.checkin', { orgId, sitterId, bookingId, payload });
         setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress' } : b)));
         setQueuedByBooking((prev) => ({ ...prev, [bookingId]: [...(prev[bookingId] || []), 'visit.checkin'] }));
-        toastSuccess('Check-in queued — will sync when online');
+        toastSuccess('Queued — will sync when online');
         void refreshQueuedCount();
         return;
       }
@@ -359,13 +360,15 @@ export default function SitterTodayPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toastError(data.error || 'Check in failed');
+        setCheckingInId(null);
         return;
       }
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress' } : b)));
-      toastSuccess('Checked in successfully');
+      toastSuccess('Checked in');
       void loadBookings();
     } catch {
       toastError('Check in failed');
+      void loadBookings();
     } finally {
       setCheckingInId(null);
     }
@@ -385,7 +388,7 @@ export default function SitterTodayPage() {
         await enqueueAction('visit.checkout', { orgId, sitterId, bookingId, payload });
         setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b)));
         setQueuedByBooking((prev) => ({ ...prev, [bookingId]: [...(prev[bookingId] || []), 'visit.checkout'] }));
-        toastSuccess('Check-out queued — will sync when online');
+        toastSuccess('Queued — will sync when online');
         void refreshQueuedCount();
         return;
       }
@@ -397,13 +400,15 @@ export default function SitterTodayPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toastError(data.error || 'Check out failed');
+        setCheckingOutId(null);
         return;
       }
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b)));
-      toastSuccess('Checked out successfully');
+      toastSuccess('Checked out');
       void loadBookings();
     } catch {
       toastError('Check out failed');
+      void loadBookings();
     } finally {
       setCheckingOutId(null);
     }
@@ -434,6 +439,9 @@ export default function SitterTodayPage() {
   return (
     <>
       <div className="mx-auto max-w-3xl pb-8">
+        <div className="mb-6">
+          <OnboardingChecklist />
+        </div>
         <SitterPageHeader
           title="Today"
           subtitle={`${todayLabel} · You have ${bookings.length} ${bookings.length === 1 ? 'visit' : 'visits'}`}
@@ -564,7 +572,7 @@ export default function SitterTodayPage() {
                       onClick={() => void handleCheckIn(booking.id)}
                       disabled={checkingInId === booking.id}
                     >
-                      {checkingInId === booking.id ? 'Checking in...' : 'Check in'}
+                      {checkingInId === booking.id ? 'Saving…' : 'Check in'}
                     </Button>
                   )}
                   {booking.status === 'in_progress' && (
@@ -574,7 +582,7 @@ export default function SitterTodayPage() {
                       onClick={() => void handleCheckOut(booking.id)}
                       disabled={checkingOutId === booking.id}
                     >
-                      {checkingOutId === booking.id ? 'Checking out...' : 'Check out'}
+                      {checkingOutId === booking.id ? 'Saving…' : 'Check out'}
                     </Button>
                   )}
                   <Button variant="secondary" size="md" onClick={() => router.push(`/sitter/bookings/${booking.id}`)}>
@@ -584,7 +592,7 @@ export default function SitterTodayPage() {
                     Open chat
                   </Button>
                   <Button variant="secondary" size="md" onClick={() => openDelightModal(booking)}>
-                    ✨ Daily Delight
+                    Daily Delight
                   </Button>
                 </SitterCardActions>
               </SitterCard>

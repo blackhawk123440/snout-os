@@ -59,6 +59,7 @@ export { ErrorState, type ErrorStateProps } from './ErrorState';
 export { Card, type CardProps } from './Card';
 export { MobileFilterBar, type MobileFilterBarProps, type FilterOption } from './MobileFilterBar';
 export { Table, type TableProps, type TableColumn } from './Table';
+export { DataTableShell, type DataTableShellProps } from './data-table-shell';
 export { PageHeader, type PageHeaderProps } from './PageHeader';
 export { SectionHeader, type SectionHeaderProps } from './SectionHeader';
 export { FormRow, type FormRowProps } from './FormRow';
