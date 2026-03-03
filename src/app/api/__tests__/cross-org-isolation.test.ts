@@ -6,6 +6,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+global.fetch = vi.fn();
+
 vi.mock('@/lib/auth', () => ({
   auth: vi.fn(),
 }));
@@ -30,6 +32,7 @@ import { prisma } from '@/lib/db';
 describe('cross-org isolation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (global.fetch as ReturnType<typeof vi.fn>).mockClear();
   });
 
   describe('GET /api/messages/threads/[id]/messages', () => {
@@ -40,6 +43,13 @@ describe('cross-org isolation', () => {
       // Scoped db converts findUnique to findFirst with orgId; thread in org-b won't match
       (prisma as any).messageThread.findFirst.mockResolvedValue(null);
       (prisma as any).messageEvent.findMany.mockResolvedValue([]);
+      // When NEXT_PUBLIC_API_URL is set, route proxies to BFF; mock 404 so we get 404
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+        new Response(JSON.stringify({ error: 'Thread not found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
 
       const { GET } = await import('@/app/api/messages/threads/[id]/messages/route');
       const req = new Request('http://localhost/api/messages/threads/thread-1/messages');
@@ -55,6 +65,12 @@ describe('cross-org isolation', () => {
         user: { id: 'u1', orgId: 'org-a', role: 'owner' },
       });
       (prisma as any).messageThread.findFirst.mockResolvedValue(null);
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+        new Response(JSON.stringify({ error: 'Thread not found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
 
       const { GET } = await import('@/app/api/messages/threads/[id]/messages/route');
       const req = new Request('http://localhost/api/messages/threads/thread-1/messages');

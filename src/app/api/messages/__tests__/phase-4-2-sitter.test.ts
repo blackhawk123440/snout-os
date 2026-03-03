@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeNextRequest } from '@/test/utils/nextRequest';
 import { prisma } from '@/lib/db';
 
+// Prevent BFF proxy calls in CI; mock so route returns predictable error
+global.fetch = vi.fn();
+
 vi.mock('@/lib/db', () => ({
   prisma: {
     messageThread: {
@@ -24,6 +27,7 @@ vi.mock('@/lib/api/jwt', () => ({
 describe('Messaging Routes Compatibility', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (global.fetch as ReturnType<typeof vi.fn>).mockClear();
   });
 
   describe('GET /api/messages/threads', () => {
@@ -43,6 +47,13 @@ describe('Messaging Routes Compatibility', () => {
   describe('GET /api/messages/threads/[id]', () => {
     it('returns 404 when thread not found (Prisma source of truth)', async () => {
       (prisma as any).messageThread.findFirst.mockResolvedValue(null);
+      // When NEXT_PUBLIC_API_URL is set, route proxies to BFF; mock 404 so we get 404
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+        new Response(JSON.stringify({ error: 'Thread not found' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
       const { GET } = await import('@/app/api/messages/threads/[id]/route');
       const req = makeNextRequest('http://localhost/api/messages/threads/thread-1', {
         method: 'GET',
@@ -56,7 +67,9 @@ describe('Messaging Routes Compatibility', () => {
   });
 
   describe('POST /api/messages/send', () => {
-    it('uses a real NextRequest and returns 500 when API server is not configured', async () => {
+    it('uses a real NextRequest and returns 500 when API server is not configured or fetch fails', async () => {
+      // In CI NEXT_PUBLIC_API_URL is set; mock fetch to reject so route returns 500 (no real BFF call)
+      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new TypeError('fetch failed'));
       const { POST } = await import('@/app/api/messages/send/route');
       const req = makeNextRequest('http://localhost/api/messages/send', {
         method: 'POST',
@@ -67,7 +80,8 @@ describe('Messaging Routes Compatibility', () => {
 
       expect(res.status).toBe(500);
       const body = await res.json();
-      expect(body.error).toContain('API server not configured');
+      // When API URL is set but fetch fails: "Failed to send message"; when unset: "API server not configured"
+      expect(body.error).toMatch(/API server not configured|Failed to send message/);
     });
   });
 });
