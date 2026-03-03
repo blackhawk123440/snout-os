@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   PageHeader,
   Card,
@@ -75,11 +75,7 @@ export default function PayrollPage() {
   const [filterPayPeriod, setFilterPayPeriod] = useState<string>('biweekly');
   const [activeTab, setActiveTab] = useState<'overview' | 'periods' | 'sitters'>('periods');
 
-  useEffect(() => {
-    fetchPayroll();
-  }, [filterStatus, filterPayPeriod]);
-
-  const fetchPayroll = async () => {
+  const fetchPayroll = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -98,7 +94,11 @@ export default function PayrollPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus, filterPayPeriod]);
+
+  useEffect(() => {
+    fetchPayroll();
+  }, [fetchPayroll]);
 
   const handleViewDetails = async (payPeriod: PayPeriod) => {
     setSelectedPayPeriod(payPeriod);

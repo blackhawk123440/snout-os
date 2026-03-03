@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { LayoutWrapper, PageHeader } from '@/components/layout';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
 import { toastSuccess } from '@/lib/toast';
 
@@ -107,6 +107,7 @@ export default function ClientMessageThreadPage() {
           </button>
         }
       />
+      <Section>
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -173,6 +174,7 @@ export default function ClientMessageThreadPage() {
           </div>
         </>
       ) : null}
+      </Section>
     </LayoutWrapper>
   );
 }

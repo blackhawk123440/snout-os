@@ -30,7 +30,9 @@ export default function RootLayout({
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         />
         {/* Google Ads Global Tag */}
+        {/* eslint-disable-next-line @next/next/next-script-for-ga */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11558191297"></script>
+        {/* eslint-disable-next-line @next/next/next-script-for-ga -- inline gtag config for Ads; next/script doesn't support dangerouslySetInnerHTML */}
         <script
           dangerouslySetInnerHTML={{
             __html: `

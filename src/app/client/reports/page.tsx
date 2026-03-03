@@ -2,15 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import {
   AppCard,
   AppCardHeader,
   AppCardBody,
-  AppPageHeader,
-  AppSkeletonList,
-  AppEmptyState,
   AppErrorState,
 } from '@/components/app';
+import { EmptyState, PageSkeleton } from '@/components/ui';
 
 interface Report {
   id: string;
@@ -65,11 +64,11 @@ export default function ClientReportsPage() {
     content.length > maxLen ? content.slice(0, maxLen) + '…' : content;
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
-      <AppPageHeader
+    <LayoutWrapper variant="narrow">
+      <PageHeader
         title="Visit reports"
         subtitle="Updates from your sitter"
-        action={
+        actions={
           <button
             type="button"
             onClick={() => void load()}
@@ -80,15 +79,16 @@ export default function ClientReportsPage() {
           </button>
         }
       />
+      <Section>
       {loading ? (
-        <AppSkeletonList count={3} />
+        <PageSkeleton />
       ) : error ? (
         <AppErrorState title="Couldn't load reports" subtitle={error} onRetry={() => void load()} />
       ) : reports.length === 0 ? (
-        <AppEmptyState
+        <EmptyState
           title="No reports yet"
-          subtitle="Visit reports from your sitter will appear here after each visit."
-          cta={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
+          description="Visit reports from your sitter will appear here after each visit."
+          primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
         />
       ) : (
         <div className="space-y-4">
@@ -111,6 +111,7 @@ export default function ClientReportsPage() {
           ))}
         </div>
       )}
-    </div>
+      </Section>
+    </LayoutWrapper>
   );
 }

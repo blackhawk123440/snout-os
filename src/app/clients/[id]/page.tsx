@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -87,14 +87,7 @@ function ClientDetailContent() {
   const [loading, setLoading] = useState(true);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
-  useEffect(() => {
-    if (clientId) {
-      fetchClientData();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchClientData defined below, fetch on clientId change
-  }, [clientId]);
-
-  const fetchClientData = async () => {
+  const fetchClientData = useCallback(async () => {
     try {
       const response = await fetch(`/api/clients/${clientId}`);
       if (!response.ok) {
@@ -109,7 +102,13 @@ function ClientDetailContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clientId]);
+
+  useEffect(() => {
+    if (clientId) {
+      fetchClientData();
+    }
+  }, [clientId, fetchClientData]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {

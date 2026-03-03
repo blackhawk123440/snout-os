@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   PageHeader,
@@ -42,11 +42,7 @@ export default function TemplatesPage() {
   const [filter, setFilter] = useState({ category: "", type: "" });
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchTemplates();
-  }, [filter]);
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -66,7 +62,11 @@ export default function TemplatesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
 
   const deleteTemplate = async (id: string) => {
     if (!confirm("Are you sure you want to delete this template?")) return;

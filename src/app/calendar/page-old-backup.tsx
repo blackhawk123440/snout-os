@@ -99,6 +99,7 @@ export default function CalendarPage() {
     if (selectedDate && viewMode !== 'month') {
       setSelectedDate(null);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- viewMode sufficient; selectedDate intentionally excluded to avoid loop
   }, [viewMode]);
 
   const fetchData = async () => {
@@ -257,6 +258,7 @@ export default function CalendarPage() {
     }
 
     return days;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getBookingsForDate uses filteredBookings; legacy backup
   }, [currentMonth, currentYear, filteredBookings]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {

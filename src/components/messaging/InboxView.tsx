@@ -92,7 +92,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   // Update filters when sitterId changes
   useEffect(() => {
     if (sitterId || sitterParam) {
-      setFilters({ ...filters, sitterId: sitterId || sitterParam || undefined });
+      setFilters((f) => ({ ...f, sitterId: sitterId || sitterParam || undefined }));
     }
   }, [sitterId, sitterParam]);
 

@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   PageHeader,
@@ -51,11 +51,7 @@ export default function AutomationLedgerPage() {
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchRuns();
-  }, [statusFilter, automationTypeFilter]);
-
-  const fetchRuns = async () => {
+  const fetchRuns = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -81,7 +77,11 @@ export default function AutomationLedgerPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, automationTypeFilter]);
+
+  useEffect(() => {
+    fetchRuns();
+  }, [fetchRuns]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

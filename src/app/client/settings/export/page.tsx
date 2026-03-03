@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { AppCard, AppCardBody, AppPageHeader, AppErrorState } from '@/components/app';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
 import { Button } from '@/components/ui';
 
 export default function ClientExportPage() {
@@ -32,11 +33,12 @@ export default function ClientExportPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
-      <AppPageHeader
+    <LayoutWrapper variant="narrow">
+      <PageHeader
         title="Export your data"
         subtitle="Download a copy of your profile, pets, bookings, reports, messages, and payment history"
       />
+      <Section>
       {error ? (
         <AppErrorState
           title="Export failed"
@@ -63,6 +65,7 @@ export default function ClientExportPage() {
           </AppCardBody>
         </AppCard>
       )}
-    </div>
+      </Section>
+    </LayoutWrapper>
   );
 }

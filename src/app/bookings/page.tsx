@@ -34,6 +34,7 @@ import { useCommands } from '@/hooks/useCommands';
 import { useMobile } from '@/lib/use-mobile';
 import { tokens } from '@/lib/design-tokens';
 import { AppShell } from '@/components/layout/AppShell';
+import { LayoutWrapper } from '@/components/layout';
 import {
   AppPageHeader,
   AppErrorState,
@@ -163,7 +164,7 @@ export default function BookingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [ENABLE_BOOKINGS_V2]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -205,7 +206,7 @@ export default function BookingsPage() {
   const allSignals = useMemo(() => {
     if (!ENABLE_RESONANCE_V1) return [];
     return bookings.flatMap(booking => detectBookingSignals(booking));
-  }, [bookings, ENABLE_RESONANCE_V1]);
+  }, [bookings]);
 
   // Resonance: Generate suggestions
   const allSuggestions = useMemo(() => {
@@ -224,7 +225,7 @@ export default function BookingsPage() {
         return false;
       }
     });
-  }, [bookings, ENABLE_RESONANCE_V1]);
+  }, [bookings]);
 
   // Get signals for a specific booking
   const getBookingSignals = useCallback((bookingId: string) => {
@@ -232,7 +233,7 @@ export default function BookingsPage() {
     const booking = bookings.find(b => b.id === bookingId);
     if (!booking) return [];
     return detectBookingSignals(booking);
-  }, [bookings, ENABLE_RESONANCE_V1]);
+  }, [bookings]);
 
   const filteredBookings = useMemo(() => {
     const status = filterValues.status ?? 'all';
@@ -378,6 +379,7 @@ export default function BookingsPage() {
 
   return (
     <AppShell>
+      <LayoutWrapper variant="wide">
       <AppPageHeader
         title="Bookings"
         subtitle="Manage bookings and assignments"
@@ -740,6 +742,7 @@ export default function BookingsPage() {
           />
         )}
       </AppDrawer>
+      </LayoutWrapper>
     </AppShell>
   );
 }

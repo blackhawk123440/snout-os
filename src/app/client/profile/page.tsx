@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { signOut } from 'next-auth/react';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import {
   AppCard,
   AppCardBody,
-  AppPageHeader,
-  AppSkeletonList,
   AppErrorState,
 } from '@/components/app';
+import { PageSkeleton } from '@/components/ui/loading-state';
 import { Button, Modal } from '@/components/ui';
 
 interface MeData {
@@ -67,11 +67,11 @@ export default function ClientProfilePage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
-      <AppPageHeader
+    <LayoutWrapper variant="narrow">
+      <PageHeader
         title="Profile"
         subtitle="Your account"
-        action={
+        actions={
           <button
             type="button"
             onClick={() => void load()}
@@ -82,8 +82,9 @@ export default function ClientProfilePage() {
           </button>
         }
       />
+      <Section>
       {loading ? (
-        <AppSkeletonList count={2} />
+        <PageSkeleton />
       ) : error ? (
         <AppErrorState title="Couldn't load profile" subtitle={error} onRetry={() => void load()} />
       ) : data ? (
@@ -161,6 +162,7 @@ export default function ClientProfilePage() {
           in again.
         </p>
       </Modal>
-    </div>
+      </Section>
+    </LayoutWrapper>
   );
 }

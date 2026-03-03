@@ -9,7 +9,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
-import { PageHeader } from '@/components/ui';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { BookingForm } from '@/components/bookings/BookingForm';
 import { tokens } from '@/lib/design-tokens';
 import { BookingFormValues } from '@/lib/bookings/booking-form-mapper';
@@ -205,10 +205,9 @@ export default function NewBookingPage() {
     // Mobile: Full page with bottom action bar
     return (
       <AppShell>
-        <PageHeader 
-          title="New Booking"
-          description="Create a new booking"
-        />
+        <LayoutWrapper variant="wide">
+          <PageHeader title="New Booking" subtitle="Create a new booking" />
+          <Section>
         <div style={{ 
           padding: tokens.spacing[4],
           paddingBottom: tokens.spacing[16], // Space for bottom action bar
@@ -219,6 +218,8 @@ export default function NewBookingPage() {
             onCancel={handleCancel}
           />
         </div>
+          </Section>
+        </LayoutWrapper>
       </AppShell>
     );
   }
@@ -226,10 +227,9 @@ export default function NewBookingPage() {
   // Desktop: Modal or full page (using full page for now)
   return (
     <AppShell>
-      <PageHeader 
-        title="New Booking"
-        description="Create a new booking"
-      />
+      <LayoutWrapper variant="wide">
+        <PageHeader title="New Booking" subtitle="Create a new booking" />
+        <Section>
       <div style={{ 
         padding: tokens.spacing[6],
         maxWidth: '1200px',
@@ -241,6 +241,8 @@ export default function NewBookingPage() {
           onCancel={handleCancel}
         />
       </div>
+        </Section>
+      </LayoutWrapper>
     </AppShell>
   );
 }

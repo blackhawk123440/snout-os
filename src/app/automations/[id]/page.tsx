@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -72,13 +72,7 @@ export default function AutomationBuilderPage() {
     body: string;
   }>>([]);
 
-  useEffect(() => {
-    if (!isNew) {
-      fetchAutomation();
-    }
-  }, [automationId, isNew]);
-
-  const fetchAutomation = async () => {
+  const fetchAutomation = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/automations/${automationId}`);
@@ -128,7 +122,13 @@ export default function AutomationBuilderPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [automationId]);
+
+  useEffect(() => {
+    if (!isNew) {
+      fetchAutomation();
+    }
+  }, [automationId, isNew, fetchAutomation]);
 
   const handleSave = async () => {
     setSaving(true);

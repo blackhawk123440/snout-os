@@ -399,6 +399,7 @@ function BookingsPageContent() {
       fetchBookingTags(selectedBooking.id);
       fetchAllTags();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedBooking?.id sufficient; full object causes extra runs
   }, [selectedBooking?.id]);
 
   // Phase 6.2: Fetch today board when filter is "today"

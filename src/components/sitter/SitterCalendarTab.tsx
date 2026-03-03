@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Badge, EmptyState, Skeleton, SectionHeader } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { BookingScheduleDisplay } from '@/components/booking';
@@ -48,11 +48,7 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
   const [toggling, setToggling] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
-  useEffect(() => {
-    fetchCalendarData();
-  }, [sitterId]);
-
-  const fetchCalendarData = async () => {
+  const fetchCalendarData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/sitters/${sitterId}/calendar`);
@@ -66,7 +62,11 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sitterId]);
+
+  useEffect(() => {
+    fetchCalendarData();
+  }, [fetchCalendarData]);
 
   const handleToggleSync = async () => {
     if (!calendarStatus?.connected) {

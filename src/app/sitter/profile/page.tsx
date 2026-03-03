@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Modal } from '@/components/ui';
+import { StatusChip } from '@/components/ui/status-chip';
+import { LayoutWrapper } from '@/components/layout';
 import { SITTER_PROFILE_LINKS } from '@/lib/sitter-nav';
 import {
   SitterCard,
@@ -176,7 +178,7 @@ export default function SitterProfilePage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
+    <LayoutWrapper variant="narrow">
       <SitterPageHeader title="Profile" subtitle="Your sitter profile" />
       {loading ? (
         <SitterSkeletonList count={2} />
@@ -209,13 +211,9 @@ export default function SitterProfilePage() {
                 <div>
                   <dt className="font-medium text-neutral-500">Status</dt>
                   <dd>
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        profile.active ? 'bg-green-100 text-green-800' : 'bg-neutral-100 text-neutral-700'
-                      }`}
-                    >
+                    <StatusChip variant={profile.active ? 'success' : 'neutral'}>
                       {profile.active ? 'Active' : 'Inactive'}
-                    </span>
+                    </StatusChip>
                   </dd>
                 </div>
                 <div>
@@ -405,6 +403,6 @@ export default function SitterProfilePage() {
           Are you sure? This will permanently delete your sitter account. You will be signed out immediately and cannot sign in again.
         </p>
       </Modal>
-    </div>
+    </LayoutWrapper>
   );
 }

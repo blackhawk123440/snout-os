@@ -8,8 +8,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppPageHeader, AppCard, AppCardBody, AppEmptyState, AppErrorState } from '@/components/app';
-import { Button, Input } from '@/components/ui';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
+import { Button, Input, EmptyState } from '@/components/ui';
+import { PageSkeleton } from '@/components/ui/loading-state';
+import { StatusChip } from '@/components/ui/status-chip';
 
 interface AISettings {
   enabled: boolean;
@@ -168,20 +171,19 @@ export default function OpsAIPage() {
 
   return (
     <AppShell>
-      <AppPageHeader
-        title="AI Settings"
-        subtitle="Governance, budget, and usage"
-        action={
-          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-            Refresh
-          </Button>
-        }
-      />
+      <LayoutWrapper>
+        <PageHeader
+          title="AI Settings"
+          subtitle="Governance, budget, and usage"
+          actions={
+            <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+              Refresh
+            </Button>
+          }
+        />
+        <Section>
       {loading ? (
-        <div className="animate-pulse space-y-4">
-          <div className="h-32 rounded-xl bg-neutral-100" />
-          <div className="h-48 rounded-xl bg-neutral-100" />
-        </div>
+        <PageSkeleton />
       ) : error ? (
         <AppErrorState title="Couldn't load AI settings" subtitle={error} onRetry={() => void load()} />
       ) : settings ? (
@@ -290,7 +292,10 @@ export default function OpsAIPage() {
                 </Button>
               </div>
               {templates.length === 0 ? (
-                <AppEmptyState title="No templates" subtitle="Create an org override above or use global templates." />
+                <EmptyState
+                  title="No templates"
+                  description="Create an org override above or use global templates."
+                />
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {templates.map((t) => (
@@ -325,7 +330,10 @@ export default function OpsAIPage() {
             <AppCardBody>
               <p className="mb-3 font-medium text-neutral-900">Recent AI usage (last 50)</p>
               {logs.length === 0 ? (
-                <AppEmptyState title="No AI usage yet" subtitle="Usage will appear here when AI features are used." />
+                <EmptyState
+                  title="No AI usage yet"
+                  description="Usage will appear here when AI features are used."
+                />
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {logs.map((l) => (
@@ -340,13 +348,13 @@ export default function OpsAIPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="font-medium">${(l.costCents / 100).toFixed(2)}</span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs ${
-                            l.status === 'succeeded' ? 'bg-green-100 text-green-800' : l.status === 'blocked' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
-                          }`}
+                        <StatusChip
+                          variant={
+                            l.status === 'succeeded' ? 'success' : l.status === 'blocked' ? 'warning' : 'danger'
+                          }
                         >
                           {l.status}
-                        </span>
+                        </StatusChip>
                       </div>
                     </div>
                   ))}
@@ -356,6 +364,8 @@ export default function OpsAIPage() {
           </AppCard>
         </div>
       ) : null}
+        </Section>
+      </LayoutWrapper>
     </AppShell>
   );
 }

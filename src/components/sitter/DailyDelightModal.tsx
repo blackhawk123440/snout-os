@@ -77,7 +77,7 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
       objectUrl: URL.createObjectURL(p.blob),
     }));
     setPendingPhotos(entries);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- booking.id sufficient; full booking causes stale closures
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- booking.id sufficient; full booking causes extra effect runs on parent re-renders
   }, [booking?.id]);
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
     setMediaUrls([]);
     setPendingPhotos([]);
     if (!isOnline) void loadPendingPhotos();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- booking used for id and loadPendingPhotos; full object causes extra effect runs
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- booking?.id + loadPendingPhotos sufficient; full booking causes extra runs
   }, [isOpen, booking?.id, isOnline, loadPendingPhotos]);
 
   const pendingRef = useRef<PendingPhotoEntry[]>([]);

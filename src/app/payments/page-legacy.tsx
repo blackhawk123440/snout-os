@@ -98,6 +98,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     fetchAnalytics();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchAnalytics uses selectedTimeRange; legacy page
   }, [selectedTimeRange]);
 
   const fetchAnalytics = async () => {

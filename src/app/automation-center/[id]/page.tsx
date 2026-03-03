@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -74,13 +74,7 @@ export default function EditAutomationPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (automationId) {
-      fetchAutomation();
-    }
-  }, [automationId]);
-
-  const fetchAutomation = async () => {
+  const fetchAutomation = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -104,7 +98,13 @@ export default function EditAutomationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [automationId]);
+
+  useEffect(() => {
+    if (automationId) {
+      fetchAutomation();
+    }
+  }, [automationId, fetchAutomation]);
 
   const addCondition = () => {
     setConditions([

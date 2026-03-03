@@ -36,6 +36,7 @@ export const BuildHash: React.FC = () => {
           });
         });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only fetch; buildInfo.gitSha not needed in deps
   }, []);
 
   // Always show to owners (no flag required)

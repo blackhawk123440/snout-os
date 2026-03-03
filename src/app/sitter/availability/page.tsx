@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
+import { LayoutWrapper } from '@/components/layout';
 import {
   SitterCard,
   SitterCardHeader,
@@ -133,7 +134,7 @@ export default function SitterAvailabilityPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
+    <LayoutWrapper variant="narrow">
       <SitterPageHeader
         title="Availability"
         subtitle="When you're available for bookings"
@@ -267,6 +268,6 @@ export default function SitterAvailabilityPage() {
           </SitterCard>
         </div>
       )}
-    </div>
+    </LayoutWrapper>
   );
 }

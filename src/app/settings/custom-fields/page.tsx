@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   PageHeader,
@@ -42,11 +42,7 @@ export default function CustomFieldsPage() {
   const [filter, setFilter] = useState({ entityType: "" });
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchFields();
-  }, [filter]);
-
-  const fetchFields = async () => {
+  const fetchFields = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -65,7 +61,11 @@ export default function CustomFieldsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    fetchFields();
+  }, [fetchFields]);
 
   const deleteField = async (id: string) => {
     if (!confirm("Are you sure you want to delete this custom field?")) return;

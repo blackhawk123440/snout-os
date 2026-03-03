@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -39,13 +39,7 @@ export default function EditTemplatePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (templateId) {
-      fetchTemplate();
-    }
-  }, [templateId]);
-
-  const fetchTemplate = async () => {
+  const fetchTemplate = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -69,7 +63,13 @@ export default function EditTemplatePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [templateId]);
+
+  useEffect(() => {
+    if (templateId) {
+      fetchTemplate();
+    }
+  }, [templateId, fetchTemplate]);
 
   const handleSave = async () => {
     if (!name || !type || !category || !templateKey || !body) {

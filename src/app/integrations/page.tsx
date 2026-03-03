@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Card,
@@ -49,11 +49,7 @@ export default function IntegrationsPage() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadIntegrations();
-  }, []);
-
-  const loadIntegrations = async () => {
+  const loadIntegrations = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -193,7 +189,11 @@ export default function IntegrationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadIntegrations();
+  }, [loadIntegrations]);
 
   const checkStripe = async (): Promise<{ status: "working" | "not_configured" | "error" | "testing", message: string, details?: any }> => {
     try {

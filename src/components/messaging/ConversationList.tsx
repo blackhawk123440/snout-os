@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Badge, EmptyState, Skeleton, Tabs, TabPanel } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 
@@ -49,11 +49,7 @@ export default function ConversationList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchConversations();
-  }, [role, sitterId, scope]);
-
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -99,7 +95,11 @@ export default function ConversationList({
     } finally {
       setLoading(false);
     }
-  };
+  }, [role, sitterId, scope]);
+
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
 
   const formatTime = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;

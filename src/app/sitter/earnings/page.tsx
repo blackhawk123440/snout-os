@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Button, Drawer } from '@/components/ui';
+import { LayoutWrapper } from '@/components/layout';
+import { StatusChip } from '@/components/ui/status-chip';
 import {
   SitterCard,
   SitterCardHeader,
@@ -129,7 +131,7 @@ export default function SitterEarningsPage() {
   }, [loadEarnings, loadJobs, loadTransfers]);
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
+    <LayoutWrapper variant="narrow">
       <SitterPageHeader
         title="Earnings"
         subtitle="Your commission summary"
@@ -232,17 +234,13 @@ export default function SitterEarningsPage() {
                         )}
                       </p>
                     </div>
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        t.status === 'paid'
-                          ? 'bg-green-100 text-green-800'
-                          : t.status === 'failed'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-neutral-100 text-neutral-700'
-                      }`}
+                    <StatusChip
+                      variant={
+                        t.status === 'paid' ? 'success' : t.status === 'failed' ? 'danger' : 'neutral'
+                      }
                     >
                       {t.status}
-                    </span>
+                    </StatusChip>
                   </SitterCardBody>
                 </SitterCard>
               ))}
@@ -315,6 +313,6 @@ export default function SitterEarningsPage() {
           </div>
         )}
       </Drawer>
-    </div>
+    </LayoutWrapper>
   );
 }

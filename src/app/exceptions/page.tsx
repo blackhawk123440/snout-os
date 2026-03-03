@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   PageHeader,
@@ -59,11 +59,7 @@ export default function ExceptionsPage() {
   const [summary, setSummary] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchExceptions();
-  }, [typeFilter]);
-
-  const fetchExceptions = async () => {
+  const fetchExceptions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -83,7 +79,11 @@ export default function ExceptionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [typeFilter]);
+
+  useEffect(() => {
+    fetchExceptions();
+  }, [fetchExceptions]);
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);

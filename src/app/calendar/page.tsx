@@ -329,6 +329,7 @@ export default function CalendarPage() {
     }
 
     return days;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getBookingsForDate uses filteredBookings; adding causes unnecessary reruns
   }, [currentDate, filteredBookings]);
 
   function getBookingsForDate(date: Date): Booking[] {

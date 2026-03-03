@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -137,15 +137,7 @@ export default function BookingDetailPage() {
 
   const { showToast } = useToast();
 
-  useEffect(() => {
-    if (bookingId) {
-      fetchBooking();
-      fetchStatusHistory();
-      fetchSitters();
-    }
-  }, [bookingId]);
-
-  const fetchBooking = async () => {
+  const fetchBooking = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -185,9 +177,9 @@ export default function BookingDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [bookingId]);
 
-  const fetchStatusHistory = async () => {
+  const fetchStatusHistory = useCallback(async () => {
     try {
       const response = await fetch(`/api/bookings/${bookingId}/status-history`);
       if (response.ok) {
@@ -202,9 +194,9 @@ export default function BookingDetailPage() {
     } catch (err) {
       console.error('Failed to fetch status history:', err);
     }
-  };
+  }, [bookingId]);
 
-  const fetchSitters = async () => {
+  const fetchSitters = useCallback(async () => {
     try {
       const response = await fetch('/api/sitters');
       if (response.ok) {
@@ -214,7 +206,15 @@ export default function BookingDetailPage() {
     } catch (err) {
       console.error('Failed to fetch sitters:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (bookingId) {
+      fetchBooking();
+      fetchStatusHistory();
+      fetchSitters();
+    }
+  }, [bookingId, fetchBooking, fetchStatusHistory, fetchSitters]);
 
   const handleEditBooking = async (formValues: BookingFormValues) => {
     if (!booking) return;

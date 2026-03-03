@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, EmptyState, Skeleton, Badge } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { formatDistanceToNow } from 'date-fns';
@@ -46,11 +46,7 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchSitterThreads();
-  }, [sitterId]);
-
-  const fetchSitterThreads = async () => {
+  const fetchSitterThreads = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -65,7 +61,11 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sitterId]);
+
+  useEffect(() => {
+    fetchSitterThreads();
+  }, [fetchSitterThreads]);
 
   if (loading) {
     return (

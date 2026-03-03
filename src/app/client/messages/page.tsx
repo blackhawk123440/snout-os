@@ -2,15 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import {
   AppCard,
   AppCardHeader,
   AppCardBody,
-  AppPageHeader,
-  AppSkeletonList,
-  AppEmptyState,
   AppErrorState,
 } from '@/components/app';
+import { EmptyState, PageSkeleton } from '@/components/ui';
 
 interface Thread {
   id: string;
@@ -55,11 +54,11 @@ export default function ClientMessagesPage() {
     d ? new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : '';
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
-      <AppPageHeader
+    <LayoutWrapper variant="narrow">
+      <PageHeader
         title="Messages"
         subtitle="Chat with your sitter"
-        action={
+        actions={
           <button
             type="button"
             onClick={() => void load()}
@@ -70,14 +69,15 @@ export default function ClientMessagesPage() {
           </button>
         }
       />
+      <Section>
       {loading ? (
-        <AppSkeletonList count={3} />
+        <PageSkeleton />
       ) : error ? (
         <AppErrorState title="Couldn't load messages" subtitle={error} onRetry={() => void load()} />
       ) : threads.length === 0 ? (
-        <AppEmptyState
+        <EmptyState
           title="No messages yet"
-          subtitle="Your conversations with sitters will appear here."
+          description="Your conversations with sitters will appear here."
         />
       ) : (
         <div className="space-y-3">
@@ -107,6 +107,7 @@ export default function ClientMessagesPage() {
           ))}
         </div>
       )}
-    </div>
+      </Section>
+    </LayoutWrapper>
   );
 }

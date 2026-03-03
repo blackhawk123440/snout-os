@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   PageHeader,
@@ -120,15 +120,7 @@ function SitterDashboardContent() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [acceptingJobId, setAcceptingJobId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (sitterId) {
-      fetchDashboardData();
-    } else {
-      setLoading(false);
-    }
-  }, [sitterId, isAdminView]);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/sitters/${sitterId}/dashboard?admin=${isAdminView}`);
@@ -143,7 +135,15 @@ function SitterDashboardContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sitterId, isAdminView]);
+
+  useEffect(() => {
+    if (sitterId) {
+      fetchDashboardData();
+    } else {
+      setLoading(false);
+    }
+  }, [sitterId, isAdminView, fetchDashboardData]);
 
   const acceptJob = async (job: DashboardJob) => {
     if (!job.poolOfferId) {

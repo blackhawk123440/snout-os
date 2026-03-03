@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -132,13 +132,7 @@ function SitterDetailContent() {
     window.history.pushState({}, '', url.toString());
   }, [activeTab]);
 
-  useEffect(() => {
-    if (sitterId) {
-      fetchSitterData();
-    }
-  }, [sitterId]);
-
-  const fetchSitterData = async () => {
+  const fetchSitterData = useCallback(async () => {
     try {
       // Fetch sitter basic info
       const sitterRes = await fetch(`/api/sitters/${sitterId}`);
@@ -169,7 +163,13 @@ function SitterDetailContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sitterId]);
+
+  useEffect(() => {
+    if (sitterId) {
+      fetchSitterData();
+    }
+  }, [sitterId, fetchSitterData]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {

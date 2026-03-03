@@ -81,6 +81,7 @@ export default function ConversationView({
     // Poll for new messages every 5 seconds
     const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchMessages/fetchSitters in interval; threadId/participantPhone/bookingId trigger refetch
   }, [threadId, participantPhone, bookingId]);
 
   const fetchSitters = async () => {

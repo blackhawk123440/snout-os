@@ -8,8 +8,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppPageHeader, AppCard, AppCardBody, AppEmptyState, AppErrorState } from '@/components/app';
-import { Button, Input } from '@/components/ui';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
+import { Button, Input, EmptyState } from '@/components/ui';
+import { PageSkeleton } from '@/components/ui/loading-state';
+import { StatusChip } from '@/components/ui/status-chip';
 
 interface ReconcileRun {
   id: string;
@@ -115,20 +118,19 @@ export default function OpsFinanceReconciliationPage() {
 
   return (
     <AppShell>
-      <AppPageHeader
-        title="Finance Reconciliation"
-        subtitle="Ledger vs Stripe comparison and audit export"
-        action={
-          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-            Refresh
-          </Button>
-        }
-      />
+      <LayoutWrapper>
+        <PageHeader
+          title="Finance Reconciliation"
+          subtitle="Ledger vs Stripe comparison and audit export"
+          actions={
+            <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+              Refresh
+            </Button>
+          }
+        />
+        <Section>
       {loading ? (
-        <div className="animate-pulse space-y-4">
-          <div className="h-32 rounded-xl bg-neutral-100" />
-          <div className="h-48 rounded-xl bg-neutral-100" />
-        </div>
+        <PageSkeleton />
       ) : error ? (
         <AppErrorState title="Couldn't load reconciliation" subtitle={error} onRetry={() => void load()} />
       ) : (
@@ -172,7 +174,11 @@ export default function OpsFinanceReconciliationPage() {
             <AppCardBody>
               <p className="mb-3 font-medium text-neutral-900">Recent runs</p>
               {runs.length === 0 ? (
-                <AppEmptyState title="No runs yet" subtitle="Run reconciliation above to compare ledger vs Stripe." />
+                <EmptyState
+                  title="No runs yet"
+                  description="Run reconciliation above to compare ledger vs Stripe."
+                  primaryAction={{ label: 'Run reconciliation', onClick: () => void runReconciliation() }}
+                />
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {runs.map((r) => (
@@ -184,13 +190,9 @@ export default function OpsFinanceReconciliationPage() {
                         <span className="font-medium">
                           {formatDate(r.rangeStart)} – {formatDate(r.rangeEnd)}
                         </span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs ${
-                            r.status === 'succeeded' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}
-                        >
+                        <StatusChip variant={r.status === 'succeeded' ? 'success' : 'danger'}>
                           {r.status}
-                        </span>
+                        </StatusChip>
                       </div>
                       {r.totalsJson && Object.keys(r.totalsJson).length > 0 && (
                         <p className="mt-1 text-neutral-600">
@@ -218,6 +220,8 @@ export default function OpsFinanceReconciliationPage() {
           </AppCard>
         </div>
       )}
+        </Section>
+      </LayoutWrapper>
     </AppShell>
   );
 }

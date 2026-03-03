@@ -278,6 +278,7 @@ export default function CalendarPage() {
     }
     
     return days;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getBookingsForDate uses filteredBookings; adding causes unnecessary reruns
   }, [currentMonth, currentYear, filteredBookings]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {

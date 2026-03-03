@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import {
   AppCard,
   AppCardHeader,
   AppCardBody,
-  AppPageHeader,
-  AppSkeletonList,
   AppErrorState,
 } from '@/components/app';
+import { PageSkeleton } from '@/components/ui/loading-state';
 
 interface ReportDetail {
   id: string;
@@ -65,11 +65,11 @@ export default function ClientReportDetailPage() {
     d ? new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
-      <AppPageHeader
+    <LayoutWrapper variant="narrow">
+      <PageHeader
         title={report?.booking?.service || 'Visit report'}
         subtitle={report?.createdAt ? formatDate(report.createdAt) : ''}
-        action={
+        actions={
           <button
             type="button"
             onClick={() => router.back()}
@@ -79,8 +79,9 @@ export default function ClientReportDetailPage() {
           </button>
         }
       />
+      <Section>
       {loading ? (
-        <AppSkeletonList count={2} />
+        <PageSkeleton />
       ) : error ? (
         <AppErrorState title="Couldn't load report" subtitle={error} onRetry={() => void load()} />
       ) : report ? (
@@ -137,6 +138,7 @@ export default function ClientReportDetailPage() {
           </AppCard>
         </div>
       ) : null}
-    </div>
+      </Section>
+    </LayoutWrapper>
   );
 }

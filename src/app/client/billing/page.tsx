@@ -1,15 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import {
   AppCard,
   AppCardHeader,
   AppCardBody,
-  AppPageHeader,
-  AppSkeletonList,
-  AppEmptyState,
   AppErrorState,
 } from '@/components/app';
+import { EmptyState, PageSkeleton } from '@/components/ui';
+import { StatusChip } from '@/components/ui/status-chip';
 
 interface BillingData {
   invoices: Array<{
@@ -63,11 +63,11 @@ export default function ClientBillingPage() {
     new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
-      <AppPageHeader
+    <LayoutWrapper variant="narrow">
+      <PageHeader
         title="Billing"
         subtitle={data ? `${data.loyalty.points} loyalty points · ${data.loyalty.tier} tier` : 'Invoices & loyalty'}
-        action={
+        actions={
           <button
             type="button"
             onClick={() => void load()}
@@ -78,8 +78,9 @@ export default function ClientBillingPage() {
           </button>
         }
       />
+      <Section>
       {loading ? (
-        <AppSkeletonList count={2} />
+        <PageSkeleton />
       ) : error ? (
         <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void load()} />
       ) : data ? (
@@ -123,9 +124,12 @@ export default function ClientBillingPage() {
                   <AppCardHeader>
                     <div className="flex items-center justify-between">
                       <p className="font-semibold text-neutral-900">{inv.service}</p>
-                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700">
+                      <StatusChip variant={
+                        inv.paymentStatus === 'paid' ? 'success' :
+                        inv.paymentStatus === 'pending' ? 'warning' : 'neutral'
+                      }>
                         {inv.paymentStatus}
-                      </span>
+                      </StatusChip>
                     </div>
                   </AppCardHeader>
                   <AppCardBody>
@@ -146,14 +150,15 @@ export default function ClientBillingPage() {
               ))}
             </div>
           ) : (
-            <AppEmptyState
+            <EmptyState
               title="No unpaid invoices"
-              subtitle="You're all caught up."
-              cta={{ label: 'View bookings', onClick: () => window.location.assign('/client/bookings') }}
+              description="You're all caught up."
+              primaryAction={{ label: 'View bookings', onClick: () => window.location.assign('/client/bookings') }}
             />
           )}
         </div>
       ) : null}
-    </div>
+      </Section>
+    </LayoutWrapper>
   );
 }

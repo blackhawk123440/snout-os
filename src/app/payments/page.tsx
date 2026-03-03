@@ -7,15 +7,13 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  PageHeader,
   Card,
   Button,
   Select,
   Input,
-  Badge,
   StatCard,
   Table,
   TableColumn,
@@ -26,7 +24,10 @@ import {
   Grid,
   GridCol,
 } from '@/components/ui';
+import { StatusChip } from '@/components/ui/status-chip';
 import { AppShell } from '@/components/layout/AppShell';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { PageSkeleton } from '@/components/ui/loading-state';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 
@@ -115,11 +116,7 @@ export default function PaymentsPage() {
     { label: 'Last Year', value: '1y', days: 365 },
   ];
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [selectedTimeRange, statusFilter, searchTerm]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -202,7 +199,11 @@ export default function PaymentsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedTimeRange.value, statusFilter, searchTerm]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   const handleExportCSV = async () => {
     try {
@@ -306,7 +307,7 @@ export default function PaymentsPage() {
     });
   };
 
-  const getStatusBadgeVariant = (status: string): 'default' | 'success' | 'warning' | 'error' => {
+  const getStatusChipVariant = (status: string): 'success' | 'warning' | 'danger' | 'neutral' => {
     const normalized = status.toLowerCase();
     if (normalized === 'paid' || normalized === 'succeeded') return 'success';
     if (normalized === 'pending' || normalized === 'processing') return 'warning';
@@ -315,9 +316,9 @@ export default function PaymentsPage() {
       normalized === 'canceled' ||
       normalized === 'requires_payment_method'
     )
-      return 'error';
-    if (normalized === 'refunded') return 'default';
-    return 'default';
+      return 'danger';
+    if (normalized === 'refunded') return 'neutral';
+    return 'neutral';
   };
 
   const getStatusLabel = (status: string) => {
@@ -378,9 +379,9 @@ export default function PaymentsPage() {
       mobileOrder: 3,
       render: (payment) => (
         <div>
-          <Badge variant={getStatusBadgeVariant(payment.status)}>
+          <StatusChip variant={getStatusChipVariant(payment.status)}>
             {getStatusLabel(payment.status)}
-          </Badge>
+          </StatusChip>
           {payment.status === 'failed' && payment.lastError && (
             <div
               style={{
@@ -442,38 +443,20 @@ export default function PaymentsPage() {
   if (loading && analytics.recentPayments.length === 0) {
     return (
       <AppShell>
-        <PageHeader
-          title="Payments"
-          description="Payment transactions and revenue overview"
-        />
-        <div style={{ marginBottom: tokens.spacing[4] }}>
-          <Grid gap={2}> {/* Batch 5: UI Constitution compliance */}
-            <GridCol span={12} md={6} lg={3}>
-              <Skeleton height="120px" />
-            </GridCol>
-            <GridCol span={12} md={6} lg={3}>
-              <Skeleton height="120px" />
-            </GridCol>
-            <GridCol span={12} md={6} lg={3}>
-              <Skeleton height="120px" />
-            </GridCol>
-            <GridCol span={12} md={6} lg={3}>
-              <Skeleton height="120px" />
-            </GridCol>
-          </Grid>
-        </div>
-        <Card>
-          <Skeleton height="400px" />
-        </Card>
+        <LayoutWrapper variant="wide">
+          <PageHeader title="Payments" subtitle="Payment transactions and revenue overview" />
+          <PageSkeleton />
+        </LayoutWrapper>
       </AppShell>
     );
   }
 
   return (
     <AppShell>
-      <PageHeader
-        title="Payments"
-        description="Payment transactions and revenue overview"
+      <LayoutWrapper variant="wide">
+        <PageHeader
+          title="Payments"
+          subtitle="Payment transactions and revenue overview"
         actions={
           <Select
             options={timeRanges.map((r) => ({ value: r.value, label: r.label }))}
@@ -487,6 +470,7 @@ export default function PaymentsPage() {
         }
       />
 
+        <Section>
       {error && (
         <Card
           style={{
@@ -648,6 +632,8 @@ export default function PaymentsPage() {
           />
         )}
       </Card>
+        </Section>
+      </LayoutWrapper>
     </AppShell>
   );
 }
