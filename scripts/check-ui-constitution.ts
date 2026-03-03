@@ -64,8 +64,10 @@ function getChangedFiles(): Set<string> | null {
         // For push events, compare previous commit
         const eventName = process.env.GITHUB_EVENT_NAME || '';
         if (eventName === 'push') {
-          const beforeSha = process.env.GITHUB_EVENT_BEFORE || 'HEAD~1';
+          let beforeSha = process.env.GITHUB_EVENT_BEFORE || 'HEAD~1';
           const afterSha = process.env.GITHUB_SHA || 'HEAD';
+          // Initial push: GITHUB_EVENT_BEFORE is zero sha; avoid diffing entire repo
+          if (/^0+$/.test(beforeSha)) beforeSha = 'HEAD~1';
           changedFiles = execSync(
             `git diff --name-only --diff-filter=ACMR ${beforeSha}...${afterSha}`,
             { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
