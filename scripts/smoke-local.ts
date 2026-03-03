@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
- * Local smoke test harness: db reset → start server → run playwright → teardown
- * Usage: pnpm test:ui:smoke:local
+ * Local smoke/a11y harness: db reset → build → start server → run playwright → teardown
+ * Usage: tsx scripts/smoke-local.ts [--a11y]
  */
 
 import { execSync, spawn } from 'child_process';
@@ -103,9 +103,13 @@ async function main() {
   console.log('[smoke] Server ready.\n');
 
   // 5. Run Playwright
-  console.log('[smoke] 5. Running Playwright smoke tests...');
+  const isA11y = process.argv.includes('--a11y');
+  const playwrightCmd = isA11y
+    ? 'pnpm exec playwright test tests/e2e/a11y-smoke.spec.ts --config=playwright.smoke.config.ts'
+    : 'pnpm exec playwright test --config=playwright.smoke.config.ts';
+  console.log(`[smoke] 5. Running Playwright ${isA11y ? 'a11y' : 'smoke'} tests...`);
   try {
-    run('pnpm exec playwright test --config=playwright.smoke.config.ts', {
+    run(playwrightCmd, {
       env: {
         ...env,
         CI: 'true', // reuse server we started

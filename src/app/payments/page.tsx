@@ -380,7 +380,10 @@ export default function PaymentsPage() {
       mobileOrder: 3,
       render: (payment) => (
         <div>
-          <StatusChip variant={getStatusChipVariant(payment.status)}>
+          <StatusChip
+            variant={getStatusChipVariant(payment.status)}
+            ariaLabel={`Payment status: ${getStatusLabel(payment.status)}`}
+          >
             {getStatusLabel(payment.status)}
           </StatusChip>
           {payment.status === 'failed' && payment.lastError && (
@@ -405,6 +408,7 @@ export default function PaymentsPage() {
       header: 'Invoice',
       mobileLabel: 'Invoice #',
       mobileOrder: 4,
+      hideBelow: 'md',
       render: (payment) => (
         <div
           style={{
@@ -422,6 +426,7 @@ export default function PaymentsPage() {
       header: 'Method',
       mobileLabel: 'Payment Method',
       mobileOrder: 5,
+      hideBelow: 'md',
       render: (payment) => (
         <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
           {getPaymentMethodLabel(payment.paymentMethod)}
@@ -433,6 +438,7 @@ export default function PaymentsPage() {
       header: 'Date',
       mobileLabel: 'Date',
       mobileOrder: 6,
+      hideBelow: 'lg',
       render: (payment) => (
         <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
           {formatDateTime(payment.created)}
@@ -624,7 +630,7 @@ export default function PaymentsPage() {
             }
           />
         ) : (
-          <DataTableShell>
+          <DataTableShell stickyHeader>
             <Table
               columns={paymentColumns}
               data={filteredPayments}

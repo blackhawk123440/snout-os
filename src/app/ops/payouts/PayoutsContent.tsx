@@ -118,7 +118,7 @@ export function PayoutsContent() {
           description="Transfers will appear here after completed bookings are paid out to sitters."
         />
       ) : (
-        <DataTableShell>
+        <DataTableShell stickyHeader>
         <div className="space-y-2">
           {transfers.map((t) => (
             <AppCard key={t.id}>
@@ -136,7 +136,10 @@ export function PayoutsContent() {
                     </p>
                   )}
                 </div>
-                <StatusChip variant={t.status === 'paid' ? 'success' : t.status === 'failed' ? 'danger' : 'neutral'}>
+                <StatusChip
+                  variant={t.status === 'paid' ? 'success' : t.status === 'failed' ? 'danger' : 'neutral'}
+                  ariaLabel={`Payout transfer status: ${t.status}`}
+                >
                   {t.status}
                 </StatusChip>
               </AppCardBody>

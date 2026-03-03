@@ -26,6 +26,8 @@ export interface StatusChipProps {
   children: React.ReactNode;
   variant?: StatusChipVariant;
   className?: string;
+  /** Override computed aria-label for screen readers. Use when children are complex or need explicit context. */
+  ariaLabel?: string;
 }
 
 const VARIANT_LABELS: Record<StatusChipVariant, string> = {
@@ -36,11 +38,12 @@ const VARIANT_LABELS: Record<StatusChipVariant, string> = {
   info: 'Info',
 };
 
-export function StatusChip({ children, variant = 'neutral', className }: StatusChipProps) {
-  const label =
+export function StatusChip({ children, variant = 'neutral', className, ariaLabel }: StatusChipProps) {
+  const computedLabel =
     typeof children === 'string'
       ? `${VARIANT_LABELS[variant]}: ${children}`
       : VARIANT_LABELS[variant];
+  const label = ariaLabel ?? computedLabel;
   return (
     <span
       className={cn(

@@ -217,7 +217,7 @@ export default function SitterEarningsPage() {
               subtitle="Transfers will appear here after completed bookings are paid out."
             />
           ) : (
-            <DataTableShell>
+            <DataTableShell stickyHeader>
             <div className="space-y-2">
               {transfers.map((t) => (
                 <SitterCard key={t.id}>
@@ -239,6 +239,7 @@ export default function SitterEarningsPage() {
                       variant={
                         t.status === 'paid' ? 'success' : t.status === 'failed' ? 'danger' : 'neutral'
                       }
+                      ariaLabel={`Transfer status: ${t.status}`}
                     >
                       {t.status}
                     </StatusChip>

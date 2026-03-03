@@ -205,7 +205,7 @@ export function ReconciliationContent() {
                   primaryAction={{ label: 'Run reconciliation', onClick: () => void runReconciliation() }}
                 />
               ) : (
-                <DataTableShell className="max-h-96">
+                <DataTableShell className="max-h-96" stickyHeader>
                 <div className="space-y-2 overflow-y-auto">
                   {runs.map((r) => (
                     <div
@@ -216,7 +216,10 @@ export function ReconciliationContent() {
                         <span className="font-medium">
                           {formatDate(r.rangeStart)} – {formatDate(r.rangeEnd)}
                         </span>
-                        <StatusChip variant={r.status === 'succeeded' ? 'success' : 'danger'}>
+                        <StatusChip
+                          variant={r.status === 'succeeded' ? 'success' : 'danger'}
+                          ariaLabel={`Reconciliation run status: ${r.status}`}
+                        >
                           {r.status}
                         </StatusChip>
                       </div>

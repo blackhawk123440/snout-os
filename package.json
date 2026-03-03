@@ -18,7 +18,7 @@
     "test:ui": "playwright test",
     "test:ui:smoke": "tsx scripts/smoke.ts",
     "e2e:smoke": "playwright test --config=playwright.smoke.config.ts tests/e2e/smoke.spec.ts tests/e2e/smoke-closed-loop.spec.ts tests/e2e/smoke-ops.spec.ts",
-    "test:e2e:a11y": "playwright test tests/e2e/a11y-smoke.spec.ts --project=owner-desktop",
+    "test:e2e:a11y": "tsx scripts/smoke.ts --a11y",
     "test:ui:visual": "playwright test",
     "test:ui:owner-snapshots": "playwright test tests/e2e/owner-snapshots.spec.ts --project=owner-desktop",
     "test:ui:full": "playwright test",

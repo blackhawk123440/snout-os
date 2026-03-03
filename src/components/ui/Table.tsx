@@ -9,6 +9,8 @@ import React from 'react';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { Card } from './Card';
+import { colPriorityMd, colPriorityLg } from './data-table-shell';
+import { cn } from './utils';
 
 export interface TableColumn<T = any> {
   key: string;
@@ -18,6 +20,8 @@ export interface TableColumn<T = any> {
   width?: string;
   mobileLabel?: string; // Label for mobile card view
   mobileOrder?: number; // Order in mobile view (lower = first)
+  /** Hide column below breakpoint (md=768px, lg=1024px). Use for low-priority columns. */
+  hideBelow?: 'md' | 'lg';
 }
 
 export interface TableProps<T = any> extends React.HTMLAttributes<HTMLTableElement> {
@@ -226,6 +230,10 @@ export function Table<T extends Record<string, any>>({
               {columns.map((column) => (
                 <th
                   key={column.key}
+                  className={cn(
+                    column.hideBelow === 'md' && colPriorityMd,
+                    column.hideBelow === 'lg' && colPriorityLg
+                  )}
                   style={{
                     padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
                     textAlign: column.align || 'left',
@@ -252,6 +260,10 @@ export function Table<T extends Record<string, any>>({
                   {columns.map((column) => (
                     <td
                       key={column.key}
+                      className={cn(
+                        column.hideBelow === 'md' && colPriorityMd,
+                        column.hideBelow === 'lg' && colPriorityLg
+                      )}
                       style={{
                         padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
                         textAlign: column.align || 'left',
@@ -335,6 +347,10 @@ export function Table<T extends Record<string, any>>({
                   {columns.map((column) => (
                     <td
                       key={column.key}
+                      className={cn(
+                        column.hideBelow === 'md' && colPriorityMd,
+                        column.hideBelow === 'lg' && colPriorityLg
+                      )}
                       style={{
                         padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
                         textAlign: column.align || 'left',

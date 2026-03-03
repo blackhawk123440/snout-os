@@ -98,7 +98,7 @@ export default function ClientBillingPage() {
           {data.payments.length > 0 && (
             <>
               <h2 className="text-lg font-semibold text-neutral-900">Payment history</h2>
-              <DataTableShell className="mb-6">
+              <DataTableShell className="mb-6" stickyHeader>
               <div className="space-y-2">
                 {data.payments.slice(0, 10).map((p) => (
                   <div
@@ -126,10 +126,13 @@ export default function ClientBillingPage() {
                   <AppCardHeader>
                     <div className="flex items-center justify-between">
                       <p className="font-semibold text-neutral-900">{inv.service}</p>
-                      <StatusChip variant={
-                        inv.paymentStatus === 'paid' ? 'success' :
-                        inv.paymentStatus === 'pending' ? 'warning' : 'neutral'
-                      }>
+                      <StatusChip
+                        variant={
+                          inv.paymentStatus === 'paid' ? 'success' :
+                          inv.paymentStatus === 'pending' ? 'warning' : 'neutral'
+                        }
+                        ariaLabel={`Invoice payment status: ${inv.paymentStatus}`}
+                      >
                         {inv.paymentStatus}
                       </StatusChip>
                     </div>
