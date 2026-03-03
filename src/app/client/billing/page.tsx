@@ -8,7 +8,7 @@ import {
   AppCardBody,
   AppErrorState,
 } from '@/components/app';
-import { EmptyState, PageSkeleton, DataTableShell } from '@/components/ui';
+import { EmptyState, PageSkeleton, DataTableShell, Table } from '@/components/ui';
 import { StatusChip } from '@/components/ui/status-chip';
 
 interface BillingData {
@@ -99,21 +99,21 @@ export default function ClientBillingPage() {
             <>
               <h2 className="text-lg font-semibold text-neutral-900">Payment history</h2>
               <DataTableShell className="mb-6" stickyHeader>
-              <div className="space-y-2">
-                {data.payments.slice(0, 10).map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3"
-                  >
-                    <div>
-                      <p className="font-medium text-neutral-900">${p.amount.toFixed(2)}</p>
-                      <p className="text-xs text-neutral-500">
-                        {new Date(p.createdAt).toLocaleDateString()} · {p.status}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                <Table
+                  columns={[
+                    { key: 'amount', header: 'Amount', mobileOrder: 1, mobileLabel: 'Amount', render: (p) => (
+                      <span className="tabular-nums font-medium">${p.amount.toFixed(2)}</span>
+                    )},
+                    { key: 'date', header: 'Date', mobileOrder: 2, mobileLabel: 'Date', hideBelow: 'md', render: (p) =>
+                      new Date(p.createdAt).toLocaleDateString()
+                    },
+                    { key: 'status', header: 'Status', mobileOrder: 3, mobileLabel: 'Status', render: (p) => p.status },
+                  ]}
+                  data={data.payments.slice(0, 10)}
+                  keyExtractor={(p) => p.id}
+                  emptyMessage="No payments"
+                  forceTableLayout
+                />
               </DataTableShell>
             </>
           )}

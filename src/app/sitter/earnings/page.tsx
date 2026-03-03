@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Drawer, DataTableShell } from '@/components/ui';
+import { Button, Drawer, DataTableShell, Table } from '@/components/ui';
 import { LayoutWrapper } from '@/components/layout';
 import { StatusChip } from '@/components/ui/status-chip';
 import {
@@ -218,35 +218,33 @@ export default function SitterEarningsPage() {
             />
           ) : (
             <DataTableShell stickyHeader>
-            <div className="space-y-2">
-              {transfers.map((t) => (
-                <SitterCard key={t.id}>
-                  <SitterCardBody className="flex flex-row items-center justify-between">
-                    <div>
-                      <p className="font-medium text-neutral-900">
-                        ${(t.amount / 100).toFixed(2)} {t.currency.toUpperCase()}
-                      </p>
-                      <p className="text-sm text-neutral-600">
-                        {t.createdAt ? formatDate(t.createdAt) : '—'} · {t.status}
-                        {t.lastError && (
-                          <span className="ml-1 text-red-600" title={t.lastError}>
-                            (failed)
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <StatusChip
-                      variant={
-                        t.status === 'paid' ? 'success' : t.status === 'failed' ? 'danger' : 'neutral'
-                      }
-                      ariaLabel={`Transfer status: ${t.status}`}
-                    >
-                      {t.status}
-                    </StatusChip>
-                  </SitterCardBody>
-                </SitterCard>
-              ))}
-            </div>
+              <Table
+                columns={[
+                  { key: 'amount', header: 'Amount', mobileOrder: 1, mobileLabel: 'Amount', render: (t) => (
+                    <span className="tabular-nums font-medium">${(t.amount / 100).toFixed(2)} {t.currency.toUpperCase()}</span>
+                  )},
+                  { key: 'date', header: 'Date', mobileOrder: 2, mobileLabel: 'Date', hideBelow: 'md', render: (t) =>
+                    t.createdAt ? formatDate(t.createdAt) : '—'
+                  },
+                  { key: 'status', header: 'Status', mobileOrder: 3, mobileLabel: 'Status', render: (t) => (
+                    <span className="flex items-center gap-1">
+                      <StatusChip
+                        variant={t.status === 'paid' ? 'success' : t.status === 'failed' ? 'danger' : 'neutral'}
+                        ariaLabel={`Transfer status: ${t.status}`}
+                      >
+                        {t.status}
+                      </StatusChip>
+                      {t.lastError && (
+                        <span className="text-red-600" title={t.lastError}>(failed)</span>
+                      )}
+                    </span>
+                  )},
+                ]}
+                data={transfers}
+                keyExtractor={(t) => t.id}
+                emptyMessage="No payouts yet"
+                forceTableLayout
+              />
             </DataTableShell>
           )}
 
@@ -259,21 +257,23 @@ export default function SitterEarningsPage() {
               subtitle="Your earnings will appear here after visits are completed."
             />
           ) : (
-            <div className="space-y-2">
-              {jobs.map((job) => (
-                <SitterCard key={job.id} onClick={() => setSelectedJob(job)}>
-                  <SitterCardBody className="flex flex-row items-center justify-between">
-                    <div>
-                      <p className="font-medium text-neutral-900">{job.clientName}</p>
-                      <p className="text-sm text-neutral-600">
-                        {job.service} · {formatDate(job.endAt)}
-                      </p>
-                    </div>
-                    <p className="font-semibold text-neutral-900">${job.afterSplit.toFixed(2)}</p>
-                  </SitterCardBody>
-                </SitterCard>
-              ))}
-            </div>
+            <DataTableShell stickyHeader>
+              <Table
+                columns={[
+                  { key: 'client', header: 'Client', mobileOrder: 1, mobileLabel: 'Client', render: (job) => job.clientName },
+                  { key: 'service', header: 'Service', mobileOrder: 2, mobileLabel: 'Service', hideBelow: 'md', render: (job) => job.service },
+                  { key: 'date', header: 'Date', mobileOrder: 3, mobileLabel: 'Date', render: (job) => formatDate(job.endAt) },
+                  { key: 'amount', header: 'Amount', mobileOrder: 4, mobileLabel: 'Amount', render: (job) => (
+                    <span className="tabular-nums font-semibold">${job.afterSplit.toFixed(2)}</span>
+                  )},
+                ]}
+                data={jobs}
+                keyExtractor={(job) => job.id}
+                emptyMessage="No completed jobs yet"
+                onRowClick={(job) => setSelectedJob(job)}
+                forceTableLayout
+              />
+            </DataTableShell>
           )}
 
           <p className="text-center text-xs text-neutral-500">

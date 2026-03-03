@@ -32,6 +32,8 @@ export interface TableProps<T = any> extends React.HTMLAttributes<HTMLTableEleme
   onRowClick?: (row: T, index: number) => void;
   keyExtractor?: (row: T, index: number) => string;
   mobileCardRenderer?: (row: T, index: number) => React.ReactNode;
+  /** When true, always render table layout (scrollable on mobile). Use for dense data tables. */
+  forceTableLayout?: boolean;
 }
 
 export function Table<T extends Record<string, any>>({
@@ -42,6 +44,7 @@ export function Table<T extends Record<string, any>>({
   onRowClick,
   keyExtractor,
   mobileCardRenderer,
+  forceTableLayout = false,
   ...props
 }: TableProps<T>) {
   const isMobile = useMobile();
@@ -51,8 +54,8 @@ export function Table<T extends Record<string, any>>({
     return row.id || row.key || `row-${index}`;
   };
 
-  // Mobile Card Layout
-  if (isMobile) {
+  // Mobile Card Layout (skip when forceTableLayout - use dense table on all screens)
+  if (isMobile && !forceTableLayout) {
     const sortedColumns = [...columns].sort((a, b) => {
       const orderA = a.mobileOrder ?? 999;
       const orderB = b.mobileOrder ?? 999;
@@ -198,7 +201,7 @@ export function Table<T extends Record<string, any>>({
       <div
         className="table-wrapper"
         style={{
-          overflowX: isMobile ? 'hidden' : 'auto', // Part A: No horizontal scroll on mobile
+          overflowX: forceTableLayout ? 'auto' : isMobile ? 'hidden' : 'auto',
           overflowY: 'auto',
           maxHeight: 'calc(100vh - 300px)',
           width: '100%',
@@ -213,7 +216,7 @@ export function Table<T extends Record<string, any>>({
             width: '100%',
             maxWidth: '100%', // Part A: Zero horizontal scroll enforcement
             borderCollapse: 'collapse',
-            tableLayout: isMobile ? 'fixed' : 'auto', // Prevent table from forcing width on mobile
+            tableLayout: isMobile && !forceTableLayout ? 'fixed' : 'auto',
             ...props.style,
           }}
         >
@@ -300,14 +303,7 @@ export function Table<T extends Record<string, any>>({
                       color: tokens.colors.text.secondary,
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: tokens.typography.fontSize['2xl'][0],
-                        opacity: 0.5,
-                      }}
-                    >
-                      📭
-                    </div>
+<i className="fas fa-inbox" style={{ fontSize: tokens.typography.fontSize['2xl'][0], opacity: 0.5 }} aria-hidden />
                     <p
                       style={{
                         fontSize: tokens.typography.fontSize.base[0],

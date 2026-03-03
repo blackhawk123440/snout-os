@@ -7,8 +7,8 @@ import { useQueryState } from '@/hooks/useQueryState';
 import { MobileFilterDrawer } from '@/components/app/MobileFilterDrawer';
 import { AppShell } from '@/components/layout/AppShell';
 import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
-import { Button, EmptyState, StatusChip, TableSkeleton, DataTableShell } from '@/components/ui';
+import { AppErrorState } from '@/components/app';
+import { Button, EmptyState, StatusChip, Table, TableSkeleton, DataTableShell } from '@/components/ui';
 
 interface PayoutItem {
   id: string;
@@ -119,33 +119,39 @@ export function PayoutsContent() {
         />
       ) : (
         <DataTableShell stickyHeader>
-        <div className="space-y-2">
-          {transfers.map((t) => (
-            <AppCard key={t.id}>
-              <AppCardBody className="flex flex-row items-center justify-between gap-4">
+          <Table<PayoutItem>
+            columns={[
+              { key: 'sitter', header: 'Sitter', mobileOrder: 1, mobileLabel: 'Sitter', render: (t) => (
                 <div>
                   <p className="font-medium text-neutral-900">{t.sitterName}</p>
                   <p className="text-sm text-neutral-600">
-                    ${(t.amount / 100).toFixed(2)} {t.currency.toUpperCase()} · {formatDate(t.createdAt)}
+                    {formatDate(t.createdAt)}
                     {t.bookingId && ` · Booking ${t.bookingId.slice(0, 8)}…`}
                   </p>
                   {t.lastError && (
                     <p className="mt-1 text-xs text-red-600" title={t.lastError}>
-                      {t.lastError.slice(0, 80)}
-                      {t.lastError.length > 80 ? '…' : ''}
+                      {t.lastError.slice(0, 80)}{t.lastError.length > 80 ? '…' : ''}
                     </p>
                   )}
                 </div>
+              )},
+              { key: 'amount', header: 'Amount', mobileOrder: 2, mobileLabel: 'Amount', align: 'right', render: (t) => (
+                <span className="tabular-nums font-medium">${(t.amount / 100).toFixed(2)} {t.currency.toUpperCase()}</span>
+              )},
+              { key: 'status', header: 'Status', mobileOrder: 3, mobileLabel: 'Status', hideBelow: 'md', render: (t) => (
                 <StatusChip
                   variant={t.status === 'paid' ? 'success' : t.status === 'failed' ? 'danger' : 'neutral'}
                   ariaLabel={`Payout transfer status: ${t.status}`}
                 >
                   {t.status}
                 </StatusChip>
-              </AppCardBody>
-            </AppCard>
-          ))}
-        </div>
+              )},
+            ]}
+            data={transfers}
+            keyExtractor={(t) => t.id}
+            emptyMessage="No payouts"
+            forceTableLayout
+          />
         </DataTableShell>
       )}
         </Section>

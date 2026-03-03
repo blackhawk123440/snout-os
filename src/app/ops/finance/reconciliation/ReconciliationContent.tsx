@@ -6,7 +6,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
-import { Button, Input, EmptyState, DataTableShell } from '@/components/ui';
+import { Button, Input, EmptyState, DataTableShell, Table } from '@/components/ui';
 import { PageSkeleton } from '@/components/ui/loading-state';
 import { StatusChip } from '@/components/ui/status-chip';
 
@@ -206,44 +206,37 @@ export function ReconciliationContent() {
                 />
               ) : (
                 <DataTableShell className="max-h-96" stickyHeader>
-                <div className="space-y-2 overflow-y-auto">
-                  {runs.map((r) => (
-                    <div
-                      key={r.id}
-                      className="rounded-lg border border-neutral-200 px-3 py-2 text-sm"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">
-                          {formatDate(r.rangeStart)} – {formatDate(r.rangeEnd)}
-                        </span>
+                  <Table<ReconcileRun>
+                    columns={[
+                      { key: 'range', header: 'Date range', mobileOrder: 1, mobileLabel: 'Range', render: (r) => (
+                        <span className="font-medium">{formatDate(r.rangeStart)} – {formatDate(r.rangeEnd)}</span>
+                      )},
+                      { key: 'status', header: 'Status', mobileOrder: 2, mobileLabel: 'Status', render: (r) => (
                         <StatusChip
                           variant={r.status === 'succeeded' ? 'success' : 'danger'}
                           ariaLabel={`Reconciliation run status: ${r.status}`}
                         >
                           {r.status}
                         </StatusChip>
-                      </div>
-                      {r.totalsJson && Object.keys(r.totalsJson).length > 0 && (
-                        <p className="mt-1 text-neutral-600">
-                          Totals: {Object.entries(r.totalsJson).map(([k, v]) => `${k}=$${(v / 100).toFixed(2)}`).join(', ')}
-                        </p>
-                      )}
-                      {r.mismatchJson?.missingInDb?.length ? (
-                        <p className="mt-1 text-amber-700">
-                          Missing in ledger: {r.mismatchJson.missingInDb.length} items
-                        </p>
-                      ) : null}
-                      {r.mismatchJson?.missingInStripe?.length ? (
-                        <p className="mt-1 text-amber-700">
-                          Missing in Stripe: {r.mismatchJson.missingInStripe.length} items
-                        </p>
-                      ) : null}
-                      {r.mismatchJson?.error && (
-                        <p className="mt-1 text-red-600">{r.mismatchJson.error}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                      )},
+                      { key: 'totals', header: 'Totals', mobileOrder: 3, mobileLabel: 'Totals', hideBelow: 'md', render: (r) =>
+                        r.totalsJson && Object.keys(r.totalsJson).length > 0
+                          ? Object.entries(r.totalsJson).map(([k, v]) => `${k}=$${(v / 100).toFixed(2)}`).join(', ')
+                          : '—'
+                      },
+                      { key: 'mismatch', header: 'Mismatches', mobileOrder: 4, mobileLabel: 'Mismatches', hideBelow: 'lg', render: (r) => {
+                        const parts: string[] = [];
+                        if (r.mismatchJson?.missingInDb?.length) parts.push(`Ledger: ${r.mismatchJson.missingInDb.length}`);
+                        if (r.mismatchJson?.missingInStripe?.length) parts.push(`Stripe: ${r.mismatchJson.missingInStripe.length}`);
+                        if (r.mismatchJson?.error) parts.push('Error');
+                        return parts.length ? <span className="text-amber-700">{parts.join('; ')}</span> : '—';
+                      }},
+                    ]}
+                    data={runs}
+                    keyExtractor={(r) => r.id}
+                    emptyMessage="No runs yet"
+                    forceTableLayout
+                  />
                 </DataTableShell>
               )}
             </AppCardBody>
