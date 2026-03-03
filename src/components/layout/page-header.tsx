@@ -20,11 +20,11 @@ export interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, actions, breadcrumbs, className, testId }: PageHeaderProps) {
   return (
-    <header className={cn('mb-6', className)} data-testid={testId ?? 'page-header'}>
+    <header className={cn('mb-5', className)} data-testid={testId ?? 'page-header'}>
       {breadcrumbs && <div className="mb-2">{breadcrumbs}</div>}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
             {title}
           </h1>
           {subtitle && (

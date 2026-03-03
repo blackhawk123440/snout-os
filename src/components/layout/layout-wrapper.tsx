@@ -19,16 +19,16 @@ export interface LayoutWrapperProps {
 const MAX_WIDTH: Record<LayoutVariant, string> = {
   default: 'max-w-5xl',
   wide: 'max-w-7xl',
-  narrow: 'max-w-3xl',
+  narrow: 'max-w-6xl',
 };
 
 export function LayoutWrapper({ children, variant = 'default', className }: LayoutWrapperProps) {
   return (
     <div
       className={cn(
-        'mx-auto w-full px-4 pt-4 pb-6 sm:px-6 lg:px-8',
+        'mx-auto w-full px-4 pt-4 pb-5 sm:px-6 lg:px-8',
         MAX_WIDTH[variant],
-        'flex flex-col gap-6',
+        'flex flex-col gap-4',
         className
       )}
     >
