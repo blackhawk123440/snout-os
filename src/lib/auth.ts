@@ -86,7 +86,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         let userHasPasswordHash = false;
         let passwordValid: boolean | null = null;
         let bypassedPassword = false;
-        const enableE2eAuth = process.env.ENABLE_E2E_AUTH === "true" || process.env.NODE_ENV === "test";
+        const enableE2eAuth =
+          process.env.ENABLE_E2E_AUTH === "true" ||
+          process.env.ENABLE_E2E_LOGIN === "true" ||
+          process.env.NODE_ENV === "test";
 
         console.log('[NextAuth] Login attempt for:', credentials?.email);
         console.log('[NextAuth] DATABASE_URL set:', !!process.env.DATABASE_URL);

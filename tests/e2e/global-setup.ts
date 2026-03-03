@@ -61,6 +61,7 @@ async function globalSetup(config: FullConfig) {
   try {
     // Authenticate as owner using browser context request (so cookies go to browser context)
     console.log('[Global Setup] Authenticating as owner...');
+    console.log(`[Global Setup] BASE_URL=${BASE_URL} OWNER_EMAIL=${OWNER_EMAIL} E2E_AUTH_KEY=${E2E_AUTH_KEY ? '[set]' : '[missing]'}`);
     const ownerResponse = await context.request.post(`${BASE_URL}/api/ops/e2e-login`, {
       data: {
         role: 'owner',
@@ -74,6 +75,8 @@ async function globalSetup(config: FullConfig) {
 
     if (!ownerResponse.ok()) {
       const errorText = await ownerResponse.text();
+      console.error('[Global Setup] Owner e2e-login response status:', ownerResponse.status());
+      console.error('[Global Setup] Owner e2e-login response body:', errorText);
       throw new Error(`Owner authentication failed: ${ownerResponse.status()} - ${errorText}`);
     }
 

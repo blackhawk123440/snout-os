@@ -154,7 +154,9 @@ jobs:
           PORT: "3000"
           CI: "true"
           ENABLE_E2E_LOGIN: "true"
+          ENABLE_E2E_AUTH: "true"
           E2E_AUTH_KEY: test-e2e-key-change-in-production
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/snout_ci
 
       - name: Wait for application
         run: |

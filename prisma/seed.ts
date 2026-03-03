@@ -8,8 +8,10 @@ async function main() {
 
   const defaultOrgId = await ensureDefaultOrg();
 
-  // Seed test users only in non-production environments.
-  if (process.env.NODE_ENV !== "production") {
+  // Seed test users in non-production or when CI (so E2E proof-pack has owner/sitter/client).
+  const shouldSeedTestUsers =
+    process.env.NODE_ENV !== "production" || process.env.CI === "true";
+  if (shouldSeedTestUsers) {
     await seedTestUsers(defaultOrgId);
     await seedDevClientData(defaultOrgId);
   } else {
