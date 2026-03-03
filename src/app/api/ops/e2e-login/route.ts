@@ -2,8 +2,8 @@
  * E2E Login Route
  * Creates a session for Playwright E2E tests without password verification.
  *
- * SECURITY: This endpoint is DISABLED in production. It is only enabled when:
- * - NODE_ENV !== "production" AND
+ * SECURITY: This endpoint is DISABLED in production except in CI. It is only enabled when:
+ * - (NODE_ENV !== "production" OR CI === "true") AND
  * - (ENABLE_E2E_AUTH=true OR ENABLE_E2E_LOGIN=true) AND
  * - Valid x-e2e-key header matches E2E_AUTH_KEY
  */
@@ -14,7 +14,8 @@ import { prisma } from '@/lib/db';
 const E2E_PASSWORD = 'e2e-test-password';
 
 function isE2eLoginAllowed(): boolean {
-  if (process.env.NODE_ENV === 'production') return false;
+  // In production, allow only when running in CI (e.g. proof-pack job uses pnpm start)
+  if (process.env.NODE_ENV === 'production' && process.env.CI !== 'true') return false;
   const enabled =
     process.env.ENABLE_E2E_AUTH === 'true' || process.env.ENABLE_E2E_LOGIN === 'true';
   return enabled;
