@@ -167,6 +167,17 @@ jobs:
           mkdir -p proof-pack
           pnpm run test:ui:smoke
           pnpm run test -- src/lib/messaging/__tests__/pool-capacity.test.ts src/lib/messaging/__tests__/pool-release.test.ts src/lib/messaging/__tests__/invariants.test.ts --reporter=json --outputFile=proof-pack/test-output.json
+        env:
+          CI: "true"
+          BASE_URL: "http://localhost:3000"
+          OWNER_EMAIL: "owner@example.com"
+          E2E_AUTH_KEY: test-e2e-key-change-in-production
+
+      - name: Dump server log on failure
+        if: failure()
+        run: |
+          echo "--- Server log (last 200 lines) ---"
+          cat /tmp/nextjs.log 2>/dev/null | tail -200 || true
 
       - name: Run snapshot suites (owner, sitter, client)
         run: |
@@ -174,10 +185,11 @@ jobs:
           pnpm exec playwright test tests/e2e/sitter-snapshots.spec.ts --project=sitter-desktop
           pnpm exec playwright test tests/e2e/client-snapshots.spec.ts --project=client-mobile
         env:
-          CI: true
+          CI: "true"
           BASE_URL: "http://localhost:3000"
           OWNER_EMAIL: "owner@example.com"
           OWNER_PASSWORD: "password"
+          E2E_AUTH_KEY: test-e2e-key-change-in-production
 
       - name: Capture screenshots
         run: |
