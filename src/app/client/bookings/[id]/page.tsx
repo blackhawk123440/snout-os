@@ -9,6 +9,7 @@ import {
   AppPageHeader,
   AppSkeletonList,
   AppErrorState,
+  AppStatusPill,
 } from '@/components/app';
 
 interface BookingDetail {
@@ -68,7 +69,7 @@ export default function ClientBookingDetailPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="text-sm font-medium text-slate-600 hover:text-slate-900"
           >
             Back
           </button>
@@ -79,24 +80,24 @@ export default function ClientBookingDetailPage() {
       ) : error ? (
         <AppErrorState title="Couldn't load booking" subtitle={error} onRetry={() => void load()} />
       ) : booking ? (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-6">
           <AppCard>
             <AppCardHeader>
-              <p className="font-semibold text-neutral-900">{booking.service}</p>
-              <span className="mt-1 inline-block rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700">
-                {booking.status}
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-slate-900">{booking.service}</p>
+                <AppStatusPill status={booking.status} />
+              </div>
             </AppCardHeader>
             <AppCardBody>
-              <p>{formatDate(booking.startAt)}</p>
-              <p className="mt-1">
+              <p className="text-sm text-slate-700">{formatDate(booking.startAt)}</p>
+              <p className="mt-1 text-sm tabular-nums text-slate-700">
                 {formatTime(booking.startAt)} – {formatTime(booking.endAt)}
               </p>
               {booking.address && (
-                <p className="mt-2 text-neutral-600">{booking.address}</p>
+                <p className="mt-2 text-sm text-slate-500">{booking.address}</p>
               )}
               {booking.pets?.length > 0 && (
-                <p className="mt-2 text-sm text-neutral-600">
+                <p className="mt-2 text-sm text-slate-500">
                   Pets: {booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}
                 </p>
               )}

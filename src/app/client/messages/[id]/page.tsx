@@ -122,7 +122,7 @@ export default function ClientMessageThreadPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-sm font-medium text-[var(--color-accent-primary)] hover:underline"
+            className="text-sm font-medium text-slate-600 hover:text-slate-900"
           >
             Back
           </button>
@@ -130,9 +130,9 @@ export default function ClientMessageThreadPage() {
       />
       <Section>
       {loading ? (
-        <div className="space-y-3">
+          <div className="flex flex-col gap-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-lg bg-[var(--color-surface-secondary)]" />
+            <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
           ))}
         </div>
       ) : error ? (
@@ -141,11 +141,9 @@ export default function ClientMessageThreadPage() {
         <>
           <div className="flex-1 space-y-3">
             {thread.messages?.length === 0 ? (
-              <AppCard>
-                <AppCardBody>
-                  <p className="text-center text-sm text-neutral-500">No messages yet. Say hello!</p>
-                </AppCardBody>
-              </AppCard>
+              <div className="rounded-lg border border-slate-200 bg-white px-6 py-4">
+                <p className="text-center text-sm text-slate-500">No messages yet. Say hello!</p>
+              </div>
             ) : (
               thread.messages?.map((m) => {
                 const isPending = String(m.id).startsWith('pending-');
@@ -155,16 +153,16 @@ export default function ClientMessageThreadPage() {
                     className={`flex ${m.isFromClient ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-2 ${
+                      className={`max-w-[85%] rounded-lg px-4 py-2 ${
                         m.isFromClient
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-neutral-100 text-neutral-900'
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-100 text-slate-900'
                       }`}
                     >
                       <p className="text-sm">{m.body}</p>
                       <p
                         className={`mt-1 text-[10px] ${
-                          m.isFromClient ? 'text-blue-100' : 'text-neutral-500'
+                          m.isFromClient ? 'text-slate-300' : 'text-slate-500'
                         }`}
                       >
                         {isPending ? 'Sending…' : formatTime(m.createdAt)}
@@ -184,14 +182,14 @@ export default function ClientMessageThreadPage() {
               onChange={(e) => setComposerValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && void handleSend()}
               placeholder="Type a message..."
-              className="flex-1 rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="flex-1 rounded-lg border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
               disabled={sending}
             />
             <button
               type="button"
               onClick={() => void handleSend()}
               disabled={!composerValue.trim() || sending}
-              className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
             >
               Send
             </button>

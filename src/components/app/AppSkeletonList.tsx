@@ -13,7 +13,7 @@ export function AppSkeletonList({ count = 3, className = '' }: AppSkeletonListPr
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="animate-pulse rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"
+          className="animate-pulse rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
         >
           <div className="mb-3 flex items-start gap-3">
             <div className="h-10 w-10 shrink-0 rounded-full bg-neutral-200" />

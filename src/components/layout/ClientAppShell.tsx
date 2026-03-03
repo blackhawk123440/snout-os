@@ -75,20 +75,20 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
   const firstName = displayName.split(' ')[0] || displayName;
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-neutral-50" style={{ maxHeight: '100dvh' }}>
-      <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden pb-24">
+    <div className="fixed inset-0 flex flex-col bg-slate-50" style={{ maxHeight: '100dvh' }}>
+      <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden pb-20">
         <header
-          className={`sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b bg-white px-4 transition-shadow ${
-            headerShadow ? 'border-neutral-200 shadow-sm' : 'border-neutral-200'
+          className={`sticky top-0 z-10 flex h-12 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 transition-shadow ${
+            headerShadow ? 'shadow-sm' : ''
           }`}
         >
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-800">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-sm font-medium text-slate-700">
               {(firstName || 'C').charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-neutral-900">
-                Hey, {firstName}
+              <p className="truncate text-sm font-semibold text-slate-900">
+                {firstName}
               </p>
             </div>
           </div>
@@ -96,14 +96,14 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
             <button
               type="button"
               aria-label="Notifications"
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
             >
-              <i className="fas fa-bell text-lg" />
+              <i className="fas fa-bell text-base" />
             </button>
             <button
               type="button"
               onClick={() => void handleLogout()}
-              className="flex min-h-[44px] items-center rounded-xl px-3 text-sm text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="flex min-h-[36px] items-center rounded-lg px-3 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
             >
               Logout
             </button>
@@ -114,8 +114,8 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
       </main>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around border-t border-neutral-200 bg-white safe-area-pb"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', paddingTop: '0.5rem' }}
+        className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around border-t border-slate-200 bg-white"
+        style={{ paddingTop: '0.5rem', paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
       >
         {CLIENT_TABS.map((item) => {
           const active = isActive(item.href);
@@ -123,12 +123,12 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                active ? 'text-blue-600' : 'text-neutral-500 hover:text-neutral-700'
+              className={`flex min-h-[40px] min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 ${
+                active ? 'text-slate-900 font-medium' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <i className={`${item.icon} text-lg`} />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <i className={`${item.icon} text-base`} />
+              <span className="text-[10px]">{item.label}</span>
             </Link>
           );
         })}

@@ -3,9 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  AppCard,
-  AppCardHeader,
-  AppCardBody,
   AppPageHeader,
   AppSkeletonList,
   AppEmptyState,
@@ -59,7 +56,7 @@ export default function ClientPetsPage() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+            className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
           >
             Refresh
           </button>
@@ -75,18 +72,21 @@ export default function ClientPetsPage() {
           subtitle="Add your pets to get started."
         />
       ) : (
-        <div className="space-y-4">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           {pets.map((p) => (
-            <AppCard key={p.id} onClick={() => router.push(`/client/pets/${p.id}`)}>
-              <AppCardHeader>
-                <p className="font-semibold text-neutral-900">{p.name || 'Unnamed pet'}</p>
-              </AppCardHeader>
-              <AppCardBody>
-                <p className="text-sm text-neutral-600">
-                  {[p.species, p.breed].filter(Boolean).join(' · ') || 'No details'}
-                </p>
-              </AppCardBody>
-            </AppCard>
+            <div
+              key={p.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/client/pets/${p.id}`)}
+              onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/pets/${p.id}`)}
+              className="flex cursor-pointer flex-col border-b border-slate-200 px-4 py-3 last:border-b-0 hover:bg-slate-50"
+            >
+              <p className="font-medium text-slate-900">{p.name || 'Unnamed pet'}</p>
+              <p className="mt-0.5 text-sm text-slate-500">
+                {[p.species, p.breed].filter(Boolean).join(' · ') || 'No details'}
+              </p>
+            </div>
           ))}
         </div>
       )}

@@ -76,7 +76,7 @@ export default function ClientProfilePage() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+            className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
           >
             Refresh
           </button>
@@ -88,46 +88,46 @@ export default function ClientProfilePage() {
       ) : error ? (
         <AppErrorState title="Couldn't load profile" subtitle={error} onRetry={() => void load()} />
       ) : data ? (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-6">
           <AppCard>
             <AppCardBody>
-              <p className="font-semibold text-neutral-900">
+              <p className="font-semibold text-slate-900">
                 {data.name || [data.firstName, data.lastName].filter(Boolean).join(' ') || 'Client'}
               </p>
               {data.email && (
-                <p className="mt-1 text-sm text-neutral-600">{data.email}</p>
+                <p className="mt-1 text-sm text-slate-500">{data.email}</p>
               )}
             </AppCardBody>
           </AppCard>
-          <AppCard>
+          <AppCard className="shadow-none">
             <AppCardBody>
               <a
                 href="/client/settings/export"
-                className="mb-3 block w-full rounded-lg border border-neutral-200 bg-white px-4 py-2 text-center text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                className="mb-3 block w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-center text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Export your data
               </a>
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="mb-3 w-full rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Sign out
               </button>
             </AppCardBody>
           </AppCard>
 
-          <AppCard className="border-red-200">
+          <AppCard className="border-slate-200 shadow-none">
             <AppCardBody>
-              <p className="mb-2 text-sm font-medium text-neutral-900">Delete account</p>
-              <p className="mb-3 text-xs text-neutral-600">
+              <p className="mb-2 text-sm font-medium text-slate-900">Delete account</p>
+              <p className="mb-3 text-xs text-slate-500">
                 Permanently delete your account. Export your data first if you want to keep a copy. This cannot be undone.
               </p>
               <Button
                 variant="secondary"
                 size="md"
                 onClick={() => setDeleteModalOpen(true)}
-                className="border-red-200 text-red-700 hover:bg-red-50"
+                className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
               >
                 Delete account
               </Button>
@@ -157,7 +157,7 @@ export default function ClientProfilePage() {
           </div>
         }
       >
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-slate-500">
           Are you sure? This will permanently delete your account. You will be signed out immediately and cannot sign
           in again.
         </p>

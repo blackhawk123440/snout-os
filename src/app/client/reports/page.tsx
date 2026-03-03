@@ -3,13 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import {
-  AppCard,
-  AppCardHeader,
-  AppCardBody,
-  AppErrorState,
-} from '@/components/app';
-import { InteractiveRow } from '@/components/ui/interactive-row';
+import { AppErrorState } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 
 interface Report {
@@ -74,7 +68,7 @@ export default function ClientReportsPage() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+            className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
           >
             Refresh
           </button>
@@ -92,25 +86,26 @@ export default function ClientReportsPage() {
           primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
         />
       ) : (
-        <div className="space-y-4">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           {reports.map((r) => (
-            <InteractiveRow key={r.id} onClick={() => router.push(`/client/reports/${r.id}`)} className="border-b-0 rounded-lg">
-            <AppCard className="mb-0">
-              <AppCardHeader>
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-neutral-900">
-                    {r.booking?.service || 'Visit report'}
-                  </p>
-                  {r.createdAt && (
-                    <span className="text-xs text-neutral-500">{formatDate(r.createdAt)}</span>
-                  )}
-                </div>
-              </AppCardHeader>
-              <AppCardBody>
-                <p className="text-sm text-neutral-600 line-clamp-3">{preview(r.content)}</p>
-              </AppCardBody>
-            </AppCard>
-            </InteractiveRow>
+            <div
+              key={r.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/client/reports/${r.id}`)}
+              onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/reports/${r.id}`)}
+              className="flex cursor-pointer flex-col border-b border-slate-200 px-4 py-3 last:border-b-0 hover:bg-slate-50"
+            >
+              <div className="flex items-center justify-between">
+                <p className="font-medium text-slate-900">
+                  {r.booking?.service || 'Visit report'}
+                </p>
+                {r.createdAt && (
+                  <span className="text-xs text-slate-500 tabular-nums">{formatDate(r.createdAt)}</span>
+                )}
+              </div>
+              <p className="mt-0.5 line-clamp-2 text-sm text-slate-500">{preview(r.content)}</p>
+            </div>
           ))}
         </div>
       )}

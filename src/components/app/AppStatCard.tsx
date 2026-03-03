@@ -16,14 +16,13 @@ export interface AppStatCardProps {
 export function AppStatCard({ label, value, icon, trend, sublabel, className = '' }: AppStatCardProps) {
   return (
     <div
-      className={`rounded-xl border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] shadow-sm transition hover:shadow-md ${className}`}
-      style={{ padding: 'var(--density-padding)' }}
+      className={`rounded-lg border border-slate-200 bg-white p-5 shadow-sm ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-[var(--color-text-secondary)]">{label}</p>
-          <p className="mt-1 truncate text-2xl font-bold text-[var(--color-text-primary)]">{value}</p>
-          {sublabel && <p className="mt-0.5 text-xs text-[var(--color-text-tertiary)]">{sublabel}</p>}
+          <p className="text-sm text-slate-500">{label}</p>
+          <p className="mt-1 truncate text-2xl font-semibold tabular-nums tracking-tight text-slate-900">{value}</p>
+          {sublabel && <p className="mt-0.5 text-xs text-slate-500">{sublabel}</p>}
           {trend !== undefined && (
             <p
               className={`mt-1 text-xs font-medium ${
@@ -34,7 +33,7 @@ export function AppStatCard({ label, value, icon, trend, sublabel, className = '
             </p>
           )}
         </div>
-        {icon && <div className="shrink-0 text-2xl text-[var(--color-text-tertiary)]">{icon}</div>}
+        {icon && <div className="shrink-0 text-2xl text-slate-400">{icon}</div>}
       </div>
     </div>
   );

@@ -61,7 +61,7 @@ export default function ClientPetDetailPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="text-sm font-medium text-slate-600 hover:text-slate-900"
           >
             Back
           </button>
@@ -75,14 +75,14 @@ export default function ClientPetDetailPage() {
         <div className="space-y-4">
           <AppCard>
             <AppCardHeader>
-              <p className="font-semibold text-neutral-900">{pet.name || 'Unnamed pet'}</p>
+              <p className="font-semibold text-slate-900">{pet.name || 'Unnamed pet'}</p>
             </AppCardHeader>
             <AppCardBody>
-              <p className="text-sm text-neutral-600">
+              <p className="text-sm text-slate-500">
                 {[pet.species, pet.breed].filter(Boolean).join(' · ') || 'No details'}
               </p>
               {pet.notes && (
-                <p className="mt-2 text-sm text-neutral-600">{pet.notes}</p>
+                <p className="mt-2 text-sm text-slate-500">{pet.notes}</p>
               )}
             </AppCardBody>
           </AppCard>

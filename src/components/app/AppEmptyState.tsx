@@ -19,16 +19,16 @@ export function AppEmptyState({
 }: AppEmptyStateProps) {
   return (
     <div
-      className={`flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-200 bg-white px-8 py-12 text-center ${className}`}
+      className={`flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-white px-8 py-12 text-center ${className}`}
     >
-      {icon && <div className="mb-4 text-4xl text-neutral-300">{icon}</div>}
-      <p className="text-base font-medium text-neutral-700">{title}</p>
-      {subtitle && <div className="mt-1 text-sm text-neutral-500">{subtitle}</div>}
+      {icon && <div className="mb-4 text-4xl text-slate-300">{icon}</div>}
+      <p className="text-base font-medium text-slate-900">{title}</p>
+      {subtitle && <div className="mt-1 text-sm text-slate-500">{subtitle}</div>}
       {cta && (
         <button
           type="button"
           onClick={cta.onClick}
-          className="mt-4 min-h-[44px] min-w-[120px] rounded-xl border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-neutral-700 shadow-sm transition hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="mt-4 min-h-[40px] min-w-[120px] rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
         >
           {cta.label}
         </button>

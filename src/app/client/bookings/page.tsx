@@ -3,13 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  AppCard,
-  AppCardHeader,
-  AppCardBody,
   AppPageHeader,
   AppSkeletonList,
   AppEmptyState,
   AppErrorState,
+  AppStatusPill,
 } from '@/components/app';
 
 interface Booking {
@@ -65,7 +63,7 @@ export default function ClientBookingsPage() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+            className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
           >
             Refresh
           </button>
@@ -81,23 +79,24 @@ export default function ClientBookingsPage() {
           subtitle="Your visits will appear here."
         />
       ) : (
-        <div className="space-y-4">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           {bookings.map((b) => (
-            <AppCard key={b.id} onClick={() => router.push(`/client/bookings/${b.id}`)}>
-              <AppCardHeader>
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-neutral-900">{b.service}</p>
-                  <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-700">
-                    {b.status}
-                  </span>
-                </div>
-              </AppCardHeader>
-              <AppCardBody>
-                <p className="text-sm text-neutral-600">
-                  {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
-                </p>
-              </AppCardBody>
-            </AppCard>
+            <div
+              key={b.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/client/bookings/${b.id}`)}
+              onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/bookings/${b.id}`)}
+              className="flex cursor-pointer flex-col border-b border-slate-200 px-4 py-3 last:border-b-0 hover:bg-slate-50"
+            >
+              <div className="flex items-center justify-between">
+                <p className="font-medium text-slate-900">{b.service}</p>
+                <AppStatusPill status={b.status} />
+              </div>
+              <p className="mt-0.5 text-sm text-slate-500">
+                {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
+              </p>
+            </div>
           ))}
         </div>
       )}

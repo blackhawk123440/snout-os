@@ -3,13 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import {
-  AppCard,
-  AppCardHeader,
-  AppCardBody,
-  AppErrorState,
-} from '@/components/app';
-import { InteractiveRow } from '@/components/ui/interactive-row';
+import { AppErrorState } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 
 interface Thread {
@@ -64,7 +58,7 @@ export default function ClientMessagesPage() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+            className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
           >
             Refresh
           </button>
@@ -81,32 +75,33 @@ export default function ClientMessagesPage() {
           description="Your conversations with sitters will appear here."
         />
       ) : (
-        <div className="space-y-3">
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           {threads.map((t) => (
-            <InteractiveRow key={t.id} onClick={() => router.push(`/client/messages/${t.id}`)} className="border-b-0 rounded-lg">
-            <AppCard className="mb-0">
-              <AppCardHeader>
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold text-neutral-900">
-                    {t.sitter?.name || t.booking?.service || 'Conversation'}
-                  </p>
-                  {t.lastActivityAt && (
-                    <span className="text-xs text-neutral-500">
-                      {formatDate(t.lastActivityAt)}
-                    </span>
-                  )}
-                </div>
-              </AppCardHeader>
-              <AppCardBody>
-                {t.booking && (
-                  <p className="text-sm text-neutral-600">
-                    {t.booking.service}
-                    {t.booking.startAt && ` · ${formatDate(t.booking.startAt)}`}
-                  </p>
+            <div
+              key={t.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => router.push(`/client/messages/${t.id}`)}
+              onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/messages/${t.id}`)}
+              className="flex cursor-pointer flex-col border-b border-slate-200 px-4 py-3 last:border-b-0 hover:bg-slate-50"
+            >
+              <div className="flex items-center justify-between">
+                <p className="font-medium text-slate-900">
+                  {t.sitter?.name || t.booking?.service || 'Conversation'}
+                </p>
+                {t.lastActivityAt && (
+                  <span className="text-xs text-slate-500 tabular-nums">
+                    {formatDate(t.lastActivityAt)}
+                  </span>
                 )}
-              </AppCardBody>
-            </AppCard>
-            </InteractiveRow>
+              </div>
+              {t.booking && (
+                <p className="mt-0.5 text-sm text-slate-500">
+                  {t.booking.service}
+                  {t.booking.startAt && ` · ${formatDate(t.booking.startAt)}`}
+                </p>
+              )}
+            </div>
           ))}
         </div>
       )}

@@ -38,21 +38,21 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center rounded-lg border border-dashed border-[var(--color-border-muted)] bg-[var(--color-surface-secondary)] px-8 py-12 text-center',
+        'flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-white px-8 py-12 text-center',
         className
       )}
     >
       {icon && (
         <div
-          className="mb-4 text-[var(--color-text-tertiary)] opacity-60"
+          className="mb-4 text-slate-400"
           style={typeof icon === 'string' ? undefined : { fontSize: tokens.typography.fontSize['2xl'][0] }}
         >
           {typeof icon === 'string' ? icon : icon}
         </div>
       )}
-      <p className="text-sm font-medium text-[var(--color-text-primary)]">{title}</p>
+      <p className="text-sm font-medium text-slate-900">{title}</p>
       {description && (
-        <p className="mt-1 max-w-sm text-sm text-[var(--color-text-tertiary)]">{description}</p>
+        <p className="mt-1 max-w-sm text-sm text-slate-500">{description}</p>
       )}
       {(hasPrimary || hasSecondary) && (
         <div className="mt-4 flex flex-wrap justify-center gap-2">

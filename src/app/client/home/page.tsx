@@ -79,7 +79,7 @@ export default function ClientHomePage() {
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="text-sm font-medium text-[var(--color-accent-primary)] hover:underline disabled:opacity-50"
+            className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
           >
             Refresh
           </button>
@@ -90,14 +90,14 @@ export default function ClientHomePage() {
       ) : error ? (
         <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void load()} />
       ) : data ? (
-        <div className="space-y-4">
-          <AppCard className="border-amber-200 bg-amber-50/50">
+        <div className="flex flex-col gap-6">
+          <AppCard className="shadow-sm">
             <AppCardBody>
-              <p className="font-semibold text-neutral-900">Welcome back, {data.clientName?.split(' ')[0] || 'there'} 🐾</p>
-              <p className="mt-1 text-sm text-neutral-600">Your next visit is just a tap away.</p>
+              <p className="font-semibold text-slate-900">Welcome back, {data.clientName?.split(' ')[0] || 'there'}</p>
+              <p className="mt-1 text-sm text-slate-500">Your next visit is just a tap away.</p>
               <Link
                 href="/bookings/new"
-                className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+                className="mt-3 inline-flex min-h-[40px] items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
               >
                 Book a visit
               </Link>
@@ -114,19 +114,16 @@ export default function ClientHomePage() {
 
           {data.latestReport && (
             <div>
-              <AppCard
-                className="border-amber-200 bg-amber-50/30"
-                onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}
-              >
+              <AppCard onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}>
                 <AppCardHeader>
-                  <p className="font-semibold text-neutral-900">Latest update 💛</p>
+                  <p className="font-semibold text-slate-900">Latest update</p>
                   {data.latestReport.service && (
-                    <p className="mt-0.5 text-sm text-neutral-600">{data.latestReport.service}</p>
+                    <p className="mt-0.5 text-sm text-slate-500">{data.latestReport.service}</p>
                   )}
                 </AppCardHeader>
                 <AppCardBody>
-                  <p className="line-clamp-2 text-sm text-neutral-700">{data.latestReport.content}</p>
-                  <p className="mt-2 text-xs text-neutral-500">
+                  <p className="line-clamp-2 text-sm text-slate-700">{data.latestReport.content}</p>
+                  <p className="mt-2 text-xs text-slate-500 tabular-nums">
                     {new Date(data.latestReport.createdAt).toLocaleDateString()}
                   </p>
                 </AppCardBody>
@@ -134,7 +131,7 @@ export default function ClientHomePage() {
               <button
                 type="button"
                 onClick={() => router.push('/client/reports')}
-                className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+                className="mt-2 text-sm font-medium text-slate-600 hover:text-slate-900"
               >
                 View all reports
               </button>
@@ -143,20 +140,23 @@ export default function ClientHomePage() {
 
           {data.recentBookings?.length > 0 ? (
             <>
-              <h2 className="text-lg font-semibold text-neutral-900">Upcoming & recent</h2>
-              <div className="space-y-3">
+              <h2 className="text-lg font-semibold tracking-tight text-slate-900">Upcoming & recent</h2>
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
                 {data.recentBookings.map((b) => (
-                  <AppCard key={b.id} onClick={() => router.push(`/client/bookings/${b.id}`)}>
-                    <AppCardHeader>
-                      <div className="flex items-center justify-between">
-                        <p className="font-semibold text-neutral-900">{b.service}</p>
-                        <AppStatusPill status={b.status} />
-                      </div>
-                    </AppCardHeader>
-                    <AppCardBody>
-                      <p className="text-sm text-neutral-600">{formatDate(b.startAt)}</p>
-                    </AppCardBody>
-                  </AppCard>
+                  <div
+                    key={b.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => router.push(`/client/bookings/${b.id}`)}
+                    onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/bookings/${b.id}`)}
+                    className="flex cursor-pointer flex-col border-b border-slate-200 px-4 py-3 last:border-b-0 hover:bg-slate-50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-slate-900">{b.service}</p>
+                      <AppStatusPill status={b.status} />
+                    </div>
+                    <p className="mt-0.5 text-sm text-slate-500">{formatDate(b.startAt)}</p>
+                  </div>
                 ))}
               </div>
             </>
