@@ -8,8 +8,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppPageHeader, AppCard, AppCardBody, AppEmptyState, AppErrorState } from '@/components/app';
-import { Button } from '@/components/ui';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
+import { Button, EmptyState, StatusChip, TableSkeleton } from '@/components/ui';
 
 interface PayoutItem {
   id: string;
@@ -75,16 +76,18 @@ export default function OpsPayoutsPage() {
 
   return (
     <AppShell>
-      <AppPageHeader
-        title="Payouts"
-        subtitle="Sitter payout transfers and failures"
-        action={
-          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
-            Refresh
-          </Button>
-        }
-      />
-      <div className="mb-4 flex gap-2">
+      <LayoutWrapper>
+        <PageHeader
+          title="Payouts"
+          subtitle="Sitter payout transfers and failures"
+          actions={
+            <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+              Refresh
+            </Button>
+          }
+        />
+        <Section>
+          <div className="mb-4 flex gap-2">
         {(['all', 'paid', 'pending', 'failed'] as StatusFilter[]).map((s) => (
           <button
             key={s}
@@ -99,17 +102,13 @@ export default function OpsPayoutsPage() {
         ))}
       </div>
       {loading ? (
-        <div className="animate-pulse space-y-4">
-          <div className="h-24 rounded-xl bg-neutral-100" />
-          <div className="h-24 rounded-xl bg-neutral-100" />
-          <div className="h-24 rounded-xl bg-neutral-100" />
-        </div>
+        <TableSkeleton rows={5} cols={3} />
       ) : error ? (
         <AppErrorState title="Couldn't load payouts" subtitle={error} onRetry={() => void load()} />
       ) : transfers.length === 0 ? (
-        <AppEmptyState
+        <EmptyState
           title="No payouts"
-          subtitle="Transfers will appear here after completed bookings are paid out to sitters."
+          description="Transfers will appear here after completed bookings are paid out to sitters."
         />
       ) : (
         <div className="space-y-2">
@@ -129,22 +128,16 @@ export default function OpsPayoutsPage() {
                     </p>
                   )}
                 </div>
-                <span
-                  className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    t.status === 'paid'
-                      ? 'bg-green-100 text-green-800'
-                      : t.status === 'failed'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-neutral-100 text-neutral-700'
-                  }`}
-                >
+                <StatusChip variant={t.status === 'paid' ? 'success' : t.status === 'failed' ? 'danger' : 'neutral'}>
                   {t.status}
-                </span>
+                </StatusChip>
               </AppCardBody>
             </AppCard>
           ))}
         </div>
       )}
+        </Section>
+      </LayoutWrapper>
     </AppShell>
   );
 }

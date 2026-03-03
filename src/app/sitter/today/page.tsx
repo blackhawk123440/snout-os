@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, useToast } from '@/components/ui';
+import { Button } from '@/components/ui';
+import { toastSuccess, toastError, toastWarning } from '@/lib/toast';
 import { useAuth } from '@/lib/auth-client';
 import { useOffline } from '@/hooks/useOffline';
 import { useSSE } from '@/hooks/useSSE';
@@ -237,7 +238,6 @@ const TODAY_KEY = () => new Date().toISOString().slice(0, 10);
 
 export default function SitterTodayPage() {
   const router = useRouter();
-  const { showToast } = useToast();
   const { user } = useAuth();
   const { isOnline, refreshQueuedCount } = useOffline();
   const [bookings, setBookings] = useState<TodayBooking[]>([]);
@@ -340,14 +340,14 @@ export default function SitterTodayPage() {
     try {
       const geo = await getGeo();
       if (!geo && navigator.onLine) {
-        showToast({ message: "Couldn't get location — continuing without it.", variant: 'warning' });
+        toastWarning("Couldn't get location — continuing without it.");
       }
       const payload = geo ? { lat: geo.lat, lng: geo.lng } : {};
       if (!navigator.onLine) {
         await enqueueAction('visit.checkin', { orgId, sitterId, bookingId, payload });
         setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress' } : b)));
         setQueuedByBooking((prev) => ({ ...prev, [bookingId]: [...(prev[bookingId] || []), 'visit.checkin'] }));
-        showToast({ message: 'Check-in queued — will sync when online', variant: 'success' });
+        toastSuccess('Check-in queued — will sync when online');
         void refreshQueuedCount();
         return;
       }
@@ -358,14 +358,14 @@ export default function SitterTodayPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        showToast({ message: data.error || 'Check in failed', variant: 'error' });
+        toastError(data.error || 'Check in failed');
         return;
       }
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress' } : b)));
-      showToast({ message: 'Checked in successfully', variant: 'success' });
+      toastSuccess('Checked in successfully');
       void loadBookings();
     } catch {
-      showToast({ message: 'Check in failed', variant: 'error' });
+      toastError('Check in failed');
     } finally {
       setCheckingInId(null);
     }
@@ -378,14 +378,14 @@ export default function SitterTodayPage() {
     try {
       const geo = await getGeo();
       if (!geo && navigator.onLine) {
-        showToast({ message: "Couldn't get location — continuing without it.", variant: 'warning' });
+        toastWarning("Couldn't get location — continuing without it.");
       }
       const payload = geo ? { lat: geo.lat, lng: geo.lng } : {};
       if (!navigator.onLine) {
         await enqueueAction('visit.checkout', { orgId, sitterId, bookingId, payload });
         setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b)));
         setQueuedByBooking((prev) => ({ ...prev, [bookingId]: [...(prev[bookingId] || []), 'visit.checkout'] }));
-        showToast({ message: 'Check-out queued — will sync when online', variant: 'success' });
+        toastSuccess('Check-out queued — will sync when online');
         void refreshQueuedCount();
         return;
       }
@@ -396,14 +396,14 @@ export default function SitterTodayPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        showToast({ message: data.error || 'Check out failed', variant: 'error' });
+        toastError(data.error || 'Check out failed');
         return;
       }
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b)));
-      showToast({ message: 'Checked out successfully', variant: 'success' });
+      toastSuccess('Checked out successfully');
       void loadBookings();
     } catch {
-      showToast({ message: 'Check out failed', variant: 'error' });
+      toastError('Check out failed');
     } finally {
       setCheckingOutId(null);
     }

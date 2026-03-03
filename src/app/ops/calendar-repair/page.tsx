@@ -9,7 +9,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppPageHeader, AppCard, AppCardBody } from '@/components/app';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppCard, AppCardBody } from '@/components/app';
 import { Button } from '@/components/ui';
 
 interface SitterOption {
@@ -109,10 +110,12 @@ export default function CalendarRepairPage() {
 
   return (
     <AppShell>
-      <AppPageHeader
-        title="Calendar Repair"
-        subtitle="Repair Google Calendar sync for a sitter. Re-pushes Snout OS bookings to Google."
-      />
+      <LayoutWrapper>
+        <PageHeader
+          title="Calendar Repair"
+          subtitle="Repair Google Calendar sync for a sitter. Re-pushes Snout OS bookings to Google."
+        />
+        <Section>
       <AppCard>
         <AppCardBody>
           <div className="space-y-4">
@@ -186,6 +189,8 @@ export default function CalendarRepairPage() {
           </AppCardBody>
         </AppCard>
       )}
+        </Section>
+      </LayoutWrapper>
     </AppShell>
   );
 }

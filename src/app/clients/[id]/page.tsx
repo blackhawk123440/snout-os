@@ -91,6 +91,7 @@ function ClientDetailContent() {
     if (clientId) {
       fetchClientData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchClientData defined below, fetch on clientId change
   }, [clientId]);
 
   const fetchClientData = async () => {

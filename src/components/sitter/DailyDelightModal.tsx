@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Button, Modal, useToast } from '@/components/ui';
+import { Button, Modal } from '@/components/ui';
+import { toastSuccess, toastError, toastWarning, toastInfo } from '@/lib/toast';
 import { useAuth } from '@/lib/auth-client';
 import { useOffline } from '@/hooks/useOffline';
 import {
@@ -53,7 +54,6 @@ export interface DailyDelightModalProps {
 }
 
 export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModalProps) {
-  const { showToast } = useToast();
   const { user } = useAuth();
   const { isOnline, refreshQueuedCount } = useOffline();
   const [loading, setLoading] = useState(false);
@@ -77,6 +77,7 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
       objectUrl: URL.createObjectURL(p.blob),
     }));
     setPendingPhotos(entries);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- booking.id sufficient; full booking causes stale closures
   }, [booking?.id]);
 
   useEffect(() => {
@@ -87,6 +88,7 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
     setMediaUrls([]);
     setPendingPhotos([]);
     if (!isOnline) void loadPendingPhotos();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- booking used for id and loadPendingPhotos; full object causes extra effect runs
   }, [isOpen, booking?.id, isOnline, loadPendingPhotos]);
 
   const pendingRef = useRef<PendingPhotoEntry[]>([]);
@@ -103,17 +105,17 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
     const files = e.target.files;
     if (!files?.length || !booking) return;
     if (remaining <= 0) {
-      showToast({ message: `Maximum ${MAX_PHOTOS} photos allowed`, variant: 'error' });
+      toastError(`Maximum ${MAX_PHOTOS} photos allowed`);
       return;
     }
     const toAdd = Array.from(files).slice(0, remaining);
     for (const f of toAdd) {
       if (f.size > MAX_SIZE_MB * 1024 * 1024) {
-        showToast({ message: `${f.name} is too large (max ${MAX_SIZE_MB}MB)`, variant: 'error' });
+        toastError(`${f.name} is too large (max ${MAX_SIZE_MB}MB)`);
         continue;
       }
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) {
-        showToast({ message: `${f.name}: only JPEG, PNG, WebP allowed`, variant: 'error' });
+        toastError(`${f.name}: only JPEG, PNG, WebP allowed`);
         continue;
       }
     }
@@ -129,11 +131,11 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          showToast({ message: data.error || 'Upload failed', variant: 'error' });
+          toastError(data.error || 'Upload failed');
           return;
         }
         setMediaUrls((prev) => [...prev, ...(data.urls || [])].slice(0, MAX_PHOTOS));
-        showToast({ message: 'Photos added', variant: 'success' });
+        toastSuccess('Photos added');
       } else {
         for (const f of toAdd) {
           const id = await addPendingPhoto(booking.id, f, f.type);
@@ -142,11 +144,11 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
             return next.slice(0, MAX_PHOTOS);
           });
         }
-        showToast({ message: 'Photos queued for upload — will sync when online', variant: 'success' });
+        toastSuccess('Photos queued for upload — will sync when online');
         void refreshQueuedCount();
       }
     } catch {
-      showToast({ message: 'Failed to add photos', variant: 'error' });
+      toastError('Failed to add photos');
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -172,7 +174,7 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
       const fallback = buildStubDelight(booking);
       setDraft(fallback);
       setIsStubDraft(true);
-      showToast({ message: 'Offline — using a local draft. Edit and send when ready.', variant: 'info' });
+      toastInfo('Offline — using a local draft. Edit and send when ready.');
       return;
     }
     setLoading(true);
@@ -187,17 +189,17 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
         const fallback = buildStubDelight(booking);
         setDraft(fallback);
         setIsStubDraft(true);
-        showToast({ message: 'Could not generate right now. A local draft is ready.', variant: 'warning' });
+        toastWarning('Could not generate right now. A local draft is ready.');
         return;
       }
       setDraft(typeof data.report === 'string' && data.report.trim() ? data.report : buildStubDelight(booking));
       setIsStubDraft(false);
-      showToast({ message: 'Daily Delight generated', variant: 'success' });
+      toastSuccess('Daily Delight generated');
     } catch {
       const fallback = buildStubDelight(booking);
       setDraft(fallback);
       setIsStubDraft(true);
-      showToast({ message: 'Could not generate right now. A local draft is ready.', variant: 'warning' });
+      toastWarning('Could not generate right now. A local draft is ready.');
     } finally {
       setLoading(false);
     }
@@ -205,7 +207,7 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
 
   const handleSend = async () => {
     if (!draft.trim() || !booking) {
-      showToast({ message: 'Add or generate content first', variant: 'error' });
+      toastError('Add or generate content first');
       return;
     }
     setSending(true);
@@ -222,10 +224,10 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          showToast({ message: data.error || 'Failed to send', variant: 'error' });
+          toastError(data.error || 'Failed to send');
           return;
         }
-        showToast({ message: 'Sent 💛', variant: 'success' });
+        toastSuccess('Sent');
         onClose();
       } else {
         const photoIds = pendingPhotos.map((p) => p.id);
@@ -240,11 +242,11 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
           return [];
         });
         void refreshQueuedCount();
-        showToast({ message: 'Queued — will sync when online 💛', variant: 'success' });
+        toastSuccess('Queued — will sync when online');
         onClose();
       }
     } catch {
-      showToast({ message: 'Failed to send', variant: 'error' });
+      toastError('Failed to send');
     } finally {
       setSending(false);
     }

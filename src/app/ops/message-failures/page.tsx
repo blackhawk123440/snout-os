@@ -10,8 +10,9 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AppShell } from '@/components/layout/AppShell';
-import { AppPageHeader, AppCard, AppCardBody, AppEmptyState, AppErrorState } from '@/components/app';
-import { Button } from '@/components/ui';
+import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
+import { Button, EmptyState, TableSkeleton } from '@/components/ui';
 
 interface MessageFailureItem {
   id: string;
@@ -93,21 +94,20 @@ export default function MessageFailuresPage() {
 
   return (
     <AppShell>
-      <AppPageHeader
-        title="Message Failures"
-        subtitle="Failed SMS/message deliveries. Retry from here or in the thread."
-      />
+      <LayoutWrapper>
+        <PageHeader
+          title="Message Failures"
+          subtitle="Failed SMS/message deliveries. Retry from here or in the thread."
+        />
+        <Section>
       {loading ? (
-        <div className="animate-pulse space-y-4">
-          <div className="h-24 rounded-xl bg-neutral-100" />
-          <div className="h-24 rounded-xl bg-neutral-100" />
-        </div>
+        <TableSkeleton rows={4} cols={3} />
       ) : error ? (
         <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void load()} />
       ) : items.length === 0 ? (
-        <AppEmptyState
+        <EmptyState
           title="No failed messages"
-          subtitle="Failed deliveries will appear here. You can retry from the inbox or this page."
+          description="Failed deliveries will appear here. You can retry from the inbox or this page."
         />
       ) : (
         <div className="space-y-4">
@@ -154,6 +154,8 @@ export default function MessageFailuresPage() {
           ))}
         </div>
       )}
+        </Section>
+      </LayoutWrapper>
     </AppShell>
   );
 }

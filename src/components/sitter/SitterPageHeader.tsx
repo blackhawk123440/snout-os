@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { PageHeader } from '@/components/layout';
 
 export interface SitterPageHeaderProps {
   title: string;
@@ -9,17 +10,5 @@ export interface SitterPageHeaderProps {
 }
 
 export function SitterPageHeader({ title, subtitle, action }: SitterPageHeaderProps) {
-  return (
-    <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl">
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="mt-0.5 text-sm text-neutral-500">{subtitle}</p>
-        )}
-      </div>
-      {action && <div className="mt-2 shrink-0 sm:mt-0">{action}</div>}
-    </div>
-  );
+  return <PageHeader title={title} subtitle={subtitle} actions={action} />;
 }

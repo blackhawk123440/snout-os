@@ -3,16 +3,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { LayoutWrapper, PageHeader } from '@/components/layout';
 import {
   AppCard,
-  AppCardHeader,
   AppCardBody,
-  AppPageHeader,
-  AppSkeletonList,
-  AppEmptyState,
+  AppCardHeader,
   AppErrorState,
   AppStatusPill,
 } from '@/components/app';
+import { EmptyState, PageSkeleton } from '@/components/ui';
 
 interface HomeData {
   clientName: string;
@@ -71,23 +70,23 @@ export default function ClientHomePage() {
     new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
-      <AppPageHeader
+    <LayoutWrapper variant="narrow">
+      <PageHeader
         title="Home"
         subtitle={data ? `You have ${data.upcomingCount} upcoming visit${data.upcomingCount !== 1 ? 's' : ''}` : 'Your pet care hub'}
-        action={
+        actions={
           <button
             type="button"
             onClick={() => void load()}
             disabled={loading}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+            className="text-sm font-medium text-[var(--color-accent-primary)] hover:underline disabled:opacity-50"
           >
             Refresh
           </button>
         }
       />
       {loading ? (
-        <AppSkeletonList count={2} />
+        <PageSkeleton />
       ) : error ? (
         <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void load()} />
       ) : data ? (
@@ -106,10 +105,10 @@ export default function ClientHomePage() {
           </AppCard>
 
           {!data.latestReport && data.recentBookings?.length > 0 && (
-            <AppEmptyState
+            <EmptyState
               title="No visit reports yet"
-              subtitle="Your sitter will send updates after each visit. Check back after your next appointment."
-              cta={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
+              description="Your sitter will send updates after each visit. Check back after your next appointment."
+              primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
             />
           )}
 
@@ -162,14 +161,14 @@ export default function ClientHomePage() {
               </div>
             </>
           ) : (
-            <AppEmptyState
+            <EmptyState
               title="No upcoming visits"
-              subtitle="Book a visit when you're ready."
-              cta={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
+              description="Book a visit when you're ready."
+              primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
             />
           )}
         </div>
       ) : null}
-    </div>
+    </LayoutWrapper>
   );
 }
