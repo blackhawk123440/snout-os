@@ -36,14 +36,17 @@ export async function verifyRuntime(): Promise<VerifyResult> {
     errors.push('REDIS_URL is required in production (queues and realtime depend on it)');
   }
 
-  // 3. Stripe: if any Stripe key present, require both
+  // 3. Stripe: if any Stripe key present, require both (relax in smoke/e2e mode)
+  const isSmokeOrE2E =
+    process.env.SMOKE === 'true' ||
+    (process.env.CI === 'true' && process.env.ENABLE_E2E_LOGIN === 'true');
   const hasStripeKey = !!process.env.STRIPE_SECRET_KEY;
   const hasStripeWebhook = !!process.env.STRIPE_WEBHOOK_SECRET;
   if (hasStripeKey || hasStripeWebhook) {
-    if (!hasStripeKey) {
+    if (!hasStripeKey && !isSmokeOrE2E) {
       errors.push('STRIPE_SECRET_KEY required when Stripe webhook is configured');
     }
-    if (!hasStripeWebhook) {
+    if (!hasStripeWebhook && !isSmokeOrE2E) {
       errors.push('STRIPE_WEBHOOK_SECRET required when Stripe is configured');
     }
   }

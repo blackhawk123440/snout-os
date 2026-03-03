@@ -68,21 +68,22 @@ export default defineConfig({
     },
   ],
 
-  // webServer: In CI, the server is started manually, so reuseExistingServer will skip starting it
-  // For local development, this will start the dev server automatically
+  // webServer: In CI/smoke:local, server is started manually; reuse it. Otherwise start dev server.
   webServer: {
     command: 'npm run dev',
-    url: process.env.BASE_URL || 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI, // In CI, server is started manually, so reuse it
+    url: `${process.env.BASE_URL || 'http://localhost:3000'}/api/health`,
+    reuseExistingServer: !!process.env.CI, // In CI/smoke:local, reuse server we started
     timeout: 180000, // 3 minutes
-    stdout: 'pipe', // Capture stdout to see server logs
-    stderr: 'pipe', // Capture stderr to see server errors
+    stdout: 'pipe',
+    stderr: 'pipe',
     env: {
-      PORT: '3000', // Explicitly set port for Next.js
-      DATABASE_URL: process.env.DATABASE_URL || 'postgresql://snoutos:snoutos_dev_password@localhost:5432/snoutos_messaging',
+      ...process.env,
+      PORT: '3000',
+      DATABASE_URL: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5433/snout_smoke',
+      SMOKE: 'true',
       OPENPHONE_API_KEY: process.env.OPENPHONE_API_KEY || 'test_key',
       OPENPHONE_NUMBER_ID: process.env.OPENPHONE_NUMBER_ID || 'test_number_id',
-      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test_secret',
+      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test_secret_for_smoke_minimum_32_chars',
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.BASE_URL || 'http://localhost:3000',
       ENABLE_OPS_SEED: 'true',
       ENABLE_E2E_LOGIN: 'true',
