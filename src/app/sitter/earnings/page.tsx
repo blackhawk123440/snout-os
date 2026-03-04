@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Drawer, DataTableShell, Table } from '@/components/ui';
 import { LayoutWrapper } from '@/components/layout';
 import { StatusChip } from '@/components/ui/status-chip';
@@ -14,6 +14,7 @@ import {
   SitterEmptyState,
   FeatureStatusPill,
 } from '@/components/sitter';
+import { calculateTransferSummary } from './earnings-helpers';
 
 type PeriodTab = 'today' | 'week' | 'month';
 
@@ -70,6 +71,7 @@ export default function SitterEarningsPage() {
   const [transfersLoading, setTransfersLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<CompletedJob | null>(null);
+  const transferSummary = useMemo(() => calculateTransferSummary(transfers), [transfers]);
 
   const loadEarnings = useCallback(async () => {
     setLoading(true);
@@ -204,6 +206,46 @@ export default function SitterEarningsPage() {
               <p className="mt-1 text-sm text-neutral-600">
                 {data.completedLastMonthCount} bookings · Gross ${data.grossLastMonth.toFixed(2)}
               </p>
+            </SitterCardBody>
+          </SitterCard>
+
+          <SitterCard>
+            <SitterCardBody>
+              <p className="text-sm font-medium text-neutral-500">Pending</p>
+              <p className="mt-1 text-xl font-semibold text-neutral-900">
+                ${(transferSummary.pendingCents / 100).toFixed(2)}
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">Transfers not yet paid</p>
+            </SitterCardBody>
+          </SitterCard>
+
+          <SitterCard>
+            <SitterCardBody>
+              <p className="text-sm font-medium text-neutral-500">Paid (30d)</p>
+              <p className="mt-1 text-xl font-semibold text-neutral-900">
+                ${(transferSummary.paid30dCents / 100).toFixed(2)}
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">Completed payouts in the last 30 days</p>
+            </SitterCardBody>
+          </SitterCard>
+
+          <SitterCard>
+            <SitterCardBody>
+              <p className="text-sm font-medium text-neutral-500">Next payout</p>
+              {transferSummary.hasPaidHistory && transferSummary.nextPayoutDate ? (
+                <>
+                  <p className="mt-1 text-xl font-semibold text-neutral-900">
+                    {transferSummary.nextPayoutDate.toLocaleDateString([], {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-500">Estimated</p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-neutral-700">After first completed visit</p>
+              )}
             </SitterCardBody>
           </SitterCard>
 
