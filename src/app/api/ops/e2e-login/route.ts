@@ -53,86 +53,95 @@ function isE2eLoginAllowed(): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isE2eLoginAllowed()) {
-    return NextResponse.json({ error: 'E2E login disabled' }, { status: 403 });
-  }
-
-  const key = req.headers.get('x-e2e-key');
-  const expected = process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production';
-  if (!key || key !== expected) {
-    return NextResponse.json({ error: 'Invalid or missing x-e2e-key' }, { status: 401 });
-  }
-
-  let body: { role?: string; email?: string };
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
-  }
+    if (!isE2eLoginAllowed()) {
+      return NextResponse.json({ error: 'E2E login disabled' }, { status: 403 });
+    }
 
-  const role = (body.role || 'owner').toLowerCase();
-  const email = body.email || (role === 'owner' ? 'owner@example.com' : role === 'sitter' ? 'sitter@example.com' : 'client@example.com');
+    const key = req.headers.get('x-e2e-key');
+    const expected = process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production';
+    if (!key || key !== expected) {
+      return NextResponse.json({ error: 'Invalid or missing x-e2e-key' }, { status: 401 });
+    }
 
-  const user = await (prisma as any).user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      orgId: true,
-      role: true,
-      sitter: { select: { id: true } },
-      client: { select: { id: true } },
-    },
-  });
+    let body: { role?: string; email?: string };
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+    }
 
-  if (!user) {
-    return NextResponse.json({ error: `User not found: ${email}` }, { status: 404 });
-  }
+    const role = (body.role || 'owner').toLowerCase();
+    const email = body.email || (role === 'owner' ? 'owner@example.com' : role === 'sitter' ? 'sitter@example.com' : 'client@example.com');
 
-  const roleMatch = role === (user.role || '').toLowerCase() ||
-    (role === 'sitter' && user.sitter?.id) ||
-    (role === 'client' && user.client?.id);
-  if (!roleMatch) {
-    return NextResponse.json({ error: `User ${email} does not have role ${role}` }, { status: 403 });
-  }
+    const user = await (prisma as any).user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        orgId: true,
+        role: true,
+        sitter: { select: { id: true } },
+        client: { select: { id: true } },
+      },
+    });
 
-  const base = req.nextUrl.origin;
-  const jar = new Map<string, string>();
-  const csrfRes = await fetch(`${base}/api/auth/csrf`, { redirect: 'manual' });
-  mergeCookies(jar, getSetCookies(csrfRes));
-  const { csrfToken } = await csrfRes.json().catch(() => ({}));
-  if (!csrfToken) {
-    return NextResponse.json({ error: 'Failed to get CSRF token' }, { status: 500 });
-  }
+    if (!user) {
+      return NextResponse.json({ error: `User not found: ${email}` }, { status: 404 });
+    }
 
-  const signInRes = await fetch(`${base}/api/auth/callback/credentials`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Cookie: cookieHeader(jar),
-    },
-    body: new URLSearchParams({
-      email: user.email,
-      password: E2E_PASSWORD,
-      csrfToken,
-      callbackUrl: `${base}/`,
-      json: 'true',
-    }),
-    redirect: 'manual',
-  });
+    if (!user.email) {
+      return NextResponse.json({ error: `User ${email} has no email` }, { status: 500 });
+    }
 
-  const signInSetCookies = getSetCookies(signInRes);
-  // NextAuth credentials callback returns 302 redirect on success; treat 302 + Set-Cookie as success
-  const success = signInRes.ok || (signInRes.status === 302 && signInSetCookies.length > 0);
-  const res = NextResponse.json({ ok: success });
-  if (signInSetCookies.length > 0) {
+    const roleMatch = role === (user.role || '').toLowerCase() ||
+      (role === 'sitter' && user.sitter?.id) ||
+      (role === 'client' && user.client?.id);
+    if (!roleMatch) {
+      return NextResponse.json({ error: `User ${email} does not have role ${role}` }, { status: 403 });
+    }
+
+    const base = req.nextUrl.origin;
+    const jar = new Map<string, string>();
+    const csrfRes = await fetch(new URL('/api/auth/csrf', base), { redirect: 'manual' });
+    mergeCookies(jar, getSetCookies(csrfRes));
+    const { csrfToken } = await csrfRes.json().catch(() => ({}));
+    if (!csrfToken) {
+      return NextResponse.json({ error: 'Failed to get CSRF token' }, { status: 500 });
+    }
+
+    const signInRes = await fetch(new URL('/api/auth/callback/credentials', base), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Cookie: cookieHeader(jar),
+      },
+      body: new URLSearchParams({
+        email: user.email,
+        password: E2E_PASSWORD,
+        csrfToken,
+        callbackUrl: `${base}/`,
+        json: 'true',
+      }),
+      redirect: 'manual',
+    });
+
+    const signInSetCookies = getSetCookies(signInRes);
+    // NextAuth credentials callback returns 302 redirect on success; treat 302 + Set-Cookie as success
+    const success = signInRes.ok || (signInRes.status === 302 && signInSetCookies.length > 0);
+    if (!success) {
+      return NextResponse.json({ error: 'Sign-in failed', status: signInRes.status }, { status: 500 });
+    }
+
+    const res = NextResponse.json({ ok: true });
     for (const cookie of signInSetCookies) {
       res.headers.append('Set-Cookie', cookie);
     }
+    return res;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[api/ops/e2e-login] Unexpected failure:', message);
+    return NextResponse.json({ error: 'E2E login internal error', message }, { status: 500 });
   }
-  if (!success) {
-    return NextResponse.json({ error: 'Sign-in failed', status: signInRes.status }, { status: 500 });
-  }
-  return res;
 }
