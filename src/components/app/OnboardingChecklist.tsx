@@ -2,7 +2,7 @@
 
 /**
  * OnboardingChecklist - Enterprise setup card with progress.
- * Compact UI, direct tone, CTA links.
+ * Collapsed by default so it doesn't dominate the Today page; expand to see tasks.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -12,6 +12,7 @@ import type { OnboardingChecklist, OnboardingItem } from '@/lib/onboarding';
 export function OnboardingChecklist() {
   const [data, setData] = useState<OnboardingChecklist | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,22 +41,36 @@ export function OnboardingChecklist() {
   const pct = data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0;
 
   return (
-    <div className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-secondary)] p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">Setup</h3>
-        <span className="text-xs text-[var(--color-text-tertiary)]">{pct}% complete</span>
-      </div>
-      <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-tertiary)]">
-        <div
-          className="h-full bg-[var(--color-accent-primary)] transition-all duration-300"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <ul className="space-y-2">
-        {data.items.map((item) => (
-          <OnboardingItemRow key={item.key} item={item} />
-        ))}
-      </ul>
+    <div className="mb-4 rounded-lg border border-neutral-200 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className="flex w-full items-center justify-between gap-2 p-3 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+        aria-expanded={expanded}
+      >
+        <span className="text-sm font-semibold text-neutral-900">Setup</span>
+        <span className="text-xs text-neutral-500">{data.completed} of {data.total} complete</span>
+        <span className="shrink-0 text-neutral-400" aria-hidden>
+          <i className={`fas fa-chevron-${expanded ? 'up' : 'down'} text-xs`} />
+        </span>
+      </button>
+      {expanded && (
+        <>
+          <div className="border-t border-neutral-100 px-3 pb-2 pt-0">
+            <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+              <div
+                className="h-full bg-blue-500 transition-all duration-300"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+          <ul className="space-y-2 border-t border-neutral-100 px-3 pb-3 pt-2">
+            {data.items.map((item) => (
+              <OnboardingItemRow key={item.key} item={item} />
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
@@ -68,17 +83,17 @@ function OnboardingItemRow({ item }: { item: OnboardingItem }) {
           <i className="fas fa-check-circle" />
         </span>
       ) : (
-        <span className="text-[var(--color-text-tertiary)]" aria-hidden="true">
+        <span className="text-neutral-400" aria-hidden="true">
           <i className="fas fa-circle" style={{ fontSize: '0.4rem' }} />
         </span>
       )}
-      <span className={item.done ? 'text-[var(--color-text-secondary)]' : 'text-[var(--color-text-primary)]'}>
+      <span className={item.done ? 'text-neutral-500' : 'text-neutral-900'}>
         {item.label}
       </span>
       {!item.done && (
         <Link
           href={item.href}
-          className="ml-auto text-xs font-medium text-[var(--color-accent-primary)] hover:underline"
+          className="ml-auto text-xs font-medium text-blue-600 hover:underline"
         >
           {item.label.includes('Connect') || item.label.includes('Add') ? 'Go' : 'Complete'}
         </Link>

@@ -132,6 +132,10 @@ function NextVisitHero({
     ? booking.address.split(',')[0].trim().slice(0, 40) + (booking.address.length > 40 ? '…' : '')
     : null;
 
+  const petNames = booking.pets.length > 0
+    ? booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')
+    : '—';
+
   return (
     <SitterCard className="mb-4 border-2 border-blue-200 bg-blue-50">
       <SitterCardHeader>
@@ -139,36 +143,33 @@ function NextVisitHero({
         {countdown && (
           <p className="mt-1 text-sm font-semibold text-blue-800">{countdown}</p>
         )}
-        <div className="mt-2 flex items-center gap-2">
-          {booking.pets.length > 0 ? (
-            <div className="flex -space-x-2">
-              {booking.pets.slice(0, 3).map((pet) => (
-                <div
-                  key={pet.id}
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border-2 border-white bg-amber-100 text-sm font-medium text-amber-800"
-                  title={pet.name || pet.species || 'Pet'}
-                >
-                  {(pet.name || pet.species || '?').charAt(0).toUpperCase()}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-neutral-200 text-sm font-medium text-neutral-600">
-              ?
-            </div>
-          )}
-          <div className="min-w-0">
-            <p className="font-semibold text-neutral-900">
-              {booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}
+        <div className="mt-2 flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-semibold tabular-nums text-neutral-900">
+              {formatTimeRange(booking.startAt, booking.endAt)}
             </p>
-            <p className="text-sm text-neutral-600">{booking.service}</p>
-            <p className="text-sm text-neutral-600">{formatTimeRange(booking.startAt, booking.endAt)}</p>
+            <p className="mt-0.5 font-medium text-neutral-900">{booking.service}</p>
+            <p className="text-sm text-neutral-600">{petNames}</p>
+            <p className="text-sm text-neutral-500">{booking.clientName}</p>
             {addressSnippet && (
               <p className="mt-0.5 truncate text-xs text-neutral-500" title={booking.address ?? undefined}>
                 {addressSnippet}
               </p>
             )}
           </div>
+          {booking.pets.length > 0 && (
+            <div className="flex -space-x-2 shrink-0">
+              {booking.pets.slice(0, 3).map((pet) => (
+                <div
+                  key={pet.id}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-amber-100 text-sm font-medium text-amber-800"
+                  title={pet.name || pet.species || 'Pet'}
+                >
+                  {(pet.name || pet.species || '?').charAt(0).toUpperCase()}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </SitterCardHeader>
       <SitterCardActions>
@@ -189,14 +190,19 @@ function NextVisitHero({
             onClick={() => void onCheckOut(booking.id)}
             disabled={checkingOutId === booking.id}
           >
-            {checkingOutId === booking.id ? 'Saving…' : 'Finish Visit'}
+            {checkingOutId === booking.id ? 'Saving…' : 'End visit'}
+          </Button>
+        )}
+        {booking.status === 'completed' && (
+          <Button variant="primary" size="md" onClick={() => onDelight(booking)}>
+            Write report
           </Button>
         )}
         <Button variant="secondary" size="sm" onClick={() => onMessage(booking)}>
           Message
         </Button>
         <Button variant="secondary" size="sm" onClick={() => onDelight(booking)}>
-          Daily Delight
+          {booking.status === 'completed' ? 'Add report' : 'Daily Delight'}
         </Button>
         <Button variant="secondary" size="sm" onClick={() => router.push(`/sitter/bookings/${booking.id}`)}>
           Details
@@ -502,7 +508,11 @@ export default function SitterTodayPage() {
           />
         ) : (
           <div className="space-y-4">
-            {bookings.map((booking) => (
+            {bookings.map((booking) => {
+              const petNames = booking.pets.length > 0
+                ? booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')
+                : '—';
+              return (
               <SitterCard key={booking.id} onClick={() => router.push(`/sitter/bookings/${booking.id}`)}>
                 <SitterCardHeader>
                   {(booking.alerts ?? []).length > 0 && (
@@ -518,33 +528,13 @@ export default function SitterTodayPage() {
                     </div>
                   )}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 flex-1 items-start gap-3">
-                      {booking.pets.length > 0 ? (
-                        <div className="flex -space-x-2">
-                          {booking.pets.slice(0, 3).map((pet) => (
-                            <div
-                              key={pet.id}
-                              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-2 border-white bg-amber-100 text-xs font-medium text-amber-800"
-                              title={pet.name || pet.species || 'Pet'}
-                            >
-                              {(pet.name || pet.species || '?').charAt(0).toUpperCase()}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-medium text-neutral-600">
-                          ?
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-neutral-900">{booking.clientName}</p>
-                        <p className="text-sm text-neutral-600">{booking.service}</p>
-                        {booking.pets.length > 0 && (
-                          <p className="mt-0.5 truncate text-xs text-neutral-500">
-                            {booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}
-                          </p>
-                        )}
-                      </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-base font-semibold tabular-nums text-neutral-900">
+                        {formatTimeRange(booking.startAt, booking.endAt)}
+                      </p>
+                      <p className="font-medium text-neutral-800">{booking.service}</p>
+                      <p className="text-sm text-neutral-600">{petNames}</p>
+                      <p className="text-sm text-neutral-500">{booking.clientName}</p>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-1">
                       {(queuedByBooking[booking.id]?.length ?? 0) > 0 && (
@@ -558,12 +548,11 @@ export default function SitterTodayPage() {
                     </div>
                   </div>
                 </SitterCardHeader>
-                <SitterCardBody>
-                  <p>{formatTimeRange(booking.startAt, booking.endAt)}</p>
-                  {booking.address ? (
-                    <p className="mt-1 truncate text-neutral-600" title={booking.address}>{booking.address}</p>
-                  ) : null}
-                </SitterCardBody>
+                {booking.address ? (
+                  <SitterCardBody>
+                    <p className="truncate text-sm text-neutral-600" title={booking.address}>{booking.address}</p>
+                  </SitterCardBody>
+                ) : null}
                 <SitterCardActions stopPropagation>
                   {['pending', 'confirmed'].includes(booking.status) && (
                     <Button
@@ -572,7 +561,7 @@ export default function SitterTodayPage() {
                       onClick={() => void handleCheckIn(booking.id)}
                       disabled={checkingInId === booking.id}
                     >
-                      {checkingInId === booking.id ? 'Saving…' : 'Check in'}
+                      {checkingInId === booking.id ? 'Saving…' : 'Start visit'}
                     </Button>
                   )}
                   {booking.status === 'in_progress' && (
@@ -582,21 +571,27 @@ export default function SitterTodayPage() {
                       onClick={() => void handleCheckOut(booking.id)}
                       disabled={checkingOutId === booking.id}
                     >
-                      {checkingOutId === booking.id ? 'Saving…' : 'Check out'}
+                      {checkingOutId === booking.id ? 'Saving…' : 'End visit'}
+                    </Button>
+                  )}
+                  {booking.status === 'completed' && (
+                    <Button variant="primary" size="md" onClick={() => openDelightModal(booking)}>
+                      Write report
                     </Button>
                   )}
                   <Button variant="secondary" size="md" onClick={() => router.push(`/sitter/bookings/${booking.id}`)}>
                     View details
                   </Button>
                   <Button variant="secondary" size="md" onClick={() => handleOpenChat(booking)}>
-                    Open chat
+                    Message
                   </Button>
                   <Button variant="secondary" size="md" onClick={() => openDelightModal(booking)}>
-                    Daily Delight
+                    {booking.status === 'completed' ? 'Add report' : 'Daily Delight'}
                   </Button>
                 </SitterCardActions>
               </SitterCard>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

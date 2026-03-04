@@ -77,6 +77,9 @@ export async function GET() {
     const earningsThisMonth = grossThisMonth * (commissionPct / 100);
     const earningsLastMonth = grossLastMonth * (commissionPct / 100);
 
+    const completedCount = completedAll._count;
+    const avgPerVisit = completedCount > 0 ? earningsTotal / completedCount : 0;
+
     return NextResponse.json({
       commissionPercentage: commissionPct,
       grossTotal: Math.round(grossTotal * 100) / 100,
@@ -85,9 +88,10 @@ export async function GET() {
       earningsThisMonth: Math.round(earningsThisMonth * 100) / 100,
       grossLastMonth: Math.round(grossLastMonth * 100) / 100,
       earningsLastMonth: Math.round(earningsLastMonth * 100) / 100,
-      completedBookingsCount: completedAll._count,
+      completedBookingsCount: completedCount,
       completedThisMonthCount: completedThisMonth._count,
       completedLastMonthCount: completedLastMonth._count,
+      averagePerVisit: Math.round(avgPerVisit * 100) / 100,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

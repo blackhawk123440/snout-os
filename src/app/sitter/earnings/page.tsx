@@ -28,6 +28,7 @@ interface EarningsData {
   completedBookingsCount: number;
   completedThisMonthCount: number;
   completedLastMonthCount: number;
+  averagePerVisit: number;
 }
 
 interface CompletedJob {
@@ -172,8 +173,13 @@ export default function SitterEarningsPage() {
                 ${data.earningsTotal.toFixed(2)}
               </p>
               <p className="mt-1 text-sm text-neutral-600">
-                {data.completedBookingsCount} completed · {data.commissionPercentage}% after split
+                {data.completedBookingsCount} completed visits · {data.commissionPercentage}% after split
               </p>
+              {data.completedBookingsCount > 0 && (
+                <p className="mt-0.5 text-sm text-neutral-500">
+                  ${data.averagePerVisit.toFixed(2)} average per visit
+                </p>
+              )}
             </SitterCardHeader>
           </SitterCard>
 

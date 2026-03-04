@@ -9,8 +9,9 @@ export type FeatureStatus = 'live' | 'coming_soon' | 'beta';
 
 export const SITTER_TABS = [
   { id: 'today', label: 'Today', href: '/sitter/today', icon: 'fas fa-calendar-day' },
-  { id: 'calendar', label: 'Calendar', href: '/sitter/calendar', icon: 'fas fa-calendar-alt' },
-  { id: 'inbox', label: 'Inbox', href: '/sitter/inbox', icon: 'fas fa-inbox' },
+  { id: 'bookings', label: 'Bookings', href: '/sitter/bookings', icon: 'fas fa-clipboard-list' },
+  { id: 'messages', label: 'Messages', href: '/sitter/inbox', icon: 'fas fa-inbox' },
+  { id: 'reports', label: 'Reports', href: '/sitter/reports', icon: 'fas fa-file-alt' },
   { id: 'earnings', label: 'Earnings', href: '/sitter/earnings', icon: 'fas fa-wallet' },
   { id: 'profile', label: 'Profile', href: '/sitter/profile', icon: 'fas fa-user' },
 ] as const;
@@ -33,7 +34,7 @@ export const FEATURE_STATUS: Record<string, FeatureStatus> = {
   profile: 'live',
   jobs: 'live',
   pets: 'live',
-  reports: 'coming_soon',
+  reports: 'live',
   availability: 'live',
   performance: 'coming_soon',
   training: 'coming_soon',

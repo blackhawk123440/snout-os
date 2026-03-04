@@ -1,6 +1,6 @@
 /**
  * Sitter Inbox Page
- * Thread list + message view with standardized rows and suggested reply panel.
+ * Mobile-first: thread list, tap → full conversation view. Desktop: split view.
  */
 
 'use client';
@@ -49,11 +49,19 @@ function SitterInboxContent() {
   const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useSitterThreads();
   const { data: messages = [], isLoading: messagesLoading } = useSitterMessages(selectedThreadId);
   const sendMessage = useSitterSendMessage();
+  const [isMobile, setIsMobile] = useState(false);
 
   const selectedThread = threads.find((t) => t.id === selectedThreadId);
   const activeWindow = selectedThread?.assignmentWindows?.[0];
   const isWindowActive =
     activeWindow && new Date() >= activeWindow.startsAt && new Date() <= activeWindow.endsAt;
+
+  useEffect(() => {
+    const check = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !isSitter) {
@@ -62,10 +70,10 @@ function SitterInboxContent() {
   }, [authLoading, isSitter, router]);
 
   useEffect(() => {
-    if (threads.length > 0 && !selectedThreadId) {
+    if (!isMobile && threads.length > 0 && !selectedThreadId) {
       setSelectedThreadId(threads[0].id);
     }
-  }, [threads, selectedThreadId]);
+  }, [isMobile, threads, selectedThreadId]);
 
   const handleSend = async () => {
     if (!selectedThreadId || !composeMessage.trim() || !isWindowActive) return;
@@ -123,16 +131,106 @@ function SitterInboxContent() {
       )
     : threads;
 
+  const showListOnMobile = isMobile && !selectedThreadId;
+  const showConversationOnMobile = isMobile && selectedThreadId;
+
   return (
     <div className="mx-auto max-w-4xl pb-8">
-      <SitterPageHeader
-        title="Inbox"
-        subtitle="Messages from clients during your active assignments"
-      />
+      {showConversationOnMobile ? (
+        <>
+          <div className="mb-2 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedThreadId(null)}
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-100"
+              aria-label="Back to threads"
+            >
+              <i className="fas fa-arrow-left" />
+            </button>
+            <SitterPageHeader
+              title={selectedThread?.client?.name || 'Message'}
+              subtitle="Conversation"
+            />
+          </div>
+          <div className="flex flex-col rounded-2xl border border-neutral-200 bg-white shadow-sm">
+            {/* Messages + compose only */}
+            <div className="flex-1 overflow-y-auto p-4 min-h-[50vh]">
+              {messagesLoading ? (
+                <SitterSkeletonList count={2} />
+              ) : messages.length === 0 && pendingMessages.length === 0 ? (
+                <p className="py-8 text-center text-sm text-neutral-500">No messages yet. Say hi!</p>
+              ) : (
+                <div className="space-y-4">
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                        msg.direction === 'outbound'
+                          ? 'ml-auto bg-blue-100 text-neutral-900'
+                          : 'bg-neutral-100 text-neutral-900'
+                      }`}
+                    >
+                      <p className="text-xs font-medium text-neutral-600">
+                        {msg.direction === 'inbound' ? selectedThread?.client?.name : 'You'} •{' '}
+                        {formatDistanceToNow(msg.createdAt, { addSuffix: true })}
+                      </p>
+                      <p className="mt-1 text-sm">{msg.redactedBody || msg.body}</p>
+                    </div>
+                  ))}
+                  {pendingMessages.map((p) => (
+                    <div
+                      key={p.tempId}
+                      className="ml-auto max-w-[85%] rounded-2xl bg-blue-100 px-4 py-3 text-neutral-900"
+                    >
+                      <p className="text-xs font-medium text-neutral-600">
+                        You • {p.status === 'sending' ? 'Sending…' : 'Failed'}
+                      </p>
+                      <p className="mt-1 text-sm">{p.body}</p>
+                      {p.status === 'failed' && (
+                        <Button variant="secondary" size="sm" onClick={() => handleRetryPending(p.tempId)} className="mt-2">
+                          Retry
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {isWindowActive && (
+              <div className="border-t border-neutral-200 p-4">
+                <div className="flex gap-2">
+                  <textarea
+                    value={composeMessage}
+                    onChange={(e) => setComposeMessage(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type a message..."
+                    rows={2}
+                    className="min-h-[44px] flex-1 resize-none rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                  />
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={() => void handleSend()}
+                    disabled={!composeMessage.trim() || sendMessage.isPending}
+                    className="shrink-0"
+                  >
+                    {sendMessage.isPending ? '…' : 'Send'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <SitterPageHeader
+            title="Inbox"
+            subtitle="Messages from clients during your active assignments"
+          />
 
-      <div className="flex min-h-[60vh] flex-col gap-0 rounded-2xl border border-neutral-200 bg-white shadow-sm md:flex-row">
-        {/* Thread list */}
-        <div className="flex w-full flex-col border-b border-neutral-200 md:w-80 md:border-b-0 md:border-r">
+          <div className="flex min-h-[60vh] flex-col gap-0 rounded-2xl border border-neutral-200 bg-white shadow-sm md:flex-row">
+            {/* Thread list - hidden on mobile when conversation open */}
+            <div className={`flex w-full flex-col border-b border-neutral-200 md:w-80 md:border-b-0 md:border-r ${showListOnMobile ? 'flex' : 'hidden md:flex'}`}>
           <div className="border-b border-neutral-200 p-4">
             <input
               type="search"
@@ -214,8 +312,8 @@ function SitterInboxContent() {
           </div>
         </div>
 
-        {/* Message view */}
-        <div className="flex flex-1 flex-col min-h-0">
+            {/* Message view - hidden on mobile when showing list only */}
+            <div className={`flex flex-1 flex-col min-h-0 ${showConversationOnMobile ? 'flex' : 'hidden md:flex'}`}>
           {selectedThreadId ? (
             <>
               {/* Thread header bar */}
@@ -386,11 +484,13 @@ function SitterInboxContent() {
             </>
           ) : (
             <div className="flex flex-1 items-center justify-center p-8 text-center text-neutral-500">
-              <p>Select a thread to view messages</p>
+              <p>{isMobile ? 'Tap a thread to open' : 'Select a thread to view messages'}</p>
             </div>
           )}
-        </div>
-      </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

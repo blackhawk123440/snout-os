@@ -73,6 +73,7 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
 
   const isActive = (href: string) => {
     if (href === '/sitter/today') return pathname === '/sitter/today';
+    if (href === '/sitter/inbox') return pathname.startsWith('/sitter/inbox') || pathname.startsWith('/sitter/messages');
     return pathname.startsWith(href);
   };
 
@@ -82,7 +83,7 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
   return (
     <div className="fixed inset-0 flex flex-col bg-neutral-50" style={{ maxHeight: '100dvh' }}>
       <SitterOfflineBanner />
-      <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden pb-24">
+      <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden pb-[calc(56px+env(safe-area-inset-bottom)+16px)] lg:pb-8">
         {/* Sticky header: avatar + Hey name + status chip + bell */}
         <header
           className={`sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b bg-white px-4 transition-shadow ${
@@ -129,8 +130,9 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
 
       {/* Bottom nav - 44px hit targets */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around border-t border-neutral-200 bg-white safe-area-pb"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))', paddingTop: '0.5rem' }}
+        className="fixed bottom-0 left-0 right-0 z-20 flex h-14 min-h-[56px] items-center justify-around border-t border-neutral-200 bg-white"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        aria-label="Primary navigation"
       >
         {NAV_ITEMS.map((item) => {
           const active = isActive(item.href);

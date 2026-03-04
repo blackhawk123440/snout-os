@@ -67,6 +67,14 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
   const [sendStatus, setSendStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
   const [sendError, setSendError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [structured, setStructured] = useState({
+    potty: '',
+    food: '',
+    water: '',
+    meds: '',
+    walkDurationMins: '',
+    notes: '',
+  });
 
   const orgId = user?.orgId || 'default';
   const sitterId = user?.sitterId || '';
@@ -91,6 +99,7 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
     setPendingPhotos([]);
     setSendStatus('idle');
     setSendError(null);
+    setStructured({ potty: '', food: '', water: '', meds: '', walkDurationMins: '', notes: '' });
     if (!isOnline) void loadPendingPhotos();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- booking?.id + loadPendingPhotos sufficient; full booking causes extra runs
   }, [isOpen, booking?.id, isOnline, loadPendingPhotos]);
@@ -157,6 +166,19 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
       setUploading(false);
       e.target.value = '';
     }
+  };
+
+  const buildFromStructured = () => {
+    const parts: string[] = [];
+    if (structured.potty.trim()) parts.push(`Potty: ${structured.potty.trim()}`);
+    if (structured.food.trim()) parts.push(`Food: ${structured.food.trim()}`);
+    if (structured.water.trim()) parts.push(`Water: ${structured.water.trim()}`);
+    if (structured.meds.trim()) parts.push(`Meds: ${structured.meds.trim()}`);
+    if (structured.walkDurationMins.trim()) parts.push(`Walk: ${structured.walkDurationMins.trim()} min`);
+    if (structured.notes.trim()) parts.push(`Notes: ${structured.notes.trim()}`);
+    const built = parts.length ? parts.join('. ') + (structured.notes.trim() ? '' : '.') : '';
+    setDraft((prev) => (built ? (prev ? `${prev}\n\n${built}` : built) : prev));
+    if (built) setIsStubDraft(false);
   };
 
   const removePhoto = (urlOrId: string) => {
@@ -308,6 +330,75 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
                   .join(', ')}
               </p>
             )}
+          </div>
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">Visit details (optional)</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs text-neutral-500">Potty</label>
+                <input
+                  type="text"
+                  value={structured.potty}
+                  onChange={(e) => setStructured((s) => ({ ...s, potty: e.target.value }))}
+                  placeholder="e.g. normal, accident"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-neutral-500">Food</label>
+                <input
+                  type="text"
+                  value={structured.food}
+                  onChange={(e) => setStructured((s) => ({ ...s, food: e.target.value }))}
+                  placeholder="e.g. ate well"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-neutral-500">Water</label>
+                <input
+                  type="text"
+                  value={structured.water}
+                  onChange={(e) => setStructured((s) => ({ ...s, water: e.target.value }))}
+                  placeholder="e.g. refreshed"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-neutral-500">Meds</label>
+                <input
+                  type="text"
+                  value={structured.meds}
+                  onChange={(e) => setStructured((s) => ({ ...s, meds: e.target.value }))}
+                  placeholder="e.g. given as directed"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-neutral-500">Walk (min)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={structured.walkDurationMins}
+                  onChange={(e) => setStructured((s) => ({ ...s, walkDurationMins: e.target.value.replace(/\D/g, '') }))}
+                  placeholder="e.g. 20"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <div className="mt-3">
+              <label className="mb-1 block text-xs text-neutral-500">Notes</label>
+              <textarea
+                value={structured.notes}
+                onChange={(e) => setStructured((s) => ({ ...s, notes: e.target.value }))}
+                placeholder="Any other details…"
+                rows={2}
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+            <Button variant="secondary" size="sm" onClick={buildFromStructured} className="mt-2">
+              Build from form
+            </Button>
           </div>
           <div className="rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 p-4">
             <input
