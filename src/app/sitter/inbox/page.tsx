@@ -15,6 +15,8 @@ import {
 } from '@/components/sitter';
 import { useAuth } from '@/lib/auth-client';
 import { useRouter } from 'next/navigation';
+import { useOffline } from '@/hooks/useOffline';
+import { enqueueAction } from '@/lib/offline';
 import {
   useSitterThreads,
   useSitterMessages,
@@ -23,6 +25,8 @@ import {
   type SitterMessage,
 } from '@/lib/api/sitter-hooks';
 import { formatDistanceToNow, format } from 'date-fns';
+import { toastSuccess, toastError } from '@/lib/toast';
+import { triggerTemplateSend, type QuickTemplate } from './template-actions';
 
 const formatThreadTime = (d: Date) => {
   const now = new Date();
@@ -30,21 +34,17 @@ const formatThreadTime = (d: Date) => {
   return isToday ? format(d, 'h:mm a') : format(d, 'MMM d');
 };
 
-const SUGGESTED_REPLIES = [
-  'On my way',
-  'All done—they had a great time!',
-  'Quick question about their routine',
-  'See you at the next visit!',
-];
+const QUICK_TEMPLATES: QuickTemplate[] = ['On my way', 'Arrived', 'All done'];
 
 function SitterInboxContent() {
   const { user, isSitter, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { isOnline, refreshQueuedCount } = useOffline();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [composeMessage, setComposeMessage] = useState('');
   const [threadSearch, setThreadSearch] = useState('');
-  const [suggestedTone, setSuggestedTone] = useState<'warm' | 'professional'>('warm');
   const [pendingMessages, setPendingMessages] = useState<Array<{ tempId: string; body: string; status: 'sending' | 'failed'; error?: string }>>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<QuickTemplate | ''>('');
 
   const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useSitterThreads();
   const { data: messages = [], isLoading: messagesLoading } = useSitterMessages(selectedThreadId);
@@ -75,20 +75,60 @@ function SitterInboxContent() {
     }
   }, [isMobile, threads, selectedThreadId]);
 
-  const handleSend = async () => {
-    if (!selectedThreadId || !composeMessage.trim() || !isWindowActive) return;
-    const body = composeMessage.trim();
+  const sendBody = async (threadId: string, body: string) => {
     const tempId = `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     setPendingMessages((prev) => [...prev, { tempId, body, status: 'sending' }]);
-    setComposeMessage('');
     try {
-      await sendMessage.mutateAsync({ threadId: selectedThreadId, body });
+      await sendMessage.mutateAsync({ threadId, body });
       setPendingMessages((prev) => prev.filter((p) => p.tempId !== tempId));
+      return true;
     } catch (err: any) {
       const msg = err?.response?.data?.userMessage || err?.message || 'Failed to send';
       setPendingMessages((prev) =>
         prev.map((p) => (p.tempId === tempId ? { ...p, status: 'failed' as const, error: msg } : p))
       );
+      return false;
+    }
+  };
+
+  const handleSend = async () => {
+    if (!selectedThreadId || !composeMessage.trim() || !isWindowActive) return;
+    const body = composeMessage.trim();
+    setComposeMessage('');
+    const ok = await sendBody(selectedThreadId, body);
+    if (!ok) {
+      toastError('Failed to send');
+    }
+  };
+
+  const handleTemplateSend = async (template: QuickTemplate) => {
+    if (sendMessage.isPending) return;
+    try {
+      const ok = await triggerTemplateSend({
+        template,
+        selectedThreadId,
+        isWindowActive: !!isWindowActive,
+        isOnline,
+        orgId: user?.orgId || 'default',
+        sitterId: user?.sitterId || '',
+        enqueueAction,
+        sendNow: async (threadId, body) => {
+          const sent = await sendBody(threadId, body);
+          if (!sent) throw new Error('Failed to send');
+        },
+        onQueued: () => {
+          toastSuccess('Queued template message');
+          void refreshQueuedCount();
+        },
+        onSuccess: () => {
+          toastSuccess('Template sent');
+        },
+      });
+      if (!ok) {
+        toastError('Select a thread in an active window');
+      }
+    } catch {
+      toastError('Failed to send template');
     }
   };
 
@@ -200,6 +240,19 @@ function SitterInboxContent() {
             </div>
             {isWindowActive && (
               <div className="border-t border-neutral-200 p-4">
+                <div className="mb-2 flex flex-wrap gap-2 md:hidden">
+                  {QUICK_TEMPLATES.map((template) => (
+                    <Button
+                      key={template}
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => void handleTemplateSend(template)}
+                      disabled={sendMessage.isPending || !selectedThreadId || !isWindowActive}
+                    >
+                      {template}
+                    </Button>
+                  ))}
+                </div>
                 <div className="flex gap-2">
                   <textarea
                     value={composeMessage}
@@ -401,46 +454,49 @@ function SitterInboxContent() {
                 )}
               </div>
 
-              {/* Suggested reply panel (Beta) */}
-              <div className="border-t border-neutral-200 bg-amber-50/50 p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="text-sm font-medium text-neutral-800">Suggested replies</span>
-                  <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900">
-                    🧪 Beta
-                  </span>
+              {/* Quick templates */}
+              <div className="border-t border-neutral-200 bg-amber-50/40 p-4">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-neutral-800">Quick templates</span>
                 </div>
-                <div className="mb-3 flex gap-2">
-                  {SUGGESTED_REPLIES.map((s, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setComposeMessage((prev) => (prev ? `${prev} ${s}` : s))}
-                      className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-700 transition hover:border-amber-300 hover:bg-amber-50"
+                <div className="md:hidden flex flex-wrap gap-2">
+                  {QUICK_TEMPLATES.map((template) => (
+                    <Button
+                      key={template}
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => void handleTemplateSend(template)}
+                      disabled={sendMessage.isPending || !selectedThreadId || !isWindowActive}
                     >
-                      {s}
-                    </button>
+                      {template}
+                    </Button>
                   ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-neutral-500">Tone:</span>
-                  <button
-                    type="button"
-                    onClick={() => setSuggestedTone('warm')}
-                    className={`rounded-lg px-2 py-1 text-xs font-medium ${
-                      suggestedTone === 'warm' ? 'bg-amber-200 text-amber-900' : 'text-neutral-600 hover:bg-neutral-100'
-                    }`}
+                <div className="hidden md:block">
+                  <label className="sr-only" htmlFor="quick-template-select">
+                    Templates
+                  </label>
+                  <select
+                    id="quick-template-select"
+                    value={selectedTemplate}
+                    onChange={(e) => {
+                      const value = e.target.value as QuickTemplate | '';
+                      setSelectedTemplate(value);
+                      if (value) {
+                        void handleTemplateSend(value);
+                        setSelectedTemplate('');
+                      }
+                    }}
+                    disabled={sendMessage.isPending || !selectedThreadId || !isWindowActive}
+                    className="w-full max-w-xs rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700 outline-none focus:border-blue-500"
                   >
-                    Warm
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSuggestedTone('professional')}
-                    className={`rounded-lg px-2 py-1 text-xs font-medium ${
-                      suggestedTone === 'professional' ? 'bg-amber-200 text-amber-900' : 'text-neutral-600 hover:bg-neutral-100'
-                    }`}
-                  >
-                    Professional
-                  </button>
+                    <option value="">Templates...</option>
+                    {QUICK_TEMPLATES.map((template) => (
+                      <option key={template} value={template}>
+                        {template}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

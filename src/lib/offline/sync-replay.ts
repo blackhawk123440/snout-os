@@ -123,11 +123,27 @@ async function replayReportMediaUpload(action: QueuedAction): Promise<{ ok: bool
   return { ok: true };
 }
 
+async function replayMessageSend(action: QueuedAction): Promise<{ ok: boolean; error?: string }> {
+  const payload = action.payload as { threadId?: string; body?: string };
+  if (!payload?.threadId || !payload?.body) {
+    return { ok: false, error: 'Missing threadId/body for queued message' };
+  }
+  const res = await fetch(`/api/sitter/threads/${payload.threadId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body: payload.body }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) return { ok: false, error: data.error || res.statusText };
+  return { ok: true };
+}
+
 const REPLAY_HANDLERS: Record<string, (a: QueuedAction) => Promise<{ ok: boolean; error?: string }>> = {
   'visit.checkin': replayCheckIn,
   'visit.checkout': replayCheckOut,
   'delight.create': replayDelightCreate,
   'report-media.upload': replayReportMediaUpload,
+  'message.send': replayMessageSend,
 };
 
 export async function replayAction(action: QueuedAction): Promise<boolean> {
@@ -136,7 +152,7 @@ export async function replayAction(action: QueuedAction): Promise<boolean> {
     await updateActionStatus(action.id, 'failed', `Unknown action type: ${action.type}`);
     return false;
   }
-  if (!action.bookingId && action.type !== 'report-media.upload') {
+  if (!action.bookingId && action.type !== 'report-media.upload' && action.type !== 'message.send') {
     await updateActionStatus(action.id, 'failed', 'Missing bookingId');
     return false;
   }

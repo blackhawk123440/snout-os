@@ -10,6 +10,7 @@ const ACTION_TYPES = [
   'visit.note.save',
   'delight.create',
   'report-media.upload',
+  'message.send',
 ] as const;
 
 export type ActionType = (typeof ACTION_TYPES)[number];
