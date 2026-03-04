@@ -17,15 +17,15 @@ export interface VerifyResult {
 export async function verifyRuntime(): Promise<VerifyResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
+  let prisma: PrismaClient | null = null;
 
   // 1. DATABASE_URL + Prisma connect
   if (!process.env.DATABASE_URL) {
     errors.push('DATABASE_URL is required');
   } else {
     try {
-      const prisma = new PrismaClient();
+      prisma = new PrismaClient();
       await prisma.$queryRaw`SELECT 1`;
-      await prisma.$disconnect();
     } catch (e) {
       errors.push(`Database unreachable: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -34,6 +34,45 @@ export async function verifyRuntime(): Promise<VerifyResult> {
   // 2. Redis is required on staging/prod because workers and realtime depend on it.
   if (isRedisRequiredEnv() && !process.env.REDIS_URL && process.env.CI !== 'true') {
     errors.push(`REDIS_URL is required in ${getRuntimeEnvName()} for queues/realtime`);
+  }
+
+  // 2b. Staging/prod schema sanity guardrail.
+  if (prisma && isRedisRequiredEnv()) {
+    try {
+      const requiredColumns = [
+        { tableName: 'Booking', columnName: 'orgId' },
+        { tableName: 'EventLog', columnName: 'orgId' },
+        { tableName: 'CommandCenterAttentionState', columnName: 'itemKey' },
+      ];
+
+      const missing: string[] = [];
+      for (const check of requiredColumns) {
+        const rows = await prisma.$queryRawUnsafe<Array<{ exists: boolean }>>(
+          `SELECT EXISTS (
+             SELECT 1
+             FROM information_schema.columns
+             WHERE table_name = $1
+               AND column_name = $2
+           ) AS "exists"`,
+          check.tableName,
+          check.columnName
+        );
+        if (!rows?.[0]?.exists) {
+          missing.push(`${check.tableName}.${check.columnName}`);
+        }
+      }
+
+      if (missing.length > 0) {
+        errors.push(
+          `Schema sanity check failed (missing columns: ${missing.join(', ')}). ` +
+            `Run 'pnpm prisma migrate deploy' against ${getRuntimeEnvName()} DATABASE_URL before starting Next.js.`
+        );
+      }
+    } catch (e) {
+      errors.push(
+        `Schema sanity check query failed: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
   }
 
   // 3. Stripe: if any Stripe key present, recommend both. Warn only so staging can start without webhook secret.
@@ -69,6 +108,10 @@ export async function verifyRuntime(): Promise<VerifyResult> {
     if (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.length < 32) {
       warnings.push('NEXTAUTH_SECRET should be at least 32 characters in production');
     }
+  }
+
+  if (prisma) {
+    await prisma.$disconnect().catch(() => {});
   }
 
   return {
