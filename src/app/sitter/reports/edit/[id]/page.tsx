@@ -87,9 +87,9 @@ export default function SitterReportEditPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-4 py-3">
-          <button type="button" onClick={() => router.push('/sitter/reports')} className="rounded-lg p-2 text-gray-600 hover:bg-gray-100" aria-label="Back">
+          <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/sitter/reports')} className="rounded-lg p-2 text-gray-600 hover:bg-gray-100" aria-label="Back">
             <i className="fas fa-arrow-left" />
-          </button>
+          </Button>
           <h1 className="text-lg font-semibold text-gray-900">Edit report</h1>
         </div>
         <div className="p-4">
@@ -102,9 +102,9 @@ export default function SitterReportEditPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-4 py-3">
-        <button type="button" onClick={() => router.push('/sitter/reports')} className="rounded-lg p-2 text-gray-600 hover:bg-gray-100" aria-label="Back">
+        <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/sitter/reports')} className="rounded-lg p-2 text-gray-600 hover:bg-gray-100" aria-label="Back">
           <i className="fas fa-arrow-left" />
-        </button>
+        </Button>
         <h1 className="text-lg font-semibold text-gray-900">Edit report</h1>
       </div>
       <div className="p-4 space-y-4">

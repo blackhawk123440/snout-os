@@ -309,18 +309,21 @@ export default function SitterBookingDetailPage() {
           <section className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="text-sm font-semibold text-gray-900">Pets</p>
             <div className="mt-2 space-y-2">
-              {booking.pets.map((pet) => (
-                <button key={pet.id} type="button" onClick={() => router.push(`/sitter/pets/${pet.id}`)} className="flex min-h-[44px] w-full items-start justify-between rounded-lg border border-gray-100 px-3 py-2 text-left hover:bg-gray-50">
-                  <div className="min-w-0">
-                    <p className="font-medium text-gray-900">🐾 {pet.name || 'Pet'}{pet.species ? ` (${pet.species})` : ''}</p>
-                    {pet.careNotes && <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">{pet.careNotes}</p>}
-                  </div>
-                  <div className="ml-2 flex shrink-0 gap-1">
-                    {pet.flags?.hasMedication && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800">Meds</span>}
-                    {pet.flags?.hasAllergies && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium text-rose-800">Allergy</span>}
-                  </div>
-                </button>
-              ))}
+              {booking.pets.map((pet) => {
+                return (
+                  // ui-primitive-ok
+                  <button key={pet.id} type="button" onClick={() => router.push(`/sitter/pets/${pet.id}`)} className="flex min-h-[44px] w-full items-start justify-between rounded-lg border border-gray-100 px-3 py-2 text-left hover:bg-gray-50">
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900">🐾 {pet.name || 'Pet'}{pet.species ? ` (${pet.species})` : ''}</p>
+                      {pet.careNotes && <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">{pet.careNotes}</p>}
+                    </div>
+                    <div className="ml-2 flex shrink-0 gap-1">
+                      {pet.flags?.hasMedication && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800">Meds</span>}
+                      {pet.flags?.hasAllergies && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium text-rose-800">Allergy</span>}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
