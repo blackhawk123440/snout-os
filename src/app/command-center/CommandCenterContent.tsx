@@ -73,6 +73,8 @@ export function CommandCenterContent() {
     if (!authLoading) {
       if (!user) {
         router.push('/login?redirect=/command-center');
+      } else if ((user as { role?: string }).role === 'client') {
+        router.push('/client/home');
       } else if ((user as { sitterId?: string }).sitterId) {
         router.push('/sitter/inbox');
       }

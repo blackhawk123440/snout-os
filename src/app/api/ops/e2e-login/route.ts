@@ -14,8 +14,10 @@ import { prisma } from '@/lib/db';
 const E2E_PASSWORD = 'e2e-test-password';
 
 function isE2eLoginAllowed(): boolean {
-  // In production, allow only when running in CI (e.g. proof-pack job uses pnpm start)
-  if (process.env.NODE_ENV === 'production' && process.env.CI !== 'true') return false;
+  const envName = (process.env.ENV_NAME || process.env.NEXT_PUBLIC_ENV || '').toLowerCase();
+  const isStagingEnv = envName === 'staging';
+  // In production, allow only in CI. Staging can opt-in via env flags + key.
+  if (process.env.NODE_ENV === 'production' && process.env.CI !== 'true' && !isStagingEnv) return false;
   const enabled =
     process.env.ENABLE_E2E_AUTH === 'true' || process.env.ENABLE_E2E_LOGIN === 'true';
   return enabled;

@@ -13,8 +13,12 @@ import { Queue } from "bullmq";
  * Check Redis connection
  */
 export async function checkRedisConnection(): Promise<{ connected: boolean; error?: string }> {
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    return { connected: false, error: "REDIS_URL missing" };
+  }
   try {
-    const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
+    const connection = new IORedis(redisUrl, {
       maxRetriesPerRequest: 1,
       connectTimeout: 2000,
       lazyConnect: true,
