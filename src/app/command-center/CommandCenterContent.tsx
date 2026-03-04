@@ -12,10 +12,9 @@ import {
   AppCardBody,
 } from '@/components/app';
 import { OnboardingChecklist } from '@/components/app/OnboardingChecklist';
-import { PageSkeleton, EmptyState } from '@/components/ui';
+import { Button, PageSkeleton, EmptyState } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
-import { useQueryState } from '@/hooks/useQueryState';
 import { KpiGrid } from '@/components/app/KpiGrid';
 import { motion } from 'framer-motion';
 
@@ -32,17 +31,19 @@ interface Stats {
   };
 }
 
-const STUB_NEEDS_ATTENTION = [
-  { id: '1', type: 'booking', title: 'Booking #1024 needs sitter assignment', time: '2m ago' },
-  { id: '2', type: 'client', title: 'New client inquiry - Jane Doe', time: '15m ago' },
-  { id: '3', type: 'visit', title: 'Visit check-in overdue - Max the dog', time: '32m ago' },
-];
+interface AttentionItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  count?: number;
+  actionLabel: 'Fix' | 'Assign' | 'Retry' | 'Open';
+  href: string;
+}
 
-const STUB_TIMELINE = [
-  { id: '1', time: '10:42', text: 'Sitter Sarah checked in at Oak St', type: 'checkin' },
-  { id: '2', time: '10:15', text: 'Booking #1023 confirmed', type: 'booking' },
-  { id: '3', time: '09:58', text: 'New client registered', type: 'client' },
-];
+interface AttentionPayload {
+  alerts: AttentionItem[];
+  staffing: AttentionItem[];
+}
 
 export function CommandCenterContent() {
   const router = useRouter();
@@ -50,7 +51,8 @@ export function CommandCenterContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [range, setRange] = useQueryState<'7d' | '30d'>('range', '7d');
+  const [attention, setAttention] = useState<AttentionPayload>({ alerts: [], staffing: [] });
+  const [range, setRange] = useState<'7d' | '30d'>('7d');
 
   useEffect(() => {
     if (!authLoading) {
@@ -66,13 +68,24 @@ export function CommandCenterContent() {
     if (!user) return;
     let cancelled = false;
     setLoading(true);
-    fetch(`/api/ops/stats?range=${range}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled) setStats(data);
+    setError(null);
+    Promise.all([
+      fetch(`/api/ops/stats?range=${range}`).then((r) => r.json()),
+      fetch('/api/ops/command-center/attention').then((r) => r.json()),
+    ])
+      .then(([statsData, attentionData]) => {
+        if (cancelled) return;
+        setStats(statsData ?? null);
+        setAttention({
+          alerts: Array.isArray(attentionData?.alerts) ? attentionData.alerts : [],
+          staffing: Array.isArray(attentionData?.staffing) ? attentionData.staffing : [],
+        });
       })
       .catch(() => {
-        if (!cancelled) setStats(null);
+        if (cancelled) return;
+        setStats(null);
+        setAttention({ alerts: [], staffing: [] });
+        setError('Failed to load command center queues');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -174,25 +187,66 @@ export function CommandCenterContent() {
             />
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            <AppCard className="lg:col-span-2">
-              <AppCardHeader title="Needs Attention" />
+          <AppCard>
+            <AppCardHeader title="Alerts" />
+            <AppCardBody>
+              {attention.alerts.length === 0 ? (
+                <EmptyState
+                  title="No active alerts"
+                  description="Automation, payout, and calendar systems are healthy."
+                />
+              ) : (
+                <ul className="divide-y divide-neutral-100">
+                  {attention.alerts.map((item) => (
+                    <li key={item.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-neutral-900">
+                          {item.title}
+                          {typeof item.count === 'number' ? ` · ${item.count}` : ''}
+                        </p>
+                        <p className="mt-0.5 text-xs text-neutral-600">{item.subtitle}</p>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => router.push(item.href)}
+                      >
+                        {item.actionLabel}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </AppCardBody>
+          </AppCard>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <AppCard>
+              <AppCardHeader title="Staffing conflicts queue" />
               <AppCardBody>
-                {STUB_NEEDS_ATTENTION.length === 0 ? (
+                {attention.staffing.length === 0 ? (
                   <EmptyState
-                    title="All caught up"
-                    description="No items need your attention right now."
-                    primaryAction={{ label: 'View bookings', onClick: () => router.push('/bookings') }}
+                    title="No staffing conflicts"
+                    description="No unassigned, overlapping, or coverage-risk visits."
                   />
                 ) : (
                   <ul className="divide-y divide-neutral-100">
-                    {STUB_NEEDS_ATTENTION.map((item) => (
-                      <li
-                        key={item.id}
-                        className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-                      >
-                        <span className="text-sm text-neutral-700">{item.title}</span>
-                        <span className="text-xs text-neutral-500">{item.time}</span>
+                    {attention.staffing.map((item) => (
+                      <li key={item.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-neutral-900">
+                            {item.title}
+                            {typeof item.count === 'number' ? ` · ${item.count}` : ''}
+                          </p>
+                          <p className="mt-0.5 text-xs text-neutral-600">{item.subtitle}</p>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => router.push(item.href)}
+                        >
+                          {item.actionLabel}
+                        </Button>
                       </li>
                     ))}
                   </ul>
@@ -201,24 +255,22 @@ export function CommandCenterContent() {
             </AppCard>
 
             <AppCard>
-              <AppCardHeader title="Activity Timeline" />
+              <AppCardHeader title="Operations shortcuts" />
               <AppCardBody>
-                {STUB_TIMELINE.length === 0 ? (
-                  <EmptyState
-                    title="No recent activity"
-                    description="Activity will appear here as sitters check in and bookings are created."
-                    primaryAction={{ label: 'View bookings', onClick: () => router.push('/bookings') }}
-                  />
-                ) : (
-                  <ul className="space-y-3">
-                    {STUB_TIMELINE.map((e) => (
-                      <li key={e.id} className="flex gap-3 text-sm">
-                        <span className="shrink-0 font-mono text-xs text-neutral-500">{e.time}</span>
-                        <span className="text-neutral-700">{e.text}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => router.push('/ops/automation-failures')}>
+                    Open failures
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => router.push('/ops/calendar-repair')}>
+                    Open calendar repair
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => router.push('/ops/payouts')}>
+                    Open payouts
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => router.push('/finance')}>
+                    Open finance
+                  </Button>
+                </div>
               </AppCardBody>
             </AppCard>
           </div>
