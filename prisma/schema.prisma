@@ -48,6 +48,8 @@ model Booking {
   manualDispatchReason String?                @db.Text
   manualDispatchAt     DateTime?
   notes                String?
+  entryInstructions    String?
+  doorCode             String?
   stripePaymentLinkUrl String?
   tipLinkUrl           String?
   paymentStatus        String                 @default("unpaid")
@@ -76,6 +78,7 @@ model Booking {
   statusHistory        BookingStatusHistory[]
   calendarEvents       BookingCalendarEvent[] // Google Calendar event mappings
   petHealthLogs        PetHealthLog[]
+  checklistItems       BookingChecklistItem[]
 
   @@index([sitterId])
   @@index([orgId])
@@ -750,6 +753,7 @@ model Client {
   deletedAt     DateTime?          // Soft delete
   customFields  CustomFieldValue[]
   bookings      Booking[]
+  emergencyContacts ClientEmergencyContact[]
   threads       MessageThread[]
   loyaltyRewards LoyaltyReward[]
   user          User?
@@ -762,6 +766,40 @@ model Client {
   @@index([email])
   @@index([orgId])
   @@index([deletedAt])
+}
+
+model ClientEmergencyContact {
+  id           String   @id @default(uuid())
+  orgId        String
+  clientId     String
+  name         String
+  phone        String
+  relationship String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([clientId])
+  @@index([orgId, clientId])
+}
+
+model BookingChecklistItem {
+  id        String   @id @default(uuid())
+  orgId     String
+  bookingId String
+  type      String
+  checkedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@unique([bookingId, type])
+  @@index([orgId])
+  @@index([bookingId])
+  @@index([orgId, bookingId])
 }
 
 // ============================================

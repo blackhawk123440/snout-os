@@ -1,8 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { PageHeader, Button, Modal } from '@/components/ui';
+import { LayoutWrapper, PageHeader } from '@/components/layout';
+import { Button, StatusChip } from '@/components/ui';
+import { toastError, toastSuccess } from '@/lib/toast';
+import {
+  getBookingPrimaryAction,
+  getOptimisticStatus,
+  shouldRenderCopyAddress,
+  shouldRenderMail,
+  shouldRenderTel,
+} from './booking-detail-helpers';
+
+type ChecklistType = 'arrived' | 'leash' | 'fed' | 'water' | 'meds' | 'locked_door';
 
 interface BookingDetail {
   id: string;
@@ -10,53 +21,53 @@ interface BookingDetail {
   service: string;
   startAt: string;
   endAt: string;
+  updatedAt: string;
   address: string | null;
-  pickupAddress: string | null;
-  dropoffAddress: string | null;
+  addressParts: { line1: string | null; line2: string | null; city: string | null; state: string | null; zip: string | null; full: string | null };
+  mapLink: { apple: string | null; google: string | null };
+  entryInstructions: string | null;
+  doorCode: string | null;
   notes: string | null;
   totalPrice: number;
   clientName: string;
-  client?: { firstName?: string; lastName?: string; phone?: string; email?: string | null };
-  pets: Array<{ id: string; name?: string | null; species?: string | null; breed?: string | null; notes?: string | null }>;
+  client?: { firstName?: string; lastName?: string; phone?: string; email?: string | null; notes?: string | null };
+  emergencyContact?: { name: string; phone: string; relationship?: string | null } | null;
+  pets: Array<{ id: string; name?: string | null; species?: string | null; breed?: string | null; careNotes?: string | null; flags?: { hasMedication?: boolean; hasAllergies?: boolean } }>;
   threadId: string | null;
+  supportPhone: string | null;
+  timeline: {
+    scheduledStart: string;
+    scheduledEnd: string;
+    checkedInAt: string | null;
+    checkedOutAt: string | null;
+    report: { hasReport: boolean; latestReportId: string | null; latestReportAt: string | null };
+  };
+  checklist: Array<{ type: ChecklistType; checkedAt: string | null }>;
 }
 
-const statusBadgeClass = (status: string) => {
-  switch (status) {
-    case 'confirmed':
-      return 'bg-blue-100 text-blue-800';
-    case 'completed':
-      return 'bg-green-100 text-green-800';
-    case 'pending':
-      return 'bg-amber-100 text-amber-800';
-    case 'in_progress':
-      return 'bg-purple-100 text-purple-800';
-    case 'cancelled':
-      return 'bg-gray-200 text-gray-700';
-    default:
-      return 'bg-gray-100 text-gray-700';
-  }
+const statusChipVariant = (status: string): 'info' | 'success' | 'warning' | 'neutral' | 'danger' => {
+  if (status === 'in_progress') return 'info';
+  if (status === 'completed') return 'success';
+  if (status === 'pending') return 'warning';
+  if (status === 'cancelled') return 'danger';
+  return 'neutral';
 };
 
-const formatDateTime = (d: string) =>
-  new Date(d).toLocaleString([], {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+const statusLabel = (status: string) => {
+  if (status === 'pending' || status === 'confirmed') return 'Scheduled';
+  if (status === 'in_progress') return 'In progress';
+  if (status === 'completed') return 'Completed';
+  if (status === 'cancelled') return 'Cancelled';
+  return status.replace('_', ' ');
+};
 
-type DelightResponseMeta = { reportId?: string; messageId?: string; id?: string } | null;
-
-const buildStubDelight = (b: BookingDetail) => {
-  const petNames =
-    b.pets.length > 0
-      ? b.pets.map((p) => p.name || p.species || 'pet').join(', ')
-      : 'your pet';
-  const start = new Date(b.startAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  const end = new Date(b.endAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  return `Today with ${petNames} went smoothly.\n\nHighlights:\n- ${b.service} completed during ${start} - ${end}.\n- Appetite, energy, and comfort looked normal.\n- No concerns observed during the visit.\n\nWe are ready for the next check-in.`;
+const checklistLabel: Record<ChecklistType, string> = {
+  arrived: 'Arrived',
+  leash: 'Leash',
+  fed: 'Fed',
+  water: 'Water',
+  meds: 'Meds',
+  locked_door: 'Locked door',
 };
 
 export default function SitterBookingDetailPage() {
@@ -66,12 +77,7 @@ export default function SitterBookingDetailPage() {
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [checkingIn, setCheckingIn] = useState(false);
-  const [checkingOut, setCheckingOut] = useState(false);
-  const [delightOpen, setDelightOpen] = useState(false);
-  const [delightDraft, setDelightDraft] = useState('');
-  const [delightLoading, setDelightLoading] = useState(false);
-  const [delightMeta, setDelightMeta] = useState<DelightResponseMeta>(null);
+  const [busyPrimary, setBusyPrimary] = useState(false);
 
   const loadBooking = useCallback(async () => {
     if (!id) return;
@@ -98,12 +104,14 @@ export default function SitterBookingDetailPage() {
     void loadBooking();
   }, [loadBooking]);
 
+  const timeRange = useMemo(() => {
+    if (!booking) return '';
+    return `${new Date(booking.startAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} - ${new Date(booking.endAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  }, [booking]);
+
   const getGeo = (): Promise<{ lat: number; lng: number } | null> =>
     new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        resolve(null);
-        return;
-      }
+      if (!navigator.geolocation) return resolve(null);
       navigator.geolocation.getCurrentPosition(
         (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
         () => resolve(null),
@@ -111,264 +119,234 @@ export default function SitterBookingDetailPage() {
       );
     });
 
-  const handleCheckIn = async () => {
-    if (!id) return;
-    setCheckingIn(true);
-    try {
-      const geo = await getGeo();
-      if (!geo) {
-        alert("Couldn't get location — continuing without it.");
-      }
-      const body = geo ? JSON.stringify({ lat: geo.lat, lng: geo.lng }) : undefined;
-      const res = await fetch(`/api/bookings/${id}/check-in`, {
-        method: 'POST',
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
-        body,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data.error || 'Check-in failed');
-        return;
-      }
-      await loadBooking();
-    } finally {
-      setCheckingIn(false);
-    }
-  };
-
-  const handleCheckOut = async () => {
-    if (!id) return;
-    setCheckingOut(true);
-    try {
-      const geo = await getGeo();
-      if (!geo) {
-        alert("Couldn't get location — continuing without it.");
-      }
-      const body = geo ? JSON.stringify({ lat: geo.lat, lng: geo.lng }) : undefined;
-      const res = await fetch(`/api/bookings/${id}/check-out`, {
-        method: 'POST',
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
-        body,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        alert(data.error || 'Check-out failed');
-        return;
-      }
-      await loadBooking();
-    } finally {
-      setCheckingOut(false);
-    }
-  };
-
-  const handleOpenChat = () => {
-    if (booking?.threadId) {
-      router.push(`/sitter/inbox?thread=${encodeURIComponent(booking.threadId)}`);
-    }
-  };
-
-  const generateDelight = async () => {
+  const runCheckAction = async (kind: 'start' | 'end') => {
     if (!booking) return;
-    setDelightLoading(true);
+    setBusyPrimary(true);
+    const before = booking;
+    const nowIso = new Date().toISOString();
+    setBooking((prev) =>
+      prev
+        ? {
+            ...prev,
+            status: getOptimisticStatus(prev.status, kind),
+            timeline: {
+              ...prev.timeline,
+              checkedInAt: kind === 'start' ? nowIso : prev.timeline.checkedInAt,
+              checkedOutAt: kind === 'end' ? nowIso : prev.timeline.checkedOutAt,
+            },
+          }
+        : prev
+    );
     try {
-      const res = await fetch(`/api/bookings/${booking.id}/daily-delight`, { method: 'POST' });
+      const geo = await getGeo();
+      const body = geo ? JSON.stringify({ lat: geo.lat, lng: geo.lng }) : undefined;
+      const res = await fetch(`/api/bookings/${booking.id}/${kind === 'start' ? 'check-in' : 'check-out'}`, {
+        method: 'POST',
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body,
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setDelightDraft(buildStubDelight(booking));
-        setDelightMeta(null);
-      } else {
-        const report = typeof data.report === 'string' && data.report.trim() ? data.report : buildStubDelight(booking);
-        setDelightDraft(report);
-        setDelightMeta({
-          reportId: typeof data.reportId === 'string' ? data.reportId : undefined,
-          messageId: typeof data.messageId === 'string' ? data.messageId : undefined,
-          id: typeof data.id === 'string' ? data.id : undefined,
-        });
+        setBooking(before);
+        toastError(data.error || `${kind === 'start' ? 'Start visit' : 'End visit'} failed`);
+        return;
       }
+      toastSuccess(kind === 'start' ? 'Visit started' : 'Visit ended');
+      await loadBooking();
     } catch {
-      setDelightDraft(buildStubDelight(booking));
-      setDelightMeta(null);
+      setBooking(before);
+      toastError(`${kind === 'start' ? 'Start visit' : 'End visit'} failed`);
     } finally {
-      setDelightLoading(false);
+      setBusyPrimary(false);
     }
   };
+
+  const toggleChecklistItem = async (type: ChecklistType, checked: boolean) => {
+    if (!booking) return;
+    const prev = booking.checklist;
+    setBooking((curr) =>
+      curr
+        ? {
+            ...curr,
+            checklist: curr.checklist.map((item) =>
+              item.type === type ? { ...item, checkedAt: checked ? new Date().toISOString() : null } : item
+            ),
+          }
+        : curr
+    );
+    const res = await fetch(`/api/sitter/bookings/${booking.id}/checklist`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, checked }),
+    });
+    if (!res.ok) {
+      setBooking((curr) => (curr ? { ...curr, checklist: prev } : curr));
+      toastError('Could not update checklist');
+    }
+  };
+
+  const copyAddress = async () => {
+    if (!booking?.addressParts?.full) return;
+    try {
+      await navigator.clipboard.writeText(booking.addressParts.full);
+      toastSuccess('Address copied');
+    } catch {
+      toastError('Could not copy address');
+    }
+  };
+
+  const primaryAction = (() => {
+    if (!booking) return null;
+    const action = getBookingPrimaryAction(booking.status, booking.timeline.report.hasReport);
+    if (action === 'end') {
+      return <Button variant="primary" size="md" onClick={() => void runCheckAction('end')} disabled={busyPrimary}>End visit</Button>;
+    }
+    if (action === 'write_report') {
+      return <Button variant="primary" size="md" onClick={() => router.push(`/sitter/reports/new?bookingId=${booking.id}`)}>Write report</Button>;
+    }
+    if (action === 'view_report') {
+      return <Button variant="primary" size="md" onClick={() => booking.timeline.report.latestReportId ? router.push(`/sitter/reports/edit/${booking.timeline.report.latestReportId}`) : router.push('/sitter/reports')}>View report</Button>;
+    }
+    return <Button variant="primary" size="md" onClick={() => void runCheckAction('start')} disabled={busyPrimary}>Start visit</Button>;
+  })();
 
   return (
-    <>
-      <PageHeader
-        title="Booking details"
-        description={booking ? `${booking.service} · ${booking.clientName}` : ''}
-      />
-      <div className="mx-auto max-w-3xl px-4 pb-8 pt-2">
-        {loading ? (
-          <div className="animate-pulse space-y-4 rounded-xl border border-gray-200 bg-white p-4">
-            <div className="h-6 w-48 rounded bg-gray-200" />
-            <div className="h-4 w-full rounded bg-gray-100" />
-            <div className="h-4 w-3/4 rounded bg-gray-100" />
-          </div>
-        ) : error ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-            <p className="text-sm text-gray-600">{error}</p>
-            <Button variant="secondary" size="md" className="mt-4" onClick={() => router.back()}>
-              Back
-            </Button>
-          </div>
-        ) : booking ? (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-gray-900">{booking.clientName}</p>
-                  <p className="text-sm text-gray-600">{booking.service}</p>
-                </div>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(booking.status)}`}
-                >
-                  {booking.status.replace('_', ' ')}
-                </span>
-              </div>
-              <div className="space-y-4 text-sm text-gray-700">
-                <div>
-                  <p className="font-medium text-gray-900">When</p>
-                  <p>{formatDateTime(booking.startAt)} – {formatDateTime(booking.endAt)}</p>
-                </div>
-                {booking.address && (
-                  <div>
-                    <p className="font-medium text-gray-900">Address</p>
-                    <p>{booking.address}</p>
-                  </div>
-                )}
-                {booking.pets.length > 0 && (
-                  <div>
-                    <p className="font-medium text-gray-900">Pets</p>
-                    <ul className="list-disc pl-4">
-                      {booking.pets.map((p) => (
-                        <li key={p.id}>
-                          {p.name || 'Pet'} {p.species ? `(${p.species})` : ''}
-                          {p.breed ? ` – ${p.breed}` : ''}
-                          {p.notes ? ` – ${p.notes}` : ''}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {booking.notes && (
-                  <div>
-                    <p className="font-medium text-gray-900">Notes</p>
-                    <p>{booking.notes}</p>
-                  </div>
-                )}
-                {(booking.client?.phone || booking.client?.email) && (
-                  <div>
-                    <p className="font-medium text-gray-900">Contact</p>
-                    {booking.client.phone && (
-                      <p>
-                        <a href={`tel:${booking.client.phone}`} className="break-all text-blue-600 hover:underline">
-                          {booking.client.phone}
-                        </a>
-                      </p>
-                    )}
-                    {booking.client.email && (
-                      <p>
-                        <a href={`mailto:${booking.client.email}`} className="break-all text-blue-600 hover:underline">
-                          {booking.client.email}
-                        </a>
-                      </p>
-                    )}
-                  </div>
-                )}
-                <div>
-                  <p className="font-medium text-gray-900">Total</p>
-                  <p>${booking.totalPrice.toFixed(2)}</p>
-                </div>
-              </div>
-            </div>
+    <LayoutWrapper variant="narrow" className="pb-28 md:pb-4">
+      <PageHeader title="Booking execution" subtitle={booking ? `${booking.service} · ${booking.clientName}` : 'Loading...'} />
 
-            <div className="flex flex-wrap gap-2">
-              {['pending', 'confirmed'].includes(booking.status) && (
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={() => void handleCheckIn()}
-                  disabled={checkingIn}
-                >
-                  {checkingIn ? 'Checking in...' : 'Check in'}
-                </Button>
-              )}
-              {booking.status === 'in_progress' && (
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={() => void handleCheckOut()}
-                  disabled={checkingOut}
-                >
-                  {checkingOut ? 'Checking out...' : 'Check out'}
-                </Button>
-              )}
-              {booking.threadId && (
-                <Button variant="secondary" size="md" onClick={handleOpenChat}>
-                  Open chat
-                </Button>
-              )}
-              <Button variant="secondary" size="md" onClick={() => setDelightOpen(true)}>
-                ✨ Daily Delight
-              </Button>
-              <Button variant="secondary" size="md" onClick={() => router.back()}>
-                Back
-              </Button>
-            </div>
+      {loading ? (
+        <div className="animate-pulse space-y-4 rounded-xl border border-gray-200 bg-white p-4">
+          <div className="h-6 w-48 rounded bg-gray-200" />
+          <div className="h-4 w-full rounded bg-gray-100" />
+          <div className="h-4 w-3/4 rounded bg-gray-100" />
+        </div>
+      ) : error || !booking ? (
+        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
+          <p className="text-sm text-gray-600">{error || 'Booking not found'}</p>
+          <Button variant="secondary" size="md" className="mt-4" onClick={() => router.push('/sitter/bookings')}>Back</Button>
+        </div>
+      ) : (
+        <>
+          <div className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-white p-3 md:flex">
+            {primaryAction}
+            {booking.threadId && <Button variant="secondary" size="md" onClick={() => router.push(`/sitter/inbox?thread=${encodeURIComponent(booking.threadId || '')}`)}>Message client</Button>}
+            {shouldRenderTel(booking.client?.phone) && <a href={`tel:${booking.client?.phone}`} className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-neutral-800">Call client</a>}
+            {shouldRenderTel(booking.supportPhone) && <a href={`tel:${booking.supportPhone}`} className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-neutral-800">Call support</a>}
           </div>
-        ) : null}
-      </div>
 
-      <Modal
-        isOpen={delightOpen}
-        onClose={() => setDelightOpen(false)}
-        title={booking ? `✨ Daily Delight - ${booking.clientName}` : '✨ Daily Delight'}
-        footer={
-          <>
-            <Button variant="secondary" size="md" onClick={() => setDelightOpen(false)}>
-              Close
-            </Button>
-            <Button variant="secondary" size="md" onClick={() => void generateDelight()} disabled={delightLoading}>
-              {delightLoading ? 'Working...' : delightDraft ? 'Regenerate' : 'Generate'}
-            </Button>
-            <Button variant="primary" size="md" disabled={!delightDraft.trim()}>
-              Send
-            </Button>
-          </>
-        }
-      >
-        {booking ? (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-700">
-              <p className="font-medium text-gray-900">{booking.service}</p>
-              <p>{formatDateTime(booking.startAt)} – {formatDateTime(booking.endAt)}</p>
-                {booking.pets.length > 0 && (
-                  <p className="mt-1 text-gray-600">
-                    Pets:{' '}
-                    {booking.pets
-                      .map((p) =>
-                        p.name ? `${p.name}${p.species ? ` (${p.species})` : ''}` : p.species || 'Pet'
-                      )
-                      .join(', ')}
-                  </p>
+          <section className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-lg font-semibold text-gray-900">{timeRange}</p>
+            <p className="mt-1 text-sm text-gray-700">{booking.service}</p>
+            <p className="mt-1 text-sm text-gray-600">{booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}</p>
+            <div className="mt-2"><StatusChip variant={statusChipVariant(booking.status)}>{statusLabel(booking.status)}</StatusChip></div>
+          </section>
+
+          <section className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-sm font-semibold text-gray-900">Address + navigation</p>
+            <div className="mt-2 space-y-1 text-sm text-gray-700">
+              {booking.addressParts.line1 && <p className="break-words">{booking.addressParts.line1}</p>}
+              {booking.addressParts.line2 && <p className="break-words">{booking.addressParts.line2}</p>}
+              <p className="break-words">
+                {[booking.addressParts.city, booking.addressParts.state, booking.addressParts.zip].filter(Boolean).join(', ')}
+              </p>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {booking.mapLink.google && <a href={booking.mapLink.google} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-neutral-800">Open in Maps</a>}
+              {shouldRenderCopyAddress(booking.addressParts.full) && <Button variant="secondary" size="md" onClick={() => void copyAddress()}>Copy address</Button>}
+            </div>
+            {(booking.doorCode || booking.entryInstructions) && (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                {booking.doorCode && <p><span className="font-semibold">Door code:</span> {booking.doorCode}</p>}
+                {booking.entryInstructions && <p className="mt-1 break-words">{booking.entryInstructions}</p>}
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-sm font-semibold text-gray-900">Pets</p>
+            <div className="mt-2 space-y-2">
+              {booking.pets.map((pet) => (
+                <button key={pet.id} type="button" onClick={() => router.push(`/sitter/pets/${pet.id}`)} className="flex min-h-[44px] w-full items-start justify-between rounded-lg border border-gray-100 px-3 py-2 text-left hover:bg-gray-50">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900">🐾 {pet.name || 'Pet'}{pet.species ? ` (${pet.species})` : ''}</p>
+                    {pet.careNotes && <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">{pet.careNotes}</p>}
+                  </div>
+                  <div className="ml-2 flex shrink-0 gap-1">
+                    {pet.flags?.hasMedication && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800">Meds</span>}
+                    {pet.flags?.hasAllergies && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium text-rose-800">Allergy</span>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {booking.status === 'in_progress' && (
+            <section className="rounded-xl border border-gray-200 bg-white p-4">
+              <p className="text-sm font-semibold text-gray-900">Visit checklist</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {booking.checklist.map((item) => {
+                  const checked = !!item.checkedAt;
+                  return (
+                    <button
+                      key={item.type}
+                      type="button"
+                      onClick={() => void toggleChecklistItem(item.type, !checked)}
+                      className={`min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm ${checked ? 'border-green-300 bg-green-50 text-green-800' : 'border-gray-200 bg-white text-gray-700'}`}
+                    >
+                      <p className="font-medium">{checklistLabel[item.type]}</p>
+                      {item.checkedAt && <p className="text-[11px]">{new Date(item.checkedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          <section className="rounded-xl border border-gray-200 bg-white p-4">
+            <p className="text-sm font-semibold text-gray-900">Notes</p>
+            <div className="mt-2 space-y-2 text-sm text-gray-700">
+              <p className="text-xs uppercase tracking-wide text-gray-500">Client contact</p>
+              <div className="flex flex-wrap gap-3">
+                {shouldRenderTel(booking.client?.phone) && (
+                  <a href={`tel:${booking.client?.phone}`} className="break-all text-blue-700 underline underline-offset-2">
+                    {booking.client?.phone}
+                  </a>
                 )}
+                {shouldRenderMail(booking.client?.email) && (
+                  <a href={`mailto:${booking.client?.email}`} className="break-all text-blue-700 underline underline-offset-2">
+                    {booking.client?.email}
+                  </a>
+                )}
+              </div>
+              {booking.client?.notes && <p><span className="font-medium text-gray-900">Client:</span> {booking.client.notes}</p>}
+              {booking.notes && <p><span className="font-medium text-gray-900">Booking:</span> {booking.notes}</p>}
+              {!booking.client?.notes && !booking.notes && <p className="text-gray-500">No notes provided.</p>}
+              <p className="text-xs text-gray-500">Last updated {new Date(booking.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
             </div>
-            <div className="rounded-lg bg-gray-50 p-3">
-              <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-gray-500">
-                Preview / Composer
-              </label>
-              <textarea
-                value={delightDraft}
-                onChange={(e) => setDelightDraft(e.target.value)}
-                placeholder="Generate a Daily Delight, then fine-tune the message here."
-                className="min-h-44 w-full resize-y rounded-md border border-gray-300 bg-white p-3 text-sm text-gray-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
+          </section>
+
+          {booking.emergencyContact && (
+            <section className="rounded-xl border border-red-200 bg-red-50 p-4">
+              <p className="text-sm font-semibold text-red-900">Emergency contact</p>
+              <p className="mt-1 text-sm text-red-900">{booking.emergencyContact.name}{booking.emergencyContact.relationship ? ` · ${booking.emergencyContact.relationship}` : ''}</p>
+              <a href={`tel:${booking.emergencyContact.phone}`} className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-red-300 bg-white px-4 text-sm font-medium text-red-900">
+                {booking.emergencyContact.phone}
+              </a>
+            </section>
+          )}
+        </>
+      )}
+
+      {booking && (
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 p-3 backdrop-blur md:hidden">
+          <div className="flex flex-wrap gap-2">
+            {primaryAction}
+            {booking.threadId && <Button variant="secondary" size="md" onClick={() => router.push(`/sitter/inbox?thread=${encodeURIComponent(booking.threadId || '')}`)}>Message</Button>}
+            {shouldRenderTel(booking.client?.phone) && <a href={`tel:${booking.client?.phone}`} className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-3 text-sm font-medium text-neutral-800">Call client</a>}
+            {shouldRenderTel(booking.supportPhone) && <a href={`tel:${booking.supportPhone}`} className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-3 text-sm font-medium text-neutral-800">Support</a>}
           </div>
-        ) : null}
-      </Modal>
-    </>
+        </div>
+      )}
+    </LayoutWrapper>
   );
 }

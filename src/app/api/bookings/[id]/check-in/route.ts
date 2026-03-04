@@ -57,6 +57,34 @@ export async function POST(
       data: { status: 'in_progress' },
     });
 
+    const existingVisitEvent = await db.visitEvent.findFirst({
+      where: { bookingId: id, sitterId: ctx.sitterId, orgId: ctx.orgId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (existingVisitEvent) {
+      await db.visitEvent.update({
+        where: { id: existingVisitEvent.id },
+        data: {
+          checkInAt: new Date(),
+          status: 'in_progress',
+        },
+      });
+    } else {
+      await db.visitEvent.create({
+        data: {
+          orgId: ctx.orgId,
+          sitterId: ctx.sitterId,
+          clientId: booking.clientId ?? null,
+          bookingId: booking.id,
+          scheduledStart: booking.startAt,
+          scheduledEnd: booking.endAt,
+          checkInAt: new Date(),
+          status: 'in_progress',
+        },
+      });
+    }
+
     if (lat != null && lng != null) {
       await db.eventLog.create({
         data: {

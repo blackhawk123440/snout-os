@@ -58,6 +58,21 @@ export async function POST(
       data: { status: 'completed' },
     });
 
+    const existingVisitEvent = await db.visitEvent.findFirst({
+      where: { bookingId: id, sitterId: ctx.sitterId, orgId: ctx.orgId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (existingVisitEvent) {
+      await db.visitEvent.update({
+        where: { id: existingVisitEvent.id },
+        data: {
+          checkOutAt: new Date(),
+          status: 'completed',
+        },
+      });
+    }
+
     if (lat != null && lng != null) {
       await db.eventLog.create({
         data: {
