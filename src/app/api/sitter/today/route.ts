@@ -30,7 +30,6 @@ export async function GET() {
       where: whereOrg(ctx.orgId, {
         sitterId: ctx.sitterId,
         startAt: { gte: todayStart, lt: tomorrowStart },
-        status: { not: 'cancelled' },
       }),
       include: {
         pets: {
@@ -44,6 +43,7 @@ export async function GET() {
           select: {
             firstName: true,
             lastName: true,
+            phone: true,
           },
         },
       },
@@ -53,6 +53,7 @@ export async function GET() {
     const bookingIds = bookings.map((booking: any) => booking.id);
     const threadMap = new Map<string, string>();
     const visitMap = new Map<string, { checkInAt: Date | null; checkOutAt: Date | null }>();
+    const reportMap = new Map<string, { hasReport: boolean; latestReportId: string | null }>();
 
     if (bookingIds.length > 0) {
       const threads = await prisma.messageThread.findMany({
@@ -85,6 +86,19 @@ export async function GET() {
           visitMap.set(v.bookingId, { checkInAt: v.checkInAt ?? null, checkOutAt: v.checkOutAt ?? null });
         }
       }
+
+      const reports = await prisma.report.findMany({
+        where: whereOrg(ctx.orgId, {
+          bookingId: { in: bookingIds },
+        }),
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, bookingId: true },
+      });
+      for (const report of reports) {
+        if (report.bookingId && !reportMap.has(report.bookingId)) {
+          reportMap.set(report.bookingId, { hasReport: true, latestReportId: report.id });
+        }
+      }
     }
 
     const toIso = (d: Date) => (d instanceof Date ? d.toISOString() : String(d));
@@ -100,8 +114,17 @@ export async function GET() {
         'Client',
       pets: booking.pets || [],
       threadId: threadMap.get(booking.id) || null,
+      clientPhone: booking.client?.phone || booking.phone || null,
       checkedInAt: visitMap.get(booking.id)?.checkInAt ? toIso(visitMap.get(booking.id)!.checkInAt as Date) : null,
       checkedOutAt: visitMap.get(booking.id)?.checkOutAt ? toIso(visitMap.get(booking.id)!.checkOutAt as Date) : null,
+      hasReport: reportMap.get(booking.id)?.hasReport ?? false,
+      latestReportId: reportMap.get(booking.id)?.latestReportId ?? null,
+      mapLink: booking.address
+        ? {
+            apple: `https://maps.apple.com/?q=${encodeURIComponent(booking.address)}`,
+            google: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.address)}`,
+          }
+        : null,
     }));
 
     return NextResponse.json({ bookings: payload }, { status: 200 });

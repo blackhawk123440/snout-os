@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui';
 import { toastSuccess, toastError, toastWarning } from '@/lib/toast';
 import { useAuth } from '@/lib/auth-client';
@@ -9,7 +9,7 @@ import { useOffline } from '@/hooks/useOffline';
 import { useSSE } from '@/hooks/useSSE';
 import { usePageVisible } from '@/hooks/usePageVisible';
 import { saveTodayVisits, getTodayVisits } from '@/lib/offline';
-import { enqueueAction, getActionsForBooking } from '@/lib/offline';
+import { enqueueAction } from '@/lib/offline';
 import {
   SitterCard,
   SitterCardHeader,
@@ -17,17 +17,20 @@ import {
   SitterCardActions,
   SitterPageHeader,
   SitterSkeletonList,
-  SitterEmptyState,
   SitterErrorState,
-  DailyDelightModal,
 } from '@/components/sitter';
 import { OnboardingChecklist } from '@/components/app/OnboardingChecklist';
+import {
+  getShowCancelledFromQuery,
+  groupTodayVisits,
+  normalizeTodayBooking,
+  pickNextUpVisit,
+  type TodayVisitLike,
+} from './today-helpers';
 
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'in_progress' | string;
 
-type AlertType = 'allergy' | 'medication' | 'behavior' | 'new_pet';
-
-interface TodayBooking {
+interface TodayBooking extends TodayVisitLike {
   id: string;
   status: BookingStatus;
   service: string;
@@ -37,10 +40,12 @@ interface TodayBooking {
   clientName: string;
   pets: Array<{ id: string; name?: string | null; species?: string | null }>;
   threadId: string | null;
-  /** Optional alert badges (stub - API may add later) */
-  alerts?: AlertType[];
   checkedInAt?: string | null;
   checkedOutAt?: string | null;
+  clientPhone?: string | null;
+  hasReport?: boolean;
+  latestReportId?: string | null;
+  mapLink?: { apple: string; google: string } | null;
 }
 
 function useCountdown(targetDate: string | null): string | null {
@@ -68,13 +73,6 @@ function useCountdown(targetDate: string | null): string | null {
   }, [targetDate]);
   return text;
 }
-
-const ALERT_LABELS: Record<AlertType, string> = {
-  allergy: 'Allergy',
-  medication: 'Medication',
-  behavior: 'Behavior',
-  new_pet: 'New pet',
-};
 
 const statusPillLabel = (status: string) => {
   switch (status) {
@@ -125,7 +123,6 @@ function NextVisitHero({
   onCheckIn,
   onCheckOut,
   onMessage,
-  onDelight,
   checkingInId,
   checkingOutId,
   nowMs,
@@ -134,7 +131,6 @@ function NextVisitHero({
   onCheckIn: (id: string) => void;
   onCheckOut: (id: string) => void;
   onMessage: (b: TodayBooking) => void;
-  onDelight: (b: TodayBooking) => void;
   checkingInId: string | null;
   checkingOutId: string | null;
   nowMs: number;
@@ -154,7 +150,7 @@ function NextVisitHero({
   return (
     <SitterCard className="mb-4 border-2 border-blue-200 bg-blue-50">
       <SitterCardHeader>
-        <p className="text-xs font-medium uppercase tracking-wide text-blue-700">Next visit</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-blue-700">Next up</p>
         {countdown && (
           <p className="mt-1 text-sm font-semibold text-blue-800">{countdown}</p>
         )}
@@ -220,16 +216,31 @@ function NextVisitHero({
           </Button>
         )}
         {booking.status === 'completed' && (
-          <Button variant="primary" size="md" onClick={() => router.push(`/sitter/reports/new?bookingId=${booking.id}`)}>
-            Write report
-          </Button>
+          booking.hasReport && booking.latestReportId
+            ? (
+              <Button variant="primary" size="md" onClick={() => router.push(`/sitter/reports/edit/${booking.latestReportId}`)}>
+                View report
+              </Button>
+            )
+            : (
+              <Button variant="primary" size="md" onClick={() => router.push(`/sitter/reports/new?bookingId=${booking.id}`)}>
+                Write report
+              </Button>
+            )
         )}
         <Button variant="secondary" size="sm" onClick={() => onMessage(booking)}>
           Message
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => booking.status === 'completed' ? router.push(`/sitter/reports/new?bookingId=${booking.id}`) : onDelight(booking)}>
-          {booking.status === 'completed' ? 'Add report' : 'Daily Delight'}
-        </Button>
+        {booking.clientPhone && (
+          <a href={`tel:${booking.clientPhone}`} className="inline-flex min-h-[40px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700">
+            Call
+          </a>
+        )}
+        {booking.mapLink?.google && (
+          <a href={booking.mapLink.google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[40px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700">
+            Navigate
+          </a>
+        )}
         <Button variant="secondary" size="sm" onClick={() => router.push(`/sitter/bookings/${booking.id}`)}>
           Details
         </Button>
@@ -255,6 +266,102 @@ function QuickInsightsStrip({
       </span>
       <span className="text-sm text-amber-700">On track</span>
     </div>
+  );
+}
+
+function VisitCard({
+  booking,
+  nowMs,
+  checkingInId,
+  checkingOutId,
+  onCheckIn,
+  onCheckOut,
+  onMessage,
+}: {
+  booking: TodayBooking;
+  nowMs: number;
+  checkingInId: string | null;
+  checkingOutId: string | null;
+  onCheckIn: (id: string) => void;
+  onCheckOut: (id: string) => void;
+  onMessage: (b: TodayBooking) => void;
+}) {
+  const router = useRouter();
+  const petNames = booking.pets.length > 0
+    ? booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')
+    : '—';
+
+  const runPrimary = () => {
+    if (['pending', 'confirmed'].includes(booking.status)) return onCheckIn(booking.id);
+    if (booking.status === 'in_progress') return onCheckOut(booking.id);
+    if (booking.status === 'completed') {
+      if (booking.hasReport && booking.latestReportId) {
+        router.push(`/sitter/reports/edit/${booking.latestReportId}`);
+      } else {
+        router.push(`/sitter/reports/new?bookingId=${booking.id}`);
+      }
+      return;
+    }
+    router.push(`/sitter/bookings/${booking.id}`);
+  };
+
+  return (
+    <SitterCard key={booking.id} onClick={() => router.push(`/sitter/bookings/${booking.id}`)}>
+      <SitterCardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-semibold tabular-nums text-neutral-900">
+              {formatTimeRange(booking.startAt, booking.endAt)}
+            </p>
+            <p className="font-medium text-neutral-800">{booking.service}</p>
+            <p className="text-sm text-neutral-600">{petNames}</p>
+            <p className="text-sm text-neutral-500">{booking.clientName}</p>
+            {getLiveVisitText(booking, nowMs) && (
+              <p className="mt-0.5 text-sm font-semibold text-indigo-700">{getLiveVisitText(booking, nowMs)}</p>
+            )}
+            {booking.status === 'in_progress' && booking.checkedInAt && (
+              <p className="text-xs text-neutral-500">
+                Started at {new Date(booking.checkedInAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              </p>
+            )}
+            {booking.address && booking.address.length <= 60 && (
+              <p className="mt-0.5 truncate text-xs text-neutral-500" title={booking.address}>{booking.address}</p>
+            )}
+          </div>
+          <div className="flex shrink-0 items-start">
+            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(booking.status)}`}>
+              {statusPillLabel(booking.status)}
+            </span>
+          </div>
+        </div>
+      </SitterCardHeader>
+      <SitterCardActions stopPropagation>
+        <Button
+          variant="primary"
+          size="md"
+          className="h-10 w-full"
+          onClick={() => runPrimary()}
+          disabled={checkingInId === booking.id || checkingOutId === booking.id}
+        >
+          {checkingInId === booking.id || checkingOutId === booking.id ? 'Saving…' : getPrimaryActionLabel(booking)}
+        </Button>
+        <div className="flex w-full flex-wrap gap-2">
+          <Button variant="secondary" size="sm" onClick={() => onMessage(booking)}>
+            Message
+          </Button>
+          {booking.clientPhone && (
+            <a href={`tel:${booking.clientPhone}`} className="inline-flex min-h-[36px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700">
+              Call
+            </a>
+          )}
+          {booking.mapLink?.google && (
+            <a href={booking.mapLink.google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[36px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700">
+              Navigate
+            </a>
+          )}
+        </div>
+      </SitterCardActions>
+    </SitterCard>
   );
 }
 
@@ -290,10 +397,18 @@ const getLiveVisitText = (booking: TodayBooking, nowMs: number) => {
   return null;
 };
 
+const getPrimaryActionLabel = (booking: TodayBooking) => {
+  if (['pending', 'confirmed'].includes(booking.status)) return 'Start';
+  if (booking.status === 'in_progress') return 'End';
+  if (booking.status === 'completed') return booking.hasReport ? 'View report' : 'Write report';
+  return 'View details';
+};
+
 const TODAY_KEY = () => new Date().toISOString().slice(0, 10);
 
 export default function SitterTodayPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const { isOnline, refreshQueuedCount } = useOffline();
   const [bookings, setBookings] = useState<TodayBooking[]>([]);
@@ -301,16 +416,17 @@ export default function SitterTodayPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [checkingInId, setCheckingInId] = useState<string | null>(null);
   const [checkingOutId, setCheckingOutId] = useState<string | null>(null);
-  const [delightBooking, setDelightBooking] = useState<TodayBooking | null>(null);
-  const [queuedByBooking, setQueuedByBooking] = useState<Record<string, string[]>>({});
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const showCancelled = getShowCancelledFromQuery(searchParams.get('showCancelled'));
 
   const todayLabel = useMemo(
     () => new Date().toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' }),
     []
   );
 
-  const loadBookings = useCallback(async () => {
+  const loadBookings = useCallback(async (opts?: { preserveScroll?: boolean }) => {
+    const preserveScroll = !!opts?.preserveScroll;
+    const prevScrollY = preserveScroll && typeof window !== 'undefined' ? window.scrollY : null;
     setLoading(true);
     setLoadError(null);
     const dateKey = TODAY_KEY();
@@ -321,7 +437,7 @@ export default function SitterTodayPage() {
         if (!res.ok) {
           const cached = await getTodayVisits(dateKey);
           if (cached && Array.isArray((cached as { bookings?: unknown[] }).bookings)) {
-            setBookings((cached as { bookings: TodayBooking[] }).bookings);
+            setBookings(((cached as { bookings: unknown[] }).bookings || []).map((item) => normalizeTodayBooking(item) as TodayBooking));
             setLoadError(null);
           } else {
             setLoadError(data.error || 'Unable to load today\'s bookings');
@@ -329,13 +445,13 @@ export default function SitterTodayPage() {
           }
           return;
         }
-        const list = Array.isArray(data.bookings) ? data.bookings : [];
+        const list = Array.isArray(data.bookings) ? data.bookings.map((item: unknown) => normalizeTodayBooking(item)) : [];
         setBookings(list);
         await saveTodayVisits(dateKey, { bookings: list });
       } else {
         const cached = await getTodayVisits(dateKey);
         if (cached && Array.isArray((cached as { bookings?: unknown[] }).bookings)) {
-          setBookings((cached as { bookings: TodayBooking[] }).bookings);
+          setBookings(((cached as { bookings: unknown[] }).bookings || []).map((item) => normalizeTodayBooking(item) as TodayBooking));
         } else {
           setLoadError('Offline — no cached data. Connect to load.');
           setBookings([]);
@@ -344,13 +460,16 @@ export default function SitterTodayPage() {
     } catch {
       const cached = await getTodayVisits(dateKey);
       if (cached && Array.isArray((cached as { bookings?: unknown[] }).bookings)) {
-        setBookings((cached as { bookings: TodayBooking[] }).bookings);
+        setBookings(((cached as { bookings: unknown[] }).bookings || []).map((item) => normalizeTodayBooking(item) as TodayBooking));
       } else {
         setLoadError('Unable to load today\'s bookings');
         setBookings([]);
       }
     } finally {
       setLoading(false);
+      if (prevScrollY != null && typeof window !== 'undefined') {
+        requestAnimationFrame(() => window.scrollTo(0, prevScrollY));
+      }
     }
   }, []);
 
@@ -365,22 +484,7 @@ export default function SitterTodayPage() {
 
   const sseUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/realtime/sitter/today` : null;
   const pageVisible = usePageVisible();
-  useSSE(sseUrl, () => void loadBookings(), pageVisible);
-
-  useEffect(() => {
-    if (!bookings.length) return;
-    let cancelled = false;
-    Promise.all(
-      bookings.map(async (b) => {
-        const actions = await getActionsForBooking(b.id);
-        return [b.id, actions.map((a) => a.type)] as const;
-      })
-    ).then((pairs) => {
-      if (cancelled) return;
-      setQueuedByBooking(Object.fromEntries(pairs));
-    });
-    return () => { cancelled = true; };
-  }, [bookings, refreshQueuedCount]);
+  useSSE(sseUrl, () => void loadBookings({ preserveScroll: true }), pageVisible);
 
   const getGeo = (): Promise<{ lat: number; lng: number } | null> =>
     new Promise((resolve) => {
@@ -409,7 +513,6 @@ export default function SitterTodayPage() {
         await enqueueAction('visit.checkin', { orgId, sitterId, bookingId, payload });
         const nowIso = new Date().toISOString();
         setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress', checkedInAt: nowIso } : b)));
-        setQueuedByBooking((prev) => ({ ...prev, [bookingId]: [...(prev[bookingId] || []), 'visit.checkin'] }));
         toastSuccess('Queued — will sync when online');
         void refreshQueuedCount();
         return;
@@ -451,7 +554,6 @@ export default function SitterTodayPage() {
         await enqueueAction('visit.checkout', { orgId, sitterId, bookingId, payload });
         const nowIso = new Date().toISOString();
         setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed', checkedOutAt: nowIso } : b)));
-        setQueuedByBooking((prev) => ({ ...prev, [bookingId]: [...(prev[bookingId] || []), 'visit.checkout'] }));
         toastSuccess('Queued — will sync when online');
         void refreshQueuedCount();
         return;
@@ -484,8 +586,12 @@ export default function SitterTodayPage() {
     router.push(`/sitter/inbox${query}`);
   };
 
-  const openDelightModal = (booking: TodayBooking) => {
-    setDelightBooking(booking);
+  const toggleShowCancelled = () => {
+    const next = !showCancelled;
+    const params = new URLSearchParams(searchParams.toString());
+    if (next) params.set('showCancelled', '1');
+    else params.delete('showCancelled');
+    router.replace(`/sitter/today${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
   const [routeUrl, setRouteUrl] = useState<string | null>(null);
@@ -500,6 +606,9 @@ export default function SitterTodayPage() {
       setRouteUrl(null);
     }
   }, [bookings.length]);
+
+  const sections = useMemo(() => groupTodayVisits(bookings, showCancelled), [bookings, showCancelled]);
+  const nextUp = useMemo(() => pickNextUpVisit(bookings, showCancelled), [bookings, showCancelled]);
 
   return (
     <>
@@ -529,14 +638,13 @@ export default function SitterTodayPage() {
             </div>
           }
         />
-        {!loading && bookings.length > 0 && (
+        {!loading && nextUp && (
           <>
             <NextVisitHero
-              booking={bookings[0]}
+              booking={nextUp}
               onCheckIn={handleCheckIn}
               onCheckOut={handleCheckOut}
               onMessage={handleOpenChat}
-              onDelight={openDelightModal}
               checkingInId={checkingInId}
               checkingOutId={checkingOutId}
               nowMs={nowMs}
@@ -548,10 +656,6 @@ export default function SitterTodayPage() {
           </>
         )}
 
-        {!loading && bookings.length > 0 && (
-          <h2 className="mb-4 mt-6 text-lg font-semibold text-neutral-900">Today's bookings</h2>
-        )}
-
         {loading ? (
           <SitterSkeletonList count={3} />
         ) : loadError ? (
@@ -561,115 +665,118 @@ export default function SitterTodayPage() {
             onRetry={() => void loadBookings()}
           />
         ) : bookings.length === 0 ? (
-          <SitterEmptyState
-            title="No visits today"
-            subtitle="Enjoy the quiet—check Calendar for upcoming."
-            cta={{ label: 'Open Calendar', onClick: () => router.push('/sitter/calendar') }}
-          />
+          <SitterCard>
+            <SitterCardBody>
+              <p className="text-base font-semibold text-neutral-900">No visits today</p>
+              <p className="mt-1 text-sm text-neutral-500">You are all set for today.</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button variant="secondary" size="md" onClick={() => router.push('/sitter/calendar')}>
+                  Open calendar
+                </Button>
+                <Button variant="secondary" size="md" onClick={() => router.push('/sitter/availability')}>
+                  Update availability
+                </Button>
+              </div>
+            </SitterCardBody>
+          </SitterCard>
         ) : (
-          <div className="space-y-4">
-            {bookings.map((booking) => {
-              const petNames = booking.pets.length > 0
-                ? booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')
-                : '—';
-              return (
-              <SitterCard key={booking.id} onClick={() => router.push(`/sitter/bookings/${booking.id}`)}>
-                <SitterCardHeader>
-                  {(booking.alerts ?? []).length > 0 && (
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      {(booking.alerts ?? []).map((a) => (
-                        <span
-                          key={a}
-                          className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800"
-                        >
-                          {ALERT_LABELS[a]}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-base font-semibold tabular-nums text-neutral-900">
-                        {formatTimeRange(booking.startAt, booking.endAt)}
-                      </p>
-                      <p className="text-xs text-neutral-500">{getStatusSubtitle(booking)}</p>
-                      {getLiveVisitText(booking, nowMs) && (
-                        <p className="text-sm font-semibold text-indigo-700">{getLiveVisitText(booking, nowMs)}</p>
-                      )}
-                      {booking.status === 'in_progress' && booking.checkedInAt && (
-                        <p className="text-xs text-neutral-500">
-                          Started at {new Date(booking.checkedInAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                        </p>
-                      )}
-                      <p className="font-medium text-neutral-800">{booking.service}</p>
-                      <p className="text-sm text-neutral-600">{petNames}</p>
-                      <p className="text-sm text-neutral-500">{booking.clientName}</p>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-                      {(queuedByBooking[booking.id]?.length ?? 0) > 0 && (
-                        <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900">
-                          Queued
-                        </span>
-                      )}
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(booking.status)}`}>
-                        {statusPillLabel(booking.status)}
-                      </span>
-                    </div>
-                  </div>
-                </SitterCardHeader>
-                {booking.address ? (
-                  <SitterCardBody>
-                    <p className="truncate text-sm text-neutral-600" title={booking.address}>{booking.address}</p>
-                  </SitterCardBody>
-                ) : null}
-                <SitterCardActions stopPropagation>
-                  {['pending', 'confirmed'].includes(booking.status) && (
-                    <Button
-                      variant="primary"
-                      size="md"
-                      onClick={() => void handleCheckIn(booking.id)}
-                      disabled={checkingInId === booking.id}
-                    >
-                      {checkingInId === booking.id ? 'Saving…' : 'Start visit'}
-                    </Button>
-                  )}
-                  {booking.status === 'in_progress' && (
-                    <Button
-                      variant="primary"
-                      size="md"
-                      onClick={() => void handleCheckOut(booking.id)}
-                      disabled={checkingOutId === booking.id}
-                    >
-                      {checkingOutId === booking.id ? 'Saving…' : 'End visit'}
-                    </Button>
-                  )}
-                  {booking.status === 'completed' && (
-                    <Button variant="primary" size="md" onClick={() => router.push(`/sitter/reports/new?bookingId=${booking.id}`)}>
-                      Write report
-                    </Button>
-                  )}
-                  <Button variant="secondary" size="md" onClick={() => router.push(`/sitter/bookings/${booking.id}`)}>
-                    View details
-                  </Button>
-                  <Button variant="secondary" size="md" onClick={() => handleOpenChat(booking)}>
-                    Message
-                  </Button>
-                  <Button variant="secondary" size="md" onClick={() => booking.status === 'completed' ? router.push(`/sitter/reports/new?bookingId=${booking.id}`) : openDelightModal(booking)}>
-                    {booking.status === 'completed' ? 'Add report' : 'Daily Delight'}
-                  </Button>
-                </SitterCardActions>
-              </SitterCard>
-              );
-            })}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-neutral-900">Today command center</h2>
+              <button
+                type="button"
+                onClick={toggleShowCancelled}
+                className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700"
+              >
+                {showCancelled ? 'Hide cancelled' : 'Show cancelled'}
+              </button>
+            </div>
+
+            {sections.inProgress.length > 0 && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-600">In progress</h3>
+                  <span className="text-xs text-neutral-500">{sections.inProgress.length}</span>
+                </div>
+                {sections.inProgress.map((booking) => (
+                  <VisitCard
+                    key={booking.id}
+                    booking={booking}
+                    nowMs={nowMs}
+                    checkingInId={checkingInId}
+                    checkingOutId={checkingOutId}
+                    onCheckIn={handleCheckIn}
+                    onCheckOut={handleCheckOut}
+                    onMessage={handleOpenChat}
+                  />
+                ))}
+              </section>
+            )}
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-600">Up next</h3>
+                <span className="text-xs text-neutral-500">{sections.upNext.length}</span>
+              </div>
+              {sections.upNext.length === 0 ? (
+                <SitterCard><SitterCardBody><p className="text-sm text-neutral-500">No upcoming visits in this section.</p></SitterCardBody></SitterCard>
+              ) : (
+                sections.upNext.map((booking) => (
+                  <VisitCard
+                    key={booking.id}
+                    booking={booking}
+                    nowMs={nowMs}
+                    checkingInId={checkingInId}
+                    checkingOutId={checkingOutId}
+                    onCheckIn={handleCheckIn}
+                    onCheckOut={handleCheckOut}
+                    onMessage={handleOpenChat}
+                  />
+                ))
+              )}
+            </section>
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-600">Later today</h3>
+                <span className="text-xs text-neutral-500">{sections.laterToday.length}</span>
+              </div>
+              {sections.laterToday.map((booking) => (
+                <VisitCard
+                  key={booking.id}
+                  booking={booking}
+                  nowMs={nowMs}
+                  checkingInId={checkingInId}
+                  checkingOutId={checkingOutId}
+                  onCheckIn={handleCheckIn}
+                  onCheckOut={handleCheckOut}
+                  onMessage={handleOpenChat}
+                />
+              ))}
+            </section>
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-600">Completed today</h3>
+                <span className="text-xs text-neutral-500">{sections.completed.length}</span>
+              </div>
+              {sections.completed.map((booking) => (
+                <VisitCard
+                  key={booking.id}
+                  booking={booking}
+                  nowMs={nowMs}
+                  checkingInId={checkingInId}
+                  checkingOutId={checkingOutId}
+                  onCheckIn={handleCheckIn}
+                  onCheckOut={handleCheckOut}
+                  onMessage={handleOpenChat}
+                />
+              ))}
+            </section>
           </div>
         )}
       </div>
 
-      <DailyDelightModal
-        isOpen={!!delightBooking}
-        booking={delightBooking}
-        onClose={() => setDelightBooking(null)}
-      />
     </>
   );
 }
