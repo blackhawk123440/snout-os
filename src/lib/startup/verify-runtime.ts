@@ -18,22 +18,39 @@ export async function verifyRuntime(): Promise<VerifyResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
   let prisma: PrismaClient | null = null;
+  const envName = getRuntimeEnvName();
+
+  const maybeWarnDbPushGuidance = (message: string) => {
+    if (envName === 'prod' && /db push/i.test(message)) {
+      console.warn(
+        '[runtime] Unsafe guidance detected in production: "db push". Use `pnpm prisma migrate deploy` instead.'
+      );
+    }
+  };
+  const pushError = (message: string) => {
+    maybeWarnDbPushGuidance(message);
+    errors.push(message);
+  };
+  const pushWarning = (message: string) => {
+    maybeWarnDbPushGuidance(message);
+    warnings.push(message);
+  };
 
   // 1. DATABASE_URL + Prisma connect
   if (!process.env.DATABASE_URL) {
-    errors.push('DATABASE_URL is required');
+    pushError('DATABASE_URL is required');
   } else {
     try {
       prisma = new PrismaClient();
       await prisma.$queryRaw`SELECT 1`;
     } catch (e) {
-      errors.push(`Database unreachable: ${e instanceof Error ? e.message : String(e)}`);
+      pushError(`Database unreachable: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
   // 2. Redis is required on staging/prod because workers and realtime depend on it.
   if (isRedisRequiredEnv() && !process.env.REDIS_URL && process.env.CI !== 'true') {
-    errors.push(`REDIS_URL is required in ${getRuntimeEnvName()} for queues/realtime`);
+    pushError(`REDIS_URL is required in ${envName} for queues/realtime`);
   }
 
   // 2b. Staging/prod schema sanity guardrail.
@@ -63,13 +80,13 @@ export async function verifyRuntime(): Promise<VerifyResult> {
       }
 
       if (missing.length > 0) {
-        errors.push(
+        pushError(
           `Schema sanity check failed (missing columns: ${missing.join(', ')}). ` +
-            `Run 'pnpm prisma migrate deploy' against ${getRuntimeEnvName()} DATABASE_URL before starting Next.js.`
+            `Run 'pnpm prisma migrate deploy' against ${envName} DATABASE_URL before starting Next.js.`
         );
       }
     } catch (e) {
-      errors.push(
+      pushError(
         `Schema sanity check query failed: ${e instanceof Error ? e.message : String(e)}`
       );
     }
@@ -83,10 +100,10 @@ export async function verifyRuntime(): Promise<VerifyResult> {
   const hasStripeWebhook = !!process.env.STRIPE_WEBHOOK_SECRET;
   if (hasStripeKey || hasStripeWebhook) {
     if (!hasStripeKey && !isSmokeOrE2E) {
-      errors.push('STRIPE_SECRET_KEY required when Stripe webhook is configured');
+      pushError('STRIPE_SECRET_KEY required when Stripe webhook is configured');
     }
     if (!hasStripeWebhook && !isSmokeOrE2E) {
-      warnings.push('STRIPE_WEBHOOK_SECRET not set; Stripe webhooks will not work');
+      pushWarning('STRIPE_WEBHOOK_SECRET not set; Stripe webhooks will not work');
     }
   }
 
@@ -97,16 +114,16 @@ export async function verifyRuntime(): Promise<VerifyResult> {
   const hasS3Secret = !!process.env.S3_SECRET_ACCESS_KEY;
   const anyS3 = hasS3Bucket || hasS3Region || hasS3Access || hasS3Secret;
   if (anyS3) {
-    if (!hasS3Bucket) errors.push('S3_BUCKET required when S3 is configured');
-    if (!hasS3Region) errors.push('S3_REGION required when S3 is configured');
-    if (!hasS3Access) errors.push('S3_ACCESS_KEY_ID required when S3 is configured');
-    if (!hasS3Secret) errors.push('S3_SECRET_ACCESS_KEY required when S3 is configured');
+    if (!hasS3Bucket) pushError('S3_BUCKET required when S3 is configured');
+    if (!hasS3Region) pushError('S3_REGION required when S3 is configured');
+    if (!hasS3Access) pushError('S3_ACCESS_KEY_ID required when S3 is configured');
+    if (!hasS3Secret) pushError('S3_SECRET_ACCESS_KEY required when S3 is configured');
   }
 
   // 5. NEXTAUTH in production
   if (isProduction) {
     if (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.length < 32) {
-      warnings.push('NEXTAUTH_SECRET should be at least 32 characters in production');
+      pushWarning('NEXTAUTH_SECRET should be at least 32 characters in production');
     }
   }
 

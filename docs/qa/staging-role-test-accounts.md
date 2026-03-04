@@ -26,3 +26,7 @@ The runner will:
 - verify ordering evidence (`first10Ids`) and counts by type/severity
 - perform snooze + handled actions and assert persistence
 - assert sitter/client cannot access owner command center API/page
+
+## Migration Policy Note
+
+See `docs/ops/staging-migration-baseline-repair.md` for the one-time staging baseline repair and the strict rule: **never use `prisma db push` in production**.

@@ -13,6 +13,35 @@ import { prisma } from '@/lib/db';
 
 const E2E_PASSWORD = 'e2e-test-password';
 
+function getSetCookies(res: Response): string[] {
+  const maybe = res.headers as Headers & { getSetCookie?: () => string[] };
+  if (typeof maybe.getSetCookie === 'function') {
+    return maybe.getSetCookie();
+  }
+  const single = res.headers.get('set-cookie');
+  return single ? [single] : [];
+}
+
+function parseCookiePair(setCookie: string): { name: string; value: string } | null {
+  const first = setCookie.split(';')[0];
+  const eq = first.indexOf('=');
+  if (eq <= 0) return null;
+  return { name: first.slice(0, eq), value: first.slice(eq + 1) };
+}
+
+function mergeCookies(target: Map<string, string>, setCookies: string[]) {
+  for (const raw of setCookies) {
+    const parsed = parseCookiePair(raw);
+    if (parsed) target.set(parsed.name, parsed.value);
+  }
+}
+
+function cookieHeader(cookies: Map<string, string>): string {
+  return Array.from(cookies.entries())
+    .map(([k, v]) => `${k}=${v}`)
+    .join('; ');
+}
+
 function isE2eLoginAllowed(): boolean {
   const envName = (process.env.ENV_NAME || process.env.NEXT_PUBLIC_ENV || '').toLowerCase();
   const isStagingEnv = envName === 'staging';
@@ -69,7 +98,9 @@ export async function POST(req: NextRequest) {
   }
 
   const base = req.nextUrl.origin;
-  const csrfRes = await fetch(`${base}/api/auth/csrf`);
+  const jar = new Map<string, string>();
+  const csrfRes = await fetch(`${base}/api/auth/csrf`, { redirect: 'manual' });
+  mergeCookies(jar, getSetCookies(csrfRes));
   const { csrfToken } = await csrfRes.json().catch(() => ({}));
   if (!csrfToken) {
     return NextResponse.json({ error: 'Failed to get CSRF token' }, { status: 500 });
@@ -77,7 +108,10 @@ export async function POST(req: NextRequest) {
 
   const signInRes = await fetch(`${base}/api/auth/callback/credentials`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Cookie: cookieHeader(jar),
+    },
     body: new URLSearchParams({
       email: user.email,
       password: E2E_PASSWORD,
@@ -88,12 +122,14 @@ export async function POST(req: NextRequest) {
     redirect: 'manual',
   });
 
-  const setCookie = signInRes.headers.get('set-cookie');
+  const signInSetCookies = getSetCookies(signInRes);
   // NextAuth credentials callback returns 302 redirect on success; treat 302 + Set-Cookie as success
-  const success = signInRes.ok || (signInRes.status === 302 && !!setCookie);
+  const success = signInRes.ok || (signInRes.status === 302 && signInSetCookies.length > 0);
   const res = NextResponse.json({ ok: success });
-  if (setCookie) {
-    res.headers.set('Set-Cookie', setCookie);
+  if (signInSetCookies.length > 0) {
+    for (const cookie of signInSetCookies) {
+      res.headers.append('Set-Cookie', cookie);
+    }
   }
   if (!success) {
     return NextResponse.json({ error: 'Sign-in failed', status: signInRes.status }, { status: 500 });

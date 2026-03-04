@@ -93,57 +93,8 @@ async function e2eLogin(role: Role): Promise<Map<string, string>> {
   return cookies;
 }
 
-async function credentialsLogin(role: Role): Promise<Map<string, string>> {
-  const emailEnv = process.env[`${role.toUpperCase()}_EMAIL`];
-  const passwordEnv = process.env[`${role.toUpperCase()}_PASSWORD`];
-  if (!emailEnv || !passwordEnv) {
-    throw new Error(`missing ${role} credentials env vars`);
-  }
-
-  const jar = new Map<string, string>();
-  const csrfRes = await fetch(joinUrl('/api/auth/csrf'));
-  mergeCookies(jar, getSetCookies(csrfRes));
-  const csrfJson = await csrfRes.json().catch(() => ({}));
-  const csrfToken = csrfJson?.csrfToken;
-  if (!csrfToken) {
-    throw new Error(`failed to fetch csrf token for ${role}`);
-  }
-
-  const body = new URLSearchParams({
-    email: emailEnv,
-    password: passwordEnv,
-    csrfToken,
-    callbackUrl: joinUrl('/command-center'),
-    json: 'true',
-  });
-
-  const loginRes = await fetch(joinUrl('/api/auth/callback/credentials'), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Cookie: cookieHeader(jar),
-    },
-    body,
-    redirect: 'manual',
-  });
-  mergeCookies(jar, getSetCookies(loginRes));
-
-  if (!(loginRes.status === 302 || loginRes.ok)) {
-    throw new Error(`credentials login ${role} failed: ${loginRes.status}`);
-  }
-  if (Array.from(jar.keys()).every((k) => !k.includes('session-token'))) {
-    throw new Error(`credentials login ${role} missing session cookie`);
-  }
-  return jar;
-}
-
 async function login(role: Role): Promise<Map<string, string>> {
-  try {
-    return await e2eLogin(role);
-  } catch (e) {
-    console.warn(`WARN: e2e login failed for ${role}: ${(e as Error).message}`);
-    return credentialsLogin(role);
-  }
+  return e2eLogin(role);
 }
 
 function flattenAttention(payload: AttentionPayload): AttentionItem[] {
@@ -256,11 +207,9 @@ async function run() {
       headers: { Cookie: cookieHeader(roleCookies) },
       redirect: 'manual',
     });
-    // Some deploys enforce page access in middleware (3xx/4xx), others rely on client-side redirect.
-    // API-level 401/403 is the hard RBAC requirement; page status is reported for visibility.
     assert(
-      [200, 302, 303, 307, 308, 401, 403].includes(pageRes.status),
-      `${role} page access returned unexpected status: ${pageRes.status}`
+      [302, 307, 403, 404].includes(pageRes.status),
+      `${role} page access expected blocked status (302/307/403/404), got ${pageRes.status}`
     );
     report.push(`${role}.apiStatus=${apiRes.status}`);
     report.push(`${role}.pageStatus=${pageRes.status}`);
