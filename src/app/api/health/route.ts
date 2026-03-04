@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { checkRedisConnection } from "@/lib/health-checks";
+import { getRuntimeEnvName, isRedisRequiredEnv } from "@/lib/runtime-env";
 
 function getVersion(): string {
   return (
@@ -22,21 +23,11 @@ function getBuildTime(): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-function getEnvName(): string {
-  const explicit = process.env.NEXT_PUBLIC_ENV;
-  if (explicit === "staging") return "staging";
-  if (explicit === "production" || explicit === "prod") return "prod";
-  if (process.env.VERCEL_ENV === "preview") return "staging";
-  const branch = process.env.RENDER_GIT_BRANCH || process.env.VERCEL_GIT_COMMIT_REF;
-  if (branch && branch !== "main" && branch !== "master") return "staging";
-  if (process.env.NODE_ENV === "production") return "prod";
-  return "staging";
-}
-
 export async function GET() {
   const version = getVersion();
   let dbStatus: "ok" | "error" = "ok";
   let redisStatus: "ok" | "degraded" | "error" = "ok";
+  const envName = getRuntimeEnvName();
 
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -44,7 +35,7 @@ export async function GET() {
     dbStatus = "error";
   }
 
-  const redisRequired = process.env.NODE_ENV === "production" && !!process.env.REDIS_URL;
+  const redisRequired = isRedisRequiredEnv();
   try {
     const redis = await checkRedisConnection();
     redisStatus = redis.connected ? "ok" : redisRequired ? "error" : "degraded";
@@ -64,7 +55,6 @@ export async function GET() {
       ? String(version).slice(0, 7)
       : version;
   const buildTime = getBuildTime();
-  const envName = getEnvName();
   return NextResponse.json({
     status,
     db: dbStatus,
