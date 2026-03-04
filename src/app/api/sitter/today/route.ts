@@ -52,6 +52,7 @@ export async function GET() {
 
     const bookingIds = bookings.map((booking: any) => booking.id);
     const threadMap = new Map<string, string>();
+    const visitMap = new Map<string, { checkInAt: Date | null; checkOutAt: Date | null }>();
 
     if (bookingIds.length > 0) {
       const threads = await prisma.messageThread.findMany({
@@ -70,6 +71,20 @@ export async function GET() {
           threadMap.set(thread.bookingId, thread.id);
         }
       }
+
+      const visitEvents = await prisma.visitEvent.findMany({
+        where: whereOrg(ctx.orgId, {
+          bookingId: { in: bookingIds },
+          sitterId: ctx.sitterId,
+        }),
+        orderBy: { createdAt: 'desc' },
+        select: { bookingId: true, checkInAt: true, checkOutAt: true },
+      });
+      for (const v of visitEvents) {
+        if (!visitMap.has(v.bookingId)) {
+          visitMap.set(v.bookingId, { checkInAt: v.checkInAt ?? null, checkOutAt: v.checkOutAt ?? null });
+        }
+      }
     }
 
     const toIso = (d: Date) => (d instanceof Date ? d.toISOString() : String(d));
@@ -85,6 +100,8 @@ export async function GET() {
         'Client',
       pets: booking.pets || [],
       threadId: threadMap.get(booking.id) || null,
+      checkedInAt: visitMap.get(booking.id)?.checkInAt ? toIso(visitMap.get(booking.id)!.checkInAt as Date) : null,
+      checkedOutAt: visitMap.get(booking.id)?.checkOutAt ? toIso(visitMap.get(booking.id)!.checkOutAt as Date) : null,
     }));
 
     return NextResponse.json({ bookings: payload }, { status: 200 });

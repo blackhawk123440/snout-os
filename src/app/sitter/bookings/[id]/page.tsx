@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LayoutWrapper, PageHeader } from '@/components/layout';
-import { Button, StatusChip } from '@/components/ui';
+import { Button, Modal, StatusChip } from '@/components/ui';
 import { toastError, toastSuccess } from '@/lib/toast';
 import {
+  formatDurationMinutes,
   getBookingPrimaryAction,
   getOptimisticStatus,
+  getVisitTimerLabel,
   shouldRenderCopyAddress,
   shouldRenderMail,
   shouldRenderTel,
@@ -70,6 +72,8 @@ const checklistLabel: Record<ChecklistType, string> = {
   locked_door: 'Locked door',
 };
 
+const CHECKLIST_UNLOCK_WINDOW_MS = 5 * 60 * 1000;
+
 export default function SitterBookingDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -78,6 +82,9 @@ export default function SitterBookingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyPrimary, setBusyPrimary] = useState(false);
+  const [confirmEndOpen, setConfirmEndOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const loadBooking = useCallback(async () => {
     if (!id) return;
@@ -103,6 +110,18 @@ export default function SitterBookingDetailPage() {
   useEffect(() => {
     void loadBooking();
   }, [loadBooking]);
+
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const timeRange = useMemo(() => {
     if (!booking) return '';
@@ -180,8 +199,9 @@ export default function SitterBookingDetailPage() {
       body: JSON.stringify({ type, checked }),
     });
     if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
       setBooking((curr) => (curr ? { ...curr, checklist: prev } : curr));
-      toastError('Could not update checklist');
+      toastError(data.error || 'Could not update checklist');
     }
   };
 
@@ -199,7 +219,16 @@ export default function SitterBookingDetailPage() {
     if (!booking) return null;
     const action = getBookingPrimaryAction(booking.status, booking.timeline.report.hasReport);
     if (action === 'end') {
-      return <Button variant="primary" size="md" onClick={() => void runCheckAction('end')} disabled={busyPrimary}>End visit</Button>;
+      return (
+        <Button
+          variant="primary"
+          size="md"
+          onClick={() => (isMobile ? setConfirmEndOpen(true) : void runCheckAction('end'))}
+          disabled={busyPrimary}
+        >
+          End visit
+        </Button>
+      );
     }
     if (action === 'write_report') {
       return <Button variant="primary" size="md" onClick={() => router.push(`/sitter/reports/new?bookingId=${booking.id}`)}>Write report</Button>;
@@ -236,6 +265,21 @@ export default function SitterBookingDetailPage() {
 
           <section className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="text-lg font-semibold text-gray-900">{timeRange}</p>
+            {getVisitTimerLabel(booking.status, booking.timeline.checkedInAt, booking.timeline.checkedOutAt, nowMs) && (
+              <p className="mt-1 text-sm font-semibold text-indigo-700">
+                {getVisitTimerLabel(booking.status, booking.timeline.checkedInAt, booking.timeline.checkedOutAt, nowMs)}
+              </p>
+            )}
+            {booking.status === 'in_progress' && booking.timeline.checkedInAt && (
+              <p className="mt-1 text-xs text-gray-500">
+                Started at {new Date(booking.timeline.checkedInAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              </p>
+            )}
+            {booking.status === 'completed' && booking.timeline.checkedInAt && booking.timeline.checkedOutAt && (
+              <p className="mt-1 text-xs text-gray-500">
+                Duration {formatDurationMinutes(booking.timeline.checkedInAt, booking.timeline.checkedOutAt)}
+              </p>
+            )}
             <p className="mt-1 text-sm text-gray-700">{booking.service}</p>
             <p className="mt-1 text-sm text-gray-600">{booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}</p>
             <div className="mt-2"><StatusChip variant={statusChipVariant(booking.status)}>{statusLabel(booking.status)}</StatusChip></div>
@@ -283,18 +327,40 @@ export default function SitterBookingDetailPage() {
           {booking.status === 'in_progress' && (
             <section className="rounded-xl border border-gray-200 bg-white p-4">
               <p className="text-sm font-semibold text-gray-900">Visit checklist</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="mt-2 space-y-2">
                 {booking.checklist.map((item) => {
                   const checked = !!item.checkedAt;
+                  const checkedAtMs = item.checkedAt ? new Date(item.checkedAt).getTime() : 0;
+                  const canUncheck = checked && nowMs - checkedAtMs <= CHECKLIST_UNLOCK_WINDOW_MS;
+                  const locked = checked && !canUncheck;
+                  const subtitle = checked
+                    ? `${checklistLabel[item.type]} · ${new Date(item.checkedAt!).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+                    : checklistLabel[item.type];
                   return (
                     <button
                       key={item.type}
                       type="button"
-                      onClick={() => void toggleChecklistItem(item.type, !checked)}
-                      className={`min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm ${checked ? 'border-green-300 bg-green-50 text-green-800' : 'border-gray-200 bg-white text-gray-700'}`}
+                      onClick={() => {
+                        if (!locked) void toggleChecklistItem(item.type, !checked);
+                      }}
+                      disabled={locked}
+                      title={locked ? 'Locked' : undefined}
+                      className={`flex min-h-[52px] w-full items-center justify-between rounded-lg border px-4 py-2 text-left text-sm ${
+                        checked ? 'border-green-300 bg-green-50 text-green-800' : 'border-gray-200 bg-white text-gray-700'
+                      } ${locked ? 'cursor-not-allowed opacity-80' : ''}`}
                     >
-                      <p className="font-medium">{checklistLabel[item.type]}</p>
-                      {item.checkedAt && <p className="text-[11px]">{new Date(item.checkedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>}
+                      <div>
+                        <p className="font-medium">{subtitle}</p>
+                        {locked && <p className="text-[11px] text-amber-700">Locked</p>}
+                      </div>
+                      <span
+                        className={`inline-flex h-6 w-6 items-center justify-center rounded-md border ${
+                          checked ? 'border-green-600 bg-green-600 text-white' : 'border-gray-300 bg-white text-transparent'
+                        }`}
+                        aria-hidden
+                      >
+                        ✓
+                      </span>
                     </button>
                   );
                 })}
@@ -347,6 +413,33 @@ export default function SitterBookingDetailPage() {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={confirmEndOpen}
+        onClose={() => setConfirmEndOpen(false)}
+        title="End visit?"
+        footer={
+          <>
+            <Button variant="secondary" size="md" onClick={() => setConfirmEndOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => {
+                setConfirmEndOpen(false);
+                void runCheckAction('end');
+              }}
+            >
+              End visit
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-gray-700">
+          End visit? This will stop the timer. You can still write/edit the report after.
+        </p>
+      </Modal>
     </LayoutWrapper>
   );
 }

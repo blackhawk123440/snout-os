@@ -39,6 +39,8 @@ interface TodayBooking {
   threadId: string | null;
   /** Optional alert badges (stub - API may add later) */
   alerts?: AlertType[];
+  checkedInAt?: string | null;
+  checkedOutAt?: string | null;
 }
 
 function useCountdown(targetDate: string | null): string | null {
@@ -126,6 +128,7 @@ function NextVisitHero({
   onDelight,
   checkingInId,
   checkingOutId,
+  nowMs,
 }: {
   booking: TodayBooking;
   onCheckIn: (id: string) => void;
@@ -134,6 +137,7 @@ function NextVisitHero({
   onDelight: (b: TodayBooking) => void;
   checkingInId: string | null;
   checkingOutId: string | null;
+  nowMs: number;
 }) {
   const router = useRouter();
   const countdown = useCountdown(
@@ -162,6 +166,14 @@ function NextVisitHero({
             <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
               {getStatusSubtitle(booking)}
             </p>
+            {getLiveVisitText(booking, nowMs) && (
+              <p className="mt-0.5 text-sm font-semibold text-indigo-700">{getLiveVisitText(booking, nowMs)}</p>
+            )}
+            {booking.status === 'in_progress' && booking.checkedInAt && (
+              <p className="text-xs text-neutral-500">
+                Started at {new Date(booking.checkedInAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              </p>
+            )}
             <p className="mt-0.5 font-medium text-neutral-900">{booking.service}</p>
             <p className="text-sm text-neutral-600">{petNames}</p>
             <p className="text-sm text-neutral-500">{booking.clientName}</p>
@@ -255,6 +267,29 @@ const formatTimeRange = (startAt: string, endAt: string) => {
   })}`;
 };
 
+const formatDurationMinutes = (startIso: string, endIso: string) => {
+  const minutes = Math.max(0, Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000));
+  return `${minutes}m`;
+};
+
+const formatElapsedTimer = (fromIso: string, nowMs: number) => {
+  const diff = Math.max(0, nowMs - new Date(fromIso).getTime());
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
+const getLiveVisitText = (booking: TodayBooking, nowMs: number) => {
+  if (booking.status === 'in_progress' && booking.checkedInAt) {
+    return `In progress — ${formatElapsedTimer(booking.checkedInAt, nowMs)}`;
+  }
+  if (booking.status === 'completed' && booking.checkedInAt && booking.checkedOutAt) {
+    return `Duration ${formatDurationMinutes(booking.checkedInAt, booking.checkedOutAt)}`;
+  }
+  return null;
+};
+
 const TODAY_KEY = () => new Date().toISOString().slice(0, 10);
 
 export default function SitterTodayPage() {
@@ -268,6 +303,7 @@ export default function SitterTodayPage() {
   const [checkingOutId, setCheckingOutId] = useState<string | null>(null);
   const [delightBooking, setDelightBooking] = useState<TodayBooking | null>(null);
   const [queuedByBooking, setQueuedByBooking] = useState<Record<string, string[]>>({});
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const todayLabel = useMemo(
     () => new Date().toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' }),
@@ -322,6 +358,11 @@ export default function SitterTodayPage() {
     void loadBookings();
   }, [loadBookings]);
 
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const sseUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/realtime/sitter/today` : null;
   const pageVisible = usePageVisible();
   useSSE(sseUrl, () => void loadBookings(), pageVisible);
@@ -366,7 +407,8 @@ export default function SitterTodayPage() {
       const payload = geo ? { lat: geo.lat, lng: geo.lng } : {};
       if (!navigator.onLine) {
         await enqueueAction('visit.checkin', { orgId, sitterId, bookingId, payload });
-        setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress' } : b)));
+        const nowIso = new Date().toISOString();
+        setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress', checkedInAt: nowIso } : b)));
         setQueuedByBooking((prev) => ({ ...prev, [bookingId]: [...(prev[bookingId] || []), 'visit.checkin'] }));
         toastSuccess('Queued — will sync when online');
         void refreshQueuedCount();
@@ -383,7 +425,8 @@ export default function SitterTodayPage() {
         setCheckingInId(null);
         return;
       }
-      setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress' } : b)));
+      const nowIso = new Date().toISOString();
+      setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress', checkedInAt: nowIso } : b)));
       toastSuccess('Checked in');
       void loadBookings();
     } catch {
@@ -406,7 +449,8 @@ export default function SitterTodayPage() {
       const payload = geo ? { lat: geo.lat, lng: geo.lng } : {};
       if (!navigator.onLine) {
         await enqueueAction('visit.checkout', { orgId, sitterId, bookingId, payload });
-        setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b)));
+        const nowIso = new Date().toISOString();
+        setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed', checkedOutAt: nowIso } : b)));
         setQueuedByBooking((prev) => ({ ...prev, [bookingId]: [...(prev[bookingId] || []), 'visit.checkout'] }));
         toastSuccess('Queued — will sync when online');
         void refreshQueuedCount();
@@ -423,7 +467,8 @@ export default function SitterTodayPage() {
         setCheckingOutId(null);
         return;
       }
-      setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b)));
+      const nowIso = new Date().toISOString();
+      setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed', checkedOutAt: nowIso } : b)));
       toastSuccess('Checked out');
       void loadBookings();
     } catch {
@@ -494,6 +539,7 @@ export default function SitterTodayPage() {
               onDelight={openDelightModal}
               checkingInId={checkingInId}
               checkingOutId={checkingOutId}
+              nowMs={nowMs}
             />
             <QuickInsightsStrip
               visitsRemaining={bookings.filter((b) => !['completed', 'cancelled'].includes(b.status)).length}
@@ -547,6 +593,14 @@ export default function SitterTodayPage() {
                         {formatTimeRange(booking.startAt, booking.endAt)}
                       </p>
                       <p className="text-xs text-neutral-500">{getStatusSubtitle(booking)}</p>
+                      {getLiveVisitText(booking, nowMs) && (
+                        <p className="text-sm font-semibold text-indigo-700">{getLiveVisitText(booking, nowMs)}</p>
+                      )}
+                      {booking.status === 'in_progress' && booking.checkedInAt && (
+                        <p className="text-xs text-neutral-500">
+                          Started at {new Date(booking.checkedInAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                        </p>
+                      )}
                       <p className="font-medium text-neutral-800">{booking.service}</p>
                       <p className="text-sm text-neutral-600">{petNames}</p>
                       <p className="text-sm text-neutral-500">{booking.clientName}</p>
