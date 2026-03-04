@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui';
 import {
   SitterPageHeader,
   SitterSkeletonList,
@@ -43,21 +44,25 @@ export default function SitterBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setErrorDetail(null);
     try {
       const res = await fetch('/api/sitter/bookings');
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(json.error || 'Unable to load bookings');
+        setErrorDetail(json.message || null);
         setBookings([]);
         return;
       }
       setBookings(Array.isArray(json.bookings) ? json.bookings : []);
     } catch {
       setError('Unable to load bookings');
+      setErrorDetail('Network error');
       setBookings([]);
     } finally {
       setLoading(false);
@@ -79,23 +84,22 @@ export default function SitterBookingsPage() {
         title="Bookings"
         subtitle="Your visits"
         action={
-          <button
-            type="button"
-            onClick={() => void load()}
-            disabled={loading}
-            className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:opacity-50"
-          >
+          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
             Refresh
-          </button>
+          </Button>
         }
       />
       {loading ? (
         <SitterSkeletonList count={5} />
       ) : error ? (
-        <SitterErrorState title="Couldn't load bookings" subtitle={error} onRetry={() => void load()} />
+        <SitterErrorState
+          title="Couldn't load bookings"
+          subtitle={errorDetail ? `${error} · ${errorDetail}` : error}
+          onRetry={() => void load()}
+        />
       ) : bookings.length === 0 ? (
         <SitterEmptyState
-          title="No bookings yet"
+          title="No visits yet"
           subtitle="Your assigned visits will appear here."
           cta={{ label: 'Today', onClick: () => router.push('/sitter/today') }}
         />

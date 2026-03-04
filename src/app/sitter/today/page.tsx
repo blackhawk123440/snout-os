@@ -673,6 +673,9 @@ export default function SitterTodayPage() {
                 <Button variant="secondary" size="md" onClick={() => router.push('/sitter/calendar')}>
                   Open calendar
                 </Button>
+                <Button variant="secondary" size="md" onClick={() => router.push('/sitter/bookings')}>
+                  View upcoming bookings
+                </Button>
                 <Button variant="secondary" size="md" onClick={() => router.push('/sitter/availability')}>
                   Update availability
                 </Button>

@@ -229,6 +229,11 @@ export default function SitterProfilePage() {
               <p className="text-base font-semibold text-neutral-900">Stripe Connect</p>
             </SitterCardHeader>
             <SitterCardBody>
+              <div className="mb-3 flex items-center gap-2">
+                <StatusChip variant={stripeStatus?.connected && stripeStatus.payoutsEnabled ? 'success' : 'warning'}>
+                  {stripeStatus?.connected && stripeStatus.payoutsEnabled ? 'Stripe connected' : 'Stripe setup required'}
+                </StatusChip>
+              </div>
               {stripeStatus?.connected && stripeStatus.payoutsEnabled ? (
                 <p className="text-sm text-green-700">Connected · Payouts enabled</p>
               ) : stripeStatus?.connected ? (

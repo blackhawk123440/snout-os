@@ -28,6 +28,8 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
   const [sitterName, setSitterName] = useState<string | null>(null);
   const [availabilityEnabled, setAvailabilityEnabled] = useState<boolean>(true);
   const [headerShadow, setHeaderShadow] = useState(false);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [hasReportTodo, setHasReportTodo] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isSitter) {
@@ -44,6 +46,44 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
       setSitterName(me?.name ?? me?.firstName ? `${me.firstName} ${me.lastName}`.trim() : null);
       setAvailabilityEnabled(avail?.availabilityEnabled ?? me?.availabilityEnabled ?? true);
     });
+  }, [isSitter]);
+
+  useEffect(() => {
+    if (!isSitter) return;
+    let cancelled = false;
+    const loadBadges = async () => {
+      try {
+        const [threadsRes, todayRes] = await Promise.all([
+          fetch('/api/sitter/threads'),
+          fetch('/api/sitter/today'),
+        ]);
+        const threadsJson = await threadsRes.json().catch(() => ({}));
+        const todayJson = await todayRes.json().catch(() => ({}));
+
+        const unread = Array.isArray(threadsJson?.threads)
+          ? threadsJson.threads.some((t: any) => (t.ownerUnreadCount ?? 0) > 0)
+          : false;
+        const reportTodo = Array.isArray(todayJson?.bookings)
+          ? todayJson.bookings.some((b: any) => b.status === 'completed' && !b.hasReport)
+          : false;
+        if (!cancelled) {
+          setHasUnreadMessages(unread);
+          setHasReportTodo(reportTodo);
+        }
+      } catch {
+        if (!cancelled) {
+          setHasUnreadMessages(false);
+          setHasReportTodo(false);
+        }
+      }
+    };
+
+    void loadBadges();
+    const id = setInterval(() => void loadBadges(), 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [isSitter]);
 
   useEffect(() => {
@@ -136,6 +176,9 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
       >
         {NAV_ITEMS.map((item) => {
           const active = isActive(item.href);
+          const showDot =
+            (item.id === 'messages' && hasUnreadMessages) ||
+            (item.id === 'reports' && hasReportTodo);
           return (
             <Link
               key={item.href}
@@ -145,7 +188,10 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
               }`}
             >
               <i className={`${item.icon} text-lg`} />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="text-[10px] font-medium">
+                {item.label}
+                {showDot ? ' •' : ''}
+              </span>
             </Link>
           );
         })}

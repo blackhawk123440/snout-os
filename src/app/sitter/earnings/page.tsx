@@ -185,6 +185,26 @@ export default function SitterEarningsPage() {
             </SitterCardHeader>
           </SitterCard>
 
+          <SitterCard className="border-blue-200 bg-blue-50">
+            <SitterCardBody>
+              <p className="text-sm font-medium text-blue-700">Next payout</p>
+              {transferSummary.hasPaidHistory && transferSummary.nextPayoutDate ? (
+                <>
+                  <p className="mt-1 text-2xl font-semibold text-blue-900">
+                    {transferSummary.nextPayoutDate.toLocaleDateString([], {
+                      weekday: 'long',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </p>
+                  <p className="mt-1 text-xs font-medium uppercase tracking-wide text-blue-700">Estimated</p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-blue-900">After first completed visit</p>
+              )}
+            </SitterCardBody>
+          </SitterCard>
+
           <SitterCard>
             <SitterCardBody>
               <p className="text-sm font-medium text-neutral-500">This month</p>
@@ -226,26 +246,6 @@ export default function SitterEarningsPage() {
                 ${(transferSummary.paid30dCents / 100).toFixed(2)}
               </p>
               <p className="mt-1 text-xs text-neutral-500">Completed payouts in the last 30 days</p>
-            </SitterCardBody>
-          </SitterCard>
-
-          <SitterCard>
-            <SitterCardBody>
-              <p className="text-sm font-medium text-neutral-500">Next payout</p>
-              {transferSummary.hasPaidHistory && transferSummary.nextPayoutDate ? (
-                <>
-                  <p className="mt-1 text-xl font-semibold text-neutral-900">
-                    {transferSummary.nextPayoutDate.toLocaleDateString([], {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </p>
-                  <p className="mt-1 text-xs text-neutral-500">Estimated</p>
-                </>
-              ) : (
-                <p className="mt-1 text-sm text-neutral-700">After first completed visit</p>
-              )}
             </SitterCardBody>
           </SitterCard>
 
