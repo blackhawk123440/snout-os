@@ -57,6 +57,7 @@ export function isSitterRestrictedRoute(pathname: string): boolean {
   if (pathname.startsWith('/automation')) return true;
   if (pathname === '/' || pathname === '') return true; // Root dashboard is owner-only
   if (pathname.startsWith('/owner-dashboard')) return true; // Owner dashboard
+  if (pathname.startsWith('/command-center')) return true; // Owner command center
   // Payment admin routes
   if (pathname.startsWith("/api/payments")) {
     return true;
