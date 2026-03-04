@@ -73,32 +73,27 @@ export default function ClientReportsPage() {
       ) : reports.length === 0 ? (
         <EmptyState
           title="No reports yet"
-          description="Visit reports from your sitter will appear here after each visit."
+          description="After each visit, your sitter will share an update here. Book a visit to get started."
           primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
         />
       ) : (
-        <div className="max-w-3xl space-y-4">
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="w-full space-y-3 lg:max-w-3xl">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
             {reports.map((r) => (
               <InteractiveRow
                 key={r.id}
                 onClick={() => router.push(`/client/reports/${r.id}`)}
                 className="last:border-b-0"
+                aria-label={`View report ${r.booking?.service || 'Visit report'}`}
               >
-                <div className="grid w-full grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-900">
-                      {r.booking?.service || 'Visit report'}
-                    </p>
-                  </div>
-                  {r.createdAt ? (
-                    <span className="shrink-0 text-xs text-slate-500 tabular-nums sm:order-2">
-                      {formatDate(r.createdAt)}
-                    </span>
-                  ) : (
-                    <span className="shrink-0 sm:order-2">—</span>
-                  )}
-                  <p className="line-clamp-1 min-w-0 text-sm text-slate-600 sm:order-3">{renderClientPreview(r.content, 120)}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-slate-900">
+                    {r.booking?.service || 'Visit report'}
+                  </p>
+                  <p className="line-clamp-1 text-sm text-slate-700">{renderClientPreview(r.content, 120)}</p>
+                </div>
+                <div className="flex shrink-0 text-xs text-slate-500 tabular-nums">
+                  {r.createdAt ? formatDate(r.createdAt) : '—'}
                 </div>
               </InteractiveRow>
             ))}

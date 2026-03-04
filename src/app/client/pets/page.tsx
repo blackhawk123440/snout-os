@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
-import { ClientAtAGlanceSidebar } from '@/components/client/ClientAtAGlanceSidebar';
+import { ClientAtAGlanceSidebarLazy } from '@/components/client/ClientAtAGlanceSidebarLazy';
 import { ClientListSecondaryModule } from '@/components/client/ClientListSecondaryModule';
 import {
   AppPageHeader,
@@ -69,22 +69,22 @@ export default function ClientPetsPage() {
               subtitle="Add your pets to get started."
             />
           ) : (
-            <div className="max-w-3xl space-y-4">
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="w-full space-y-3 lg:max-w-3xl">
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
                 {pets.map((p) => (
                   <InteractiveRow
                     key={p.id}
                     onClick={() => router.push(`/client/pets/${p.id}`)}
                     className="last:border-b-0"
+                    aria-label={`View pet ${p.name || 'Unnamed pet'}`}
                   >
-                    <div className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-[1fr,minmax(0,1fr)]">
-                      <div className="min-w-0">
-                        <p className="font-medium text-slate-900">{p.name || 'Unnamed pet'}</p>
-                      </div>
-                      <div className="min-w-0 text-sm text-slate-600">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-slate-900">{p.name || 'Unnamed pet'}</p>
+                      <p className="truncate text-sm text-slate-700">
                         {[p.species, p.breed].filter(Boolean).join(' · ') || 'No details'}
-                      </div>
+                      </p>
                     </div>
+                    <div className="flex shrink-0" aria-hidden />
                   </InteractiveRow>
                 ))}
               </div>
@@ -92,7 +92,7 @@ export default function ClientPetsPage() {
             </div>
           )}
         </div>
-        <ClientAtAGlanceSidebar />
+        <ClientAtAGlanceSidebarLazy />
       </div>
     </LayoutWrapper>
   );

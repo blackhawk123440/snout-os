@@ -19,8 +19,8 @@ export interface ClientAppShellProps {
   children: React.ReactNode;
 }
 
-const CONTENT_CONTAINER = 'mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8';
-const CONTENT_INNER = 'mx-auto flex w-full max-w-4xl items-center justify-between gap-3';
+const CONTENT_CONTAINER = 'w-full px-4 sm:px-6 lg:mx-auto lg:max-w-6xl lg:px-8';
+const CONTENT_INNER = 'flex w-full min-w-0 items-center justify-between gap-3 lg:mx-auto lg:max-w-4xl';
 
 function getClientHeaderInfo(pathname: string, firstName: string): { title: string; subtitle: string } {
   if (pathname === '/client/home' || pathname === '/client') return { title: 'Home', subtitle: 'Your pet care hub' };
@@ -118,21 +118,21 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
 
         <div className="flex min-h-0 flex-1 flex-col">
           <header
-            className={`sticky top-0 z-10 flex h-10 min-h-[40px] items-center justify-between gap-3 border-b border-slate-200 bg-white transition-shadow ${
+            className={`sticky top-0 z-10 flex min-h-[44px] items-center justify-between gap-3 border-b border-slate-200 bg-white py-2 transition-shadow ${
               headerShadow ? 'shadow-sm' : ''
             }`}
           >
             <div className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${CONTENT_CONTAINER}`}>
               <div className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${CONTENT_INNER}`}>
               <div className="min-w-0 flex-1 flex flex-col leading-tight">
-                <p className="truncate text-sm font-semibold text-slate-900">{pageTitle}</p>
-                <p className="truncate text-xs text-slate-500">{pageSubtitle}</p>
+                <p className="truncate text-xl font-semibold text-slate-900 lg:text-sm lg:font-semibold">{pageTitle}</p>
+                <p className="hidden truncate text-xs text-slate-500 lg:block">{pageSubtitle}</p>
               </div>
               <div className="relative flex shrink-0 items-center gap-2">
                 {showNewBookingCta && (
                   <Link
                     href="/bookings/new"
-                    className="hidden h-8 items-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 sm:inline-flex"
+                    className="hidden min-h-[44px] items-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 min-[1024px]:inline-flex"
                   >
                     New booking
                   </Link>
@@ -140,7 +140,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
                 <button
                   type="button"
                   aria-label="Notifications"
-                  className="flex h-8 w-8 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+                  className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 min-[1024px]:flex"
                 >
                   <i className="fas fa-bell text-sm" />
                 </button>
@@ -151,7 +151,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
                   aria-label="Account menu"
                   aria-expanded={accountMenuOpen}
                   aria-haspopup="true"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-slate-100 text-sm font-medium text-slate-700 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+                  className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded bg-slate-100 text-sm font-medium text-slate-700 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
                 >
                   {(firstName || 'C').charAt(0).toUpperCase()}
                 </button>
@@ -186,12 +186,23 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
 
           <main
             ref={mainRef}
-            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-12 lg:pb-0"
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-[calc(56px+env(safe-area-inset-bottom)+16px)] lg:pb-0"
           >
             <div className="min-h-0 flex-1 pt-3">{children}</div>
           </main>
         </div>
       </div>
+
+      {showNewBookingCta && (
+        <Link
+          href="/bookings/new"
+          className="fixed bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] right-4 z-10 flex h-12 items-center gap-2 rounded-full bg-slate-900 px-4 text-sm font-medium text-white shadow-lg transition active:scale-95 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 lg:hidden min-[1024px]:hidden"
+          aria-label="Book a visit"
+        >
+          <span aria-hidden>+</span>
+          <span>Book</span>
+        </Link>
+      )}
 
       <ClientBottomNav />
       <ClientDeployDebugOverlay />

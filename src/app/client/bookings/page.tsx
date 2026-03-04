@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
-import { ClientAtAGlanceSidebar } from '@/components/client/ClientAtAGlanceSidebar';
+import { ClientAtAGlanceSidebarLazy } from '@/components/client/ClientAtAGlanceSidebarLazy';
 import { ClientListSecondaryModule } from '@/components/client/ClientListSecondaryModule';
 import {
   AppPageHeader,
@@ -72,31 +72,31 @@ export default function ClientBookingsPage() {
             <AppErrorState title="Couldn't load bookings" subtitle={error} onRetry={() => void load()} />
           ) : bookings.length === 0 ? (
             <AppEmptyState
-              title="No bookings yet"
-              subtitle="Your visits will appear here."
+              title="No upcoming visits"
+              subtitle="Book your next visit anytime."
+              cta={{ label: 'Book a visit', onClick: () => router.push('/bookings/new') }}
             />
           ) : (
-            <div className="max-w-3xl space-y-4">
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="w-full space-y-3 lg:max-w-3xl">
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
                 {bookings.map((b) => (
                   <InteractiveRow
                     key={b.id}
                     onClick={() => router.push(`/client/bookings/${b.id}`)}
                     className="last:border-b-0"
+                    aria-label={`View booking ${b.service}`}
                   >
-                    <div className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[1fr,auto,auto]">
-                      <div className="min-w-0">
-                        <p className="font-medium text-slate-900">{b.service}</p>
-                        <p className="text-sm text-slate-600 sm:sr-only">
-                          {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
-                        </p>
-                      </div>
-                      <div className="min-w-0 text-sm text-slate-600 max-sm:order-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-slate-900">{b.service}</p>
+                      <p className="truncate text-xs text-slate-500 tabular-nums">
                         {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
-                      </div>
-                      <div className="shrink-0 max-sm:order-2">
-                        <AppStatusPill status={b.status} />
-                      </div>
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <AppStatusPill status={b.status} />
+                      <span className="hidden text-sm text-slate-700 tabular-nums sm:inline">
+                        {formatDate(b.startAt)}
+                      </span>
                     </div>
                   </InteractiveRow>
                 ))}
@@ -105,7 +105,7 @@ export default function ClientBookingsPage() {
             </div>
           )}
         </div>
-        <ClientAtAGlanceSidebar />
+        <ClientAtAGlanceSidebarLazy />
       </div>
     </LayoutWrapper>
   );

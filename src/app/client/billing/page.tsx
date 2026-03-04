@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/components/layout';
-import { ClientAtAGlanceSidebar } from '@/components/client/ClientAtAGlanceSidebar';
+import { ClientAtAGlanceSidebarLazy } from '@/components/client/ClientAtAGlanceSidebarLazy';
 import {
   AppCard,
   AppCardBody,
@@ -83,9 +83,9 @@ export default function ClientBillingPage() {
             <AppCardBody className="p-4">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <p className="text-xs font-medium text-slate-600">Loyalty points</p>
+                  <p className="text-xs font-medium text-slate-500">Loyalty points</p>
                   <p className="mt-0.5 text-2xl font-semibold tabular-nums tracking-tight text-slate-900">{data.loyalty.points}</p>
-                  <p className="mt-0.5 text-sm text-slate-600">Earn points on every visit</p>
+                  <p className="mt-0.5 text-sm text-slate-700">Earn points on every visit</p>
                 </div>
                 <StatusChip variant="neutral" ariaLabel={`Tier: ${data.loyalty.tier}`}>
                   {data.loyalty.tier}
@@ -95,8 +95,8 @@ export default function ClientBillingPage() {
           </AppCard>
 
           {data.payments.length > 0 && (
-            <div className="mt-4 border-t border-slate-200 pb-3 pt-4">
-              <h2 className="mb-2 text-base font-semibold tracking-tight text-slate-900">Payment history</h2>
+            <div className="mt-4 border-t border-slate-200 py-3">
+              <h2 className="mb-2 text-sm font-semibold tracking-tight text-slate-900">Payment history</h2>
               <DataTableShell className="mb-0" stickyHeader>
                 <Table
                   columns={[
@@ -117,34 +117,33 @@ export default function ClientBillingPage() {
             </div>
           )}
 
-          <div className="mt-4 border-t border-slate-200 pb-3 pt-4">
-            <h2 className="mb-2 text-base font-semibold tracking-tight text-slate-900">Invoices</h2>
+          <div className="mt-4 border-t border-slate-200 py-3">
+            <h2 className="mb-2 text-sm font-semibold tracking-tight text-slate-900">Invoices</h2>
             {data.invoices.length > 0 ? (
-              <div
-                className={`overflow-hidden rounded-lg border border-slate-200 bg-white ${data.invoices.length === 1 ? 'mx-auto max-w-3xl' : ''}`}
-              >
+              <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
                 {data.invoices.map((inv) => (
                   <div
                     key={inv.id}
-                    className="grid min-h-[44px] grid-cols-1 gap-3 border-b border-slate-200 px-4 py-3 last:border-b-0 hover:bg-slate-50 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-3 sm:py-2"
+                    className="grid min-h-[56px] grid-cols-1 gap-3 border-b border-slate-200 px-4 py-3 last:border-b-0 hover:bg-slate-50 active:bg-slate-100 sm:grid-cols-[1fr_auto] sm:items-center lg:min-h-[44px] lg:py-2"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-900">{inv.service}</p>
-                      <p className="truncate text-sm text-slate-600">{formatDate(inv.startAt)}</p>
+                      <p className="truncate text-sm font-medium text-slate-900">{inv.service}</p>
+                      <p className="truncate text-xs text-slate-500 tabular-nums">{formatDate(inv.startAt)}</p>
                     </div>
-                    <div className="flex shrink-0 items-center sm:justify-center">
-                      <AppStatusPill status={inv.paymentStatus} />
-                    </div>
-                    <div className="flex shrink-0 items-center justify-end gap-3 tabular-nums">
-                      <span className="text-lg font-semibold text-slate-900">
-                        ${inv.totalPrice.toFixed(2)}
-                      </span>
+                    <div className="flex shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <AppStatusPill status={inv.paymentStatus} />
+                        <span className="font-medium tabular-nums text-slate-900">
+                          ${inv.totalPrice.toFixed(2)}
+                        </span>
+                      </div>
                       {inv.paymentLink && (
                         <a
                           href={inv.paymentLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex h-8 shrink-0 items-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+                          aria-label={`Pay invoice ${inv.service} ${formatDate(inv.startAt)}`}
+                          className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 sm:w-auto sm:min-w-[44px]"
                         >
                           Pay now
                         </a>
@@ -156,7 +155,7 @@ export default function ClientBillingPage() {
             ) : (
               <EmptyState
                 title="No unpaid invoices"
-                description="You're all caught up."
+                description="You're all caught up. Invoices will appear here after visits."
                 primaryAction={{ label: 'View bookings', onClick: () => window.location.assign('/client/bookings') }}
               />
             )}
@@ -165,7 +164,7 @@ export default function ClientBillingPage() {
       ) : null}
       </Section>
         </div>
-        <ClientAtAGlanceSidebar />
+        <ClientAtAGlanceSidebarLazy />
       </div>
     </LayoutWrapper>
   );

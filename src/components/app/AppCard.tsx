@@ -2,9 +2,9 @@
 
 import React from 'react';
 
-/** Tier 1 primary card: key summary panels, main dashboard blocks */
+/** Tier 1 primary card: key summary panels, main dashboard blocks. Mobile: rounded-xl, more padding. */
 const CARD_BASE =
-  'rounded-lg border border-slate-200 bg-white shadow-sm';
+  'rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm lg:rounded-lg lg:px-0 lg:py-0';
 
 export interface AppCardProps {
   children: React.ReactNode;
@@ -34,9 +34,9 @@ export interface AppCardHeaderProps {
 
 export function AppCardHeader({ title, children, className = '' }: AppCardHeaderProps) {
   return (
-    <div className={`px-4 pt-4 pb-2 ${className}`}>
+    <div className={`px-0 pt-0 pb-2 lg:px-4 lg:pt-4 ${className}`}>
       {title ? (
-        <h3 className="text-base font-semibold tracking-tight text-slate-900">{title}</h3>
+        <h3 className="text-sm font-semibold tracking-tight text-slate-900 lg:text-base">{title}</h3>
       ) : (
         children
       )}
@@ -51,7 +51,7 @@ export interface AppCardBodyProps {
 
 export function AppCardBody({ children, className = '' }: AppCardBodyProps) {
   return (
-    <div className={`px-4 pb-4 text-sm text-slate-700 ${className}`}>
+    <div className={`px-0 pb-0 text-sm text-slate-700 lg:px-4 lg:pb-4 ${className}`}>
       {children}
     </div>
   );
@@ -67,7 +67,7 @@ export interface AppCardActionsProps {
 export function AppCardActions({ children, className = '', stopPropagation: stop = false }: AppCardActionsProps) {
   return (
     <div
-      className={`flex flex-wrap gap-2 px-4 pb-4 pt-2 ${className}`}
+      className={`flex flex-wrap gap-2 px-0 pb-0 pt-2 lg:px-4 lg:pb-4 ${className}`}
       onClick={stop ? (e) => e.stopPropagation() : undefined}
       onKeyDown={stop ? (e) => e.stopPropagation() : undefined}
     >

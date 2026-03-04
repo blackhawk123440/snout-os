@@ -24,7 +24,7 @@ export function PageHeader({ title, subtitle, actions, breadcrumbs, className, t
       {breadcrumbs && <div className="mb-1.5">{breadcrumbs}</div>}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="text-xl font-semibold tracking-tight text-slate-900 lg:text-2xl">
             {title}
           </h1>
           {subtitle && (

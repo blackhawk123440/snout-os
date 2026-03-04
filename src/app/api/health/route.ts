@@ -23,10 +23,14 @@ function getBuildTime(): string | null {
 }
 
 function getEnvName(): string {
-  const env =
-    process.env.NEXT_PUBLIC_ENV ||
-    (process.env.NODE_ENV === "production" ? "prod" : "staging");
-  return env === "production" ? "prod" : env === "prod" ? "prod" : "staging";
+  const explicit = process.env.NEXT_PUBLIC_ENV;
+  if (explicit === "staging") return "staging";
+  if (explicit === "production" || explicit === "prod") return "prod";
+  if (process.env.VERCEL_ENV === "preview") return "staging";
+  const branch = process.env.RENDER_GIT_BRANCH || process.env.VERCEL_GIT_COMMIT_REF;
+  if (branch && branch !== "main" && branch !== "master") return "staging";
+  if (process.env.NODE_ENV === "production") return "prod";
+  return "staging";
 }
 
 export async function GET() {

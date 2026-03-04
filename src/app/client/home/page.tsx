@@ -81,91 +81,104 @@ export default function ClientHomePage() {
       ) : error ? (
         <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void load()} />
       ) : data ? (
-        <div className="flex flex-col gap-3">
-          {/* Dashboard row: Next visit (left) + Latest report (right) */}
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
-            <AppCard className="shadow-sm">
-              <AppCardBody className="flex flex-col gap-2 pb-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Next visit</p>
-                <p className="text-xl font-semibold tabular-nums text-slate-900">
-                  {data.upcomingCount} upcoming visit{data.upcomingCount !== 1 ? 's' : ''}
-                </p>
-                <p className="text-sm text-slate-600">Hi, {data.clientName?.split(' ')[0] || 'there'}</p>
+        <div className="flex w-full flex-col gap-4">
+          {/* App-style feed: Next visit → Latest report → Upcoming & recent */}
+          <AppCard className="shadow-sm w-full">
+              <AppCardBody className="flex flex-col gap-3 pb-4">
+                <p className="text-sm font-semibold text-slate-900">Next visit</p>
+                {data.upcomingCount > 0 ? (
+                  <>
+                    <p className="text-base font-medium text-slate-900">
+                      {data.upcomingCount} upcoming visit{data.upcomingCount !== 1 ? 's' : ''}
+                    </p>
+                    <p className="text-sm text-slate-600">Hi, {data.clientName?.split(' ')[0] || 'there'}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-slate-900">No upcoming visits</p>
+                    <p className="text-sm text-slate-600">Book your next visit anytime.</p>
+                  </>
+                )}
                 <Link
                   href="/bookings/new"
-                  className="inline-flex h-8 items-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
                 >
                   Book a visit
                 </Link>
               </AppCardBody>
             </AppCard>
 
-            {data.latestReport ? (
-              <AppCard onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}>
-                <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Latest report</p>
-                    <p className="mt-0.5 font-semibold text-slate-900">{data.latestReport.service || 'Update'}</p>
-                  </div>
-                  <Link
-                    href="/client/reports"
-                    onClick={(e) => e.stopPropagation()}
-                    className="shrink-0 text-sm text-slate-600 hover:text-slate-900 hover:underline"
-                  >
-                    All reports
-                  </Link>
+          {data.latestReport ? (
+            <AppCard className="w-full" onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}>
+              <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-2 lg:px-0 lg:pt-0">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Latest report</p>
+                  <p className="mt-0.5 font-semibold text-slate-900">{data.latestReport.service || 'Update'}</p>
                 </div>
-                <AppCardBody className="relative">
-                  <p className="line-clamp-2 text-sm text-slate-700">
-                    {renderClientPreview(data.latestReport.content)}
-                  </p>
-                  <p className="mt-2 text-right text-xs text-slate-500 tabular-nums">
-                    {new Date(data.latestReport.createdAt).toLocaleDateString()}
-                  </p>
-                </AppCardBody>
-              </AppCard>
-            ) : data.recentBookings?.length > 0 ? (
-              <EmptyState
-                title="No visit reports yet"
-                description="Your sitter will send updates after each visit."
-                primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
-              />
-            ) : (
-              <div className="rounded-lg border border-slate-200 bg-white px-4 py-4">
-                <p className="text-sm text-slate-600">No reports yet. Updates will appear here after visits.</p>
+                <Link
+                  href="/client/reports"
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0 text-sm text-slate-600 hover:text-slate-900 hover:underline"
+                >
+                  All reports
+                </Link>
               </div>
-            )}
-          </div>
+              <AppCardBody className="relative">
+                <p className="line-clamp-2 text-sm text-slate-700">
+                  {renderClientPreview(data.latestReport.content)}
+                </p>
+                <p className="mt-2 text-right text-xs text-slate-500 tabular-nums">
+                  {new Date(data.latestReport.createdAt).toLocaleDateString()}
+                </p>
+              </AppCardBody>
+            </AppCard>
+          ) : (
+            <div className="w-full rounded-xl border border-dashed border-slate-200 bg-white px-6 py-8 lg:rounded-lg">
+              <p className="text-center text-sm font-semibold text-slate-900">No visit reports yet</p>
+              <p className="mt-1 text-center text-sm text-slate-600">After each visit, your sitter will share an update here.</p>
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => router.push('/client/bookings')}
+                  className="min-h-[44px] rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
+                >
+                  View bookings
+                </button>
+              </div>
+            </div>
+          )}
 
-          {/* Dense list: Upcoming & recent */}
           {data.recentBookings?.length > 0 ? (
-            <div className="mt-4 border-t border-slate-200 pt-4">
-              <h2 className="mb-2 text-base font-semibold tracking-tight text-slate-900">Upcoming & recent</h2>
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <section className="w-full" aria-label="Upcoming and recent visits">
+              <h2 className="mb-2 text-sm font-semibold tracking-tight text-slate-900">Upcoming & recent</h2>
+              <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
                 {data.recentBookings.map((b) => (
                   <div
                     key={b.id}
                     role="button"
                     tabIndex={0}
+                    aria-label={`View booking ${b.service}`}
                     onClick={() => router.push(`/client/bookings/${b.id}`)}
                     onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/bookings/${b.id}`)}
-                    className="flex min-h-[44px] cursor-pointer items-center border-b border-slate-200 px-4 py-1.5 last:border-b-0 hover:bg-slate-50 lg:min-h-[44px]"
+                    className="flex min-h-[56px] cursor-pointer items-center gap-3 border-b border-slate-200 px-4 py-1.5 last:border-b-0 hover:bg-slate-50 active:bg-slate-100 lg:min-h-[44px]"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-slate-900">{b.service}</p>
-                      <p className="text-sm text-slate-600">{formatDate(b.startAt)}</p>
+                      <p className="truncate text-sm font-medium text-slate-900">{b.service}</p>
+                      <p className="truncate text-xs text-slate-500 tabular-nums">{formatDate(b.startAt)}</p>
                     </div>
-                    <AppStatusPill status={b.status} className="ml-3 shrink-0" />
+                    <div className="flex shrink-0">
+                      <AppStatusPill status={b.status} />
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           ) : (
-            <div className="mt-4 border-t border-slate-200 pb-3 pt-4">
+            <div className="w-full">
               <EmptyState
                 title="No upcoming visits"
-                description="Book a visit when you're ready."
-                primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
+                description="Book your next visit anytime."
+                primaryAction={{ label: 'Book a visit', onClick: () => router.push('/bookings/new') }}
               />
             </div>
           )}

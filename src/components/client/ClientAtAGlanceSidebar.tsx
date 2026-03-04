@@ -63,10 +63,10 @@ export function ClientAtAGlanceSidebar() {
 
   if (loading) {
     return (
-      <aside className="hidden w-72 shrink-0 space-y-3 lg:block">
-        <div className="h-24 animate-pulse rounded-lg border border-slate-200 bg-slate-100" />
-        <div className="h-24 animate-pulse rounded-lg border border-slate-200 bg-slate-100" />
-        <div className="h-20 animate-pulse rounded-lg border border-slate-200 bg-slate-100" />
+      <aside className="w-full space-y-3 lg:block lg:w-72 lg:shrink-0 lg:space-y-3">
+        <div className="h-16 animate-pulse rounded-xl bg-slate-200 lg:rounded-lg" />
+        <div className="h-16 animate-pulse rounded-xl bg-slate-200 lg:rounded-lg" />
+        <div className="h-16 animate-pulse rounded-xl bg-slate-200 lg:rounded-lg" />
       </aside>
     );
   }
@@ -76,7 +76,7 @@ export function ClientAtAGlanceSidebar() {
   const unpaidCount = billing?.invoices?.filter((i) => i.paymentStatus === 'unpaid').length ?? 0;
 
   return (
-    <aside className="hidden w-72 shrink-0 space-y-3 lg:block">
+    <aside className="w-full space-y-4 lg:w-72 lg:shrink-0 lg:space-y-3">
       <AppCard className="shadow-sm">
         <AppCardBody className="py-3">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Next visit</p>

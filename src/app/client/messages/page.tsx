@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/components/layout';
-import { ClientAtAGlanceSidebar } from '@/components/client/ClientAtAGlanceSidebar';
+import { ClientAtAGlanceSidebarLazy } from '@/components/client/ClientAtAGlanceSidebarLazy';
 import { AppErrorState } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 import { InteractiveRow } from '@/components/ui/interactive-row';
@@ -69,31 +69,28 @@ export default function ClientMessagesPage() {
             ) : threads.length === 0 ? (
               <EmptyState
                 title="No messages yet"
-                description="Your conversations with sitters will appear here."
+                description="When you have a booking, you can message your sitter here."
               />
             ) : (
-              <div className="max-w-3xl space-y-4">
-                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+              <div className="w-full space-y-3 lg:max-w-3xl">
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
                   {threads.map((t) => (
                     <InteractiveRow
                       key={t.id}
                       onClick={() => router.push(`/client/messages/${t.id}`)}
                       className="last:border-b-0"
+                      aria-label={`Open conversation with ${t.sitter?.name || t.booking?.service || 'sitter'}`}
                     >
-                      <div className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-[1fr,minmax(0,2fr),auto]">
-                        <div className="min-w-0">
-                          <p className="font-medium text-slate-900">
-                            {t.sitter?.name || t.booking?.service || 'Conversation'}
-                          </p>
-                        </div>
-                        <div className="min-w-0 line-clamp-1 text-sm text-slate-600">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-slate-900">
+                          {t.sitter?.name || t.booking?.service || 'Conversation'}
+                        </p>
+                        <p className="line-clamp-1 text-sm text-slate-700">
                           {renderClientPreview(t.preview || (t.booking?.service && t.booking.startAt ? `${t.booking.service} · ${formatDate(t.booking.startAt)}` : '—')) || '—'}
-                        </div>
-                        {t.lastActivityAt && (
-                          <span className="shrink-0 text-xs text-slate-500 tabular-nums">
-                            {formatDate(t.lastActivityAt)}
-                          </span>
-                        )}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 text-xs text-slate-500 tabular-nums">
+                        {t.lastActivityAt ? formatDate(t.lastActivityAt) : '—'}
                       </div>
                     </InteractiveRow>
                   ))}
@@ -103,7 +100,7 @@ export default function ClientMessagesPage() {
             )}
           </Section>
         </div>
-        <ClientAtAGlanceSidebar />
+        <ClientAtAGlanceSidebarLazy />
       </div>
     </LayoutWrapper>
   );

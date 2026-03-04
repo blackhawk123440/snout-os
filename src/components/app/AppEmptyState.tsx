@@ -19,16 +19,16 @@ export function AppEmptyState({
 }: AppEmptyStateProps) {
   return (
     <div
-      className={`flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-white px-8 py-12 text-center ${className}`}
+      className={`flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white px-6 py-8 text-center lg:rounded-lg ${className}`}
     >
-      {icon && <div className="mb-4 text-4xl text-slate-300">{icon}</div>}
-      <p className="text-base font-medium text-slate-900">{title}</p>
-      {subtitle && <div className="mt-1 text-sm text-slate-500">{subtitle}</div>}
+      {icon && <div className="mb-3 text-4xl text-slate-300">{icon}</div>}
+      <p className="text-sm font-semibold text-slate-900">{title}</p>
+      {subtitle && <div className="mt-1 text-sm text-slate-600">{subtitle}</div>}
       {cta && (
         <button
           type="button"
           onClick={cta.onClick}
-          className="mt-4 min-h-[40px] min-w-[120px] rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+          className="mt-4 flex min-h-[44px] min-w-[120px] items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
         >
           {cta.label}
         </button>

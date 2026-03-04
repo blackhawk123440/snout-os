@@ -39,7 +39,7 @@ export const InteractiveRow = forwardRef<HTMLDivElement, InteractiveRowProps>(
           base,
           hover,
           active,
-          'flex min-h-[48px] items-center border-b border-slate-200 px-4 py-2 lg:min-h-[44px] lg:py-1.5',
+          'flex min-h-[56px] items-center gap-3 border-b border-slate-200 px-4 py-2 lg:min-h-[44px] lg:py-1.5',
           className
         )}
         {...props}
