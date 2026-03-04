@@ -9,6 +9,10 @@ vi.mock('@/lib/db', () => ({
   },
 }));
 
+vi.mock('next-auth/jwt', () => ({
+  encode: vi.fn().mockResolvedValue('mock-session-token'),
+}));
+
 import { prisma } from '@/lib/db';
 import { POST } from '@/app/api/ops/e2e-login/route';
 
@@ -48,22 +52,6 @@ describe('/api/ops/e2e-login', () => {
   ])('returns 200 and session cookie for $role', async ({ role, user }) => {
     (prisma as any).user.findUnique.mockResolvedValueOnce(user);
 
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ csrfToken: 'csrf-123' }), {
-          status: 200,
-          headers: { 'set-cookie': 'next-auth.csrf-token=csrf-token-value; Path=/; HttpOnly' },
-        })
-      )
-      .mockResolvedValueOnce(
-        new Response(null, {
-          status: 302,
-          headers: { 'set-cookie': '__Secure-next-auth.session-token=session-token-value; Path=/; HttpOnly; Secure' },
-        })
-      );
-
-    vi.stubGlobal('fetch', fetchMock);
     const response = await POST(makeRequest(role));
     const body = await response.json();
     const setCookie = response.headers.get('set-cookie') || '';

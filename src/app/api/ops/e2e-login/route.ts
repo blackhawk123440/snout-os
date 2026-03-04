@@ -10,37 +10,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-
-const E2E_PASSWORD = 'e2e-test-password';
-
-function getSetCookies(res: Response): string[] {
-  const maybe = res.headers as Headers & { getSetCookie?: () => string[] };
-  if (typeof maybe.getSetCookie === 'function') {
-    return maybe.getSetCookie();
-  }
-  const single = res.headers.get('set-cookie');
-  return single ? [single] : [];
-}
-
-function parseCookiePair(setCookie: string): { name: string; value: string } | null {
-  const first = setCookie.split(';')[0];
-  const eq = first.indexOf('=');
-  if (eq <= 0) return null;
-  return { name: first.slice(0, eq), value: first.slice(eq + 1) };
-}
-
-function mergeCookies(target: Map<string, string>, setCookies: string[]) {
-  for (const raw of setCookies) {
-    const parsed = parseCookiePair(raw);
-    if (parsed) target.set(parsed.name, parsed.value);
-  }
-}
-
-function cookieHeader(cookies: Map<string, string>): string {
-  return Array.from(cookies.entries())
-    .map(([k, v]) => `${k}=${v}`)
-    .join('; ');
-}
+import { encode } from 'next-auth/jwt';
+import { env } from '@/lib/env';
 
 function isE2eLoginAllowed(): boolean {
   const envName = (process.env.ENV_NAME || process.env.NEXT_PUBLIC_ENV || '').toLowerCase();
@@ -102,42 +73,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `User ${email} does not have role ${role}` }, { status: 403 });
     }
 
-    const base = req.nextUrl.origin;
-    const jar = new Map<string, string>();
-    const csrfRes = await fetch(new URL('/api/auth/csrf', base), { redirect: 'manual' });
-    mergeCookies(jar, getSetCookies(csrfRes));
-    const { csrfToken } = await csrfRes.json().catch(() => ({}));
-    if (!csrfToken) {
-      return NextResponse.json({ error: 'Failed to get CSRF token' }, { status: 500 });
-    }
-
-    const signInRes = await fetch(new URL('/api/auth/callback/credentials', base), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        Cookie: cookieHeader(jar),
-      },
-      body: new URLSearchParams({
+    const secret =
+      process.env.NEXTAUTH_SECRET ||
+      env.NEXTAUTH_SECRET ||
+      (process.env.NODE_ENV === 'development'
+        ? 'dev-secret-key-change-in-production-min-32-chars'
+        : 'staging-fallback-secret-minimum-32-characters-required-for-nextauth');
+    const secure = process.env.NODE_ENV === 'production';
+    const cookieName = secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token';
+    const token = await encode({
+      secret,
+      salt: cookieName,
+      token: {
+        sub: user.id,
+        id: user.id,
         email: user.email,
-        password: E2E_PASSWORD,
-        csrfToken,
-        callbackUrl: `${base}/`,
-        json: 'true',
-      }),
-      redirect: 'manual',
+        name: user.name,
+        orgId: user.orgId,
+        role: user.role,
+        sitterId: user.sitter?.id ?? null,
+        clientId: user.client?.id ?? null,
+      } as Record<string, unknown>,
+      maxAge: 30 * 24 * 60 * 60,
     });
 
-    const signInSetCookies = getSetCookies(signInRes);
-    // NextAuth credentials callback returns 302 redirect on success; treat 302 + Set-Cookie as success
-    const success = signInRes.ok || (signInRes.status === 302 && signInSetCookies.length > 0);
-    if (!success) {
-      return NextResponse.json({ error: 'Sign-in failed', status: signInRes.status }, { status: 500 });
-    }
-
     const res = NextResponse.json({ ok: true });
-    for (const cookie of signInSetCookies) {
-      res.headers.append('Set-Cookie', cookie);
-    }
+    res.cookies.set(cookieName, token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      secure,
+      maxAge: 30 * 24 * 60 * 60,
+    });
     return res;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
