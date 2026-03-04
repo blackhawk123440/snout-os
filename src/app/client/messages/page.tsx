@@ -7,6 +7,7 @@ import { ClientAtAGlanceSidebar } from '@/components/client/ClientAtAGlanceSideb
 import { AppErrorState } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 import { InteractiveRow } from '@/components/ui/interactive-row';
+import { stripEmojisFromPreview } from '@/lib/strip-emojis';
 
 interface Thread {
   id: string;
@@ -86,7 +87,7 @@ export default function ClientMessagesPage() {
                         </p>
                       </div>
                       <div className="min-w-0 line-clamp-1 text-sm text-slate-600">
-                        {t.preview || (t.booking?.service && t.booking.startAt ? `${t.booking.service} · ${formatDate(t.booking.startAt)}` : '—')}
+                        {stripEmojisFromPreview(t.preview || (t.booking?.service && t.booking.startAt ? `${t.booking.service} · ${formatDate(t.booking.startAt)}` : '—')) || '—'}
                       </div>
                       {t.lastActivityAt && (
                         <span className="shrink-0 text-xs text-slate-500 tabular-nums">

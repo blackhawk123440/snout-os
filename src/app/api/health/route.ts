@@ -38,11 +38,13 @@ export async function GET() {
         ? "degraded"
         : "ok";
 
+  const commitSha = typeof version === 'string' && version !== 'unknown' ? version.slice(0, 7) : version;
   return NextResponse.json({
     status,
     db: dbStatus,
     redis: redisStatus,
     version,
+    commitSha,
     timestamp: new Date().toISOString(),
   });
 }

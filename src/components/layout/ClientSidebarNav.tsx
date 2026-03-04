@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { CLIENT_NAV_GROUPS } from '@/lib/client-nav';
 import { cn } from '@/components/ui/utils';
 
@@ -11,6 +12,17 @@ const APP_VERSION = typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_A
 
 export function ClientSidebarNav() {
   const pathname = usePathname();
+  const [deploySha, setDeploySha] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/health')
+      .then((r) => r.json().catch(() => ({})))
+      .then((data) => {
+        const sha = data.commitSha ?? data.version;
+        if (sha && sha !== 'unknown') setDeploySha(typeof sha === 'string' ? sha.slice(0, 7) : String(sha).slice(0, 7));
+      })
+      .catch(() => {});
+  }, []);
 
   const isActive = (href: string) => {
     if (href === '/client/home') return pathname === '/client/home' || pathname === '/client';
@@ -19,7 +31,7 @@ export function ClientSidebarNav() {
 
   return (
     <aside
-      className="hidden shrink-0 border-r border-slate-200 bg-white lg:flex lg:w-60 lg:flex-col"
+      className="hidden shrink-0 border-r border-slate-200 bg-white lg:flex lg:w-60 lg:flex-col min-[1024px]:flex min-[1024px]:w-60 min-[1024px]:flex-col"
       aria-label="Client portal navigation"
     >
       <div className="flex min-h-0 flex-1 flex-col">
@@ -61,7 +73,10 @@ export function ClientSidebarNav() {
         >
           Support
         </a>
-        <p className="mt-1 text-[11px] text-slate-400 tabular-nums">{APP_VERSION}</p>
+        <p className="mt-1 text-[11px] text-slate-400 tabular-nums">
+          {APP_VERSION}
+          {deploySha ? ` · ${deploySha}` : ''}
+        </p>
       </div>
     </aside>
   );

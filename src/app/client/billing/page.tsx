@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/components/layout';
+import { ClientAtAGlanceSidebar } from '@/components/client/ClientAtAGlanceSidebar';
 import {
   AppCard,
-  AppCardHeader,
   AppCardBody,
   AppErrorState,
 } from '@/components/app';
@@ -70,6 +70,8 @@ export default function ClientBillingPage() {
         subtitle={data ? `${data.loyalty.points} loyalty points · ${data.loyalty.tier} tier` : 'Invoices & loyalty'}
         actions={<ClientRefreshButton onRefresh={load} loading={loading} />}
       />
+      <div className="lg:grid lg:grid-cols-[1fr,auto] lg:gap-6">
+        <div className="min-w-0">
       <Section>
       {loading ? (
         <PageSkeleton />
@@ -160,6 +162,9 @@ export default function ClientBillingPage() {
         </div>
       ) : null}
       </Section>
+        </div>
+        <ClientAtAGlanceSidebar />
+      </div>
     </LayoutWrapper>
   );
 }

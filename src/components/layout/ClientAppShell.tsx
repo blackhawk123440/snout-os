@@ -111,7 +111,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
 
   return (
     <div className="fixed inset-0 flex flex-col bg-slate-50" style={{ maxHeight: '100dvh' }}>
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row min-[1024px]:flex-row">
         <ClientSidebarNav />
 
         <div className="flex min-h-0 flex-1 flex-col">

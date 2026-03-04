@@ -6,6 +6,7 @@ import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/compo
 import { AppErrorState } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 import { InteractiveRow } from '@/components/ui/interactive-row';
+import { stripEmojisFromPreview } from '@/lib/strip-emojis';
 
 interface Report {
   id: string;
@@ -100,7 +101,7 @@ export default function ClientReportsPage() {
                 ) : (
                   <span className="shrink-0 sm:order-2">—</span>
                 )}
-                <p className="line-clamp-1 min-w-0 text-sm text-slate-600 sm:order-3">{preview(r.content)}</p>
+                <p className="line-clamp-1 min-w-0 text-sm text-slate-600 sm:order-3">{stripEmojisFromPreview(preview(r.content))}</p>
               </div>
             </InteractiveRow>
           ))}
