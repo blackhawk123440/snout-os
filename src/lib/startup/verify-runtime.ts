@@ -30,13 +30,12 @@ export async function verifyRuntime(): Promise<VerifyResult> {
     }
   }
 
-  // 2. Production: REDIS_URL required (queues + realtime are enabled)
-  // Skip in CI where Redis may not be available for smoke tests
+  // 2. Production: REDIS_URL recommended (queues + realtime). Warn if missing so app can start on Render/staging without Redis.
   if (isProduction && !process.env.REDIS_URL && process.env.CI !== 'true') {
-    errors.push('REDIS_URL is required in production (queues and realtime depend on it)');
+    warnings.push('REDIS_URL not set; queues and realtime will be degraded');
   }
 
-  // 3. Stripe: if any Stripe key present, require both (relax in smoke/e2e mode)
+  // 3. Stripe: if any Stripe key present, recommend both. Warn only so staging can start without webhook secret.
   const isSmokeOrE2E =
     process.env.SMOKE === 'true' ||
     (process.env.CI === 'true' && process.env.ENABLE_E2E_LOGIN === 'true');
@@ -47,7 +46,7 @@ export async function verifyRuntime(): Promise<VerifyResult> {
       errors.push('STRIPE_SECRET_KEY required when Stripe webhook is configured');
     }
     if (!hasStripeWebhook && !isSmokeOrE2E) {
-      errors.push('STRIPE_WEBHOOK_SECRET required when Stripe is configured');
+      warnings.push('STRIPE_WEBHOOK_SECRET not set; Stripe webhooks will not work');
     }
   }
 
