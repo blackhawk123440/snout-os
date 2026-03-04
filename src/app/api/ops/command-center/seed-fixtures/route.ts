@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/db';
 import { getRequestContext } from '@/lib/request-context';
 import { ForbiddenError, requireOwnerOrAdmin } from '@/lib/rbac';
@@ -10,112 +10,13 @@ function addMinutes(base: Date, minutes: number): Date {
 }
 
 async function ensureRoleTestAccounts(orgId: string) {
-  const e2ePasswordHash = await bcrypt.hash('e2e-test-password', 10);
-
-  let sitter = await prisma.sitter.findFirst({
-    where: { orgId, email: 'sitter@example.com' },
-    select: { id: true },
+  const assigned = await prisma.booking.findFirst({
+    where: { orgId, sitterId: { not: null } },
+    select: { sitterId: true, clientId: true },
+    orderBy: { createdAt: 'desc' },
   });
-  if (!sitter) {
-    sitter = await prisma.sitter.create({
-      data: {
-        orgId,
-        firstName: 'Stage',
-        lastName: 'Sitter',
-        email: 'sitter@example.com',
-        phone: '+15550002101',
-        active: true,
-      },
-      select: { id: true },
-    });
-  }
 
-  let client = await prisma.client.findFirst({
-    where: { orgId, email: 'client@example.com' },
-    select: { id: true },
-  });
-  if (!client) {
-    client = await prisma.client.create({
-      data: {
-        orgId,
-        firstName: 'Stage',
-        lastName: 'Client',
-        email: 'client@example.com',
-        phone: '+15550003101',
-      },
-      select: { id: true },
-    });
-  }
-
-  const ownerUser = await prisma.user.findFirst({
-    where: { orgId, email: 'owner@example.com' },
-    select: { id: true },
-  });
-  if (ownerUser) {
-    await prisma.user.update({
-      where: { id: ownerUser.id },
-      data: { role: 'owner', passwordHash: e2ePasswordHash, sitterId: null, clientId: null },
-    });
-  } else {
-    await prisma.user.create({
-      data: {
-        orgId,
-        role: 'owner',
-        email: 'owner@example.com',
-        name: 'Staging Owner',
-        passwordHash: e2ePasswordHash,
-        emailVerified: new Date(),
-      },
-    });
-  }
-
-  const sitterUser = await prisma.user.findFirst({
-    where: { orgId, email: 'sitter@example.com' },
-    select: { id: true },
-  });
-  if (sitterUser) {
-    await prisma.user.update({
-      where: { id: sitterUser.id },
-      data: { role: 'sitter', passwordHash: e2ePasswordHash, sitterId: sitter.id, clientId: null },
-    });
-  } else {
-    await prisma.user.create({
-      data: {
-        orgId,
-        role: 'sitter',
-        email: 'sitter@example.com',
-        name: 'Staging Sitter',
-        passwordHash: e2ePasswordHash,
-        emailVerified: new Date(),
-        sitterId: sitter.id,
-      },
-    });
-  }
-
-  const clientUser = await prisma.user.findFirst({
-    where: { orgId, email: 'client@example.com' },
-    select: { id: true },
-  });
-  if (clientUser) {
-    await prisma.user.update({
-      where: { id: clientUser.id },
-      data: { role: 'client', passwordHash: e2ePasswordHash, clientId: client.id, sitterId: null },
-    });
-  } else {
-    await prisma.user.create({
-      data: {
-        orgId,
-        role: 'client',
-        email: 'client@example.com',
-        name: 'Staging Client',
-        passwordHash: e2ePasswordHash,
-        emailVerified: new Date(),
-        clientId: client.id,
-      },
-    });
-  }
-
-  return { sitterId: sitter.id, clientId: client.id };
+  return { sitterId: assigned?.sitterId ?? null, clientId: assigned?.clientId ?? null };
 }
 
 export async function POST(request: NextRequest) {
@@ -150,7 +51,8 @@ export async function POST(request: NextRequest) {
     const { sitterId, clientId } = await ensureRoleTestAccounts(orgId);
     const now = new Date();
 
-    const overlapA = await prisma.booking.create({
+    const overlapA = sitterId
+      ? await prisma.booking.create({
       data: {
         orgId,
         firstName: 'Fixture',
@@ -166,9 +68,11 @@ export async function POST(request: NextRequest) {
         clientId,
       },
       select: { id: true, startAt: true },
-    });
+    })
+      : null;
 
-    const overlapB = await prisma.booking.create({
+    const overlapB = sitterId
+      ? await prisma.booking.create({
       data: {
         orgId,
         firstName: 'Fixture',
@@ -184,7 +88,8 @@ export async function POST(request: NextRequest) {
         clientId,
       },
       select: { id: true },
-    });
+    })
+      : null;
 
     const unassignedA = await prisma.booking.create({
       data: {
@@ -198,7 +103,7 @@ export async function POST(request: NextRequest) {
         endAt: addMinutes(now, 210),
         totalPrice: 20,
         status: 'confirmed',
-        clientId,
+        clientId: clientId ?? null,
       },
       select: { id: true },
     });
@@ -215,7 +120,7 @@ export async function POST(request: NextRequest) {
         endAt: addMinutes(now, 390),
         totalPrice: 22,
         status: 'pending',
-        clientId,
+        clientId: clientId ?? null,
       },
       select: { id: true },
     });
@@ -232,34 +137,14 @@ export async function POST(request: NextRequest) {
         endAt: addMinutes(now, 120),
         totalPrice: 19,
         status: 'confirmed',
-        sitterId,
-        clientId,
+        sitterId: sitterId ?? null,
+        clientId: clientId ?? null,
       },
       select: { id: true },
     });
 
-    const threadA = await prisma.messageThread.create({
-      data: {
-        orgId,
-        scope: 'client_general',
-        clientId,
-        assignedSitterId: sitterId,
-        status: 'open',
-        lastMessageAt: now,
-      },
-      select: { id: true },
-    });
-    const threadB = await prisma.messageThread.create({
-      data: {
-        orgId,
-        scope: 'client_general',
-        clientId,
-        assignedSitterId: sitterId,
-        status: 'open',
-        lastMessageAt: now,
-      },
-      select: { id: true },
-    });
+    const threadAId = randomUUID();
+    const threadBId = randomUUID();
 
     const automationFailedA = await prisma.eventLog.create({
       data: {
@@ -301,7 +186,7 @@ export async function POST(request: NextRequest) {
         eventType: 'message.failed',
         status: 'failed',
         error: 'Fixture: outbound message failed for thread A',
-        metadata: JSON.stringify({ threadId: threadA.id }),
+        metadata: JSON.stringify({ threadId: threadAId }),
       },
       select: { id: true },
     });
@@ -311,7 +196,7 @@ export async function POST(request: NextRequest) {
         eventType: 'message.failed',
         status: 'failed',
         error: 'Fixture: outbound message failed for thread B',
-        metadata: JSON.stringify({ threadId: threadB.id }),
+        metadata: JSON.stringify({ threadId: threadBId }),
       },
       select: { id: true },
     });
@@ -323,8 +208,8 @@ export async function POST(request: NextRequest) {
         automationType: 'calendarSync',
         status: 'failed',
         error: 'Fixture: calendar sync failed for sitter',
-        bookingId: overlapA.id,
-        metadata: JSON.stringify({ sitterId }),
+        bookingId: overlapA?.id ?? dedupeBooking.id,
+        metadata: JSON.stringify({ sitterId: sitterId ?? 'unknown' }),
       },
       select: { id: true },
     });
@@ -333,12 +218,12 @@ export async function POST(request: NextRequest) {
       `automation_failure:${dedupeBooking.id}`,
       `automation_failure:${messageFailedA.id}`,
       `automation_failure:${messageFailedB.id}`,
-      `calendar_repair:${overlapA.id}`,
+      `calendar_repair:${overlapA?.id ?? dedupeBooking.id}`,
       `coverage_gap:${unassignedA.id}`,
       `coverage_gap:${unassignedB.id}`,
       `unassigned:${unassignedA.id}`,
       `unassigned:${unassignedB.id}`,
-      `overlap:${overlapA.id}_${overlapB.id}`,
+      ...(overlapA && overlapB ? [`overlap:${overlapA.id}_${overlapB.id}`] : []),
     ];
 
     return NextResponse.json({
@@ -357,10 +242,10 @@ export async function POST(request: NextRequest) {
           dedupeBooking.id,
           unassignedA.id,
           unassignedB.id,
-          overlapA.id,
-          overlapB.id,
+          ...(overlapA ? [overlapA.id] : []),
+          ...(overlapB ? [overlapB.id] : []),
         ],
-        threadIds: [threadA.id, threadB.id],
+        threadIds: [threadAId, threadBId],
       },
       expectedItemKeys,
       testAccounts: {
