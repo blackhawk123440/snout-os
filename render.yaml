@@ -14,8 +14,7 @@ services:
     region: oregon
     rootDir: .
     buildCommand: pnpm install --frozen-lockfile && pnpm prisma generate && pnpm run build
-    # Do not mutate DB schema during web startup.
-    # Apply migrations intentionally via a separate one-off command/job (for example: `pnpm prisma migrate deploy`).
+    # Ensure schema is migrated before app boot in staging/prod.
     startCommand: pnpm run start
     envVars:
       - key: NODE_ENV
