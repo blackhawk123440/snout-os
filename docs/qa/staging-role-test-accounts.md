@@ -10,3 +10,19 @@ If `ENABLE_E2E_AUTH=true` (or `ENABLE_E2E_LOGIN=true`) and `E2E_AUTH_KEY` is con
 
 - `POST /api/ops/e2e-login` with header `x-e2e-key: <E2E_AUTH_KEY>`
 - body example: `{ "role": "sitter" }` or `{ "role": "client" }`
+
+## Deterministic Command Center Verification
+
+Run the end-to-end verifier:
+
+```bash
+BASE_URL=https://snout-os-staging.onrender.com E2E_AUTH_KEY=<your-key> pnpm tsx scripts/verify-command-center.ts
+```
+
+The runner will:
+
+- print `/api/health` identity (`commitSha`, `envName`, `redis`)
+- seed command center fixtures
+- verify ordering evidence (`first10Ids`) and counts by type/severity
+- perform snooze + handled actions and assert persistence
+- assert sitter/client cannot access owner command center API/page
