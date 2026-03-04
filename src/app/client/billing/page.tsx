@@ -9,7 +9,6 @@ import {
   AppErrorState,
 } from '@/components/app';
 import { EmptyState, PageSkeleton, DataTableShell, Table } from '@/components/ui';
-import { StatusChip } from '@/components/ui/status-chip';
 import { AppStatusPill } from '@/components/app';
 
 interface BillingData {
@@ -67,7 +66,7 @@ export default function ClientBillingPage() {
     <LayoutWrapper variant="narrow">
       <PageHeader
         title="Billing"
-        subtitle={data ? `${data.loyalty.points} loyalty points · ${data.loyalty.tier} tier` : 'Invoices & loyalty'}
+        subtitle="Invoices & loyalty"
         actions={<ClientRefreshButton onRefresh={load} loading={loading} />}
       />
       <div className="lg:grid lg:grid-cols-[1fr,auto] lg:gap-6">
@@ -81,16 +80,45 @@ export default function ClientBillingPage() {
         <div className="flex flex-col gap-3">
           <AppCard className="shadow-none">
             <AppCardBody className="p-4">
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <p className="text-xs font-medium text-slate-500">Loyalty points</p>
-                  <p className="mt-0.5 text-2xl font-semibold tabular-nums tracking-tight text-slate-900">{data.loyalty.points}</p>
-                  <p className="mt-0.5 text-sm text-slate-700">Earn points on every visit</p>
-                </div>
-                <StatusChip variant="neutral" ariaLabel={`Tier: ${data.loyalty.tier}`}>
-                  {data.loyalty.tier}
-                </StatusChip>
-              </div>
+              {(() => {
+                const tier = (data.loyalty.tier || 'bronze').toLowerCase();
+                const points = data.loyalty.points ?? 0;
+                const tiers: { next: string; needed: number; start: number }[] = [
+                  { next: 'Silver', needed: 100, start: 0 },
+                  { next: 'Gold', needed: 200, start: 100 },
+                  { next: 'Platinum', needed: 500, start: 300 },
+                ];
+                const tierNames = ['bronze', 'silver', 'gold', 'platinum'];
+                const tierIndex = tierNames.indexOf(tier);
+                const currentTierLabel = tier.charAt(0).toUpperCase() + tier.slice(1) + ' tier';
+                let progressLabel: string;
+                let progressPct = 0;
+                if (tierIndex < 0 || tierIndex >= tiers.length) {
+                  progressLabel = `${points} points`;
+                  progressPct = 0;
+                } else if (tierIndex === 3) {
+                  progressLabel = 'Max tier';
+                  progressPct = 1;
+                } else {
+                  const t = tiers[tierIndex];
+                  const inTier = Math.max(0, Math.min(t.needed, points - t.start));
+                  progressLabel = `${inTier} / ${t.needed} points to ${t.next}`;
+                  progressPct = t.needed ? inTier / t.needed : 0;
+                }
+                return (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm font-semibold text-slate-900">{currentTierLabel}</p>
+                    <p className="text-sm text-slate-600">{progressLabel}</p>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                      <div
+                        className="h-full rounded-full bg-slate-700 transition-[width]"
+                        style={{ width: `${Math.min(100, progressPct * 100)}%` }}
+                        aria-hidden
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
             </AppCardBody>
           </AppCard>
 

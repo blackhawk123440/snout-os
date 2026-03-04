@@ -20,6 +20,7 @@ interface Booking {
   startAt: string;
   endAt: string;
   status: string;
+  sitter: { id: string; name: string } | null;
 }
 
 export default function ClientBookingsPage() {
@@ -56,7 +57,6 @@ export default function ClientBookingsPage() {
     new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   const formatTime = (d: string) =>
     new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-
   return (
     <LayoutWrapper variant="narrow">
       <AppPageHeader
@@ -89,8 +89,11 @@ export default function ClientBookingsPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-slate-900">{b.service}</p>
                       <p className="truncate text-xs text-slate-500 tabular-nums">
-                        {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
+                        {formatDate(b.startAt)} · {formatTime(b.startAt)}
                       </p>
+                      {b.sitter?.name ? (
+                        <p className="truncate text-xs text-slate-600">with {b.sitter.name}</p>
+                      ) : null}
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
                       <AppStatusPill status={b.status} />

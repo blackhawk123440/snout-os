@@ -32,14 +32,30 @@ export async function GET() {
       take: 50,
     });
 
+    const threadIds = threads.map((t: any) => t.id);
     const bookingIds = [...new Set(threads.map((t: any) => t.bookingId).filter(Boolean))];
-    const bookings = bookingIds.length > 0
-      ? await (prisma as any).booking.findMany({
-          where: whereOrg(ctx.orgId, { id: { in: bookingIds } }),
-          select: { id: true, service: true, startAt: true },
-        })
-      : [];
+    const [bookings, latestEvents] = await Promise.all([
+      bookingIds.length > 0
+        ? (prisma as any).booking.findMany({
+            where: whereOrg(ctx.orgId, { id: { in: bookingIds } }),
+            select: { id: true, service: true, startAt: true },
+          })
+        : [],
+      threadIds.length > 0
+        ? (prisma as any).messageEvent.findMany({
+            where: { threadId: { in: threadIds } },
+            select: { threadId: true, body: true, createdAt: true },
+            orderBy: { createdAt: 'desc' },
+          })
+        : [],
+    ]);
     const bookingMap = Object.fromEntries(bookings.map((b: any) => [b.id, b]));
+    const previewByThread: Record<string, string> = {};
+    for (const ev of latestEvents) {
+      if (ev.threadId && ev.body != null && !(ev.threadId in previewByThread)) {
+        previewByThread[ev.threadId] = String(ev.body).trim();
+      }
+    }
 
     const toIso = (d: Date | null) => (d instanceof Date ? d.toISOString() : null);
     const payload = threads.map((t: any) => ({
@@ -52,7 +68,7 @@ export async function GET() {
       booking: t.bookingId && bookingMap[t.bookingId]
         ? { id: bookingMap[t.bookingId].id, service: bookingMap[t.bookingId].service, startAt: toIso(bookingMap[t.bookingId].startAt) }
         : null,
-      preview: null,
+      preview: previewByThread[t.id] ?? null,
     }));
 
     return NextResponse.json({ threads: payload });

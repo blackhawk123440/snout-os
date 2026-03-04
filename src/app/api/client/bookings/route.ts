@@ -20,7 +20,16 @@ export async function GET() {
   try {
     const bookings = await (prisma as any).booking.findMany({
       where: whereOrg(ctx.orgId, { clientId: ctx.clientId }),
-      select: { id: true, service: true, startAt: true, endAt: true, status: true, address: true },
+      select: {
+        id: true,
+        service: true,
+        startAt: true,
+        endAt: true,
+        status: true,
+        address: true,
+        sitterId: true,
+        sitter: { select: { id: true, firstName: true, lastName: true } },
+      },
       orderBy: { startAt: 'desc' },
       take: 50,
     });
@@ -33,6 +42,9 @@ export async function GET() {
       endAt: toIso(b.endAt),
       status: b.status,
       address: b.address,
+      sitter: b.sitter
+        ? { id: b.sitter.id, name: [b.sitter.firstName, b.sitter.lastName].filter(Boolean).join(' ').trim() || 'Sitter' }
+        : null,
     }));
 
     return NextResponse.json({ bookings: payload });

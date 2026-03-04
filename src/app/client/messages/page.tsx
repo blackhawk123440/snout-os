@@ -85,8 +85,8 @@ export default function ClientMessagesPage() {
                         <p className="truncate text-sm font-medium text-slate-900">
                           {t.sitter?.name || t.booking?.service || 'Conversation'}
                         </p>
-                        <p className="line-clamp-1 text-sm text-slate-700">
-                          {renderClientPreview(t.preview || (t.booking?.service && t.booking.startAt ? `${t.booking.service} · ${formatDate(t.booking.startAt)}` : '—')) || '—'}
+                        <p className="truncate text-sm text-slate-600">
+                          {(t.preview ? renderClientPreview(t.preview).trim() : '') || (t.booking?.service && t.booking.startAt ? `${t.booking.service} · ${formatDate(t.booking.startAt)}` : '') || '—'}
                         </p>
                       </div>
                       <div className="flex shrink-0 text-xs text-slate-500 tabular-nums">
