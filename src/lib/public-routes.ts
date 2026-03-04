@@ -41,6 +41,8 @@ export function isPublicRoute(pathname: string): boolean {
     // E2E test auth - route is public so setup can call it; the route itself
     // returns 403 in production (NODE_ENV check) and requires x-e2e-key
     "/api/ops/e2e-login",
+    // Staging fixture seeding endpoint - guarded by route-level env/key checks.
+    "/api/ops/command-center/seed-fixtures",
   ];
 
   // Exact match
