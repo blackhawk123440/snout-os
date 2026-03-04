@@ -12,11 +12,11 @@ function addMinutes(base: Date, minutes: number): Date {
 async function ensureRoleTestAccounts(orgId: string) {
   const assigned = await prisma.booking.findFirst({
     where: { orgId, sitterId: { not: null } },
-    select: { sitterId: true, clientId: true },
+    select: { sitterId: true },
     orderBy: { createdAt: 'desc' },
   });
 
-  return { sitterId: assigned?.sitterId ?? null, clientId: assigned?.clientId ?? null };
+  return { sitterId: assigned?.sitterId ?? null };
 }
 
 export async function POST(request: NextRequest) {
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { sitterId, clientId } = await ensureRoleTestAccounts(orgId);
+    const { sitterId } = await ensureRoleTestAccounts(orgId);
     const now = new Date();
 
     const overlapA = sitterId
@@ -65,7 +65,6 @@ export async function POST(request: NextRequest) {
         totalPrice: 25,
         status: 'confirmed',
         sitterId,
-        clientId,
       },
       select: { id: true, startAt: true },
     })
@@ -85,7 +84,6 @@ export async function POST(request: NextRequest) {
         totalPrice: 30,
         status: 'confirmed',
         sitterId,
-        clientId,
       },
       select: { id: true },
     })
@@ -103,7 +101,6 @@ export async function POST(request: NextRequest) {
         endAt: addMinutes(now, 210),
         totalPrice: 20,
         status: 'confirmed',
-        clientId: clientId ?? null,
       },
       select: { id: true },
     });
@@ -120,7 +117,6 @@ export async function POST(request: NextRequest) {
         endAt: addMinutes(now, 390),
         totalPrice: 22,
         status: 'pending',
-        clientId: clientId ?? null,
       },
       select: { id: true },
     });
@@ -138,7 +134,6 @@ export async function POST(request: NextRequest) {
         totalPrice: 19,
         status: 'confirmed',
         sitterId: sitterId ?? null,
-        clientId: clientId ?? null,
       },
       select: { id: true },
     });
