@@ -33,16 +33,20 @@ interface Stats {
 
 interface AttentionItem {
   id: string;
+  type: string;
   title: string;
   subtitle: string;
-  count?: number;
-  actionLabel: 'Fix' | 'Assign' | 'Retry' | 'Open';
-  href: string;
+  severity: 'high' | 'medium' | 'low';
+  dueAt: string | null;
+  createdAt: string;
+  primaryActionLabel: 'Fix' | 'Assign' | 'Retry' | 'Open';
+  primaryActionHref: string;
 }
 
 interface AttentionPayload {
   alerts: AttentionItem[];
   staffing: AttentionItem[];
+  lastUpdatedAt: string | null;
 }
 
 export function CommandCenterContent() {
@@ -51,8 +55,19 @@ export function CommandCenterContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [attention, setAttention] = useState<AttentionPayload>({ alerts: [], staffing: [] });
+  const [attention, setAttention] = useState<AttentionPayload>({
+    alerts: [],
+    staffing: [],
+    lastUpdatedAt: null,
+  });
   const [range, setRange] = useState<'7d' | '30d'>('7d');
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (!authLoading) {
@@ -64,34 +79,86 @@ export function CommandCenterContent() {
     }
   }, [user, authLoading, router]);
 
+  const load = async (opts?: { preserveScroll?: boolean }) => {
+    const preserveScroll = !!opts?.preserveScroll;
+    const prevScrollY = preserveScroll && typeof window !== 'undefined' ? window.scrollY : null;
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const [statsData, attentionData] = await Promise.all([
+        fetch(`/api/ops/stats?range=${range}`).then((r) => r.json()),
+        fetch('/api/ops/command-center/attention').then((r) => r.json()),
+      ]);
+      setStats(statsData ?? null);
+      setAttention({
+        alerts: Array.isArray(attentionData?.alerts) ? attentionData.alerts : [],
+        staffing: Array.isArray(attentionData?.staffing) ? attentionData.staffing : [],
+        lastUpdatedAt: typeof attentionData?.lastUpdatedAt === 'string' ? attentionData.lastUpdatedAt : null,
+      });
+    } catch {
+      setStats(null);
+      setAttention({ alerts: [], staffing: [], lastUpdatedAt: null });
+      setError('Failed to load command center queues');
+    } finally {
+      setLoading(false);
+      if (prevScrollY != null && typeof window !== 'undefined') {
+        requestAnimationFrame(() => window.scrollTo(0, prevScrollY));
+      }
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
-    Promise.all([
-      fetch(`/api/ops/stats?range=${range}`).then((r) => r.json()),
-      fetch('/api/ops/command-center/attention').then((r) => r.json()),
-    ])
-      .then(([statsData, attentionData]) => {
-        if (cancelled) return;
-        setStats(statsData ?? null);
-        setAttention({
-          alerts: Array.isArray(attentionData?.alerts) ? attentionData.alerts : [],
-          staffing: Array.isArray(attentionData?.staffing) ? attentionData.staffing : [],
-        });
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setStats(null);
-        setAttention({ alerts: [], staffing: [] });
-        setError('Failed to load command center queues');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    void (async () => {
+      if (cancelled) return;
+      await load();
+    })();
     return () => { cancelled = true; };
   }, [user, range]);
+
+  const handleAttentionAction = async (
+    id: string,
+    action: 'mark_handled' | 'snooze_1h' | 'snooze_4h' | 'snooze_tomorrow'
+  ) => {
+    setActionLoadingId(id);
+    try {
+      const res = await fetch('/api/ops/command-center/attention/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setError(json.error || 'Failed to update item');
+        return;
+      }
+      await load({ preserveScroll: true });
+    } catch {
+      setError('Failed to update item');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const formatRelativeUpdated = (iso: string | null) => {
+    if (!iso) return 'never';
+    const deltaMs = Math.max(0, nowMs - new Date(iso).getTime());
+    const mins = Math.floor(deltaMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  };
+
+  const severityClass = (severity: AttentionItem['severity']) => {
+    if (severity === 'high') return 'bg-red-100 text-red-700';
+    if (severity === 'medium') return 'bg-amber-100 text-amber-700';
+    return 'bg-neutral-100 text-neutral-700';
+  };
 
   if (authLoading) {
     return (
@@ -107,14 +174,19 @@ export function CommandCenterContent() {
       <LayoutWrapper variant="wide">
         <PageHeader
           title="Command Center"
-          subtitle="Real-time overview of your pet care operations"
+          subtitle={`Real-time overview of your pet care operations · Updated ${formatRelativeUpdated(attention.lastUpdatedAt)}`}
           actions={
-            <Link
-              href="/bookings"
-              className="inline-flex items-center gap-2 rounded-md border border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)] px-4 py-2 text-sm font-medium text-white no-underline transition hover:opacity-90"
-            >
-              View Bookings
-            </Link>
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm" onClick={() => void load({ preserveScroll: true })} disabled={loading}>
+                Refresh
+              </Button>
+              <Link
+                href="/bookings"
+                className="inline-flex items-center gap-2 rounded-md border border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)] px-4 py-2 text-sm font-medium text-white no-underline transition hover:opacity-90"
+              >
+                View Bookings
+              </Link>
+            </div>
           }
         />
 
@@ -202,17 +274,36 @@ export function CommandCenterContent() {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-neutral-900">
                           {item.title}
-                          {typeof item.count === 'number' ? ` · ${item.count}` : ''}
                         </p>
                         <p className="mt-0.5 text-xs text-neutral-600">{item.subtitle}</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${severityClass(item.severity)}`}>
+                            {item.severity}
+                          </span>
+                          {item.dueAt && (
+                            <span className="text-[10px] text-neutral-500">
+                              Due {new Date(item.dueAt).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => router.push(item.href)}
-                      >
-                        {item.actionLabel}
-                      </Button>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => router.push(item.primaryActionHref)}>
+                          {item.primaryActionLabel}
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_1h')} disabled={actionLoadingId === item.id}>
+                          Snooze 1h
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_4h')} disabled={actionLoadingId === item.id}>
+                          Snooze 4h
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_tomorrow')} disabled={actionLoadingId === item.id}>
+                          Snooze tomorrow
+                        </Button>
+                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'mark_handled')} disabled={actionLoadingId === item.id}>
+                          Mark handled
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -236,17 +327,36 @@ export function CommandCenterContent() {
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-neutral-900">
                             {item.title}
-                            {typeof item.count === 'number' ? ` · ${item.count}` : ''}
                           </p>
                           <p className="mt-0.5 text-xs text-neutral-600">{item.subtitle}</p>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${severityClass(item.severity)}`}>
+                              {item.severity}
+                            </span>
+                            {item.dueAt && (
+                              <span className="text-[10px] text-neutral-500">
+                                Due {new Date(item.dueAt).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => router.push(item.href)}
-                        >
-                          {item.actionLabel}
-                        </Button>
+                        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                          <Button variant="secondary" size="sm" onClick={() => router.push(item.primaryActionHref)}>
+                            {item.primaryActionLabel}
+                          </Button>
+                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_1h')} disabled={actionLoadingId === item.id}>
+                            Snooze 1h
+                          </Button>
+                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_4h')} disabled={actionLoadingId === item.id}>
+                            Snooze 4h
+                          </Button>
+                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_tomorrow')} disabled={actionLoadingId === item.id}>
+                            Snooze tomorrow
+                          </Button>
+                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'mark_handled')} disabled={actionLoadingId === item.id}>
+                            Mark handled
+                          </Button>
+                        </div>
                       </li>
                     ))}
                   </ul>

@@ -2,18 +2,12 @@ import { NextResponse } from 'next/server';
 import { getRequestContext } from '@/lib/request-context';
 import { ForbiddenError, requireOwnerOrAdmin } from '@/lib/rbac';
 import { getScopedDb } from '@/lib/tenancy';
-import { detectSitterOverlaps } from './helpers';
-
-type ActionLabel = 'Fix' | 'Assign' | 'Retry' | 'Open';
-
-interface AttentionItem {
-  id: string;
-  title: string;
-  subtitle: string;
-  count?: number;
-  actionLabel: ActionLabel;
-  href: string;
-}
+import {
+  dedupeAttentionItems,
+  detectSitterOverlaps,
+  sortAttentionItems,
+  type AttentionItem,
+} from './helpers';
 
 export async function GET() {
   let ctx;
@@ -37,7 +31,7 @@ export async function GET() {
   weekAgo.setDate(weekAgo.getDate() - 7);
 
   try {
-    const [failedEvents, payoutFailureCount, unassignedBookings, assignedBookings] = await Promise.all([
+    const [failedEvents, payoutFailures, unassignedBookings, assignedBookings] = await Promise.all([
       db.eventLog.findMany({
         where: {
           createdAt: { gte: weekAgo },
@@ -50,8 +44,14 @@ export async function GET() {
         orderBy: { createdAt: 'desc' },
         take: 100,
       }),
-      db.payoutTransfer.count({
+      db.payoutTransfer.findMany({
         where: { status: 'failed' },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        select: {
+          id: true,
+          createdAt: true,
+        },
       }),
       db.booking.findMany({
         where: {
@@ -98,9 +98,9 @@ export async function GET() {
       );
     }).length;
     const automationFailureCount = Math.max(0, failedEvents.length - calendarFailureCount);
-    const coverageGapCount = unassignedBookings.filter(
+    const coverageGapBookings = unassignedBookings.filter(
       (booking) => new Date(booking.startAt).getTime() <= in24h.getTime()
-    ).length;
+    );
 
     const overlaps = detectSitterOverlaps(
       assignedBookings.map((booking) => ({
@@ -111,73 +111,142 @@ export async function GET() {
       }))
     );
 
-    const alerts: AttentionItem[] = [];
-    if (automationFailureCount > 0) {
-      alerts.push({
-        id: 'automation-failures',
-        title: 'Automation failures',
-        subtitle: 'Recent failed automation runs need retry.',
-        count: automationFailureCount,
-        actionLabel: 'Retry',
-        href: '/ops/automation-failures',
-      });
-    }
-    if (payoutFailureCount > 0) {
-      alerts.push({
-        id: 'payout-failures',
-        title: 'Payout failures',
-        subtitle: 'Failed transfers are blocking sitter payouts.',
-        count: payoutFailureCount,
-        actionLabel: 'Fix',
-        href: '/ops/payouts?status=failed',
-      });
-    }
-    if (calendarFailureCount > 0) {
-      alerts.push({
-        id: 'calendar-repair',
-        title: 'Calendar repair needed',
-        subtitle: 'Calendar sync failures detected this week.',
-        count: calendarFailureCount,
-        actionLabel: 'Fix',
-        href: '/ops/calendar-repair',
+    const rawItems: AttentionItem[] = [];
+
+    for (const event of failedEvents) {
+      const eventType = event.eventType?.toLowerCase() ?? '';
+      const automationType = event.automationType?.toLowerCase() ?? '';
+      const errorText = event.error?.toLowerCase() ?? '';
+      const isCalendarEvent =
+        eventType.includes('calendar') ||
+        automationType.includes('calendar') ||
+        errorText.includes('calendar');
+      const type = isCalendarEvent ? 'calendar_repair' : 'automation_failure';
+      const entityId = event.bookingId ?? event.id;
+      const itemKey = `${type}:${entityId}`;
+
+      rawItems.push({
+        id: itemKey,
+        itemKey,
+        type,
+        category: 'alerts',
+        entityId,
+        title: isCalendarEvent ? 'Calendar repair needed' : 'Automation failure',
+        subtitle: event.error || 'Automation run failed and requires owner retry.',
+        severity: isCalendarEvent ? 'medium' : 'high',
+        dueAt: null,
+        createdAt: event.createdAt.toISOString(),
+        primaryActionHref: isCalendarEvent ? '/ops/calendar-repair' : '/ops/automation-failures',
+        primaryActionLabel: isCalendarEvent ? 'Fix' : 'Retry',
       });
     }
 
-    const staffing: AttentionItem[] = [];
-    if (coverageGapCount > 0) {
-      staffing.push({
-        id: 'coverage-gaps',
-        title: 'Coverage gaps (next 24h)',
-        subtitle: 'Unassigned near-term visits need immediate owner action.',
-        count: coverageGapCount,
-        actionLabel: 'Assign',
-        href: '/bookings?status=pending',
+    for (const payout of payoutFailures) {
+      const itemKey = `payout_failure:${payout.id}`;
+      rawItems.push({
+        id: itemKey,
+        itemKey,
+        type: 'payout_failure',
+        category: 'alerts',
+        entityId: payout.id,
+        title: 'Payout failure',
+        subtitle: 'Failed transfer is blocking sitter payout.',
+        severity: 'high',
+        dueAt: payout.createdAt.toISOString(),
+        createdAt: payout.createdAt.toISOString(),
+        primaryActionHref: '/ops/payouts?status=failed',
+        primaryActionLabel: 'Fix',
       });
     }
-    if (unassignedBookings.length - coverageGapCount > 0) {
-      staffing.push({
-        id: 'unassigned',
-        title: 'Unassigned visits',
-        subtitle: 'Upcoming visits are still missing sitter assignment.',
-        count: unassignedBookings.length - coverageGapCount,
-        actionLabel: 'Assign',
-        href: '/bookings?status=pending',
+
+    for (const booking of coverageGapBookings) {
+      const key = `coverage_gap:${booking.id}`;
+      rawItems.push({
+        id: key,
+        itemKey: key,
+        type: 'coverage_gap',
+        category: 'staffing',
+        entityId: booking.id,
+        title: 'Coverage gap',
+        subtitle: `${booking.service} for ${booking.firstName || ''} ${booking.lastName || ''}`.trim(),
+        severity: 'high',
+        dueAt: booking.startAt.toISOString(),
+        createdAt: booking.startAt.toISOString(),
+        primaryActionHref: '/bookings?status=pending',
+        primaryActionLabel: 'Assign',
       });
     }
-    if (overlaps.length > 0) {
-      staffing.push({
-        id: 'overlaps',
-        title: 'Overlapping assignments',
-        subtitle: 'A sitter has overlapping visit windows.',
-        count: overlaps.length,
-        actionLabel: 'Open',
-        href: '/finance',
+
+    for (const booking of unassignedBookings) {
+      const key = `unassigned:${booking.id}`;
+      rawItems.push({
+        id: key,
+        itemKey: key,
+        type: 'unassigned',
+        category: 'staffing',
+        entityId: booking.id,
+        title: 'Unassigned visit',
+        subtitle: `${booking.service} for ${booking.firstName || ''} ${booking.lastName || ''}`.trim(),
+        severity: 'medium',
+        dueAt: booking.startAt.toISOString(),
+        createdAt: booking.startAt.toISOString(),
+        primaryActionHref: '/bookings?status=pending',
+        primaryActionLabel: 'Assign',
       });
     }
+
+    for (const overlap of overlaps) {
+      const entityId = `${overlap.bookingAId}_${overlap.bookingBId}`;
+      const key = `overlap:${entityId}`;
+      rawItems.push({
+        id: key,
+        itemKey: key,
+        type: 'overlap',
+        category: 'staffing',
+        entityId,
+        title: 'Overlapping assignment',
+        subtitle: `Sitter ${overlap.sitterId} has overlapping booking windows.`,
+        severity: 'medium',
+        dueAt: overlap.overlapStart,
+        createdAt: overlap.overlapStart,
+        primaryActionHref: '/finance',
+        primaryActionLabel: 'Open',
+      });
+    }
+
+    const deduped = dedupeAttentionItems(rawItems);
+    const itemKeys = deduped.map((item) => item.itemKey);
+    const states = itemKeys.length
+      ? await db.commandCenterAttentionState.findMany({
+          where: {
+            itemKey: { in: itemKeys },
+          },
+          select: {
+            itemKey: true,
+            handledAt: true,
+            snoozedUntil: true,
+          },
+        })
+      : [];
+    const stateByKey = new Map(states.map((state) => [state.itemKey, state]));
+
+    const visible = sortAttentionItems(
+      deduped.filter((item) => {
+        const state = stateByKey.get(item.itemKey);
+        if (!state) return true;
+        if (state.handledAt) return false;
+        if (state.snoozedUntil && state.snoozedUntil.getTime() > now.getTime()) return false;
+        return true;
+      })
+    );
 
     return NextResponse.json({
-      alerts,
-      staffing,
+      alerts: visible.filter((item) => item.category === 'alerts'),
+      staffing: visible.filter((item) => item.category === 'staffing'),
+      lastUpdatedAt: new Date().toISOString(),
+      meta: {
+        totalFailures: automationFailureCount + calendarFailureCount,
+      },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
