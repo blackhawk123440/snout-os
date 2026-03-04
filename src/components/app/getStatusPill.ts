@@ -14,8 +14,8 @@ const STATUS_MAP: Record<string, StatusPillConfig> = {
   // Booking (canonical: pending, confirmed, in_progress, completed, cancelled)
   pending: { variant: 'warning', label: 'Pending' },
   confirmed: { variant: 'success', label: 'Confirmed' },
-  in_progress: { variant: 'info', label: 'In progress' },
-  'in-progress': { variant: 'info', label: 'In progress' },
+  in_progress: { variant: 'info', label: 'In Progress' },
+  'in-progress': { variant: 'info', label: 'In Progress' },
   completed: { variant: 'success', label: 'Completed' },
   cancelled: { variant: 'error', label: 'Cancelled' },
   // Payment (paid → slate/neutral; unpaid → amber)
@@ -24,8 +24,8 @@ const STATUS_MAP: Record<string, StatusPillConfig> = {
   partial: { variant: 'warning', label: 'Partial' },
   // Dispatch
   auto: { variant: 'default', label: 'Auto' },
-  manual_required: { variant: 'warning', label: 'Needs attention' },
-  manual_in_progress: { variant: 'info', label: 'In progress' },
+  manual_required: { variant: 'warning', label: 'Needs Attention' },
+  manual_in_progress: { variant: 'info', label: 'In Progress' },
   assigned: { variant: 'success', label: 'Assigned' },
   // Visit (in_progress/'in-progress' already defined above for Booking)
   scheduled: { variant: 'info', label: 'Scheduled' },
@@ -44,8 +44,11 @@ const STATUS_MAP: Record<string, StatusPillConfig> = {
 
 function formatStatusLabel(raw: string): string {
   if (!raw) return '—';
-  const s = raw.trim();
-  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase().replace(/_/g, ' ');
+  const s = raw.trim().replace(/_/g, ' ');
+  return s
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
 }
 
 export function getStatusPill(status: string): StatusPillConfig {

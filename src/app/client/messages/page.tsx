@@ -79,20 +79,17 @@ export default function ClientMessagesPage() {
                     onClick={() => router.push(`/client/messages/${t.id}`)}
                     className="last:border-b-0"
                   >
-                    <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1">
+                    <div className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-[1fr,minmax(0,2fr),auto]">
+                      <div className="min-w-0">
                         <p className="font-medium text-slate-900">
                           {t.sitter?.name || t.booking?.service || 'Conversation'}
                         </p>
-                        {t.booking && (
-                          <p className="text-sm text-slate-600">
-                            {t.booking.service}
-                            {t.booking.startAt && ` · ${formatDate(t.booking.startAt)}`}
-                          </p>
-                        )}
+                      </div>
+                      <div className="min-w-0 line-clamp-1 text-sm text-slate-600">
+                        {t.preview || (t.booking?.service && t.booking.startAt ? `${t.booking.service} · ${formatDate(t.booking.startAt)}` : '—')}
                       </div>
                       {t.lastActivityAt && (
-                        <span className="shrink-0 text-xs text-slate-600 tabular-nums">
+                        <span className="shrink-0 text-xs text-slate-500 tabular-nums">
                           {formatDate(t.lastActivityAt)}
                         </span>
                       )}

@@ -8,7 +8,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-client';
 import { ClientBottomNav } from './ClientBottomNav';
 import { ClientSidebarNav } from './ClientSidebarNav';
@@ -20,7 +20,19 @@ export interface ClientAppShellProps {
 const CONTENT_CONTAINER = 'mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8';
 const CONTENT_INNER = 'mx-auto flex w-full max-w-4xl items-center justify-between gap-3';
 
+function getClientHeaderInfo(pathname: string, firstName: string): { title: string; subtitle: string } {
+  if (pathname === '/client/home' || pathname === '/client') return { title: 'Home', subtitle: 'Your pet care hub' };
+  if (pathname.startsWith('/client/bookings')) return { title: 'Bookings', subtitle: 'Your visits' };
+  if (pathname.startsWith('/client/pets')) return { title: 'Pets', subtitle: 'Your furry family' };
+  if (pathname.startsWith('/client/messages')) return { title: 'Messages', subtitle: 'Chat with your sitter' };
+  if (pathname.startsWith('/client/billing')) return { title: 'Billing', subtitle: 'Invoices & loyalty' };
+  if (pathname.startsWith('/client/profile')) return { title: 'Profile', subtitle: 'Account settings' };
+  if (pathname.startsWith('/client/reports')) return { title: 'Visit reports', subtitle: 'Updates from your sitter' };
+  return { title: 'Client portal', subtitle: `Hi, ${firstName}` };
+}
+
 export function ClientAppShell({ children }: ClientAppShellProps) {
+  const pathname = usePathname();
   const router = useRouter();
   const mainRef = useRef<HTMLElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -94,6 +106,8 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
 
   const displayName = clientName || user?.name || 'there';
   const firstName = displayName.split(' ')[0] || displayName;
+  const { title: pageTitle, subtitle: pageSubtitle } = getClientHeaderInfo(pathname, firstName);
+  const showNewBookingCta = pathname === '/client/home' || pathname === '/client' || pathname.startsWith('/client/bookings');
 
   return (
     <div className="fixed inset-0 flex flex-col bg-slate-50" style={{ maxHeight: '100dvh' }}>
@@ -109,16 +123,24 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
             <div className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${CONTENT_CONTAINER}`}>
               <div className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${CONTENT_INNER}`}>
               <div className="min-w-0 flex-1 flex flex-col leading-tight">
-                <p className="truncate text-sm font-semibold text-slate-900">Client portal</p>
-                <p className="truncate text-xs text-slate-500">Hi, {firstName}</p>
+                <p className="truncate text-sm font-semibold text-slate-900">{pageTitle}</p>
+                <p className="truncate text-xs text-slate-500">{pageSubtitle}</p>
               </div>
-              <div className="relative flex shrink-0 items-center gap-0.5">
+              <div className="relative flex shrink-0 items-center gap-2">
+                {showNewBookingCta && (
+                  <Link
+                    href="/bookings/new"
+                    className="hidden h-8 items-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 sm:inline-flex"
+                  >
+                    New booking
+                  </Link>
+                )}
                 <button
                   type="button"
                   aria-label="Notifications"
-                  className="flex h-7 w-7 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+                  className="flex h-8 w-8 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
                 >
-                  <i className="fas fa-bell text-xs" />
+                  <i className="fas fa-bell text-sm" />
                 </button>
                 <button
                   ref={triggerRef}
@@ -127,7 +149,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
                   aria-label="Account menu"
                   aria-expanded={accountMenuOpen}
                   aria-haspopup="true"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-slate-100 text-xs font-medium text-slate-700 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-slate-100 text-sm font-medium text-slate-700 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
                 >
                   {(firstName || 'C').charAt(0).toUpperCase()}
                 </button>

@@ -87,16 +87,20 @@ export default function ClientReportsPage() {
               onClick={() => router.push(`/client/reports/${r.id}`)}
               className="last:border-b-0"
             >
-              <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                <div className="min-w-0 flex-1">
+              <div className="grid w-full grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+                <div className="min-w-0">
                   <p className="font-medium text-slate-900">
                     {r.booking?.service || 'Visit report'}
                   </p>
-                  <p className="line-clamp-1 text-sm text-slate-600">{preview(r.content)}</p>
                 </div>
-                {r.createdAt && (
-                  <span className="shrink-0 text-xs text-slate-600 tabular-nums">{formatDate(r.createdAt)}</span>
+                {r.createdAt ? (
+                  <span className="shrink-0 text-xs text-slate-500 tabular-nums sm:order-2">
+                    {formatDate(r.createdAt)}
+                  </span>
+                ) : (
+                  <span className="shrink-0 sm:order-2">—</span>
                 )}
+                <p className="line-clamp-1 min-w-0 text-sm text-slate-600 sm:order-3">{preview(r.content)}</p>
               </div>
             </InteractiveRow>
           ))}

@@ -10,3 +10,12 @@ export const CLIENT_TABS = [
   { id: 'billing', label: 'Billing', href: '/client/billing', icon: 'fas fa-credit-card' },
   { id: 'profile', label: 'Profile', href: '/client/profile', icon: 'fas fa-user' },
 ] as const;
+
+export const CLIENT_NAV_GROUPS = [
+  { label: 'Overview', items: [CLIENT_TABS[0]] },
+  {
+    label: 'Operations',
+    items: [CLIENT_TABS[1], CLIENT_TABS[2], CLIENT_TABS[3], CLIENT_TABS[4]],
+  },
+  { label: 'Account', items: [CLIENT_TABS[5]] },
+] as const;

@@ -77,12 +77,12 @@ export default function ClientPetsPage() {
                   onClick={() => router.push(`/client/pets/${p.id}`)}
                   className="last:border-b-0"
                 >
-                  <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
+                  <div className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-[1fr,minmax(0,1fr)]">
+                    <div className="min-w-0">
                       <p className="font-medium text-slate-900">{p.name || 'Unnamed pet'}</p>
-                      <p className="text-sm text-slate-600">
-                        {[p.species, p.breed].filter(Boolean).join(' · ') || 'No details'}
-                      </p>
+                    </div>
+                    <div className="min-w-0 text-sm text-slate-600">
+                      {[p.species, p.breed].filter(Boolean).join(' · ') || 'No details'}
                     </div>
                   </div>
                 </InteractiveRow>

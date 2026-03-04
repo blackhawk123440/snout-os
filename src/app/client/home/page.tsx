@@ -110,16 +110,16 @@ export default function ClientHomePage() {
                   <Link
                     href="/client/reports"
                     onClick={(e) => e.stopPropagation()}
-                    className="shrink-0 text-sm font-medium text-slate-600 hover:text-slate-900"
+                    className="shrink-0 text-sm text-slate-600 hover:text-slate-900 hover:underline"
                   >
                     All reports
                   </Link>
                 </div>
-                <AppCardBody>
+                <AppCardBody className="relative">
                   <p className="line-clamp-2 text-sm text-slate-700">
                     {stripEmojisFromPreview(data.latestReport.content)}
                   </p>
-                  <p className="mt-1.5 text-xs text-slate-600 tabular-nums">
+                  <p className="mt-2 text-right text-xs text-slate-500 tabular-nums">
                     {new Date(data.latestReport.createdAt).toLocaleDateString()}
                   </p>
                 </AppCardBody>

@@ -84,14 +84,19 @@ export default function ClientBookingsPage() {
                   onClick={() => router.push(`/client/bookings/${b.id}`)}
                   className="last:border-b-0"
                 >
-                  <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
+                  <div className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[1fr,auto,auto]">
+                    <div className="min-w-0">
                       <p className="font-medium text-slate-900">{b.service}</p>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-slate-600 sm:sr-only">
                         {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
                       </p>
                     </div>
-                    <AppStatusPill status={b.status} className="shrink-0" />
+                    <div className="min-w-0 text-sm text-slate-600 max-sm:order-3">
+                      {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
+                    </div>
+                    <div className="shrink-0 max-sm:order-2">
+                      <AppStatusPill status={b.status} />
+                    </div>
                   </div>
                 </InteractiveRow>
               ))}
