@@ -72,10 +72,10 @@ export default function ClientPetsPage() {
               onClick={() => router.push(`/client/pets/${p.id}`)}
               className="last:border-b-0"
             >
-              <div className="flex flex-1 flex-col gap-0.5 px-4 py-2.5 lg:flex-row lg:items-center lg:justify-between lg:py-2">
+              <div className="flex min-h-[48px] flex-1 items-center justify-between gap-3 px-4 py-2 lg:min-h-[48px] lg:py-2">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-slate-900">{p.name || 'Unnamed pet'}</p>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-600">
                     {[p.species, p.breed].filter(Boolean).join(' · ') || 'No details'}
                   </p>
                 </div>

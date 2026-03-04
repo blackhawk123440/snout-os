@@ -76,14 +76,14 @@ export default function ClientBillingPage() {
       ) : error ? (
         <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void load()} />
       ) : data ? (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           <AppCard className="shadow-none">
-            <AppCardBody className="p-5">
-              <div className="flex flex-wrap items-end justify-between gap-4">
+            <AppCardBody className="p-4">
+              <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <p className="text-sm text-slate-500">Loyalty points</p>
-                  <p className="mt-1 text-3xl font-semibold tabular-nums tracking-tight text-slate-900">{data.loyalty.points}</p>
-                  <p className="mt-1 text-sm text-slate-500">Earn points on every visit</p>
+                  <p className="text-xs font-medium text-slate-600">Loyalty points</p>
+                  <p className="mt-0.5 text-2xl font-semibold tabular-nums tracking-tight text-slate-900">{data.loyalty.points}</p>
+                  <p className="mt-0.5 text-sm text-slate-600">Earn points on every visit</p>
                 </div>
                 <StatusChip variant="neutral" ariaLabel={`Tier: ${data.loyalty.tier}`}>
                   {data.loyalty.tier}
@@ -93,8 +93,8 @@ export default function ClientBillingPage() {
           </AppCard>
 
           {data.payments.length > 0 && (
-            <div className="border-t border-slate-200 pt-6">
-              <h2 className="mb-4 text-lg font-semibold tracking-tight text-slate-900">Payment history</h2>
+            <div className="border-t border-slate-200 pt-4">
+              <h2 className="mb-3 text-base font-semibold tracking-tight text-slate-900">Payment history</h2>
               <DataTableShell className="mb-0" stickyHeader>
                 <Table
                   columns={[
@@ -115,30 +115,30 @@ export default function ClientBillingPage() {
             </div>
           )}
 
-          <div className="border-t border-slate-200 pt-6">
-            <h2 className="mb-4 text-lg font-semibold tracking-tight text-slate-900">Invoices</h2>
+          <div className="border-t border-slate-200 pt-4">
+            <h2 className="mb-3 text-base font-semibold tracking-tight text-slate-900">Invoices</h2>
             {data.invoices.length > 0 ? (
               <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
                 {data.invoices.map((inv) => (
                   <div
                     key={inv.id}
-                    className="flex flex-col border-b border-slate-200 last:border-b-0 hover:bg-slate-50 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-4 lg:py-2.5"
+                    className="flex min-h-[48px] flex-col border-b border-slate-200 last:border-b-0 hover:bg-slate-50 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-4 lg:py-0"
                   >
-                    <div className="min-w-0 flex-1 px-4 py-2.5 lg:py-2">
+                    <div className="min-w-0 flex-1 px-4 py-2.5 lg:flex lg:min-h-[48px] lg:items-center lg:py-0">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="font-medium text-slate-900">{inv.service}</p>
-                        <AppStatusPill status={inv.paymentStatus} />
+                        <AppStatusPill status={inv.paymentStatus} className="shrink-0" />
                       </div>
-                      <p className="mt-0.5 text-sm text-slate-500">{formatDate(inv.startAt)}</p>
-                      <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">${inv.totalPrice.toFixed(2)}</p>
+                      <p className="mt-0.5 text-sm text-slate-600">{formatDate(inv.startAt)}</p>
+                      <p className="mt-0.5 text-xl font-semibold tabular-nums text-slate-900">${inv.totalPrice.toFixed(2)}</p>
                     </div>
                     {inv.paymentLink && (
-                      <div className="shrink-0 border-t border-slate-200 px-4 py-2.5 lg:border-t-0 lg:py-2">
+                      <div className="shrink-0 border-t border-slate-200 px-4 py-2 lg:border-t-0 lg:py-0">
                         <a
                           href={inv.paymentLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex min-h-[36px] items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+                          className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
                         >
                           Pay now
                         </a>

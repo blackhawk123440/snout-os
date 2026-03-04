@@ -18,9 +18,9 @@ export interface SectionProps {
 
 export function Section({ title, description, right, children, className }: SectionProps) {
   return (
-    <section className={cn('flex flex-col gap-4', className)}>
+    <section className={cn('flex flex-col gap-3', className)}>
       {(title || description || right) && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1">
             {title && (
               <h2 className="text-base font-semibold tracking-tight text-slate-900">
@@ -28,7 +28,7 @@ export function Section({ title, description, right, children, className }: Sect
               </h2>
             )}
             {description && (
-              <p className="mt-0.5 text-sm text-slate-500">{description}</p>
+              <p className="mt-0.5 text-sm text-slate-600">{description}</p>
             )}
           </div>
           {right && <div className="flex-shrink-0">{right}</div>}

@@ -101,22 +101,23 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
 
   return (
     <div className="fixed inset-0 flex flex-col bg-slate-50" style={{ maxHeight: '100dvh' }}>
-      <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden pb-20">
+      <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden pb-[52px]">
         <header
-          className={`sticky top-0 z-10 flex h-12 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 transition-shadow ${
+          className={`sticky top-0 z-10 flex h-10 min-h-[40px] items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 transition-shadow ${
             headerShadow ? 'shadow-sm' : ''
           }`}
         >
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">{firstName}</p>
+            <p className="truncate text-sm font-semibold text-slate-900">Client portal</p>
+            <p className="truncate text-xs text-slate-500">Hi, {firstName}</p>
           </div>
-          <div className="relative flex shrink-0 items-center gap-1">
+          <div className="relative flex shrink-0 items-center gap-0.5">
             <button
               type="button"
               aria-label="Notifications"
-              className="flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+              className="flex h-7 w-7 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
             >
-              <i className="fas fa-bell text-sm" />
+              <i className="fas fa-bell text-xs" />
             </button>
             <button
               ref={triggerRef}
@@ -125,7 +126,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
               aria-label="Account menu"
               aria-expanded={accountMenuOpen}
               aria-haspopup="true"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-sm font-medium text-slate-700 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-slate-100 text-xs font-medium text-slate-700 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
             >
               {(firstName || 'C').charAt(0).toUpperCase()}
             </button>
@@ -133,13 +134,13 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
               <div
                 ref={menuRef}
                 role="menu"
-                className="absolute right-0 top-full z-30 mt-1 min-w-[160px] rounded-md border border-slate-200 bg-white py-1 shadow-lg"
+                className="absolute right-0 top-full z-30 mt-1 min-w-[160px] rounded border border-slate-200 bg-white py-1 shadow-lg"
               >
                 <Link
                   href="/client/profile"
                   role="menuitem"
                   onClick={() => setAccountMenuOpen(false)}
-                  className="block px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  className="block px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
                 >
                   Profile
                 </Link>
@@ -147,7 +148,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
                   type="button"
                   role="menuitem"
                   onClick={() => void handleLogout()}
-                  className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  className="block w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
                 >
                   Sign out
                 </button>
@@ -156,12 +157,12 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 px-4 pt-4">{children}</div>
+        <div className="min-h-0 flex-1 px-4 pt-3">{children}</div>
       </main>
 
       <nav
         className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around border-t border-slate-200 bg-white"
-        style={{ paddingTop: '0.375rem', paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}
+        style={{ minHeight: 44, maxHeight: 48, paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}
       >
         {CLIENT_TABS.map((item) => {
           const active = isActive(item.href);
@@ -169,14 +170,14 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex min-h-[36px] min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 border-b-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 ${
+              className={`flex min-h-[44px] max-h-[48px] flex-1 flex-col items-center justify-center gap-0 border-t-2 pt-1.5 pb-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-inset ${
                 active
                   ? 'border-slate-900 text-slate-900 font-medium'
                   : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}
             >
               <i className={`${item.icon} text-sm`} />
-              <span className="text-[10px]">{item.label}</span>
+              <span className="text-[10px] leading-tight">{item.label}</span>
             </Link>
           );
         })}
