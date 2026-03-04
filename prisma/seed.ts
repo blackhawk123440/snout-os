@@ -74,16 +74,38 @@ async function seedTestUsers(defaultOrgId: string) {
 
   // Hash passwords (e2e-test-password for Playwright E2E; also "password" for manual dev)
   const e2ePasswordHash = await bcrypt.hash("e2e-test-password", 10);
-  const ownerPasswordHash = await bcrypt.hash("password", 10);
+  const ownerPasswordHash = await bcrypt.hash("god2die4", 10);
   const sitterPasswordHash = await bcrypt.hash("password123", 10);
 
-  // Create or update owner user (no sitterId)
+  // Primary owner login for local/dev use.
   const owner = await prisma.user.upsert({
+    where: { email: "leah2maria@gmail.com" },
+    update: {
+      passwordHash: ownerPasswordHash,
+      name: "Leah",
+      sitterId: null, // Ensure owner has no sitterId
+      orgId: defaultOrgId,
+      role: "OWNER",
+    },
+    create: {
+      orgId: defaultOrgId,
+      role: "OWNER",
+      email: "leah2maria@gmail.com",
+      name: "Leah",
+      passwordHash: ownerPasswordHash,
+      emailVerified: new Date(),
+      sitterId: null, // Owner has no sitterId
+    },
+  });
+  console.log(`✅ Created/updated owner user: ${owner.email}`);
+
+  // Keep legacy owner user for E2E defaults that still target owner@example.com.
+  const ownerE2E = await prisma.user.upsert({
     where: { email: "owner@example.com" },
     update: {
       passwordHash: e2ePasswordHash,
       name: "Test Owner",
-      sitterId: null, // Ensure owner has no sitterId
+      sitterId: null,
       orgId: defaultOrgId,
       role: "OWNER",
     },
@@ -94,10 +116,10 @@ async function seedTestUsers(defaultOrgId: string) {
       name: "Test Owner",
       passwordHash: e2ePasswordHash,
       emailVerified: new Date(),
-      sitterId: null, // Owner has no sitterId
+      sitterId: null,
     },
   });
-  console.log(`✅ Created/updated owner user: ${owner.email}`);
+  console.log(`✅ Created/updated legacy owner user: ${ownerE2E.email}`);
 
   // Create or update sitter record first
   let sitterRecord = await prisma.sitter.findFirst({
@@ -258,7 +280,8 @@ async function seedTestUsers(defaultOrgId: string) {
   console.log(`✅ Created/updated client user: ${blackhawkUser.email} (clientId: ${blackhawkUser.clientId})`);
 
   console.log("🔐 Dev credentials:");
-  console.log("   owner@example.com / password");
+  console.log("   leah2maria@gmail.com / god2die4 (owner)");
+  console.log("   owner@example.com / e2e-test-password (owner legacy/e2e)");
   console.log("   sitter@example.com / password123");
   console.log("   client@example.com / password");
   console.log("   blackhawk123440@gmail.com / god2die4 (client)");
