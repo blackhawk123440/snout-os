@@ -1,25 +1,26 @@
 /**
  * Client Portal App Shell
- * Mobile-first app shell with bottom navigation for client portal.
- * Enterprise: account menu (avatar → Profile, Sign out), restrained nav.
+ * Mobile: bottom nav. Desktop (lg+): left sidebar. Enterprise header + content alignment.
  */
 
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-client';
-import { CLIENT_TABS } from '@/lib/client-nav';
+import { ClientBottomNav } from './ClientBottomNav';
+import { ClientSidebarNav } from './ClientSidebarNav';
 
 export interface ClientAppShellProps {
   children: React.ReactNode;
 }
 
+const CONTENT_CONTAINER = 'mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8';
+const CONTENT_INNER = 'mx-auto flex w-full max-w-4xl items-center justify-between gap-3';
+
 export function ClientAppShell({ children }: ClientAppShellProps) {
-  const pathname = usePathname();
   const router = useRouter();
   const mainRef = useRef<HTMLElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -91,97 +92,84 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
     router.push('/login');
   };
 
-  const isActive = (href: string) => {
-    if (href === '/client/home') return pathname === '/client/home' || pathname === '/client';
-    return pathname.startsWith(href);
-  };
-
   const displayName = clientName || user?.name || 'there';
   const firstName = displayName.split(' ')[0] || displayName;
 
   return (
     <div className="fixed inset-0 flex flex-col bg-slate-50" style={{ maxHeight: '100dvh' }}>
-      <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden pb-[52px]">
-        <header
-          className={`sticky top-0 z-10 flex h-10 min-h-[40px] items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 transition-shadow ${
-            headerShadow ? 'shadow-sm' : ''
-          }`}
-        >
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-slate-900">Client portal</p>
-            <p className="truncate text-xs text-slate-500">Hi, {firstName}</p>
-          </div>
-          <div className="relative flex shrink-0 items-center gap-0.5">
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="flex h-7 w-7 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
-            >
-              <i className="fas fa-bell text-xs" />
-            </button>
-            <button
-              ref={triggerRef}
-              type="button"
-              onClick={() => setAccountMenuOpen((o) => !o)}
-              aria-label="Account menu"
-              aria-expanded={accountMenuOpen}
-              aria-haspopup="true"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-slate-100 text-xs font-medium text-slate-700 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
-            >
-              {(firstName || 'C').charAt(0).toUpperCase()}
-            </button>
-            {accountMenuOpen && (
-              <div
-                ref={menuRef}
-                role="menu"
-                className="absolute right-0 top-full z-30 mt-1 min-w-[160px] rounded border border-slate-200 bg-white py-1 shadow-lg"
-              >
-                <Link
-                  href="/client/profile"
-                  role="menuitem"
-                  onClick={() => setAccountMenuOpen(false)}
-                  className="block px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  Profile
-                </Link>
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <ClientSidebarNav />
+
+        <div className="flex min-h-0 flex-1 flex-col">
+          <header
+            className={`sticky top-0 z-10 flex h-10 min-h-[40px] items-center justify-between gap-3 border-b border-slate-200 bg-white transition-shadow ${
+              headerShadow ? 'shadow-sm' : ''
+            }`}
+          >
+            <div className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${CONTENT_CONTAINER}`}>
+              <div className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${CONTENT_INNER}`}>
+              <div className="min-w-0 flex-1 flex flex-col leading-tight">
+                <p className="truncate text-sm font-semibold text-slate-900">Client portal</p>
+                <p className="truncate text-xs text-slate-500">Hi, {firstName}</p>
+              </div>
+              <div className="relative flex shrink-0 items-center gap-0.5">
                 <button
                   type="button"
-                  role="menuitem"
-                  onClick={() => void handleLogout()}
-                  className="block w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  aria-label="Notifications"
+                  className="flex h-7 w-7 items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
                 >
-                  Sign out
+                  <i className="fas fa-bell text-xs" />
                 </button>
+                <button
+                  ref={triggerRef}
+                  type="button"
+                  onClick={() => setAccountMenuOpen((o) => !o)}
+                  aria-label="Account menu"
+                  aria-expanded={accountMenuOpen}
+                  aria-haspopup="true"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-slate-100 text-xs font-medium text-slate-700 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+                >
+                  {(firstName || 'C').charAt(0).toUpperCase()}
+                </button>
+                {accountMenuOpen && (
+                  <div
+                    ref={menuRef}
+                    role="menu"
+                    className="absolute right-0 top-full z-30 mt-1 min-w-[160px] rounded border border-slate-200 bg-white py-1 shadow-lg"
+                  >
+                    <Link
+                      href="/client/profile"
+                      role="menuitem"
+                      onClick={() => setAccountMenuOpen(false)}
+                      className="block px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      Profile
+                    </Link>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => void handleLogout()}
+                      className="block w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </header>
+              </div>
+            </div>
+          </header>
 
-        <div className="min-h-0 flex-1 px-4 pt-3">{children}</div>
-      </main>
+          <main
+            ref={mainRef}
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-12 lg:pb-0"
+          >
+            <div className="min-h-0 flex-1 pt-3">{children}</div>
+          </main>
+        </div>
+      </div>
 
-      <nav
-        className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around border-t border-slate-200 bg-white"
-        style={{ minHeight: 44, maxHeight: 48, paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}
-      >
-        {CLIENT_TABS.map((item) => {
-          const active = isActive(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex min-h-[44px] max-h-[48px] flex-1 flex-col items-center justify-center gap-0 border-t-2 pt-1.5 pb-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-inset ${
-                active
-                  ? 'border-slate-900 text-slate-900 font-medium'
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <i className={`${item.icon} text-sm`} />
-              <span className="text-[10px] leading-tight">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      <ClientBottomNav />
     </div>
   );
 }

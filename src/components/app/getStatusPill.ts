@@ -18,8 +18,8 @@ const STATUS_MAP: Record<string, StatusPillConfig> = {
   'in-progress': { variant: 'info', label: 'In progress' },
   completed: { variant: 'success', label: 'Completed' },
   cancelled: { variant: 'error', label: 'Cancelled' },
-  // Payment
-  paid: { variant: 'success', label: 'Paid' },
+  // Payment (paid → slate/neutral; unpaid → amber)
+  paid: { variant: 'default', label: 'Paid' },
   unpaid: { variant: 'warning', label: 'Unpaid' },
   partial: { variant: 'warning', label: 'Partial' },
   // Dispatch
@@ -36,6 +36,10 @@ const STATUS_MAP: Record<string, StatusPillConfig> = {
   inactive: { variant: 'default', label: 'Inactive' },
   draft: { variant: 'default', label: 'Draft' },
   failed: { variant: 'error', label: 'Failed' },
+  // Tier (bronze/silver/gold → slate)
+  bronze: { variant: 'default', label: 'Bronze' },
+  silver: { variant: 'default', label: 'Silver' },
+  gold: { variant: 'default', label: 'Gold' },
 };
 
 function formatStatusLabel(raw: string): string {

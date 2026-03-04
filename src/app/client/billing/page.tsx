@@ -93,8 +93,8 @@ export default function ClientBillingPage() {
           </AppCard>
 
           {data.payments.length > 0 && (
-            <div className="border-t border-slate-200 pt-4">
-              <h2 className="mb-3 text-base font-semibold tracking-tight text-slate-900">Payment history</h2>
+            <div className="mt-4 border-t border-slate-200 pb-3 pt-4">
+              <h2 className="mb-2 text-base font-semibold tracking-tight text-slate-900">Payment history</h2>
               <DataTableShell className="mb-0" stickyHeader>
                 <Table
                   columns={[
@@ -115,22 +115,24 @@ export default function ClientBillingPage() {
             </div>
           )}
 
-          <div className="border-t border-slate-200 pt-4">
-            <h2 className="mb-3 text-base font-semibold tracking-tight text-slate-900">Invoices</h2>
+          <div className="mt-4 border-t border-slate-200 pb-3 pt-4">
+            <h2 className="mb-2 text-base font-semibold tracking-tight text-slate-900">Invoices</h2>
             {data.invoices.length > 0 ? (
-              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+              <div
+                className={`overflow-hidden rounded-lg border border-slate-200 bg-white ${data.invoices.length === 1 ? 'mx-auto max-w-3xl' : ''}`}
+              >
                 {data.invoices.map((inv) => (
                   <div
                     key={inv.id}
-                    className="flex min-h-[48px] flex-col border-b border-slate-200 last:border-b-0 hover:bg-slate-50 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-4 lg:py-0"
+                    className="flex min-h-[44px] flex-col border-b border-slate-200 last:border-b-0 hover:bg-slate-50 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-4 lg:py-1.5"
                   >
-                    <div className="min-w-0 flex-1 px-4 py-2.5 lg:flex lg:min-h-[48px] lg:items-center lg:py-0">
+                    <div className="min-w-0 flex-1 px-4 py-2 lg:flex lg:min-h-[44px] lg:items-center lg:py-1.5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="font-medium text-slate-900">{inv.service}</p>
                         <AppStatusPill status={inv.paymentStatus} className="shrink-0" />
                       </div>
                       <p className="mt-0.5 text-sm text-slate-600">{formatDate(inv.startAt)}</p>
-                      <p className="mt-0.5 text-xl font-semibold tabular-nums text-slate-900">${inv.totalPrice.toFixed(2)}</p>
+                      <p className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900">${inv.totalPrice.toFixed(2)}</p>
                     </div>
                     {inv.paymentLink && (
                       <div className="shrink-0 border-t border-slate-200 px-4 py-2 lg:border-t-0 lg:py-0">
@@ -138,7 +140,7 @@ export default function ClientBillingPage() {
                           href={inv.paymentLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex h-9 items-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+                          className="inline-flex h-8 items-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
                         >
                           Pay now
                         </a>

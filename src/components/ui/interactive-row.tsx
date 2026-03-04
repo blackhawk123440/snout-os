@@ -35,7 +35,13 @@ export const InteractiveRow = forwardRef<HTMLDivElement, InteractiveRowProps>(
     return (
       <div
         ref={ref}
-        className={cn(base, hover, active, 'border-b border-slate-200', className)}
+        className={cn(
+          base,
+          hover,
+          active,
+          'flex min-h-[48px] items-center border-b border-slate-200 px-4 py-2 lg:min-h-[44px] lg:py-1.5',
+          className
+        )}
         {...props}
       >
         {children}

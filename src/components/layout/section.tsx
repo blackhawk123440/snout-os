@@ -20,7 +20,7 @@ export function Section({ title, description, right, children, className }: Sect
   return (
     <section className={cn('flex flex-col gap-3', className)}>
       {(title || description || right) && (
-        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mb-2 flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1">
             {title && (
               <h2 className="text-base font-semibold tracking-tight text-slate-900">

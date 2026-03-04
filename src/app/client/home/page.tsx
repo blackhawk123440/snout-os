@@ -7,11 +7,11 @@ import { LayoutWrapper, PageHeader, ClientRefreshButton } from '@/components/lay
 import {
   AppCard,
   AppCardBody,
-  AppCardHeader,
   AppErrorState,
   AppStatusPill,
 } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
+import { stripEmojisFromPreview } from '@/lib/strip-emojis';
 
 interface HomeData {
   clientName: string;
@@ -85,15 +85,15 @@ export default function ClientHomePage() {
           {/* Dashboard row: Next visit (left) + Latest report (right) */}
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
             <AppCard className="shadow-sm">
-              <AppCardBody className="pb-4">
+              <AppCardBody className="flex flex-col gap-2 pb-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Next visit</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                <p className="text-xl font-semibold tabular-nums text-slate-900">
                   {data.upcomingCount} upcoming visit{data.upcomingCount !== 1 ? 's' : ''}
                 </p>
-                <p className="mt-0.5 text-sm text-slate-600">Hi, {data.clientName?.split(' ')[0] || 'there'}</p>
+                <p className="text-sm text-slate-600">Hi, {data.clientName?.split(' ')[0] || 'there'}</p>
                 <Link
                   href="/bookings/new"
-                  className="mt-3 inline-flex h-9 items-center rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+                  className="inline-flex h-8 items-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
                 >
                   Book a visit
                 </Link>
@@ -101,27 +101,29 @@ export default function ClientHomePage() {
             </AppCard>
 
             {data.latestReport ? (
-              <div className="flex flex-col">
-                <AppCard onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}>
-                  <AppCardHeader>
+              <AppCard onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}>
+                <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-2">
+                  <div className="min-w-0">
                     <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Latest report</p>
                     <p className="mt-0.5 font-semibold text-slate-900">{data.latestReport.service || 'Update'}</p>
-                  </AppCardHeader>
-                  <AppCardBody>
-                    <p className="line-clamp-2 text-sm text-slate-700">{data.latestReport.content}</p>
-                    <p className="mt-1.5 text-xs text-slate-600 tabular-nums">
-                      {new Date(data.latestReport.createdAt).toLocaleDateString()}
-                    </p>
-                  </AppCardBody>
-                </AppCard>
-                <button
-                  type="button"
-                  onClick={() => router.push('/client/reports')}
-                  className="mt-1.5 text-sm font-medium text-slate-600 hover:text-slate-900"
-                >
-                  View all reports
-                </button>
-              </div>
+                  </div>
+                  <Link
+                    href="/client/reports"
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0 text-sm font-medium text-slate-600 hover:text-slate-900"
+                  >
+                    All reports
+                  </Link>
+                </div>
+                <AppCardBody>
+                  <p className="line-clamp-2 text-sm text-slate-700">
+                    {stripEmojisFromPreview(data.latestReport.content)}
+                  </p>
+                  <p className="mt-1.5 text-xs text-slate-600 tabular-nums">
+                    {new Date(data.latestReport.createdAt).toLocaleDateString()}
+                  </p>
+                </AppCardBody>
+              </AppCard>
             ) : data.recentBookings?.length > 0 ? (
               <EmptyState
                 title="No visit reports yet"
@@ -137,8 +139,8 @@ export default function ClientHomePage() {
 
           {/* Dense list: Upcoming & recent */}
           {data.recentBookings?.length > 0 ? (
-            <div className="border-t border-slate-200 pt-4">
-              <h2 className="mb-3 text-base font-semibold tracking-tight text-slate-900">Upcoming & recent</h2>
+            <div className="mt-4 border-t border-slate-200 pt-4">
+              <h2 className="mb-2 text-base font-semibold tracking-tight text-slate-900">Upcoming & recent</h2>
               <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
                 {data.recentBookings.map((b) => (
                   <div
@@ -147,7 +149,7 @@ export default function ClientHomePage() {
                     tabIndex={0}
                     onClick={() => router.push(`/client/bookings/${b.id}`)}
                     onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/bookings/${b.id}`)}
-                    className="flex min-h-[48px] cursor-pointer items-center border-b border-slate-200 px-4 last:border-b-0 hover:bg-slate-50 lg:min-h-[48px]"
+                    className="flex min-h-[44px] cursor-pointer items-center border-b border-slate-200 px-4 py-1.5 last:border-b-0 hover:bg-slate-50 lg:min-h-[44px]"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-slate-900">{b.service}</p>
@@ -159,7 +161,7 @@ export default function ClientHomePage() {
               </div>
             </div>
           ) : (
-            <div className="border-t border-slate-200 pt-4">
+            <div className="mt-4 border-t border-slate-200 pb-3 pt-4">
               <EmptyState
                 title="No upcoming visits"
                 description="Book a visit when you're ready."

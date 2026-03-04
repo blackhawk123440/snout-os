@@ -23,6 +23,7 @@ const MAX_WIDTH: Record<LayoutVariant, string> = {
 };
 
 export function LayoutWrapper({ children, variant = 'default', className }: LayoutWrapperProps) {
+  const innerClass = variant === 'narrow' ? 'mx-auto w-full max-w-4xl' : 'w-full';
   return (
     <div
       className={cn(
@@ -32,7 +33,7 @@ export function LayoutWrapper({ children, variant = 'default', className }: Layo
         className
       )}
     >
-      {children}
+      <div className={innerClass}>{children}</div>
     </div>
   );
 }

@@ -34,7 +34,7 @@ export interface AppCardHeaderProps {
 
 export function AppCardHeader({ title, children, className = '' }: AppCardHeaderProps) {
   return (
-    <div className={`px-5 pt-5 pb-2 ${className}`}>
+    <div className={`px-4 pt-4 pb-2 ${className}`}>
       {title ? (
         <h3 className="text-base font-semibold tracking-tight text-slate-900">{title}</h3>
       ) : (
@@ -51,7 +51,7 @@ export interface AppCardBodyProps {
 
 export function AppCardBody({ children, className = '' }: AppCardBodyProps) {
   return (
-    <div className={`px-5 pb-5 text-sm text-slate-700 ${className}`}>
+    <div className={`px-4 pb-4 text-sm text-slate-700 ${className}`}>
       {children}
     </div>
   );
@@ -67,7 +67,7 @@ export interface AppCardActionsProps {
 export function AppCardActions({ children, className = '', stopPropagation: stop = false }: AppCardActionsProps) {
   return (
     <div
-      className={`flex flex-wrap gap-2 px-5 pb-5 pt-2 ${className}`}
+      className={`flex flex-wrap gap-2 px-4 pb-4 pt-2 ${className}`}
       onClick={stop ? (e) => e.stopPropagation() : undefined}
       onKeyDown={stop ? (e) => e.stopPropagation() : undefined}
     >

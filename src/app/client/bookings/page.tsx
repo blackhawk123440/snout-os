@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
+import { ClientAtAGlanceSidebar } from '@/components/client/ClientAtAGlanceSidebar';
 import {
   AppPageHeader,
   AppSkeletonList,
@@ -62,36 +63,43 @@ export default function ClientBookingsPage() {
         subtitle="Your visits"
         action={<ClientRefreshButton onRefresh={load} loading={loading} />}
       />
-      {loading ? (
-        <AppSkeletonList count={3} />
-      ) : error ? (
-        <AppErrorState title="Couldn't load bookings" subtitle={error} onRetry={() => void load()} />
-      ) : bookings.length === 0 ? (
-        <AppEmptyState
-          title="No bookings yet"
-          subtitle="Your visits will appear here."
-        />
-      ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          {bookings.map((b) => (
-            <InteractiveRow
-              key={b.id}
-              onClick={() => router.push(`/client/bookings/${b.id}`)}
-              className="last:border-b-0"
+      <div className="lg:grid lg:grid-cols-[1fr,auto] lg:gap-6">
+        <div className="min-w-0">
+          {loading ? (
+            <AppSkeletonList count={3} />
+          ) : error ? (
+            <AppErrorState title="Couldn't load bookings" subtitle={error} onRetry={() => void load()} />
+          ) : bookings.length === 0 ? (
+            <AppEmptyState
+              title="No bookings yet"
+              subtitle="Your visits will appear here."
+            />
+          ) : (
+            <div
+              className={`overflow-hidden rounded-lg border border-slate-200 bg-white ${bookings.length === 1 ? 'mx-auto max-w-3xl lg:mx-0' : ''}`}
             >
-              <div className="flex min-h-[48px] flex-1 items-center justify-between gap-3 px-4 py-2 lg:min-h-[48px] lg:py-2">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-slate-900">{b.service}</p>
-                  <p className="text-sm text-slate-600">
-                    {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
-                  </p>
-                </div>
-                <AppStatusPill status={b.status} className="shrink-0" />
-              </div>
-            </InteractiveRow>
-          ))}
+              {bookings.map((b) => (
+                <InteractiveRow
+                  key={b.id}
+                  onClick={() => router.push(`/client/bookings/${b.id}`)}
+                  className="last:border-b-0"
+                >
+                  <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-slate-900">{b.service}</p>
+                      <p className="text-sm text-slate-600">
+                        {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
+                      </p>
+                    </div>
+                    <AppStatusPill status={b.status} className="shrink-0" />
+                  </div>
+                </InteractiveRow>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+        <ClientAtAGlanceSidebar />
+      </div>
     </LayoutWrapper>
   );
 }
