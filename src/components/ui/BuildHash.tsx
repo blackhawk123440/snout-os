@@ -13,24 +13,28 @@ import { useAuth } from '@/lib/auth-client';
 
 export const BuildHash: React.FC = () => {
   const { isOwner } = useAuth();
-  const [buildInfo, setBuildInfo] = useState<{ gitSha: string; buildTime: string }>({
+  const [buildInfo, setBuildInfo] = useState<{ envName: string; gitSha: string; buildTime: string }>({
+    envName: process.env.NEXT_PUBLIC_ENV || 'staging',
     gitSha: process.env.NEXT_PUBLIC_GIT_SHA || process.env.NEXT_PUBLIC_BUILD_HASH || 'loading...',
     buildTime: process.env.NEXT_PUBLIC_BUILD_TIME || 'loading...',
   });
 
   useEffect(() => {
-    // If env vars are missing, fetch from server endpoint
-    if (buildInfo.gitSha === 'loading...' || buildInfo.gitSha === 'unknown') {
-      fetch('/api/ops/build')
+    // Resolve deploy identity from canonical health endpoint.
+    if (buildInfo.gitSha === 'loading...' || buildInfo.gitSha === 'unknown' || buildInfo.envName === 'staging') {
+      fetch('/api/health')
         .then(res => res.json())
         .then(data => {
+          const sha = data.commitSha || data.version || 'unknown';
           setBuildInfo({
-            gitSha: data.gitSha || 'unknown',
+            envName: data.envName || process.env.NEXT_PUBLIC_ENV || 'staging',
+            gitSha: sha,
             buildTime: data.buildTime || 'unknown',
           });
         })
         .catch(() => {
           setBuildInfo({
+            envName: process.env.NEXT_PUBLIC_ENV || 'staging',
             gitSha: 'unknown',
             buildTime: 'unknown',
           });
@@ -61,7 +65,7 @@ export const BuildHash: React.FC = () => {
         borderRadius: '4px 0 0 0',
       }}
     >
-      Build: {displaySha} | {buildInfo.buildTime === 'unknown' ? 'unknown' : new Date(buildInfo.buildTime).toLocaleString()}
+      Build: {buildInfo.envName} · {displaySha} | {buildInfo.buildTime === 'unknown' ? 'unknown' : new Date(buildInfo.buildTime).toLocaleString()}
     </div>
   );
 };
