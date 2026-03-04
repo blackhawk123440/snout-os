@@ -126,28 +126,30 @@ export default function ClientBillingPage() {
                 {data.invoices.map((inv) => (
                   <div
                     key={inv.id}
-                    className="flex min-h-[44px] flex-col border-b border-slate-200 last:border-b-0 hover:bg-slate-50 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-4 lg:py-1.5"
+                    className="grid min-h-[44px] grid-cols-1 gap-3 border-b border-slate-200 px-4 py-3 last:border-b-0 hover:bg-slate-50 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-3 sm:py-2"
                   >
-                    <div className="min-w-0 flex-1 px-4 py-2 lg:flex lg:min-h-[44px] lg:items-center lg:py-1.5">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-medium text-slate-900">{inv.service}</p>
-                        <AppStatusPill status={inv.paymentStatus} className="shrink-0" />
-                      </div>
-                      <p className="mt-0.5 text-sm text-slate-600">{formatDate(inv.startAt)}</p>
-                      <p className="mt-0.5 text-lg font-semibold tabular-nums text-slate-900">${inv.totalPrice.toFixed(2)}</p>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-slate-900">{inv.service}</p>
+                      <p className="truncate text-sm text-slate-600">{formatDate(inv.startAt)}</p>
                     </div>
-                    {inv.paymentLink && (
-                      <div className="shrink-0 border-t border-slate-200 px-4 py-2 lg:border-t-0 lg:py-0">
+                    <div className="flex shrink-0 items-center sm:justify-center">
+                      <AppStatusPill status={inv.paymentStatus} />
+                    </div>
+                    <div className="flex shrink-0 items-center justify-end gap-3 tabular-nums">
+                      <span className="text-lg font-semibold text-slate-900">
+                        ${inv.totalPrice.toFixed(2)}
+                      </span>
+                      {inv.paymentLink && (
                         <a
                           href={inv.paymentLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex h-8 items-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+                          className="inline-flex h-8 shrink-0 items-center rounded-md bg-slate-900 px-3 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
                         >
                           Pay now
                         </a>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

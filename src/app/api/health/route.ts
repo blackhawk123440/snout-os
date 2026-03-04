@@ -12,6 +12,23 @@ function getVersion(): string {
   );
 }
 
+function getBuildTime(): string | null {
+  const raw =
+    process.env.NEXT_PUBLIC_BUILD_TIME ||
+    process.env.BUILD_TIME ||
+    null;
+  if (!raw) return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function getEnvName(): string {
+  const env =
+    process.env.NEXT_PUBLIC_ENV ||
+    (process.env.NODE_ENV === "production" ? "prod" : "staging");
+  return env === "production" ? "prod" : env === "prod" ? "prod" : "staging";
+}
+
 export async function GET() {
   const version = getVersion();
   let dbStatus: "ok" | "error" = "ok";
@@ -38,13 +55,20 @@ export async function GET() {
         ? "degraded"
         : "ok";
 
-  const commitSha = typeof version === 'string' && version !== 'unknown' ? version.slice(0, 7) : version;
+  const commitSha =
+    typeof version === "string" && version !== "unknown"
+      ? String(version).slice(0, 7)
+      : version;
+  const buildTime = getBuildTime();
+  const envName = getEnvName();
   return NextResponse.json({
     status,
     db: dbStatus,
     redis: redisStatus,
     version,
     commitSha,
+    buildTime: buildTime ?? new Date().toISOString(),
+    envName,
     timestamp: new Date().toISOString(),
   });
 }

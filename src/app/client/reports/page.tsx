@@ -6,7 +6,8 @@ import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/compo
 import { AppErrorState } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 import { InteractiveRow } from '@/components/ui/interactive-row';
-import { stripEmojisFromPreview } from '@/lib/strip-emojis';
+import { ClientListSecondaryModule } from '@/components/client/ClientListSecondaryModule';
+import { renderClientPreview } from '@/lib/strip-emojis';
 
 interface Report {
   id: string;
@@ -57,9 +58,6 @@ export default function ClientReportsPage() {
   const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : '';
 
-  const preview = (content: string, maxLen = 120) =>
-    content.length > maxLen ? content.slice(0, maxLen) + '…' : content;
-
   return (
     <LayoutWrapper variant="narrow">
       <PageHeader
@@ -79,32 +77,33 @@ export default function ClientReportsPage() {
           primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
         />
       ) : (
-        <div
-          className={`overflow-hidden rounded-lg border border-slate-200 bg-white ${reports.length === 1 ? 'mx-auto max-w-3xl' : ''}`}
-        >
-          {reports.map((r) => (
-            <InteractiveRow
-              key={r.id}
-              onClick={() => router.push(`/client/reports/${r.id}`)}
-              className="last:border-b-0"
-            >
-              <div className="grid w-full grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-                <div className="min-w-0">
-                  <p className="font-medium text-slate-900">
-                    {r.booking?.service || 'Visit report'}
-                  </p>
+        <div className="max-w-3xl space-y-4">
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            {reports.map((r) => (
+              <InteractiveRow
+                key={r.id}
+                onClick={() => router.push(`/client/reports/${r.id}`)}
+                className="last:border-b-0"
+              >
+                <div className="grid w-full grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-900">
+                      {r.booking?.service || 'Visit report'}
+                    </p>
+                  </div>
+                  {r.createdAt ? (
+                    <span className="shrink-0 text-xs text-slate-500 tabular-nums sm:order-2">
+                      {formatDate(r.createdAt)}
+                    </span>
+                  ) : (
+                    <span className="shrink-0 sm:order-2">—</span>
+                  )}
+                  <p className="line-clamp-1 min-w-0 text-sm text-slate-600 sm:order-3">{renderClientPreview(r.content, 120)}</p>
                 </div>
-                {r.createdAt ? (
-                  <span className="shrink-0 text-xs text-slate-500 tabular-nums sm:order-2">
-                    {formatDate(r.createdAt)}
-                  </span>
-                ) : (
-                  <span className="shrink-0 sm:order-2">—</span>
-                )}
-                <p className="line-clamp-1 min-w-0 text-sm text-slate-600 sm:order-3">{stripEmojisFromPreview(preview(r.content))}</p>
-              </div>
-            </InteractiveRow>
-          ))}
+              </InteractiveRow>
+            ))}
+          </div>
+          <ClientListSecondaryModule variant="reports" />
         </div>
       )}
       </Section>

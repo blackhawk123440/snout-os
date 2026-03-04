@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { ClientAtAGlanceSidebar } from '@/components/client/ClientAtAGlanceSidebar';
+import { ClientListSecondaryModule } from '@/components/client/ClientListSecondaryModule';
 import {
   AppPageHeader,
   AppSkeletonList,
@@ -75,31 +76,32 @@ export default function ClientBookingsPage() {
               subtitle="Your visits will appear here."
             />
           ) : (
-            <div
-              className={`overflow-hidden rounded-lg border border-slate-200 bg-white ${bookings.length === 1 ? 'mx-auto max-w-3xl lg:mx-0' : ''}`}
-            >
-              {bookings.map((b) => (
-                <InteractiveRow
-                  key={b.id}
-                  onClick={() => router.push(`/client/bookings/${b.id}`)}
-                  className="last:border-b-0"
-                >
-                  <div className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[1fr,auto,auto]">
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-900">{b.service}</p>
-                      <p className="text-sm text-slate-600 sm:sr-only">
+            <div className="max-w-3xl space-y-4">
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                {bookings.map((b) => (
+                  <InteractiveRow
+                    key={b.id}
+                    onClick={() => router.push(`/client/bookings/${b.id}`)}
+                    className="last:border-b-0"
+                  >
+                    <div className="grid min-w-0 grid-cols-1 gap-x-4 gap-y-0.5 sm:grid-cols-[1fr,auto,auto]">
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-900">{b.service}</p>
+                        <p className="text-sm text-slate-600 sm:sr-only">
+                          {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
+                        </p>
+                      </div>
+                      <div className="min-w-0 text-sm text-slate-600 max-sm:order-3">
                         {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
-                      </p>
+                      </div>
+                      <div className="shrink-0 max-sm:order-2">
+                        <AppStatusPill status={b.status} />
+                      </div>
                     </div>
-                    <div className="min-w-0 text-sm text-slate-600 max-sm:order-3">
-                      {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
-                    </div>
-                    <div className="shrink-0 max-sm:order-2">
-                      <AppStatusPill status={b.status} />
-                    </div>
-                  </div>
-                </InteractiveRow>
-              ))}
+                  </InteractiveRow>
+                ))}
+              </div>
+              <ClientListSecondaryModule variant="bookings" />
             </div>
           )}
         </div>

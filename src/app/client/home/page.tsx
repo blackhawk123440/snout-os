@@ -11,7 +11,7 @@ import {
   AppStatusPill,
 } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
-import { stripEmojisFromPreview } from '@/lib/strip-emojis';
+import { renderClientPreview } from '@/lib/strip-emojis';
 
 interface HomeData {
   clientName: string;
@@ -117,7 +117,7 @@ export default function ClientHomePage() {
                 </div>
                 <AppCardBody className="relative">
                   <p className="line-clamp-2 text-sm text-slate-700">
-                    {stripEmojisFromPreview(data.latestReport.content)}
+                    {renderClientPreview(data.latestReport.content)}
                   </p>
                   <p className="mt-2 text-right text-xs text-slate-500 tabular-nums">
                     {new Date(data.latestReport.createdAt).toLocaleDateString()}

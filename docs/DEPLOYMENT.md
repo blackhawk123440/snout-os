@@ -80,15 +80,31 @@ Single source of truth for production deployment.
   "status": "ok",
   "db": "ok",
   "redis": "ok",
-  "version": "abc1234"
+  "version": "abc1234567890",
+  "commitSha": "abc1234",
+  "buildTime": "2025-03-03T12:00:00.000Z",
+  "envName": "staging",
+  "timestamp": "2025-03-03T12:00:05.000Z"
 }
 ```
+
+- **commitSha:** First 7 characters of the deployed commit (for staging proof).
+- **buildTime:** ISO string from `NEXT_PUBLIC_BUILD_TIME` or `BUILD_TIME` (set at build time).
+- **envName:** `staging` or `prod` (from `NEXT_PUBLIC_ENV` or `NODE_ENV`).
 
 **Degraded:** If Redis is unreachable, `redis` will be `"degraded"` and the app may run with limited functionality (in-memory fallbacks for rate limit and realtime bus).
 
 **Unhealthy:** If DB is unreachable, `status` will be `"degraded"` or `"error"`.
 
 Use this endpoint for load balancer health checks and monitoring.
+
+## Client portal: staging proof and service worker
+
+- The client sidebar footer shows **envName · commitSha** (e.g. `staging · abc1234`) and displays **buildTime** in a tooltip on hover.
+- With `?debug=1`, owners or non-production builds show an overlay with commitSha, buildTime, and envName.
+- On deploy, the client portal prompts for an update: **"Update available → Refresh"** (service worker update). Users should refresh to load the new build.
+
+**If the client UI does not match the deployed code** (e.g. after a deploy you still see old content or layout): clear site data and unregister the service worker. In Chrome: DevTools → Application → Storage → **Clear site data**; Application → Service Workers → **Unregister** the worker, then hard refresh.
 
 ## Startup Verification
 

@@ -7,7 +7,8 @@ import { ClientAtAGlanceSidebar } from '@/components/client/ClientAtAGlanceSideb
 import { AppErrorState } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 import { InteractiveRow } from '@/components/ui/interactive-row';
-import { stripEmojisFromPreview } from '@/lib/strip-emojis';
+import { ClientListSecondaryModule } from '@/components/client/ClientListSecondaryModule';
+import { renderClientPreview } from '@/lib/strip-emojis';
 
 interface Thread {
   id: string;
@@ -71,32 +72,33 @@ export default function ClientMessagesPage() {
                 description="Your conversations with sitters will appear here."
               />
             ) : (
-              <div
-                className={`overflow-hidden rounded-lg border border-slate-200 bg-white ${threads.length === 1 ? 'mx-auto max-w-3xl lg:mx-0' : ''}`}
-              >
-                {threads.map((t) => (
-                  <InteractiveRow
-                    key={t.id}
-                    onClick={() => router.push(`/client/messages/${t.id}`)}
-                    className="last:border-b-0"
-                  >
-                    <div className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-[1fr,minmax(0,2fr),auto]">
-                      <div className="min-w-0">
-                        <p className="font-medium text-slate-900">
-                          {t.sitter?.name || t.booking?.service || 'Conversation'}
-                        </p>
+              <div className="max-w-3xl space-y-4">
+                <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  {threads.map((t) => (
+                    <InteractiveRow
+                      key={t.id}
+                      onClick={() => router.push(`/client/messages/${t.id}`)}
+                      className="last:border-b-0"
+                    >
+                      <div className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-[1fr,minmax(0,2fr),auto]">
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-900">
+                            {t.sitter?.name || t.booking?.service || 'Conversation'}
+                          </p>
+                        </div>
+                        <div className="min-w-0 line-clamp-1 text-sm text-slate-600">
+                          {renderClientPreview(t.preview || (t.booking?.service && t.booking.startAt ? `${t.booking.service} · ${formatDate(t.booking.startAt)}` : '—')) || '—'}
+                        </div>
+                        {t.lastActivityAt && (
+                          <span className="shrink-0 text-xs text-slate-500 tabular-nums">
+                            {formatDate(t.lastActivityAt)}
+                          </span>
+                        )}
                       </div>
-                      <div className="min-w-0 line-clamp-1 text-sm text-slate-600">
-                        {stripEmojisFromPreview(t.preview || (t.booking?.service && t.booking.startAt ? `${t.booking.service} · ${formatDate(t.booking.startAt)}` : '—')) || '—'}
-                      </div>
-                      {t.lastActivityAt && (
-                        <span className="shrink-0 text-xs text-slate-500 tabular-nums">
-                          {formatDate(t.lastActivityAt)}
-                        </span>
-                      )}
-                    </div>
-                  </InteractiveRow>
-                ))}
+                    </InteractiveRow>
+                  ))}
+                </div>
+                <ClientListSecondaryModule variant="messages" />
               </div>
             )}
           </Section>

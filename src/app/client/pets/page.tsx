@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { ClientAtAGlanceSidebar } from '@/components/client/ClientAtAGlanceSidebar';
+import { ClientListSecondaryModule } from '@/components/client/ClientListSecondaryModule';
 import {
   AppPageHeader,
   AppSkeletonList,
@@ -68,25 +69,26 @@ export default function ClientPetsPage() {
               subtitle="Add your pets to get started."
             />
           ) : (
-            <div
-              className={`overflow-hidden rounded-lg border border-slate-200 bg-white ${pets.length === 1 ? 'mx-auto max-w-3xl lg:mx-0' : ''}`}
-            >
-              {pets.map((p) => (
-                <InteractiveRow
-                  key={p.id}
-                  onClick={() => router.push(`/client/pets/${p.id}`)}
-                  className="last:border-b-0"
-                >
-                  <div className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-[1fr,minmax(0,1fr)]">
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-900">{p.name || 'Unnamed pet'}</p>
+            <div className="max-w-3xl space-y-4">
+              <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                {pets.map((p) => (
+                  <InteractiveRow
+                    key={p.id}
+                    onClick={() => router.push(`/client/pets/${p.id}`)}
+                    className="last:border-b-0"
+                  >
+                    <div className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-[1fr,minmax(0,1fr)]">
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-900">{p.name || 'Unnamed pet'}</p>
+                      </div>
+                      <div className="min-w-0 text-sm text-slate-600">
+                        {[p.species, p.breed].filter(Boolean).join(' · ') || 'No details'}
+                      </div>
                     </div>
-                    <div className="min-w-0 text-sm text-slate-600">
-                      {[p.species, p.breed].filter(Boolean).join(' · ') || 'No details'}
-                    </div>
-                  </div>
-                </InteractiveRow>
-              ))}
+                  </InteractiveRow>
+                ))}
+              </div>
+              <ClientListSecondaryModule variant="pets" />
             </div>
           )}
         </div>

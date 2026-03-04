@@ -6,20 +6,30 @@ import { useEffect, useState } from 'react';
 import { CLIENT_NAV_GROUPS } from '@/lib/client-nav';
 import { cn } from '@/components/ui/utils';
 
-const APP_VERSION = typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_APP_VERSION
-  ? process.env.NEXT_PUBLIC_APP_VERSION
-  : 'staging';
-
 export function ClientSidebarNav() {
   const pathname = usePathname();
-  const [deploySha, setDeploySha] = useState<string | null>(null);
+  const [deployInfo, setDeployInfo] = useState<{
+    envName: string;
+    commitSha: string;
+    buildTime: string | null;
+  } | null>(null);
 
   useEffect(() => {
     fetch('/api/health')
       .then((r) => r.json().catch(() => ({})))
       .then((data) => {
         const sha = data.commitSha ?? data.version;
-        if (sha && sha !== 'unknown') setDeploySha(typeof sha === 'string' ? sha.slice(0, 7) : String(sha).slice(0, 7));
+        const envName = data.envName ?? 'staging';
+        const buildTime = data.buildTime ?? null;
+        if (sha && sha !== 'unknown') {
+          setDeployInfo({
+            envName: String(envName),
+            commitSha: typeof sha === 'string' ? sha.slice(0, 7) : String(sha).slice(0, 7),
+            buildTime: buildTime ? String(buildTime) : null,
+          });
+        } else {
+          setDeployInfo({ envName: String(envName), commitSha: '', buildTime: buildTime ? String(buildTime) : null });
+        }
       })
       .catch(() => {});
   }, []);
@@ -73,9 +83,12 @@ export function ClientSidebarNav() {
         >
           Support
         </a>
-        <p className="mt-1 text-[11px] text-slate-400 tabular-nums">
-          {APP_VERSION}
-          {deploySha ? ` · ${deploySha}` : ''}
+        <p
+          className="mt-1 text-[11px] text-slate-400 tabular-nums"
+          title={deployInfo?.buildTime ? `Built: ${deployInfo.buildTime}` : undefined}
+        >
+          {deployInfo?.envName ?? 'staging'}
+          {deployInfo?.commitSha ? ` · ${deployInfo.commitSha}` : ''}
         </p>
       </div>
     </aside>

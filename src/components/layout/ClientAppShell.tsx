@@ -12,6 +12,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-client';
 import { ClientBottomNav } from './ClientBottomNav';
 import { ClientSidebarNav } from './ClientSidebarNav';
+import { ClientDeployDebugOverlay } from '@/components/client/ClientDeployDebugOverlay';
+import { ClientSwUpdateToast } from '@/components/client/ClientSwUpdateToast';
 
 export interface ClientAppShellProps {
   children: React.ReactNode;
@@ -192,6 +194,8 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
       </div>
 
       <ClientBottomNav />
+      <ClientDeployDebugOverlay />
+      <ClientSwUpdateToast />
     </div>
   );
 }

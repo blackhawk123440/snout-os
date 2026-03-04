@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppCard, AppCardBody } from '@/components/app';
-import { stripEmojisFromPreview } from '@/lib/strip-emojis';
+import { renderClientPreview } from '@/lib/strip-emojis';
 
 interface HomeData {
   upcomingCount: number;
@@ -107,7 +107,7 @@ export function ClientAtAGlanceSidebar() {
           {latestReport ? (
             <>
               <p className="mt-1 line-clamp-2 text-sm text-slate-700">
-                {stripEmojisFromPreview(latestReport.content)}
+                {renderClientPreview(latestReport.content)}
               </p>
               <Link
                 href="/client/reports"
