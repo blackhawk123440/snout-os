@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Drawer } from '@/components/ui';
+import { Button } from '@/components/ui';
 import {
   SitterCard,
   SitterCardHeader,
@@ -77,7 +77,6 @@ export default function SitterCalendarPage() {
   const [bookings, setBookings] = useState<CalendarBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedBooking, setSelectedBooking] = useState<CalendarBooking | null>(null);
   const [delightBooking, setDelightBooking] = useState<CalendarBooking | null>(null);
   const [checkingInId, setCheckingInId] = useState<string | null>(null);
   const [checkingOutId, setCheckingOutId] = useState<string | null>(null);
@@ -122,7 +121,6 @@ export default function SitterCalendarPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Check in failed');
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress' } : b)));
-      setSelectedBooking((b) => (b?.id === bookingId ? { ...b, status: 'in_progress' } : b));
     } catch {
       // Fail-soft: could show toast
     } finally {
@@ -137,7 +135,6 @@ export default function SitterCalendarPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Check out failed');
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b)));
-      setSelectedBooking(null);
     } catch {
       // Fail-soft
     } finally {
@@ -201,7 +198,7 @@ export default function SitterCalendarPage() {
       ) : (
         <div className="space-y-4">
           {bookings.map((b) => (
-            <SitterCard key={b.id} onClick={() => setSelectedBooking(b)}>
+            <SitterCard key={b.id} onClick={() => handleViewBooking(b.id)}>
               <SitterCardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -225,10 +222,7 @@ export default function SitterCalendarPage() {
                 )}
               </SitterCardBody>
               <SitterCardActions stopPropagation>
-                <Button variant="primary" size="md" onClick={() => handleViewBooking(b.id)}>
-                  Details
-                </Button>
-                <Button variant="secondary" size="md" onClick={() => handleOpenChat(b)}>
+                <Button variant="secondary" size="md" onClick={(e) => { e.stopPropagation(); handleOpenChat(b); }}>
                   Message
                 </Button>
               </SitterCardActions>
@@ -236,98 +230,6 @@ export default function SitterCalendarPage() {
           ))}
         </div>
       )}
-
-      {/* Visit detail drawer */}
-      <Drawer
-        isOpen={!!selectedBooking}
-        onClose={() => setSelectedBooking(null)}
-        title={selectedBooking ? `${selectedBooking.service} · ${selectedBooking.clientName}` : ''}
-        placement="right"
-        width="min(400px, 100vw)"
-      >
-        {selectedBooking && (
-          <div className="space-y-4">
-            {(selectedBooking.alerts ?? []).length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {selectedBooking.alerts!.map((a) => (
-                  <span key={a} className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">
-                    {a === 'allergy' ? 'Allergy' : a === 'medication' ? 'Medication' : a === 'behavior' ? 'Behavior' : 'New pet'}
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="flex items-center gap-2">
-              {selectedBooking.pets.length > 0 ? (
-                <div className="flex -space-x-2">
-                  {selectedBooking.pets.slice(0, 3).map((pet) => (
-                    <div
-                      key={pet.id}
-                      className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border-2 border-white bg-amber-100 text-sm font-medium text-amber-800"
-                    >
-                      {(pet.name || pet.species || '?').charAt(0).toUpperCase()}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-200 text-sm font-medium text-neutral-600">?</div>
-              )}
-              <div>
-                <p className="font-semibold text-neutral-900">
-                  {selectedBooking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}
-                </p>
-                <p className="text-sm text-neutral-600">
-                  {formatDateTime(selectedBooking.startAt)} – {formatTime(selectedBooking.endAt)}
-                </p>
-                {selectedBooking.address && (
-                  <p className="mt-0.5 text-xs text-neutral-500">{selectedBooking.address}</p>
-                )}
-              </div>
-            </div>
-
-            <SitterCard className="border-dashed">
-              <SitterCardBody>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-neutral-700">Soon: the best route for your day 🚗🐾</p>
-                  <FeatureStatusPill featureKey="route_optimization" />
-                </div>
-                <p className="mt-1 text-xs text-neutral-500">We&apos;ll optimize based on timing + pet needs.</p>
-              </SitterCardBody>
-            </SitterCard>
-
-            <div className="flex flex-wrap gap-2">
-              {['pending', 'confirmed'].includes(selectedBooking.status) && (
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={() => void handleCheckIn(selectedBooking.id)}
-                  disabled={checkingInId === selectedBooking.id}
-                >
-                  {checkingInId === selectedBooking.id ? 'Checking in...' : 'Start Visit'}
-                </Button>
-              )}
-              {selectedBooking.status === 'in_progress' && (
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={() => void handleCheckOut(selectedBooking.id)}
-                  disabled={checkingOutId === selectedBooking.id}
-                >
-                  {checkingOutId === selectedBooking.id ? 'Checking out...' : 'Finish Visit'}
-                </Button>
-              )}
-              <Button variant="secondary" size="md" onClick={() => handleOpenChat(selectedBooking)}>
-                Message
-              </Button>
-              <Button variant="secondary" size="md" onClick={() => { setDelightBooking(selectedBooking); setSelectedBooking(null); }}>
-                ✨ Daily Delight
-              </Button>
-              <Button variant="secondary" size="md" onClick={() => handleViewBooking(selectedBooking.id)}>
-                Details
-              </Button>
-            </div>
-          </div>
-        )}
-      </Drawer>
 
       <DailyDelightModal
         booking={delightBooking}

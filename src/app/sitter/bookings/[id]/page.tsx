@@ -258,6 +258,25 @@ export default function SitterBookingDetailPage() {
                     <p>{booking.notes}</p>
                   </div>
                 )}
+                {(booking.client?.phone || booking.client?.email) && (
+                  <div>
+                    <p className="font-medium text-gray-900">Contact</p>
+                    {booking.client.phone && (
+                      <p>
+                        <a href={`tel:${booking.client.phone}`} className="break-all text-blue-600 hover:underline">
+                          {booking.client.phone}
+                        </a>
+                      </p>
+                    )}
+                    {booking.client.email && (
+                      <p>
+                        <a href={`mailto:${booking.client.email}`} className="break-all text-blue-600 hover:underline">
+                          {booking.client.email}
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div>
                   <p className="font-medium text-gray-900">Total</p>
                   <p>${booking.totalPrice.toFixed(2)}</p>

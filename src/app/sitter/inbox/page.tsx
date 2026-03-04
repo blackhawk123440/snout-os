@@ -125,11 +125,13 @@ function SitterInboxContent() {
 
   if (!isSitter) return null;
 
-  const filteredThreads = threadSearch.trim()
-    ? threads.filter((t) =>
-        t.client?.name?.toLowerCase().includes(threadSearch.toLowerCase())
-      )
-    : threads;
+  const filteredThreads = (
+    threadSearch.trim()
+      ? threads.filter((t) =>
+          t.client?.name?.toLowerCase().includes(threadSearch.toLowerCase())
+        )
+      : threads
+  ).slice().sort((a, b) => b.lastActivityAt.getTime() - a.lastActivityAt.getTime());
 
   const showListOnMobile = isMobile && !selectedThreadId;
   const showConversationOnMobile = isMobile && selectedThreadId;
@@ -297,10 +299,9 @@ function SitterInboxContent() {
                         >
                           {isActive ? 'Active' : 'Inactive'}
                         </span>
-                        {/* Unread badge placeholder */}
-                        {false && (
-                          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-medium text-white">
-                            1
+                        {(thread.ownerUnreadCount ?? 0) > 0 && (
+                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-500 px-1.5 text-[10px] font-medium text-white">
+                            {(thread.ownerUnreadCount ?? 0) > 99 ? '99+' : thread.ownerUnreadCount}
                           </span>
                         )}
                       </div>

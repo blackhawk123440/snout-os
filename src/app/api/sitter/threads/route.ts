@@ -35,16 +35,16 @@ export async function GET(request: NextRequest) {
 
   try {
     // Find threads with active assignment windows for this sitter
-    const threads = await (prisma as any).thread.findMany({
+    const threads = await (prisma as any).messageThread.findMany({
       where: {
         orgId,
-        sitterId,
-        status: 'active',
+        assignedSitterId: sitterId,
+        status: 'open',
         assignmentWindows: {
           some: {
             sitterId,
-            startsAt: { lte: now },
-            endsAt: { gte: now },
+            startAt: { lte: now },
+            endAt: { gte: now },
           },
         },
       },
@@ -61,19 +61,28 @@ export async function GET(request: NextRequest) {
         assignmentWindows: {
           where: {
             sitterId,
-            startsAt: { lte: now },
-            endsAt: { gte: now },
+            startAt: { lte: now },
+            endAt: { gte: now },
           },
-          orderBy: { startsAt: 'desc' },
+          orderBy: { startAt: 'desc' },
           take: 1,
         },
       },
-      orderBy: { lastActivityAt: 'desc' },
+      orderBy: { lastMessageAt: 'desc' },
     });
 
-    // Sitter never sees client phone (no contacts included; ClientContact avoided for orgld bug)
+    const toIso = (d: Date | null | undefined) => (d instanceof Date ? d.toISOString() : d ? new Date(d).toISOString() : null);
+
+    // Sitter never sees client phone (no contacts included); expose lastActivityAt + ownerUnreadCount; normalize window fields for frontend
     const transformedThreads = threads.map((thread: any) => ({
       ...thread,
+      lastActivityAt: toIso(thread.lastMessageAt ?? thread.createdAt) ?? new Date().toISOString(),
+      ownerUnreadCount: thread.ownerUnreadCount ?? 0,
+      assignmentWindows: (thread.assignmentWindows ?? []).map((w: any) => ({
+        ...w,
+        startsAt: w.startsAt ?? w.startAt,
+        endsAt: w.endsAt ?? w.endAt,
+      })),
       client: { ...thread.client, contacts: [] },
     }));
 

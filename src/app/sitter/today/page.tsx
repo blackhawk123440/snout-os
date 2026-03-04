@@ -90,6 +90,17 @@ const statusPillLabel = (status: string) => {
   }
 };
 
+/** Visit execution flow: Start → In progress → End → Write report */
+const getStatusSubtitle = (booking: TodayBooking) => {
+  const start = new Date(booking.startAt);
+  const end = new Date(booking.endAt);
+  const timeStr = `${start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} – ${end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  if (['pending', 'confirmed'].includes(booking.status)) return `Starts ${start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  if (booking.status === 'in_progress') return `In progress · ${timeStr}`;
+  if (booking.status === 'completed') return `Completed · ${timeStr}`;
+  return timeStr;
+};
+
 const statusBadgeClass = (status: string) => {
   switch (status) {
     case 'confirmed':
@@ -143,10 +154,13 @@ function NextVisitHero({
         {countdown && (
           <p className="mt-1 text-sm font-semibold text-blue-800">{countdown}</p>
         )}
-        <div className="mt-2 flex items-start gap-3">
+          <div className="mt-2 flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-lg font-semibold tabular-nums text-neutral-900">
               {formatTimeRange(booking.startAt, booking.endAt)}
+            </p>
+            <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              {getStatusSubtitle(booking)}
             </p>
             <p className="mt-0.5 font-medium text-neutral-900">{booking.service}</p>
             <p className="text-sm text-neutral-600">{petNames}</p>
@@ -194,14 +208,14 @@ function NextVisitHero({
           </Button>
         )}
         {booking.status === 'completed' && (
-          <Button variant="primary" size="md" onClick={() => onDelight(booking)}>
+          <Button variant="primary" size="md" onClick={() => router.push(`/sitter/reports/new?bookingId=${booking.id}`)}>
             Write report
           </Button>
         )}
         <Button variant="secondary" size="sm" onClick={() => onMessage(booking)}>
           Message
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => onDelight(booking)}>
+        <Button variant="secondary" size="sm" onClick={() => booking.status === 'completed' ? router.push(`/sitter/reports/new?bookingId=${booking.id}`) : onDelight(booking)}>
           {booking.status === 'completed' ? 'Add report' : 'Daily Delight'}
         </Button>
         <Button variant="secondary" size="sm" onClick={() => router.push(`/sitter/bookings/${booking.id}`)}>
@@ -532,11 +546,12 @@ export default function SitterTodayPage() {
                       <p className="text-base font-semibold tabular-nums text-neutral-900">
                         {formatTimeRange(booking.startAt, booking.endAt)}
                       </p>
+                      <p className="text-xs text-neutral-500">{getStatusSubtitle(booking)}</p>
                       <p className="font-medium text-neutral-800">{booking.service}</p>
                       <p className="text-sm text-neutral-600">{petNames}</p>
                       <p className="text-sm text-neutral-500">{booking.clientName}</p>
                     </div>
-                    <div className="flex shrink-0 flex-wrap items-center gap-1">
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
                       {(queuedByBooking[booking.id]?.length ?? 0) > 0 && (
                         <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-900">
                           Queued
@@ -575,7 +590,7 @@ export default function SitterTodayPage() {
                     </Button>
                   )}
                   {booking.status === 'completed' && (
-                    <Button variant="primary" size="md" onClick={() => openDelightModal(booking)}>
+                    <Button variant="primary" size="md" onClick={() => router.push(`/sitter/reports/new?bookingId=${booking.id}`)}>
                       Write report
                     </Button>
                   )}
@@ -585,7 +600,7 @@ export default function SitterTodayPage() {
                   <Button variant="secondary" size="md" onClick={() => handleOpenChat(booking)}>
                     Message
                   </Button>
-                  <Button variant="secondary" size="md" onClick={() => openDelightModal(booking)}>
+                  <Button variant="secondary" size="md" onClick={() => booking.status === 'completed' ? router.push(`/sitter/reports/new?bookingId=${booking.id}`) : openDelightModal(booking)}>
                     {booking.status === 'completed' ? 'Add report' : 'Daily Delight'}
                   </Button>
                 </SitterCardActions>

@@ -85,16 +85,17 @@ export async function POST(
     throw err;
   }
 
-  // Persist to Report so client portal can display it
+  let reportId: string | null = null;
   if (report) {
     try {
-      await db.report.create({
+      const created = await db.report.create({
         data: {
           bookingId,
           content: report,
           mediaUrls: mediaUrls.length > 0 ? JSON.stringify(mediaUrls) : null,
         },
       });
+      reportId = created.id;
       const booking = await db.booking.findUnique({
         where: { id: bookingId },
         select: { sitterId: true, orgId: true },
@@ -138,5 +139,5 @@ export async function POST(
     }
   }
 
-  return NextResponse.json({ report });
+  return NextResponse.json({ report, reportId });
 }

@@ -116,6 +116,8 @@ export default function SitterReportNewPage() {
     setMediaUrls((prev) => prev.filter((u) => u !== url));
   };
 
+  const [sentReportId, setSentReportId] = useState<string | null>(null);
+
   const handleSubmit = async () => {
     if (!selectedBookingId) {
       toastError('Select a visit');
@@ -123,6 +125,7 @@ export default function SitterReportNewPage() {
     }
     const reportText = buildReportText();
     setSubmitting(true);
+    setSentReportId(null);
     try {
       const res = await fetch(`/api/bookings/${selectedBookingId}/daily-delight`, {
         method: 'POST',
@@ -137,8 +140,8 @@ export default function SitterReportNewPage() {
         toastError(data.error || 'Failed to submit report');
         return;
       }
-      toastSuccess('Report submitted');
-      router.push('/sitter/reports');
+      toastSuccess('Sent to client');
+      setSentReportId(data.reportId ?? null);
     } catch {
       toastError('Failed to submit report');
     } finally {
@@ -304,17 +307,40 @@ export default function SitterReportNewPage() {
           </button>
         </div>
 
+        {sentReportId && (
+          <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+            <p className="font-semibold text-green-800">Sent to client</p>
+            <p className="mt-0.5 text-sm text-green-700">The client will see this in their Latest report.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => router.push(`/sitter/reports/edit/${sentReportId}`)}
+              >
+                Edit (15 min)
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => router.push('/sitter/reports')}
+              >
+                Back to reports
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-3">
           <Button
             variant="primary"
             size="md"
             onClick={() => void handleSubmit()}
-            disabled={submitting}
+            disabled={submitting || !!sentReportId}
             className="min-h-[44px] flex-1"
           >
-            {submitting ? 'Submitting…' : 'Submit report'}
+            {submitting ? 'Submitting…' : sentReportId ? 'Sent' : 'Submit report'}
           </Button>
-          <Button variant="secondary" size="md" onClick={() => router.back()} className="min-h-[44px]">
+          <Button variant="secondary" size="md" onClick={() => router.back()} className="min-h-[44px]" disabled={!!sentReportId}>
             Cancel
           </Button>
         </div>
