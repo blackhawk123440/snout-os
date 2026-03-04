@@ -124,30 +124,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  let ctx;
-  try {
-    ctx = await getRequestContext();
-    requireOwnerOrAdmin(ctx);
-  } catch (error) {
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   const providedKey = request.headers.get('x-e2e-key');
   const expectedKey = process.env.E2E_AUTH_KEY;
   if (providedKey && expectedKey && providedKey !== expectedKey) {
     return NextResponse.json({ error: 'Invalid x-e2e-key' }, { status: 401 });
   }
+  const hasValidE2eBypass = !!providedKey && !!expectedKey && providedKey === expectedKey;
+
+  let orgId = process.env.PERSONAL_ORG_ID || 'default';
+  if (!hasValidE2eBypass) {
+    let ctx;
+    try {
+      ctx = await getRequestContext();
+      requireOwnerOrAdmin(ctx);
+      orgId = ctx.orgId;
+    } catch (error) {
+      if (error instanceof ForbiddenError) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
 
   try {
-    const { sitterId, clientId } = await ensureRoleTestAccounts(ctx.orgId);
+    const { sitterId, clientId } = await ensureRoleTestAccounts(orgId);
     const now = new Date();
 
     const overlapA = await prisma.booking.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         firstName: 'Fixture',
         lastName: 'Overlap A',
         phone: '+15551000001',
@@ -165,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     const overlapB = await prisma.booking.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         firstName: 'Fixture',
         lastName: 'Overlap B',
         phone: '+15551000002',
@@ -183,7 +188,7 @@ export async function POST(request: NextRequest) {
 
     const unassignedA = await prisma.booking.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         firstName: 'Fixture',
         lastName: 'Unassigned A',
         phone: '+15551000003',
@@ -200,7 +205,7 @@ export async function POST(request: NextRequest) {
 
     const unassignedB = await prisma.booking.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         firstName: 'Fixture',
         lastName: 'Unassigned B',
         phone: '+15551000004',
@@ -217,7 +222,7 @@ export async function POST(request: NextRequest) {
 
     const dedupeBooking = await prisma.booking.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         firstName: 'Fixture',
         lastName: 'Dedupe Target',
         phone: '+15551000005',
@@ -235,7 +240,7 @@ export async function POST(request: NextRequest) {
 
     const threadA = await prisma.messageThread.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         scope: 'client_general',
         clientId,
         assignedSitterId: sitterId,
@@ -246,7 +251,7 @@ export async function POST(request: NextRequest) {
     });
     const threadB = await prisma.messageThread.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         scope: 'client_general',
         clientId,
         assignedSitterId: sitterId,
@@ -258,7 +263,7 @@ export async function POST(request: NextRequest) {
 
     const automationFailedA = await prisma.eventLog.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         eventType: 'automation.failed',
         automationType: 'bookingConfirmation',
         status: 'failed',
@@ -269,7 +274,7 @@ export async function POST(request: NextRequest) {
     });
     const automationDead = await prisma.eventLog.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         eventType: 'automation.dead',
         automationType: 'bookingConfirmation',
         status: 'failed',
@@ -280,7 +285,7 @@ export async function POST(request: NextRequest) {
     });
     const automationFailedB = await prisma.eventLog.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         eventType: 'automation.failed',
         automationType: 'bookingConfirmation',
         status: 'failed',
@@ -292,7 +297,7 @@ export async function POST(request: NextRequest) {
 
     const messageFailedA = await prisma.eventLog.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         eventType: 'message.failed',
         status: 'failed',
         error: 'Fixture: outbound message failed for thread A',
@@ -302,7 +307,7 @@ export async function POST(request: NextRequest) {
     });
     const messageFailedB = await prisma.eventLog.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         eventType: 'message.failed',
         status: 'failed',
         error: 'Fixture: outbound message failed for thread B',
@@ -313,7 +318,7 @@ export async function POST(request: NextRequest) {
 
     const calendarFailed = await prisma.eventLog.create({
       data: {
-        orgId: ctx.orgId,
+        orgId,
         eventType: 'calendar.sync.failed',
         automationType: 'calendarSync',
         status: 'failed',
