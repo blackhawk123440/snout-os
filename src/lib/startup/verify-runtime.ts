@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { getRuntimeEnvName, isRedisRequiredEnv } from '@/lib/runtime-env';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -30,9 +31,9 @@ export async function verifyRuntime(): Promise<VerifyResult> {
     }
   }
 
-  // 2. Production: REDIS_URL recommended (queues + realtime). Warn if missing so app can start on Render/staging without Redis.
-  if (isProduction && !process.env.REDIS_URL && process.env.CI !== 'true') {
-    warnings.push('REDIS_URL not set; queues and realtime will be degraded');
+  // 2. Redis is required on staging/prod because workers and realtime depend on it.
+  if (isRedisRequiredEnv() && !process.env.REDIS_URL && process.env.CI !== 'true') {
+    errors.push(`REDIS_URL is required in ${getRuntimeEnvName()} for queues/realtime`);
   }
 
   // 3. Stripe: if any Stripe key present, recommend both. Warn only so staging can start without webhook secret.
