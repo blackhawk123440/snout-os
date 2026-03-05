@@ -8,8 +8,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { AppShell } from '@/components/layout/AppShell';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { BookingForm } from '@/components/bookings/BookingForm';
 import { tokens } from '@/lib/design-tokens';
 import { BookingFormValues } from '@/lib/bookings/booking-form-mapper';
@@ -204,7 +203,7 @@ export default function NewBookingPage() {
   if (isMobile) {
     // Mobile: Full page with bottom action bar
     return (
-      <AppShell>
+      <OwnerAppShell>
         <LayoutWrapper variant="wide">
           <PageHeader title="New Booking" subtitle="Create a new booking" />
           <Section>
@@ -220,13 +219,13 @@ export default function NewBookingPage() {
         </div>
           </Section>
         </LayoutWrapper>
-      </AppShell>
+      </OwnerAppShell>
     );
   }
 
   // Desktop: Modal or full page (using full page for now)
   return (
-    <AppShell>
+    <OwnerAppShell>
       <LayoutWrapper variant="wide">
         <PageHeader title="New Booking" subtitle="Create a new booking" />
         <Section>
@@ -243,7 +242,7 @@ export default function NewBookingPage() {
       </div>
         </Section>
       </LayoutWrapper>
-    </AppShell>
+    </OwnerAppShell>
   );
 }
 

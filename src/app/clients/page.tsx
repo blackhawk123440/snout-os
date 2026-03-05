@@ -1,8 +1,11 @@
+'use client';
+export { default } from './page.enterprise';
+// Legacy implementation retained below for fallback/reference.
+/* eslint-disable no-unused-vars */
 /**
  * Clients List Page - Normalized with App design system
  */
 
-'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
@@ -32,7 +35,7 @@ interface Client extends Record<string, unknown> {
   deletedAt?: string | null;
 }
 
-export default function ClientsPage() {
+function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
