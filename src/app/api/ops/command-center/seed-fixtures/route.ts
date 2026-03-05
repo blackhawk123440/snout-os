@@ -251,7 +251,17 @@ export async function POST(request: NextRequest) {
         status: 'failed',
         error: `[run:${runId}] Fixture: retry automation failed`,
         bookingId: dedupeBooking.id,
-        metadata: JSON.stringify({ runId }),
+        metadata: JSON.stringify({
+          runId,
+          automationType: 'bookingConfirmation',
+          recipient: 'owner',
+          context: {
+            orgId,
+            bookingId: dedupeBooking.id,
+            source: 'seed-fixtures',
+          },
+          jobId: `seed-retry-${runId}`,
+        }),
       },
       select: { id: true },
     });

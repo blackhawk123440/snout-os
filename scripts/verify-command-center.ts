@@ -173,36 +173,51 @@ async function run() {
   report.push(`attention.first10Ids=${JSON.stringify(allItems.slice(0, 10).map((i) => i.id))}`);
 
   // 5) One-click fix actions: automation + calendar
-  const automationFailure =
-    (payload.alerts || []).find(
+  const automationCandidates =
+    (payload.alerts || []).filter(
       (i) => i.type === 'automation_failure' && (i.subtitle || '').includes(`[run:${runId}]`)
-    ) || (payload.alerts || []).find((i) => i.type === 'automation_failure');
+    ).length > 0
+      ? (payload.alerts || []).filter(
+          (i) => i.type === 'automation_failure' && (i.subtitle || '').includes(`[run:${runId}]`)
+        )
+      : (payload.alerts || []).filter((i) => i.type === 'automation_failure');
   const calendarRepair =
     (payload.alerts || []).find(
       (i) => i.type === 'calendar_repair' && (i.subtitle || '').includes(`[run:${runId}]`)
     ) || (payload.alerts || []).find((i) => i.type === 'calendar_repair');
-  assert(!!automationFailure, 'no automation_failure item found for fix action');
+  assert(automationCandidates.length > 0, 'no automation_failure item found for fix action');
   assert(!!calendarRepair, 'no calendar_repair item found for fix action');
 
-  const fixAutomationRes = await fetch(joinUrl('/api/ops/command-center/attention/fix'), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Cookie: cookieHeader(ownerCookies),
-    },
-    body: JSON.stringify({ itemId: automationFailure!.id }),
-  });
-  const fixAutomationJson = await fixAutomationRes.json().catch(() => ({}));
+  let automationFailure: AttentionItem | null = null;
+  let fixAutomationJson: any = null;
+  let lastAutomationError = '';
+  for (const candidate of automationCandidates) {
+    const fixAutomationRes = await fetch(joinUrl('/api/ops/command-center/attention/fix'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader(ownerCookies),
+      },
+      body: JSON.stringify({ itemId: candidate.id }),
+    });
+    const attemptJson = await fixAutomationRes.json().catch(() => ({}));
+    if (
+      fixAutomationRes.ok &&
+      typeof attemptJson.actionEventLogId === 'string' &&
+      attemptJson.actionEventLogId.length > 0
+    ) {
+      automationFailure = candidate;
+      fixAutomationJson = attemptJson;
+      break;
+    }
+    lastAutomationError = `${fixAutomationRes.status} ${JSON.stringify(attemptJson)}`;
+  }
   assert(
-    fixAutomationRes.ok,
-    `automation fix failed: ${fixAutomationRes.status} ${JSON.stringify(fixAutomationJson)}`
-  );
-  assert(
-    typeof fixAutomationJson.actionEventLogId === 'string' && fixAutomationJson.actionEventLogId.length > 0,
-    'automation fix missing actionEventLogId'
+    !!automationFailure && !!fixAutomationJson,
+    `automation fix failed for all candidates: ${lastAutomationError}`
   );
   report.push(
-    `fix.automation={"itemId":"${automationFailure!.id}","eventLogId":"${fixAutomationJson.actionEventLogId}"}`
+    `fix.automation={"itemId":"${automationFailure.id}","eventLogId":"${fixAutomationJson.actionEventLogId}"}`
   );
 
   const fixCalendarRes = await fetch(joinUrl('/api/ops/command-center/attention/fix'), {
