@@ -57,13 +57,17 @@ export async function POST(request: NextRequest) {
               OR: [{ id: parsed.entityId }, { bookingId: parsed.entityId }],
             },
             {
-              OR: [{ eventType: 'automation.failed' }, { eventType: 'automation.dead' }],
+              OR: [
+                { eventType: 'automation.failed' },
+                { eventType: 'automation.dead' },
+                { status: 'failed' },
+              ],
             },
           ],
         },
         orderBy: { createdAt: 'desc' },
       });
-      if (!event) {
+      if (!event || isCalendarEvent(event)) {
         return NextResponse.json({ error: 'Automation failure event not found' }, { status: 404 });
       }
 
