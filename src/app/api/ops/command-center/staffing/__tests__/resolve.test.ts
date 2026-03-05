@@ -7,6 +7,7 @@ const mockDb = {
     update: vi.fn(),
   },
   sitter: {
+    findFirst: vi.fn(),
     findMany: vi.fn(),
   },
   setting: {
@@ -66,6 +67,7 @@ describe('POST /api/ops/command-center/staffing/resolve', () => {
     });
     mockDb.eventLog.create.mockResolvedValue({ id: 'evt-1' });
     mockDb.setting.findUnique.mockResolvedValue(null);
+    mockDb.sitter.findFirst.mockResolvedValue(null);
   });
 
   it('assign success', async () => {

@@ -126,7 +126,17 @@ async function run() {
   report.push(`health.envName=${health?.envName ?? 'unknown'}`);
   report.push(`health.redis=${health?.redis ?? 'unknown'}`);
 
-  // 2) Seed fixtures (e2e-key path)
+  // 2) Reset fixtures/state first (best effort), then seed fixtures.
+  await fetchJson('/api/ops/command-center/reset-fixtures', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-e2e-key': E2E_AUTH_KEY!,
+    },
+    body: JSON.stringify({}),
+  });
+
+  // 3) Seed fixtures (e2e-key path)
   const { res: seedRes, json: seed } = await fetchJson('/api/ops/command-center/seed-fixtures', {
     method: 'POST',
     headers: {
@@ -139,7 +149,7 @@ async function run() {
   report.push(`seed.ok=${seed?.ok === true}`);
   report.push(`seed.expectedItemKeys=${Array.isArray(seed?.expectedItemKeys) ? seed.expectedItemKeys.length : 0}`);
 
-  // 3) Owner attention readout
+  // 4) Owner attention readout
   const ownerCookies = await login('owner');
   const { res: attRes, json: attention } = await fetchJson('/api/ops/command-center/attention', {
     headers: { Cookie: cookieHeader(ownerCookies) },
@@ -158,7 +168,7 @@ async function run() {
   report.push(`attention.bySeverity=${JSON.stringify(severityCounts)}`);
   report.push(`attention.first10Ids=${JSON.stringify(allItems.slice(0, 10).map((i) => i.id))}`);
 
-  // 4) Staffing resolve: assign + notify + rollback
+  // 5) Staffing resolve: assign + notify + rollback
   const staffingUnassigned = (payload.staffing || []).find((i) => i.type === 'unassigned');
   assert(!!staffingUnassigned, 'no unassigned staffing item found for resolve flow');
 
@@ -225,7 +235,7 @@ async function run() {
   const snoozeTarget = allItems[0];
   const handledTarget = allItems[1];
 
-  // 5) Snooze + handled then verify removed
+  // 6) Snooze + handled then verify removed
   const snoozeRes = await fetch(joinUrl('/api/ops/command-center/attention/actions'), {
     method: 'POST',
     headers: {
@@ -259,7 +269,7 @@ async function run() {
   assert(!afterIds.has(handledTarget.id), `handled item still present: ${handledTarget.id}`);
   report.push(`actions.removed=[${snoozeTarget.id},${handledTarget.id}]`);
 
-  // 6) Sitter/client access checks
+  // 7) Sitter/client access checks
   for (const role of ['sitter', 'client'] as const) {
     const roleCookies = await login(role);
     const apiRes = await fetch(joinUrl('/api/ops/command-center/attention'), {

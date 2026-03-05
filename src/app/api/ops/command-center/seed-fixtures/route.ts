@@ -22,7 +22,28 @@ async function ensureRoleTestAccounts(orgId: string) {
     orderBy: { createdAt: 'desc' },
   });
 
-  return { sitterId: assigned?.sitterId ?? null };
+  const fixtureEmail = 'fixture-resolve-sitter@example.com';
+  const existingFixture = await prisma.sitter.findFirst({
+    where: { orgId, email: fixtureEmail },
+    select: { id: true },
+  });
+  const fixtureSitterId = existingFixture?.id
+    ? existingFixture.id
+    : (
+        await prisma.sitter.create({
+          data: {
+            orgId,
+            firstName: 'Fixture',
+            lastName: 'Resolve',
+            phone: '+15551000099',
+            email: fixtureEmail,
+            active: true,
+          },
+          select: { id: true },
+        })
+      ).id;
+
+  return { sitterId: assigned?.sitterId ?? null, fixtureSitterId };
 }
 
 export async function POST(request: NextRequest) {
@@ -95,7 +116,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const { sitterId } = await ensureRoleTestAccounts(orgId);
+    const { sitterId, fixtureSitterId } = await ensureRoleTestAccounts(orgId);
     const now = new Date();
 
     const overlapA = sitterId
@@ -301,6 +322,7 @@ export async function POST(request: NextRequest) {
           ...(overlapB ? [overlapB.id] : []),
         ],
         threadIds: [threadAId, threadBId],
+        fixtureSitterId,
       },
       expectedItemKeys,
       testAccounts: {
