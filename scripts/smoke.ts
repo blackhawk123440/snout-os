@@ -19,16 +19,37 @@ const playwrightCmd = isA11y
   ? 'pnpm exec playwright test tests/e2e/a11y-smoke.spec.ts --config=playwright.smoke.config.ts'
   : 'pnpm exec playwright test --config=playwright.smoke.config.ts';
 
+function dockerAvailable(): boolean {
+  try {
+    execSync('docker info', { stdio: 'ignore', cwd: ROOT });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function run(cmd: string) {
+  execSync(cmd, {
+    stdio: 'inherit',
+    cwd: ROOT,
+    env: process.env,
+  });
+}
+
 if (process.env.CI === 'true') {
-  execSync(playwrightCmd, {
-    stdio: 'inherit',
-    cwd: ROOT,
-    env: process.env,
-  });
+  run(playwrightCmd);
 } else {
-  execSync(`tsx scripts/smoke-local.ts ${isA11y ? '--a11y' : ''}`, {
-    stdio: 'inherit',
-    cwd: ROOT,
-    env: process.env,
-  });
+  const mode = process.env.SMOKE_MODE || 'auto';
+  const hasDocker = dockerAvailable();
+
+  // Local full harness stays the default when Docker is available.
+  if (mode === 'full' || (mode === 'auto' && hasDocker)) {
+    run(`tsx scripts/smoke-local.ts ${isA11y ? '--a11y' : ''}`);
+  } else if (mode === 'playwright' || mode === 'no-db' || (mode === 'auto' && !hasDocker)) {
+    // CI-safe fallback: no DB reset, only shell/auth-boundary checks against a running server.
+    run(`tsx scripts/smoke-no-db.ts ${isA11y ? '--a11y' : ''}`);
+  } else {
+    console.error(`[smoke] Unsupported SMOKE_MODE: ${mode}`);
+    process.exit(1);
+  }
 }

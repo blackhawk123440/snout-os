@@ -32,6 +32,9 @@ export async function middleware(request: NextRequest) {
     (session.user as any).role === 'client'
   );
   if (isClient && !pathname.startsWith('/api/')) {
+    if (pathname.startsWith('/finance')) {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
     if (isClientRoute(pathname)) {
       return NextResponse.next();
     }
@@ -53,6 +56,9 @@ export async function middleware(request: NextRequest) {
     
     // If user is authenticated as a sitter, enforce sitter restrictions
     if (isSitter) {
+      if (!pathname.startsWith('/api/') && pathname.startsWith('/finance')) {
+        return new NextResponse('Forbidden', { status: 403 });
+      }
       // Per Master Spec 7.1.2: Sitters cannot access restricted routes
       if (isSitterRestrictedRoute(pathname)) {
         // Redirect /messages to /sitter/inbox (UI route)

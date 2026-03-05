@@ -26,6 +26,9 @@ export function isProtectedRoute(pathname: string): boolean {
   if (pathname.startsWith("/payments")) {
     return true;
   }
+  if (pathname.startsWith("/finance")) {
+    return true;
+  }
 
       // Booking management pages (admin views, not the public form)
       if (pathname.startsWith("/bookings")) {
