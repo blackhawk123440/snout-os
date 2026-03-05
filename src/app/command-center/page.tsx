@@ -4,7 +4,7 @@ import { CommandCenterContent } from './CommandCenterContent';
 
 export default async function CommandCenterPage() {
   const session = await auth();
-  const role = (session?.user as { role?: string } | undefined)?.role;
+  const role = ((session?.user as { role?: string } | undefined)?.role || '').toLowerCase();
 
   if (!session) {
     redirect('/login?callbackUrl=/command-center');
