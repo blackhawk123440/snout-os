@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
       const idempotencyKey = jobId || `cc-fix:${event.id}`;
       await enqueueAutomation(automationType, recipient, context, idempotencyKey);
-      await db.eventLog.create({
+      const actionEvent = await db.eventLog.create({
         data: {
           orgId: ctx.orgId,
           eventType: 'command_center.fix.automation.enqueued',
@@ -93,6 +93,18 @@ export async function POST(request: NextRequest) {
           }),
         },
       });
+      await db.commandCenterAttentionState.upsert({
+        where: { orgId_itemKey: { orgId: ctx.orgId, itemKey: itemId } },
+        create: {
+          orgId: ctx.orgId,
+          itemKey: itemId,
+          handledAt: new Date(),
+        },
+        update: {
+          handledAt: new Date(),
+          snoozedUntil: null,
+        },
+      });
 
       return NextResponse.json({
         ok: true,
@@ -100,6 +112,8 @@ export async function POST(request: NextRequest) {
         type: parsed.type,
         queued: true,
         idempotencyKey,
+        actionEventLogId: actionEvent.id,
+        actionEventType: actionEvent.eventType,
       });
     }
 
@@ -136,7 +150,7 @@ export async function POST(request: NextRequest) {
       end: end.toISOString(),
       orgId: ctx.orgId,
     });
-    await db.eventLog.create({
+    const actionEvent = await db.eventLog.create({
       data: {
         orgId: ctx.orgId,
         eventType: 'command_center.fix.calendar.enqueued',
@@ -151,6 +165,18 @@ export async function POST(request: NextRequest) {
         }),
       },
     });
+    await db.commandCenterAttentionState.upsert({
+      where: { orgId_itemKey: { orgId: ctx.orgId, itemKey: itemId } },
+      create: {
+        orgId: ctx.orgId,
+        itemKey: itemId,
+        handledAt: new Date(),
+      },
+      update: {
+        handledAt: new Date(),
+        snoozedUntil: null,
+      },
+    });
 
     return NextResponse.json({
       ok: true,
@@ -158,6 +184,8 @@ export async function POST(request: NextRequest) {
       type: parsed.type,
       queued: true,
       jobId,
+      actionEventLogId: actionEvent.id,
+      actionEventType: actionEvent.eventType,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

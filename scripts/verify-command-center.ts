@@ -171,7 +171,64 @@ async function run() {
   report.push(`attention.bySeverity=${JSON.stringify(severityCounts)}`);
   report.push(`attention.first10Ids=${JSON.stringify(allItems.slice(0, 10).map((i) => i.id))}`);
 
-  // 5) Staffing resolve: assign + notify + rollback
+  // 5) One-click fix actions: automation + calendar
+  const automationFailure = (payload.alerts || []).find((i) => i.type === 'automation_failure');
+  const calendarRepair = (payload.alerts || []).find((i) => i.type === 'calendar_repair');
+  assert(!!automationFailure, 'no automation_failure item found for fix action');
+  assert(!!calendarRepair, 'no calendar_repair item found for fix action');
+
+  const fixAutomationRes = await fetch(joinUrl('/api/ops/command-center/attention/fix'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: cookieHeader(ownerCookies),
+    },
+    body: JSON.stringify({ itemId: automationFailure!.id }),
+  });
+  const fixAutomationJson = await fixAutomationRes.json().catch(() => ({}));
+  assert(
+    fixAutomationRes.ok,
+    `automation fix failed: ${fixAutomationRes.status} ${JSON.stringify(fixAutomationJson)}`
+  );
+  assert(
+    typeof fixAutomationJson.actionEventLogId === 'string' && fixAutomationJson.actionEventLogId.length > 0,
+    'automation fix missing actionEventLogId'
+  );
+  report.push(
+    `fix.automation={"itemId":"${automationFailure!.id}","eventLogId":"${fixAutomationJson.actionEventLogId}"}`
+  );
+
+  const fixCalendarRes = await fetch(joinUrl('/api/ops/command-center/attention/fix'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: cookieHeader(ownerCookies),
+    },
+    body: JSON.stringify({ itemId: calendarRepair!.id }),
+  });
+  const fixCalendarJson = await fixCalendarRes.json().catch(() => ({}));
+  assert(fixCalendarRes.ok, `calendar fix failed: ${fixCalendarRes.status} ${JSON.stringify(fixCalendarJson)}`);
+  assert(
+    typeof fixCalendarJson.actionEventLogId === 'string' && fixCalendarJson.actionEventLogId.length > 0,
+    'calendar fix missing actionEventLogId'
+  );
+  report.push(
+    `fix.calendar={"itemId":"${calendarRepair!.id}","eventLogId":"${fixCalendarJson.actionEventLogId}"}`
+  );
+
+  const { res: attAfterFixRes, json: attAfterFix } = await fetchJson('/api/ops/command-center/attention', {
+    headers: { Cookie: cookieHeader(ownerCookies) },
+  });
+  assert(attAfterFixRes.ok, `attention fetch after fixes failed: ${attAfterFixRes.status}`);
+  const afterFixItems = flattenAttention({
+    alerts: Array.isArray(attAfterFix?.alerts) ? attAfterFix.alerts : [],
+    staffing: Array.isArray(attAfterFix?.staffing) ? attAfterFix.staffing : [],
+  });
+  const afterFixIds = new Set(afterFixItems.map((i) => i.id));
+  assert(!afterFixIds.has(automationFailure!.id), `fixed automation item still present: ${automationFailure!.id}`);
+  assert(!afterFixIds.has(calendarRepair!.id), `fixed calendar item still present: ${calendarRepair!.id}`);
+
+  // 6) Staffing resolve: assign + notify + rollback
   const staffingUnassigned = (payload.staffing || []).find((i) => i.type === 'unassigned');
   assert(!!staffingUnassigned, 'no unassigned staffing item found for resolve flow');
 
@@ -234,11 +291,11 @@ async function run() {
   assert(afterRollbackIds.has(staffingUnassigned!.id), `rolled back item missing: ${staffingUnassigned!.id}`);
   report.push(`staffing.rollback={"assignmentId":"${resolveJson.assignmentId}","restored":true}`);
 
-  assert(allItems.length >= 2, 'need at least 2 attention items to test actions');
-  const snoozeTarget = allItems[0];
-  const handledTarget = allItems[1];
-
-  // 6) Snooze + handled then verify removed
+  // 7) Snooze + handled then verify removed
+  const allItemsForActions = afterFixItems;
+  assert(allItemsForActions.length >= 2, 'need at least 2 attention items to test actions');
+  const snoozeTarget = allItemsForActions[0];
+  const handledTarget = allItemsForActions[1];
   const snoozeRes = await fetch(joinUrl('/api/ops/command-center/attention/actions'), {
     method: 'POST',
     headers: {
@@ -272,7 +329,7 @@ async function run() {
   assert(!afterIds.has(handledTarget.id), `handled item still present: ${handledTarget.id}`);
   report.push(`actions.removed=[${snoozeTarget.id},${handledTarget.id}]`);
 
-  // 7) Sitter/client access checks
+  // 8) Sitter/client access checks
   for (const role of ['sitter', 'client'] as const) {
     const roleCookies = await login(role);
     const apiRes = await fetch(joinUrl('/api/ops/command-center/attention'), {
