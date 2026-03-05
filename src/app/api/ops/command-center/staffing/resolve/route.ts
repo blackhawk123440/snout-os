@@ -535,30 +535,31 @@ export async function POST(request: NextRequest) {
         select: { value: true },
       });
       const template = templateSetting?.value?.trim() || '';
-      if (template) {
-        const rendered = renderNotifyTemplate(template, {
-          firstName: booking.firstName,
-          lastName: booking.lastName,
-          service: booking.service,
-          startAt: booking.startAt.toISOString(),
-          bookingId: booking.id,
-        });
-        await db.eventLog.create({
-          data: {
-            orgId: ctx.orgId,
-            eventType: 'message.sent',
-            status: 'success',
+      const rendered = template
+        ? renderNotifyTemplate(template, {
+            firstName: booking.firstName,
+            lastName: booking.lastName,
+            service: booking.service,
+            startAt: booking.startAt.toISOString(),
             bookingId: booking.id,
-            metadata: JSON.stringify({
-              channel: 'staffing_assign_notify',
-              assignmentId,
-              sitterId: selectedSitterId,
-              body: rendered,
-            }),
-          },
-        });
-        notifyTemplateApplied = true;
-      }
+          })
+        : `Assignment update: ${booking.service} booking ${booking.id} assigned.`;
+      await db.eventLog.create({
+        data: {
+          orgId: ctx.orgId,
+          eventType: 'message.sent',
+          status: 'success',
+          bookingId: booking.id,
+          metadata: JSON.stringify({
+            channel: 'staffing_assign_notify',
+            assignmentId,
+            sitterId: selectedSitterId,
+            body: rendered,
+            templateConfigured: !!template,
+          }),
+        },
+      });
+      notifyTemplateApplied = !!template;
     } catch {
       notifySent = false;
     }
