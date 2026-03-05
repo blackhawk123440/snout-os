@@ -329,7 +329,8 @@ export async function POST(request: NextRequest) {
       booking.id,
       selectedSitterId,
       'Command Center one-click assign',
-      actorUserId ?? 'system'
+      actorUserId ?? 'system',
+      { force: true }
     );
 
     const rawRollbackToken = randomUUID();
