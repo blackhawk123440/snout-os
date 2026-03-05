@@ -37,16 +37,12 @@ vi.mock('@/lib/tenancy', () => ({
 vi.mock('@/lib/dispatch-control', () => ({
   forceAssignSitter: vi.fn(),
 }));
-vi.mock('@/lib/availability/booking-conflict', () => ({
-  checkAssignmentAllowed: vi.fn(),
-}));
 vi.mock('@/lib/log-event', () => ({
   logEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { POST } from '@/app/api/ops/command-center/staffing/resolve/route';
 import { getRequestContext } from '@/lib/request-context';
-import { checkAssignmentAllowed } from '@/lib/availability/booking-conflict';
 import { forceAssignSitter } from '@/lib/dispatch-control';
 
 function makeReq(body: unknown) {
@@ -87,7 +83,6 @@ describe('POST /api/ops/command-center/staffing/resolve', () => {
       .mockResolvedValueOnce(null);
     mockDb.eventLog.findFirst.mockResolvedValue(null);
     mockDb.commandCenterAttentionState.findUnique.mockResolvedValue(null);
-    (checkAssignmentAllowed as any).mockResolvedValue({ allowed: true, conflicts: [] });
     (forceAssignSitter as any).mockResolvedValue(undefined);
 
     const res = await POST(

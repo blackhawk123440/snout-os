@@ -3,7 +3,6 @@ import { randomUUID } from 'crypto';
 import { getRequestContext } from '@/lib/request-context';
 import { ForbiddenError, requireOwnerOrAdmin } from '@/lib/rbac';
 import { getScopedDb } from '@/lib/tenancy';
-import { checkAssignmentAllowed } from '@/lib/availability/booking-conflict';
 import { forceAssignSitter } from '@/lib/dispatch-control';
 import { logEvent } from '@/lib/log-event';
 import { getRateLimitIdentifier } from '@/lib/rate-limit';
@@ -288,23 +287,8 @@ export async function POST(request: NextRequest) {
           booking.endAt
         );
         if (hasOverlap) continue;
-
-        const { allowed } = await checkAssignmentAllowed({
-          db: db as any,
-          orgId: ctx.orgId,
-          sitterId: sitter.id,
-          start: booking.startAt,
-          end: booking.endAt,
-          excludeBookingId: booking.id,
-          respectGoogleBusy: true,
-          force: false,
-          actorUserId,
-          bookingId: booking.id,
-        });
-        if (allowed) {
-          selectedSitterId = sitter.id;
-          break;
-        }
+        selectedSitterId = sitter.id;
+        break;
       }
     }
 
@@ -328,22 +312,6 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
-    const selectedAllowed = await checkAssignmentAllowed({
-      db: db as any,
-      orgId: ctx.orgId,
-      sitterId: selectedSitterId,
-      start: booking.startAt,
-      end: booking.endAt,
-      excludeBookingId: booking.id,
-      respectGoogleBusy: true,
-      force: false,
-      actorUserId,
-      bookingId: booking.id,
-    });
-    if (!selectedAllowed.allowed) {
-      return NextResponse.json({ error: 'Selected sitter is unavailable' }, { status: 409 });
-    }
-
     const previousSitterId = booking.sitterId;
     const previousAttentionStateRecord = await db.commandCenterAttentionState.findUnique({
       where: { orgId_itemKey: { orgId: ctx.orgId, itemKey: itemId } },
