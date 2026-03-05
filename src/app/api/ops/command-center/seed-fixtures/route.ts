@@ -300,11 +300,26 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     });
 
+    const payoutFailed = await prisma.payoutTransfer.create({
+      data: {
+        orgId,
+        sitterId: fixtureSitterId,
+        bookingId: dedupeBooking.id,
+        amount: 1900,
+        currency: 'usd',
+        status: 'failed',
+        stripeTransferId: null,
+        lastError: `[run:${runId}] Fixture: payout transfer failed`,
+      },
+      select: { id: true },
+    });
+
     const expectedItemKeys = [
       `automation_failure:${dedupeBooking.id}`,
       `automation_failure:${messageFailedA.id}`,
       `automation_failure:${messageFailedB.id}`,
       `calendar_repair:${overlapA?.id ?? dedupeBooking.id}`,
+      `payout_failure:${payoutFailed.id}`,
       `coverage_gap:${unassignedA.id}`,
       `coverage_gap:${unassignedB.id}`,
       `unassigned:${unassignedA.id}`,
@@ -322,6 +337,7 @@ export async function POST(request: NextRequest) {
         ip,
         bookingCount: 3 + (overlapA ? 1 : 0) + (overlapB ? 1 : 0),
         eventCount: 6,
+        payoutCount: 1,
         runId,
       },
     });
@@ -339,6 +355,7 @@ export async function POST(request: NextRequest) {
           messageFailedB.id,
           calendarFailed.id,
         ],
+        payoutTransferIds: [payoutFailed.id],
         bookingIds: [
           dedupeBooking.id,
           unassignedA.id,

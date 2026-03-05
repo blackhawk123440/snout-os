@@ -100,6 +100,19 @@ export async function POST(request: NextRequest) {
 
     const fixtureBookingIds = fixtureBookings.map((booking) => booking.id);
     const fixtureEventIds = fixtureEvents.map((event) => event.id);
+    const fixturePayoutTransfers = await prisma.payoutTransfer.findMany({
+      where: {
+        orgId,
+        OR: [
+          ...(runId
+            ? [{ lastError: { contains: `[run:${runId}]` as string } }]
+            : [{ lastError: { contains: 'Fixture:' as string } }]),
+          ...(fixtureBookingIds.length > 0 ? [{ bookingId: { in: fixtureBookingIds } }] : []),
+        ],
+      },
+      select: { id: true },
+    });
+    const fixturePayoutTransferIds = fixturePayoutTransfers.map((transfer) => transfer.id);
 
     const itemKeys = new Set<string>();
     for (const event of fixtureEvents) {
@@ -109,6 +122,9 @@ export async function POST(request: NextRequest) {
     for (const bookingId of fixtureBookingIds) {
       itemKeys.add(`coverage_gap:${bookingId}`);
       itemKeys.add(`unassigned:${bookingId}`);
+    }
+    for (const payoutTransferId of fixturePayoutTransferIds) {
+      itemKeys.add(`payout_failure:${payoutTransferId}`);
     }
 
     await prisma.commandCenterAttentionState.deleteMany({
@@ -132,6 +148,12 @@ export async function POST(request: NextRequest) {
         id: { in: fixtureBookingIds },
       },
     });
+    await prisma.payoutTransfer.deleteMany({
+      where: {
+        orgId,
+        id: { in: fixturePayoutTransferIds },
+      },
+    });
 
     await logEvent({
       orgId,
@@ -143,6 +165,7 @@ export async function POST(request: NextRequest) {
         ip,
         deletedBookingCount: fixtureBookingIds.length,
         deletedEventCount: fixtureEventIds.length,
+        deletedPayoutTransferCount: fixturePayoutTransferIds.length,
         clearedAttentionStateKeys: itemKeys.size,
         runId: runId ?? null,
       },
@@ -152,6 +175,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       deletedBookingCount: fixtureBookingIds.length,
       deletedEventCount: fixtureEventIds.length,
+      deletedPayoutTransferCount: fixturePayoutTransferIds.length,
       clearedAttentionStateKeys: itemKeys.size,
       runId: runId ?? null,
     });
