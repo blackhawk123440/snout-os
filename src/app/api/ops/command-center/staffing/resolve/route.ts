@@ -24,11 +24,15 @@ function parseItemId(itemId: string): { type: string; bookingId: string | null }
   if (type === 'coverage_gap' || type === 'unassigned') {
     return { type, bookingId: rawEntityId };
   }
+  if (type === 'overlap') {
+    const [bookingAId] = rawEntityId.split('_', 1);
+    return { type, bookingId: bookingAId || null };
+  }
   return { type, bookingId: null };
 }
 
 function isAllowedType(type: string): boolean {
-  return type === 'coverage_gap' || type === 'unassigned';
+  return type === 'coverage_gap' || type === 'unassigned' || type === 'overlap';
 }
 
 const ROLLBACK_TOKEN_SECRET =

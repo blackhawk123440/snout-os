@@ -22,6 +22,8 @@ export interface AttentionItem {
   type: string;
   category: AttentionCategory;
   entityId: string;
+  actionEntityId?: string | null;
+  actionMeta?: Record<string, unknown> | null;
   title: string;
   subtitle: string;
   severity: AttentionSeverity;

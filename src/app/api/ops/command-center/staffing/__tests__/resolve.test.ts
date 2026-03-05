@@ -262,4 +262,33 @@ describe('POST /api/ops/command-center/staffing/resolve', () => {
     );
     expect(res.status).toBe(404);
   });
+
+  it('allows overlap item resolution by targeting first booking id', async () => {
+    mockDb.booking.findFirst
+      .mockResolvedValueOnce({
+        id: 'booking-a',
+        orgId: 'org-1',
+        firstName: 'Client',
+        lastName: 'Overlap',
+        service: 'Walk',
+        sitterId: null,
+        status: 'pending',
+        dispatchStatus: 'manual_required',
+        startAt: new Date('2026-03-05T10:00:00.000Z'),
+        endAt: new Date('2026-03-05T11:00:00.000Z'),
+      })
+      .mockResolvedValueOnce(null);
+    mockDb.eventLog.findFirst.mockResolvedValue(null);
+    mockDb.commandCenterAttentionState.findUnique.mockResolvedValue(null);
+    (forceAssignSitter as any).mockResolvedValue(undefined);
+
+    const res = await POST(
+      makeReq({
+        itemId: 'overlap:booking-a_booking-b',
+        action: 'assign_notify',
+        sitterId: 'sitter-1',
+      })
+    );
+    expect(res.status).toBe(200);
+  });
 });

@@ -4,13 +4,14 @@ import { ForbiddenError, requireOwnerOrAdmin } from '@/lib/rbac';
 import { getScopedDb } from '@/lib/tenancy';
 import { enqueueAutomation } from '@/lib/automation-queue';
 import { enqueueCalendarSync } from '@/lib/calendar-queue';
+import { enqueuePayoutForBooking } from '@/lib/payout/payout-queue';
 
-type FixType = 'automation_failure' | 'calendar_repair';
+type FixType = 'automation_failure' | 'calendar_repair' | 'payout_failure';
 
 function parseItemId(itemId: string): { type: FixType | null; entityId: string | null } {
   const [rawType, entityId] = itemId.split(':', 2);
   if (!entityId) return { type: null, entityId: null };
-  if (rawType === 'automation_failure' || rawType === 'calendar_repair') {
+  if (rawType === 'automation_failure' || rawType === 'calendar_repair' || rawType === 'payout_failure') {
     return { type: rawType, entityId };
   }
   return { type: null, entityId: null };
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
       const actionEvent = await db.eventLog.create({
         data: {
           orgId: ctx.orgId,
-          eventType: 'command_center.fix.automation.enqueued',
+          eventType: 'ops.automation.retry_queued',
           status: 'success',
           bookingId: event.bookingId ?? null,
           metadata: JSON.stringify({
@@ -116,6 +117,79 @@ export async function POST(request: NextRequest) {
         type: parsed.type,
         queued: true,
         idempotencyKey,
+        actionEventLogId: actionEvent.id,
+        actionEventType: actionEvent.eventType,
+      });
+    }
+
+    if (parsed.type === 'payout_failure') {
+      const transfer = await db.payoutTransfer.findFirst({
+        where: { id: parsed.entityId },
+        select: {
+          id: true,
+          orgId: true,
+          sitterId: true,
+          bookingId: true,
+          status: true,
+          stripeTransferId: true,
+          lastError: true,
+        },
+      });
+      if (!transfer) {
+        return NextResponse.json({ error: 'Payout transfer not found' }, { status: 404 });
+      }
+      const safeToRetry = !!transfer.bookingId && !transfer.stripeTransferId && transfer.status === 'failed';
+      if (!safeToRetry) {
+        return NextResponse.json(
+          {
+            error: 'Payout retry is unsafe for this transfer',
+            safeToRetry: false,
+            reason: !transfer.bookingId
+              ? 'No booking associated with this transfer'
+              : 'Transfer has external metadata and requires manual review',
+          },
+          { status: 409 }
+        );
+      }
+      const bookingId = transfer.bookingId as string;
+
+      await enqueuePayoutForBooking({
+        orgId: ctx.orgId,
+        bookingId,
+        sitterId: transfer.sitterId,
+      });
+      const actionEvent = await db.eventLog.create({
+        data: {
+          orgId: ctx.orgId,
+          eventType: 'ops.payout.retry_queued',
+          status: 'success',
+          bookingId,
+          metadata: JSON.stringify({
+            actorUserId: ctx.userId ?? 'system',
+            itemId,
+            payoutTransferId: transfer.id,
+            sitterId: transfer.sitterId,
+            bookingId,
+          }),
+        },
+      });
+      await db.commandCenterAttentionState.upsert({
+        where: { orgId_itemKey: { orgId: ctx.orgId, itemKey: itemId } },
+        create: {
+          orgId: ctx.orgId,
+          itemKey: itemId,
+          handledAt: new Date(),
+        },
+        update: {
+          handledAt: new Date(),
+          snoozedUntil: null,
+        },
+      });
+      return NextResponse.json({
+        ok: true,
+        itemId,
+        type: parsed.type,
+        queued: true,
         actionEventLogId: actionEvent.id,
         actionEventType: actionEvent.eventType,
       });
@@ -157,7 +231,7 @@ export async function POST(request: NextRequest) {
     const actionEvent = await db.eventLog.create({
       data: {
         orgId: ctx.orgId,
-        eventType: 'command_center.fix.calendar.enqueued',
+        eventType: 'calendar.repair.requested',
         status: 'success',
         bookingId: event.bookingId ?? null,
         metadata: JSON.stringify({

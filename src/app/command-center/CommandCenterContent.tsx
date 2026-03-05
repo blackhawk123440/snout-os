@@ -11,7 +11,7 @@ import {
   AppCardBody,
 } from '@/components/app';
 import { OnboardingChecklist } from '@/components/app/OnboardingChecklist';
-import { Button, PageSkeleton, EmptyState } from '@/components/ui';
+import { Button, PageSkeleton, EmptyState, useToast } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { KpiGrid } from '@/components/app/KpiGrid';
@@ -34,6 +34,8 @@ interface AttentionItem {
   id: string;
   type: string;
   entityId: string;
+  actionEntityId?: string | null;
+  actionMeta?: Record<string, unknown> | null;
   title: string;
   subtitle: string;
   severity: 'high' | 'medium' | 'low';
@@ -47,6 +49,7 @@ interface AttentionPayload {
   alerts: AttentionItem[];
   staffing: AttentionItem[];
   lastUpdatedAt: string | null;
+  view?: string;
 }
 
 export function CommandCenterContent() {
@@ -64,6 +67,8 @@ export function CommandCenterContent() {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [rollbackByItemId, setRollbackByItemId] = useState<Record<string, string | null>>({});
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [view, setView] = useState<'active' | 'snoozed' | 'handled'>('active');
+  const { showToast } = useToast();
 
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 60_000);
@@ -91,17 +96,18 @@ export function CommandCenterContent() {
     try {
       const [statsData, attentionData] = await Promise.all([
         fetch(`/api/ops/stats?range=${range}`).then((r) => r.json()),
-        fetch('/api/ops/command-center/attention').then((r) => r.json()),
+        fetch(`/api/ops/command-center/attention?view=${view}`).then((r) => r.json()),
       ]);
       setStats(statsData ?? null);
       setAttention({
         alerts: Array.isArray(attentionData?.alerts) ? attentionData.alerts : [],
         staffing: Array.isArray(attentionData?.staffing) ? attentionData.staffing : [],
         lastUpdatedAt: typeof attentionData?.lastUpdatedAt === 'string' ? attentionData.lastUpdatedAt : null,
+        view: typeof attentionData?.view === 'string' ? attentionData.view : 'active',
       });
     } catch {
       setStats(null);
-      setAttention({ alerts: [], staffing: [], lastUpdatedAt: null });
+      setAttention({ alerts: [], staffing: [], lastUpdatedAt: null, view: 'active' });
       setError('Failed to load command center queues');
     } finally {
       setLoading(false);
@@ -109,7 +115,7 @@ export function CommandCenterContent() {
         requestAnimationFrame(() => window.scrollTo(0, prevScrollY));
       }
     }
-  }, [range, user]);
+  }, [range, user, view]);
 
   useEffect(() => {
     if (!user) return;
@@ -121,10 +127,21 @@ export function CommandCenterContent() {
     return () => { cancelled = true; };
   }, [user, load]);
 
+  const optimisticRemove = (itemId: string, category: 'alerts' | 'staffing') => {
+    setAttention((curr) => ({
+      ...curr,
+      alerts: category === 'alerts' ? curr.alerts.filter((a) => a.id !== itemId) : curr.alerts,
+      staffing: category === 'staffing' ? curr.staffing.filter((a) => a.id !== itemId) : curr.staffing,
+    }));
+  };
+
   const handleAttentionAction = async (
     id: string,
-    action: 'mark_handled' | 'snooze_1h' | 'snooze_4h' | 'snooze_tomorrow'
+    action: 'mark_handled' | 'snooze_1h' | 'snooze_4h' | 'snooze_tomorrow',
+    category: 'alerts' | 'staffing'
   ) => {
+    const previous = attention;
+    optimisticRemove(id, category);
     setActionLoadingId(id);
     try {
       const res = await fetch('/api/ops/command-center/attention/actions', {
@@ -134,11 +151,14 @@ export function CommandCenterContent() {
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
+        setAttention(previous);
         setError(json.error || 'Failed to update item');
         return;
       }
+      showToast({ variant: 'success', message: action === 'mark_handled' ? 'Marked handled' : 'Snoozed' });
       await load({ preserveScroll: true });
     } catch {
+      setAttention(previous);
       setError('Failed to update item');
     } finally {
       setActionLoadingId(null);
@@ -149,6 +169,8 @@ export function CommandCenterContent() {
     item: AttentionItem,
     action: 'assign_notify' | 'rollback'
   ) => {
+    const previous = attention;
+    optimisticRemove(item.id, 'staffing');
     setActionLoadingId(item.id);
     try {
       const res = await fetch('/api/ops/command-center/staffing/resolve', {
@@ -163,16 +185,21 @@ export function CommandCenterContent() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(json.error || 'Failed staffing action');
+        setAttention(previous);
         return;
       }
       if (action === 'assign_notify') {
+        showToast({ variant: 'success', message: 'Assignment sent' });
         setRollbackByItemId((prev) => ({
           ...prev,
           [item.id]: typeof json?.rollbackToken === 'string' ? json.rollbackToken : null,
         }));
+      } else {
+        showToast({ variant: 'success', message: 'Rollback complete' });
       }
       await load({ preserveScroll: true });
     } catch {
+      setAttention(previous);
       setError('Failed staffing action');
     } finally {
       setActionLoadingId(null);
@@ -182,21 +209,44 @@ export function CommandCenterContent() {
   const handleQuickFix = async (item: AttentionItem) => {
     const previous = attention;
     setActionLoadingId(item.id);
-    setAttention((curr) => ({
-      ...curr,
-      alerts: curr.alerts.filter((a) => a.id !== item.id),
-    }));
+    optimisticRemove(item.id, 'alerts');
     try {
-      const res = await fetch('/api/ops/command-center/attention/fix', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: item.id }),
-      });
+      let res: Response;
+      if (item.type === 'automation_failure' && item.actionEntityId) {
+        res = await fetch(`/api/ops/automation-failures/${encodeURIComponent(item.actionEntityId)}/retry`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } else {
+        res = await fetch('/api/ops/command-center/attention/fix', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ itemId: item.id }),
+        });
+      }
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         setAttention(previous);
         setError(json.error || 'Failed to queue fix');
         return;
+      }
+      const json = await res.json().catch(() => ({}));
+      if (item.type === 'automation_failure') {
+        await fetch('/api/ops/command-center/attention/actions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: item.id, action: 'mark_handled' }),
+        });
+      }
+      if (item.type === 'automation_failure') {
+        showToast({ variant: 'success', message: 'Retry queued' });
+      } else if (item.type === 'calendar_repair') {
+        showToast({ variant: 'success', message: 'Calendar repair requested' });
+      } else if (item.type === 'payout_failure') {
+        showToast({ variant: 'success', message: 'Payout retry requested' });
+      }
+      if (!json?.ok && !json?.queued) {
+        setAttention(previous);
       }
       await load({ preserveScroll: true });
     } catch {
@@ -205,6 +255,22 @@ export function CommandCenterContent() {
     } finally {
       setActionLoadingId(null);
     }
+  };
+
+  const handlePrimaryAction = async (item: AttentionItem) => {
+    if (item.type === 'automation_failure' || item.type === 'calendar_repair') {
+      await handleQuickFix(item);
+      return;
+    }
+    if (item.type === 'payout_failure') {
+      router.push(item.primaryActionHref);
+      return;
+    }
+    if (item.type === 'coverage_gap' || item.type === 'unassigned' || item.type === 'overlap') {
+      await handleStaffingResolve(item, 'assign_notify');
+      return;
+    }
+    router.push(item.primaryActionHref);
   };
 
   const formatRelativeUpdated = (iso: string | null) => {
@@ -244,6 +310,24 @@ export function CommandCenterContent() {
           subtitle={`Real-time overview of your pet care operations · Updated ${formatRelativeUpdated(attention.lastUpdatedAt)}`}
           actions={
             <div className="flex gap-2">
+              <div className="flex gap-1 rounded-md border border-neutral-200 bg-white p-1">
+                {([
+                  ['active', 'Active'],
+                  ['snoozed', 'Snoozed'],
+                  ['handled', 'Handled 24h'],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`rounded px-2 py-1 text-xs font-medium ${
+                      view === value ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                    onClick={() => setView(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <Button variant="secondary" size="sm" onClick={() => void load({ preserveScroll: true })} disabled={loading}>
                 Refresh
               </Button>
@@ -355,29 +439,33 @@ export function CommandCenterContent() {
                         </div>
                       </div>
                       <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => router.push(item.primaryActionHref)}>
+                        <Button variant="secondary" size="sm" onClick={() => void handlePrimaryAction(item)} disabled={actionLoadingId === item.id}>
                           {item.primaryActionLabel}
                         </Button>
-                        {(item.type === 'automation_failure' || item.type === 'calendar_repair') && (
+                        {(item.type === 'automation_failure' || item.type === 'calendar_repair' || item.type === 'payout_failure') && (
                           <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => void handleQuickFix(item)}
+                            onClick={() =>
+                              item.type === 'payout_failure' && item.actionMeta?.safeToRetry !== true
+                                ? router.push(item.primaryActionHref)
+                                : void handleQuickFix(item)
+                            }
                             disabled={actionLoadingId === item.id}
                           >
-                            Fix now
+                            {item.type === 'payout_failure' && item.actionMeta?.safeToRetry !== true ? 'View failure' : 'Fix now'}
                           </Button>
                         )}
-                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_1h')} disabled={actionLoadingId === item.id}>
+                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_1h', 'alerts')} disabled={actionLoadingId === item.id}>
                           Snooze 1h
                         </Button>
-                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_4h')} disabled={actionLoadingId === item.id}>
+                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_4h', 'alerts')} disabled={actionLoadingId === item.id}>
                           Snooze 4h
                         </Button>
-                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_tomorrow')} disabled={actionLoadingId === item.id}>
+                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_tomorrow', 'alerts')} disabled={actionLoadingId === item.id}>
                           Snooze tomorrow
                         </Button>
-                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'mark_handled')} disabled={actionLoadingId === item.id}>
+                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'mark_handled', 'alerts')} disabled={actionLoadingId === item.id}>
                           Mark handled
                         </Button>
                       </div>
@@ -418,10 +506,10 @@ export function CommandCenterContent() {
                           </div>
                         </div>
                         <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                          <Button variant="secondary" size="sm" onClick={() => router.push(item.primaryActionHref)}>
+                          <Button variant="secondary" size="sm" onClick={() => void handlePrimaryAction(item)} disabled={actionLoadingId === item.id}>
                             {item.primaryActionLabel}
                           </Button>
-                          {(item.type === 'coverage_gap' || item.type === 'unassigned') && (
+                          {(item.type === 'coverage_gap' || item.type === 'unassigned' || item.type === 'overlap') && (
                             <Button
                               variant="secondary"
                               size="sm"
@@ -431,7 +519,7 @@ export function CommandCenterContent() {
                               Assign + notify
                             </Button>
                           )}
-                          {(item.type === 'coverage_gap' || item.type === 'unassigned') &&
+                          {(item.type === 'coverage_gap' || item.type === 'unassigned' || item.type === 'overlap') &&
                             Object.prototype.hasOwnProperty.call(rollbackByItemId, item.id) && (
                               <Button
                                 variant="secondary"
@@ -442,16 +530,16 @@ export function CommandCenterContent() {
                                 Rollback
                               </Button>
                             )}
-                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_1h')} disabled={actionLoadingId === item.id}>
+                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_1h', 'staffing')} disabled={actionLoadingId === item.id}>
                             Snooze 1h
                           </Button>
-                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_4h')} disabled={actionLoadingId === item.id}>
+                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_4h', 'staffing')} disabled={actionLoadingId === item.id}>
                             Snooze 4h
                           </Button>
-                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_tomorrow')} disabled={actionLoadingId === item.id}>
+                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_tomorrow', 'staffing')} disabled={actionLoadingId === item.id}>
                             Snooze tomorrow
                           </Button>
-                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'mark_handled')} disabled={actionLoadingId === item.id}>
+                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'mark_handled', 'staffing')} disabled={actionLoadingId === item.id}>
                             Mark handled
                           </Button>
                         </div>

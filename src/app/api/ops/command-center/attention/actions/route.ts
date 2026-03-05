@@ -77,6 +77,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    await db.eventLog.create({
+      data: {
+        orgId: ctx.orgId,
+        eventType: 'ops.command_center.attention.action',
+        status: 'success',
+        metadata: JSON.stringify({
+          actorUserId: ctx.userId ?? 'system',
+          itemId: id,
+          action,
+          handledAt: handledAt?.toISOString() ?? null,
+          snoozedUntil: snoozedUntil?.toISOString() ?? null,
+        }),
+      },
+    });
+
     return NextResponse.json({
       ok: true,
       id,

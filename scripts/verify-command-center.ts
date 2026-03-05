@@ -7,6 +7,7 @@ type AttentionItem = {
   subtitle?: string;
   bookingId?: string;
   entityId?: string;
+  actionEntityId?: string | null;
 };
 
 type AttentionPayload = {
@@ -172,7 +173,7 @@ async function run() {
   report.push(`attention.bySeverity=${JSON.stringify(severityCounts)}`);
   report.push(`attention.first10Ids=${JSON.stringify(allItems.slice(0, 10).map((i) => i.id))}`);
 
-  // 5) One-click fix actions: automation + calendar
+  // 5) One-click fix actions: automation + calendar + payout
   const automationCandidates =
     (payload.alerts || []).filter(
       (i) => i.type === 'automation_failure' && (i.subtitle || '').includes(`[run:${runId}]`)
@@ -187,25 +188,43 @@ async function run() {
     ) || (payload.alerts || []).find((i) => i.type === 'calendar_repair');
   assert(automationCandidates.length > 0, 'no automation_failure item found for fix action');
   assert(!!calendarRepair, 'no calendar_repair item found for fix action');
+  const payoutFailure =
+    (payload.alerts || []).find(
+      (i) => i.type === 'payout_failure' && (i.subtitle || '').includes(`[run:${runId}]`)
+    ) || (payload.alerts || []).find((i) => i.type === 'payout_failure');
+  assert(!!payoutFailure, 'no payout_failure item found for fix action');
 
   let automationFailure: AttentionItem | null = null;
   let fixAutomationJson: any = null;
   let lastAutomationError = '';
   for (const candidate of automationCandidates) {
-    const fixAutomationRes = await fetch(joinUrl('/api/ops/command-center/attention/fix'), {
+    if (!candidate.actionEntityId) {
+      continue;
+    }
+    const fixAutomationRes = await fetch(
+      joinUrl(`/api/ops/automation-failures/${encodeURIComponent(candidate.actionEntityId)}/retry`),
+      {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Cookie: cookieHeader(ownerCookies),
       },
-      body: JSON.stringify({ itemId: candidate.id }),
-    });
+      }
+    );
     const attemptJson = await fixAutomationRes.json().catch(() => ({}));
-    if (
-      fixAutomationRes.ok &&
-      typeof attemptJson.actionEventLogId === 'string' &&
-      attemptJson.actionEventLogId.length > 0
-    ) {
+    if (fixAutomationRes.ok) {
+      const markHandledRes = await fetch(joinUrl('/api/ops/command-center/attention/actions'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: cookieHeader(ownerCookies),
+        },
+        body: JSON.stringify({ id: candidate.id, action: 'mark_handled' }),
+      });
+      if (!markHandledRes.ok) {
+        lastAutomationError = `mark handled failed: ${markHandledRes.status}`;
+        continue;
+      }
       automationFailure = candidate;
       fixAutomationJson = attemptJson;
       break;
@@ -217,7 +236,7 @@ async function run() {
     `automation fix failed for all candidates: ${lastAutomationError}`
   );
   report.push(
-    `fix.automation={"itemId":"${automationFailure.id}","eventLogId":"${fixAutomationJson.actionEventLogId}"}`
+    `fix.automation={"itemId":"${automationFailure.id}","actionEntityId":"${automationFailure.actionEntityId}"}`
   );
 
   const fixCalendarRes = await fetch(joinUrl('/api/ops/command-center/attention/fix'), {
@@ -238,6 +257,24 @@ async function run() {
     `fix.calendar={"itemId":"${calendarRepair!.id}","eventLogId":"${fixCalendarJson.actionEventLogId}"}`
   );
 
+  const fixPayoutRes = await fetch(joinUrl('/api/ops/command-center/attention/fix'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: cookieHeader(ownerCookies),
+    },
+    body: JSON.stringify({ itemId: payoutFailure!.id }),
+  });
+  const fixPayoutJson = await fixPayoutRes.json().catch(() => ({}));
+  assert(fixPayoutRes.ok, `payout fix failed: ${fixPayoutRes.status} ${JSON.stringify(fixPayoutJson)}`);
+  assert(
+    typeof fixPayoutJson.actionEventLogId === 'string' && fixPayoutJson.actionEventLogId.length > 0,
+    'payout fix missing actionEventLogId'
+  );
+  report.push(
+    `fix.payout={"itemId":"${payoutFailure!.id}","eventLogId":"${fixPayoutJson.actionEventLogId}"}`
+  );
+
   const { res: attAfterFixRes, json: attAfterFix } = await fetchJson('/api/ops/command-center/attention', {
     headers: { Cookie: cookieHeader(ownerCookies) },
   });
@@ -249,6 +286,20 @@ async function run() {
   const afterFixIds = new Set(afterFixItems.map((i) => i.id));
   assert(!afterFixIds.has(automationFailure!.id), `fixed automation item still present: ${automationFailure!.id}`);
   assert(!afterFixIds.has(calendarRepair!.id), `fixed calendar item still present: ${calendarRepair!.id}`);
+  assert(!afterFixIds.has(payoutFailure!.id), `fixed payout item still present: ${payoutFailure!.id}`);
+
+  if (automationFailure?.entityId) {
+    const automationEventsRes = await fetch(
+      joinUrl(`/api/bookings/${automationFailure.entityId}/events?type=ops.automation.retry_queued`),
+      { headers: { Cookie: cookieHeader(ownerCookies) } }
+    );
+    const automationEventsJson = await automationEventsRes.json().catch(() => ({}));
+    assert(automationEventsRes.ok, `automation event verification failed: ${automationEventsRes.status}`);
+    const hasRetryEvent = Array.isArray(automationEventsJson?.items)
+      ? automationEventsJson.items.some((item: { type?: string }) => item.type === 'ops.automation.retry_queued')
+      : false;
+    assert(hasRetryEvent, 'ops.automation.retry_queued event missing');
+  }
 
   // 6) Staffing resolve: assign + notify + rollback
   const staffingUnassigned = (payload.staffing || []).find((i) => i.type === 'unassigned');
@@ -285,6 +336,29 @@ async function run() {
   });
   const afterAssignIds = new Set(afterAssignItems.map((i) => i.id));
   assert(!afterAssignIds.has(staffingUnassigned!.id), `assigned item still present: ${staffingUnassigned!.id}`);
+
+  const bookingAfterAssign = await fetch(joinUrl(`/api/bookings/${resolveJson.bookingId}`), {
+    headers: { Cookie: cookieHeader(ownerCookies) },
+  });
+  const bookingAfterAssignJson = await bookingAfterAssign.json().catch(() => ({}));
+  assert(bookingAfterAssign.ok, `booking detail after assign failed: ${bookingAfterAssign.status}`);
+  assert(
+    bookingAfterAssignJson?.booking?.sitter?.id === resolveJson.sitterId,
+    `booking sitter mismatch after assign: expected ${resolveJson.sitterId}`
+  );
+
+  const bookingEventsRes = await fetch(
+    joinUrl(`/api/bookings/${resolveJson.bookingId}/events?type=message.sent`),
+    {
+      headers: { Cookie: cookieHeader(ownerCookies) },
+    }
+  );
+  const bookingEventsJson = await bookingEventsRes.json().catch(() => ({}));
+  assert(bookingEventsRes.ok, `booking events after assign failed: ${bookingEventsRes.status}`);
+  const hasMessageEvent = Array.isArray(bookingEventsJson?.items)
+    ? bookingEventsJson.items.some((item: { type?: string }) => item.type === 'message.sent')
+    : false;
+  assert(hasMessageEvent, 'message.sent event missing after assign_notify');
 
   const rollbackRes = await fetch(joinUrl('/api/ops/command-center/staffing/resolve'), {
     method: 'POST',

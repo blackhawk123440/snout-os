@@ -31,6 +31,8 @@ export function PayoutsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useQueryState<StatusFilter>('status', 'all');
+  const [sitterFilter] = useQueryState<string>('sitterId', '');
+  const [payoutIdFilter] = useQueryState<string>('payoutId', '');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -38,6 +40,7 @@ export function PayoutsContent() {
     try {
       const params = new URLSearchParams();
       if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (sitterFilter) params.set('sitterId', sitterFilter);
       const res = await fetch(`/api/ops/payouts?${params.toString()}`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -45,14 +48,22 @@ export function PayoutsContent() {
         setTransfers([]);
         return;
       }
-      setTransfers(json.transfers || []);
+      const incoming: PayoutItem[] = json.transfers || [];
+      if (payoutIdFilter) {
+        incoming.sort((a, b) => {
+          if (a.id === payoutIdFilter) return -1;
+          if (b.id === payoutIdFilter) return 1;
+          return 0;
+        });
+      }
+      setTransfers(incoming);
     } catch {
       setError('Failed to load payouts');
       setTransfers([]);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, sitterFilter, payoutIdFilter]);
 
   useEffect(() => {
     if (sessionStatus === 'loading') return;
@@ -122,7 +133,10 @@ export function PayoutsContent() {
             columns={[
               { key: 'sitter', header: 'Sitter', mobileOrder: 1, mobileLabel: 'Sitter', render: (t) => (
                 <div>
-                  <p className="font-medium text-neutral-900">{t.sitterName}</p>
+                  <p className="font-medium text-neutral-900">
+                    {t.sitterName}
+                    {payoutIdFilter && t.id === payoutIdFilter ? ' · Target' : ''}
+                  </p>
                   <p className="text-sm text-neutral-600">
                     {formatDate(t.createdAt)}
                     {t.bookingId && ` · Booking ${t.bookingId.slice(0, 8)}…`}

@@ -6,6 +6,9 @@ const mockDb = {
     findFirst: vi.fn(),
     create: vi.fn(),
   },
+  payoutTransfer: {
+    findFirst: vi.fn(),
+  },
   commandCenterAttentionState: {
     upsert: vi.fn(),
   },
@@ -27,6 +30,9 @@ vi.mock('@/lib/automation-queue', () => ({
 vi.mock('@/lib/calendar-queue', () => ({
   enqueueCalendarSync: vi.fn().mockResolvedValue('job-1'),
 }));
+vi.mock('@/lib/payout/payout-queue', () => ({
+  enqueuePayoutForBooking: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { POST } from '@/app/api/ops/command-center/attention/fix/route';
 import { getRequestContext } from '@/lib/request-context';
@@ -47,6 +53,7 @@ describe('POST /api/ops/command-center/attention/fix', () => {
       role: 'owner',
       userId: 'owner-1',
     });
+    mockDb.payoutTransfer.findFirst.mockReset();
   });
 
   it('queues automation fix and marks item handled', async () => {
@@ -65,7 +72,7 @@ describe('POST /api/ops/command-center/attention/fix', () => {
     });
     mockDb.eventLog.create.mockResolvedValue({
       id: 'evt-action-1',
-      eventType: 'command_center.fix.automation.enqueued',
+      eventType: 'ops.automation.retry_queued',
     });
     mockDb.commandCenterAttentionState.upsert.mockResolvedValue({ id: 'state-1' });
 
@@ -76,7 +83,7 @@ describe('POST /api/ops/command-center/attention/fix', () => {
     expect(body.ok).toBe(true);
     expect(body.queued).toBe(true);
     expect(body.actionEventLogId).toBe('evt-action-1');
-    expect(body.actionEventType).toBe('command_center.fix.automation.enqueued');
+    expect(body.actionEventType).toBe('ops.automation.retry_queued');
     expect(mockDb.commandCenterAttentionState.upsert).toHaveBeenCalledTimes(1);
   });
 
@@ -91,7 +98,7 @@ describe('POST /api/ops/command-center/attention/fix', () => {
     });
     mockDb.eventLog.create.mockResolvedValue({
       id: 'evt-action-2',
-      eventType: 'command_center.fix.calendar.enqueued',
+      eventType: 'calendar.repair.requested',
     });
     mockDb.commandCenterAttentionState.upsert.mockResolvedValue({ id: 'state-2' });
 
@@ -102,8 +109,33 @@ describe('POST /api/ops/command-center/attention/fix', () => {
     expect(body.ok).toBe(true);
     expect(body.queued).toBe(true);
     expect(body.actionEventLogId).toBe('evt-action-2');
-    expect(body.actionEventType).toBe('command_center.fix.calendar.enqueued');
+    expect(body.actionEventType).toBe('calendar.repair.requested');
     expect(mockDb.commandCenterAttentionState.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('queues payout retry when safe and marks handled', async () => {
+    mockDb.payoutTransfer.findFirst.mockResolvedValue({
+      id: 'pt-1',
+      orgId: 'org-1',
+      sitterId: 'sitter-1',
+      bookingId: 'booking-1',
+      status: 'failed',
+      stripeTransferId: null,
+      lastError: 'temporarily unavailable',
+    });
+    mockDb.eventLog.create.mockResolvedValue({
+      id: 'evt-action-3',
+      eventType: 'ops.payout.retry_queued',
+    });
+    mockDb.commandCenterAttentionState.upsert.mockResolvedValue({ id: 'state-3' });
+
+    const res = await POST(makeReq({ itemId: 'payout_failure:pt-1' }));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.queued).toBe(true);
+    expect(body.actionEventType).toBe('ops.payout.retry_queued');
   });
 });
 

@@ -9,7 +9,7 @@ import {
   type AttentionItem,
 } from './helpers';
 
-export async function GET() {
+export async function GET(request: Request) {
   let ctx;
   try {
     ctx = await getRequestContext();
@@ -50,6 +50,11 @@ export async function GET() {
         take: 50,
         select: {
           id: true,
+          sitterId: true,
+          bookingId: true,
+          status: true,
+          stripeTransferId: true,
+          lastError: true,
           createdAt: true,
         },
       }),
@@ -124,6 +129,31 @@ export async function GET() {
       const type = isCalendarEvent ? 'calendar_repair' : 'automation_failure';
       const entityId = event.bookingId ?? event.id;
       const itemKey = `${type}:${entityId}`;
+      const actionEntityId = event.id;
+      const calendarStart = new Date(event.createdAt);
+      calendarStart.setDate(calendarStart.getDate() - 1);
+      const calendarEnd = new Date(event.createdAt);
+      calendarEnd.setDate(calendarEnd.getDate() + 14);
+      const actionMeta =
+        type === 'calendar_repair'
+          ? {
+              sitterId:
+                (() => {
+                  try {
+                    const parsed = event.metadata ? JSON.parse(event.metadata) : null;
+                    return typeof parsed?.sitterId === 'string' ? parsed.sitterId : null;
+                  } catch {
+                    return null;
+                  }
+                })(),
+              start: calendarStart.toISOString(),
+              end: calendarEnd.toISOString(),
+            }
+          : null;
+      const calendarHref =
+        actionMeta && typeof actionMeta.sitterId === 'string' && actionMeta.sitterId
+          ? `/ops/calendar-repair?sitterId=${encodeURIComponent(String(actionMeta.sitterId))}&start=${encodeURIComponent(String(actionMeta.start))}&end=${encodeURIComponent(String(actionMeta.end))}`
+          : '/ops/calendar-repair';
 
       rawItems.push({
         id: itemKey,
@@ -131,31 +161,50 @@ export async function GET() {
         type,
         category: 'alerts',
         entityId,
+        actionEntityId,
+        actionMeta,
         title: isCalendarEvent ? 'Calendar repair needed' : 'Automation failure',
         subtitle: event.error || 'Automation run failed and requires owner retry.',
         severity: isCalendarEvent ? 'medium' : 'high',
         dueAt: null,
         createdAt: event.createdAt.toISOString(),
-        primaryActionHref: isCalendarEvent ? '/ops/calendar-repair' : '/ops/automation-failures',
+        primaryActionHref: isCalendarEvent
+          ? calendarHref
+          : `/ops/automation-failures?eventId=${encodeURIComponent(actionEntityId)}`,
         primaryActionLabel: isCalendarEvent ? 'Fix' : 'Retry',
       });
     }
 
     for (const payout of payoutFailures) {
       const itemKey = `payout_failure:${payout.id}`;
+      const safeToRetry = !!payout.bookingId && !!payout.sitterId && !payout.stripeTransferId;
       rawItems.push({
         id: itemKey,
         itemKey,
         type: 'payout_failure',
         category: 'alerts',
         entityId: payout.id,
+        actionEntityId: payout.id,
+        actionMeta: {
+          payoutId: payout.id,
+          sitterId: payout.sitterId,
+          bookingId: payout.bookingId,
+          status: payout.status,
+          safeToRetry,
+          retryReason: safeToRetry
+            ? null
+            : !payout.bookingId
+              ? 'No booking associated with this failed payout.'
+              : 'Payout has transfer metadata and must be reviewed manually.',
+          lastError: payout.lastError,
+        },
         title: 'Payout failure',
-        subtitle: 'Failed transfer is blocking sitter payout.',
+        subtitle: payout.lastError || 'Failed transfer is blocking sitter payout.',
         severity: 'high',
         dueAt: payout.createdAt.toISOString(),
         createdAt: payout.createdAt.toISOString(),
-        primaryActionHref: '/ops/payouts?status=failed',
-        primaryActionLabel: 'Fix',
+        primaryActionHref: `/ops/payouts?status=failed&payoutId=${encodeURIComponent(payout.id)}&sitterId=${encodeURIComponent(payout.sitterId)}`,
+        primaryActionLabel: 'Open',
       });
     }
 
@@ -172,7 +221,7 @@ export async function GET() {
         severity: 'high',
         dueAt: booking.startAt.toISOString(),
         createdAt: booking.startAt.toISOString(),
-        primaryActionHref: '/bookings?status=pending',
+        primaryActionHref: `/bookings/${booking.id}`,
         primaryActionLabel: 'Assign',
       });
     }
@@ -190,7 +239,7 @@ export async function GET() {
         severity: 'medium',
         dueAt: booking.startAt.toISOString(),
         createdAt: booking.startAt.toISOString(),
-        primaryActionHref: '/bookings?status=pending',
+        primaryActionHref: `/bookings/${booking.id}`,
         primaryActionLabel: 'Assign',
       });
     }
@@ -204,13 +253,19 @@ export async function GET() {
         type: 'overlap',
         category: 'staffing',
         entityId,
+        actionEntityId: overlap.bookingAId,
+        actionMeta: {
+          bookingAId: overlap.bookingAId,
+          bookingBId: overlap.bookingBId,
+          sitterId: overlap.sitterId,
+        },
         title: 'Overlapping assignment',
         subtitle: `Sitter ${overlap.sitterId} has overlapping booking windows.`,
         severity: 'medium',
         dueAt: overlap.overlapStart,
         createdAt: overlap.overlapStart,
-        primaryActionHref: '/finance',
-        primaryActionLabel: 'Open',
+        primaryActionHref: `/bookings/${overlap.bookingAId}?overlapWith=${encodeURIComponent(overlap.bookingBId)}`,
+        primaryActionLabel: 'Assign',
       });
     }
 
@@ -230,9 +285,20 @@ export async function GET() {
       : [];
     const stateByKey = new Map(states.map((state) => [state.itemKey, state]));
 
+    const { searchParams } = new URL(request.url);
+    const view = (searchParams.get('view') || 'active').toLowerCase();
+
     const visible = sortAttentionItems(
       deduped.filter((item) => {
         const state = stateByKey.get(item.itemKey);
+        if (view === 'snoozed') {
+          return !!state?.snoozedUntil && state.snoozedUntil.getTime() > now.getTime();
+        }
+        if (view === 'handled') {
+          if (!state?.handledAt) return false;
+          const handledAt = state.handledAt.getTime();
+          return handledAt >= now.getTime() - 24 * 60 * 60 * 1000;
+        }
         if (!state) return true;
         if (state.handledAt) return false;
         if (state.snoozedUntil && state.snoozedUntil.getTime() > now.getTime()) return false;
@@ -244,6 +310,7 @@ export async function GET() {
       alerts: visible.filter((item) => item.category === 'alerts'),
       staffing: visible.filter((item) => item.category === 'staffing'),
       lastUpdatedAt: new Date().toISOString(),
+      view,
       meta: {
         totalFailures: automationFailureCount + calendarFailureCount,
       },

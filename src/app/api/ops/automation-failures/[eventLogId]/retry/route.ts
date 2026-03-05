@@ -85,6 +85,23 @@ export async function POST(
 
     await enqueueAutomation(automationType, recipient, context, idempotencyKey);
 
+    await db.eventLog.create({
+      data: {
+        orgId: ctx.orgId,
+        eventType: 'ops.automation.retry_queued',
+        status: 'success',
+        bookingId: event.bookingId ?? null,
+        metadata: JSON.stringify({
+          actorUserId: ctx.userId ?? 'system',
+          eventLogId,
+          automationType,
+          recipient,
+          context,
+          idempotencyKey,
+        }),
+      },
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Job re-enqueued',
@@ -92,6 +109,19 @@ export async function POST(
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    await db.eventLog.create({
+      data: {
+        orgId: ctx.orgId,
+        eventType: 'ops.automation.retry_failed',
+        status: 'failed',
+        bookingId: null,
+        error: message,
+        metadata: JSON.stringify({
+          actorUserId: ctx.userId ?? 'system',
+          eventLogId,
+        }),
+      },
+    }).catch(() => {});
     return NextResponse.json({ error: 'Retry failed', message }, { status: 500 });
   }
 }
