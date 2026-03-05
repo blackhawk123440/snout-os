@@ -15,6 +15,7 @@ import {
   AppDrawer,
   AppStatCard,
 } from '@/components/app';
+import { MobileFilterDrawer } from '@/components/app/MobileFilterDrawer';
 import { DataTableShell, EmptyState, Table, TableSkeleton } from '@/components/ui';
 import { PageSkeleton } from '@/components/ui/loading-state';
 import { useAuth } from '@/lib/auth-client';
@@ -100,18 +101,20 @@ export default function FinancePage() {
         <AppStatCard label="Invoices" value="12" icon={<i className="fas fa-file-invoice" />} />
       </div>
 
-      <AppFilterBar
-        filters={[
-          { key: 'status', label: 'Status', type: 'select', options: [
-            { value: 'paid', label: 'Paid' },
-            { value: 'pending', label: 'Pending' },
-          ]},
-          { key: 'date', label: 'Date', type: 'date' },
-        ]}
-        values={filterValues}
-        onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
-        onClear={() => setFilterValues({})}
-      />
+      <MobileFilterDrawer triggerLabel="Filters" activeCount={Object.keys(filterValues).length}>
+        <AppFilterBar
+          filters={[
+            { key: 'status', label: 'Status', type: 'select', options: [
+              { value: 'paid', label: 'Paid' },
+              { value: 'pending', label: 'Pending' },
+            ]},
+            { key: 'date', label: 'Date', type: 'date' },
+          ]}
+          values={filterValues}
+          onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
+          onClear={() => setFilterValues({})}
+        />
+      </MobileFilterDrawer>
 
       <div className="mt-4">
         {STUB_TRANSACTIONS.length === 0 ? (

@@ -1,3 +1,7 @@
+'use client';
+export { default } from './page.enterprise';
+// Legacy implementation retained below for fallback/reference.
+/* eslint-disable no-unused-vars */
 /**
  * Booking Detail Page - Enterprise Control Surface
  * 
@@ -5,7 +9,6 @@
  * Zero legacy styling - all through components and tokens.
  */
 
-'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -104,7 +107,7 @@ interface Booking {
   }>;
 }
 
-export default function BookingDetailPage() {
+function BookingDetailPage() {
   const params = useParams();
   const router = useRouter();
   const bookingId = params.id as string;

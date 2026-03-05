@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppCard, AppCardBody, AppErrorState, getStatusPill } from '@/components/app';
-import { Button, Input, EmptyState, DataTableShell, Table } from '@/components/ui';
+import { Button, Input, EmptyState, DataTableShell, Table, useToast } from '@/components/ui';
 import { PageSkeleton } from '@/components/ui/loading-state';
 import { StatusChip } from '@/components/ui/status-chip';
 
@@ -39,6 +39,7 @@ export function ReconciliationContent() {
   const [error, setError] = useState<string | null>(null);
   const [startInput, setStartInput] = useState('');
   const [endInput, setEndInput] = useState('');
+  const { showToast } = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -92,7 +93,7 @@ export function ReconciliationContent() {
     const start = startInput ? new Date(startInput) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const end = endInput ? new Date(endInput) : new Date();
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
-      alert('Invalid date range');
+      showToast({ variant: 'error', message: 'Invalid date range' });
       return;
     }
     setRunning(true);
@@ -104,10 +105,10 @@ export function ReconciliationContent() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Failed');
-      alert(`Reconciliation job enqueued: ${json.jobId}`);
+      showToast({ variant: 'success', message: `Reconciliation enqueued: ${json.jobId}` });
       void load();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to run');
+      showToast({ variant: 'error', message: e instanceof Error ? e.message : 'Failed to run reconciliation' });
     } finally {
       setRunning(false);
     }

@@ -1,0 +1,253 @@
+'use client';
+
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppErrorState, getStatusPill } from '@/components/app';
+import {
+  Button,
+  DataTableShell,
+  EmptyState,
+  Input,
+  Select,
+  StatusChip,
+  Table,
+  TableSkeleton,
+  useToast,
+} from '@/components/ui';
+
+type Booking = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email?: string | null;
+  address?: string | null;
+  service: string;
+  startAt: string;
+  endAt: string;
+  status: string;
+  paymentStatus: string;
+  totalPrice: number;
+  notes?: string | null;
+  sitter?: { id: string; firstName: string; lastName: string } | null;
+  client?: { id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null } | null;
+  pets?: Array<{ id: string; name: string; species: string }>;
+  hasReport?: boolean;
+};
+
+type EventItem = {
+  id: string;
+  type: string;
+  source: 'event' | 'status';
+  status?: string | null;
+  message: string;
+  createdAt: string;
+};
+
+export default function BookingDetailEnterprisePage() {
+  const params = useParams<{ id: string }>();
+  const bookingId = params.id;
+  const { showToast } = useToast();
+
+  const [booking, setBooking] = useState<Booking | null>(null);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [sitters, setSitters] = useState<Array<{ id: string; firstName: string; lastName: string }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [eventTypeFilter, setEventTypeFilter] = useState('all');
+  const [sitterId, setSitterId] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [bookingRes, eventsRes, sittersRes] = await Promise.all([
+        fetch(`/api/bookings/${bookingId}`),
+        fetch(`/api/bookings/${bookingId}/events`),
+        fetch('/api/sitters'),
+      ]);
+      const bookingJson = await bookingRes.json().catch(() => ({}));
+      const eventsJson = await eventsRes.json().catch(() => ({}));
+      const sittersJson = await sittersRes.json().catch(() => ({}));
+      if (!bookingRes.ok) throw new Error(bookingJson.error || 'Failed to load booking');
+      if (!eventsRes.ok) throw new Error(eventsJson.error || 'Failed to load events');
+      setBooking(bookingJson.booking || null);
+      setSitterId(bookingJson.booking?.sitter?.id || '');
+      setEvents(Array.isArray(eventsJson.items) ? eventsJson.items : []);
+      setSitters(Array.isArray(sittersJson.sitters) ? sittersJson.sitters : []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load booking');
+    } finally {
+      setLoading(false);
+    }
+  }, [bookingId]);
+
+  useEffect(() => {
+    if (bookingId) void load();
+  }, [bookingId, load]);
+
+  const filteredEvents = useMemo(() => {
+    if (eventTypeFilter === 'all') return events;
+    return events.filter((e) => e.type.toLowerCase().includes(eventTypeFilter.toLowerCase()));
+  }, [events, eventTypeFilter]);
+
+  async function patchBooking(payload: Record<string, unknown>, successMessage: string) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Update failed');
+      showToast({ variant: 'success', message: successMessage });
+      await load();
+    } catch (e) {
+      showToast({ variant: 'error', message: e instanceof Error ? e.message : 'Update failed' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runFix(type: 'automation_failure' | 'calendar_repair') {
+    const target = events.find((e) => e.type.includes(type === 'automation_failure' ? 'automation' : 'calendar'));
+    if (!target) {
+      showToast({ variant: 'error', message: `No ${type} event found` });
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch('/api/ops/command-center/attention/fix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: `${type}:${target.id.replace(/^event:/, '')}` }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Fix failed');
+      showToast({ variant: 'success', message: 'Fix queued' });
+      await load();
+    } catch (e) {
+      showToast({ variant: 'error', message: e instanceof Error ? e.message : 'Fix failed' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <OwnerAppShell>
+        <LayoutWrapper variant="wide">
+          <PageHeader title="Booking Ops Cockpit" subtitle="Loading booking..." />
+          <TableSkeleton rows={8} cols={5} />
+        </LayoutWrapper>
+      </OwnerAppShell>
+    );
+  }
+
+  if (error || !booking) {
+    return (
+      <OwnerAppShell>
+        <LayoutWrapper variant="wide">
+          <PageHeader title="Booking Ops Cockpit" subtitle="Unable to load booking" />
+          <AppErrorState title="Couldn't load booking" subtitle={error || 'Unknown error'} onRetry={() => void load()} />
+        </LayoutWrapper>
+      </OwnerAppShell>
+    );
+  }
+
+  return (
+    <OwnerAppShell>
+      <LayoutWrapper variant="wide">
+        <PageHeader
+          title={`Booking ${booking.firstName} ${booking.lastName}`}
+          subtitle={`${new Date(booking.startAt).toLocaleString()} • ${booking.service}`}
+          actions={
+            <div className="flex gap-2">
+              <Link href="/bookings"><Button variant="secondary">Back</Button></Link>
+              <Link href={`/clients/${booking.client?.id || ''}`}><Button variant="secondary">Client</Button></Link>
+              {booking.sitter?.id ? <Link href={`/sitters/${booking.sitter.id}`}><Button variant="secondary">Sitter</Button></Link> : null}
+            </div>
+          }
+        />
+
+        <Section title="Timeline">
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Created</div><div>{new Date(booking.startAt).toLocaleDateString()}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Status</div><StatusChip ariaLabel={`Status ${getStatusPill(booking.status).label}`}>{getStatusPill(booking.status).label}</StatusChip></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Payment</div><StatusChip ariaLabel={`Payment ${getStatusPill(booking.paymentStatus).label}`}>{getStatusPill(booking.paymentStatus).label}</StatusChip></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Report</div><div>{booking.hasReport ? 'Submitted' : 'Not submitted'}</div></div>
+          </div>
+        </Section>
+
+        <Section title="Quick Actions">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border p-3">
+              <div className="mb-2 text-sm font-medium">Assign sitter</div>
+              <Select
+                value={sitterId}
+                options={[
+                  { value: '', label: 'Unassigned' },
+                  ...sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })),
+                ]}
+                onChange={(e) => setSitterId(e.target.value)}
+              />
+              <Button className="mt-2 w-full" disabled={busy} onClick={() => void patchBooking({ sitterId: sitterId || null }, 'Sitter assignment updated')}>Save assignment</Button>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="mb-2 text-sm font-medium">Comms</div>
+              <div className="flex flex-wrap gap-2">
+                <a href={`tel:${booking.phone}`}><Button variant="secondary">Call client</Button></a>
+                {booking.email ? <a href={`mailto:${booking.email}`}><Button variant="secondary">Email client</Button></a> : null}
+                <Link href="/messages"><Button variant="secondary">Messages</Button></Link>
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="mb-2 text-sm font-medium">Ops</div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" disabled={busy} onClick={() => void patchBooking({ status: 'cancelled' }, 'Booking cancelled')}>Cancel</Button>
+                <Link href={`/payments?bookingId=${booking.id}`}><Button variant="secondary">Refund</Button></Link>
+                <Button variant="secondary" disabled={busy} onClick={() => void runFix('calendar_repair')}>Repair calendar</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => void runFix('automation_failure')}>Retry automation</Button>
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        <Section title="EventLog (last 50)" description="Filter and inspect execution history for this booking">
+          <div className="mb-3 max-w-xs">
+            <Input placeholder="Filter by type (automation, status, calendar...)" value={eventTypeFilter === 'all' ? '' : eventTypeFilter} onChange={(e) => setEventTypeFilter(e.target.value || 'all')} />
+          </div>
+          {filteredEvents.length === 0 ? (
+            <EmptyState title="No events" description="No event records for this booking yet." />
+          ) : (
+            <DataTableShell stickyHeader>
+              <Table<EventItem>
+                forceTableLayout
+                columns={[
+                  { key: 'createdAt', header: 'Time', mobileOrder: 1, mobileLabel: 'Time', render: (r) => new Date(r.createdAt).toLocaleString() },
+                  { key: 'type', header: 'Type', mobileOrder: 2, mobileLabel: 'Type' },
+                  {
+                    key: 'status',
+                    header: 'Status',
+                    mobileOrder: 3,
+                    mobileLabel: 'Status',
+                    render: (r) => <StatusChip>{r.status ? getStatusPill(r.status).label : 'N/A'}</StatusChip>,
+                  },
+                  { key: 'message', header: 'Message', mobileOrder: 4, mobileLabel: 'Message', hideBelow: 'md' },
+                ]}
+                data={filteredEvents}
+                keyExtractor={(r) => r.id}
+                emptyMessage="No events"
+              />
+            </DataTableShell>
+          )}
+        </Section>
+      </LayoutWrapper>
+    </OwnerAppShell>
+  );
+}
+

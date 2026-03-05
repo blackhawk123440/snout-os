@@ -1,3 +1,7 @@
+'use client';
+export { default } from './page.enterprise';
+// Legacy implementation retained below for fallback/reference.
+/* eslint-disable no-unused-vars */
 /**
  * Bookings Page - UI Constitution V1 Phase 5
  * 
@@ -5,7 +9,6 @@
  * Zero ad hoc styling. Zero violations.
  */
 
-'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -96,7 +99,7 @@ interface OverviewStats {
   conflicts: number;
 }
 
-export default function BookingsPage() {
+function BookingsPage() {
   const router = useRouter();
   const isMobile = useMobile();
   const { showToast } = useToast();

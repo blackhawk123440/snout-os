@@ -20,7 +20,6 @@ import {
   DataTableShell,
   Skeleton,
   EmptyState,
-  MobileFilterBar,
   Flex,
   Grid,
   GridCol,
@@ -31,6 +30,8 @@ import { PageSkeleton } from '@/components/ui/loading-state';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { getStatusPill } from '@/components/app/getStatusPill';
+import { AppFilterBar } from '@/components/app';
+import { MobileFilterDrawer } from '@/components/app/MobileFilterDrawer';
 
 interface Payment {
   id: string;
@@ -574,33 +575,45 @@ export default function PaymentsPage() {
       )}
 
       {/* Filters - Phase E: Match Bookings density */}
-      <Card
-        style={{
-          marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[4], // Phase E: Tighter spacing to match Bookings
-          padding: isMobile ? tokens.spacing[3] : undefined,
-        }}
-      >
-        <Flex direction={isMobile ? 'column' : 'row'} gap={isMobile ? 3 : 4}> {/* Batch 5: UI Constitution compliance */}
-          <Input
-            placeholder="Search by client, email, or invoice..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            leftIcon={<i className="fas fa-search" />}
-            style={{ width: isMobile ? '100%' : 'auto', flex: isMobile ? 'none' : 1 }}
-          />
-          {isMobile ? (
-            <MobileFilterBar
-              activeFilter={statusFilter}
-              onFilterChange={(filterId) => setStatusFilter(filterId)}
-              options={[
-                { id: 'all', label: 'All' },
-                { id: 'paid', label: 'Paid' },
-                { id: 'pending', label: 'Pending' },
-                { id: 'failed', label: 'Failed' },
-                { id: 'refunded', label: 'Refunded' },
+      <Card style={{ marginBottom: tokens.spacing[4], padding: isMobile ? tokens.spacing[3] : undefined }}>
+        {isMobile ? (
+          <MobileFilterDrawer triggerLabel="Filters" activeCount={Number(Boolean(searchTerm)) + Number(statusFilter !== 'all')}>
+            <AppFilterBar
+              filters={[
+                { key: 'search', label: 'Search', type: 'search', placeholder: 'Client, email, invoice' },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  type: 'select',
+                  options: [
+                    { value: 'all', label: 'All Statuses' },
+                    { value: 'paid', label: 'Paid' },
+                    { value: 'pending', label: 'Pending' },
+                    { value: 'failed', label: 'Failed' },
+                    { value: 'refunded', label: 'Refunded' },
+                  ],
+                },
               ]}
+              values={{ search: searchTerm, status: statusFilter }}
+              onChange={(k, v) => {
+                if (k === 'search') setSearchTerm(v);
+                if (k === 'status') setStatusFilter(v);
+              }}
+              onClear={() => {
+                setSearchTerm('');
+                setStatusFilter('all');
+              }}
             />
-          ) : (
+          </MobileFilterDrawer>
+        ) : (
+          <Flex direction="row" gap={4}>
+            <Input
+              placeholder="Search by client, email, or invoice..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              leftIcon={<i className="fas fa-search" />}
+              style={{ flex: 1 }}
+            />
             <Select
               options={[
                 { value: 'all', label: 'All Statuses' },
@@ -611,10 +624,10 @@ export default function PaymentsPage() {
               ]}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ width: 'auto', minWidth: '200px' }}
+              style={{ minWidth: '200px' }}
             />
-          )}
-        </Flex>
+          </Flex>
+        )}
       </Card>
 
       {/* Payments Table */}

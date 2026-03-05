@@ -1,10 +1,13 @@
+'use client';
+export { default } from './page.enterprise';
+// Legacy implementation retained below for fallback/reference.
+/* eslint-disable no-unused-vars */
 /**
  * Sitter Detail Page - Enterprise Rebuild
  * 
  * Complete sitter detail view with profile, tier, assigned bookings, and payroll snapshot.
  */
 
-'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -477,7 +480,7 @@ function SitterDetailContent() {
   );
 }
 
-export default function SitterDetailPage() {
+function SitterDetailPage() {
   return (
     <Suspense fallback={
       <AppShell>

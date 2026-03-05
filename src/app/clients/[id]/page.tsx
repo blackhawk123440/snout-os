@@ -1,10 +1,13 @@
+'use client';
+export { default } from './page.enterprise';
+// Legacy implementation retained below for fallback/reference.
+/* eslint-disable no-unused-vars */
 /**
  * Client Detail Page - Enterprise Rebuild
  * 
  * Complete client detail view with profile, booking history, and payment summary.
  */
 
-'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -520,7 +523,7 @@ function ClientDetailContent() {
   );
 }
 
-export default function ClientDetailPage() {
+function ClientDetailPage() {
   return (
     <Suspense fallback={
       <AppShell>
