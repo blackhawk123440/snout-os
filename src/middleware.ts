@@ -92,6 +92,9 @@ export async function middleware(request: NextRequest) {
     const session = await getSessionSafe();
     
     if (!session) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
       // No session - redirect to login
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
