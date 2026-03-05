@@ -4,6 +4,8 @@ type AttentionItem = {
   id: string;
   type: string;
   severity: 'high' | 'medium' | 'low' | string;
+  bookingId?: string;
+  entityId?: string;
 };
 
 type AttentionPayload = {
@@ -156,11 +158,74 @@ async function run() {
   report.push(`attention.bySeverity=${JSON.stringify(severityCounts)}`);
   report.push(`attention.first10Ids=${JSON.stringify(allItems.slice(0, 10).map((i) => i.id))}`);
 
+  // 4) Staffing resolve: assign + notify + rollback
+  const staffingUnassigned = (payload.staffing || []).find((i) => i.type === 'unassigned');
+  assert(!!staffingUnassigned, 'no unassigned staffing item found for resolve flow');
+
+  const resolveRes = await fetch(joinUrl('/api/ops/command-center/staffing/resolve'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: cookieHeader(ownerCookies),
+    },
+    body: JSON.stringify({
+      itemId: staffingUnassigned!.id,
+      action: 'assign_notify',
+    }),
+  });
+  const resolveJson = await resolveRes.json().catch(() => ({}));
+  assert(resolveRes.ok, `staffing assign_notify failed: ${resolveRes.status} ${JSON.stringify(resolveJson)}`);
+  assert(typeof resolveJson.assignmentId === 'string' && resolveJson.assignmentId.length > 0, 'missing assignmentId');
+  assert(typeof resolveJson.sitterId === 'string' && resolveJson.sitterId.length > 0, 'missing sitterId');
+  assert(resolveJson.notifySent === true, 'notifySent expected true');
+  assert(typeof resolveJson.rollbackToken === 'string' && resolveJson.rollbackToken.length > 0, 'missing rollbackToken');
+  report.push(
+    `staffing.assign={"assignmentId":"${resolveJson.assignmentId}","bookingId":"${resolveJson.bookingId}","sitterId":"${resolveJson.sitterId}","notifySent":${resolveJson.notifySent}}`
+  );
+
+  const { res: attAfterAssignRes, json: attAfterAssign } = await fetchJson('/api/ops/command-center/attention', {
+    headers: { Cookie: cookieHeader(ownerCookies) },
+  });
+  assert(attAfterAssignRes.ok, `attention fetch after assign failed: ${attAfterAssignRes.status}`);
+  const afterAssignItems = flattenAttention({
+    alerts: Array.isArray(attAfterAssign?.alerts) ? attAfterAssign.alerts : [],
+    staffing: Array.isArray(attAfterAssign?.staffing) ? attAfterAssign.staffing : [],
+  });
+  const afterAssignIds = new Set(afterAssignItems.map((i) => i.id));
+  assert(!afterAssignIds.has(staffingUnassigned!.id), `assigned item still present: ${staffingUnassigned!.id}`);
+
+  const rollbackRes = await fetch(joinUrl('/api/ops/command-center/staffing/resolve'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: cookieHeader(ownerCookies),
+    },
+    body: JSON.stringify({
+      itemId: staffingUnassigned!.id,
+      action: 'rollback',
+      rollbackToken: resolveJson.rollbackToken,
+    }),
+  });
+  const rollbackJson = await rollbackRes.json().catch(() => ({}));
+  assert(rollbackRes.ok, `staffing rollback failed: ${rollbackRes.status} ${JSON.stringify(rollbackJson)}`);
+
+  const { res: attAfterRollbackRes, json: attAfterRollback } = await fetchJson('/api/ops/command-center/attention', {
+    headers: { Cookie: cookieHeader(ownerCookies) },
+  });
+  assert(attAfterRollbackRes.ok, `attention fetch after rollback failed: ${attAfterRollbackRes.status}`);
+  const afterRollbackItems = flattenAttention({
+    alerts: Array.isArray(attAfterRollback?.alerts) ? attAfterRollback.alerts : [],
+    staffing: Array.isArray(attAfterRollback?.staffing) ? attAfterRollback.staffing : [],
+  });
+  const afterRollbackIds = new Set(afterRollbackItems.map((i) => i.id));
+  assert(afterRollbackIds.has(staffingUnassigned!.id), `rolled back item missing: ${staffingUnassigned!.id}`);
+  report.push(`staffing.rollback={"assignmentId":"${resolveJson.assignmentId}","restored":true}`);
+
   assert(allItems.length >= 2, 'need at least 2 attention items to test actions');
   const snoozeTarget = allItems[0];
   const handledTarget = allItems[1];
 
-  // 4) Snooze + handled then verify removed
+  // 5) Snooze + handled then verify removed
   const snoozeRes = await fetch(joinUrl('/api/ops/command-center/attention/actions'), {
     method: 'POST',
     headers: {
@@ -194,7 +259,7 @@ async function run() {
   assert(!afterIds.has(handledTarget.id), `handled item still present: ${handledTarget.id}`);
   report.push(`actions.removed=[${snoozeTarget.id},${handledTarget.id}]`);
 
-  // 5) Sitter/client access checks
+  // 6) Sitter/client access checks
   for (const role of ['sitter', 'client'] as const) {
     const roleCookies = await login(role);
     const apiRes = await fetch(joinUrl('/api/ops/command-center/attention'), {

@@ -11,6 +11,11 @@ If `ENABLE_E2E_AUTH=true` (or `ENABLE_E2E_LOGIN=true`) and `E2E_AUTH_KEY` is con
 - `POST /api/ops/e2e-login` with header `x-e2e-key: <E2E_AUTH_KEY>`
 - body example: `{ "role": "sitter" }` or `{ "role": "client" }`
 
+Fixture endpoints (staging only, owner/admin or valid `x-e2e-key`):
+
+- `POST /api/ops/command-center/seed-fixtures` (rate-limited to 2/min)
+- `POST /api/ops/command-center/reset-fixtures` (rate-limited to 2/min)
+
 ## Deterministic Command Center Verification
 
 Run the end-to-end verifier:

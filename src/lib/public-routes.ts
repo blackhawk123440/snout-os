@@ -43,6 +43,8 @@ export function isPublicRoute(pathname: string): boolean {
     "/api/ops/e2e-login",
     // Staging fixture seeding endpoint - guarded by route-level env/key checks.
     "/api/ops/command-center/seed-fixtures",
+    // Staging fixture reset endpoint - guarded by route-level env/key checks.
+    "/api/ops/command-center/reset-fixtures",
   ];
 
   // Exact match

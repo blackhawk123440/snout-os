@@ -32,11 +32,10 @@ async function renderApiRequest(endpoint: string, method: string = 'GET', body?:
   return response.json();
 }
 
-async function triggerDeploy(serviceId: string) {
+async function triggerDeploy(serviceId: string, clearCache: boolean) {
   try {
-    const result = await renderApiRequest(`/services/${serviceId}/deploys`, 'POST', {
-      clearCache: false,
-    });
+    const suffix = clearCache ? '?clearCache=clear' : '';
+    const result = await renderApiRequest(`/services/${serviceId}/deploys${suffix}`, 'POST');
     return result;
   } catch (error) {
     throw error;
@@ -44,19 +43,20 @@ async function triggerDeploy(serviceId: string) {
 }
 
 async function main() {
+  const clearCache = process.env.CLEAR_CACHE === 'true';
   const serviceIds = {
     web: 'srv-d5abmh3uibrs73boq1kg', // snout-os-staging
-    api: 'srv-d62mrjpr0fns738rirdg', // snout-os-api
     worker: 'srv-d63jnnmr433s73dqep70', // snout-os-worker
   };
 
-  console.log('🚀 Triggering deployments for all services...\n');
+  console.log(`🚀 Triggering deployments for web + worker (clearCache=${clearCache})...\n`);
 
   for (const [name, serviceId] of Object.entries(serviceIds)) {
     try {
       console.log(`📦 Triggering deploy for ${name} (${serviceId})...`);
-      const result = await triggerDeploy(serviceId);
-      console.log(`   ✅ Deployment triggered: ${result.id || 'success'}`);
+      const result = await triggerDeploy(serviceId, clearCache);
+      const sha = result?.commit?.id ? String(result.commit.id).slice(0, 7) : 'unknown';
+      console.log(`   ✅ Deployment triggered: ${result.id || 'success'} (sha=${sha})`);
     } catch (error: any) {
       console.log(`   ❌ Failed: ${error.message}`);
     }

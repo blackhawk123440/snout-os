@@ -34,6 +34,7 @@ interface Stats {
 interface AttentionItem {
   id: string;
   type: string;
+  entityId: string;
   title: string;
   subtitle: string;
   severity: 'high' | 'medium' | 'low';
@@ -62,6 +63,7 @@ export function CommandCenterContent() {
   });
   const [range, setRange] = useState<'7d' | '30d'>('7d');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [rollbackByItemId, setRollbackByItemId] = useState<Record<string, string | null>>({});
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -139,6 +141,40 @@ export function CommandCenterContent() {
       await load({ preserveScroll: true });
     } catch {
       setError('Failed to update item');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleStaffingResolve = async (
+    item: AttentionItem,
+    action: 'assign_notify' | 'rollback'
+  ) => {
+    setActionLoadingId(item.id);
+    try {
+      const res = await fetch('/api/ops/command-center/staffing/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemId: item.id,
+          action,
+          rollbackToken: action === 'rollback' ? rollbackByItemId[item.id] ?? null : undefined,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json.error || 'Failed staffing action');
+        return;
+      }
+      if (action === 'assign_notify') {
+        setRollbackByItemId((prev) => ({
+          ...prev,
+          [item.id]: typeof json?.rollbackToken === 'string' ? json.rollbackToken : null,
+        }));
+      }
+      await load({ preserveScroll: true });
+    } catch {
+      setError('Failed staffing action');
     } finally {
       setActionLoadingId(null);
     }
@@ -346,6 +382,27 @@ export function CommandCenterContent() {
                           <Button variant="secondary" size="sm" onClick={() => router.push(item.primaryActionHref)}>
                             {item.primaryActionLabel}
                           </Button>
+                          {(item.type === 'coverage_gap' || item.type === 'unassigned') && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => void handleStaffingResolve(item, 'assign_notify')}
+                              disabled={actionLoadingId === item.id}
+                            >
+                              Assign + notify
+                            </Button>
+                          )}
+                          {(item.type === 'coverage_gap' || item.type === 'unassigned') &&
+                            Object.prototype.hasOwnProperty.call(rollbackByItemId, item.id) && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => void handleStaffingResolve(item, 'rollback')}
+                                disabled={actionLoadingId === item.id}
+                              >
+                                Rollback
+                              </Button>
+                            )}
                           <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_1h')} disabled={actionLoadingId === item.id}>
                             Snooze 1h
                           </Button>

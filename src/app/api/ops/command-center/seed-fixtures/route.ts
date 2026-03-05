@@ -4,6 +4,12 @@ import { prisma } from '@/lib/db';
 import { getRequestContext } from '@/lib/request-context';
 import { ForbiddenError, requireOwnerOrAdmin } from '@/lib/rbac';
 import { getRuntimeEnvName } from '@/lib/runtime-env';
+import {
+  checkRateLimit,
+  getRateLimitIdentifier,
+  rateLimitResponse,
+} from '@/lib/rate-limit';
+import { logEvent } from '@/lib/log-event';
 
 function addMinutes(base: Date, minutes: number): Date {
   return new Date(base.getTime() + minutes * 60_000);
@@ -24,22 +30,38 @@ export async function POST(request: NextRequest) {
   if (envName === 'prod') {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
+  const ip = getRateLimitIdentifier(request);
 
   const providedKey = request.headers.get('x-e2e-key');
   const expectedKey = process.env.E2E_AUTH_KEY;
   if (providedKey && expectedKey && providedKey !== expectedKey) {
+    await logEvent({
+      orgId: process.env.PERSONAL_ORG_ID || 'default',
+      action: 'ops.command_center.seed_fixtures',
+      status: 'failed',
+      metadata: { actor: 'e2e-key-invalid', ip, reason: 'invalid_key' },
+    });
     return NextResponse.json({ error: 'Invalid x-e2e-key' }, { status: 401 });
   }
   const hasValidE2eBypass = !!providedKey && !!expectedKey && providedKey === expectedKey;
 
   let orgId = process.env.PERSONAL_ORG_ID || 'default';
+  let actorUserId: string | undefined = hasValidE2eBypass ? 'e2e-key' : undefined;
   if (!hasValidE2eBypass) {
     let ctx;
     try {
       ctx = await getRequestContext();
       requireOwnerOrAdmin(ctx);
       orgId = ctx.orgId;
+      actorUserId = ctx.userId ?? undefined;
     } catch (error) {
+      await logEvent({
+        orgId,
+        actorUserId,
+        action: 'ops.command_center.seed_fixtures',
+        status: 'failed',
+        metadata: { actor: actorUserId ?? 'anonymous', ip, reason: 'auth_failed' },
+      });
       if (error instanceof ForbiddenError) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
@@ -47,7 +69,32 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const rate = await checkRateLimit(`${orgId}:${ip}`, {
+    keyPrefix: 'ops-seed-fixtures',
+    limit: 2,
+    windowSec: 60,
+  });
+  if (!rate.success) {
+    await logEvent({
+      orgId,
+      actorUserId,
+      action: 'ops.command_center.seed_fixtures.rate_limited',
+      status: 'failed',
+      metadata: { actor: actorUserId ?? 'anonymous', ip, retryAfter: rate.retryAfter ?? 60 },
+    });
+    return rateLimitResponse(rate.retryAfter);
+  }
+
   try {
+    // Staging hygiene: prune stale handled/snoozed state older than 24h.
+    const staleBefore = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    await prisma.commandCenterAttentionState.deleteMany({
+      where: {
+        orgId,
+        updatedAt: { lt: staleBefore },
+      },
+    });
+
     const { sitterId } = await ensureRoleTestAccounts(orgId);
     const now = new Date();
 
@@ -221,6 +268,19 @@ export async function POST(request: NextRequest) {
       ...(overlapA && overlapB ? [`overlap:${overlapA.id}_${overlapB.id}`] : []),
     ];
 
+    await logEvent({
+      orgId,
+      actorUserId,
+      action: 'ops.command_center.seed_fixtures',
+      status: 'success',
+      metadata: {
+        actor: actorUserId ?? 'anonymous',
+        ip,
+        bookingCount: 3 + (overlapA ? 1 : 0) + (overlapB ? 1 : 0),
+        eventCount: 6,
+      },
+    });
+
     return NextResponse.json({
       ok: true,
       envName,
@@ -251,6 +311,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    await logEvent({
+      orgId,
+      actorUserId,
+      action: 'ops.command_center.seed_fixtures',
+      status: 'failed',
+      metadata: { actor: actorUserId ?? 'anonymous', ip, message },
+    });
     return NextResponse.json({ error: 'Failed to seed fixtures', message }, { status: 500 });
   }
 }
