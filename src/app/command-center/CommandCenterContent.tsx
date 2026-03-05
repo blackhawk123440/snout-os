@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
@@ -82,7 +82,7 @@ export function CommandCenterContent() {
     }
   }, [user, authLoading, router]);
 
-  const load = async (opts?: { preserveScroll?: boolean }) => {
+  const load = useCallback(async (opts?: { preserveScroll?: boolean }) => {
     const preserveScroll = !!opts?.preserveScroll;
     const prevScrollY = preserveScroll && typeof window !== 'undefined' ? window.scrollY : null;
     if (!user) return;
@@ -109,7 +109,7 @@ export function CommandCenterContent() {
         requestAnimationFrame(() => window.scrollTo(0, prevScrollY));
       }
     }
-  };
+  }, [range, user]);
 
   useEffect(() => {
     if (!user) return;
