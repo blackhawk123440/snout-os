@@ -8,10 +8,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSSE } from '@/hooks/useSSE';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { AppShell } from '@/components/layout/AppShell';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
-import { Button, EmptyState, TableSkeleton } from '@/components/ui';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppErrorState } from '@/components/app';
+import { getStatusPill } from '@/components/app/getStatusPill';
+import { Button, DataTableShell, EmptyState, StatusChip, Table, TableSkeleton } from '@/components/ui';
+import { PageSkeleton } from '@/components/ui/loading-state';
 
 interface FailureItem {
   id: string;
@@ -91,12 +92,22 @@ export default function AutomationFailuresPage() {
     }
   };
 
-  if (sessionStatus === 'loading' || !session) return null;
+  if (sessionStatus === 'loading') {
+    return (
+      <OwnerAppShell>
+        <LayoutWrapper>
+          <PageHeader title="Automation Failures" subtitle="Loading..." />
+          <PageSkeleton />
+        </LayoutWrapper>
+      </OwnerAppShell>
+    );
+  }
+  if (!session) return null;
 
   const canRetry = tab === 'fail' || tab === 'dead';
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <LayoutWrapper>
         <PageHeader
           title="Automation Failures"
@@ -104,21 +115,21 @@ export default function AutomationFailuresPage() {
         />
         <Section>
           <div className="mb-4 flex gap-2">
-        {(['fail', 'dead', 'success'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium ${
-              tab === t
-                ? 'bg-red-100 text-red-800'
-                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-            }`}
-          >
-            {t === 'fail' ? 'Failures' : t === 'dead' ? 'Dead' : 'Recent successes'}
-          </button>
-        ))}
-      </div>
+            {(['fail', 'dead', 'success'] as Tab[]).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={`rounded-lg px-4 py-2 text-sm font-medium ${
+                  tab === t
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {t === 'fail' ? 'Failures' : t === 'dead' ? 'Dead' : 'Recent Successes'}
+              </button>
+            ))}
+          </div>
       {loading ? (
         <TableSkeleton rows={5} cols={3} />
       ) : error ? (
@@ -129,55 +140,88 @@ export default function AutomationFailuresPage() {
           description={tab === 'success' ? 'Successful automation runs will appear here.' : 'Jobs are processing successfully.'}
         />
       ) : (
-        <div className="space-y-4">
-          {items.map((item) => (
-            <AppCard
-              key={item.id}
-              className={
-                tab === 'success'
-                  ? 'border-green-200 bg-green-50/30'
-                  : tab === 'dead'
-                    ? 'border-amber-200 bg-amber-50/50'
-                    : 'border-red-200 bg-red-50/50'
-              }
-            >
-              <AppCardBody>
-                <div className="flex flex-wrap items-start justify-between gap-2">
+        <DataTableShell stickyHeader>
+          <Table<FailureItem>
+            columns={[
+              {
+                key: 'automationType',
+                header: 'Automation',
+                mobileLabel: 'Automation',
+                mobileOrder: 1,
+                render: (row) => (
                   <div>
-                    <p className="font-semibold text-neutral-900">{item.automationType}</p>
-                    {item.error && (
-                      <p className="mt-1 text-sm text-red-700">{item.error}</p>
-                    )}
-                    {item.bookingId && (
-                      <p className="mt-1 text-xs text-neutral-600">Booking: {item.bookingId}</p>
-                    )}
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {new Date(item.createdAt).toLocaleString()}
-                    </p>
+                    <p className="font-medium text-slate-900">{row.automationType}</p>
+                    <p className="text-xs text-slate-500">{new Date(row.createdAt).toLocaleString()}</p>
                   </div>
-                  {canRetry && (
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                mobileLabel: 'Status',
+                mobileOrder: 2,
+                render: (row) => {
+                  const pill = getStatusPill(row.status);
+                  const variant =
+                    pill.variant === 'success'
+                      ? 'success'
+                      : pill.variant === 'warning'
+                        ? 'warning'
+                        : pill.variant === 'error'
+                          ? 'danger'
+                          : pill.variant === 'info'
+                            ? 'info'
+                            : 'neutral';
+                  return (
+                    <StatusChip variant={variant} ariaLabel={`Automation status ${pill.label}`}>
+                      {pill.label}
+                    </StatusChip>
+                  );
+                },
+              },
+              {
+                key: 'detail',
+                header: 'Detail',
+                mobileLabel: 'Detail',
+                mobileOrder: 3,
+                hideBelow: 'md',
+                render: (row) => (
+                  <div className="max-w-[520px]">
+                    <p className="line-clamp-2 text-sm text-slate-700">{row.error || 'No error detail'}</p>
+                    {row.bookingId && <p className="text-xs text-slate-500">Booking: {row.bookingId}</p>}
+                  </div>
+                ),
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                mobileLabel: 'Actions',
+                mobileOrder: 4,
+                align: 'right',
+                render: (row) =>
+                  canRetry ? (
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => void handleRetry(item.id)}
-                      disabled={retryingId === item.id}
+                      onClick={() => void handleRetry(row.id)}
+                      disabled={retryingId === row.id}
                     >
-                      {retryingId === item.id ? 'Retrying…' : 'Re-run'}
+                      {retryingId === row.id ? 'Retrying' : 'Re-run'}
                     </Button>
-                  )}
-                </div>
-                {item.metadata && Object.keys(item.metadata).length > 0 && (
-                  <pre className="mt-3 overflow-x-auto rounded bg-white/50 p-2 text-xs text-neutral-700">
-                    {JSON.stringify(item.metadata, null, 2)}
-                  </pre>
-                )}
-              </AppCardBody>
-            </AppCard>
-          ))}
-        </div>
+                  ) : (
+                    <span className="text-xs text-slate-500">—</span>
+                  ),
+              },
+            ]}
+            data={items}
+            keyExtractor={(row) => row.id}
+            emptyMessage="No automation events"
+            forceTableLayout
+          />
+        </DataTableShell>
       )}
         </Section>
       </LayoutWrapper>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

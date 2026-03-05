@@ -26,11 +26,11 @@ import {
   GridCol,
 } from '@/components/ui';
 import { StatusChip } from '@/components/ui/status-chip';
-import { AppShell } from '@/components/layout/AppShell';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { PageSkeleton } from '@/components/ui/loading-state';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
+import { getStatusPill } from '@/components/app/getStatusPill';
 
 interface Payment {
   id: string;
@@ -322,12 +322,7 @@ export default function PaymentsPage() {
     return 'neutral';
   };
 
-  const getStatusLabel = (status: string) => {
-    const normalized = status.toLowerCase();
-    if (normalized === 'succeeded') return 'Paid';
-    if (normalized === 'requires_payment_method') return 'Failed';
-    return status.charAt(0).toUpperCase() + status.slice(1);
-  };
+  const getStatusLabel = (status: string) => getStatusPill(status).label;
 
   const getPaymentMethodLabel = (method?: string) => {
     if (!method) return 'Card';
@@ -449,17 +444,17 @@ export default function PaymentsPage() {
 
   if (loading && analytics.recentPayments.length === 0) {
     return (
-      <AppShell>
+      <OwnerAppShell>
         <LayoutWrapper variant="wide">
           <PageHeader title="Payments" subtitle="Payment transactions and revenue overview" />
           <PageSkeleton />
         </LayoutWrapper>
-      </AppShell>
+      </OwnerAppShell>
     );
   }
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <LayoutWrapper variant="wide">
         <PageHeader
           title="Payments"
@@ -516,8 +511,14 @@ export default function PaymentsPage() {
                 Previous: {formatCurrency(comparison.previousPeriodTotal)} → Current: {formatCurrency(kpis.totalCollected)}
               </div>
             </div>
-            <div style={{ fontSize: '2rem' }}>
-              {comparison.isPositive ? '📈' : '📉'}
+            <div
+              style={{
+                fontSize: '1.25rem',
+                color: comparison.isPositive ? tokens.colors.success.DEFAULT : tokens.colors.error.DEFAULT,
+              }}
+              aria-hidden
+            >
+              {comparison.isPositive ? 'Up' : 'Down'}
             </div>
             </Flex>
           </div>
@@ -642,7 +643,7 @@ export default function PaymentsPage() {
       </Card>
         </Section>
       </LayoutWrapper>
-    </AppShell>
+    </OwnerAppShell>
   );
 }
 

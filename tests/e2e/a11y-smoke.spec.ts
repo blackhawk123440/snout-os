@@ -12,6 +12,8 @@ const OWNER_PAGES = [
   '/ops/ai',
   '/ops/payouts',
   '/ops/finance/reconciliation',
+  '/ops/calendar-repair',
+  '/finance',
 ];
 
 const SITTER_PAGES = [

@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { AppShell } from '@/components/layout/AppShell';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppCard, AppCardBody, AppErrorState, getStatusPill } from '@/components/app';
 import { Button, Input, EmptyState, DataTableShell, Table } from '@/components/ui';
 import { PageSkeleton } from '@/components/ui/loading-state';
 import { StatusChip } from '@/components/ui/status-chip';
@@ -121,10 +120,20 @@ export function ReconciliationContent() {
     window.open(url, '_blank');
   };
 
-  if (sessionStatus === 'loading' || !session) return null;
+  if (sessionStatus === 'loading') {
+    return (
+      <OwnerAppShell>
+        <LayoutWrapper>
+          <PageHeader title="Finance Reconciliation" subtitle="Loading..." />
+          <PageSkeleton />
+        </LayoutWrapper>
+      </OwnerAppShell>
+    );
+  }
+  if (!session) return null;
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <LayoutWrapper>
         <PageHeader
           title="Finance Reconciliation"
@@ -216,7 +225,7 @@ export function ReconciliationContent() {
                           variant={r.status === 'succeeded' ? 'success' : 'danger'}
                           ariaLabel={`Reconciliation run status: ${r.status}`}
                         >
-                          {r.status}
+                          {getStatusPill(r.status).label}
                         </StatusChip>
                       )},
                       { key: 'totals', header: 'Totals', mobileOrder: 3, mobileLabel: 'Totals', hideBelow: 'md', render: (r) =>
@@ -245,6 +254,6 @@ export function ReconciliationContent() {
       )}
         </Section>
       </LayoutWrapper>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

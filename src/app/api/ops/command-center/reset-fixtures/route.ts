@@ -19,6 +19,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
+  let runId: string | undefined;
+  try {
+    const body = (await request.json()) as { runId?: string };
+    if (body?.runId && /^[a-zA-Z0-9_-]{6,64}$/.test(body.runId)) {
+      runId = body.runId;
+    }
+  } catch {
+    // empty body allowed
+  }
+
   const ip = getRateLimitIdentifier(request);
   const providedKey = request.headers.get('x-e2e-key');
   const expectedKey = process.env.E2E_AUTH_KEY;
@@ -55,10 +65,19 @@ export async function POST(request: NextRequest) {
     const fixtureEvents = await prisma.eventLog.findMany({
       where: {
         orgId,
-        OR: [
-          { error: { startsWith: 'Fixture:' } },
-          { eventType: { startsWith: 'ops.command_center.seed_fixtures' } },
-        ],
+        ...(runId
+          ? {
+              OR: [
+                { error: { contains: `[run:${runId}]` } },
+                { metadata: { contains: `"runId":"${runId}"` } },
+              ],
+            }
+          : {
+              OR: [
+                { error: { contains: 'Fixture:' } },
+                { eventType: { startsWith: 'ops.command_center.seed_fixtures' } },
+              ],
+            }),
       },
       select: {
         id: true,
@@ -72,7 +91,9 @@ export async function POST(request: NextRequest) {
     const fixtureBookings = await prisma.booking.findMany({
       where: {
         orgId,
-        email: { startsWith: 'fixture-' },
+        ...(runId
+          ? { email: { startsWith: `fixture-${runId}-` } }
+          : { email: { startsWith: 'fixture-' } }),
       },
       select: { id: true },
     });
@@ -123,6 +144,7 @@ export async function POST(request: NextRequest) {
         deletedBookingCount: fixtureBookingIds.length,
         deletedEventCount: fixtureEventIds.length,
         clearedAttentionStateKeys: itemKeys.size,
+        runId: runId ?? null,
       },
     });
 
@@ -131,6 +153,7 @@ export async function POST(request: NextRequest) {
       deletedBookingCount: fixtureBookingIds.length,
       deletedEventCount: fixtureEventIds.length,
       clearedAttentionStateKeys: itemKeys.size,
+      runId: runId ?? null,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

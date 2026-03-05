@@ -5,9 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useQueryState } from '@/hooks/useQueryState';
 import { MobileFilterDrawer } from '@/components/app/MobileFilterDrawer';
-import { AppShell } from '@/components/layout/AppShell';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import { AppErrorState } from '@/components/app';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppErrorState, getStatusPill } from '@/components/app';
 import { Button, EmptyState, StatusChip, Table, TableSkeleton, DataTableShell } from '@/components/ui';
 
 interface PayoutItem {
@@ -73,7 +72,7 @@ export function PayoutsContent() {
   if (sessionStatus === 'loading' || !session) return null;
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <LayoutWrapper>
         <PageHeader
           title="Payouts"
@@ -98,8 +97,8 @@ export function PayoutsContent() {
                     onClick={() => setStatusFilter(s)}
                     className={`rounded-lg px-4 py-2 text-sm font-medium capitalize ${
                       statusFilter === s
-                        ? 'bg-[var(--color-accent-primary)] text-white'
-                        : 'bg-[var(--color-surface-tertiary)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border-default)]'
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     {s}
@@ -139,12 +138,27 @@ export function PayoutsContent() {
                 <span className="tabular-nums font-medium">${(t.amount / 100).toFixed(2)} {t.currency.toUpperCase()}</span>
               )},
               { key: 'status', header: 'Status', mobileOrder: 3, mobileLabel: 'Status', hideBelow: 'md', render: (t) => (
-                <StatusChip
-                  variant={t.status === 'paid' ? 'success' : t.status === 'failed' ? 'danger' : 'neutral'}
-                  ariaLabel={`Payout transfer status: ${t.status}`}
-                >
-                  {t.status}
-                </StatusChip>
+                (() => {
+                  const pill = getStatusPill(t.status);
+                  const variant =
+                    pill.variant === 'success'
+                      ? 'success'
+                      : pill.variant === 'warning'
+                        ? 'warning'
+                        : pill.variant === 'error'
+                          ? 'danger'
+                          : pill.variant === 'info'
+                            ? 'info'
+                            : 'neutral';
+                  return (
+                    <StatusChip
+                      variant={variant}
+                      ariaLabel={`Payout transfer status: ${pill.label}`}
+                    >
+                      {pill.label}
+                    </StatusChip>
+                  );
+                })()
               )},
             ]}
             data={transfers}
@@ -156,6 +170,6 @@ export function PayoutsContent() {
       )}
         </Section>
       </LayoutWrapper>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

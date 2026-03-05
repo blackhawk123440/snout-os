@@ -118,6 +118,8 @@ function assert(condition: unknown, message: string) {
 
 async function run() {
   const report: string[] = [];
+  const runId = `verify-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  report.push(`runId=${runId}`);
 
   // 1) Health
   const { res: healthRes, json: health } = await fetchJson('/api/health');
@@ -133,7 +135,7 @@ async function run() {
       'Content-Type': 'application/json',
       'x-e2e-key': E2E_AUTH_KEY!,
     },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ runId }),
   });
 
   // 3) Seed fixtures (e2e-key path)
@@ -143,10 +145,11 @@ async function run() {
       'Content-Type': 'application/json',
       'x-e2e-key': E2E_AUTH_KEY!,
     },
-    body: JSON.stringify({}),
+    body: JSON.stringify({ runId }),
   });
   assert(seedRes.ok, `seed-fixtures failed: ${seedRes.status} ${JSON.stringify(seed)}`);
   report.push(`seed.ok=${seed?.ok === true}`);
+  report.push(`seed.runId=${seed?.runId ?? 'unknown'}`);
   report.push(`seed.expectedItemKeys=${Array.isArray(seed?.expectedItemKeys) ? seed.expectedItemKeys.length : 0}`);
 
   // 4) Owner attention readout

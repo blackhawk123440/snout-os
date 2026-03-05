@@ -7,9 +7,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { AppShell } from '@/components/layout/AppShell';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppCard, AppCardBody, AppErrorState, getStatusPill } from '@/components/app';
 import { Button, Input, EmptyState } from '@/components/ui';
 import { PageSkeleton } from '@/components/ui/loading-state';
 import { StatusChip } from '@/components/ui/status-chip';
@@ -167,10 +166,20 @@ export default function OpsAIPage() {
     }
   };
 
-  if (sessionStatus === 'loading' || !session) return null;
+  if (sessionStatus === 'loading') {
+    return (
+      <OwnerAppShell>
+        <LayoutWrapper>
+          <PageHeader title="AI Settings" subtitle="Loading..." />
+          <PageSkeleton />
+        </LayoutWrapper>
+      </OwnerAppShell>
+    );
+  }
+  if (!session) return null;
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <LayoutWrapper>
         <PageHeader
           title="AI Settings"
@@ -201,8 +210,8 @@ export default function OpsAIPage() {
                     role="switch"
                     aria-checked={settings.enabled}
                     onClick={toggleEnabled}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                      settings.enabled ? 'bg-blue-600' : 'bg-gray-200'
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 ${
+                      settings.enabled ? 'bg-slate-700' : 'bg-gray-200'
                     }`}
                   >
                     <span
@@ -233,8 +242,8 @@ export default function OpsAIPage() {
                     role="switch"
                     aria-checked={settings.hardStop}
                     onClick={toggleHardStop}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                      settings.hardStop ? 'bg-blue-600' : 'bg-gray-200'
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 ${
+                      settings.hardStop ? 'bg-slate-700' : 'bg-gray-200'
                     }`}
                   >
                     <span
@@ -306,11 +315,11 @@ export default function OpsAIPage() {
                       <div className="min-w-0 flex-1">
                         <span className="font-medium">{t.key}</span>
                         <span className="ml-2 text-neutral-500">v{t.version}</span>
-                        <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${t.scope === 'org' ? 'bg-blue-100 text-blue-800' : 'bg-neutral-100 text-neutral-600'}`}>
+                        <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${t.scope === 'org' ? 'bg-slate-200 text-slate-700' : 'bg-neutral-100 text-neutral-600'}`}>
                           {t.scope}
                         </span>
                         {t.active && (
-                          <span className="ml-2 rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-800">active</span>
+                          <span className="ml-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs text-slate-700">Active</span>
                         )}
                         <p className="mt-1 truncate text-neutral-500">{t.template.slice(0, 80)}{t.template.length > 80 ? '…' : ''}</p>
                       </div>
@@ -353,7 +362,7 @@ export default function OpsAIPage() {
                             l.status === 'succeeded' ? 'success' : l.status === 'blocked' ? 'warning' : 'danger'
                           }
                         >
-                          {l.status}
+                          {getStatusPill(l.status).label}
                         </StatusChip>
                       </div>
                     </div>
@@ -366,6 +375,6 @@ export default function OpsAIPage() {
       ) : null}
         </Section>
       </LayoutWrapper>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

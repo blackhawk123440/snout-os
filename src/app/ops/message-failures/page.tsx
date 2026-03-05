@@ -9,10 +9,10 @@ import { useSSE } from '@/hooks/useSSE';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AppShell } from '@/components/layout/AppShell';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
-import { Button, EmptyState, TableSkeleton } from '@/components/ui';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppErrorState } from '@/components/app';
+import { Button, DataTableShell, EmptyState, Table, TableSkeleton } from '@/components/ui';
+import { PageSkeleton } from '@/components/ui/loading-state';
 
 interface MessageFailureItem {
   id: string;
@@ -90,10 +90,20 @@ export default function MessageFailuresPage() {
     }
   };
 
-  if (sessionStatus === 'loading' || !session) return null;
+  if (sessionStatus === 'loading') {
+    return (
+      <OwnerAppShell>
+        <LayoutWrapper>
+          <PageHeader title="Message Failures" subtitle="Loading..." />
+          <PageSkeleton />
+        </LayoutWrapper>
+      </OwnerAppShell>
+    );
+  }
+  if (!session) return null;
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <LayoutWrapper>
         <PageHeader
           title="Message Failures"
@@ -110,52 +120,80 @@ export default function MessageFailuresPage() {
           description="Failed deliveries will appear here. You can retry from the inbox or this page."
         />
       ) : (
-        <div className="space-y-4">
-          {items.map((item) => (
-            <AppCard key={item.id} className="border-red-200 bg-red-50/50">
-              <AppCardBody>
-                <div className="flex flex-wrap items-start justify-between gap-2">
+        <DataTableShell stickyHeader>
+          <Table<MessageFailureItem>
+            columns={[
+              {
+                key: 'recipient',
+                header: 'Recipient',
+                mobileLabel: 'Recipient',
+                mobileOrder: 1,
+                render: (row) => (
                   <div>
-                    <p className="font-semibold text-neutral-900">
-                      {item.client?.name ?? 'Unknown client'}
-                      {item.sitter && (
-                        <span className="ml-2 text-sm font-normal text-neutral-600">
-                          (Sitter: {item.sitter.name})
-                        </span>
-                      )}
-                    </p>
-                    <p className="mt-1 text-sm text-neutral-700 line-clamp-2">{item.body}</p>
-                    <p className="mt-1 text-sm text-red-700">{item.error}</p>
-                    {item.errorCode && (
-                      <p className="mt-0.5 text-xs text-neutral-500">Code: {item.errorCode}</p>
-                    )}
-                    <p className="mt-1 text-xs text-neutral-500">
-                      {new Date(item.createdAt).toLocaleString()} · Attempt {item.attemptCount}
+                    <p className="font-medium text-slate-900">{row.client?.name ?? 'Unknown client'}</p>
+                    <p className="text-xs text-slate-500">
+                      {row.sitter ? `Sitter: ${row.sitter.name}` : 'No sitter'}
                     </p>
                   </div>
-                  <div className="flex gap-2">
-                    <Link href={`/messages?thread=${item.threadId}`}>
-                      <Button variant="secondary" size="sm">
-                        View thread
-                      </Button>
+                ),
+              },
+              {
+                key: 'failure',
+                header: 'Failure',
+                mobileLabel: 'Failure',
+                mobileOrder: 2,
+                hideBelow: 'md',
+                render: (row) => (
+                  <div className="max-w-[520px]">
+                    <p className="line-clamp-2 text-sm text-slate-700">{row.body}</p>
+                    <p className="line-clamp-2 text-xs text-slate-500">{row.error}</p>
+                  </div>
+                ),
+              },
+              {
+                key: 'meta',
+                header: 'Meta',
+                mobileLabel: 'Meta',
+                mobileOrder: 3,
+                hideBelow: 'lg',
+                render: (row) => (
+                  <span className="text-xs text-slate-500">
+                    {new Date(row.createdAt).toLocaleString()} · Attempt {row.attemptCount}
+                  </span>
+                ),
+              },
+              {
+                key: 'actions',
+                header: 'Actions',
+                mobileLabel: 'Actions',
+                mobileOrder: 4,
+                align: 'right',
+                render: (row) => (
+                  <div className="flex justify-end gap-2">
+                    <Link href={`/messages?thread=${row.threadId}`}>
+                      <Button variant="secondary" size="sm">Thread</Button>
                     </Link>
                     <Button
-                      variant="primary"
+                      variant="secondary"
                       size="sm"
-                      onClick={() => void handleRetry(item.id)}
-                      disabled={retryingId === item.id}
+                      onClick={() => void handleRetry(row.id)}
+                      disabled={retryingId === row.id}
                     >
-                      {retryingId === item.id ? 'Retrying…' : 'Retry'}
+                      {retryingId === row.id ? 'Retrying' : 'Retry'}
                     </Button>
                   </div>
-                </div>
-              </AppCardBody>
-            </AppCard>
-          ))}
-        </div>
+                ),
+              },
+            ]}
+            data={items}
+            keyExtractor={(row) => row.id}
+            emptyMessage="No failed messages"
+            forceTableLayout
+          />
+        </DataTableShell>
       )}
         </Section>
       </LayoutWrapper>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

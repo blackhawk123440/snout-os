@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AppShell } from '@/components/layout/AppShell';
-import { LayoutWrapper, PageHeader } from '@/components/layout';
+import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
 import {
   AppErrorState,
   AppCard,
@@ -120,7 +119,7 @@ export function CommandCenterContent() {
       await load();
     })();
     return () => { cancelled = true; };
-  }, [user, range]);
+  }, [user, load]);
 
   const handleAttentionAction = async (
     id: string,
@@ -180,6 +179,34 @@ export function CommandCenterContent() {
     }
   };
 
+  const handleQuickFix = async (item: AttentionItem) => {
+    const previous = attention;
+    setActionLoadingId(item.id);
+    setAttention((curr) => ({
+      ...curr,
+      alerts: curr.alerts.filter((a) => a.id !== item.id),
+    }));
+    try {
+      const res = await fetch('/api/ops/command-center/attention/fix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId: item.id }),
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setAttention(previous);
+        setError(json.error || 'Failed to queue fix');
+        return;
+      }
+      await load({ preserveScroll: true });
+    } catch {
+      setAttention(previous);
+      setError('Failed to queue fix');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
   const formatRelativeUpdated = (iso: string | null) => {
     if (!iso) return 'never';
     const deltaMs = Math.max(0, nowMs - new Date(iso).getTime());
@@ -197,6 +224,8 @@ export function CommandCenterContent() {
     if (severity === 'medium') return 'bg-amber-100 text-amber-700';
     return 'bg-neutral-100 text-neutral-700';
   };
+  const severityLabel = (severity: AttentionItem['severity']) =>
+    severity.charAt(0).toUpperCase() + severity.slice(1).toLowerCase();
 
   if (authLoading) {
     return (
@@ -208,7 +237,7 @@ export function CommandCenterContent() {
   if (!user) return null;
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <LayoutWrapper variant="wide">
         <PageHeader
           title="Command Center"
@@ -254,8 +283,8 @@ export function CommandCenterContent() {
                     onClick={() => setRange(r)}
                     className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
                       range === r
-                        ? 'bg-[var(--color-accent-primary)] text-white'
-                        : 'bg-[var(--color-surface-tertiary)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border-default)]'
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
                     {r === '7d' ? '7 days' : '30 days'}
@@ -316,7 +345,7 @@ export function CommandCenterContent() {
                         <p className="mt-0.5 text-xs text-neutral-600">{item.subtitle}</p>
                         <div className="mt-1 flex items-center gap-2">
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${severityClass(item.severity)}`}>
-                            {item.severity}
+                            {severityLabel(item.severity)}
                           </span>
                           {item.dueAt && (
                             <span className="text-[10px] text-neutral-500">
@@ -329,6 +358,16 @@ export function CommandCenterContent() {
                         <Button variant="secondary" size="sm" onClick={() => router.push(item.primaryActionHref)}>
                           {item.primaryActionLabel}
                         </Button>
+                        {(item.type === 'automation_failure' || item.type === 'calendar_repair') && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => void handleQuickFix(item)}
+                            disabled={actionLoadingId === item.id}
+                          >
+                            Fix now
+                          </Button>
+                        )}
                         <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_1h')} disabled={actionLoadingId === item.id}>
                           Snooze 1h
                         </Button>
@@ -369,7 +408,7 @@ export function CommandCenterContent() {
                           <p className="mt-0.5 text-xs text-neutral-600">{item.subtitle}</p>
                           <div className="mt-1 flex items-center gap-2">
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${severityClass(item.severity)}`}>
-                              {item.severity}
+                              {severityLabel(item.severity)}
                             </span>
                             {item.dueAt && (
                               <span className="text-[10px] text-neutral-500">
@@ -466,6 +505,6 @@ export function CommandCenterContent() {
         </motion.div>
         )}
       </LayoutWrapper>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

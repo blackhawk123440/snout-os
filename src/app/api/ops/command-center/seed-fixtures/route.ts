@@ -107,6 +107,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    let runId = `verify-${Date.now().toString(36)}`;
+    try {
+      const body = (await request.json()) as { runId?: string };
+      if (body?.runId && /^[a-zA-Z0-9_-]{6,64}$/.test(body.runId)) {
+        runId = body.runId;
+      }
+    } catch {
+      // empty body is fine; default runId stays
+    }
+
     // Staging hygiene: prune stale handled/snoozed state older than 24h.
     const staleBefore = new Date(Date.now() - 24 * 60 * 60 * 1000);
     await prisma.commandCenterAttentionState.deleteMany({
@@ -126,7 +136,7 @@ export async function POST(request: NextRequest) {
         firstName: 'Fixture',
         lastName: 'Overlap A',
         phone: '+15551000001',
-        email: 'fixture-overlap-a@example.com',
+        email: `fixture-${runId}-overlap-a@example.com`,
         service: 'Dog Walking',
         startAt: addMinutes(now, 240),
         endAt: addMinutes(now, 300),
@@ -145,7 +155,7 @@ export async function POST(request: NextRequest) {
         firstName: 'Fixture',
         lastName: 'Overlap B',
         phone: '+15551000002',
-        email: 'fixture-overlap-b@example.com',
+        email: `fixture-${runId}-overlap-b@example.com`,
         service: 'Drop-ins',
         startAt: addMinutes(now, 270),
         endAt: addMinutes(now, 330),
@@ -163,7 +173,7 @@ export async function POST(request: NextRequest) {
         firstName: 'Fixture',
         lastName: 'Unassigned A',
         phone: '+15551000003',
-        email: 'fixture-unassigned-a@example.com',
+        email: `fixture-${runId}-unassigned-a@example.com`,
         service: 'Dog Walking',
         startAt: addMinutes(now, 180),
         endAt: addMinutes(now, 210),
@@ -179,7 +189,7 @@ export async function POST(request: NextRequest) {
         firstName: 'Fixture',
         lastName: 'Unassigned B',
         phone: '+15551000004',
-        email: 'fixture-unassigned-b@example.com',
+        email: `fixture-${runId}-unassigned-b@example.com`,
         service: 'Drop-ins',
         startAt: addMinutes(now, 360),
         endAt: addMinutes(now, 390),
@@ -195,7 +205,7 @@ export async function POST(request: NextRequest) {
         firstName: 'Fixture',
         lastName: 'Dedupe Target',
         phone: '+15551000005',
-        email: 'fixture-dedupe@example.com',
+        email: `fixture-${runId}-dedupe@example.com`,
         service: 'Dog Walking',
         startAt: addMinutes(now, 90),
         endAt: addMinutes(now, 120),
@@ -215,8 +225,9 @@ export async function POST(request: NextRequest) {
         eventType: 'automation.failed',
         automationType: 'bookingConfirmation',
         status: 'failed',
-        error: 'Fixture: booking confirmation failed',
+        error: `[run:${runId}] Fixture: booking confirmation failed`,
         bookingId: dedupeBooking.id,
+        metadata: JSON.stringify({ runId }),
       },
       select: { id: true },
     });
@@ -226,8 +237,9 @@ export async function POST(request: NextRequest) {
         eventType: 'automation.dead',
         automationType: 'bookingConfirmation',
         status: 'failed',
-        error: 'Fixture: automation dead-letter event',
+        error: `[run:${runId}] Fixture: automation dead-letter event`,
         bookingId: dedupeBooking.id,
+        metadata: JSON.stringify({ runId }),
       },
       select: { id: true },
     });
@@ -237,8 +249,9 @@ export async function POST(request: NextRequest) {
         eventType: 'automation.failed',
         automationType: 'bookingConfirmation',
         status: 'failed',
-        error: 'Fixture: retry automation failed',
+        error: `[run:${runId}] Fixture: retry automation failed`,
         bookingId: dedupeBooking.id,
+        metadata: JSON.stringify({ runId }),
       },
       select: { id: true },
     });
@@ -248,8 +261,8 @@ export async function POST(request: NextRequest) {
         orgId,
         eventType: 'message.failed',
         status: 'failed',
-        error: 'Fixture: outbound message failed for thread A',
-        metadata: JSON.stringify({ threadId: threadAId }),
+        error: `[run:${runId}] Fixture: outbound message failed for thread A`,
+        metadata: JSON.stringify({ threadId: threadAId, runId }),
       },
       select: { id: true },
     });
@@ -258,8 +271,8 @@ export async function POST(request: NextRequest) {
         orgId,
         eventType: 'message.failed',
         status: 'failed',
-        error: 'Fixture: outbound message failed for thread B',
-        metadata: JSON.stringify({ threadId: threadBId }),
+        error: `[run:${runId}] Fixture: outbound message failed for thread B`,
+        metadata: JSON.stringify({ threadId: threadBId, runId }),
       },
       select: { id: true },
     });
@@ -270,9 +283,9 @@ export async function POST(request: NextRequest) {
         eventType: 'calendar.sync.failed',
         automationType: 'calendarSync',
         status: 'failed',
-        error: 'Fixture: calendar sync failed for sitter',
+        error: `[run:${runId}] Fixture: calendar sync failed for sitter`,
         bookingId: overlapA?.id ?? dedupeBooking.id,
-        metadata: JSON.stringify({ sitterId: sitterId ?? 'unknown' }),
+        metadata: JSON.stringify({ sitterId: sitterId ?? 'unknown', runId }),
       },
       select: { id: true },
     });
@@ -299,12 +312,14 @@ export async function POST(request: NextRequest) {
         ip,
         bookingCount: 3 + (overlapA ? 1 : 0) + (overlapB ? 1 : 0),
         eventCount: 6,
+        runId,
       },
     });
 
     return NextResponse.json({
       ok: true,
       envName,
+      runId,
       created: {
         eventLogIds: [
           automationFailedA.id,

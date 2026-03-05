@@ -167,6 +167,12 @@ jobs:
           curl -s -o /dev/null http://localhost:3000/api/health || true
           sleep 3
 
+      - name: Run command center deterministic verifier
+        run: pnpm tsx scripts/verify-command-center.ts
+        env:
+          BASE_URL: "http://localhost:3000"
+          E2E_AUTH_KEY: test-e2e-key-change-in-production
+
       - name: Run proof-pack tests
         run: |
           mkdir -p proof-pack

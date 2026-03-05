@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { getRequestContext } from '@/lib/request-context';
 import { ForbiddenError, requireOwnerOrAdmin } from '@/lib/rbac';
 import { getScopedDb } from '@/lib/tenancy';
 import { forceAssignSitter } from '@/lib/dispatch-control';
 import { logEvent } from '@/lib/log-event';
-import { getRateLimitIdentifier } from '@/lib/rate-limit';
+import {
+  checkRateLimit,
+  getRateLimitIdentifier,
+  rateLimitResponse,
+} from '@/lib/rate-limit';
 
 type ResolveAction = 'assign_notify' | 'rollback';
 
@@ -27,20 +31,48 @@ function isAllowedType(type: string): boolean {
   return type === 'coverage_gap' || type === 'unassigned';
 }
 
-function encodeRollbackToken(rawToken: string, assignmentId: string): string {
-  return Buffer.from(`${rawToken}:${assignmentId}`).toString('base64url');
+const ROLLBACK_TOKEN_SECRET =
+  process.env.ROLLBACK_TOKEN_SECRET ||
+  process.env.NEXTAUTH_SECRET ||
+  'dev-rollback-token-secret-change-me';
+
+function tokenSignature(tokenId: string, assignmentId: string, bookingId: string, actorUserId: string): string {
+  return createHmac('sha256', ROLLBACK_TOKEN_SECRET)
+    .update(`${tokenId}:${assignmentId}:${bookingId}:${actorUserId}`)
+    .digest('base64url');
 }
 
-function decodeRollbackToken(token: string): { rawToken: string; assignmentId: string } | null {
+function encodeRollbackToken(tokenId: string, assignmentId: string, bookingId: string, actorUserId: string): string {
+  const sig = tokenSignature(tokenId, assignmentId, bookingId, actorUserId);
+  return Buffer.from(`${tokenId}:${assignmentId}:${sig}`).toString('base64url');
+}
+
+function decodeRollbackToken(token: string): { tokenId: string; assignmentId: string; sig: string } | null {
   try {
     const decoded = Buffer.from(token, 'base64url').toString('utf8');
-    const [rawToken, ...assignmentParts] = decoded.split(':');
-    const assignmentId = assignmentParts.join(':');
-    if (!rawToken || !assignmentId) return null;
-    return { rawToken, assignmentId };
+    const [tokenId, ...rest] = decoded.split(':');
+    if (!tokenId || rest.length < 2) return null;
+    const sig = rest[rest.length - 1];
+    const assignmentId = rest.slice(0, rest.length - 1).join(':');
+    if (!assignmentId || !sig) return null;
+    return { tokenId, assignmentId, sig };
   } catch {
     return null;
   }
+}
+
+function verifyRollbackTokenSignature(
+  tokenId: string,
+  assignmentId: string,
+  bookingId: string,
+  actorUserId: string,
+  providedSig: string
+): boolean {
+  const expected = tokenSignature(tokenId, assignmentId, bookingId, actorUserId);
+  const a = Buffer.from(expected);
+  const b = Buffer.from(providedSig);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 function renderNotifyTemplate(
@@ -70,6 +102,23 @@ async function hasConfirmedOverlap(
   return !!conflict;
 }
 
+async function getAvailableSoonest(
+  db: ReturnType<typeof getScopedDb>,
+  sitterId: string,
+  bookingStartAt: Date
+): Promise<string> {
+  const nextBooking = await db.booking.findFirst({
+    where: {
+      sitterId,
+      status: { in: ['confirmed', 'in_progress'] },
+      startAt: { gte: bookingStartAt },
+    },
+    orderBy: { startAt: 'asc' },
+    select: { startAt: true },
+  });
+  return (nextBooking?.startAt ?? new Date(0)).toISOString();
+}
+
 export async function POST(request: NextRequest) {
   let ctx;
   try {
@@ -83,10 +132,20 @@ export async function POST(request: NextRequest) {
   }
 
   const ip = getRateLimitIdentifier(request);
-  const actorUserId = ctx.userId ?? undefined;
+  const actorUserId = ctx.userId ?? 'system';
   const db = getScopedDb(ctx);
+  let requestBookingId: string | null = null;
+  let requestAction: ResolveAction | undefined;
+  let requestSitterId: string | undefined;
 
   try {
+    const rate = await checkRateLimit(`${ctx.orgId}:${ip}:${actorUserId}`, {
+      keyPrefix: 'ops-staffing-resolve',
+      limit: 2,
+      windowSec: 60,
+    });
+    if (!rate.success) return rateLimitResponse(rate.retryAfter);
+
     const body = (await request.json()) as {
       itemId?: string;
       action?: ResolveAction;
@@ -96,6 +155,9 @@ export async function POST(request: NextRequest) {
     const itemId = (body.itemId || '').trim();
     const action = body.action;
     const { type, bookingId } = parseItemId(itemId);
+    requestBookingId = bookingId;
+    requestAction = action;
+    requestSitterId = body.sitterId;
     if (!itemId || !action || !bookingId || !isAllowedType(type)) {
       return NextResponse.json({ error: 'itemId and action are required' }, { status: 400 });
     }
@@ -120,6 +182,24 @@ export async function POST(request: NextRequest) {
     }
 
     const assignmentId = `staffing_assign:${booking.id}`;
+    const rollbackTokenIdPrefix = `rbk_${booking.id}_`;
+
+    await db.eventLog.create({
+      data: {
+        orgId: ctx.orgId,
+        eventType: action === 'rollback' ? 'staffing.rollback.requested' : 'staffing.assign.requested',
+        status: 'pending',
+        bookingId: booking.id,
+        metadata: JSON.stringify({
+          bookingId: booking.id,
+          sitterId: body.sitterId ?? null,
+          rollbackTokenId: body.rollbackToken ? 'provided' : null,
+          actorUserId,
+          itemId,
+          assignmentId,
+        }),
+      },
+    });
 
     if (action === 'rollback') {
       if (!body.rollbackToken) {
@@ -129,11 +209,37 @@ export async function POST(request: NextRequest) {
       if (!tokenDecoded || tokenDecoded.assignmentId !== assignmentId) {
         return NextResponse.json({ error: 'Invalid rollback token' }, { status: 400 });
       }
+      if (
+        !verifyRollbackTokenSignature(
+          tokenDecoded.tokenId,
+          tokenDecoded.assignmentId,
+          booking.id,
+          actorUserId,
+          tokenDecoded.sig
+        )
+      ) {
+        await db.eventLog.create({
+          data: {
+            orgId: ctx.orgId,
+            eventType: 'staffing.rollback.failed',
+            status: 'failed',
+            bookingId: booking.id,
+            error: 'Invalid rollback token signature',
+            metadata: JSON.stringify({
+              bookingId: booking.id,
+              rollbackTokenId: tokenDecoded.tokenId,
+              actorUserId,
+              assignmentId,
+            }),
+          },
+        });
+        return NextResponse.json({ error: 'Invalid rollback token' }, { status: 400 });
+      }
 
       const tokenUsed = await db.eventLog.findFirst({
         where: {
           eventType: 'ops.staffing.rollback_used',
-          metadata: { contains: `"token":"${tokenDecoded.rawToken}"` },
+          metadata: { contains: `"tokenId":"${tokenDecoded.tokenId}"` },
         },
         select: { id: true },
       });
@@ -144,7 +250,7 @@ export async function POST(request: NextRequest) {
       const tokenIssued = await db.eventLog.findFirst({
         where: {
           eventType: 'ops.staffing.rollback_issued',
-          metadata: { contains: `"token":"${tokenDecoded.rawToken}"` },
+          metadata: { contains: `"tokenId":"${tokenDecoded.tokenId}"` },
         },
         orderBy: { createdAt: 'desc' },
         select: { metadata: true },
@@ -154,12 +260,32 @@ export async function POST(request: NextRequest) {
       }
 
       const parsed = JSON.parse(tokenIssued.metadata) as {
-        token: string;
+        tokenId: string;
+        actorUserId: string;
+        bookingId: string;
         previousSitterId: string | null;
         previousStatus: string;
         previousDispatchStatus: string | null;
         previousAttentionState: SnapshotAttentionState;
       };
+      if (parsed.bookingId !== booking.id || parsed.actorUserId !== actorUserId) {
+        await db.eventLog.create({
+          data: {
+            orgId: ctx.orgId,
+            eventType: 'staffing.rollback.failed',
+            status: 'failed',
+            bookingId: booking.id,
+            error: 'Rollback token scope mismatch',
+            metadata: JSON.stringify({
+              bookingId: booking.id,
+              rollbackTokenId: tokenDecoded.tokenId,
+              actorUserId,
+              assignmentId,
+            }),
+          },
+        });
+        return NextResponse.json({ error: 'Rollback token scope mismatch' }, { status: 409 });
+      }
 
       await db.booking.update({
         where: { id: booking.id },
@@ -205,7 +331,7 @@ export async function POST(request: NextRequest) {
           status: 'success',
           bookingId: booking.id,
           metadata: JSON.stringify({
-            token: tokenDecoded.rawToken,
+            tokenId: tokenDecoded.tokenId,
             assignmentId,
             itemId,
           }),
@@ -223,8 +349,25 @@ export async function POST(request: NextRequest) {
           type,
           assignmentId,
           rollbackTokenUsed: true,
+          rollbackTokenId: tokenDecoded.tokenId,
           restoredSitterId: parsed.previousSitterId,
           ip,
+        },
+      });
+
+      await db.eventLog.create({
+        data: {
+          orgId: ctx.orgId,
+          eventType: 'staffing.rollback.succeeded',
+          status: 'success',
+          bookingId: booking.id,
+          metadata: JSON.stringify({
+            bookingId: booking.id,
+            sitterId: parsed.previousSitterId,
+            rollbackTokenId: tokenDecoded.tokenId,
+            actorUserId,
+            assignmentId,
+          }),
         },
       });
 
@@ -250,13 +393,18 @@ export async function POST(request: NextRequest) {
       const existing = JSON.parse(existingAssignment.metadata) as {
         sitterId?: string;
         notifySent?: boolean;
-        rollbackToken?: string;
+        rollbackTokenId?: string;
       };
+      const rollbackToken =
+        typeof existing.rollbackTokenId === 'string'
+          ? encodeRollbackToken(existing.rollbackTokenId, assignmentId, booking.id, actorUserId)
+          : null;
       return NextResponse.json({
         assignmentId,
         bookingId: booking.id,
         sitterId: booking.sitterId,
-        rollbackToken: existing.rollbackToken ?? null,
+        rollbackToken,
+        rollbackTokenId: existing.rollbackTokenId ?? null,
         notifySent: existing.notifySent === true,
         idempotent: true,
       });
@@ -264,21 +412,15 @@ export async function POST(request: NextRequest) {
 
     let selectedSitterId = body.sitterId ?? null;
     if (!selectedSitterId) {
-      const preferredFixture = await db.sitter.findFirst({
-        where: { active: true, deletedAt: null, email: 'fixture-resolve-sitter@example.com' },
-        select: { id: true },
-      });
       const sitters = await db.sitter.findMany({
         where: { active: true, deletedAt: null },
         select: { id: true },
-        orderBy: { updatedAt: 'desc' },
+        orderBy: { id: 'asc' },
         take: 50,
       });
-      const candidates = preferredFixture
-        ? [{ id: preferredFixture.id }, ...sitters.filter((s) => s.id !== preferredFixture.id)]
-        : sitters;
+      const ranked: Array<{ id: string; availableSoonest: string }> = [];
 
-      for (const sitter of candidates) {
+      for (const sitter of sitters) {
         const hasOverlap = await hasConfirmedOverlap(
           db,
           booking.id,
@@ -287,9 +429,17 @@ export async function POST(request: NextRequest) {
           booking.endAt
         );
         if (hasOverlap) continue;
-        selectedSitterId = sitter.id;
-        break;
+        ranked.push({
+          id: sitter.id,
+          availableSoonest: await getAvailableSoonest(db, sitter.id, booking.startAt),
+        });
       }
+      ranked.sort((a, b) =>
+        a.availableSoonest === b.availableSoonest
+          ? a.id.localeCompare(b.id)
+          : a.availableSoonest.localeCompare(b.availableSoonest)
+      );
+      selectedSitterId = ranked[0]?.id ?? null;
     }
 
     if (!selectedSitterId) {
@@ -333,8 +483,8 @@ export async function POST(request: NextRequest) {
       { force: true }
     );
 
-    const rawRollbackToken = randomUUID();
-    const rollbackToken = encodeRollbackToken(rawRollbackToken, assignmentId);
+    const rollbackTokenId = `${rollbackTokenIdPrefix}${randomUUID()}`;
+    const rollbackToken = encodeRollbackToken(rollbackTokenId, assignmentId, booking.id, actorUserId);
 
     await db.eventLog.create({
       data: {
@@ -343,9 +493,10 @@ export async function POST(request: NextRequest) {
         status: 'success',
         bookingId: booking.id,
         metadata: JSON.stringify({
-          token: rawRollbackToken,
+          tokenId: rollbackTokenId,
           assignmentId,
           bookingId: booking.id,
+          actorUserId,
           itemId,
           previousSitterId,
           previousStatus: booking.status,
@@ -369,6 +520,7 @@ export async function POST(request: NextRequest) {
             itemId,
             sitterId: selectedSitterId,
             actorUserId,
+            rollbackTokenId,
           }),
         },
       });
@@ -418,7 +570,7 @@ export async function POST(request: NextRequest) {
           bookingId: booking.id,
           itemId,
           sitterId: selectedSitterId,
-          rollbackToken,
+          rollbackTokenId,
           notifySent,
           notifyTemplateApplied,
           previousSitterId,
@@ -438,9 +590,27 @@ export async function POST(request: NextRequest) {
         assignmentId,
         selectedSitterId,
         previousSitterId,
+        rollbackTokenId,
         notifySent,
         rollbackTokenIssued: true,
         ip,
+      },
+    });
+
+    await db.eventLog.create({
+      data: {
+        orgId: ctx.orgId,
+        eventType: 'staffing.assign.succeeded',
+        status: 'success',
+        bookingId: booking.id,
+        metadata: JSON.stringify({
+          bookingId: booking.id,
+          sitterId: selectedSitterId,
+          rollbackTokenId,
+          actorUserId,
+          assignmentId,
+          notifySent,
+        }),
       },
     });
 
@@ -449,10 +619,29 @@ export async function POST(request: NextRequest) {
       bookingId: booking.id,
       sitterId: selectedSitterId,
       rollbackToken,
+      rollbackTokenId,
       notifySent,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    if (requestBookingId) {
+      await db.eventLog.create({
+        data: {
+          orgId: ctx.orgId,
+          eventType:
+            requestAction === 'rollback' ? 'staffing.rollback.failed' : 'staffing.assign.failed',
+          status: 'failed',
+          bookingId: requestBookingId,
+          error: message,
+          metadata: JSON.stringify({
+            bookingId: requestBookingId,
+            sitterId: requestSitterId ?? null,
+            rollbackTokenId: null,
+            actorUserId,
+          }),
+        },
+      });
+    }
     await logEvent({
       orgId: ctx.orgId,
       actorUserId,

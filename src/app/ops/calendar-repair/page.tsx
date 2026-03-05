@@ -8,10 +8,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { AppShell } from '@/components/layout/AppShell';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import { AppCard, AppCardBody } from '@/components/app';
-import { Button } from '@/components/ui';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
+import { Button, EmptyState, TableSkeleton } from '@/components/ui';
 
 interface SitterOption {
   id: string;
@@ -35,16 +34,19 @@ export default function CalendarRepairPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [repairing, setRepairing] = useState(false);
   const [result, setResult] = useState<RepairResult | null>(null);
 
   const loadSitters = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch('/api/sitters');
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSitters([]);
+        setLoadError(json.error || 'Failed to load sitters');
         return;
       }
       const list = json.sitters ?? json ?? [];
@@ -106,16 +108,35 @@ export default function CalendarRepairPage() {
     }
   };
 
-  if (sessionStatus === 'loading' || !session) return null;
+  if (sessionStatus === 'loading') {
+    return (
+      <OwnerAppShell>
+        <LayoutWrapper>
+          <PageHeader title="Calendar Repair" subtitle="Loading..." />
+          <TableSkeleton rows={4} cols={2} />
+        </LayoutWrapper>
+      </OwnerAppShell>
+    );
+  }
+  if (!session) return null;
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <LayoutWrapper>
         <PageHeader
           title="Calendar Repair"
           subtitle="Repair Google Calendar sync for a sitter. Re-pushes Snout OS bookings to Google."
         />
         <Section>
+      {loadError ? (
+        <AppErrorState title="Couldn't load calendar repair" subtitle={loadError} onRetry={() => void loadSitters()} />
+      ) : sitters.length === 0 && !loading ? (
+        <EmptyState
+          title="No sitters available"
+          description="Add an active sitter to run calendar repair."
+          primaryAction={{ label: 'Refresh', onClick: () => void loadSitters() }}
+        />
+      ) : (
       <AppCard>
         <AppCardBody>
           <div className="space-y-4">
@@ -164,6 +185,7 @@ export default function CalendarRepairPage() {
           </div>
         </AppCardBody>
       </AppCard>
+      )}
       {result && (
         <AppCard className={`mt-4 ${result.success ? 'border-green-200 bg-green-50/30' : 'border-red-200 bg-red-50/50'}`}>
           <AppCardBody>
@@ -191,6 +213,6 @@ export default function CalendarRepairPage() {
       )}
         </Section>
       </LayoutWrapper>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

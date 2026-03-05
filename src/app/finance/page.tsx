@@ -8,16 +8,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AppShell } from '@/components/layout/AppShell';
-import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import {
   AppFilterBar,
-  AppTable,
+  AppErrorState,
   AppDrawer,
   AppStatCard,
 } from '@/components/app';
+import { DataTableShell, EmptyState, Table, TableSkeleton } from '@/components/ui';
+import { PageSkeleton } from '@/components/ui/loading-state';
 import { useAuth } from '@/lib/auth-client';
-import { tokens } from '@/lib/design-tokens';
 
 const STUB_TRANSACTIONS = [
   { id: '1', client: 'Jane Doe', amount: 85, date: '2025-02-28', status: 'paid' },
@@ -27,6 +27,8 @@ const STUB_TRANSACTIONS = [
 export default function FinancePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -34,20 +36,29 @@ export default function FinancePage() {
     if (!authLoading && !user) router.push('/login?redirect=/finance');
   }, [user, authLoading, router]);
 
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    const id = setTimeout(() => setLoading(false), 150);
+    return () => clearTimeout(id);
+  }, [authLoading, user]);
+
   if (authLoading) {
     return (
-      <AppShell>
+      <OwnerAppShell>
         <LayoutWrapper variant="wide">
           <PageHeader title="Finance" subtitle="Loading..." />
-          <div className="h-64 animate-pulse rounded-lg bg-[var(--color-surface-secondary)]" />
+          <PageSkeleton />
         </LayoutWrapper>
-      </AppShell>
+      </OwnerAppShell>
     );
   }
   if (!user) return null;
 
   return (
-    <AppShell>
+    <OwnerAppShell>
       <LayoutWrapper variant="wide">
         <PageHeader
           title="Finance"
@@ -77,6 +88,12 @@ export default function FinancePage() {
         />
 
         <Section>
+          {loading ? (
+            <TableSkeleton rows={6} cols={4} />
+          ) : error ? (
+            <AppErrorState title="Couldn't load finance" subtitle={error} onRetry={() => setLoading(true)} />
+          ) : (
+            <>
           <div className="mb-6 grid gap-4 md:grid-cols-3">
         <AppStatCard label="Revenue MTD" value="$2,450" icon={<i className="fas fa-dollar-sign" />} />
         <AppStatCard label="Outstanding" value="$340" icon={<i className="fas fa-clock" />} />
@@ -97,25 +114,38 @@ export default function FinancePage() {
       />
 
       <div className="mt-4">
-        <AppTable
-          columns={[
-            { key: 'client', header: 'Client' },
-            { key: 'amount', header: 'Amount', render: (r) => `$${r.amount}` },
-            { key: 'date', header: 'Date' },
-            { key: 'status', header: 'Status', statusKey: 'status' },
-          ]}
-          data={STUB_TRANSACTIONS}
-          keyExtractor={(r) => r.id}
-          onRowClick={(r) => setSelectedId(r.id)}
-          emptyMessage="No transactions"
-        />
+        {STUB_TRANSACTIONS.length === 0 ? (
+          <EmptyState
+            title="No transactions"
+            description="Finance transactions will appear here."
+            primaryAction={{ label: 'View payments', onClick: () => router.push('/payments') }}
+          />
+        ) : (
+          <DataTableShell stickyHeader>
+            <Table
+              columns={[
+                { key: 'client', header: 'Client', mobileOrder: 1, mobileLabel: 'Client' },
+                { key: 'amount', header: 'Amount', mobileOrder: 2, mobileLabel: 'Amount', align: 'right', render: (r) => `$${r.amount}` },
+                { key: 'date', header: 'Date', mobileOrder: 3, mobileLabel: 'Date', hideBelow: 'md' },
+                { key: 'status', header: 'Status', mobileOrder: 4, mobileLabel: 'Status', hideBelow: 'md', render: (r) => String(r.status).replace(/^./, (m) => m.toUpperCase()) },
+              ]}
+              data={STUB_TRANSACTIONS}
+              keyExtractor={(r) => r.id}
+              onRowClick={(r) => setSelectedId(r.id)}
+              emptyMessage="No transactions"
+              forceTableLayout
+            />
+          </DataTableShell>
+        )}
       </div>
 
         <AppDrawer isOpen={!!selectedId} onClose={() => setSelectedId(null)} title={selectedId ? `Transaction #${selectedId}` : ''}>
           {selectedId && <p className="text-sm">Detail placeholder for transaction {selectedId}</p>}
         </AppDrawer>
+            </>
+          )}
         </Section>
       </LayoutWrapper>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

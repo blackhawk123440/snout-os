@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { createHmac } from 'crypto';
 
 const mockDb = {
   booking: {
@@ -39,6 +40,11 @@ vi.mock('@/lib/dispatch-control', () => ({
 }));
 vi.mock('@/lib/log-event', () => ({
   logEvent: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('@/lib/rate-limit', () => ({
+  checkRateLimit: vi.fn().mockResolvedValue({ success: true, remaining: 1, resetAt: 9999999999 }),
+  getRateLimitIdentifier: vi.fn().mockReturnValue('127.0.0.1'),
+  rateLimitResponse: vi.fn(() => new Response(JSON.stringify({ error: 'Too many requests' }), { status: 429 })),
 }));
 
 import { POST } from '@/app/api/ops/command-center/staffing/resolve/route';
@@ -103,43 +109,32 @@ describe('POST /api/ops/command-center/staffing/resolve', () => {
   });
 
   it('no available sitter', async () => {
-    mockDb.booking.findFirst.mockResolvedValue({
-      id: 'booking-1',
-      orgId: 'org-1',
-      firstName: 'Client',
-      lastName: 'One',
-      service: 'Dog Walk',
-      sitterId: null,
-      status: 'pending',
-      dispatchStatus: 'manual_required',
-      startAt: new Date('2026-03-05T10:00:00.000Z'),
-      endAt: new Date('2026-03-05T11:00:00.000Z'),
-    });
+    mockDb.booking.findFirst
+      .mockResolvedValueOnce({
+        id: 'booking-1',
+        orgId: 'org-1',
+        firstName: 'Client',
+        lastName: 'One',
+        service: 'Dog Walk',
+        sitterId: null,
+        status: 'pending',
+        dispatchStatus: 'manual_required',
+        startAt: new Date('2026-03-05T10:00:00.000Z'),
+        endAt: new Date('2026-03-05T11:00:00.000Z'),
+      })
+      .mockResolvedValueOnce({ id: 'overlap-1' });
     mockDb.eventLog.findFirst.mockResolvedValue(null);
-    mockDb.sitter.findMany.mockResolvedValue([{ id: 's1' }]);
-    mockDb.booking.findFirst.mockResolvedValueOnce({
-      id: 'booking-1',
-      orgId: 'org-1',
-      firstName: 'Client',
-      lastName: 'One',
-      service: 'Dog Walk',
-      sitterId: null,
-      status: 'pending',
-      dispatchStatus: 'manual_required',
-      startAt: new Date('2026-03-05T10:00:00.000Z'),
-      endAt: new Date('2026-03-05T11:00:00.000Z'),
-    });
-    mockDb.booking.findFirst.mockResolvedValueOnce({ id: 'overlap-1' });
 
     const res = await POST(
       makeReq({
         itemId: 'unassigned:booking-1',
         action: 'assign_notify',
+        sitterId: 's1',
       })
     );
     const body = await res.json();
     expect(res.status).toBe(409);
-    expect(body.error).toContain('No available sitter');
+    expect(body.error).toContain('overlapping confirmed booking');
   });
 
   it('idempotent retry', async () => {
@@ -159,7 +154,7 @@ describe('POST /api/ops/command-center/staffing/resolve', () => {
       metadata: JSON.stringify({
         assignmentId: 'staffing_assign:booking-1',
         sitterId: 'sitter-1',
-        rollbackToken: 'token-1',
+        rollbackTokenId: 'rbk_booking-1_token-1',
         notifySent: true,
       }),
     });
@@ -175,13 +170,21 @@ describe('POST /api/ops/command-center/staffing/resolve', () => {
     expect(body.idempotent).toBe(true);
     expect(body.sitterId).toBe('sitter-1');
     expect(body.notifySent).toBe(true);
+    expect(typeof body.rollbackToken).toBe('string');
   });
 
   it('rollback success', async () => {
-    const rawToken = 'raw-rollback-token';
-    const rollbackToken = Buffer.from(`raw-rollback-token:staffing_assign:booking-1`).toString(
-      'base64url'
-    );
+    const tokenId = 'rbk_booking-1_token-1';
+    const assignmentId = 'staffing_assign:booking-1';
+    const actorUserId = 'owner-1';
+    const secret =
+      process.env.ROLLBACK_TOKEN_SECRET ||
+      process.env.NEXTAUTH_SECRET ||
+      'dev-rollback-token-secret-change-me';
+    const sig = createHmac('sha256', secret)
+      .update(`${tokenId}:${assignmentId}:booking-1:${actorUserId}`)
+      .digest('base64url');
+    const rollbackToken = Buffer.from(`${tokenId}:${assignmentId}:${sig}`).toString('base64url');
 
     mockDb.booking.findFirst.mockResolvedValue({
       id: 'booking-1',
@@ -199,7 +202,9 @@ describe('POST /api/ops/command-center/staffing/resolve', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         metadata: JSON.stringify({
-          token: rawToken,
+          tokenId,
+          actorUserId,
+          bookingId: 'booking-1',
           previousSitterId: null,
           previousStatus: 'pending',
           previousDispatchStatus: 'manual_required',
