@@ -35,7 +35,8 @@
     "check:no-raw-prisma": "tsx scripts/check-no-raw-prisma.ts",
     "check:no-raw-ui": "tsx scripts/check-no-raw-ui.ts",
     "check-env": "tsx scripts/check-env.ts",
-    "check:contrast": "tsx scripts/a11y/check-contrast.ts"
+    "check:contrast": "tsx scripts/a11y/check-contrast.ts",
+    "verify:messaging": "tsx scripts/verify-messaging.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

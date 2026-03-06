@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getScopedDb } from '@/lib/tenancy';
-import { auth } from '@/lib/auth';
+import { getRequestContext } from '@/lib/request-context';
 
 const GetQuerySchema = z.object({
   orgId: z.string().min(1).optional(),
@@ -16,10 +16,12 @@ const GetQuerySchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const orgId = (session.user as { orgId?: string }).orgId ?? 'default';
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const parsed = GetQuerySchema.safeParse(Object.fromEntries(req.nextUrl.searchParams));
   if (!parsed.success) return NextResponse.json({ error: 'Invalid query' }, { status: 400 });
@@ -41,8 +43,18 @@ export async function GET(req: NextRequest) {
     where.threadType = 'front_desk';
     where.assignedSitterId = null;
   }
+  if (ctx.role === 'sitter') {
+    where.assignedSitterId = ctx.sitterId ?? '__no_sitter__';
+  }
+  if (ctx.role === 'client') {
+    if (!ctx.clientId) return NextResponse.json({ error: 'Client context missing' }, { status: 403 });
+    where.clientId = ctx.clientId;
+  }
+  if (!['owner', 'admin', 'sitter', 'client'].includes(ctx.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
-  const db = getScopedDb({ orgId });
+  const db = getScopedDb({ orgId: ctx.orgId });
   const rows = await db.messageThread.findMany({
     where,
     take: limit + 1,
@@ -70,8 +82,8 @@ export async function GET(req: NextRequest) {
     clientId: t.clientId ?? undefined,
     sitterId: t.assignedSitterId ?? null,
     numberId: t.messageNumberId ?? undefined,
-    threadType: t.threadType ?? 'other',
-    status: t.status ?? 'active',
+    threadType: t.threadType ?? (t.messageNumber?.numberClass === 'sitter' ? 'assignment' : 'front_desk'),
+    status: t.status === 'open' ? 'active' : t.status === 'closed' || t.status === 'archived' ? 'inactive' : 'active',
     ownerUnreadCount: t.ownerUnreadCount ?? 0,
     lastActivityAt: (t.lastMessageAt ?? t.createdAt).toISOString(),
     client: {
@@ -99,7 +111,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(
     { threads, nextCursor, hasMore },
-    { status: 200, headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': orgId } }
+    { status: 200, headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': ctx.orgId } }
   );
 }
 
@@ -109,12 +121,16 @@ const PostBodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user || (session.user as { role?: string }).role !== 'owner') {
-    return NextResponse.json({ error: 'Owner access required' }, { status: 403 });
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-
-  const orgId = (session.user as { orgId?: string }).orgId ?? 'default';
+  if (ctx.role !== 'owner' && ctx.role !== 'admin') {
+    return NextResponse.json({ error: 'Owner/admin access required' }, { status: 403 });
+  }
+  const orgId = ctx.orgId;
   let body: unknown;
   try {
     body = await req.json();
@@ -172,7 +188,7 @@ export async function POST(req: NextRequest) {
     });
 
     const clientName = `${client.firstName} ${client.lastName}`.trim() || 'Client';
-    const userId = (session.user as { id?: string; email?: string }).id ?? (session.user as { email?: string }).email ?? '';
+    const userId = ctx.userId ?? '';
     await db.messageParticipant.createMany({
       data: [
         {

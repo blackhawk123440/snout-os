@@ -7,36 +7,23 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import { getRequestContext } from '@/lib/request-context';
+import { getScopedDb } from '@/lib/tenancy';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-
-  const user = session.user as any;
   const resolvedParams = await params;
   const sitterId = resolvedParams.id;
 
-  const orgId = user.orgId || (await import('@/lib/messaging/org-helpers')).getDefaultOrgId();
-
-  if (!orgId) {
-    return NextResponse.json(
-      { error: 'Organization not found' },
-      { status: 400 }
-    );
-  }
-
-  if (user.role === 'sitter' && user.sitterId !== sitterId) {
+  if (ctx.role === 'sitter' && ctx.sitterId !== sitterId) {
     return NextResponse.json(
       { error: 'Forbidden: You can only view your own messages' },
       { status: 403 }
@@ -44,48 +31,48 @@ export async function GET(
   }
 
   try {
-    const threads = await (prisma as any).thread.findMany({
+    const db = getScopedDb({ orgId: ctx.orgId });
+    const threads = await db.messageThread.findMany({
       where: {
-        orgId,
-        sitterId,
-        status: 'active',
+        assignedSitterId: sitterId,
+        status: { notIn: ['closed', 'archived'] },
       },
       include: {
         client: {
-          select: { id: true, name: true },
+          select: { id: true, firstName: true, lastName: true },
         },
         messageNumber: {
-          select: { id: true, e164: true, class: true },
+          select: { id: true, e164: true, numberClass: true },
         },
-        messages: {
+        events: {
           orderBy: { createdAt: 'desc' },
           take: 1,
-          select: { id: true, direction: true, body: true, createdAt: true, senderType: true },
+          select: { id: true, direction: true, body: true, createdAt: true, actorType: true },
         },
         assignmentWindows: {
-          where: { endsAt: { gte: new Date() } },
-          orderBy: { startsAt: 'desc' },
+          where: { endAt: { gte: new Date() } },
+          orderBy: { startAt: 'desc' },
           take: 1,
         },
       },
-      orderBy: { lastActivityAt: 'desc' },
+      orderBy: { lastMessageAt: 'desc' },
     });
 
     const transformedThreads = threads.map((thread: any) => ({
       id: thread.id,
-      clientName: thread.client?.name ?? 'Unknown Client',
-      bookingId: null,
-      booking: null,
-      lastMessage: thread.messages?.[0]
+      clientName: `${thread.client?.firstName ?? ''} ${thread.client?.lastName ?? ''}`.trim() || 'Unknown Client',
+      bookingId: thread.bookingId ?? null,
+      booking: thread.bookingId ? { id: thread.bookingId } : null,
+      lastMessage: thread.events?.[0]
         ? {
-            id: thread.messages[0].id,
-            body: thread.messages[0].body,
-            direction: thread.messages[0].direction,
-            createdAt: thread.messages[0].createdAt.toISOString(),
-            actorType: thread.messages[0].senderType,
+            id: thread.events[0].id,
+            body: thread.events[0].body,
+            direction: thread.events[0].direction,
+            createdAt: thread.events[0].createdAt.toISOString(),
+            actorType: thread.events[0].actorType,
           }
         : null,
-      lastMessageAt: thread.lastActivityAt?.toISOString() ?? thread.createdAt.toISOString(),
+      lastMessageAt: thread.lastMessageAt?.toISOString() ?? thread.createdAt.toISOString(),
       hasActiveWindow: (thread.assignmentWindows?.length ?? 0) > 0,
       maskedNumber: thread.messageNumber?.e164 ?? null,
       status: thread.status,

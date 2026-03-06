@@ -6,40 +6,30 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import { getRequestContext } from '@/lib/request-context';
+import { getScopedDb } from '@/lib/tenancy';
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-
-  const user = session.user as any;
-  
-  // Must be a sitter
-  if (!user.sitterId) {
-    return NextResponse.json(
-      { error: 'Sitter access required' },
-      { status: 403 }
-    );
+  if (ctx.role !== 'sitter' || !ctx.sitterId) {
+    return NextResponse.json({ error: 'Sitter access required' }, { status: 403 });
   }
-
-  const orgId = user.orgId || 'default';
-  const sitterId = user.sitterId;
+  const orgId = ctx.orgId;
+  const sitterId = ctx.sitterId;
   const now = new Date();
 
   try {
     // Find threads with active assignment windows for this sitter
-    const threads = await (prisma as any).messageThread.findMany({
+    const db = getScopedDb({ orgId });
+    const threads = await db.messageThread.findMany({
       where: {
-        orgId,
         assignedSitterId: sitterId,
-        status: 'open',
+        status: { notIn: ['closed', 'archived'] },
         assignmentWindows: {
           some: {
             sitterId,
@@ -49,12 +39,12 @@ export async function GET(request: NextRequest) {
         },
       },
       include: {
-        client: { select: { id: true, name: true } },
+        client: { select: { id: true, firstName: true, lastName: true } },
         messageNumber: {
           select: {
             id: true,
             e164: true,
-            class: true,
+            numberClass: true,
             status: true,
           },
         },
@@ -79,11 +69,23 @@ export async function GET(request: NextRequest) {
       lastActivityAt: toIso(thread.lastMessageAt ?? thread.createdAt) ?? new Date().toISOString(),
       ownerUnreadCount: thread.ownerUnreadCount ?? 0,
       assignmentWindows: (thread.assignmentWindows ?? []).map((w: any) => ({
-        ...w,
-        startsAt: w.startsAt ?? w.startAt,
-        endsAt: w.endsAt ?? w.endAt,
+        id: w.id,
+        startsAt: w.startAt,
+        endsAt: w.endAt,
       })),
-      client: { ...thread.client, contacts: [] },
+      client: {
+        id: thread.client?.id ?? '',
+        name: `${thread.client?.firstName ?? ''} ${thread.client?.lastName ?? ''}`.trim() || 'Client',
+        contacts: [],
+      },
+      messageNumber: thread.messageNumber
+        ? {
+            id: thread.messageNumber.id,
+            e164: thread.messageNumber.e164,
+            class: thread.messageNumber.numberClass,
+            status: thread.messageNumber.status,
+          }
+        : { id: '', e164: '', class: 'front_desk', status: 'active' },
     }));
 
     return NextResponse.json(transformedThreads, { status: 200 });
