@@ -152,7 +152,7 @@ export default function ReportsPage() {
 
   return (
     <OwnerAppShell>
-      <LayoutWrapper variant="wide">
+      <LayoutWrapper variant="wide" className="min-w-0">
         <PageHeader
           title="Reports"
           subtitle="Executive summary: revenue, bookings, utilization, and operational health."

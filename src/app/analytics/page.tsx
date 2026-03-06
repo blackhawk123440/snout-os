@@ -154,7 +154,7 @@ export default function AnalyticsPage() {
 
   return (
     <OwnerAppShell>
-      <LayoutWrapper variant="wide">
+      <LayoutWrapper variant="wide" className="min-w-0">
         <PageHeader
           title="Analytics"
           subtitle="Trend analysis: revenue, bookings, payouts, and automation health."
