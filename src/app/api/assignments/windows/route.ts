@@ -1,183 +1,152 @@
-/**
- * Assignment Windows Route
- * 
- * GET /api/assignments/windows
- * POST /api/assignments/windows
- * Proxies to NestJS API for assignment window management
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { mintApiJWT } from '@/lib/api/jwt';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { getRequestContext } from '@/lib/request-context';
+import { getScopedDb } from '@/lib/tenancy';
 
 export async function GET(request: NextRequest) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
-  let apiToken: string;
+  let ctx;
   try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
+    ctx = await getRequestContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (ctx.role !== 'owner' && ctx.role !== 'admin') {
+    return NextResponse.json({ error: 'Owner access required' }, { status: 403 });
   }
 
-  const searchParams = request.nextUrl.searchParams.toString();
-  const apiUrl = `${API_BASE_URL}/api/assignments/windows${searchParams ? `?${searchParams}` : ''}`;
-
+  const db = getScopedDb({ orgId: ctx.orgId });
   try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
+    const threadId = request.nextUrl.searchParams.get('threadId') ?? undefined;
+    const sitterId = request.nextUrl.searchParams.get('sitterId') ?? undefined;
+    const status = request.nextUrl.searchParams.get('status') ?? undefined;
+
+    const rows = await db.assignmentWindow.findMany({
+      where: {
+        orgId: ctx.orgId,
+        ...(threadId ? { threadId } : {}),
+        ...(sitterId ? { sitterId } : {}),
+        ...(status === 'active'
+          ? { startAt: { lte: new Date() }, endAt: { gte: new Date() } }
+          : status === 'future'
+            ? { startAt: { gt: new Date() } }
+            : status === 'past'
+              ? { endAt: { lt: new Date() } }
+              : {}),
       },
+      include: {
+        thread: { include: { client: { select: { id: true, firstName: true, lastName: true } } } },
+        sitter: { select: { id: true, firstName: true, lastName: true } },
+      },
+      orderBy: { startAt: 'asc' },
     });
 
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
+    return NextResponse.json(
+      rows.map((w) => ({
+        id: w.id,
+        threadId: w.threadId,
+        sitterId: w.sitterId,
+        startsAt: w.startAt.toISOString(),
+        endsAt: w.endAt.toISOString(),
+        bookingRef: w.bookingId,
+        status: w.startAt > new Date() ? 'future' : w.endAt < new Date() ? 'past' : 'active',
+        thread: {
+          id: w.thread.id,
+          client: {
+            id: w.thread.client?.id ?? '',
+            name: `${w.thread.client?.firstName ?? ''} ${w.thread.client?.lastName ?? ''}`.trim() || 'Unknown',
+          },
         },
-      });
-    }
-
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
-      },
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward windows request:', error);
-    return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
+        sitter: {
+          id: w.sitter.id,
+          name: `${w.sitter.firstName} ${w.sitter.lastName}`.trim(),
+        },
+      })),
+      { status: 200, headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': ctx.orgId } }
     );
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Failed to load windows' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
-  let apiToken: string;
+  let ctx;
   try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
-
-  let body: string;
-  try {
-    body = await request.text();
+    ctx = await getRequestContext();
   } catch {
-    return NextResponse.json(
-      { error: 'Invalid request body' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-
-  const apiUrl = `${API_BASE_URL}/api/assignments/windows`;
-
+  if (ctx.role !== 'owner' && ctx.role !== 'admin') {
+    return NextResponse.json({ error: 'Owner access required' }, { status: 403 });
+  }
+  const body = await request.json().catch(() => null);
+  if (!body?.threadId || !body?.sitterId || !body?.startsAt || !body?.endsAt) {
+    return NextResponse.json({ error: 'threadId, sitterId, startsAt, endsAt are required' }, { status: 400 });
+  }
+  const db = getScopedDb({ orgId: ctx.orgId });
   try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-      body,
+    const startAt = new Date(body.startsAt);
+    const endAt = new Date(body.endsAt);
+    if (!(startAt < endAt)) {
+      return NextResponse.json({ error: 'startsAt must be before endsAt' }, { status: 400 });
+    }
+    const thread = await db.messageThread.findFirst({
+      where: { id: body.threadId, orgId: ctx.orgId },
+      include: { client: { select: { id: true, firstName: true, lastName: true } } },
     });
+    if (!thread) return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
 
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
+    const overlapping = await db.assignmentWindow.findFirst({
+      where: {
+        orgId: ctx.orgId,
+        threadId: body.threadId,
+        OR: [
+          { startAt: { lte: startAt }, endAt: { gt: startAt } },
+          { startAt: { lt: endAt }, endAt: { gte: endAt } },
+          { startAt: { gte: startAt }, endAt: { lte: endAt } },
+        ],
+      },
+    });
+    if (overlapping) {
+      return NextResponse.json({ error: 'assignment overlap conflict detected' }, { status: 409 });
     }
 
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
+    const created = await db.assignmentWindow.create({
+      data: {
+        orgId: ctx.orgId,
+        threadId: body.threadId,
+        sitterId: body.sitterId,
+        bookingId: body.bookingRef || thread.bookingId || `manual-${thread.id}`,
+        startAt,
+        endAt,
+        status: 'active',
+      },
+      include: {
+        sitter: { select: { id: true, firstName: true, lastName: true } },
+      },
+    });
+    await db.messageThread.update({
+      where: { id: thread.id },
+      data: { assignedSitterId: created.sitterId, assignmentWindowId: created.id },
+    });
+    return NextResponse.json({
+      id: created.id,
+      threadId: created.threadId,
+      sitterId: created.sitterId,
+      startsAt: created.startAt.toISOString(),
+      endsAt: created.endAt.toISOString(),
+      status: created.startAt > new Date() ? 'future' : created.endAt < new Date() ? 'past' : 'active',
+      thread: {
+        id: thread.id,
+        client: {
+          id: thread.client?.id ?? '',
+          name: `${thread.client?.firstName ?? ''} ${thread.client?.lastName ?? ''}`.trim() || 'Unknown',
         },
-      });
-    }
-
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
       },
-    });
+      sitter: {
+        id: created.sitter.id,
+        name: `${created.sitter.firstName} ${created.sitter.lastName}`.trim(),
+      },
+    }, { status: 200 });
   } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward create window request:', error);
-    return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
-    );
+    return NextResponse.json({ error: error?.message || 'Failed to create assignment window' }, { status: 500 });
   }
 }

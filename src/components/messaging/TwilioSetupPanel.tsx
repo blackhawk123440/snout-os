@@ -7,6 +7,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Card, Button, Badge, EmptyState, Skeleton, Modal, Input } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -278,6 +279,17 @@ export function TwilioSetupPanel() {
         </div>
       </div>
 
+      <Card style={{ marginBottom: tokens.spacing[4] }}>
+        <h3 style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+          What masking does
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+          <p>Client messages the business number and the message is routed to the assigned sitter.</p>
+          <p>Sitter replies and the client still sees the business number.</p>
+          <p>Owner can audit, intervene, and verify message delivery end to end.</p>
+        </div>
+      </Card>
+
       {verificationFailedBanner && (
         <Card style={{ marginBottom: tokens.spacing[4], borderLeft: '4px solid #dc2626', backgroundColor: '#fef2f2' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: tokens.spacing[3] }}>
@@ -479,6 +491,19 @@ export function TwilioSetupPanel() {
           {!readiness?.numbers.ready && (
             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginLeft: tokens.spacing[4] }}>
               {readiness?.numbers.message}
+              <div style={{ marginTop: tokens.spacing[2], display: 'flex', gap: tokens.spacing[2] }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => syncNumbers.mutate(undefined)}
+                  disabled={syncNumbers.isPending}
+                >
+                  {syncNumbers.isPending ? 'Syncing...' : 'Sync Numbers Now'}
+                </Button>
+                <Link href="/messaging/numbers">
+                  <Button variant="secondary" size="sm">Open Numbers Inventory</Button>
+                </Link>
+              </div>
             </div>
           )}
 

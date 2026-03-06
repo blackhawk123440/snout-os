@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
-import { normalizeE164 } from '@/lib/messaging/phone-utils';
+import { upsertCanonicalMessageNumbersFromTwilio } from '@/lib/messaging/sync-inventory';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -45,36 +45,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await (prisma as any).organization.upsert({
-      where: { id: orgId },
-      create: { id: orgId, name: orgId === 'default' ? 'Default' : orgId },
-      update: {},
-    });
-
-    let index = 0;
-    for (const n of list) {
-      const e164 = normalizeE164((n.phoneNumber || '').toString());
-      const numberClass = index === 0 ? 'front_desk' : 'pool';
-      await (prisma as any).messageNumber.upsert({
-        where: { e164 },
-        create: {
-          orgId,
-          e164,
-          numberClass,
-          status: 'active',
-          provider: 'twilio',
-          providerNumberSid: n.sid,
-        },
-        update: {
-          orgId,
-          status: 'active',
-          numberClass,
-          provider: 'twilio',
-          providerNumberSid: n.sid,
-        },
-      });
-      index++;
-    }
+    await upsertCanonicalMessageNumbersFromTwilio(prisma as any, orgId, list);
 
     return NextResponse.json({
       success: true,

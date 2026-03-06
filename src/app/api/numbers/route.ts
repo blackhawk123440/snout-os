@@ -1,85 +1,68 @@
-/**
- * Numbers List Route
- * 
- * Specific route for GET /api/numbers to avoid conflict with [id] route.
- * This proxies to the NestJS API.
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { mintApiJWT } from '@/lib/api/jwt';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { getRequestContext } from '@/lib/request-context';
+import { getScopedDb } from '@/lib/tenancy';
 
 export async function GET(request: NextRequest) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
-  // Get NextAuth session
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
-  // Mint API JWT token from session
-  let apiToken: string;
+  let ctx;
   try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
+    ctx = await getRequestContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (ctx.role !== 'owner' && ctx.role !== 'admin') {
+    return NextResponse.json({ error: 'Owner access required' }, { status: 403 });
   }
 
-  // Preserve query string
-  const searchParams = request.nextUrl.searchParams.toString();
-  const apiUrl = `${API_BASE_URL}/api/numbers${searchParams ? `?${searchParams}` : ''}`;
+  const db = getScopedDb({ orgId: ctx.orgId });
+  const numberClass = request.nextUrl.searchParams.get('class') ?? undefined;
+  const status = request.nextUrl.searchParams.get('status') ?? undefined;
+  const search = request.nextUrl.searchParams.get('search')?.trim() ?? undefined;
 
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
+  const rows = await db.messageNumber.findMany({
+    where: {
+      orgId: ctx.orgId,
+      ...(numberClass ? { numberClass } : {}),
+      ...(status ? { status } : {}),
+      ...(search ? { e164: { contains: search } } : {}),
+    },
+    include: {
+      sitterMaskedNumber: {
+        include: { sitter: { select: { id: true, firstName: true, lastName: true } } },
       },
-    });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
+      _count: {
+        select: { MessageThread: { where: { status: 'open' } } },
       },
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward numbers request:', error);
-    return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
-    );
-  }
+    },
+    orderBy: [{ numberClass: 'asc' }, { e164: 'asc' }],
+  });
+
+  const response = rows.map((n) => ({
+    id: n.id,
+    e164: n.e164,
+    class: (n.numberClass ?? 'pool') as 'front_desk' | 'sitter' | 'pool',
+    status: (n.status === 'quarantined' || n.status === 'inactive' ? n.status : 'active') as
+      | 'active'
+      | 'quarantined'
+      | 'inactive',
+    assignedSitterId: n.assignedSitterId ?? null,
+    assignedSitter: n.sitterMaskedNumber?.sitter
+      ? {
+          id: n.sitterMaskedNumber.sitter.id,
+          name: `${n.sitterMaskedNumber.sitter.firstName} ${n.sitterMaskedNumber.sitter.lastName}`.trim(),
+        }
+      : null,
+    providerType: n.provider ?? 'twilio',
+    purchaseDate: n.createdAt.toISOString(),
+    lastUsedAt: n.lastAssignedAt?.toISOString() ?? null,
+    quarantineReleaseAt: null,
+    quarantinedReason: null,
+    activeThreadCount: n._count.MessageThread,
+    capacityStatus: n._count.MessageThread > 0 ? 'in_use' : 'available',
+    maxConcurrentThreads: null,
+  }));
+
+  return NextResponse.json(response, {
+    status: 200,
+    headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': ctx.orgId },
+  });
 }

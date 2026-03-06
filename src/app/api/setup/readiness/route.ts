@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       : 'Provider not connected. Connect Twilio credentials first.';
 
     let numbersReady = false;
-    let numbersMessage = 'No numbers configured';
+    let numbersMessage = 'No numbers configured. Open Messaging > Twilio Setup and click "Sync numbers".';
     try {
       const numbers = await (prisma as any).messageNumber.findMany({
         where: { orgId, status: 'active' },
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
           numbersReady = true;
           numbersMessage = 'Numbers configured';
         } else {
-          numbersMessage = 'Front desk number not configured';
+          numbersMessage = 'Front desk number not configured. Sync numbers to create a front desk route.';
         }
       }
     } catch (err: any) {

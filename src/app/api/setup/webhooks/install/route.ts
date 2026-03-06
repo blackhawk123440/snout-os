@@ -12,7 +12,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
 import { getTwilioWebhookUrl, webhookUrlMatches } from '@/lib/setup/webhook-url';
-import { normalizeE164 } from '@/lib/messaging/phone-utils';
+import { upsertCanonicalMessageNumbersFromTwilio } from '@/lib/messaging/sync-inventory';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -154,36 +154,11 @@ export async function POST(request: NextRequest) {
 
     // Sync Twilio numbers into MessageNumber so Test SMS and send pipeline have numbers
     try {
-      const org = (prisma as any).organization;
-      await org.upsert({
-        where: { id: orgId },
-        create: { id: orgId, name: orgId === 'default' ? 'Default' : orgId },
-        update: {},
-      });
-      let index = 0;
-      for (const u of updatedNumbers) {
-        const e164 = normalizeE164(u.e164);
-        const numberClass = index === 0 ? 'front_desk' : 'pool';
-        await (prisma as any).messageNumber.upsert({
-          where: { e164 },
-          create: {
-            orgId,
-            e164,
-            numberClass,
-            status: 'active',
-            provider: 'twilio',
-            providerNumberSid: u.phoneNumberSid,
-          },
-          update: {
-            orgId,
-            status: 'active',
-            numberClass,
-            provider: 'twilio',
-            providerNumberSid: u.phoneNumberSid,
-          },
-        });
-        index++;
-      }
+      await upsertCanonicalMessageNumbersFromTwilio(
+        prisma as any,
+        orgId,
+        updatedNumbers.map((u) => ({ sid: u.phoneNumberSid, phoneNumber: u.e164 }))
+      );
     } catch (syncErr: any) {
       console.error('[Webhook Install] Sync numbers to MessageNumber failed:', syncErr?.message);
       // Don't fail the request - webhooks are installed; user can retry or sync later

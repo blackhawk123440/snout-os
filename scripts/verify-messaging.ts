@@ -111,6 +111,39 @@ async function run() {
   const sitterCookies = await e2eLogin('sitter', E2E_SITTER_EMAIL);
   const clientCookies = await e2eLogin('client', E2E_CLIENT_EMAIL);
 
+  const readinessBefore = await fetchJson('/api/setup/readiness', {
+    headers: { Cookie: cookieHeader(ownerCookies) },
+  });
+  assert(readinessBefore.res.ok, `readiness failed: ${readinessBefore.res.status}`);
+  if (!readinessBefore.json?.numbers?.ready) {
+    const syncAttempt = await fetchJson('/api/setup/numbers/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader(ownerCookies),
+      },
+      body: JSON.stringify({}),
+    });
+    if (!syncAttempt.res.ok || syncAttempt.json?.success === false) {
+      throw new Error(
+        `number inventory missing and sync failed: status=${syncAttempt.res.status} message=${syncAttempt.json?.message ?? syncAttempt.text}`
+      );
+    }
+  }
+  const readinessAfter = await fetchJson('/api/setup/readiness', {
+    headers: { Cookie: cookieHeader(ownerCookies) },
+  });
+  assert(readinessAfter.res.ok, `readiness recheck failed: ${readinessAfter.res.status}`);
+  assert(readinessAfter.json?.numbers?.ready === true, `numbers.ready=false: ${readinessAfter.json?.numbers?.message ?? 'unknown'}`);
+  report.push(`readiness.numbers=${readinessAfter.json?.numbers?.ready ? 'ready' : 'not_ready'}`);
+
+  const assignmentState = await fetchJson('/api/assignments/windows', {
+    headers: { Cookie: cookieHeader(ownerCookies) },
+  });
+  assert(assignmentState.res.ok, `assignment windows unavailable: ${assignmentState.res.status}`);
+  assert(Array.isArray(assignmentState.json), 'assignment windows payload is not an array');
+  report.push(`assignments.state=ok count=${assignmentState.json.length}`);
+
   // Seed/create an owner thread through API only.
   const createThread = await fetchJson('/api/messages/threads', {
     method: 'POST',
@@ -134,6 +167,7 @@ async function run() {
     headers: { Cookie: cookieHeader(ownerCookies) },
   });
   assert(ownerThread.res.ok, `owner thread read failed: ${ownerThread.res.status}`);
+  assert(ownerThread.json?.thread?.messageNumber?.id, 'owner thread missing messageNumber.id');
   const toNumber = ownerThread.json?.thread?.messageNumber?.e164;
   assert(typeof toNumber === 'string' && toNumber.length > 0, 'owner thread missing messageNumber.e164');
 
@@ -186,6 +220,14 @@ async function run() {
   assert(!!ownerSentMessage, 'owner outbound message missing in thread feed');
   const ownerDelivery = ownerSentMessage?.deliveries?.[0]?.status;
   assert(['queued', 'sent', 'delivered', 'failed'].includes(ownerDelivery), 'owner delivery state not recorded');
+  const ownerThreadAfterSend = await fetchJson(`/api/messages/threads/${ownerThreadId}`, {
+    headers: { Cookie: cookieHeader(ownerCookies) },
+  });
+  assert(ownerThreadAfterSend.res.ok, `owner thread post-send read failed: ${ownerThreadAfterSend.res.status}`);
+  assert(
+    ownerThreadAfterSend.json?.thread?.messageNumber?.e164 === toNumber,
+    'owner send is not bound to canonical masked number'
+  );
   report.push(`delivery.owner=${ownerDelivery}`);
 
   // Sitter outbound send (from sitter-visible thread).

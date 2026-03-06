@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getScopedDb } from '@/lib/tenancy';
 import { getRequestContext } from '@/lib/request-context';
+import { ensureThreadHasMessageNumber } from '@/lib/messaging/thread-number';
 
 const GetQuerySchema = z.object({
   orgId: z.string().min(1).optional(),
@@ -55,6 +56,13 @@ export async function GET(req: NextRequest) {
   }
 
   const db = getScopedDb({ orgId: ctx.orgId });
+  const missingLinks = await db.messageThread.findMany({
+    where: { messageNumberId: null },
+    select: { id: true },
+    take: 25,
+    orderBy: { updatedAt: 'desc' },
+  });
+  await Promise.all(missingLinks.map((t) => ensureThreadHasMessageNumber(ctx.orgId, t.id)));
   const rows = await db.messageThread.findMany({
     where,
     take: limit + 1,
@@ -183,7 +191,8 @@ export async function POST(req: NextRequest) {
         threadType: 'front_desk',
         numberClass: 'front_desk',
         scope: 'client_general',
-        status: 'active',
+        status: 'open',
+        maskedNumberE164: frontDeskNumber.e164,
       },
     });
 

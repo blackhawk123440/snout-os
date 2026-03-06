@@ -14,6 +14,7 @@
 
 import { useState } from 'react';
 import React from 'react';
+import Link from 'next/link';
 import { Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Textarea, Tooltip, Drawer, DropdownMenu, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, IconButton, Select } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
@@ -562,10 +563,24 @@ export function NumbersPageContent() {
           {isLoading ? (
             <Skeleton height={400} />
           ) : numbers.length === 0 ? (
-            <EmptyState
-              title="No numbers found"
-              description="Buy or import numbers to get started"
-            />
+            <div>
+              <EmptyState
+                title="No numbers found"
+                description="Sync Twilio numbers first, then buy/import if needed."
+              />
+              <div style={{ display: 'flex', gap: tokens.spacing[2], justifyContent: 'center', marginTop: tokens.spacing[3] }}>
+                <Link href="/messaging/twilio-setup">
+                  <Button variant="primary" size="sm">Open Twilio Setup</Button>
+                </Link>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => window.location.assign('/messaging/twilio-setup')}
+                >
+                  Run Number Sync
+                </Button>
+              </div>
+            </div>
           ) : (
             <Table
               data={numbers}

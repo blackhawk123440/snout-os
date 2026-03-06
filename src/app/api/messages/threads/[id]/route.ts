@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getScopedDb } from '@/lib/tenancy';
 import { getRequestContext } from '@/lib/request-context';
 import { assertMessagingThreadAccess, asMessagingActorRole } from '@/lib/messaging/send';
+import { ensureThreadHasMessageNumber } from '@/lib/messaging/thread-number';
 
 export async function GET(
   request: NextRequest,
@@ -23,6 +24,7 @@ export async function GET(
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  await ensureThreadHasMessageNumber(ctx.orgId, threadId);
   const db = getScopedDb({ orgId: ctx.orgId });
   const t = await db.messageThread.findUnique({
     where: { id: threadId },
