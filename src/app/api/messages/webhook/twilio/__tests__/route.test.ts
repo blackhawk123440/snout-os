@@ -11,6 +11,7 @@ vi.mock('@/lib/db', () => ({
     messageNumber: { findFirst: vi.fn() },
     messageEvent: { findFirst: vi.fn(), create: vi.fn() },
     messageThread: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
+    client: { findFirst: vi.fn(), create: vi.fn() },
   },
 }));
 
@@ -44,11 +45,14 @@ vi.mock('@/lib/messaging/providers/twilio', () => {
 describe('POST /api/messages/webhook/twilio', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (TwilioProvider as any).prototype.verifyWebhook = vi.fn(() => true);
     delete process.env.E2E_AUTH_KEY;
     delete process.env.ENABLE_E2E_AUTH;
     delete process.env.ENABLE_E2E_LOGIN;
     (getOrgIdFromNumber as any).mockResolvedValue('org_test');
     (findClientContactByPhone as any).mockResolvedValue({ clientId: 'client_1' });
+    (prisma.client.findFirst as any).mockResolvedValue(null);
+    (prisma.client.create as any).mockResolvedValue({ id: 'client_1' });
     (prisma.messageNumber.findFirst as any).mockResolvedValue({
       id: 'num_1',
       numberClass: 'front_desk',
@@ -108,6 +112,23 @@ describe('POST /api/messages/webhook/twilio', () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(200);
+    expect(prisma.messageEvent.create).toHaveBeenCalled();
+  });
+
+  it('falls back to Client.phone lookup when ClientContact is unavailable', async () => {
+    (findClientContactByPhone as any).mockResolvedValue(null);
+    (prisma.client.findFirst as any).mockResolvedValue({ id: 'client_1' });
+    const req = new NextRequest('https://example.com/api/messages/webhook/twilio', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'x-twilio-signature': 'sig',
+      },
+      body: 'From=%2B15550001111&To=%2B15550002222&Body=Inbound+hello&MessageSid=SM_FALLBACK',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(prisma.client.create).not.toHaveBeenCalled();
     expect(prisma.messageEvent.create).toHaveBeenCalled();
   });
 });

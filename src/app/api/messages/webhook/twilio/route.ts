@@ -96,6 +96,13 @@ export async function POST(request: NextRequest) {
     const existingContact = await findClientContactByPhone(orgId, from);
     let clientId = existingContact?.clientId ?? null;
     if (!clientId) {
+      const existingClient = await prisma.client.findFirst({
+        where: { orgId, phone: from },
+        select: { id: true },
+      });
+      clientId = existingClient?.id ?? null;
+    }
+    if (!clientId) {
       const guest = await (prisma as any).client.create({
         data: {
           orgId,
