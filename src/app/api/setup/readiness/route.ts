@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       });
       if (numbers.length > 0) {
         const frontDesk = await (prisma as any).messageNumber.findFirst({
-          where: { orgId, class: 'front_desk', status: 'active' },
+          where: { orgId, numberClass: 'front_desk', status: 'active' },
         });
         if (frontDesk) {
           numbersReady = true;

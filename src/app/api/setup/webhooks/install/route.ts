@@ -169,14 +169,16 @@ export async function POST(request: NextRequest) {
           create: {
             orgId,
             e164,
-            class: numberClass,
+            numberClass,
             status: 'active',
-            providerType: 'twilio',
+            provider: 'twilio',
             providerNumberSid: u.phoneNumberSid,
           },
           update: {
             orgId,
             status: 'active',
+            numberClass,
+            provider: 'twilio',
             providerNumberSid: u.phoneNumberSid,
           },
         });
