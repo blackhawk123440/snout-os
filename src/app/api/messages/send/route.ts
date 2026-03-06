@@ -2,84 +2,53 @@
  * Send Message Route
  * 
  * POST /api/messages/send
- * Proxies to NestJS API to send a message.
+ * Legacy compatibility endpoint. Uses canonical send service.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { mintApiJWT } from '@/lib/api/jwt';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { getRequestContext } from '@/lib/request-context';
+import { sendThreadMessage, asMessagingActorRole } from '@/lib/messaging/send';
 
 export async function POST(request: NextRequest) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
-  }
-
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
-  let apiToken: string;
+  let ctx;
   try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
+    ctx = await getRequestContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const body = await request.json();
-    
-    // Transform request body to match API schema
-    // API expects: { threadId, body, forceSend? }
-    // Frontend may send: { threadId, text } or { threadId, body }
-    const apiBody = {
-      threadId: body.threadId,
-      body: body.body || body.text || '',
-      forceSend: body.forceSend || false,
-    };
-
-    const response = await fetch(`${API_BASE_URL}/api/messages/send`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiToken}`,
-        'Content-Type': 'application/json',
+    const threadId = String(body.threadId ?? '');
+    const messageBody = String(body.body ?? body.text ?? '').trim();
+    if (!threadId || !messageBody) {
+      return NextResponse.json({ error: 'threadId and body are required' }, { status: 400 });
+    }
+    const role = asMessagingActorRole(ctx.role);
+    if (!role) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const result = await sendThreadMessage({
+      orgId: ctx.orgId,
+      threadId,
+      actor: {
+        role,
+        userId: ctx.userId,
+        sitterId: ctx.sitterId,
+        clientId: ctx.clientId,
       },
-      body: JSON.stringify(apiBody),
+      body: messageBody,
+      forceSend: Boolean(body.forceSend),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    if (result.deliveryStatus === 'failed') {
       return NextResponse.json(
-        { error: errorData.error || 'Failed to send message' },
-        { status: response.status }
+        { messageId: result.event.id, error: result.providerErrorMessage, errorCode: result.providerErrorCode },
+        { status: 500 }
       );
     }
-
-    const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json({ messageId: result.event.id, providerMessageSid: result.providerMessageSid });
   } catch (error: any) {
-    console.error('[BFF Proxy] Error sending message:', error);
+    console.error('[messages/send] Error sending message:', error);
     return NextResponse.json(
-      { error: 'Failed to send message' },
+      { error: 'Failed to send message', message: error.message },
       { status: 500 }
     );
   }

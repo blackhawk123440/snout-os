@@ -15,6 +15,7 @@ import { getDefaultOrgId } from './org-helpers';
 import { logEvent } from '../event-logger';
 import { findOrCreateOwnerInboxThread } from './owner-inbox-routing';
 import { env } from '@/lib/env';
+import { sendDirectMessage } from './send';
 
 /**
  * Handle pool number routing mismatch
@@ -29,7 +30,7 @@ export async function handlePoolNumberMismatch(
   messageNumberId: string,
   inboundMessage: InboundMessage,
   orgId: string,
-  provider: MessagingProvider
+  _provider: MessagingProvider
 ): Promise<{
   ownerThreadId: string;
   autoResponseSent: boolean;
@@ -67,28 +68,17 @@ export async function handlePoolNumberMismatch(
 
     if (messageNumber && messageNumber.providerNumberSid) {
       // Send auto-response from the pool number (or front desk number)
-      const responseResult = await provider.sendMessage({
-        to: inboundMessage.from,
+      const responseResult = await sendDirectMessage({
+        orgId,
+        actor: { role: 'system' },
+        toE164: inboundMessage.from,
+        fromE164: messageNumber.e164 ?? undefined,
         body: autoResponseText,
-        fromNumberSid: messageNumber.providerNumberSid,
+        threadId: ownerThread.id,
       });
 
       if (responseResult.success) {
         autoResponseSent = true;
-
-        // Create outbound message for the auto-response
-        await (prisma as any).message.create({
-          data: {
-            threadId: ownerThread.id,
-            orgId,
-            direction: 'outbound',
-            senderType: 'system', // Message model uses senderType, not actorType
-            providerMessageSid: responseResult.messageSid || undefined,
-            body: autoResponseText,
-            // Note: Message model doesn't have deliveryStatus or metadataJson fields
-            createdAt: new Date(),
-          },
-        });
       }
     }
   } catch (error) {
@@ -152,7 +142,7 @@ async function getPoolMismatchAutoResponse(orgId: string): Promise<string> {
   const frontDeskNumber = await (prisma as any).messageNumber.findFirst({
     where: {
       orgId,
-      class: 'front_desk',
+      numberClass: 'front_desk',
       status: 'active',
     },
   });

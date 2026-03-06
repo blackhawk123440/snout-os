@@ -9,9 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { chooseFromNumber } from '@/lib/messaging/choose-from-number';
 import { createClientContact, findClientContactByPhone } from '@/lib/messaging/client-contact-lookup';
-import { getMessagingProvider } from '@/lib/messaging/provider-factory';
+import { sendThreadMessage } from '@/lib/messaging/send';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -54,7 +53,12 @@ export async function POST(request: NextRequest) {
       clientId = existing.clientId;
     } else {
       const guestClient = await (prisma as any).client.create({
-        data: { orgId, name: `Test (${normalizedPhone})` },
+        data: {
+          orgId,
+          firstName: 'Test',
+          lastName: normalizedPhone,
+          phone: normalizedPhone,
+        },
       });
       clientId = guestClient.id;
       await createClientContact({
@@ -68,21 +72,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Find or create thread
-    let thread = await (prisma as any).thread.findUnique({
+    let thread = await prisma.messageThread.findFirst({
       where: {
-        orgId_clientId: {
-          orgId,
-          clientId,
-        },
+        orgId,
+        clientId,
+        status: { notIn: ['closed', 'archived'] },
       },
+      orderBy: { lastMessageAt: 'desc' },
+      select: { id: true },
     });
 
     if (!thread) {
       // Get number based on fromClass
-      const messageNumber = await (prisma as any).messageNumber.findFirst({
+      const messageNumber = await prisma.messageNumber.findFirst({
         where: {
           orgId,
-          class: body.fromClass,
+          numberClass: body.fromClass,
           status: 'active',
         },
       });
@@ -94,89 +99,47 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      thread = await (prisma as any).thread.create({
+      thread = await prisma.messageThread.create({
         data: {
           orgId,
           clientId,
-          numberId: messageNumber.id,
+          messageNumberId: messageNumber.id,
           threadType: body.fromClass === 'sitter' ? 'assignment' : 'front_desk',
-          status: 'active',
-          participants: {
-            create: [
-              { participantType: 'client', participantId: clientId },
-            ],
-          },
+          status: 'open',
+          scope: body.fromClass === 'sitter' ? 'client_booking' : 'client_general',
+          numberClass: messageNumber.numberClass,
+          maskedNumberE164: messageNumber.e164,
         },
+        select: { id: true },
       });
     }
 
-    // Choose from number (will use thread's default or active window)
-    const routingResult = await chooseFromNumber(thread.id, orgId);
-    
-    console.log('[Test SMS] Routing decision', {
+    const result = await sendThreadMessage({
       orgId,
       threadId: thread.id,
-      chosenNumberId: routingResult.numberId,
-      chosenE164: routingResult.e164,
-      numberClass: routingResult.numberClass,
-      requestedFromClass: body.fromClass,
-    });
-
-    // Send via provider
-    const provider = await getMessagingProvider(orgId);
-    const sendResult = await provider.sendMessage({
-      to: normalizedPhone,
-      fromE164: routingResult.e164,
+      actor: {
+        role: 'owner',
+        userId: user.id || user.email || 'system',
+      },
       body: 'Test SMS from Snout OS messaging system',
     });
-    
-    console.log('[Test SMS] Send result', {
-      success: sendResult.success,
-      messageSid: sendResult.messageSid,
-      errorCode: sendResult.errorCode,
-      errorMessage: sendResult.errorMessage,
-    });
 
-    if (!sendResult.success) {
+    if (result.deliveryStatus === 'failed') {
       return NextResponse.json({
         success: false,
         messageSid: null,
-        error: sendResult.errorMessage || 'Failed to send SMS',
-        errorCode: sendResult.errorCode,
-        fromE164: routingResult.e164,
+        error: result.providerErrorMessage || 'Failed to send SMS',
+        errorCode: result.providerErrorCode,
+        fromE164: null,
       }, { status: 500 });
     }
 
-    // Create message record
-    const message = await (prisma as any).message.create({
-      data: {
-        orgId,
-        threadId: thread.id,
-        direction: 'outbound',
-        senderType: 'owner',
-        senderId: user.id || user.email || 'system',
-        body: 'Test SMS from Snout OS messaging system',
-        providerMessageSid: sendResult.messageSid || null,
-      },
-    });
-
-    // Create delivery record
-    await (prisma as any).messageDelivery.create({
-      data: {
-        messageId: message.id,
-        attemptNo: 1,
-        status: 'sent',
-        providerErrorCode: null,
-        providerErrorMessage: null,
-      },
-    });
-
     return NextResponse.json({
       success: true,
-      messageSid: sendResult.messageSid,
+      messageSid: result.providerMessageSid ?? null,
       error: null,
       errorCode: null,
-      fromE164: routingResult.e164,
+      fromE164: null,
     }, { status: 200 });
   } catch (error: any) {
     console.error('[Test SMS] Error:', error);

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getRequestContext } from '@/lib/request-context';
 import { ForbiddenError, requireRole, requireClientContext } from '@/lib/rbac';
 import { whereOrg } from '@/lib/org-scope';
+import { sendThreadMessage } from '@/lib/messaging/send';
 
 export async function GET(
   _request: NextRequest,
@@ -119,30 +120,24 @@ export async function POST(
       return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
     }
 
-    const event = await (prisma as any).messageEvent.create({
-      data: {
-        threadId: id,
-        orgId: ctx.orgId,
-        direction: 'outbound',
-        actorType: 'client',
-        actorClientId: ctx.clientId,
-        body: messageBody,
-        deliveryStatus: 'sent',
+    const result = await sendThreadMessage({
+      orgId: ctx.orgId,
+      threadId: id,
+      actor: {
+        role: 'client',
+        userId: ctx.userId,
+        clientId: ctx.clientId,
       },
-    });
-
-    await (prisma as any).messageThread.update({
-      where: { id },
-      data: { lastMessageAt: new Date(), lastOutboundAt: new Date() },
+      body: messageBody,
     });
 
     const toIso = (d: Date) => (d instanceof Date ? d.toISOString() : String(d));
     return NextResponse.json({
-      id: event.id,
-      body: event.body,
-      direction: event.direction,
-      actorType: event.actorType,
-      createdAt: toIso(event.createdAt),
+      id: result.event.id,
+      body: result.event.body,
+      direction: result.event.direction,
+      actorType: result.event.actorType,
+      createdAt: toIso(result.event.createdAt),
       isFromClient: true,
     });
   } catch (error: unknown) {

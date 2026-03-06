@@ -16,6 +16,7 @@ import {
 import { findOrCreateOwnerInboxThread, routeToOwnerInbox } from './owner-inbox-routing';
 import { logEvent } from '../event-logger';
 import { getDefaultOrgId } from './org-helpers';
+import { sendDirectMessage } from './send';
 
 export interface BlockedMessageResult {
   wasBlocked: boolean;
@@ -134,9 +135,12 @@ export async function blockAntiPoachingMessage(params: {
       if (params.inboundMessage) {
         // For inbound: send auto-response
         // Note: Provider will use default from number (the number they sent to)
-        const result = await params.provider.sendMessage({
-          to: params.inboundMessage.from,
+        const result = await sendDirectMessage({
+          orgId,
+          actor: { role: 'system' },
+          toE164: params.inboundMessage.from,
           body: warningMessage,
+          threadId,
         });
         warningSent = result.success;
       } else if (params.senderE164) {
@@ -149,9 +153,12 @@ export async function blockAntiPoachingMessage(params: {
 
         if (thread?.messageNumber?.e164) {
           // Note: Provider will use default from number
-          const result = await params.provider.sendMessage({
-            to: params.senderE164,
+          const result = await sendDirectMessage({
+            orgId,
+            actor: { role: 'system' },
+            toE164: params.senderE164,
             body: warningMessage,
+            threadId,
           });
           warningSent = result.success;
         }

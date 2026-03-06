@@ -1,298 +1,179 @@
 /**
- * Twilio Inbound Webhook
- * 
+ * Canonical Twilio inbound webhook.
  * POST /api/messages/webhook/twilio
- * 
- * Handles inbound SMS from Twilio with proper signature validation and thread resolution.
- * This is the endpoint configured in Twilio webhook settings.
  */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/db';
-import { createClientContact, findClientContactByPhone } from '@/lib/messaging/client-contact-lookup';
-import { TwilioProvider } from '@/lib/messaging/providers/twilio';
-import { getOrgIdFromNumber } from '@/lib/messaging/number-org-mapping';
-import { normalizeE164 } from '@/lib/messaging/phone-utils';
 import { env } from '@/lib/env';
+import { publish, channels } from '@/lib/realtime/bus';
+import { logEvent } from '@/lib/log-event';
+import { TwilioProvider } from '@/lib/messaging/providers/twilio';
+import { normalizeE164 } from '@/lib/messaging/phone-utils';
+import { getOrgIdFromNumber } from '@/lib/messaging/number-org-mapping';
+import { createClientContact, findClientContactByPhone } from '@/lib/messaging/client-contact-lookup';
+
+function twimlOk() {
+  return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
+    status: 200,
+    headers: { 'Content-Type': 'text/xml' },
+  });
+}
 
 export async function POST(request: NextRequest) {
-  let messageSid: string = '';
-  let from: string = '';
-  let to: string = '';
-  let messageBody: string = '';
-  let rawBody: string = '';
-
+  let messageSid = '';
+  let from = '';
+  let to = '';
   try {
-    // Get raw body for signature verification
-    rawBody = await request.text();
+    const rawBody = await request.text();
     const body = new URLSearchParams(rawBody);
-    
-    // Parse Twilio payload
     messageSid = body.get('MessageSid') || '';
-    from = body.get('From') || '';
-    to = body.get('To') || '';
-    messageBody = body.get('Body') || '';
+    from = normalizeE164(body.get('From') || '');
+    to = normalizeE164(body.get('To') || '');
+    const messageBody = (body.get('Body') || '').trim();
 
-    // Log inbound webhook
-    console.log('[Inbound Webhook] Received', {
-      messageSid,
-      from,
-      to,
-      bodyLength: messageBody.length,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Verify webhook signature
     const signature = request.headers.get('X-Twilio-Signature') || '';
-    // CRITICAL: Use exact webhook URL that Twilio has configured
-    // This must match exactly what's in Twilio console
-    const webhookUrl = env.TWILIO_WEBHOOK_URL || 
-      `${request.nextUrl.origin}/api/messages/webhook/twilio`;
-    
-    // Create provider - orgId will be resolved below
-    const provider = new TwilioProvider(undefined, undefined);
+    const webhookUrl = env.TWILIO_WEBHOOK_URL || `${request.nextUrl.origin}/api/messages/webhook/twilio`;
+    const provider = new TwilioProvider();
     const isValid = provider.verifyWebhook(rawBody, signature, webhookUrl);
-
-    // Log signature validation result
-    console.log('[Inbound Webhook] Signature validation', {
-      messageSid,
-      from,
-      to,
-      webhookUrl,
-      signatureValid: isValid,
-      hasSignature: !!signature,
-    });
-
     if (!isValid) {
-      console.error('[Inbound Webhook] Invalid signature', {
-        messageSid,
-        from,
-        to,
-        webhookUrl,
-        signatureLength: signature.length,
-        // Don't log full signature for security
+      await logEvent({
+        orgId: 'unknown',
+        action: 'message.webhook.invalid_signature',
+        entityType: 'webhook',
+        metadata: { from, to, messageSid },
       });
-      
-      // Return 200 to prevent Twilio retries, but log error
-      return NextResponse.json(
-        { received: false, error: 'Invalid signature' },
-        { status: 200 }
-      );
+      return twimlOk();
     }
 
-    // Get orgId from "to" number
     let orgId: string;
     try {
       orgId = await getOrgIdFromNumber(to);
-      console.log('[Inbound Webhook] Resolved orgId', {
-        to,
-        orgId,
-        messageSid,
+    } catch {
+      await logEvent({
+        orgId: 'unknown',
+        action: 'message.webhook.org_unresolved',
+        entityType: 'webhook',
+        metadata: { from, to, messageSid },
       });
-    } catch (error: any) {
-      console.error('[Inbound Webhook] Failed to resolve orgId', {
-        to,
-        error: error.message,
-        messageSid,
-      });
-      
-      return NextResponse.json(
-        { received: false, error: 'Failed to resolve organization' },
-        { status: 200 } // Return 200 to prevent retries
-      );
+      return twimlOk();
     }
 
-    // Find the message number (To number); normalize E.164 so sitter/masked numbers match
-    const toNorm = normalizeE164(to);
-    const messageNumber = await (prisma as any).messageNumber.findFirst({
+    const messageNumber = await prisma.messageNumber.findFirst({
       where: {
         orgId,
-        OR: [{ e164: toNorm }, { e164: to }],
         status: 'active',
+        OR: [{ e164: to }, { e164: body.get('To') || '' }],
       },
+      select: { id: true, numberClass: true, assignedSitterId: true },
     });
-
     if (!messageNumber) {
-      console.error('[Inbound Webhook] Number not found', {
-        to,
+      await logEvent({
         orgId,
-        messageSid,
+        action: 'message.webhook.number_not_found',
+        entityType: 'webhook',
+        metadata: { from, to, messageSid },
       });
-      
-      return NextResponse.json(
-        { received: false, error: 'Number not found' },
-        { status: 200 }
-      );
+      return twimlOk();
     }
 
-    // Find client contact by From number (raw SQL to avoid ClientContact.orgld bug)
-    const existingContact = await findClientContactByPhone(orgId, from);
-    let client: { id: string };
+    const existing = messageSid
+      ? await prisma.messageEvent.findFirst({
+          where: { orgId, providerMessageSid: messageSid },
+          select: { id: true, threadId: true },
+        })
+      : null;
+    if (existing) return twimlOk();
 
-    if (!existingContact) {
-      console.warn('[Inbound Webhook] Client contact not found - creating guest', {
-        from,
-        orgId,
-        messageSid,
+    const existingContact = await findClientContactByPhone(orgId, from);
+    let clientId = existingContact?.clientId ?? null;
+    if (!clientId) {
+      const guest = await (prisma as any).client.create({
+        data: {
+          orgId,
+          firstName: 'Guest',
+          lastName: from,
+          phone: from,
+        },
       });
-      const guestClient = await (prisma as any).client.create({
-        data: { orgId, name: `Guest (${from})` },
-      });
+      clientId = guest.id;
       await createClientContact({
         id: randomUUID(),
         orgId,
-        clientId: guestClient.id,
+        clientId: guest.id,
         e164: from,
         label: 'Mobile',
         verified: false,
       });
-      client = guestClient;
-    } else {
-      const fetched = await (prisma as any).client.findUnique({
-        where: { id: existingContact.clientId },
-      });
-      if (!fetched) throw new Error(`Client ${existingContact.clientId} not found`);
-      client = fetched;
     }
+    if (!clientId) return twimlOk();
 
-    // Find or create thread
-
-    // Find thread (one per org+client)
-    let thread = await (prisma as any).thread.findUnique({
+    let thread = await prisma.messageThread.findFirst({
       where: {
-        orgId_clientId: {
-          orgId,
-          clientId: client.id,
-        },
+        orgId,
+        clientId,
+        messageNumberId: messageNumber.id,
+        status: { notIn: ['closed', 'archived'] },
       },
+      select: { id: true },
+      orderBy: { lastMessageAt: 'desc' },
     });
-
     if (!thread) {
-      // Create new thread
-      thread = await (prisma as any).thread.create({
+      thread = await prisma.messageThread.create({
         data: {
           orgId,
-          clientId: client.id,
-          numberId: messageNumber.id,
-          threadType: messageNumber.class === 'sitter' ? 'assignment' : 'front_desk',
-          status: 'active',
-          participants: {
-            create: [
-              { participantType: 'client', participantId: client.id },
-            ],
-          },
+          clientId,
+          assignedSitterId: messageNumber.assignedSitterId,
+          status: 'open',
+          scope: messageNumber.numberClass === 'sitter' ? 'client_booking' : 'client_general',
+          threadType: messageNumber.numberClass === 'sitter' ? 'assignment' : 'front_desk',
+          numberClass: messageNumber.numberClass,
+          messageNumberId: messageNumber.id,
+          maskedNumberE164: to,
         },
-      });
-
-      console.log('[Inbound Webhook] Created new thread', {
-        threadId: thread.id,
-        orgId,
-        clientId: client.id,
-        messageSid,
+        select: { id: true },
       });
     }
 
-    // Check for duplicate message (idempotency)
-    const existingMessage = await (prisma as any).message.findUnique({
-      where: {
-        providerMessageSid: messageSid,
-      },
-    });
-
-    if (existingMessage) {
-      console.log('[Inbound Webhook] Duplicate message - already processed', {
-        messageSid,
-        existingMessageId: existingMessage.id,
-      });
-      
-      return NextResponse.json({
-        received: true,
-        messageId: existingMessage.id,
-        threadId: existingMessage.threadId,
-        duplicate: true,
-      }, { status: 200 });
-    }
-
-    // Create inbound message
-    const message = await (prisma as any).message.create({
+    const created = await prisma.messageEvent.create({
       data: {
-        orgId,
         threadId: thread.id,
+        orgId,
         direction: 'inbound',
-        senderType: 'client',
-        senderId: client.id,
+        actorType: 'client',
+        actorClientId: clientId,
+        providerMessageSid: messageSid || null,
         body: messageBody,
-        providerMessageSid: messageSid,
+        deliveryStatus: 'received',
       },
+      select: { id: true },
     });
 
-    // Update thread activity
-    await (prisma as any).thread.update({
+    await prisma.messageThread.update({
       where: { id: thread.id },
       data: {
-        lastActivityAt: new Date(),
+        lastMessageAt: new Date(),
+        lastInboundAt: new Date(),
+        ownerUnreadCount: { increment: 1 },
       },
     });
 
-    // Log thread resolution path
-    console.log('[Inbound Webhook] Thread resolution', {
-      toE164: to,
-      fromE164: from,
+    await publish(channels.messagesThread(orgId, thread.id), {
+      type: 'message.new',
       threadId: thread.id,
+      messageId: created.id,
+      ts: Date.now(),
+    }).catch(() => {});
+    await logEvent({
       orgId,
-      clientId: client.id,
-      messageSid,
-      resolutionPath: `by (toE164=${to} masked number + fromE164=${from} sender) → threadId=${thread.id}`,
+      action: 'message.inbound_received',
+      entityType: 'thread',
+      entityId: thread.id,
+      metadata: { from, to, messageSid, messageId: created.id },
     });
-
-    console.log('[Inbound Webhook] Message stored successfully', {
-      messageId: message.id,
-      threadId: thread.id,
-      orgId,
-      clientId: client.id,
-      fromE164: from,
-      toE164: to,
-      messageSid,
-      signatureValid: true, // Already validated above
-    });
-
-    // Store webhook event for diagnostics (if table exists)
-    try {
-      // Note: We don't have a WebhookEvent table yet, so we'll log to console for now
-      // In production, this would be stored in a dedicated table
-      console.log('[Inbound Webhook] Event logged', {
-        messageSid,
-        fromE164: from,
-        toE164: to,
-        signatureValid: true,
-        orgId,
-        threadId: thread.id,
-        createdAt: new Date().toISOString(),
-      });
-    } catch (error) {
-      // Ignore - webhook event logging is optional
-    }
-
-    return NextResponse.json({
-      received: true,
-      messageId: message.id,
-      threadId: thread.id,
-    }, { status: 200 });
-
+    return twimlOk();
   } catch (error: any) {
-    console.error('[Inbound Webhook] Unexpected error', {
-      error: error.message,
-      stack: error.stack,
-      messageSid,
-      from,
-      to,
-    });
-    
-    // Return 200 to prevent Twilio retries
-    return NextResponse.json(
-      { received: false, error: 'Internal server error' },
-      { status: 200 }
-    );
+    console.error('[Messaging Webhook] Unexpected error:', error?.message || error);
+    return twimlOk();
   }
 }
