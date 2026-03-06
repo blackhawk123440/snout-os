@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { getScopedDb } from '@/lib/tenancy';
 import { getRequestContext } from '@/lib/request-context';
 import { ensureThreadHasMessageNumber } from '@/lib/messaging/thread-number';
+import { createClientContact, findClientContactByPhone } from '@/lib/messaging/client-contact-lookup';
 
 const GetQuerySchema = z.object({
   orgId: z.string().min(1).optional(),
@@ -164,6 +166,17 @@ export async function POST(req: NextRequest) {
         phone: normalizedPhone,
       },
     });
+  }
+  const existingContact = await findClientContactByPhone(orgId, normalizedPhone);
+  if (!existingContact) {
+    await createClientContact({
+      id: randomUUID(),
+      orgId,
+      clientId: client.id,
+      e164: normalizedPhone,
+      label: 'Mobile',
+      verified: false,
+    }).catch(() => {});
   }
 
   let thread = await db.messageThread.findFirst({
