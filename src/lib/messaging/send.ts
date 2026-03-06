@@ -85,6 +85,11 @@ function actorTypeForEvent(role: MessagingActorRole): 'client' | 'sitter' | 'own
   return role;
 }
 
+function normalizeProviderErrorCode(code: unknown): string {
+  if (code === null || code === undefined || code === '') return 'UNKNOWN_ERROR';
+  return String(code);
+}
+
 export async function sendThreadMessage(params: {
   orgId: string;
   threadId: string;
@@ -135,7 +140,7 @@ export async function sendThreadMessage(params: {
     });
     deliveryStatus = sendResult.success ? 'sent' : 'failed';
     providerMessageSid = sendResult.messageSid ?? null;
-    providerErrorCode = sendResult.success ? null : (sendResult.errorCode ?? 'UNKNOWN_ERROR');
+    providerErrorCode = sendResult.success ? null : normalizeProviderErrorCode(sendResult.errorCode);
     providerErrorMessage = sendResult.success ? null : (sendResult.errorMessage ?? 'Failed to send message');
   }
 
@@ -250,9 +255,9 @@ export async function retryThreadMessage(params: {
     data: {
       deliveryStatus: sendResult.success ? 'sent' : 'failed',
       providerMessageSid: sendResult.messageSid ?? event.providerMessageSid,
-      failureCode: sendResult.success ? null : (sendResult.errorCode ?? 'UNKNOWN_ERROR'),
+      failureCode: sendResult.success ? null : normalizeProviderErrorCode(sendResult.errorCode),
       failureDetail: sendResult.success ? null : (sendResult.errorMessage ?? 'Retry failed'),
-      providerErrorCode: sendResult.success ? null : (sendResult.errorCode ?? 'UNKNOWN_ERROR'),
+      providerErrorCode: sendResult.success ? null : normalizeProviderErrorCode(sendResult.errorCode),
       providerErrorMessage: sendResult.success ? null : (sendResult.errorMessage ?? 'Retry failed'),
       attemptCount: attemptNo,
       lastAttemptAt: new Date(),
@@ -319,9 +324,9 @@ export async function sendDirectMessage(params: {
       body: params.body,
       deliveryStatus: sendResult.success ? 'sent' : 'failed',
       providerMessageSid: sendResult.messageSid ?? null,
-      failureCode: sendResult.success ? null : (sendResult.errorCode ?? 'UNKNOWN_ERROR'),
+      failureCode: sendResult.success ? null : normalizeProviderErrorCode(sendResult.errorCode),
       failureDetail: sendResult.success ? null : (sendResult.errorMessage ?? 'Failed to send message'),
-      providerErrorCode: sendResult.success ? null : (sendResult.errorCode ?? 'UNKNOWN_ERROR'),
+      providerErrorCode: sendResult.success ? null : normalizeProviderErrorCode(sendResult.errorCode),
       providerErrorMessage: sendResult.success ? null : (sendResult.errorMessage ?? 'Failed to send message'),
       attemptCount: 1,
       lastAttemptAt: new Date(),
