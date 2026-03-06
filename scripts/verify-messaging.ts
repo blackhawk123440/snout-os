@@ -183,6 +183,7 @@ async function run() {
     headers: {
       'content-type': 'application/x-www-form-urlencoded',
       'x-twilio-signature': 'verify-messaging',
+      'x-e2e-key': E2E_AUTH_KEY!,
     },
     body: inboundPayload,
   });

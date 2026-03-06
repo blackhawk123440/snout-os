@@ -44,6 +44,9 @@ vi.mock('@/lib/messaging/providers/twilio', () => {
 describe('POST /api/messages/webhook/twilio', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.E2E_AUTH_KEY;
+    delete process.env.ENABLE_E2E_AUTH;
+    delete process.env.ENABLE_E2E_LOGIN;
     (getOrgIdFromNumber as any).mockResolvedValue('org_test');
     (findClientContactByPhone as any).mockResolvedValue({ clientId: 'client_1' });
     (prisma.messageNumber.findFirst as any).mockResolvedValue({
@@ -88,5 +91,23 @@ describe('POST /api/messages/webhook/twilio', () => {
     const res = await POST(req);
     expect(res.status).toBe(200);
     expect(prisma.messageEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('accepts e2e bypass key when enabled', async () => {
+    (TwilioProvider as any).prototype.verifyWebhook = vi.fn(() => false);
+    process.env.ENABLE_E2E_AUTH = 'true';
+    process.env.E2E_AUTH_KEY = 'test-key';
+    const req = new NextRequest('https://example.com/api/messages/webhook/twilio', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'x-twilio-signature': 'bad',
+        'x-e2e-key': 'test-key',
+      },
+      body: 'From=%2B15550001111&To=%2B15550002222&Body=Inbound+hello&MessageSid=SM_E2E',
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(prisma.messageEvent.create).toHaveBeenCalled();
   });
 });

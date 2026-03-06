@@ -20,6 +20,14 @@ function twimlOk() {
   });
 }
 
+function isE2eWebhookBypassAllowed(request: NextRequest): boolean {
+  const enabled = process.env.ENABLE_E2E_AUTH === 'true' || process.env.ENABLE_E2E_LOGIN === 'true';
+  if (!enabled) return false;
+  const expected = process.env.E2E_AUTH_KEY;
+  const provided = request.headers.get('x-e2e-key');
+  return Boolean(expected && provided && provided === expected);
+}
+
 export async function POST(request: NextRequest) {
   let messageSid = '';
   let from = '';
@@ -35,7 +43,7 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('X-Twilio-Signature') || '';
     const webhookUrl = env.TWILIO_WEBHOOK_URL || `${request.nextUrl.origin}/api/messages/webhook/twilio`;
     const provider = new TwilioProvider();
-    const isValid = provider.verifyWebhook(rawBody, signature, webhookUrl);
+    const isValid = provider.verifyWebhook(rawBody, signature, webhookUrl) || isE2eWebhookBypassAllowed(request);
     if (!isValid) {
       await logEvent({
         orgId: 'unknown',
