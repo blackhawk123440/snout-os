@@ -141,113 +141,121 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Owner/admin access required' }, { status: 403 });
   }
   const orgId = ctx.orgId;
-  let body: unknown;
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
-  }
-  const parsed = PostBodySchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
-
-  const { phoneNumber, initialMessage } = parsed.data;
-  const normalizedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
-
-  const db = getScopedDb({ orgId });
-  let client = await db.client.findFirst({
-    where: { phone: normalizedPhone },
-  });
-
-  if (!client) {
-    client = await db.client.create({
-      data: {
-        firstName: 'Guest',
-        lastName: normalizedPhone,
-        phone: normalizedPhone,
-      },
-    });
-  }
-  const existingContact = await findClientContactByPhone(orgId, normalizedPhone);
-  if (!existingContact) {
-    await createClientContact({
-      id: randomUUID(),
-      orgId,
-      clientId: client.id,
-      e164: normalizedPhone,
-      label: 'Mobile',
-      verified: false,
-    }).catch(() => {});
-  }
-
-  let thread = await db.messageThread.findFirst({
-    where: { clientId: client.id },
-  });
-  const reused = !!thread;
-
-  if (!thread) {
-    const frontDeskNumber = await db.messageNumber.findFirst({
-      where: { numberClass: 'front_desk', status: 'active' },
-    });
-
-    if (!frontDeskNumber) {
-      return NextResponse.json(
-        { error: 'Front desk number not configured. Please set up messaging numbers first.' },
-        { status: 400 }
-      );
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
     }
+    const parsed = PostBodySchema.safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
 
-    thread = await db.messageThread.create({
-      data: {
+    const { phoneNumber, initialMessage } = parsed.data;
+    const normalizedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
+
+    const db = getScopedDb({ orgId });
+    let client = await db.client.findFirst({
+      where: { phone: normalizedPhone },
+    });
+
+    if (!client) {
+      client = await db.client.create({
+        data: {
+          firstName: 'Guest',
+          lastName: normalizedPhone,
+          phone: normalizedPhone,
+        },
+      });
+    }
+    const existingContact = await findClientContactByPhone(orgId, normalizedPhone);
+    if (!existingContact) {
+      await createClientContact({
+        id: randomUUID(),
         orgId,
         clientId: client.id,
-        messageNumberId: frontDeskNumber.id,
-        threadType: 'front_desk',
-        numberClass: 'front_desk',
-        scope: 'client_general',
-        status: 'open',
-        maskedNumberE164: frontDeskNumber.e164,
-      },
-    });
-
-    const clientName = `${client.firstName} ${client.lastName}`.trim() || 'Client';
-    const userId = ctx.userId ?? null;
-    await db.messageParticipant.createMany({
-      data: [
-        {
-          threadId: thread.id,
-          orgId,
-          role: 'client',
-          clientId: client.id,
-          displayName: clientName,
-          realE164: normalizedPhone,
-        },
-        {
-          threadId: thread.id,
-          orgId,
-          role: 'owner',
-          userId,
-          displayName: 'Owner',
-          realE164: frontDeskNumber.e164,
-        },
-      ],
-    });
-  }
-
-  if (initialMessage) {
-    try {
-      const sendRes = await fetch(`${req.nextUrl.origin}/api/messages/threads/${thread.id}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Cookie': req.headers.get('Cookie') ?? '' },
-        body: JSON.stringify({ body: initialMessage, forceSend: false }),
-      });
-      if (!sendRes.ok) console.error('[Thread Creation] Failed to send initial message:', await sendRes.text());
-    } catch (err) {
-      console.error('[Thread Creation] Error sending initial message:', err);
+        e164: normalizedPhone,
+        label: 'Mobile',
+        verified: false,
+      }).catch(() => {});
     }
-  }
 
-  return NextResponse.json(
-    { threadId: thread.id, clientId: client.id, reused },
-    { status: 200, headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': orgId } }
-  );
+    let thread = await db.messageThread.findFirst({
+      where: { clientId: client.id },
+    });
+    const reused = !!thread;
+
+    if (!thread) {
+      const frontDeskNumber = await db.messageNumber.findFirst({
+        where: { numberClass: 'front_desk', status: 'active' },
+      });
+
+      if (!frontDeskNumber) {
+        return NextResponse.json(
+          { error: 'Front desk number not configured. Please set up messaging numbers first.' },
+          { status: 400 }
+        );
+      }
+
+      thread = await db.messageThread.create({
+        data: {
+          orgId,
+          clientId: client.id,
+          messageNumberId: frontDeskNumber.id,
+          threadType: 'front_desk',
+          numberClass: 'front_desk',
+          scope: 'client_general',
+          status: 'open',
+          maskedNumberE164: frontDeskNumber.e164,
+        },
+      });
+
+      const clientName = `${client.firstName} ${client.lastName}`.trim() || 'Client';
+      const userId = ctx.userId ?? null;
+      await db.messageParticipant.createMany({
+        data: [
+          {
+            threadId: thread.id,
+            orgId,
+            role: 'client',
+            clientId: client.id,
+            displayName: clientName,
+            realE164: normalizedPhone,
+          },
+          {
+            threadId: thread.id,
+            orgId,
+            role: 'owner',
+            userId,
+            displayName: 'Owner',
+            realE164: frontDeskNumber.e164,
+          },
+        ],
+      });
+    }
+
+    if (initialMessage) {
+      try {
+        const sendRes = await fetch(`${req.nextUrl.origin}/api/messages/threads/${thread.id}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Cookie': req.headers.get('Cookie') ?? '' },
+          body: JSON.stringify({ body: initialMessage, forceSend: false }),
+        });
+        if (!sendRes.ok) console.error('[Thread Creation] Failed to send initial message:', await sendRes.text());
+      } catch (err) {
+        console.error('[Thread Creation] Error sending initial message:', err);
+      }
+    }
+
+    return NextResponse.json(
+      { threadId: thread.id, clientId: client.id, reused },
+      { status: 200, headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': orgId } }
+    );
+  } catch (error: any) {
+    console.error('[Messages Threads POST] Unexpected error:', error);
+    return NextResponse.json(
+      { error: 'Failed to create thread', details: error?.message ?? 'Unknown error' },
+      { status: 500 }
+    );
+  }
 }
