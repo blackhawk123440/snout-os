@@ -14,6 +14,11 @@ export type ClientContactRow = {
   verified: boolean;
 };
 
+function isMissingClientContactTable(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('42P01') || message.includes('"ClientContact"');
+}
+
 /**
  * Find a ClientContact by orgId and e164. Uses $queryRawUnsafe so Prisma never
  * rewrites column names (generated client can reference "orgld" instead of "orgId").
@@ -22,12 +27,19 @@ export async function findClientContactByPhone(
   orgId: string,
   e164: string
 ): Promise<ClientContactRow | null> {
-  const rows = await prisma.$queryRawUnsafe<ClientContactRow[]>(
-    'SELECT id, "orgId", "clientId", e164, label, verified FROM "ClientContact" WHERE "orgId" = $1 AND e164 = $2 LIMIT 1',
-    orgId,
-    e164
-  );
-  return rows[0] ?? null;
+  try {
+    const rows = await prisma.$queryRawUnsafe<ClientContactRow[]>(
+      'SELECT id, "orgId", "clientId", e164, label, verified FROM "ClientContact" WHERE "orgId" = $1 AND e164 = $2 LIMIT 1',
+      orgId,
+      e164
+    );
+    return rows[0] ?? null;
+  } catch (error) {
+    if (isMissingClientContactTable(error)) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 /**
@@ -38,13 +50,19 @@ export async function getClientE164ForClient(
   orgId: string,
   clientId: string
 ): Promise<string | null> {
-  const rows = await prisma.$queryRawUnsafe<{ e164: string }[]>(
-    'SELECT e164 FROM "ClientContact" WHERE "orgId" = $1 AND "clientId" = $2 LIMIT 1',
-    orgId,
-    clientId
-  );
-  const fromContact = rows[0]?.e164;
-  if (fromContact) return fromContact;
+  try {
+    const rows = await prisma.$queryRawUnsafe<{ e164: string }[]>(
+      'SELECT e164 FROM "ClientContact" WHERE "orgId" = $1 AND "clientId" = $2 LIMIT 1',
+      orgId,
+      clientId
+    );
+    const fromContact = rows[0]?.e164;
+    if (fromContact) return fromContact;
+  } catch (error) {
+    if (!isMissingClientContactTable(error)) {
+      throw error;
+    }
+  }
 
   const client = await prisma.client.findFirst({
     where: { id: clientId, orgId },
@@ -70,13 +88,20 @@ export async function createClientContact(params: {
   verified?: boolean;
 }): Promise<void> {
   const { id, orgId, clientId, e164, label = 'Mobile', verified = false } = params;
-  await prisma.$executeRawUnsafe(
-    'INSERT INTO "ClientContact" (id, "orgId", "clientId", e164, label, verified, "createdAt") VALUES ($1, $2, $3, $4, $5, $6, NOW())',
-    id,
-    orgId,
-    clientId,
-    e164,
-    label,
-    verified
-  );
+  try {
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "ClientContact" (id, "orgId", "clientId", e164, label, verified, "createdAt") VALUES ($1, $2, $3, $4, $5, $6, NOW())',
+      id,
+      orgId,
+      clientId,
+      e164,
+      label,
+      verified
+    );
+  } catch (error) {
+    if (isMissingClientContactTable(error)) {
+      return;
+    }
+    throw error;
+  }
 }
