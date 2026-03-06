@@ -154,8 +154,8 @@ export async function POST(req: NextRequest) {
   const normalizedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
 
   const db = getScopedDb({ orgId });
-  let client = await db.client.findUnique({
-    where: { orgId_phone: { orgId, phone: normalizedPhone } },
+  let client = await db.client.findFirst({
+    where: { phone: normalizedPhone },
   });
 
   if (!client) {
