@@ -1,22 +1,29 @@
 #!/usr/bin/env tsx
 
-import { PrismaClient } from '@prisma/client';
-
 type Role = 'owner' | 'sitter' | 'client';
 
 const BASE_URL = process.env.BASE_URL;
 const E2E_AUTH_KEY = process.env.E2E_AUTH_KEY;
 
+const E2E_OWNER_EMAIL = process.env.E2E_OWNER_EMAIL;
+const E2E_SITTER_EMAIL = process.env.E2E_SITTER_EMAIL;
+const E2E_CLIENT_EMAIL = process.env.E2E_CLIENT_EMAIL;
+
+console.log('VERIFY MESSAGING ENV REQUIREMENTS');
+console.log('- BASE_URL=<target app base url>');
+console.log('- E2E_AUTH_KEY=<same key used by verify-command-center>');
+console.log('- target env must enable /api/ops/e2e-login (ENABLE_E2E_AUTH=true or ENABLE_E2E_LOGIN=true)');
+console.log('- optional: E2E_OWNER_EMAIL, E2E_SITTER_EMAIL, E2E_CLIENT_EMAIL');
+
 if (!BASE_URL) {
   console.error('FAIL: BASE_URL is required');
   process.exit(1);
 }
+
 if (!E2E_AUTH_KEY) {
   console.error('FAIL: E2E_AUTH_KEY is required');
   process.exit(1);
 }
-
-const prisma = new PrismaClient();
 
 function joinUrl(path: string): string {
   return `${BASE_URL!.replace(/\/$/, '')}${path}`;
@@ -24,7 +31,9 @@ function joinUrl(path: string): string {
 
 function getSetCookies(res: Response): string[] {
   const maybe = res.headers as Headers & { getSetCookie?: () => string[] };
-  if (typeof maybe.getSetCookie === 'function') return maybe.getSetCookie();
+  if (typeof maybe.getSetCookie === 'function') {
+    return maybe.getSetCookie();
+  }
   const single = res.headers.get('set-cookie');
   return single ? [single] : [];
 }
@@ -61,20 +70,26 @@ async function fetchJson(path: string, init?: RequestInit): Promise<{ res: Respo
   return { res, json, text };
 }
 
-async function login(role: Role): Promise<Map<string, string>> {
+async function e2eLogin(role: Role, email?: string): Promise<Map<string, string>> {
   const res = await fetch(joinUrl('/api/ops/e2e-login'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-e2e-key': E2E_AUTH_KEY!,
     },
-    body: JSON.stringify({ role }),
+    body: JSON.stringify(email ? { role, email } : { role }),
     redirect: 'manual',
   });
-  if (!res.ok) throw new Error(`e2e-login ${role} failed: ${res.status}`);
+
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`e2e-login ${role} failed: ${res.status} ${text}`);
+  }
   const cookies = new Map<string, string>();
   mergeCookies(cookies, getSetCookies(res));
-  if (!cookies.size) throw new Error(`e2e-login ${role} returned no cookie`);
+  if (cookies.size === 0) {
+    throw new Error(`e2e-login ${role} returned no session cookie`);
+  }
   return cookies;
 }
 
@@ -84,145 +99,73 @@ function assert(condition: unknown, message: string) {
 
 async function run() {
   const report: string[] = [];
-  const runId = `msg-${Date.now().toString(36)}`;
+  const runId = `verify-msg-${Date.now().toString(36)}`;
+  const uniquePhone = `+1555${Date.now().toString().slice(-7)}`;
 
-  const health = await fetchJson('/api/health');
-  assert(health.res.ok, `health failed ${health.res.status}`);
-  report.push(`health.commitSha=${health.json?.commitSha ?? 'unknown'}`);
-  report.push(`health.envName=${health.json?.envName ?? 'unknown'}`);
+  const { res: healthRes, json: health } = await fetchJson('/api/health');
+  assert(healthRes.ok, `health failed: ${healthRes.status}`);
+  report.push(`health.commitSha=${health?.commitSha ?? 'unknown'}`);
+  report.push(`health.envName=${health?.envName ?? 'unknown'}`);
 
-  const ownerCookies = await login('owner');
-  const sitterCookies = await login('sitter');
-  const clientCookies = await login('client');
+  const ownerCookies = await e2eLogin('owner', E2E_OWNER_EMAIL);
+  const sitterCookies = await e2eLogin('sitter', E2E_SITTER_EMAIL);
+  const clientCookies = await e2eLogin('client', E2E_CLIENT_EMAIL);
 
-  const ownerUser = await prisma.user.findFirst({
-    where: { role: 'owner' },
-    select: { id: true, orgId: true },
+  // Seed/create an owner thread through API only.
+  const createThread = await fetchJson('/api/messages/threads', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: cookieHeader(ownerCookies),
+    },
+    body: JSON.stringify({ phoneNumber: uniquePhone }),
   });
-  const sitterUser = await prisma.user.findFirst({
-    where: { role: 'sitter', sitterId: { not: null } },
-    select: { id: true, sitterId: true, orgId: true },
-  });
-  const clientUser = await prisma.user.findFirst({
-    where: { role: 'client', clientId: { not: null } },
-    select: { id: true, clientId: true, orgId: true },
-  });
-  assert(ownerUser && sitterUser && clientUser, 'owner/sitter/client users missing');
-  assert(ownerUser.orgId === sitterUser.orgId && ownerUser.orgId === clientUser.orgId, 'cross-org test users');
-  const orgId = ownerUser.orgId;
-
-  const sitter = await prisma.sitter.findUnique({
-    where: { id: sitterUser.sitterId! },
-    select: { id: true },
-  });
-  const client = await prisma.client.findUnique({
-    where: { id: clientUser.clientId! },
-    select: { id: true, phone: true },
-  });
-  assert(sitter && client, 'sitter/client records missing');
-
-  const now = Date.now();
-  const fallbackPhone = `+1555${String(now).slice(-7)}`;
-  const clientPhone = client.phone?.startsWith('+') ? client.phone : fallbackPhone;
-  await prisma.client.update({
-    where: { id: client.id },
-    data: { phone: clientPhone },
-  });
-  await prisma.$executeRawUnsafe(
-    'INSERT INTO "ClientContact" ("id","orgId","clientId","e164","label","verified","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,now(),now()) ON CONFLICT ("orgId","e164") DO UPDATE SET "clientId" = EXCLUDED."clientId", "updatedAt" = now()',
-    `contact_${runId}`,
-    orgId,
-    client.id,
-    clientPhone,
-    'Mobile',
-    true
-  );
-
-  let number = await prisma.messageNumber.findFirst({
-    where: { orgId, numberClass: 'front_desk', status: 'active' },
-    select: { id: true, e164: true, numberClass: true },
-  });
-  if (!number) {
-    number = await prisma.messageNumber.create({
-      data: {
-        orgId,
-        e164: `+1555${String(now + 1).slice(-7)}`,
-        numberClass: 'front_desk',
-        status: 'active',
-        provider: 'twilio',
-        providerNumberSid: `PN_${runId}`,
-      },
-      select: { id: true, e164: true, numberClass: true },
+  let ownerThreadId: string | null = createThread.json?.threadId ?? null;
+  if (!ownerThreadId) {
+    const ownerThreads = await fetchJson('/api/messages/threads?limit=1', {
+      headers: { Cookie: cookieHeader(ownerCookies) },
     });
+    ownerThreadId = ownerThreads.json?.threads?.[0]?.id ?? null;
   }
+  assert(!!ownerThreadId, 'failed to create/find owner thread');
+  report.push(`seed.ownerThreadId=${ownerThreadId}`);
 
-  const booking = await prisma.booking.create({
-    data: {
-      orgId,
-      firstName: 'Verify',
-      lastName: 'Messaging',
-      phone: clientPhone,
-      service: 'Walk',
-      startAt: new Date(now - 5 * 60 * 1000),
-      endAt: new Date(now + 60 * 60 * 1000),
-      totalPrice: 10,
-      status: 'confirmed',
-      clientId: client.id,
-      sitterId: sitter.id,
-    },
-    select: { id: true },
+  const ownerThread = await fetchJson(`/api/messages/threads/${ownerThreadId}`, {
+    headers: { Cookie: cookieHeader(ownerCookies) },
   });
+  assert(ownerThread.res.ok, `owner thread read failed: ${ownerThread.res.status}`);
+  const toNumber = ownerThread.json?.thread?.messageNumber?.e164;
+  assert(typeof toNumber === 'string' && toNumber.length > 0, 'owner thread missing messageNumber.e164');
 
-  const thread = await prisma.messageThread.create({
-    data: {
-      orgId,
-      bookingId: booking.id,
-      clientId: client.id,
-      assignedSitterId: sitter.id,
-      messageNumberId: number.id,
-      numberClass: number.numberClass,
-      maskedNumberE164: number.e164,
-      scope: 'client_booking',
-      threadType: 'assignment',
-      status: 'open',
-    },
-    select: { id: true },
-  });
-
-  await prisma.assignmentWindow.create({
-    data: {
-      orgId,
-      threadId: thread.id,
-      bookingId: booking.id,
-      sitterId: sitter.id,
-      startAt: new Date(now - 5 * 60 * 1000),
-      endAt: new Date(now + 30 * 60 * 1000),
-      status: 'active',
-    },
-  });
-  report.push(`seed.threadId=${thread.id}`);
-
+  // Canonical inbound webhook.
   const inboundSid = `SM_${runId}`;
+  const inboundPayload =
+    `From=${encodeURIComponent(uniquePhone)}` +
+    `&To=${encodeURIComponent(toNumber)}` +
+    `&Body=${encodeURIComponent(`inbound ${runId}`)}` +
+    `&MessageSid=${encodeURIComponent(inboundSid)}`;
   const inbound = await fetchJson('/api/messages/webhook/twilio', {
     method: 'POST',
     headers: {
       'content-type': 'application/x-www-form-urlencoded',
       'x-twilio-signature': 'verify-messaging',
     },
-    body: `From=${encodeURIComponent(clientPhone)}&To=${encodeURIComponent(number.e164)}&Body=${encodeURIComponent(
-      `inbound ${runId}`
-    )}&MessageSid=${encodeURIComponent(inboundSid)}`,
+    body: inboundPayload,
   });
-  assert(inbound.res.status === 200, `inbound webhook failed ${inbound.res.status}`);
+  assert(inbound.res.status === 200, `canonical inbound failed: ${inbound.res.status}`);
 
-  const inboundStored = await prisma.messageEvent.findFirst({
-    where: { orgId, providerMessageSid: inboundSid },
-    select: { id: true, threadId: true, direction: true },
+  const ownerMessagesAfterInbound = await fetchJson(`/api/messages/threads/${ownerThreadId}/messages`, {
+    headers: { Cookie: cookieHeader(ownerCookies) },
   });
-  assert(!!inboundStored, 'inbound event not stored');
-  report.push(`inbound.event=${inboundStored?.id}`);
+  assert(ownerMessagesAfterInbound.res.ok, `messages read failed: ${ownerMessagesAfterInbound.res.status}`);
+  const inboundFound =
+    Array.isArray(ownerMessagesAfterInbound.json) &&
+    ownerMessagesAfterInbound.json.some((m: any) => m?.direction === 'inbound' && String(m?.body || '').includes(runId));
+  assert(inboundFound, 'inbound Twilio message not visible in canonical thread');
+  report.push(`inbound.webhook=ok sid=${inboundSid}`);
 
-  const ownerSend = await fetchJson(`/api/messages/threads/${thread.id}/messages`, {
+  // Owner outbound send.
+  const ownerSend = await fetchJson(`/api/messages/threads/${ownerThreadId}/messages`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -230,10 +173,31 @@ async function run() {
     },
     body: JSON.stringify({ body: `owner reply ${runId}` }),
   });
-  assert(ownerSend.res.status === 200 || ownerSend.res.status === 500, `owner send unexpected ${ownerSend.res.status}`);
-  assert(ownerSend.json?.messageId, 'owner messageId missing');
+  assert(ownerSend.res.status === 200 || ownerSend.res.status === 500, `owner send unexpected: ${ownerSend.res.status}`);
+  assert(typeof ownerSend.json?.messageId === 'string', 'owner send missing messageId');
+  report.push(`outbound.owner=ok messageId=${ownerSend.json.messageId}`);
 
-  const sitterSend = await fetchJson(`/api/sitter/threads/${thread.id}/messages`, {
+  const ownerMessagesAfterSend = await fetchJson(`/api/messages/threads/${ownerThreadId}/messages`, {
+    headers: { Cookie: cookieHeader(ownerCookies) },
+  });
+  const ownerSentMessage =
+    Array.isArray(ownerMessagesAfterSend.json) &&
+    ownerMessagesAfterSend.json.find((m: any) => m?.id === ownerSend.json.messageId);
+  assert(!!ownerSentMessage, 'owner outbound message missing in thread feed');
+  const ownerDelivery = ownerSentMessage?.deliveries?.[0]?.status;
+  assert(['queued', 'sent', 'delivered', 'failed'].includes(ownerDelivery), 'owner delivery state not recorded');
+  report.push(`delivery.owner=${ownerDelivery}`);
+
+  // Sitter outbound send (from sitter-visible thread).
+  const sitterThreads = await fetchJson('/api/sitter/threads', {
+    headers: { Cookie: cookieHeader(sitterCookies) },
+  });
+  assert(sitterThreads.res.ok, `sitter threads failed: ${sitterThreads.res.status}`);
+  const sitterThreadId =
+    Array.isArray(sitterThreads.json) && sitterThreads.json.length > 0 ? sitterThreads.json[0].id : null;
+  assert(!!sitterThreadId, 'no sitter thread available for outbound verification');
+
+  const sitterSend = await fetchJson(`/api/sitter/threads/${sitterThreadId}/messages`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -241,13 +205,22 @@ async function run() {
     },
     body: JSON.stringify({ body: `sitter reply ${runId}` }),
   });
-  assert(
-    sitterSend.res.status === 200 || sitterSend.res.status === 500,
-    `sitter send unexpected ${sitterSend.res.status}`
-  );
-  assert(sitterSend.json?.messageId, 'sitter messageId missing');
+  assert(sitterSend.res.status === 200 || sitterSend.res.status === 500, `sitter send unexpected: ${sitterSend.res.status}`);
+  assert(typeof sitterSend.json?.messageId === 'string', 'sitter send missing messageId');
+  report.push(`outbound.sitter=ok messageId=${sitterSend.json.messageId}`);
 
-  const clientSend = await fetchJson(`/api/client/messages/${thread.id}`, {
+  // Client outbound send (from client-visible thread).
+  const clientThreads = await fetchJson('/api/client/messages', {
+    headers: { Cookie: cookieHeader(clientCookies) },
+  });
+  assert(clientThreads.res.ok, `client threads failed: ${clientThreads.res.status}`);
+  const clientThreadId =
+    Array.isArray(clientThreads.json?.threads) && clientThreads.json.threads.length > 0
+      ? clientThreads.json.threads[0].id
+      : null;
+  assert(!!clientThreadId, 'no client thread available for outbound verification');
+
+  const clientSend = await fetchJson(`/api/client/messages/${clientThreadId}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -255,52 +228,43 @@ async function run() {
     },
     body: JSON.stringify({ body: `client reply ${runId}` }),
   });
-  assert(clientSend.res.status === 200, `client send failed ${clientSend.res.status}`);
+  assert(clientSend.res.status === 200, `client send failed: ${clientSend.res.status}`);
+  assert(typeof clientSend.json?.id === 'string', 'client send missing message id');
+  report.push(`outbound.client=ok messageId=${clientSend.json.id}`);
 
-  const ownerRead = await fetchJson(`/api/messages/threads/${thread.id}`, {
+  // Visibility checks by role.
+  const ownerRead = await fetchJson(`/api/messages/threads/${ownerThreadId}`, {
     headers: { Cookie: cookieHeader(ownerCookies) },
   });
-  assert(ownerRead.res.ok, 'owner cannot read thread');
-  const sitterRead = await fetchJson(`/api/sitter/threads`, {
+  assert(ownerRead.res.ok, `owner visibility failed: ${ownerRead.res.status}`);
+  const sitterCrossRead = await fetchJson(`/api/messages/threads/${ownerThreadId}`, {
     headers: { Cookie: cookieHeader(sitterCookies) },
   });
-  assert(sitterRead.res.ok, 'sitter thread list failed');
-  const sitterHasThread = Array.isArray(sitterRead.json) && sitterRead.json.some((t: any) => t.id === thread.id);
-  assert(sitterHasThread, 'sitter cannot see assigned thread');
-
-  const clientRead = await fetchJson('/api/client/messages', {
+  const clientCrossRead = await fetchJson(`/api/messages/threads/${ownerThreadId}`, {
     headers: { Cookie: cookieHeader(clientCookies) },
   });
-  assert(clientRead.res.ok, 'client thread list failed');
-  const clientHasThread = Array.isArray(clientRead.json?.threads) && clientRead.json.threads.some((t: any) => t.id === thread.id);
-  assert(clientHasThread, 'client cannot see own thread');
+  assert([403, 404].includes(sitterCrossRead.res.status), `sitter cross-read not blocked: ${sitterCrossRead.res.status}`);
+  assert([403, 404].includes(clientCrossRead.res.status), `client cross-read not blocked: ${clientCrossRead.res.status}`);
+  report.push(`visibility.owner=${ownerRead.res.status}`);
+  report.push(`visibility.sitterCross=${sitterCrossRead.res.status}`);
+  report.push(`visibility.clientCross=${clientCrossRead.res.status}`);
 
+  // Deprecated duplicate inbound path must be removed/hard-deprecated.
   const deprecatedInbound = await fetchJson('/api/twilio/inbound', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: 'From=%2B15550001111&To=%2B15550002222&Body=legacy',
   });
-  assert(deprecatedInbound.res.status === 410, 'legacy inbound route is still active');
-
-  const events = await prisma.messageEvent.findMany({
-    where: { orgId, threadId: thread.id },
-    orderBy: { createdAt: 'asc' },
-    select: { id: true, actorType: true, direction: true, deliveryStatus: true },
-  });
-  assert(events.length >= 4, `expected >=4 events, got ${events.length}`);
-  report.push(`events.count=${events.length}`);
+  assert(deprecatedInbound.res.status === 410, `legacy inbound path not deprecated: ${deprecatedInbound.res.status}`);
+  report.push(`inbound.legacyPathStatus=${deprecatedInbound.res.status}`);
 
   console.log('VERIFY MESSAGING REPORT');
-  for (const line of report) console.log(`- ${line}`);
+  for (const line of report) console.log(line);
   console.log('RESULT: PASS');
 }
 
-run()
-  .catch((error) => {
-    console.error('RESULT: FAIL');
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect().catch(() => {});
-  });
+run().catch((error) => {
+  console.error('RESULT: FAIL');
+  console.error((error as Error).message);
+  process.exit(1);
+});

@@ -5,6 +5,7 @@ vi.mock('@/lib/db', () => ({
   prisma: {
     user: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
   },
 }));
@@ -59,5 +60,27 @@ describe('/api/ops/e2e-login', () => {
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
     expect(setCookie).toContain('session-token');
+  });
+
+  it('falls back to role-based owner lookup when default owner email is missing', async () => {
+    (prisma as any).user.findUnique.mockResolvedValueOnce(null);
+    (prisma as any).user.findFirst.mockResolvedValueOnce({
+      id: 'u9',
+      email: 'real-owner@company.test',
+      name: 'Real Owner',
+      orgId: 'default',
+      role: 'owner',
+      sitter: null,
+      client: null,
+    });
+
+    const response = await POST(makeRequest('owner'));
+    const body = await response.json();
+    const setCookie = response.headers.get('set-cookie') || '';
+
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(setCookie).toContain('session-token');
+    expect((prisma as any).user.findFirst).toHaveBeenCalled();
   });
 });

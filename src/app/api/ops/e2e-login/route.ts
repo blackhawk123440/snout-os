@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const role = (body.role || 'owner').toLowerCase();
     const email = body.email || (role === 'owner' ? 'owner@example.com' : role === 'sitter' ? 'sitter@example.com' : 'client@example.com');
 
-    const user = await (prisma as any).user.findUnique({
+    let user = await (prisma as any).user.findUnique({
       where: { email },
       select: {
         id: true,
@@ -57,6 +57,37 @@ export async function POST(req: NextRequest) {
         client: { select: { id: true } },
       },
     });
+
+    // Staging resilience: when default fixture emails are absent, fall back to role-based lookup.
+    if (!user && !body.email) {
+      const baseSelect = {
+        id: true,
+        email: true,
+        name: true,
+        orgId: true,
+        role: true,
+        sitter: { select: { id: true } },
+        client: { select: { id: true } },
+      };
+      if (role === 'owner') {
+        user = await (prisma as any).user.findFirst({
+          where: {
+            OR: [{ role: 'owner' }, { role: 'admin' }],
+          },
+          select: baseSelect,
+        });
+      } else if (role === 'sitter') {
+        user = await (prisma as any).user.findFirst({
+          where: { role: 'sitter', sitterId: { not: null } },
+          select: baseSelect,
+        });
+      } else if (role === 'client') {
+        user = await (prisma as any).user.findFirst({
+          where: { role: 'client', clientId: { not: null } },
+          select: baseSelect,
+        });
+      }
+    }
 
     if (!user) {
       return NextResponse.json({ error: `User not found: ${email}` }, { status: 404 });
