@@ -210,7 +210,7 @@ export async function POST(req: NextRequest) {
     });
 
     const clientName = `${client.firstName} ${client.lastName}`.trim() || 'Client';
-    const userId = ctx.userId ?? '';
+    const userId = ctx.userId ?? null;
     await db.messageParticipant.createMany({
       data: [
         {
