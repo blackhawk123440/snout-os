@@ -6,38 +6,44 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getRequestContext } from '@/lib/request-context';
+import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
+import { whereOrg } from '@/lib/org-scope';
 import { toCanonicalTierName } from '@/lib/tiers/tier-name-mapper';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) {
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+    requireAnyRole(ctx, ['owner', 'admin']);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Owner/admin only
-  const user = session.user as any;
-  if (user.role !== 'owner' && user.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   try {
     const resolvedParams = await params;
     const sitterId = resolvedParams.id;
-    const orgId = (session.user as any).orgId;
 
-    if (!orgId) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 400 });
+    const sitter = await prisma.sitter.findFirst({
+      where: whereOrg(ctx.orgId, { id: sitterId }),
+      select: { id: true },
+    });
+
+    if (!sitter) {
+      return NextResponse.json({ error: 'Sitter not found' }, { status: 404 });
     }
 
     // Get current tier from most recent history
     const latestHistory = await (prisma as any).sitterTierHistory.findFirst({
-      where: { sitterId },
-      orderBy: { assignedAt: 'desc' },
+      where: whereOrg(ctx.orgId, { sitterId }),
+      orderBy: { periodStart: 'desc' },
       include: {
         tier: true,
       },
@@ -45,8 +51,8 @@ export async function GET(
 
     // Get tier history (newest first)
     const tierHistory = await (prisma as any).sitterTierHistory.findMany({
-      where: { sitterId },
-      orderBy: { assignedAt: 'desc' },
+      where: whereOrg(ctx.orgId, { sitterId }),
+      orderBy: { periodStart: 'desc' },
       include: {
         tier: true,
       },
@@ -62,7 +68,7 @@ export async function GET(
 
     const metrics7d = await (prisma as any).sitterMetricsWindow.findFirst({
       where: {
-        orgId,
+        orgId: ctx.orgId,
         sitterId,
         windowStart: { lte: sevenDaysAgo },
         windowEnd: { gte: now },
@@ -73,7 +79,7 @@ export async function GET(
 
     const metrics30d = await (prisma as any).sitterMetricsWindow.findFirst({
       where: {
-        orgId,
+        orgId: ctx.orgId,
         sitterId,
         windowStart: { lte: thirtyDaysAgo },
         windowEnd: { gte: now },
@@ -99,10 +105,10 @@ export async function GET(
 
     return NextResponse.json({
       currentTier: latestHistory ? {
-        name: toCanonicalTierName(latestHistory.tierName || latestHistory.tier?.name || 'Bronze'),
+        name: toCanonicalTierName(latestHistory.tier?.name || 'Bronze'),
         id: latestHistory.tierId,
         reasons,
-        assignedAt: latestHistory.assignedAt,
+        assignedAt: latestHistory.periodStart,
       } : null,
       metrics7d: metrics7d ? {
         avgResponseSeconds: metrics7d.avgResponseSeconds,
@@ -124,8 +130,8 @@ export async function GET(
       } : null,
       history: tierHistory.map((h: any) => ({
         id: h.id,
-        tierName: toCanonicalTierName(h.tierName || h.tier?.name || 'Bronze'),
-        assignedAt: h.assignedAt,
+        tierName: toCanonicalTierName(h.tier?.name || 'Bronze'),
+        assignedAt: h.periodStart,
         reason: h.reason,
         metadata: h.metadata,
       })),

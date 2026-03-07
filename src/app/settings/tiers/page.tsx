@@ -1,10 +1,3 @@
-/**
- * Sitter Tiers Page - Enterprise Rebuild
- * 
- * Complete rebuild using design system and components.
- * Zero legacy styling - all through components and tokens.
- */
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,20 +10,23 @@ import {
   EmptyState,
   Skeleton,
 } from '@/components/ui';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell } from '@/components/layout';
 import { tokens } from '@/lib/design-tokens';
 
 interface SitterTier {
   id: string;
+  orgId: string;
   name: string;
   pointTarget: number;
-  minCompletionRate: number;
-  minResponseRate: number;
+  minCompletionRate: number | null;
+  minResponseRate: number | null;
   priorityLevel: number;
+  commissionSplit: number;
   canTakeHouseSits: boolean;
   canTakeTwentyFourHourCare: boolean;
   isDefault: boolean;
-  benefits: string;
+  benefits: string | null;
+  description: string | null;
 }
 
 export default function TiersPage() {
@@ -77,45 +73,28 @@ export default function TiersPage() {
     }
   };
 
-  const calculateTiers = async () => {
-    try {
-      const response = await fetch("/api/sitter-tiers/calculate", {
-        method: "POST",
-      });
-      if (response.ok) {
-        alert("Tier calculation started!");
-      } else {
-        setError('Failed to calculate tiers');
-      }
-    } catch (err) {
-      setError('Failed to calculate tiers');
-    }
-  };
-
   return (
-    <AppShell>
+    <OwnerAppShell>
       <PageHeader
-        title="Sitter Tiers"
-        description="Manage sitter performance tiers and requirements"
+        title="Policy Tiers"
+        description="Configure policy and entitlement tiers separately from SRS reliability tiers."
         actions={
-          <>
-            <Button
-              variant="secondary"
-              onClick={calculateTiers}
-              leftIcon={<i className="fas fa-calculator" />}
-            >
-              Calculate Tiers
+          <Link href="/settings/tiers/new">
+            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+              Create Policy Tier
             </Button>
-            <Link href="/settings/tiers/new">
-              <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
-                Create Tier
-              </Button>
-            </Link>
-          </>
+          </Link>
         }
       />
 
       <div style={{ padding: tokens.spacing[6] }}>
+        <Card style={{ marginBottom: tokens.spacing[4] }}>
+          <div style={{ padding: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+            <strong>Separation of concerns:</strong> SRS reliability tiers (Foundation/Reliant/Trusted/Preferred)
+            measure performance. Policy tiers here control permissions, routing priority, and commission.
+          </div>
+        </Card>
+
         {error && (
           <Card
             style={{
@@ -138,18 +117,25 @@ export default function TiersPage() {
           </div>
         ) : tiers.length === 0 ? (
           <EmptyState
-            title="No Tiers Configured"
-            description="Create your first sitter tier"
+            title="No Policy Tiers Configured"
+            description="Create your first policy tier for sitter entitlements"
             icon={<i className="fas fa-star" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
             action={{
-              label: "Create Tier",
+              label: "Create Policy Tier",
               onClick: () => window.location.href = "/settings/tiers/new",
             }}
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
             {tiers.map((tier) => {
-              const benefits = tier.benefits ? JSON.parse(tier.benefits) : {};
+              let benefits: Record<string, unknown> = {};
+              if (tier.benefits) {
+                try {
+                  benefits = JSON.parse(tier.benefits);
+                } catch {
+                  benefits = {};
+                }
+              }
               return (
                 <Card key={tier.id}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
@@ -183,10 +169,13 @@ export default function TiersPage() {
                           <strong>Point Target:</strong> {tier.pointTarget}
                         </div>
                         <div>
-                          <strong>Min Completion:</strong> {tier.minCompletionRate}%
+                          <strong>Min Completion:</strong> {tier.minCompletionRate ?? 'N/A'}{tier.minCompletionRate !== null ? '%' : ''}
                         </div>
                         <div>
-                          <strong>Min Response:</strong> {tier.minResponseRate}%
+                          <strong>Min Response:</strong> {tier.minResponseRate ?? 'N/A'}{tier.minResponseRate !== null ? '%' : ''}
+                        </div>
+                        <div>
+                          <strong>Commission Split:</strong> {tier.commissionSplit}%
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
                           {tier.canTakeHouseSits && (
@@ -197,6 +186,11 @@ export default function TiersPage() {
                           )}
                         </div>
                       </div>
+                      {tier.description && (
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+                          {tier.description}
+                        </div>
+                      )}
                       {Object.keys(benefits).length > 0 && (
                         <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                           <strong>Benefits:</strong> {JSON.stringify(benefits)}
@@ -224,6 +218,6 @@ export default function TiersPage() {
           </div>
         )}
       </div>
-    </AppShell>
+    </OwnerAppShell>
   );
 }

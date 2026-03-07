@@ -26,7 +26,36 @@ export function isProtectedRoute(pathname: string): boolean {
   if (pathname.startsWith("/payments")) {
     return true;
   }
+  if (pathname.startsWith("/payroll")) {
+    return true;
+  }
   if (pathname.startsWith("/finance")) {
+    return true;
+  }
+
+  // Owner dashboard pages
+  if (pathname.startsWith("/dashboard")) {
+    return true;
+  }
+  if (pathname.startsWith("/reports")) {
+    return true;
+  }
+  if (pathname.startsWith("/growth")) {
+    return true;
+  }
+  if (pathname.startsWith("/sitters")) {
+    return true;
+  }
+  if (pathname.startsWith("/numbers")) {
+    return true;
+  }
+  if (pathname.startsWith("/assignments")) {
+    return true;
+  }
+  if (pathname.startsWith("/twilio-setup")) {
+    return true;
+  }
+  if (pathname.startsWith("/messaging")) {
     return true;
   }
 
@@ -62,6 +91,33 @@ export function isProtectedRoute(pathname: string): boolean {
 
   // Messages pages
   if (pathname.startsWith("/messages")) {
+    return true;
+  }
+  if (pathname.startsWith("/messaging")) {
+    return true;
+  }
+  if (pathname.startsWith("/numbers")) {
+    return true;
+  }
+  if (pathname.startsWith("/assignments")) {
+    return true;
+  }
+  if (pathname.startsWith("/twilio-setup")) {
+    return true;
+  }
+  if (pathname.startsWith("/growth")) {
+    return true;
+  }
+  if (pathname.startsWith("/reports")) {
+    return true;
+  }
+  if (pathname.startsWith("/sitters")) {
+    return true;
+  }
+  if (pathname.startsWith("/payroll")) {
+    return true;
+  }
+  if (pathname.startsWith("/dashboard")) {
     return true;
   }
 

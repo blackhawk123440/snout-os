@@ -140,7 +140,7 @@ export async function GET(
       }
     } catch (_) {}
 
-    // Tier summary: enterprise schema has no SitterTierHistory / SitterMetricsWindow
+    // Tier summary: use real schema fields (periodStart, tier relation) and org scope.
     let tierSummary: any = null;
     if (typeof (prisma as any).sitterTierHistory?.findFirst === 'function') {
       try {

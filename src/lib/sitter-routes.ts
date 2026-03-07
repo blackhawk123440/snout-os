@@ -47,11 +47,17 @@ export function isSitterRoute(pathname: string): boolean {
 export function isSitterRestrictedRoute(pathname: string): boolean {
   // Owner-only operational pages
   if (pathname.startsWith('/setup')) return true;
+  if (pathname.startsWith('/twilio-setup')) return true;
+  if (pathname.startsWith('/messaging')) return true;
   if (pathname.startsWith('/numbers')) return true;
   if (pathname.startsWith('/assignments')) return true;
   if (pathname.startsWith('/messages')) return true; // Sitters must use /sitter/inbox
   if (pathname.startsWith('/calendar')) return true;
   if (pathname.startsWith('/clients')) return true;
+  if (pathname.startsWith('/sitters')) return true;
+  if (pathname.startsWith('/reports')) return true;
+  if (pathname.startsWith('/growth')) return true;
+  if (pathname.startsWith('/payroll')) return true;
   if (pathname.startsWith('/integrations')) return true;
   if (pathname.startsWith('/templates')) return true;
   if (pathname.startsWith('/automation')) return true;
