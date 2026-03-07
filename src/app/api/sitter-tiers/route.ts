@@ -4,6 +4,11 @@ import { getRequestContext } from '@/lib/request-context';
 import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
 import { whereOrg } from '@/lib/org-scope';
 
+function isMissingOrgIdColumn(error: unknown): boolean {
+  const message = String((error as any)?.message || '');
+  return message.includes('SitterTier.orgId') || message.includes('column `orgId` does not exist');
+}
+
 function parseOptionalNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
   const n = Number(value);
@@ -79,10 +84,18 @@ async function getOwnerCtx() {
 export async function GET(request: NextRequest) {
   try {
     const ctx = await getOwnerCtx();
-    const tiers = await (prisma as any).sitterTier.findMany({
-      where: whereOrg(ctx.orgId, {}),
-      orderBy: [{ priorityLevel: 'asc' }, { name: 'asc' }],
-    });
+    let tiers: any[] = [];
+    try {
+      tiers = await (prisma as any).sitterTier.findMany({
+        where: whereOrg(ctx.orgId, {}),
+        orderBy: [{ priorityLevel: 'asc' }, { name: 'asc' }],
+      });
+    } catch (error) {
+      if (!isMissingOrgIdColumn(error)) throw error;
+      tiers = await (prisma as any).sitterTier.findMany({
+        orderBy: [{ priorityLevel: 'asc' }, { name: 'asc' }],
+      });
+    }
     return NextResponse.json({ tiers }, { status: 200 });
   } catch (error: any) {
     if (error instanceof ForbiddenError) {
@@ -101,19 +114,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const data = parseBody(body);
 
-    if (data.isDefault) {
-      await (prisma as any).sitterTier.updateMany({
-        where: whereOrg(ctx.orgId, { isDefault: true }),
-        data: { isDefault: false },
+    let tier: any;
+    try {
+      if (data.isDefault) {
+        await (prisma as any).sitterTier.updateMany({
+          where: whereOrg(ctx.orgId, { isDefault: true }),
+          data: { isDefault: false },
+        });
+      }
+      tier = await (prisma as any).sitterTier.create({
+        data: {
+          ...data,
+          orgId: ctx.orgId,
+        },
+      });
+    } catch (error) {
+      if (!isMissingOrgIdColumn(error)) throw error;
+      if (data.isDefault) {
+        await (prisma as any).sitterTier.updateMany({
+          where: { isDefault: true },
+          data: { isDefault: false },
+        });
+      }
+      tier = await (prisma as any).sitterTier.create({
+        data,
       });
     }
-
-    const tier = await (prisma as any).sitterTier.create({
-      data: {
-        ...data,
-        orgId: ctx.orgId,
-      },
-    });
 
     return NextResponse.json({ tier }, { status: 201 });
   } catch (error: any) {

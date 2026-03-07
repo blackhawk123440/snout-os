@@ -4,6 +4,11 @@ import { getRequestContext } from '@/lib/request-context';
 import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
 import { whereOrg } from '@/lib/org-scope';
 
+function isMissingOrgIdColumn(error: unknown): boolean {
+  const message = String((error as any)?.message || '');
+  return message.includes('SitterTier.orgId') || message.includes('column `orgId` does not exist');
+}
+
 function parseOptionalNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') return null;
   const n = Number(value);
@@ -111,9 +116,15 @@ export async function GET(
   try {
     const ctx = await getOwnerCtx();
     const { id } = await params;
-    const tier = await (prisma as any).sitterTier.findFirst({
-      where: whereOrg(ctx.orgId, { id }),
-    });
+    let tier: any = null;
+    try {
+      tier = await (prisma as any).sitterTier.findFirst({
+        where: whereOrg(ctx.orgId, { id }),
+      });
+    } catch (error) {
+      if (!isMissingOrgIdColumn(error)) throw error;
+      tier = await (prisma as any).sitterTier.findUnique({ where: { id } });
+    }
     if (!tier) {
       return NextResponse.json({ error: 'Tier not found' }, { status: 404 });
     }
@@ -139,19 +150,36 @@ export async function PATCH(
     const body = await request.json().catch(() => ({}));
     const data = parseBody(body);
 
-    const existing = await (prisma as any).sitterTier.findFirst({
-      where: whereOrg(ctx.orgId, { id }),
-      select: { id: true },
-    });
+    let existing: any = null;
+    try {
+      existing = await (prisma as any).sitterTier.findFirst({
+        where: whereOrg(ctx.orgId, { id }),
+        select: { id: true },
+      });
+    } catch (error) {
+      if (!isMissingOrgIdColumn(error)) throw error;
+      existing = await (prisma as any).sitterTier.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+    }
     if (!existing) {
       return NextResponse.json({ error: 'Tier not found' }, { status: 404 });
     }
 
     if (data.isDefault === true) {
-      await (prisma as any).sitterTier.updateMany({
-        where: whereOrg(ctx.orgId, { isDefault: true }),
-        data: { isDefault: false },
-      });
+      try {
+        await (prisma as any).sitterTier.updateMany({
+          where: whereOrg(ctx.orgId, { isDefault: true }),
+          data: { isDefault: false },
+        });
+      } catch (error) {
+        if (!isMissingOrgIdColumn(error)) throw error;
+        await (prisma as any).sitterTier.updateMany({
+          where: { isDefault: true },
+          data: { isDefault: false },
+        });
+      }
     }
 
     const tier = await (prisma as any).sitterTier.update({
@@ -184,10 +212,19 @@ export async function DELETE(
   try {
     const ctx = await getOwnerCtx();
     const { id } = await params;
-    const tier = await (prisma as any).sitterTier.findFirst({
-      where: whereOrg(ctx.orgId, { id }),
-      select: { id: true, isDefault: true, _count: { select: { sitters: true, Sitter: true } } },
-    });
+    let tier: any = null;
+    try {
+      tier = await (prisma as any).sitterTier.findFirst({
+        where: whereOrg(ctx.orgId, { id }),
+        select: { id: true, isDefault: true, _count: { select: { sitters: true, Sitter: true } } },
+      });
+    } catch (error) {
+      if (!isMissingOrgIdColumn(error)) throw error;
+      tier = await (prisma as any).sitterTier.findUnique({
+        where: { id },
+        select: { id: true, isDefault: true, _count: { select: { sitters: true, Sitter: true } } },
+      });
+    }
     if (!tier) {
       return NextResponse.json({ error: 'Tier not found' }, { status: 404 });
     }
