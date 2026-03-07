@@ -102,3 +102,6 @@ export async function PATCH(request: NextRequest) {
     throw e;
   }
 }
+
+// Accept POST for compatibility with existing settings write checks/clients.
+export const POST = PATCH;
