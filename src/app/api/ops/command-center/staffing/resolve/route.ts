@@ -531,7 +531,7 @@ export async function POST(request: NextRequest) {
       notifySent = true;
 
       const templateSetting = await db.setting.findUnique({
-        where: { key: 'ops.staffing.assign_notify.template' },
+        where: { orgId_key: { orgId: ctx.orgId, key: 'ops.staffing.assign_notify.template' } },
         select: { value: true },
       });
       const template = templateSetting?.value?.trim() || '';

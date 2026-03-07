@@ -21,7 +21,8 @@ export const TENANT_MODELS = [
   'eventLog',
   'bookingStatusHistory',
   'stripeCharge',
-  // StripeRefund, StripePayout, StripeBalanceTransaction, PayrollRun, PayrollLineItem, PayrollAdjustment: no orgId in schema
+  'payrollRun',
+  // PayrollLineItem, PayrollAdjustment: scoped via payrollRunId
   'messageAccount',
   'messageNumber',
   'providerCredential',
@@ -59,6 +60,13 @@ export const TENANT_MODELS = [
   'aiUsageLog',
   'ledgerEntry',
   'reconciliationRun',
+  'businessSettings',
+  'serviceConfig',
+  'pricingRule',
+  'discount',
+  'setting',
+  'orgNotificationSettings',
+  'orgServiceArea',
 ] as const;
 
 export type TenantModelName = (typeof TENANT_MODELS)[number];
