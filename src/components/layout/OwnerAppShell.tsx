@@ -13,46 +13,118 @@ type OwnerNavItem = {
   icon: string;
 };
 
+type SidebarItem = {
+  label: string;
+  href: string;
+  icon: string;
+  children?: Array<{ label: string; href: string; icon: string }>;
+  defaultCollapsed?: boolean;
+};
+
+type SidebarSection = {
+  title: string;
+  items: SidebarItem[];
+  muted?: boolean;
+};
+
+/** Final owner sidebar: clean, executive, one submenu open at a time. Routes unchanged. */
+const OWNER_SIDEBAR_SECTIONS: SidebarSection[] = [
+  {
+    title: 'Operations',
+    items: [
+      { label: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-line' },
+      { label: 'Command Center', href: '/command-center', icon: 'fas fa-th-large' },
+      { label: 'Bookings', href: '/bookings', icon: 'fas fa-calendar-check' },
+      { label: 'Calendar', href: '/calendar', icon: 'fas fa-calendar-alt' },
+      { label: 'Clients', href: '/clients', icon: 'fas fa-address-book' },
+      { label: 'Sitters', href: '/sitters', icon: 'fas fa-user-friends' },
+    ],
+  },
+  {
+    title: 'Communication',
+    items: [
+      {
+        label: 'Messaging',
+        href: '/messaging',
+        icon: 'fas fa-comments',
+        children: [
+          { label: 'Inbox', href: '/messaging/inbox', icon: 'fas fa-inbox' },
+          { label: 'Sitters', href: '/messaging/sitters', icon: 'fas fa-user-check' },
+          { label: 'Numbers', href: '/messaging/numbers', icon: 'fas fa-phone' },
+          { label: 'Routing', href: '/messaging/assignments', icon: 'fas fa-link' },
+          { label: 'Twilio Setup', href: '/messaging/twilio-setup', icon: 'fas fa-satellite-dish' },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Workforce',
+    items: [
+      { label: 'Growth / Tiers', href: '/growth', icon: 'fas fa-arrow-trend-up' },
+      { label: 'Payroll', href: '/payroll', icon: 'fas fa-money-bill-wave' },
+    ],
+  },
+  {
+    title: 'Business',
+    items: [
+      { label: 'Reports', href: '/reports', icon: 'fas fa-chart-pie' },
+      { label: 'Payments', href: '/payments', icon: 'fas fa-credit-card' },
+      { label: 'Finance', href: '/finance', icon: 'fas fa-building-columns' },
+    ],
+  },
+  {
+    title: 'Platform',
+    items: [
+      { label: 'Integrations', href: '/integrations', icon: 'fas fa-plug' },
+      { label: 'Settings', href: '/settings', icon: 'fas fa-cog' },
+    ],
+  },
+  {
+    title: 'Diagnostics',
+    muted: true,
+    items: [
+      {
+        label: 'Diagnostics',
+        href: '/ops/diagnostics',
+        icon: 'fas fa-stethoscope',
+        defaultCollapsed: true,
+        children: [
+          { label: 'Automation Failures', href: '/ops/automation-failures', icon: 'fas fa-triangle-exclamation' },
+          { label: 'Message Failures', href: '/ops/message-failures', icon: 'fas fa-comment-slash' },
+          { label: 'Calendar Repair', href: '/ops/calendar-repair', icon: 'fas fa-calendar-check' },
+          { label: 'Payout Operations', href: '/ops/payouts', icon: 'fas fa-sack-dollar' },
+          { label: 'Reconciliation', href: '/ops/finance/reconciliation', icon: 'fas fa-scale-balanced' },
+          { label: 'AI Ops', href: '/ops/ai', icon: 'fas fa-robot' },
+        ],
+      },
+    ],
+  },
+];
+
+/** Flat list of all sidebar links (for mobile drawer and active matching). */
+function flattenSidebarItems(sections: SidebarSection[]): OwnerNavItem[] {
+  const out: OwnerNavItem[] = [];
+  for (const section of sections) {
+    for (const item of section.items) {
+      out.push({ label: item.label, href: item.href, icon: item.icon });
+      if (item.children) {
+        for (const c of item.children) {
+          out.push({ label: c.label, href: c.href, icon: c.icon });
+        }
+      }
+    }
+  }
+  return out;
+}
+
+const OWNER_SIDEBAR_NAV_FLAT = flattenSidebarItems(OWNER_SIDEBAR_SECTIONS);
+
 const OWNER_PRIMARY_NAV: OwnerNavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-line' },
   { label: 'Bookings', href: '/bookings', icon: 'fas fa-calendar-check' },
   { label: 'Calendar', href: '/calendar', icon: 'fas fa-calendar-alt' },
   { label: 'Messaging', href: '/messaging', icon: 'fas fa-comments' },
   { label: 'Ops', href: '/command-center', icon: 'fas fa-th-large' },
-];
-
-const OWNER_SIDEBAR_NAV: OwnerNavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-line' },
-  { label: 'Command Center', href: '/command-center', icon: 'fas fa-th-large' },
-  { label: 'Bookings', href: '/bookings', icon: 'fas fa-calendar-check' },
-  { label: 'Calendar', href: '/calendar', icon: 'fas fa-calendar-alt' },
-  { label: 'Clients', href: '/clients', icon: 'fas fa-address-book' },
-  { label: 'Sitters', href: '/sitters', icon: 'fas fa-user-friends' },
-  { label: 'Sitter Profile', href: '/sitters/profile', icon: 'fas fa-id-badge' },
-  { label: 'Messaging', href: '/messaging', icon: 'fas fa-comments' },
-  { label: 'Messaging · Owner Inbox', href: '/messaging/inbox', icon: 'fas fa-inbox' },
-  { label: 'Messaging · Sitters', href: '/messaging/sitters', icon: 'fas fa-user-check' },
-  { label: 'Messaging · Numbers', href: '/messaging/numbers', icon: 'fas fa-phone' },
-  { label: 'Messaging · Assignments', href: '/messaging/assignments', icon: 'fas fa-link' },
-  { label: 'Messaging · Twilio Setup', href: '/messaging/twilio-setup', icon: 'fas fa-satellite-dish' },
-  { label: 'Numbers', href: '/numbers', icon: 'fas fa-phone-volume' },
-  { label: 'Assignments', href: '/assignments', icon: 'fas fa-random' },
-  { label: 'Twilio Setup', href: '/twilio-setup', icon: 'fas fa-satellite-dish' },
-  { label: 'Automations', href: '/automations', icon: 'fas fa-robot' },
-  { label: 'Growth / Tiers', href: '/growth', icon: 'fas fa-arrow-trend-up' },
-  { label: 'Payroll', href: '/payroll', icon: 'fas fa-money-bill-wave' },
-  { label: 'Reports', href: '/reports', icon: 'fas fa-chart-pie' },
-  { label: 'Payments', href: '/payments', icon: 'fas fa-credit-card' },
-  { label: 'Finance', href: '/finance', icon: 'fas fa-building-columns' },
-  { label: 'Integrations', href: '/integrations', icon: 'fas fa-plug' },
-  { label: 'Settings', href: '/settings', icon: 'fas fa-cog' },
-  { label: 'Ops / Diagnostics', href: '/ops/diagnostics', icon: 'fas fa-stethoscope' },
-  { label: 'Automation Failures', href: '/ops/automation-failures', icon: 'fas fa-triangle-exclamation' },
-  { label: 'Message Failures', href: '/ops/message-failures', icon: 'fas fa-comment-slash' },
-  { label: 'Calendar Repair', href: '/ops/calendar-repair', icon: 'fas fa-calendar-check' },
-  { label: 'Payout Operations', href: '/ops/payouts', icon: 'fas fa-sack-dollar' },
-  { label: 'Reconciliation', href: '/ops/finance/reconciliation', icon: 'fas fa-scale-balanced' },
-  { label: 'AI Ops', href: '/ops/ai', icon: 'fas fa-robot' },
 ];
 
 const HEADER_MAP: Array<{ match: (p: string) => boolean; title: string; subtitle: string }> = [
@@ -197,6 +269,8 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
   const mainRef = useRef<HTMLElement>(null);
   const [headerShadow, setHeaderShadow] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  /** Only one collapsible open at a time. Messaging open only when on a messaging route; Diagnostics always starts collapsed. */
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [deployInfo, setDeployInfo] = useState<{
     envName: string;
     commitSha: string;
@@ -214,6 +288,12 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
     el.addEventListener('scroll', onScroll);
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
+
+  useEffect(() => {
+    if (pathname.startsWith('/messaging')) setExpandedKey('/messaging');
+    else if (pathname.startsWith('/ops')) setExpandedKey('/ops/diagnostics');
+    else setExpandedKey(null);
+  }, [pathname]);
 
   useEffect(() => {
     fetch('/api/health')
@@ -257,23 +337,122 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         </div>
-        <nav className="flex-1 overflow-y-auto p-2">
-          {OWNER_SIDEBAR_NAV.map((item) => {
-            const active = matches(pathname, item.href);
+        <nav className="flex-1 overflow-y-auto px-2 py-3" aria-label="Owner navigation">
+          {OWNER_SIDEBAR_SECTIONS.map((section) => {
+            const isMuted = section.muted ?? false;
+            const isDiagnostics = section.title === 'Diagnostics';
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  'mb-1 flex h-11 items-center gap-2 rounded-md px-3 text-sm',
-                  active
-                    ? 'bg-slate-100 font-medium text-slate-900'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                )}
-              >
-                <i className={cn(item.icon, 'w-4 text-center')} aria-hidden />
-                <span>{item.label}</span>
-              </Link>
+              <div key={section.title} className={cn('mb-3', isMuted && 'opacity-80')}>
+                <p
+                  className={cn(
+                    'mb-1 px-2.5 py-0.5 font-semibold uppercase tracking-wider',
+                    isDiagnostics ? 'text-[9px] text-slate-400' : isMuted ? 'text-[10px] text-slate-400' : 'text-[10px] text-slate-500'
+                  )}
+                >
+                  {section.title}
+                </p>
+                {section.items.map((item) => {
+                  if (!item.children?.length) {
+                    const active = matches(pathname, item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          'mb-px flex h-9 items-center gap-2 rounded-md px-2.5 text-sm',
+                          active
+                            ? 'bg-slate-100 font-medium text-slate-900'
+                            : isDiagnostics
+                              ? 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                              : isMuted
+                                ? 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        )}
+                      >
+                        <i className={cn(item.icon, 'w-4 shrink-0 text-center')} aria-hidden />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    );
+                  }
+                  const isExpanded = expandedKey === item.href;
+                  const activeChild = item.children?.find((c) => pathname === c.href || pathname.startsWith(c.href + '/'));
+                  const isActive =
+                    pathname === item.href || (activeChild != null);
+                  return (
+                    <div key={item.href} className="mb-px">
+                      <div
+                        className={cn(
+                          'flex h-9 w-full items-center gap-0 rounded-md text-sm',
+                          isActive
+                            ? 'bg-slate-100 font-medium text-slate-900 border-l-2 border-slate-300'
+                            : isDiagnostics
+                              ? 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                              : isMuted
+                                ? 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        )}
+                      >
+                        <Link
+                          href={item.href}
+                          className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2"
+                          aria-expanded={isExpanded}
+                        >
+                          <i className={cn(item.icon, 'w-4 shrink-0 text-center')} aria-hidden />
+                          <span className="truncate">{item.label}</span>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setExpandedKey(isExpanded ? null : item.href);
+                          }}
+                          className="flex h-9 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                          aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                          aria-expanded={isExpanded}
+                        >
+                          <i
+                            className={cn('text-[10px] transition-transform', isExpanded ? 'rotate-90' : '')}
+                            style={{ fontFamily: 'ui-monospace' }}
+                            aria-hidden
+                          >
+                            ▶
+                          </i>
+                        </button>
+                      </div>
+                      {isExpanded && (
+                        <div className="ml-3 mt-0.5 border-l border-slate-200 pl-1.5">
+                          {item.children.map((c) => {
+                            const childActive =
+                              pathname === c.href || pathname.startsWith(c.href + '/');
+                            return (
+                              <Link
+                                key={c.href}
+                                href={c.href}
+                                className={cn(
+                                  'mb-0.5 flex h-8 items-center gap-2 rounded-md px-2 text-[13px]',
+                                  childActive
+                                    ? 'bg-slate-100 font-medium text-slate-900 border-l-2 border-slate-700 pl-2.5'
+                                    : isDiagnostics
+                                      ? 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                                      : isMuted
+                                        ? 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                )}
+                              >
+                                <i
+                                  className={cn(c.icon, 'w-3.5 shrink-0 text-center', isMuted || isDiagnostics ? 'text-slate-400' : 'text-slate-400')}
+                                  aria-hidden
+                                />
+                                <span className="truncate">{c.label}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>
@@ -354,11 +533,11 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 bg-black/25 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
           <div
-            className="absolute right-0 top-0 h-full w-[86%] max-w-sm overflow-y-auto border-l border-slate-200 bg-white p-3"
+            className="absolute right-0 top-0 h-full w-[86%] max-w-sm overflow-y-auto border-l border-slate-200 bg-white px-3 py-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-900">Owner modules</p>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-slate-900">Owner</p>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
@@ -367,26 +546,38 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                 Close
               </button>
             </div>
-            <div className="flex flex-col gap-1">
-              {OWNER_SIDEBAR_NAV.map((item) => {
-                const active = matches(pathname, item.href);
-                return (
-                  <Link
-                    key={`mobile-${item.href}`}
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={cn(
-                      'flex min-h-11 items-center gap-2 rounded-md px-3 text-sm',
-                      active
-                        ? 'bg-slate-100 font-medium text-slate-900'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    )}
-                  >
-                    <i className={cn(item.icon, 'w-4 text-center')} aria-hidden />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
+            <div className="flex flex-col gap-0">
+              {OWNER_SIDEBAR_SECTIONS.map((section) => (
+                <div key={section.title} className={cn('mb-3', section.muted && 'opacity-80')}>
+                  <p className="mb-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    {section.title}
+                  </p>
+                  {section.items.map((item) => {
+                    const links: Array<{ href: string; label: string; icon: string }> = item.children
+                      ? [{ href: item.href, label: item.label, icon: item.icon }, ...item.children]
+                      : [{ href: item.href, label: item.label, icon: item.icon }];
+                    return links.map((link) => {
+                      const active = matches(pathname, link.href);
+                      return (
+                        <Link
+                          key={`mobile-${link.href}`}
+                          href={link.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={cn(
+                            'mb-px flex h-9 items-center gap-2 rounded-md px-2.5 text-sm',
+                            active
+                              ? 'bg-slate-100 font-medium text-slate-900'
+                              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                          )}
+                        >
+                          <i className={cn(link.icon, 'w-4 shrink-0 text-center')} aria-hidden />
+                          <span>{link.label}</span>
+                        </Link>
+                      );
+                    });
+                  })}
+                </div>
+              ))}
             </div>
           </div>
         </div>
