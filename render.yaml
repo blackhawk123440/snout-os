@@ -35,3 +35,36 @@ services:
           name: snout-os-db
           property: connectionString
     healthCheckPath: /api/health
+
+  # Background worker (calendar sync, payouts, automations, etc.)
+  # Must run same commit as web for calendar/booking consistency. Deploy with web.
+  - type: worker
+    name: snout-os-worker
+    env: node
+    plan: starter
+    region: oregon
+    rootDir: .
+    buildCommand: pnpm install --frozen-lockfile && pnpm prisma generate && pnpm run build
+    startCommand: pnpm run worker
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REDIS_URL
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: snout-os-db
+          property: connectionString
+      - key: NEXT_PUBLIC_GIT_SHA
+        fromService:
+          name: snout-os-web
+          type: web
+          property: commitSha
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

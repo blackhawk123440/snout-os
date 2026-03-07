@@ -41,7 +41,11 @@ export async function middleware(request: NextRequest) {
     // Client trying to access non-client route -> redirect to client home
     if (pathname.startsWith('/sitter') || pathname.startsWith('/dashboard') || pathname.startsWith('/owner-dashboard') ||
         pathname.startsWith('/command-center') || pathname.startsWith('/calendar') || (pathname.startsWith('/bookings') && pathname !== '/bookings/new') ||
-        pathname.startsWith('/clients') || pathname.startsWith('/ops') || pathname === '/' || pathname === '') {
+        pathname.startsWith('/clients') || pathname.startsWith('/sitters') || pathname.startsWith('/messaging') ||
+        pathname.startsWith('/messages') || pathname.startsWith('/numbers') || pathname.startsWith('/assignments') ||
+        pathname.startsWith('/twilio-setup') || pathname.startsWith('/reports') || pathname.startsWith('/growth') ||
+        pathname.startsWith('/payroll') || pathname.startsWith('/settings') || pathname.startsWith('/integrations') ||
+        pathname.startsWith('/ops') || pathname === '/' || pathname === '') {
       return NextResponse.redirect(new URL('/client/home', request.url));
     }
   }

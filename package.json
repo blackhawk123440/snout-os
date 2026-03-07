@@ -36,7 +36,9 @@
     "check:no-raw-ui": "tsx scripts/check-no-raw-ui.ts",
     "check-env": "tsx scripts/check-env.ts",
     "check:contrast": "tsx scripts/a11y/check-contrast.ts",
-    "verify:messaging": "tsx scripts/verify-messaging.ts"
+    "verify:messaging": "tsx scripts/verify-messaging.ts",
+    "verify:payroll": "tsx scripts/verify-payroll.ts",
+    "verify:calendar": "tsx scripts/verify-calendar.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

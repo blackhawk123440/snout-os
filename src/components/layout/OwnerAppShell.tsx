@@ -14,26 +14,117 @@ type OwnerNavItem = {
 };
 
 const OWNER_PRIMARY_NAV: OwnerNavItem[] = [
-  { label: 'Command', href: '/command-center', icon: 'fas fa-th-large' },
-  { label: 'Ops', href: '/ops/automation-failures', icon: 'fas fa-triangle-exclamation' },
-  { label: 'Payouts', href: '/ops/payouts', icon: 'fas fa-money-bill-wave' },
-  { label: 'Finance', href: '/finance', icon: 'fas fa-building-columns' },
-  { label: 'Payments', href: '/payments', icon: 'fas fa-credit-card' },
+  { label: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-line' },
+  { label: 'Bookings', href: '/bookings', icon: 'fas fa-calendar-check' },
+  { label: 'Calendar', href: '/calendar', icon: 'fas fa-calendar-alt' },
+  { label: 'Messaging', href: '/messaging', icon: 'fas fa-comments' },
+  { label: 'Ops', href: '/command-center', icon: 'fas fa-th-large' },
 ];
 
 const OWNER_SIDEBAR_NAV: OwnerNavItem[] = [
-  ...OWNER_PRIMARY_NAV,
+  { label: 'Dashboard', href: '/dashboard', icon: 'fas fa-chart-line' },
+  { label: 'Command Center', href: '/command-center', icon: 'fas fa-th-large' },
+  { label: 'Bookings', href: '/bookings', icon: 'fas fa-calendar-check' },
+  { label: 'Calendar', href: '/calendar', icon: 'fas fa-calendar-alt' },
+  { label: 'Clients', href: '/clients', icon: 'fas fa-address-book' },
+  { label: 'Sitters', href: '/sitters', icon: 'fas fa-user-friends' },
+  { label: 'Sitter Profile', href: '/sitters/profile', icon: 'fas fa-id-badge' },
+  { label: 'Messaging', href: '/messaging', icon: 'fas fa-comments' },
+  { label: 'Messaging · Owner Inbox', href: '/messaging/inbox', icon: 'fas fa-inbox' },
+  { label: 'Messaging · Sitters', href: '/messaging/sitters', icon: 'fas fa-user-check' },
+  { label: 'Messaging · Numbers', href: '/messaging/numbers', icon: 'fas fa-phone' },
+  { label: 'Messaging · Assignments', href: '/messaging/assignments', icon: 'fas fa-link' },
+  { label: 'Messaging · Twilio Setup', href: '/messaging/twilio-setup', icon: 'fas fa-satellite-dish' },
+  { label: 'Numbers', href: '/numbers', icon: 'fas fa-phone-volume' },
+  { label: 'Assignments', href: '/assignments', icon: 'fas fa-random' },
+  { label: 'Twilio Setup', href: '/twilio-setup', icon: 'fas fa-satellite-dish' },
+  { label: 'Automations', href: '/automations', icon: 'fas fa-robot' },
+  { label: 'Growth / Tiers', href: '/growth', icon: 'fas fa-arrow-trend-up' },
+  { label: 'Payroll', href: '/payroll', icon: 'fas fa-money-bill-wave' },
+  { label: 'Reports', href: '/reports', icon: 'fas fa-chart-pie' },
+  { label: 'Payments', href: '/payments', icon: 'fas fa-credit-card' },
+  { label: 'Finance', href: '/finance', icon: 'fas fa-building-columns' },
+  { label: 'Integrations', href: '/integrations', icon: 'fas fa-plug' },
+  { label: 'Settings', href: '/settings', icon: 'fas fa-cog' },
+  { label: 'Ops / Diagnostics', href: '/ops/diagnostics', icon: 'fas fa-stethoscope' },
+  { label: 'Automation Failures', href: '/ops/automation-failures', icon: 'fas fa-triangle-exclamation' },
   { label: 'Message Failures', href: '/ops/message-failures', icon: 'fas fa-comment-slash' },
   { label: 'Calendar Repair', href: '/ops/calendar-repair', icon: 'fas fa-calendar-check' },
-  { label: 'AI Ops', href: '/ops/ai', icon: 'fas fa-robot' },
+  { label: 'Payout Operations', href: '/ops/payouts', icon: 'fas fa-sack-dollar' },
   { label: 'Reconciliation', href: '/ops/finance/reconciliation', icon: 'fas fa-scale-balanced' },
+  { label: 'AI Ops', href: '/ops/ai', icon: 'fas fa-robot' },
 ];
 
 const HEADER_MAP: Array<{ match: (p: string) => boolean; title: string; subtitle: string }> = [
   {
+    match: (p) => p.startsWith('/dashboard'),
+    title: 'Dashboard',
+    subtitle: 'Business health and operator quick actions',
+  },
+  {
     match: (p) => p.startsWith('/command-center'),
     title: 'Command Center',
     subtitle: 'Priority queues and operations control',
+  },
+  {
+    match: (p) => p.startsWith('/bookings'),
+    title: 'Bookings',
+    subtitle: 'Manage visits, assignments, and execution flow',
+  },
+  {
+    match: (p) => p.startsWith('/calendar'),
+    title: 'Calendar',
+    subtitle: 'Schedules, overlaps, and coverage controls',
+  },
+  {
+    match: (p) => p.startsWith('/clients'),
+    title: 'Clients',
+    subtitle: 'CRM records, pets, and care instructions',
+  },
+  {
+    match: (p) => p.startsWith('/sitters'),
+    title: 'Sitters',
+    subtitle: 'Workforce management and assignment readiness',
+  },
+  {
+    match: (p) => p.startsWith('/messaging'),
+    title: 'Messaging',
+    subtitle: 'Owner inbox, masking routes, and thread controls',
+  },
+  {
+    match: (p) => p.startsWith('/numbers'),
+    title: 'Numbers',
+    subtitle: 'Twilio number inventory and readiness status',
+  },
+  {
+    match: (p) => p.startsWith('/assignments'),
+    title: 'Assignments',
+    subtitle: 'Number-to-sitter-to-thread routing assignments',
+  },
+  {
+    match: (p) => p.startsWith('/twilio-setup'),
+    title: 'Twilio Setup',
+    subtitle: 'Credentials, webhooks, masking, and test messaging',
+  },
+  {
+    match: (p) => p.startsWith('/automations') || p.startsWith('/automation'),
+    title: 'Automations',
+    subtitle: 'Templates, rules, and failure management',
+  },
+  {
+    match: (p) => p.startsWith('/growth'),
+    title: 'Growth / Tiers',
+    subtitle: 'Sitter performance and progression controls',
+  },
+  {
+    match: (p) => p.startsWith('/payroll'),
+    title: 'Payroll',
+    subtitle: 'Payout readiness and commission tracking',
+  },
+  {
+    match: (p) => p.startsWith('/reports'),
+    title: 'Reports',
+    subtitle: 'Revenue, utilization, and trend analytics',
   },
   {
     match: (p) => p.startsWith('/ops/automation-failures'),
@@ -66,6 +157,11 @@ const HEADER_MAP: Array<{ match: (p: string) => boolean; title: string; subtitle
     subtitle: 'Governance and controls',
   },
   {
+    match: (p) => p.startsWith('/ops/diagnostics'),
+    title: 'Ops / Diagnostics',
+    subtitle: 'Operational failure surfaces and verification tools',
+  },
+  {
     match: (p) => p.startsWith('/payments'),
     title: 'Payments',
     subtitle: 'Payment operations and revenue flow',
@@ -75,10 +171,22 @@ const HEADER_MAP: Array<{ match: (p: string) => boolean; title: string; subtitle
     title: 'Finance',
     subtitle: 'Revenue, payouts, and reconciliation',
   },
+  {
+    match: (p) => p.startsWith('/integrations'),
+    title: 'Integrations',
+    subtitle: 'Third-party services and connectivity status',
+  },
+  {
+    match: (p) => p.startsWith('/settings'),
+    title: 'Settings',
+    subtitle: 'Pricing, services, areas, and company controls',
+  },
 ];
 
 function matches(pathname: string, href: string): boolean {
   if (href === '/command-center') return pathname === '/command-center' || pathname === '/';
+  if (href === '/dashboard') return pathname === '/dashboard';
+  if (href === '/messaging') return pathname === '/messaging' || pathname.startsWith('/messaging/');
   return pathname.startsWith(href);
 }
 
@@ -88,6 +196,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const mainRef = useRef<HTMLElement>(null);
   const [headerShadow, setHeaderShadow] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [deployInfo, setDeployInfo] = useState<{
     envName: string;
     commitSha: string;
@@ -187,13 +296,22 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
               <p className="truncate text-base font-semibold text-slate-900">{header.title}</p>
               <p className="truncate text-xs text-slate-500">{header.subtitle}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => void signOut({ callbackUrl: '/login' })}
-              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 lg:hidden"
-            >
-              Sign out
-            </button>
+            <div className="flex items-center gap-2 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen((v) => !v)}
+                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+              >
+                Menu
+              </button>
+              <button
+                type="button"
+                onClick={() => void signOut({ callbackUrl: '/login' })}
+                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
         </header>
 
@@ -232,6 +350,47 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
           );
         })}
       </nav>
+
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-40 bg-black/25 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <div
+            className="absolute right-0 top-0 h-full w-[86%] max-w-sm overflow-y-auto border-l border-slate-200 bg-white p-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-semibold text-slate-900">Owner modules</p>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex flex-col gap-1">
+              {OWNER_SIDEBAR_NAV.map((item) => {
+                const active = matches(pathname, item.href);
+                return (
+                  <Link
+                    key={`mobile-${item.href}`}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex min-h-11 items-center gap-2 rounded-md px-3 text-sm',
+                      active
+                        ? 'bg-slate-100 font-medium text-slate-900'
+                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    )}
+                  >
+                    <i className={cn(item.icon, 'w-4 text-center')} aria-hidden />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -186,8 +186,8 @@ export async function upsertEventForBooking(
       return { action: 'updated', googleEventId: googleEventIdToUse! };
     }
   } catch (e) {
-    const msg = (e as Error).message;
-    return { action: 'skipped', error: msg };
+    // Rethrow so worker records failure and BullMQ can retry / dead-letter
+    throw e;
   }
   return { action: 'skipped' };
 }
@@ -233,8 +233,10 @@ export async function deleteEventForBooking(
   } catch (e) {
     const err = e as { code?: number };
     if (err?.code !== 404) {
-      return { deleted: false, error: (e as Error).message };
+      // Rethrow so worker records failure and BullMQ can retry / dead-letter
+      throw e;
     }
+    // 404: event already gone, continue to remove mapping
   }
 
   await db.bookingCalendarEvent.deleteMany({ where: { bookingId, sitterId } });

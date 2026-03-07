@@ -76,10 +76,12 @@ export async function initializeQueues() {
     // Phase 3.3: Initialize automation worker
     const { initializeAutomationWorker } = await import("./automation-queue");
     initializeAutomationWorker();
+    console.log("[Worker] Automations queue ready");
 
     // Calendar sync worker (one-way Snout → Google)
     const { initializeCalendarWorker } = await import("./calendar-queue");
     initializeCalendarWorker();
+    console.log("[Worker] Calendar queue ready");
 
     // Initialize pool release worker (runs every 5 minutes)
     const { initializePoolReleaseWorker, schedulePoolRelease } = await import("./pool-release-queue");
@@ -89,6 +91,7 @@ export async function initializeQueues() {
     // Payout worker (Stripe Connect transfers on booking completion)
     const { initializePayoutWorker } = await import("./payout/payout-queue");
     initializePayoutWorker();
+    console.log("[Worker] Payout queue ready");
 
     // Finance reconciliation worker (ledger vs Stripe)
     const { initializeFinanceReconcileWorker } = await import("./finance/reconcile-queue");

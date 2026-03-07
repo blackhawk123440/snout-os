@@ -104,27 +104,27 @@ export async function enqueueAutomationsForBookingEvent(
       await enqueueAutomation(
         'bookingConfirmation',
         'client',
-        { bookingId },
+        { orgId, bookingId },
         `${baseKey}:bookingConfirmation:client`
       );
       await enqueueAutomation(
         'bookingConfirmation',
         'owner',
-        { bookingId },
+        { orgId, bookingId },
         `${baseKey}:bookingConfirmation:owner`
       );
     } else if (eventName === 'visit.completed') {
       await enqueueAutomation(
         'postVisitThankYou',
         'client',
-        { bookingId },
+        { orgId, bookingId },
         `${baseKey}:postVisitThankYou:client`
       );
       if (sitterId) {
         await enqueueAutomation(
           'postVisitThankYou',
           'sitter',
-          { bookingId, sitterId },
+          { orgId, bookingId, sitterId },
           `${baseKey}:postVisitThankYou:sitter`
         );
       }

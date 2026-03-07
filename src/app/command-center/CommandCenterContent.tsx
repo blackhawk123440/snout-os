@@ -58,6 +58,7 @@ export function CommandCenterContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [scheduleConflictCount, setScheduleConflictCount] = useState(0);
   const [attention, setAttention] = useState<AttentionPayload>({
     alerts: [],
     staffing: [],
@@ -480,6 +481,13 @@ export function CommandCenterContent() {
             <AppCard>
               <AppCardHeader title="Staffing conflicts queue" />
               <AppCardBody>
+                {scheduleConflictCount > 0 && (
+                  <p className="mb-3 text-sm text-neutral-600">
+                    <Link href="/calendar?conflicts=show_only" className="font-medium text-[var(--color-primary)] hover:underline">
+                      {scheduleConflictCount} schedule conflict{scheduleConflictCount !== 1 ? 's' : ''} on Calendar
+                    </Link>
+                  </p>
+                )}
                 {attention.staffing.length === 0 ? (
                   <EmptyState
                     title="No staffing conflicts"

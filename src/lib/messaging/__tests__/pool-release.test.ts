@@ -15,15 +15,16 @@ describe('Pool Release Job', () => {
     // Clean up test data
     await prisma.messageThread.deleteMany({ where: { orgId } });
     await prisma.messageNumber.deleteMany({ where: { orgId } });
-    await prisma.setting.deleteMany({ where: { key: { startsWith: 'rotation.' } } });
+    await prisma.setting.deleteMany({ where: { orgId, key: { startsWith: 'rotation.' } } });
   });
 
   it('should release pool numbers after postBookingGraceHours', async () => {
     // Set short grace period for testing (1 hour)
     await prisma.setting.upsert({
-      where: { key: 'rotation.postBookingGraceHours' },
+      where: { orgId_key: { orgId, key: 'rotation.postBookingGraceHours' } },
       update: { value: '1' },
       create: {
+        orgId,
         key: 'rotation.postBookingGraceHours',
         value: '1',
         category: 'rotation',
@@ -82,9 +83,10 @@ describe('Pool Release Job', () => {
   it('should release pool numbers after inactivityReleaseDays', async () => {
     // Set short inactivity period for testing (1 day)
     await prisma.setting.upsert({
-      where: { key: 'rotation.inactivityReleaseDays' },
+      where: { orgId_key: { orgId, key: 'rotation.inactivityReleaseDays' } },
       update: { value: '1' },
       create: {
+        orgId,
         key: 'rotation.inactivityReleaseDays',
         value: '1',
         category: 'rotation',
@@ -133,9 +135,10 @@ describe('Pool Release Job', () => {
   it('should release pool numbers after maxPoolThreadLifetimeDays', async () => {
     // Set short max lifetime for testing (1 day)
     await prisma.setting.upsert({
-      where: { key: 'rotation.maxPoolThreadLifetimeDays' },
+      where: { orgId_key: { orgId, key: 'rotation.maxPoolThreadLifetimeDays' } },
       update: { value: '1' },
       create: {
+        orgId,
         key: 'rotation.maxPoolThreadLifetimeDays',
         value: '1',
         category: 'rotation',

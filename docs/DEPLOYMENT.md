@@ -19,6 +19,10 @@ Single source of truth for production deployment.
 
 **Important:** Both processes must run. The worker consumes jobs from Redis queues. Without the worker, automations, calendar sync, and reminders will not execute.
 
+### Worker deployment parity (Render)
+
+`render.yaml` defines a **snout-os-worker** service. Deploy it with the web service so both run the same commit. Calendar sync, payouts, and automations depend on the worker; if only the web service is deployed, calendar jobs will enqueue but never run. On startup the worker logs `[Worker] Calendar queue ready` when the calendar-sync queue is initialized.
+
 ## Environment Variables
 
 ### Required (app will fail or degrade without these)

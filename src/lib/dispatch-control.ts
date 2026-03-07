@@ -66,9 +66,9 @@ export async function forceAssignSitter(
   actorId: string,
   options?: { force?: boolean }
 ): Promise<void> {
-  // Get current booking state (need startAt/endAt for conflict check)
-  const booking = await (prisma as any).booking.findUnique({
-    where: { id: bookingId },
+  // Get current booking state (need startAt/endAt for conflict check); org-scoped to prevent cross-org mutation
+  const booking = await (prisma as any).booking.findFirst({
+    where: { id: bookingId, orgId },
     select: {
       dispatchStatus: true,
       sitterId: true,
@@ -136,9 +136,9 @@ export async function forceAssignSitter(
 
   const previousStatus = booking.status;
 
-  // Update booking
-  await (prisma as any).booking.update({
-    where: { id: bookingId },
+  // Update booking (org-scoped)
+  await (prisma as any).booking.updateMany({
+    where: { id: bookingId, orgId },
     data: {
       sitterId: sitterId,
       dispatchStatus: 'assigned',
@@ -149,8 +149,8 @@ export async function forceAssignSitter(
   if (previousStatus !== 'confirmed') {
     try {
       await ensureEventQueueBridge();
-      const updated = await (prisma as any).booking.findUnique({
-        where: { id: bookingId },
+      const updated = await (prisma as any).booking.findFirst({
+        where: { id: bookingId, orgId },
         include: { pets: true, timeSlots: true, sitter: true, client: true },
       });
       if (updated) await emitBookingUpdated(updated, previousStatus);
@@ -199,9 +199,9 @@ export async function resumeAutomation(
   reason: string,
   actorId: string
 ): Promise<void> {
-  // Get current booking state
-  const booking = await (prisma as any).booking.findUnique({
-    where: { id: bookingId },
+  // Get current booking state; org-scoped
+  const booking = await (prisma as any).booking.findFirst({
+    where: { id: bookingId, orgId },
     select: {
       dispatchStatus: true,
       sitterId: true,
@@ -222,9 +222,9 @@ export async function resumeAutomation(
     );
   }
 
-  // Update booking
-  await (prisma as any).booking.update({
-    where: { id: bookingId },
+  // Update booking (org-scoped)
+  await (prisma as any).booking.updateMany({
+    where: { id: bookingId, orgId },
     data: {
       dispatchStatus: 'auto',
       manualDispatchReason: null,

@@ -45,6 +45,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/sitters?error=forbidden', request.url));
     }
 
+    const orgId = (user as any).orgId ?? 'default';
+
+    // Tenancy: ensure sitter belongs to caller's org before updating
+    const sitter = await (prisma as any).sitter.findFirst({
+      where: { id: sitterId, orgId },
+      select: { id: true },
+    });
+    if (!sitter) {
+      return NextResponse.redirect(new URL('/sitters?error=sitter_not_found', request.url));
+    }
+
     const clientId = env.GOOGLE_CLIENT_ID;
     const clientSecret = env.GOOGLE_CLIENT_SECRET;
     const redirectUri = `${env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/api/integrations/google/callback`;
@@ -68,7 +79,7 @@ export async function GET(request: NextRequest) {
       ? new Date((tokens as any).expiry_date)
       : new Date(Date.now() + ((tokens as any).expires_in || 3600) * 1000);
 
-    // Update sitter with tokens
+    // Update sitter with tokens (sitter already verified same org)
     await (prisma as any).sitter.update({
       where: { id: sitterId },
       data: {

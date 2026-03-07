@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@/lib/request-context';
 import { ForbiddenError, requireAnyRole } from '@/lib/rbac';
 import { getScopedDb } from '@/lib/tenancy';
+import { enqueueCalendarSync } from '@/lib/calendar-queue';
+import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
+import { emitBookingUpdated } from '@/lib/event-emitter';
 
 export async function GET(
   _request: NextRequest,
@@ -82,7 +85,7 @@ export async function PATCH(
     const body = (await request.json()) as { status?: string; sitterId?: string | null };
     const existing = await db.booking.findFirst({
       where: { id },
-      select: { id: true, status: true },
+      select: { id: true, status: true, sitterId: true },
     });
     if (!existing) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
 
@@ -110,6 +113,37 @@ export async function PATCH(
           reason: 'owner_operator_update',
         },
       });
+    }
+
+    // Calendar consistency: enqueue sync/delete so booking and calendar stay in sync
+    const newStatus = (updated.status as string) ?? existing.status;
+    const newSitterId = updated.sitterId ?? existing.sitterId;
+    const cancelled = newStatus === 'cancelled';
+    const sitterChanged = body.sitterId !== undefined && existing.sitterId !== newSitterId;
+
+    if (existing.sitterId && (cancelled || sitterChanged)) {
+      enqueueCalendarSync({
+        type: 'delete',
+        bookingId: existing.id,
+        sitterId: existing.sitterId,
+        orgId: ctx.orgId,
+      }).catch((e) => console.error('[Booking PATCH] calendar delete enqueue failed:', e));
+    }
+    if (newSitterId && !cancelled) {
+      enqueueCalendarSync({ type: 'upsert', bookingId: existing.id, orgId: ctx.orgId }).catch((e) =>
+        console.error('[Booking PATCH] calendar upsert enqueue failed:', e)
+      );
+    }
+
+    try {
+      await ensureEventQueueBridge();
+      const full = await db.booking.findFirst({
+        where: { id: existing.id },
+        include: { pets: true, timeSlots: true, sitter: true, client: true },
+      });
+      if (full) await emitBookingUpdated(full, existing.status);
+    } catch (err) {
+      console.error('[Booking PATCH] Failed to emit booking.updated:', err);
     }
 
     return NextResponse.json({ booking: updated });

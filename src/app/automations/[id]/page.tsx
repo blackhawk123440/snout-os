@@ -1,8 +1,7 @@
 /**
- * Automation Builder Page
- * 
- * Complete automation builder with triggers, conditions, actions, templates,
- * preview, and test mode.
+ * Automation type editor - /automations/[id]
+ * Edit one automation type: enabled, sendTo*, message templates. Test message.
+ * id = bookingConfirmation | nightBeforeReminder | paymentReminder | sitterAssignment | postVisitThankYou | ownerNewBookingAlert
  */
 
 'use client';
@@ -15,572 +14,267 @@ import {
   Card,
   Button,
   Input,
-  Select,
   Textarea,
-  Badge,
-  Tabs,
-  TabPanel,
   Skeleton,
-  EmptyState,
+  Flex,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
-import { useMobile } from '@/lib/use-mobile';
-import { allTriggers, getTriggerById, validateTriggerConfig } from '@/lib/automations/trigger-registry';
-import { allActions, getActionById, validateActionConfig } from '@/lib/automations/action-registry';
-import { allConditions, getConditionById, generateConditionSentence } from '@/lib/automations/condition-builder';
-import { templateVariables, extractVariables, previewTemplate, validateTemplateVariables, getSMSCharacterCount } from '@/lib/automations/template-system';
+import { AUTOMATION_TYPE_IDS, type AutomationTypeId } from '@/lib/automations/types';
 
-export default function AutomationBuilderPage() {
+const TYPE_META: Record<
+  AutomationTypeId,
+  { name: string; description: string; recipients: ('client' | 'sitter' | 'owner')[] }
+> = {
+  bookingConfirmation: {
+    name: 'Booking Confirmation',
+    description: 'Sends confirmation when a booking is confirmed',
+    recipients: ['client', 'sitter', 'owner'],
+  },
+  nightBeforeReminder: {
+    name: 'Night Before Reminder',
+    description: 'Sends reminders the night before appointments',
+    recipients: ['client', 'sitter', 'owner'],
+  },
+  paymentReminder: {
+    name: 'Payment Reminder',
+    description: 'Sends payment reminders to clients',
+    recipients: ['client', 'owner'],
+  },
+  sitterAssignment: {
+    name: 'Sitter Assignment',
+    description: 'Notifies sitters and owners when a sitter is assigned',
+    recipients: ['sitter', 'owner', 'client'],
+  },
+  postVisitThankYou: {
+    name: 'Post Visit Thank You',
+    description: 'Sends thank you messages after visits',
+    recipients: ['client', 'sitter'],
+  },
+  ownerNewBookingAlert: {
+    name: 'Owner New Booking Alert',
+    description: 'Alerts owner when a new booking is created',
+    recipients: ['client', 'owner'],
+  },
+};
+
+const RECIPIENT_LABEL: Record<'client' | 'sitter' | 'owner', string> = {
+  client: 'Client',
+  sitter: 'Sitter',
+  owner: 'Owner',
+};
+
+const TEMPLATE_KEYS: Record<'client' | 'sitter' | 'owner', string> = {
+  client: 'messageTemplateClient',
+  sitter: 'messageTemplateSitter',
+  owner: 'messageTemplateOwner',
+};
+
+export default function AutomationTypeEditorPage() {
   const params = useParams();
   const router = useRouter();
-  const isMobile = useMobile();
-  const automationId = params.id as string;
-  const isNew = automationId === 'new';
+  const id = (params.id as string) || '';
+  const validId = id && AUTOMATION_TYPE_IDS.includes(id as AutomationTypeId);
+  const typeId = validId ? (id as AutomationTypeId) : null;
 
-  const [loading, setLoading] = useState(!isNew);
+  const [loading, setLoading] = useState(!!typeId);
   const [saving, setSaving] = useState(false);
-  const [automation, setAutomation] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'trigger' | 'conditions' | 'actions' | 'templates' | 'schedule' | 'preview'>('trigger');
+  const [testing, setTesting] = useState(false);
+  const [block, setBlock] = useState<Record<string, unknown>>({});
+  const [testPhone, setTestPhone] = useState('');
+  const [testError, setTestError] = useState<string | null>(null);
+  const [testSuccess, setTestSuccess] = useState(false);
 
-  // Trigger state
-  const [selectedTriggerType, setSelectedTriggerType] = useState<string>('');
-  const [triggerConfig, setTriggerConfig] = useState<any>({});
-
-  // Conditions state
-  const [conditionGroups, setConditionGroups] = useState<Array<{
-    id: string;
-    operator: 'all' | 'any';
-    conditions: Array<{
-      id: string;
-      conditionType: string;
-      conditionConfig: any;
-    }>;
-  }>>([]);
-
-  // Actions state
-  const [actions, setActions] = useState<Array<{
-    id: string;
-    actionType: string;
-    actionConfig: any;
-  }>>([]);
-
-  // Templates state
-  const [templates, setTemplates] = useState<Array<{
-    templateType: 'sms' | 'email' | 'internalMessage';
-    subject?: string;
-    body: string;
-  }>>([]);
-
-  const fetchAutomation = useCallback(async () => {
+  const fetchBlock = useCallback(async () => {
+    if (!typeId) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/automations/${automationId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setAutomation(data.automation);
-        
-        // Load trigger
-        if (data.automation.trigger) {
-          setSelectedTriggerType(data.automation.trigger.triggerType);
-          setTriggerConfig(JSON.parse(data.automation.trigger.triggerConfig || '{}'));
-        }
-
-        // Load condition groups
-        if (data.automation.conditionGroups) {
-          setConditionGroups(data.automation.conditionGroups.map((group: any) => ({
-            id: group.id,
-            operator: group.operator,
-            conditions: group.conditions.map((c: any) => ({
-              id: c.id,
-              conditionType: c.conditionType,
-              conditionConfig: JSON.parse(c.conditionConfig || '{}'),
-            })),
-          })));
-        }
-
-        // Load actions
-        if (data.automation.actions) {
-          setActions(data.automation.actions.map((a: any) => ({
-            id: a.id,
-            actionType: a.actionType,
-            actionConfig: JSON.parse(a.actionConfig || '{}'),
-          })));
-        }
-
-        // Load templates
-        if (data.automation.templates) {
-          setTemplates(data.automation.templates.map((t: any) => ({
-            templateType: t.templateType,
-            subject: t.subject,
-            body: t.body,
-          })));
-        }
+      const res = await fetch(`/api/automations/${typeId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setBlock(data);
       }
-    } catch (error) {
-      console.error('Failed to fetch automation:', error);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [automationId]);
+  }, [typeId]);
 
   useEffect(() => {
-    if (!isNew) {
-      fetchAutomation();
+    if (!typeId) {
+      router.replace('/automations');
+      return;
     }
-  }, [automationId, isNew, fetchAutomation]);
+    fetchBlock();
+  }, [typeId, router, fetchBlock]);
+
+  const update = (updates: Record<string, unknown>) => {
+    setBlock((prev) => ({ ...prev, ...updates }));
+  };
 
   const handleSave = async () => {
+    if (!typeId) return;
     setSaving(true);
     try {
-      const url = isNew ? '/api/automations' : `/api/automations/${automationId}`;
-      const method = isNew ? 'POST' : 'PATCH';
-
-      const response = await fetch(url, {
-        method,
+      const res = await fetch(`/api/automations/${typeId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: automation?.name || 'Untitled Automation',
-          description: automation?.description || '',
-          triggerType: selectedTriggerType,
-          triggerConfig,
-          conditionGroups,
-          actions,
-          templates,
-        }),
+        body: JSON.stringify(block),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (isNew) {
-          router.push(`/automations/${data.automation.id}`);
-        } else {
-          fetchAutomation();
-        }
-      }
-    } catch (error) {
-      console.error('Failed to save automation:', error);
+      if (res.ok) await fetchBlock();
+    } catch (e) {
+      console.error(e);
     } finally {
       setSaving(false);
     }
   };
 
+  const handleTest = async (template: string) => {
+    if (!template?.trim()) {
+      setTestError('Enter a template to test');
+      return;
+    }
+    if (!testPhone.trim()) {
+      setTestError('Enter a phone number');
+      return;
+    }
+    setTestError(null);
+    setTestSuccess(false);
+    setTesting(true);
+    try {
+      const res = await fetch('/api/automations/test-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: template.trim(), phoneNumber: testPhone.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTestSuccess(true);
+        setTimeout(() => setTestSuccess(false), 3000);
+      } else {
+        setTestError(data.error || 'Send failed');
+      }
+    } catch (e) {
+      setTestError(e instanceof Error ? e.message : 'Request failed');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  if (!typeId) return null;
+
+  const meta = TYPE_META[typeId];
+
   if (loading) {
     return (
       <AppShell>
-        <PageHeader title="Automation Builder" />
+        <PageHeader title="Edit automation" />
         <div style={{ padding: tokens.spacing[6] }}>
-          <Skeleton height={600} />
+          <Skeleton height={400} />
         </div>
       </AppShell>
     );
   }
 
-  const selectedTrigger = selectedTriggerType ? getTriggerById(selectedTriggerType) : null;
-
   return (
     <AppShell>
       <PageHeader
-        title={isNew ? 'Create Automation' : automation?.name || 'Edit Automation'}
-        description={isNew ? 'Build a new automation workflow' : automation?.description || ''}
+        title={meta.name}
+        description={meta.description}
         actions={
           <>
             <Link href="/automations">
-              <Button variant="secondary">Cancel</Button>
+              <Button variant="secondary">Back</Button>
             </Link>
-            <Button variant="primary" onClick={handleSave} isLoading={saving}>
-              {isNew ? 'Create' : 'Save'}
+            <Button variant="primary" onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
             </Button>
           </>
         }
       />
 
-      <div style={{ padding: tokens.spacing[6] }}>
-        {isMobile ? (
-          <Tabs
-            tabs={[
-              { id: 'trigger', label: 'Trigger' },
-              { id: 'conditions', label: 'Conditions' },
-              { id: 'actions', label: 'Actions' },
-              { id: 'templates', label: 'Templates' },
-              { id: 'preview', label: 'Preview' },
-            ]}
-            activeTab={activeTab}
-            onTabChange={(id) => setActiveTab(id as any)}
-          >
-            <TabPanel id="trigger">
-              {renderTriggerSection()}
-            </TabPanel>
-            <TabPanel id="conditions">
-              {renderConditionsSection()}
-            </TabPanel>
-            <TabPanel id="actions">
-              {renderActionsSection()}
-            </TabPanel>
-            <TabPanel id="templates">
-              {renderTemplatesSection()}
-            </TabPanel>
-            <TabPanel id="preview">
-              {renderPreviewSection()}
-            </TabPanel>
-          </Tabs>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: tokens.spacing[6] }}>
-            {/* Left Panel */}
-            <div>
-              <Card>
-                <div style={{ padding: tokens.spacing[4] }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginBottom: tokens.spacing[4] }}>
-                    {[
-                      { id: 'trigger', label: 'Trigger' },
-                      { id: 'conditions', label: 'Conditions' },
-                      { id: 'actions', label: 'Actions' },
-                      { id: 'templates', label: 'Templates' },
-                      { id: 'schedule', label: 'Schedule' },
-                    ].map(tab => (
-                      <Button
-                        key={tab.id}
-                        variant={activeTab === tab.id ? 'primary' : 'secondary'}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        style={{ width: '100%', justifyContent: 'flex-start' }}
-                      >
-                        {tab.label}
-                      </Button>
-                    ))}
-                  </div>
-                  {activeTab === 'trigger' && renderTriggerSection()}
-                  {activeTab === 'conditions' && renderConditionsSection()}
-                  {activeTab === 'actions' && renderActionsSection()}
-                  {activeTab === 'templates' && renderTemplatesSection()}
-                  {activeTab === 'schedule' && renderScheduleSection()}
-                </div>
-              </Card>
-            </div>
-
-            {/* Right Panel - Preview */}
-            <div>
-              {renderPreviewSection()}
-            </div>
+      <div style={{ padding: tokens.spacing[6], maxWidth: 720 }}>
+        <Card style={{ marginBottom: tokens.spacing[4] }}>
+          <div style={{ padding: tokens.spacing[4] }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={!!block.enabled}
+                onChange={(e) => update({ enabled: e.target.checked })}
+              />
+              <span>Enabled</span>
+            </label>
           </div>
-        )}
+        </Card>
+
+        {meta.recipients.map((recipient) => {
+          const sendKey = recipient === 'client' ? 'sendToClient' : recipient === 'sitter' ? 'sendToSitter' : 'sendToOwner';
+          const templateKey = TEMPLATE_KEYS[recipient];
+          return (
+            <Card key={recipient} style={{ marginBottom: tokens.spacing[4] }}>
+              <div style={{ padding: tokens.spacing[4] }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer', marginBottom: tokens.spacing[2] }}>
+                  <input
+                    type="checkbox"
+                    checked={!!block[sendKey]}
+                    onChange={(e) => update({ [sendKey]: e.target.checked })}
+                  />
+                  <span>Send to {RECIPIENT_LABEL[recipient]}</span>
+                </label>
+                <Textarea
+                  label={`Message template (${RECIPIENT_LABEL[recipient]})`}
+                  value={String(block[templateKey] ?? '')}
+                  onChange={(e) => update({ [templateKey]: e.target.value })}
+                  placeholder="Use {{firstName}}, {{service}}, {{datesTimes}}, etc."
+                  rows={4}
+                  style={{ fontFamily: 'monospace', fontSize: tokens.typography.fontSize.sm[0] }}
+                />
+              </div>
+            </Card>
+          );
+        })}
+
+        <Card style={{ marginBottom: tokens.spacing[4] }}>
+          <div style={{ padding: tokens.spacing[4] }}>
+            <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: 600, marginBottom: tokens.spacing[3] }}>
+              Test message
+            </h3>
+            <Input
+              label="Phone number"
+              value={testPhone}
+              onChange={(e) => setTestPhone(e.target.value)}
+              placeholder="+1..."
+              style={{ marginBottom: tokens.spacing[3] }}
+            />
+            <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+              Sends the first non-empty template above to this number.
+            </p>
+            <Flex gap={2} align="center">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  const firstTemplate =
+                    (block.messageTemplateClient as string)?.trim() ||
+                    (block.messageTemplateSitter as string)?.trim() ||
+                    (block.messageTemplateOwner as string)?.trim() ||
+                    '';
+                  handleTest(firstTemplate);
+                }}
+                disabled={testing}
+              >
+                {testing ? 'Sending…' : 'Send test'}
+              </Button>
+              {testSuccess && <span style={{ color: tokens.colors.success.DEFAULT }}>Sent.</span>}
+              {testError && <span style={{ color: tokens.colors.error.DEFAULT }}>{testError}</span>}
+            </Flex>
+          </div>
+        </Card>
+
+        <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+          <Link href="/ops/automation-failures">View automation failures</Link> for debugging.
+        </p>
       </div>
     </AppShell>
   );
-
-  function renderTriggerSection() {
-    return (
-      <Card>
-        <div style={{ padding: tokens.spacing[4] }}>
-          <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[4] }}>
-            Select Trigger
-          </h3>
-          <Select
-            label="Trigger Type"
-            value={selectedTriggerType}
-            onChange={(e) => {
-              setSelectedTriggerType(e.target.value);
-              setTriggerConfig({});
-            }}
-            options={[
-              { value: '', label: 'Select a trigger...' },
-              ...allTriggers.map(t => ({ value: t.id, label: t.name })),
-            ]}
-          />
-          {selectedTrigger && (
-            <div style={{ marginTop: tokens.spacing[4] }}>
-              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3] }}>
-                {selectedTrigger.description}
-              </p>
-              {/* Render trigger config fields based on schema */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
-                {/* Config fields would be rendered here based on trigger type */}
-                <Input
-                  label="Configuration"
-                  value={JSON.stringify(triggerConfig)}
-                  onChange={(e) => {
-                    try {
-                      setTriggerConfig(JSON.parse(e.target.value));
-                    } catch {
-                      // Invalid JSON, ignore
-                    }
-                  }}
-                  placeholder="{}"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      </Card>
-    );
-  }
-
-  function renderConditionsSection() {
-    return (
-      <Card>
-        <div style={{ padding: tokens.spacing[4] }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[4] }}>
-            <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
-              Conditions
-            </h3>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setConditionGroups([...conditionGroups, {
-                  id: `group-${Date.now()}`,
-                  operator: 'all',
-                  conditions: [],
-                }]);
-              }}
-            >
-              Add Group
-            </Button>
-          </div>
-          {conditionGroups.length === 0 ? (
-            <EmptyState
-              title="No conditions"
-              description="Add condition groups to filter when this automation runs"
-              icon="🔍"
-            />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              {conditionGroups.map((group, groupIndex) => (
-                <Card key={group.id} style={{ padding: tokens.spacing[3] }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[3] }}>
-                    <Select
-                      value={group.operator}
-                      onChange={(e) => {
-                        const updated = [...conditionGroups];
-                        updated[groupIndex].operator = e.target.value as 'all' | 'any';
-                        setConditionGroups(updated);
-                      }}
-                      options={[
-                        { value: 'all', label: 'All conditions must match' },
-                        { value: 'any', label: 'Any condition must match' },
-                      ]}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setConditionGroups(conditionGroups.filter((_, i) => i !== groupIndex));
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                  {/* Condition list would be rendered here */}
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      </Card>
-    );
-  }
-
-  function renderActionsSection() {
-    return (
-      <Card>
-        <div style={{ padding: tokens.spacing[4] }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[4] }}>
-            <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
-              Actions
-            </h3>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                // Open action selector
-              }}
-            >
-              Add Action
-            </Button>
-          </div>
-          {actions.length === 0 ? (
-            <EmptyState
-              title="No actions"
-              description="Add actions to define what this automation will do"
-              icon="⚡"
-            />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
-              {actions.map((action, index) => {
-                const actionDef = getActionById(action.actionType);
-                return (
-                  <Card key={action.id} style={{ padding: tokens.spacing[3] }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-                          {actionDef?.name || action.actionType}
-                        </div>
-                        {actionDef && (
-                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                            {actionDef.preview(action.actionConfig)}
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setActions(actions.filter((_, i) => i !== index));
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </Card>
-    );
-  }
-
-  function renderTemplatesSection() {
-    return (
-      <Card>
-        <div style={{ padding: tokens.spacing[4] }}>
-          <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[4] }}>
-            Message Templates
-          </h3>
-          {/* Template editor would be rendered here */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            {templates.map((template, index) => (
-              <Card key={index} style={{ padding: tokens.spacing[4] }}>
-                <Select
-                  label="Template Type"
-                  value={template.templateType}
-                  onChange={(e) => {
-                    const updated = [...templates];
-                    updated[index].templateType = e.target.value as any;
-                    setTemplates(updated);
-                  }}
-                  options={[
-                    { value: 'sms', label: 'SMS' },
-                    { value: 'email', label: 'Email' },
-                    { value: 'internalMessage', label: 'Internal Message' },
-                  ]}
-                />
-                {template.templateType === 'email' && (
-                  <Input
-                    label="Subject"
-                    value={template.subject || ''}
-                    onChange={(e) => {
-                      const updated = [...templates];
-                      updated[index].subject = e.target.value;
-                      setTemplates(updated);
-                    }}
-                    style={{ marginTop: tokens.spacing[3] }}
-                  />
-                )}
-                <Textarea
-                  label="Body"
-                  value={template.body}
-                  onChange={(e) => {
-                    const updated = [...templates];
-                    updated[index].body = e.target.value;
-                    setTemplates(updated);
-                  }}
-                  rows={8}
-                  style={{ marginTop: tokens.spacing[3] }}
-                />
-                {template.templateType === 'sms' && (
-                  <div style={{ marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                    Characters: {getSMSCharacterCount(template.body)}
-                  </div>
-                )}
-                <div style={{ marginTop: tokens.spacing[3] }}>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[2] }}>
-                    Preview:
-                  </div>
-                  <Card style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary }}>
-                    <div style={{ whiteSpace: 'pre-wrap', fontSize: tokens.typography.fontSize.sm[0] }}>
-                      {previewTemplate(template.body)}
-                    </div>
-                  </Card>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  function renderScheduleSection() {
-    return (
-      <Card>
-        <div style={{ padding: tokens.spacing[4] }}>
-          <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[4] }}>
-            Schedule & Throttle
-          </h3>
-          <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-            Schedule and throttling configuration will be available here.
-          </p>
-        </div>
-      </Card>
-    );
-  }
-
-  function renderPreviewSection() {
-    const conditionSentence = generateConditionSentence(conditionGroups as any);
-    
-    return (
-      <Card>
-        <div style={{ padding: tokens.spacing[4] }}>
-          <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[4] }}>
-            Preview
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            <div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[1] }}>
-                Trigger:
-              </div>
-              <div style={{ fontSize: tokens.typography.fontSize.base[0] }}>
-                {selectedTrigger ? selectedTrigger.preview(triggerConfig) : 'No trigger selected'}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[1] }}>
-                Conditions:
-              </div>
-              <div style={{ fontSize: tokens.typography.fontSize.base[0] }}>
-                {conditionSentence || 'No conditions (will always run)'}
-              </div>
-            </div>
-            <div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[1] }}>
-                Actions:
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
-                {actions.length === 0 ? (
-                  <div style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.secondary }}>
-                    No actions configured
-                  </div>
-                ) : (
-                  actions.map((action, index) => {
-                    const actionDef = getActionById(action.actionType);
-                    return (
-                      <div key={index} style={{ fontSize: tokens.typography.fontSize.base[0] }}>
-                        {index + 1}. {actionDef?.preview(action.actionConfig) || action.actionType}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-            <div>
-              <Button variant="primary" leftIcon={<i className="fas fa-vial" />}>
-                Run Test
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Card>
-    );
-  }
 }

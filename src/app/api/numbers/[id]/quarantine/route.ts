@@ -1,56 +1,23 @@
-/**
- * Number Quarantine Route
- * 
- * Specific route for POST /api/numbers/[id]/quarantine to avoid conflict with [id] route.
- * This proxies to the NestJS API.
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { mintApiJWT } from '@/lib/api/jwt';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { getRequestContext } from '@/lib/request-context';
+import { getScopedDb } from '@/lib/tenancy';
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (ctx.role !== 'owner' && ctx.role !== 'admin') {
+    return NextResponse.json({ error: 'Owner access required' }, { status: 403 });
   }
 
   const params = await context.params;
-
-  // Get NextAuth session
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
-  // Mint API JWT token from session
-  let apiToken: string;
-  try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
+  const db = getScopedDb({ orgId: ctx.orgId });
 
   // Read request body - support configurable duration
   let body: { 
@@ -86,94 +53,27 @@ export async function POST(
     durationDays = 90; // Safe default
   }
 
-  // Forward to API with duration support
-  const apiUrl = `${API_BASE_URL}/api/numbers/${params.id}/quarantine`;
-
   try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-      body: JSON.stringify({
-        reason: body.reason,
-        reasonDetail: body.reasonDetail,
-        durationDays: durationDays,
-        customReleaseDate: body.customReleaseDate,
-      }),
+    await db.messageNumber.update({
+      where: { id: params.id },
+      data: { status: 'quarantined' },
     });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-    }
-
-    // Transform API response to match frontend expectations
-    // API returns the updated number object, but frontend expects { success, impact }
-    if (response.ok && responseData) {
-      // Get impact preview from API to get affected threads count
-      let affectedThreads = 0;
-      try {
-        const impactResponse = await fetch(`${API_BASE_URL}/api/numbers/${params.id}/impact?action=quarantine`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${apiToken}`,
-          },
-        });
-        if (impactResponse.ok) {
-          const impactData = await impactResponse.json();
-          affectedThreads = impactData.affectedThreads || 0;
-        }
-      } catch (error) {
-        // Ignore impact preview errors, use default
-        console.warn('[BFF Proxy] Failed to get impact preview:', error);
-      }
-
-      const releaseAt = responseData.quarantineReleaseAt 
-        ? new Date(responseData.quarantineReleaseAt).toISOString()
-        : new Date(Date.now() + (body.durationDays || 90) * 24 * 60 * 60 * 1000).toISOString();
-      
-      const durationDays = body.durationDays || 90;
-      const releaseDate = new Date(releaseAt);
-      const daysUntilRelease = Math.ceil((releaseDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-
-      const transformedResponse = {
-        success: true,
-        impact: {
-          affectedThreads,
-          cooldownDays: durationDays,
-          releaseAt,
-          message: `Number quarantined. ${affectedThreads} active thread(s) will be routed to owner inbox. Will be released in ${daysUntilRelease} days.`,
-        },
-      };
-      return NextResponse.json(transformedResponse, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    }
-
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
-      },
+    const affectedThreads = await db.messageThread.count({
+      where: { orgId: ctx.orgId, messageNumberId: params.id, status: 'open' },
     });
+    const releaseAt = body.customReleaseDate
+      ? new Date(body.customReleaseDate).toISOString()
+      : new Date(Date.now() + (durationDays ?? 90) * 24 * 60 * 60 * 1000).toISOString();
+    return NextResponse.json({
+      success: true,
+      impact: {
+        affectedThreads,
+        cooldownDays: durationDays ?? 90,
+        releaseAt,
+        message: `Number quarantined. ${affectedThreads} active thread(s) will be routed to owner inbox.`,
+      },
+    }, { status: 200 });
   } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward quarantine request:', error);
-    return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
-    );
+    return NextResponse.json({ error: error?.message || 'Failed to quarantine number' }, { status: 500 });
   }
 }

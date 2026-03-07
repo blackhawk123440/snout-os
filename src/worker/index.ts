@@ -16,6 +16,7 @@ export async function startWorkers() {
   }
   console.log("[Worker] Starting background workers...");
   console.log("[Worker] commitSha:", commitSha.slice(0, 7));
+  console.log("[Worker] Redis:", redisUrl ? "connected" : "(missing)");
   console.log("[Worker] REDIS_URL:", redisUrl ? redisUrl.replace(/:[^:@]+@/, ":****@") : "(missing)");
   try {
     await initializeQueues();

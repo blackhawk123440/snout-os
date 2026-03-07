@@ -45,7 +45,7 @@ export async function executePayout(params: {
   bookingId: string;
   amountCents: number;
   currency?: string;
-}): Promise<{ success: boolean; transferId?: string; error?: string }> {
+}): Promise<{ success: boolean; transferId?: string; payoutTransferId?: string; error?: string }> {
   const { db, orgId, sitterId, bookingId, amountCents, currency = "usd" } = params;
 
   const existing = await db.payoutTransfer.findFirst({
@@ -55,6 +55,7 @@ export async function executePayout(params: {
     return {
       success: existing.status === "paid",
       transferId: existing.stripeTransferId ?? undefined,
+      payoutTransferId: existing.id,
       error: existing.status === "failed" ? existing.lastError ?? undefined : undefined,
     };
   }
@@ -141,7 +142,7 @@ export async function executePayout(params: {
       },
     }).catch(() => {});
 
-    return { success: true, transferId };
+    return { success: true, transferId, payoutTransferId: pt.id };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     const pt = await db.payoutTransfer.create({

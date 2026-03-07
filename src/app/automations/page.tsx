@@ -28,25 +28,16 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
-import { getTriggerById } from '@/lib/automations/trigger-registry';
 
 interface Automation {
   id: string;
   name: string;
-  description: string | null;
-  isEnabled: boolean;
-  status: 'draft' | 'active' | 'paused' | 'archived';
-  trigger?: {
-    triggerType: string;
-  } | null;
-  runs?: Array<{
-    id: string;
-    status: string;
-    triggeredAt: Date;
-  }>;
-  _count?: {
-    runs: number;
-  };
+  description: string;
+  category: string;
+  enabled: boolean;
+  sendToClient?: boolean;
+  sendToSitter?: boolean;
+  sendToOwner?: boolean;
 }
 
 interface AutomationStats {
@@ -80,7 +71,7 @@ export default function AutomationsPage() {
       const response = await fetch('/api/automations');
       if (response.ok) {
         const data = await response.json();
-        setAutomations(data.automations || []);
+        setAutomations(data.items || []);
       }
     } catch (error) {
       console.error('Failed to fetch automations:', error);
@@ -106,7 +97,7 @@ export default function AutomationsPage() {
       const response = await fetch(`/api/automations/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isEnabled: enabled }),
+        body: JSON.stringify({ enabled }),
       });
       if (response.ok) {
         fetchAutomations();
@@ -118,7 +109,6 @@ export default function AutomationsPage() {
   };
 
   const filteredAutomations = automations.filter(automation => {
-    // Search filter
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       if (!automation.name.toLowerCase().includes(search) &&
@@ -126,41 +116,10 @@ export default function AutomationsPage() {
         return false;
       }
     }
-
-    // Enabled filter
-    if (filterEnabled === 'enabled' && !automation.isEnabled) return false;
-    if (filterEnabled === 'disabled' && automation.isEnabled) return false;
-
-    // Trigger filter
-    if (filterTrigger !== 'all' && automation.trigger?.triggerType !== filterTrigger) {
-      return false;
-    }
-
-    // Status filter
-    if (filterStatus !== 'all' && automation.status !== filterStatus) {
-      return false;
-    }
-
+    if (filterEnabled === 'enabled' && !automation.enabled) return false;
+    if (filterEnabled === 'disabled' && automation.enabled) return false;
     return true;
   });
-
-  const getLastRunStatus = (automation: Automation) => {
-    if (!automation.runs || automation.runs.length === 0) {
-      return { status: 'never', label: 'Never run', variant: 'neutral' as const };
-    }
-    const lastRun = automation.runs[0];
-    const status = lastRun.status;
-    if (status === 'success') {
-      return { status: 'success', label: 'Success', variant: 'success' as const };
-    }
-    if (status === 'failed') {
-      return { status: 'failed', label: 'Failed', variant: 'error' as const };
-    }
-    if (status === 'skipped') {
-      return { status: 'skipped', label: 'Skipped', variant: 'warning' as const };
-    }
-    return { status: 'unknown', label: status, variant: 'neutral' as const };
-  };
 
   if (loading) {
     return (
@@ -176,12 +135,12 @@ export default function AutomationsPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Automations Control Center"
-        description="Create, manage, and monitor automations"
+        title="Automations"
+        description="Manage automation types, templates, and view run history"
         actions={
-          <Link href="/automations/new">
-            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
-              Create Automation
+          <Link href="/ops/automation-failures">
+            <Button variant="secondary" leftIcon={<i className="fas fa-exclamation-triangle" />}>
+              View failures
             </Button>
           </Link>
         }
@@ -245,21 +204,9 @@ export default function AutomationsPage() {
                 value={filterEnabled}
                 onChange={(e) => setFilterEnabled(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Status' },
+                  { value: 'all', label: 'All' },
                   { value: 'enabled', label: 'Enabled' },
                   { value: 'disabled', label: 'Disabled' },
-                ]}
-                style={{ minWidth: isMobile ? '100%' : '150px' }}
-              />
-              <Select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All States' },
-                  { value: 'draft', label: 'Draft' },
-                  { value: 'active', label: 'Active' },
-                  { value: 'paused', label: 'Paused' },
-                  { value: 'archived', label: 'Archived' },
                 ]}
                 style={{ minWidth: isMobile ? '100%' : '150px' }}
               />
@@ -272,94 +219,58 @@ export default function AutomationsPage() {
           <Card>
             <EmptyState
               title="No automations found"
-              description={searchTerm || filterEnabled !== 'all' || filterStatus !== 'all'
-                ? "Try adjusting your filters"
-                : "Create your first automation to get started"}
+              description={searchTerm || filterEnabled !== 'all' ? "Try adjusting your filters" : "No automation types configured"}
               icon="🤖"
-              action={
-                !searchTerm && filterEnabled === 'all' && filterStatus === 'all'
-                  ? {
-                      label: 'Create Automation',
-                      onClick: () => window.location.href = '/automations/new',
-                    }
-                  : undefined
-              }
             />
           </Card>
         ) : (
-          <Flex direction="column" gap={4}> {/* Batch 5: UI Constitution compliance */}
-            {filteredAutomations.map((automation) => {
-              const lastRun = getLastRunStatus(automation);
-              const trigger = automation.trigger ? getTriggerById(automation.trigger.triggerType) : null;
-
-              return (
-                <Card key={automation.id}>
-                  <Flex
-                    direction={isMobile ? 'column' : 'row'}
-                    align={isMobile ? 'stretch' : 'center'}
-                    justify="space-between"
-                    gap={4}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ marginBottom: tokens.spacing[2] }}>
-                        <Flex align="center" gap={2}>
-                          <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, margin: 0 }}>
-                            {automation.name}
-                          </h3>
-                          <Badge variant={automation.status === 'active' ? 'success' : automation.status === 'paused' ? 'warning' : 'neutral'}>
-                            {automation.status}
-                          </Badge>
-                          {trigger && (
-                            <Badge variant="info">
-                              {trigger.name}
-                            </Badge>
-                          )}
-                        </Flex>
-                      </div>
-                      {automation.description && (
-                        <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, margin: 0, marginBottom: tokens.spacing[2] }}>
-                          {automation.description}
-                        </p>
-                      )}
-                      <Flex align="center" gap={3}>
-                        <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                          Last run: {lastRun.label}
-                        </span>
-                        {automation._count && (
-                          <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                            • {automation._count.runs} total runs
-                          </span>
-                        )}
+          <Flex direction="column" gap={4}>
+            {filteredAutomations.map((automation) => (
+              <Card key={automation.id}>
+                <Flex
+                  direction={isMobile ? 'column' : 'row'}
+                  align={isMobile ? 'stretch' : 'center'}
+                  justify="space-between"
+                  gap={4}
+                >
+                  <div style={{ flex: 1 }}>
+                    <div style={{ marginBottom: tokens.spacing[2] }}>
+                      <Flex align="center" gap={2}>
+                        <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, margin: 0 }}>
+                          {automation.name}
+                        </h3>
+                        <Badge variant={automation.enabled ? 'success' : 'neutral'}>
+                          {automation.enabled ? 'On' : 'Off'}
+                        </Badge>
+                        <Badge variant="info">{automation.category}</Badge>
                       </Flex>
                     </div>
-                    <Flex align="center" gap={2}>
-                      <label style={{ cursor: 'pointer' }}>
-                        <Flex align="center">
+                    <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, margin: 0 }}>
+                      {automation.description}
+                    </p>
+                  </div>
+                  <Flex align="center" gap={2}>
+                    <label style={{ cursor: 'pointer' }}>
+                      <Flex align="center">
                         <input
                           type="checkbox"
-                          checked={automation.isEnabled}
+                          checked={automation.enabled}
                           onChange={(e) => toggleEnabled(automation.id, e.target.checked)}
                         />
-                          <span style={{ marginLeft: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
-                            Enabled
-                          </span>
-                        </Flex>
-                      </label>
-                      <Link href={`/automations/${automation.id}`}>
-                        <Button variant="secondary" size="sm">
-                          Edit
-                        </Button>
-                      </Link>
-                      <Link href={`/automations/${automation.id}/test`}>
-                        <Button variant="tertiary" size="sm" leftIcon={<i className="fas fa-vial" />}>
-                          Test
-                        </Button>
-                      </Link>
-                    </Flex>
+                        <span style={{ marginLeft: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
+                          Enabled
+                        </span>
+                      </Flex>
+                    </label>
+                    <Link href={`/automations/${automation.id}`}>
+                      <Button variant="secondary" size="sm">
+                        Edit templates
+                      </Button>
+                    </Link>
                   </Flex>
-                </Card>
-              );
-            })}
+                </Flex>
+              </Card>
+            ))}
           </Flex>
         )}
       </div>

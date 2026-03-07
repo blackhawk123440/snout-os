@@ -4,6 +4,17 @@
 
 **Snout OS is the source of truth for bookings and visits.** Google Calendar is a **mirror** for visibility only. We do not allow Google edits to override Snout OS data.
 
+## Conflict types (do not conflate)
+
+| Term | Meaning | Where used |
+|------|--------|------------|
+| **Calendar conflict** | Same sitter + overlapping time + non-cancelled bookings only. | Calendar page filter; Command Center “schedule conflicts” link; `GET /api/bookings/conflicts`. |
+| **Assignment-window conflict** | Overlapping assignment windows (same thread). | Assignments → Conflicts tab; `GET /api/assignments/conflicts`. |
+| **Availability conflict** | Sitter outside recurring availability, time-off, or blackout. | Dispatch/force-assign; availability checks; `checkAssignmentAllowed`. |
+| **Google busy conflict** | “Respect Google Busy”: blocks from sitter’s Google Calendar. | Availability only; not stored as a booking conflict. |
+
+Keep this distinction explicit in product and docs so owners are not confused.
+
 ## Conflict Policy
 
 ### Snout OS internal conflicts (same time slot booked twice)

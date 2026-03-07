@@ -232,12 +232,51 @@ async function run() {
   report.push(`delivery.owner=${ownerDelivery}`);
 
   // Sitter outbound send (from sitter-visible thread).
-  const sitterThreads = await fetchJson('/api/sitter/threads', {
+  let sitterThreads = await fetchJson('/api/sitter/threads', {
     headers: { Cookie: cookieHeader(sitterCookies) },
   });
   assert(sitterThreads.res.ok, `sitter threads failed: ${sitterThreads.res.status}`);
-  const sitterThreadId =
+  let sitterThreadId =
     Array.isArray(sitterThreads.json) && sitterThreads.json.length > 0 ? sitterThreads.json[0].id : null;
+  if (!sitterThreadId) {
+    const sitterSession = await fetchJson('/api/auth/session', {
+      headers: { Cookie: cookieHeader(sitterCookies) },
+    });
+    assert(sitterSession.res.ok, `sitter session fetch failed: ${sitterSession.res.status}`);
+    const sitterId = sitterSession.json?.user?.sitterId;
+    assert(typeof sitterId === 'string' && sitterId.length > 0, 'no sitter available to create assignment window');
+    const bookings = await fetchJson('/api/bookings?limit=1', {
+      headers: { Cookie: cookieHeader(ownerCookies) },
+    });
+    assert(bookings.res.ok, `bookings fetch failed: ${bookings.res.status}`);
+    const bookingId = bookings.json?.bookings?.[0]?.id;
+    assert(typeof bookingId === 'string' && bookingId.length > 0, 'no booking available to create assignment window');
+    const now = Date.now();
+    const createWindow = await fetchJson('/api/assignments/windows', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookieHeader(ownerCookies),
+      },
+      body: JSON.stringify({
+        threadId: ownerThreadId,
+        sitterId,
+        startsAt: new Date(now - 5 * 60 * 1000).toISOString(),
+        endsAt: new Date(now + 60 * 60 * 1000).toISOString(),
+        bookingRef: bookingId,
+      }),
+    });
+    assert(
+      createWindow.res.ok,
+      `failed to create assignment window for sitter verification: ${createWindow.res.status} ${createWindow.text}`
+    );
+    sitterThreads = await fetchJson('/api/sitter/threads', {
+      headers: { Cookie: cookieHeader(sitterCookies) },
+    });
+    assert(sitterThreads.res.ok, `sitter threads recheck failed: ${sitterThreads.res.status}`);
+    sitterThreadId =
+      Array.isArray(sitterThreads.json) && sitterThreads.json.length > 0 ? sitterThreads.json[0].id : null;
+  }
   assert(!!sitterThreadId, 'no sitter thread available for outbound verification');
 
   const sitterSend = await fetchJson(`/api/sitter/threads/${sitterThreadId}/messages`, {

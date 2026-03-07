@@ -92,9 +92,95 @@ jobs:
       - name: Build application
         run: pnpm run build
 
+  command-center-verifier:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: snout_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      - name: Build application
+        run: pnpm run build
+
+      - name: Apply database schema
+        run: pnpm prisma db push --accept-data-loss
+
+      - name: Seed database for verifier
+        run: pnpm prisma db seed
+        env:
+          NODE_ENV: development
+
+      - name: Start application
+        run: |
+          pnpm start > /tmp/nextjs-verifier.log 2>&1 &
+          echo $! > /tmp/nextjs-verifier.pid
+        env:
+          PORT: "3000"
+          CI: "true"
+          ENABLE_E2E_LOGIN: "true"
+          ENABLE_E2E_AUTH: "true"
+          E2E_AUTH_KEY: test-e2e-key-change-in-production
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/snout_ci
+
+      - name: Wait for application
+        run: |
+          npx wait-on http://localhost:3000 --timeout 60000 || (cat /tmp/nextjs-verifier.log && exit 1)
+
+      - name: Run command center deterministic verifier (required gate)
+        run: pnpm tsx scripts/verify-command-center.ts
+        env:
+          BASE_URL: "http://localhost:3000"
+          E2E_AUTH_KEY: test-e2e-key-change-in-production
+
+      - name: Dump server log on failure
+        if: failure()
+        run: |
+          echo "--- Verifier server log (last 200 lines) ---"
+          tail -200 /tmp/nextjs-verifier.log || true
+
+      - name: Stop application
+        if: always()
+        run: |
+          if [ -f /tmp/nextjs-verifier.pid ]; then
+            kill $(cat /tmp/nextjs-verifier.pid) 2>/dev/null || true
+          fi
+          pkill -f "next start" || true
+
   proof-pack:
     runs-on: ubuntu-latest
-    needs: [build-and-test]
+    needs: [build-and-test, command-center-verifier]
     services:
       postgres:
         image: postgres:16

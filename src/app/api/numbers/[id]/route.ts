@@ -1,97 +1,67 @@
-/**
- * Number Detail Route
- * 
- * GET /api/numbers/[id]
- * Proxies to NestJS API to get number detail with active threads.
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { mintApiJWT } from '@/lib/api/jwt';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { getRequestContext } from '@/lib/request-context';
+import { getScopedDb } from '@/lib/tenancy';
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (ctx.role !== 'owner' && ctx.role !== 'admin') {
+    return NextResponse.json({ error: 'Owner access required' }, { status: 403 });
   }
 
   const params = await context.params;
   const numberId = params.id;
-
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
-  let apiToken: string;
-  try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
-
-  const apiUrl = `${API_BASE_URL}/api/numbers/${numberId}`;
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
+  const db = getScopedDb({ orgId: ctx.orgId });
+  const n = await db.messageNumber.findFirst({
+    where: { id: numberId, orgId: ctx.orgId },
+    include: {
+      sitterMaskedNumber: {
+        include: { sitter: { select: { id: true, firstName: true, lastName: true } } },
       },
-    });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
-        },
-      });
-    }
-
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
+      _count: {
+        select: { MessageThread: { where: { status: 'open' } } },
       },
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward number detail request:', error);
-    return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
-    );
+    },
+  });
+
+  if (!n) {
+    return NextResponse.json({ error: 'Number not found' }, { status: 404 });
   }
+
+  return NextResponse.json(
+    {
+      id: n.id,
+      e164: n.e164,
+      class: (n.numberClass ?? 'pool') as 'front_desk' | 'sitter' | 'pool',
+      status: (n.status === 'quarantined' || n.status === 'inactive' ? n.status : 'active') as
+        | 'active'
+        | 'quarantined'
+        | 'inactive',
+      assignedSitterId: n.assignedSitterId ?? null,
+      assignedSitter: n.sitterMaskedNumber?.sitter
+        ? {
+            id: n.sitterMaskedNumber.sitter.id,
+            name: `${n.sitterMaskedNumber.sitter.firstName} ${n.sitterMaskedNumber.sitter.lastName}`.trim(),
+          }
+        : null,
+      providerType: n.provider ?? 'twilio',
+      purchaseDate: n.createdAt.toISOString(),
+      lastUsedAt: n.lastAssignedAt?.toISOString() ?? null,
+      quarantineReleaseAt: null,
+      quarantinedReason: null,
+      activeThreadCount: n._count.MessageThread,
+      capacityStatus: n._count.MessageThread > 0 ? 'in_use' : 'available',
+      maxConcurrentThreads: null,
+      health: { status: n.status ?? 'active', deliveryRate: null, errorRate: null },
+      deliveryErrors: [],
+    },
+    { status: 200, headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': ctx.orgId } }
+  );
 }

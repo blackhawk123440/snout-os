@@ -54,7 +54,7 @@ export const navigation: NavItem[] = [
   { label: 'Calendar', href: '/calendar', icon: 'fas fa-calendar' },
   { label: 'Clients', href: '/clients', icon: 'fas fa-users' },
   { label: 'Sitters', href: '/bookings/sitters', icon: 'fas fa-user-friends' },
-  { label: 'Automations', href: '/automation', icon: 'fas fa-robot' },
+  { label: 'Automations', href: '/automations', icon: 'fas fa-robot' },
   { label: 'Payments', href: '/payments', icon: 'fas fa-credit-card' },
   { label: 'Payroll', href: '/payroll', icon: 'fas fa-money-bill-wave' },
   {

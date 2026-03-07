@@ -8,6 +8,7 @@ import IORedis from "ioredis";
 import { prisma } from "@/lib/db";
 import { getScopedDb } from "@/lib/tenancy";
 import { calculatePayoutForBooking, executePayout } from "./payout-engine";
+import { persistPayrollRunFromTransfer } from "@/lib/payroll/payroll-service";
 import { logEvent } from "@/lib/log-event";
 
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379");
@@ -97,6 +98,19 @@ export function initializePayoutWorker(): Worker {
 
       if (!result.success) {
         throw new Error(result.error || "Payout failed");
+      }
+
+      if (result.payoutTransferId) {
+        const commissionAmount = totalPrice - calc.netAmount;
+        await persistPayrollRunFromTransfer(
+          db as any,
+          orgId,
+          result.payoutTransferId,
+          sitterId,
+          totalPrice,
+          commissionAmount,
+          calc.netAmount
+        ).catch((e) => console.error("[PayoutWorker] persistPayrollRunFromTransfer failed:", e));
       }
     },
     { connection }

@@ -244,6 +244,12 @@ describe('calendar sync', () => {
       expect(result.action).toBe('skipped');
       expect(getMocks().insert).not.toHaveBeenCalled();
     });
+
+    it('throws on Google API error so worker can retry / dead-letter', async () => {
+      getMocks().insert.mockRejectedValueOnce(new Error('Google API 500'));
+      const db = createMockDb();
+      await expect(upsertEventForBooking(db, BOOKING_ID, ORG_ID)).rejects.toThrow('Google API 500');
+    });
   });
 
   describe('deleteEventForBooking', () => {
@@ -306,6 +312,22 @@ describe('calendar sync', () => {
       const result = await deleteEventForBooking(db, BOOKING_ID, SITTER_ID, ORG_ID);
       expect(result.deleted).toBe(true);
       expect(db.bookingCalendarEvent.deleteMany).toHaveBeenCalled();
+    });
+
+    it('throws on non-404 Google error so worker can retry / dead-letter', async () => {
+      getMocks().delete.mockRejectedValueOnce(new Error('Google API 500'));
+      const db = createMockDb({
+        bookingCalendarEvent: {
+          findUnique: vi.fn().mockResolvedValue({
+            googleCalendarEventId: 'event-123',
+          }),
+          deleteMany: vi.fn(),
+          upsert: vi.fn(),
+          update: vi.fn(),
+          findMany: vi.fn(),
+        },
+      });
+      await expect(deleteEventForBooking(db, BOOKING_ID, SITTER_ID, ORG_ID)).rejects.toThrow('Google API 500');
     });
   });
 });

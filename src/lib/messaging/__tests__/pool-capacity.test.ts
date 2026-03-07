@@ -17,7 +17,7 @@ describe('Pool Capacity Enforcement', () => {
     // Clean up test data
     await prisma.messageThread.deleteMany({ where: { orgId } });
     await prisma.messageNumber.deleteMany({ where: { orgId } });
-    await prisma.setting.deleteMany({ where: { key: { startsWith: 'rotation.' } } });
+    await prisma.setting.deleteMany({ where: { orgId, key: { startsWith: 'rotation.' } } });
   });
 
   it('should skip pool numbers at capacity deterministically', async () => {
@@ -77,9 +77,10 @@ describe('Pool Capacity Enforcement', () => {
   it('should return null when all pool numbers are at capacity', async () => {
     // Set maxConcurrentThreadsPerPoolNumber to 1
     await prisma.setting.upsert({
-      where: { key: 'rotation.maxConcurrentThreadsPerPoolNumber' },
+      where: { orgId_key: { orgId, key: 'rotation.maxConcurrentThreadsPerPoolNumber' } },
       update: { value: '1' },
       create: {
+        orgId,
         key: 'rotation.maxConcurrentThreadsPerPoolNumber',
         value: '1',
         category: 'rotation',

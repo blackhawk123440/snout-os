@@ -37,6 +37,21 @@ export interface AutomationResult {
 }
 
 /**
+ * Resolve orgId from context (for settings/template lookup). Uses context.orgId or minimal booking lookup.
+ */
+async function resolveOrgId(context: AutomationContext): Promise<string> {
+  if (context.orgId && typeof context.orgId === "string") return context.orgId;
+  if (context.bookingId) {
+    const row = await prisma.booking.findUnique({
+      where: { id: context.bookingId },
+      select: { orgId: true },
+    });
+    if (row?.orgId) return row.orgId;
+  }
+  return "default";
+}
+
+/**
  * Execute an automation for a specific recipient
  */
 export async function executeAutomationForRecipient(
@@ -44,9 +59,8 @@ export async function executeAutomationForRecipient(
   recipient: "client" | "sitter" | "owner",
   context: AutomationContext
 ): Promise<AutomationResult> {
-  // Check if automation should run for this recipient
-  const shouldSend = await shouldSendToRecipient(automationType, recipient);
-  
+  const orgId = await resolveOrgId(context);
+  const shouldSend = await shouldSendToRecipient(automationType, recipient, orgId);
   if (!shouldSend) {
     return {
       success: true,
@@ -123,7 +137,8 @@ async function executeOwnerNewBookingAlert(
       timeSlots: booking.timeSlots || [],
     });
 
-    let template = await getMessageTemplate("ownerNewBookingAlert", "client");
+    const orgIdNewBooking = booking.orgId || "default";
+    let template = await getMessageTemplate("ownerNewBookingAlert", "client", orgIdNewBooking);
     if (!template || template.trim() === "") {
       template = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll confirm your booking shortly. Thank you!";
     }
@@ -138,7 +153,7 @@ async function executeOwnerNewBookingAlert(
     });
 
     // Phase 3: Send via thread masking number
-    const orgId = booking.orgId || 'default';
+    const orgId = orgIdNewBooking;
     const result = await sendAutomationMessageViaThread({
       bookingId: booking.id,
       orgId,
@@ -170,7 +185,7 @@ async function executeOwnerNewBookingAlert(
   }
 
   if (recipient === "owner") {
-    const ownerPhone = await getOwnerPhone(booking.id, "ownerNewBookingAlert");
+    const ownerPhone = await getOwnerPhone(undefined, "ownerNewBookingAlert", booking.orgId || "default");
     if (!ownerPhone) {
       return { success: false, error: "Owner phone not found" };
     }
@@ -185,7 +200,8 @@ async function executeOwnerNewBookingAlert(
 
     const bookingDetailsUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/bookings?booking=${booking.id}`;
 
-    let template = await getMessageTemplate("ownerNewBookingAlert", "owner");
+    const orgIdOwner = booking.orgId || "default";
+    let template = await getMessageTemplate("ownerNewBookingAlert", "owner", orgIdOwner);
     if (!template || template.trim() === "") {
       template = "📱 NEW BOOKING!\n\n{{firstName}} {{lastName}}\n{{phone}}\n\n{{service}}\n{{datesTimes}}\n{{petQuantities}}\nTotal: ${{totalPrice}}\n\nView details: {{bookingUrl}}";
     }
@@ -250,7 +266,8 @@ async function executeBookingConfirmation(
       timeSlots: booking.timeSlots || [],
     });
 
-    let template = await getMessageTemplate("bookingConfirmation", "client");
+    const orgIdBc = booking.orgId || "default";
+    let template = await getMessageTemplate("bookingConfirmation", "client", orgIdBc);
     if (!template || template.trim() === "") {
       template = "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nWe'll see you soon!";
     }
@@ -278,7 +295,7 @@ async function executeBookingConfirmation(
     });
 
     // Phase 3: Send via thread masking number
-    const orgId = booking.orgId || 'default'; // TODO: Get actual orgId
+    const orgId = orgIdBc;
     const result = await sendAutomationMessageViaThread({
       bookingId: booking.id,
       orgId,
@@ -303,12 +320,13 @@ async function executeBookingConfirmation(
 
   // Owner notifications for booking confirmation are optional
   if (recipient === "owner") {
-    const ownerPhone = await getOwnerPhone(booking.id, "bookingConfirmation");
+    const ownerPhone = await getOwnerPhone(undefined, "bookingConfirmation", booking.orgId || "default");
     if (!ownerPhone) {
       return { success: false, error: "Owner phone not found" };
     }
 
-    let template = await getMessageTemplate("bookingConfirmation", "owner");
+    const orgIdBcOwner = booking.orgId || "default";
+    let template = await getMessageTemplate("bookingConfirmation", "owner", orgIdBcOwner);
     if (!template || template.trim() === "") {
       template = "✅ BOOKING CONFIRMED\n\n{{firstName}} {{lastName}}'s {{service}} booking has been confirmed.\n\n{{datesTimes}}";
     }
@@ -383,9 +401,10 @@ async function executeNightBeforeReminder(
   let template: string | null = null;
   let isSitterMessage = false;
 
+  const orgIdReminder = booking.orgId || "default";
   if (recipient === "client") {
     targetPhone = booking.phone;
-    template = await getMessageTemplate("nightBeforeReminder", "client");
+    template = await getMessageTemplate("nightBeforeReminder", "client", orgIdReminder);
     if (!template || template.trim() === "") {
       template = "🌙 REMINDER!\n\nHi {{firstName}},\n\nJust a friendly reminder about your {{service}} appointment:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe're excited to care for your pets!";
     }
@@ -394,18 +413,18 @@ async function executeNightBeforeReminder(
     if (!targetPhone) {
       return { success: false, error: "Sitter phone not found for nightBeforeReminder" };
     }
-    template = await getMessageTemplate("nightBeforeReminder", "sitter");
+    template = await getMessageTemplate("nightBeforeReminder", "sitter", orgIdReminder);
     if (!template || template.trim() === "") {
       template = "🌙 REMINDER!\n\nHi {{sitterFirstName}},\n\nYou have a {{service}} appointment:\n{{datesTimes}}\n\nClient: {{clientName}}\nPets: {{petQuantities}}\nAddress: {{address}}\nYour Earnings: ${{earnings}}\n\nPlease confirm your availability.";
     }
     isSitterMessage = true;
   } else if (recipient === "owner") {
     // Owner reminders not typically sent for night before, but handle if needed
-    targetPhone = await getOwnerPhone(booking.id, "nightBeforeReminder");
+    targetPhone = await getOwnerPhone(undefined, "nightBeforeReminder", booking.orgId || "default");
     if (!targetPhone) {
       return { success: false, error: "Owner phone not found for nightBeforeReminder" };
     }
-    template = await getMessageTemplate("nightBeforeReminder", "owner");
+    template = await getMessageTemplate("nightBeforeReminder", "owner", orgIdReminder);
     if (!template || template.trim() === "") {
       template = "🌙 REMINDER!\n\nReminder: {{clientName}} has a {{service}} appointment tomorrow:\n{{datesTimes}}\n\nPets: {{petQuantities}}";
     }
@@ -580,8 +599,9 @@ async function executeSitterAssignment(
     });
 
     const clientName = formatClientNameForSitter(booking.firstName, booking.lastName);
+    const orgIdAssign = booking.orgId || "default";
 
-    let template = await getMessageTemplate("sitterAssignment", "sitter");
+    let template = await getMessageTemplate("sitterAssignment", "sitter", orgIdAssign);
     if (!template || template.trim() === "") {
       template = "✅ NEW ASSIGNMENT!\n\nYou've been assigned to a {{service}} booking:\n\nClient: {{clientName}}\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nAddress: {{address}}";
     }
@@ -627,6 +647,7 @@ async function executeSitterAssignment(
   }
 
   if (recipient === "client") {
+    const orgIdAssignClient = booking.orgId || "default";
     const petQuantities = formatPetsByQuantity(booking.pets);
     const formattedDatesTimes = formatDatesAndTimesForMessage({
       service: booking.service,
@@ -635,7 +656,7 @@ async function executeSitterAssignment(
       timeSlots: booking.timeSlots || [],
     });
 
-    let template = await getMessageTemplate("sitterAssignment", "client");
+    let template = await getMessageTemplate("sitterAssignment", "client", orgIdAssignClient);
     if (!template || template.trim() === "") {
       template = "🐾 SITTER ASSIGNED!\n\nHi {{firstName}},\n\nYour sitter for {{service}} has been assigned:\n\nSitter: {{sitterName}}\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll see you soon!";
     }
@@ -745,7 +766,8 @@ async function executePaymentReminder(
       timeSlots: booking.timeSlots || [],
     });
 
-    let template = await getMessageTemplate("paymentReminder", "client");
+    const orgIdPay = booking.orgId || "default";
+    let template = await getMessageTemplate("paymentReminder", "client", orgIdPay);
     if (!template || template.trim() === "") {
       template = "💳 PAYMENT REMINDER\n\nHi {{firstName}},\n\nYour {{service}} booking is ready for payment.\n\n{{datesTimes}}\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\n{{paymentLink}}";
     }
@@ -777,7 +799,7 @@ async function executePaymentReminder(
     });
 
     // Phase 3: Send via thread masking number
-    const orgId = booking.orgId || 'default';
+    const orgId = orgIdPay;
     const result = await sendAutomationMessageViaThread({
       bookingId: booking.id,
       orgId,
@@ -810,12 +832,13 @@ async function executePaymentReminder(
 
   // Owner notifications for payment reminders are optional
   if (recipient === "owner") {
-    const ownerPhone = await getOwnerPhone(booking.id, "paymentReminder");
+    const ownerPhone = await getOwnerPhone(undefined, "paymentReminder", booking.orgId || "default");
     if (!ownerPhone) {
       return { success: false, error: "Owner phone not found" };
     }
 
-    let template = await getMessageTemplate("paymentReminder", "owner");
+    const orgIdPayOwner = booking.orgId || "default";
+    let template = await getMessageTemplate("paymentReminder", "owner", orgIdPayOwner);
     if (!template || template.trim() === "") {
       template = "💳 PAYMENT REMINDER\n\n{{firstName}} {{lastName}}'s {{service}} booking requires payment.\n\n{{datesTimes}}\nTotal: ${{totalPrice}}\nStatus: {{paymentStatus}}";
     }
@@ -893,7 +916,8 @@ async function executePostVisitThankYou(
       timeSlots: booking.timeSlots || [],
     });
 
-    let template = await getMessageTemplate("postVisitThankYou", "client");
+    const orgIdThankYou = booking.orgId || "default";
+    let template = await getMessageTemplate("postVisitThankYou", "client", orgIdThankYou);
     if (!template || template.trim() === "") {
       template = "🐾 THANK YOU!\n\nHi {{firstName}},\n\nThank you for choosing Snout Services! We hope your pets enjoyed their {{service}}.\n\n{{datesTimes}}\nPets: {{petQuantities}}\n\nWe look forward to caring for your pets again soon!";
     }
@@ -909,7 +933,7 @@ async function executePostVisitThankYou(
     });
 
     // Phase 3: Send via thread masking number
-    const orgId = booking.orgId || 'default';
+    const orgId = orgIdThankYou;
     const result = await sendAutomationMessageViaThread({
       bookingId: booking.id,
       orgId,
@@ -963,8 +987,9 @@ async function executePostVisitThankYou(
 
     const clientName = formatClientNameForSitter(booking.firstName, booking.lastName);
     const petQuantities = formatPetsByQuantity(booking.pets);
+    const orgIdThankYouSitter = booking.orgId || "default";
 
-    let template = await getMessageTemplate("postVisitThankYou", "sitter");
+    let template = await getMessageTemplate("postVisitThankYou", "sitter", orgIdThankYouSitter);
     if (!template || template.trim() === "") {
       template = "🐾 GREAT JOB!\n\nHi,\n\nThank you for completing {{clientName}}'s {{service}} visit!\n\nPets: {{petQuantities}}\n\nYour professionalism makes all the difference!";
     }
@@ -976,7 +1001,7 @@ async function executePostVisitThankYou(
     });
 
     const sent = await sendMessage(sitterPhone, message, booking.id);
-    const orgId = booking.orgId || "default";
+    const orgId = orgIdThankYouSitter;
     if (sent) {
       await logEventFromLogger("review.sent", "success", {
         orgId,

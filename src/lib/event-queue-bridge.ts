@@ -62,18 +62,19 @@ export function initializeEventQueueBridge(): void {
   eventEmitter.on("booking.status.changed", async (context: any) => {
     if (context.newStatus !== "confirmed") return;
     const bookingId = context.bookingId;
+    const orgId = context.booking?.orgId || "default";
     if (!bookingId) return;
     try {
       await enqueueAutomation(
         "bookingConfirmation",
         "client",
-        { bookingId },
+        { orgId, bookingId },
         `bookingConfirmation:client:${bookingId}`
       );
       await enqueueAutomation(
         "bookingConfirmation",
         "owner",
-        { bookingId },
+        { orgId, bookingId },
         `bookingConfirmation:owner:${bookingId}`
       );
     } catch (err) {

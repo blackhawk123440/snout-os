@@ -17,11 +17,12 @@ describe('Deterministic Replay', () => {
     const clientId = 'test-client-123';
     const threadId = 'test-thread-456';
 
-    // Set rotation strategy to HASH_SHUFFLE
+    // Set rotation strategy to HASH_SHUFFLE (org-scoped)
     await prisma.setting.upsert({
-      where: { key: 'rotation.poolSelectionStrategy' },
+      where: { orgId_key: { orgId, key: 'rotation.poolSelectionStrategy' } },
       update: { value: 'HASH_SHUFFLE' },
       create: {
+        orgId,
         key: 'rotation.poolSelectionStrategy',
         value: 'HASH_SHUFFLE',
         category: 'rotation',
@@ -30,9 +31,10 @@ describe('Deterministic Replay', () => {
     });
 
     await prisma.setting.upsert({
-      where: { key: 'rotation.stickyReuseKey' },
+      where: { orgId_key: { orgId, key: 'rotation.stickyReuseKey' } },
       update: { value: 'clientId' },
       create: {
+        orgId,
         key: 'rotation.stickyReuseKey',
         value: 'clientId',
         category: 'rotation',

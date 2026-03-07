@@ -1,11 +1,8 @@
 /**
- * Payroll Page - Enterprise Rebuild
- * 
- * Complete payroll management system with:
- * - Commission split rules
- * - Pay period breakdown
- * - Owner approvals
- * - Sitter payroll view
+ * Payroll Page - Owner view
+ *
+ * Single source of truth: Booking → PayoutTransfer → Ledger.
+ * Shows payroll runs (weekly from PayoutTransfer), summary, approve, export.
  */
 
 'use client';
@@ -18,15 +15,10 @@ import {
   Badge,
   Table,
   TableColumn,
-  Select,
-  Input,
   StatCard,
   Skeleton,
   EmptyState,
   Modal,
-  Tabs,
-  TabPanel,
-  MobileFilterBar,
   Flex,
   Grid,
   GridCol,
@@ -35,124 +27,130 @@ import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 
-interface PayPeriod {
+interface PayrollRunListItem {
   id: string;
-  sitterId: string;
-  sitterName?: string;
-  startDate: Date | string;
-  endDate: Date | string;
-  status: 'draft' | 'pending' | 'calculated' | 'approved' | 'paid' | 'cancelled';
-  totalEarnings: number;
-  commissionAmount: number;
-  fees: number;
-  netPayout: number;
-  bookingCount: number;
-  createdAt: Date | string;
-  approvedAt?: Date | string;
-  paidAt?: Date | string;
-  approvedBy?: string;
+  startDate: string;
+  endDate: string;
+  sitterCount: number;
+  totalPayout: number;
+  status: string;
 }
 
-interface BookingEarning {
-  bookingId: string;
-  bookingDate: Date | string;
-  service: string;
-  totalPrice: number;
-  commissionPercentage: number;
-  commissionAmount: number;
-  status: 'completed' | 'cancelled';
+interface PayrollRunDetail {
+  run: {
+    id: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+    totalPayout: number;
+  };
+  sitters: Array<{
+    sitterId: string;
+    sitterName: string;
+    bookingCount: number;
+    earnings: number;
+    commission: number;
+    payoutAmount: number;
+    stripeAccount: boolean;
+  }>;
+  bookings: Array<{
+    bookingId: string;
+    bookingDate: string;
+    service: string;
+    totalPrice: number;
+    commissionPercentage: number;
+    commissionAmount: number;
+    status: string;
+  }>;
 }
 
 export default function PayrollPage() {
   const isMobile = useMobile();
-  const [payPeriods, setPayPeriods] = useState<PayPeriod[]>([]);
+  const [runs, setRuns] = useState<PayrollRunListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPayPeriod, setSelectedPayPeriod] = useState<PayPeriod | null>(null);
-  const [selectedBookings, setSelectedBookings] = useState<BookingEarning[]>([]);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<PayrollRunDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [runToApprove, setRunToApprove] = useState<PayrollRunListItem | null>(null);
   const [approving, setApproving] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [filterPayPeriod, setFilterPayPeriod] = useState<string>('biweekly');
-  const [activeTab, setActiveTab] = useState<'overview' | 'periods' | 'sitters'>('periods');
 
   const fetchPayroll = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (filterStatus !== 'all') params.append('status', filterStatus);
-      if (filterPayPeriod) params.append('payPeriod', filterPayPeriod);
-
       const response = await fetch(`/api/payroll?${params}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch payroll data');
-      }
-
+      if (!response.ok) throw new Error('Failed to fetch payroll');
       const data = await response.json();
-      setPayPeriods(data.payPeriods || []);
+      setRuns(data.payPeriods || []);
     } catch (error) {
       console.error('Failed to fetch payroll:', error);
+      setRuns([]);
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, filterPayPeriod]);
+  }, [filterStatus]);
 
   useEffect(() => {
     fetchPayroll();
   }, [fetchPayroll]);
 
-  const handleViewDetails = async (payPeriod: PayPeriod) => {
-    setSelectedPayPeriod(payPeriod);
-    // Fetch booking details for this pay period
+  const handleViewDetails = useCallback(async (run: PayrollRunListItem) => {
+    setSelectedRunId(run.id);
+    setDetail(null);
+    setDetailLoading(true);
     try {
-      const response = await fetch(`/api/payroll/${payPeriod.id}`);
+      const response = await fetch(`/api/payroll/${run.id}`);
       if (response.ok) {
         const data = await response.json();
-        setSelectedBookings(data.bookings || []);
+        setDetail(data as PayrollRunDetail);
       }
     } catch (error) {
-      console.error('Failed to fetch pay period details:', error);
+      console.error('Failed to fetch run details:', error);
+    } finally {
+      setDetailLoading(false);
     }
-  };
+  }, []);
 
   const handleApprove = async () => {
-    if (!selectedPayPeriod) return;
-
+    if (!selectedRunId) return;
     setApproving(true);
     try {
-      const response = await fetch(`/api/payroll/${selectedPayPeriod.id}/approve`, {
+      const response = await fetch(`/api/payroll/${selectedRunId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ approvedBy: 'owner' }),
       });
-
       if (response.ok) {
         setShowApprovalModal(false);
+        setRunToApprove(null);
+        setSelectedRunId(null);
+        setDetail(null);
         fetchPayroll();
+      } else {
+        const json = await response.json().catch(() => ({}));
+        alert(json.error || 'Failed to approve');
       }
     } catch (error) {
-      console.error('Failed to approve pay period:', error);
+      console.error('Failed to approve:', error);
+      alert('Failed to approve. Please try again.');
     } finally {
       setApproving(false);
     }
   };
 
-  const handleExportCSV = async () => {
+  const handleExportCSV = useCallback(async (runId?: string) => {
     try {
-      const params = new URLSearchParams({
-        payPeriod: filterPayPeriod,
-        status: filterStatus,
-      });
-      
+      const params = runId ? new URLSearchParams({ runId }) : new URLSearchParams();
       const response = await fetch(`/api/payroll/export?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error('Failed to export payroll');
-      }
-      
+      if (!response.ok) throw new Error('Failed to export payroll');
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `payroll-export-${filterPayPeriod}-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `payroll-export-${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -161,22 +159,14 @@ export default function PayrollPage() {
       console.error('Failed to export payroll:', error);
       alert('Failed to export payroll. Please try again.');
     }
-  };
+  }, []);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
   const formatDate = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const getStatusBadge = (status: string) => {
@@ -190,100 +180,68 @@ export default function PayrollPage() {
     return <Badge variant={variants[status] || 'default'}>{status}</Badge>;
   };
 
-  // Calculate totals
-  const totalPending = payPeriods
-    .filter((p) => p.status === 'pending' || p.status === 'draft')
-    .reduce((sum, p) => sum + p.netPayout, 0);
-  const totalApproved = payPeriods
-    .filter((p) => p.status === 'approved')
-    .reduce((sum, p) => sum + p.netPayout, 0);
-  const totalPaid = payPeriods
-    .filter((p) => p.status === 'paid')
-    .reduce((sum, p) => sum + p.netPayout, 0);
+  const filteredRuns = filterStatus === 'all' ? runs : runs.filter((r) => r.status === filterStatus);
+  const totalPending = runs.filter((r) => r.status === 'pending' || r.status === 'draft').reduce((s, r) => s + r.totalPayout, 0);
+  const totalApproved = runs.filter((r) => r.status === 'approved').reduce((s, r) => s + r.totalPayout, 0);
+  const totalPaid = runs.filter((r) => r.status === 'paid').reduce((s, r) => s + r.totalPayout, 0);
+  const currentRun = runs[0] ?? null;
 
-  const payPeriodColumns: TableColumn<PayPeriod>[] = [
-    {
-      key: 'sitter',
-      header: 'Sitter',
-      render: (period) => (
-        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-          {period.sitterName || `Sitter ${period.sitterId.slice(0, 8)}`}
-        </div>
-      ),
-    },
+  const runColumns: TableColumn<PayrollRunListItem>[] = [
     {
       key: 'period',
       header: 'Pay Period',
-      render: (period) => (
-        <div>
-          {formatDate(period.startDate)} - {formatDate(period.endDate)}
+      render: (r) => (
+        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+          {formatDate(r.startDate)} – {formatDate(r.endDate)}
         </div>
       ),
     },
-    {
-      key: 'bookings',
-      header: 'Bookings',
-      render: (period) => <div>{period.bookingCount}</div>,
-      align: 'center',
-    },
-    {
-      key: 'earnings',
-      header: 'Total Earnings',
-      render: (period) => <div>{formatCurrency(period.totalEarnings)}</div>,
-      align: 'right',
-    },
-    {
-      key: 'commission',
-      header: 'Commission',
-      render: (period) => <div>{formatCurrency(period.commissionAmount)}</div>,
-      align: 'right',
-    },
-    {
-      key: 'fees',
-      header: 'Fees',
-      render: (period) => <div>{formatCurrency(period.fees)}</div>,
-      align: 'right',
-    },
+    { key: 'sitters', header: 'Sitters', render: (r) => r.sitterCount, align: 'center' as const },
     {
       key: 'payout',
-      header: 'Net Payout',
-      render: (period) => (
+      header: 'Total Payout',
+      render: (r) => (
         <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
-          {formatCurrency(period.netPayout)}
+          {formatCurrency(r.totalPayout)}
         </div>
       ),
-      align: 'right',
+      align: 'right' as const,
     },
     {
       key: 'status',
       header: 'Status',
-      render: (period) => getStatusBadge(period.status),
-      align: 'center',
+      render: (r) => getStatusBadge(r.status),
+      align: 'center' as const,
     },
     {
       key: 'actions',
       header: 'Actions',
-      render: (period) => (
-        <Flex gap={2}> {/* Batch 5: UI Constitution compliance */}
-          <Button
-            variant="tertiary"
-            size="sm"
-            onClick={() => handleViewDetails(period)}
-          >
+      render: (r) => (
+        <Flex gap={2}>
+          <Button variant="tertiary" size="sm" onClick={() => handleViewDetails(r)}>
             View
           </Button>
-          {period.status === 'pending' && (
+          {r.status === 'pending' && (
             <Button
               variant="primary"
               size="sm"
               onClick={() => {
-                setSelectedPayPeriod(period);
+                setRunToApprove(r);
+                setSelectedRunId(r.id);
                 setShowApprovalModal(true);
               }}
             >
               Approve
             </Button>
           )}
+          <Button
+            variant="tertiary"
+            size="sm"
+            onClick={() => handleExportCSV(r.id)}
+            leftIcon={<i className="fas fa-download" />}
+          >
+            Export
+          </Button>
         </Flex>
       ),
     },
@@ -295,25 +253,14 @@ export default function PayrollPage() {
         title="Payroll"
         description="Manage sitter commissions and payouts"
         actions={
-          !isMobile ? (
-            <Flex gap={3}> {/* Batch 5: UI Constitution compliance */}
-              <Button
-                variant="secondary"
-                leftIcon={<i className="fas fa-download" />}
-                onClick={handleExportCSV}
-              >
-                Export CSV
-              </Button>
-              <Button
-                variant="primary"
-                onClick={fetchPayroll}
-                disabled={loading}
-                leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
-              >
-                Refresh
-              </Button>
-            </Flex>
-          ) : (
+          <Flex gap={3}>
+            <Button
+              variant="secondary"
+              leftIcon={<i className="fas fa-download" />}
+              onClick={() => handleExportCSV()}
+            >
+              Export CSV
+            </Button>
             <Button
               variant="primary"
               onClick={fetchPayroll}
@@ -322,215 +269,206 @@ export default function PayrollPage() {
             >
               Refresh
             </Button>
-          )
+          </Flex>
         }
       />
 
       <div style={{ padding: tokens.spacing[6] }}>
-        {/* Overview Stats */}
+        {/* Top Summary */}
         <div style={{ marginBottom: tokens.spacing[6] }}>
-          <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
+          <Grid gap={4}>
             <GridCol span={12} md={6} lg={3}>
               <StatCard
-                label="Pending Payouts"
-                value={formatCurrency(totalPending)}
-                icon={<i className="fas fa-clock" />}
+                label="Current Pay Period"
+                value={
+                  currentRun
+                    ? `${formatDate(currentRun.startDate)} – ${formatDate(currentRun.endDate)}`
+                    : '—'
+                }
+                icon={<i className="fas fa-calendar" />}
               />
             </GridCol>
             <GridCol span={12} md={6} lg={3}>
               <StatCard
-                label="Approved"
-                value={formatCurrency(totalApproved)}
-                icon={<i className="fas fa-check-circle" />}
+                label="Total Sitters"
+                value={(currentRun?.sitterCount) ?? (runs.reduce((s, r) => s + r.sitterCount, 0) || 0)}
+                icon={<i className="fas fa-users" />}
               />
             </GridCol>
             <GridCol span={12} md={6} lg={3}>
               <StatCard
-                label="Total Paid"
-                value={formatCurrency(totalPaid)}
+                label="Total Payout"
+                value={formatCurrency(runs.reduce((s, r) => s + r.totalPayout, 0))}
                 icon={<i className="fas fa-dollar-sign" />}
               />
             </GridCol>
             <GridCol span={12} md={6} lg={3}>
               <StatCard
-                label="Pay Periods"
-                value={payPeriods.length}
-                icon={<i className="fas fa-calendar" />}
+                label="Status"
+                value={currentRun?.status ?? '—'}
+                icon={<i className="fas fa-info-circle" />}
               />
             </GridCol>
           </Grid>
         </div>
 
-        {/* Filters */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
-          <Flex direction="column" gap={4}> {/* Batch 5: UI Constitution compliance */}
-            {isMobile ? (
-              <MobileFilterBar
-                activeFilter={filterStatus}
-                onFilterChange={(filterId) => setFilterStatus(filterId)}
-                options={[
-                  { id: 'all', label: 'All' },
-                  { id: 'pending', label: 'Pending' },
-                  { id: 'approved', label: 'Approved' },
-                  { id: 'paid', label: 'Paid' },
-                ]}
-              />
-            ) : (
-              <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
-                <GridCol span={12} md={4}>
-                  <Select
-                    label="Status"
-                    options={[
-                      { value: 'all', label: 'All Statuses' },
-                      { value: 'pending', label: 'Pending' },
-                      { value: 'approved', label: 'Approved' },
-                      { value: 'paid', label: 'Paid' },
-                    ]}
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                  />
-                </GridCol>
-              </Grid>
-            )}
-            <Select
-              label="Pay Period"
-              options={[
-                { value: 'weekly', label: 'Weekly' },
-                { value: 'biweekly', label: 'Biweekly' },
-                { value: 'monthly', label: 'Monthly' },
-              ]}
-              value={filterPayPeriod}
-              onChange={(e) => setFilterPayPeriod(e.target.value)}
-            />
+        <div style={{ marginBottom: tokens.spacing[4] }}>
+          <Flex gap={4} wrap>
+            <StatCard label="Pending Payouts" value={formatCurrency(totalPending)} icon={<i className="fas fa-clock" />} />
+            <StatCard label="Approved" value={formatCurrency(totalApproved)} icon={<i className="fas fa-check-circle" />} />
+            <StatCard label="Total Paid" value={formatCurrency(totalPaid)} icon={<i className="fas fa-dollar-sign" />} />
           </Flex>
-        </Card>
+        </div>
 
-        {/* Pay Periods Table */}
+        {/* Status filter */}
+        <div style={{ marginBottom: tokens.spacing[3] }}>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            style={{ padding: tokens.spacing[2], borderRadius: 4 }}
+          >
+            <option value="all">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="paid">Paid</option>
+            <option value="draft">Draft</option>
+          </select>
+        </div>
+
+        {/* Payroll Table: runs with Sitter count, Total Payout, Status; View opens sitters + bookings */}
         {loading ? (
           <Card>
             <Skeleton height={400} />
           </Card>
-        ) : payPeriods.length === 0 ? (
+        ) : filteredRuns.length === 0 ? (
           <Card>
             <EmptyState
               icon="💰"
-              title="No pay periods found"
-              description="Pay periods will appear here once bookings are completed"
+              title="No payroll runs found"
+              description="Payroll runs appear once completed visits have been paid out to sitters."
             />
           </Card>
         ) : (
           <Card padding={false}>
             <Table
-              columns={payPeriodColumns}
-              data={payPeriods}
-              emptyMessage="No pay periods found"
+              columns={runColumns}
+              data={filteredRuns}
+              emptyMessage="No payroll runs found"
             />
           </Card>
         )}
       </div>
 
-      {/* Pay Period Details Modal */}
-      {selectedPayPeriod && (
-        <Modal
-          isOpen={!!selectedPayPeriod}
-          onClose={() => {
-            setSelectedPayPeriod(null);
-            setSelectedBookings([]);
-          }}
-          title={`Pay Period Details - ${formatDate(selectedPayPeriod.startDate)} to ${formatDate(selectedPayPeriod.endDate)}`}
-          size="lg"
-        >
-          <Flex direction="column" gap={4}> {/* Batch 5: UI Constitution compliance */}
-            <div>
-              <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
-                <GridCol span={12} md={6}>
-                  <Card>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                      Total Earnings
-                    </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
-                      {formatCurrency(selectedPayPeriod.totalEarnings)}
-                    </div>
-                  </Card>
-                </GridCol>
-                <GridCol span={12} md={6}>
-                  <Card>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                      Net Payout
-                    </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success.DEFAULT }}>
-                      {formatCurrency(selectedPayPeriod.netPayout)}
-                    </div>
-                  </Card>
-                </GridCol>
-              </Grid>
-            </div>
+      {/* Run Detail Modal */}
+      <Modal
+        isOpen={!!selectedRunId && !showApprovalModal}
+        onClose={() => {
+          setSelectedRunId(null);
+          setDetail(null);
+        }}
+        title={
+          detail
+            ? `Pay Period – ${formatDate(detail.run.startDate)} to ${formatDate(detail.run.endDate)}`
+            : 'Pay Period Details'
+        }
+        size="lg"
+      >
+        {detailLoading ? (
+          <Skeleton height={200} />
+        ) : detail ? (
+          <Flex direction="column" gap={4}>
+            <Grid gap={4}>
+              <GridCol span={12} md={6}>
+                <Card>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Total Payout
+                  </div>
+                  <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success.DEFAULT }}>
+                    {formatCurrency(detail.run.totalPayout)}
+                  </div>
+                </Card>
+              </GridCol>
+              <GridCol span={12} md={6}>
+                <Card>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    Sitters
+                  </div>
+                  <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+                    {detail.sitters.length}
+                  </div>
+                </Card>
+              </GridCol>
+            </Grid>
 
-            {selectedBookings.length > 0 && (
-              <div>
-                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[3] }}>
-                  Booking Breakdown ({selectedBookings.length} bookings)
+            <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Sitters</div>
+            <Table
+              columns={[
+                { key: 'sitter', header: 'Sitter', render: (s) => s.sitterName },
+                { key: 'bookings', header: 'Bookings', render: (s) => s.bookingCount, align: 'center' as const },
+                { key: 'earnings', header: 'Earnings', render: (s) => formatCurrency(s.earnings), align: 'right' as const },
+                { key: 'commission', header: 'Commission', render: (s) => formatCurrency(s.commission), align: 'right' as const },
+                { key: 'payout', header: 'Payout', render: (s) => formatCurrency(s.payoutAmount), align: 'right' as const },
+                { key: 'stripe', header: 'Stripe', render: (s) => (s.stripeAccount ? 'Connected' : '—'), align: 'center' as const },
+              ]}
+              data={detail.sitters}
+              emptyMessage="No sitters"
+            />
+
+            {detail.bookings.length > 0 && (
+              <>
+                <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                  Booking Breakdown ({detail.bookings.length})
                 </div>
-                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                  {selectedBookings.map((booking) => (
-                    <Card key={booking.bookingId} style={{ marginBottom: tokens.spacing[2] }}>
+                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  {detail.bookings.map((b) => (
+                    <Card key={b.bookingId} style={{ marginBottom: tokens.spacing[2] }}>
                       <Flex justify="space-between" align="center">
                         <div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-                            {booking.service}
-                          </div>
+                          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{b.service}</div>
                           <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                            {formatDate(booking.bookingDate)}
+                            {formatDate(b.bookingDate)}
                           </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <div>{formatCurrency(booking.totalPrice)}</div>
+                          <div>{formatCurrency(b.totalPrice)}</div>
                           <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                            {formatCurrency(booking.commissionAmount)} ({booking.commissionPercentage}%)
+                            {formatCurrency(b.commissionAmount)} ({b.commissionPercentage}%)
                           </div>
                         </div>
                       </Flex>
                     </Card>
                   ))}
                 </div>
-              </div>
+              </>
             )}
+
+            <Button variant="secondary" onClick={() => selectedRunId && handleExportCSV(selectedRunId)}>
+              Export this period CSV
+            </Button>
           </Flex>
-        </Modal>
-      )}
+        ) : null}
+      </Modal>
 
       {/* Approval Modal */}
       <Modal
         isOpen={showApprovalModal}
-        onClose={() => setShowApprovalModal(false)}
-        title="Approve Pay Period"
+        onClose={() => { setShowApprovalModal(false); setRunToApprove(null); }}
+        title="Approve Payroll Run"
         size="md"
       >
-        {selectedPayPeriod && (
-          <Flex direction="column" gap={4}> {/* Batch 5: UI Constitution compliance */}
+        {runToApprove && (
+          <Flex direction="column" gap={4}>
             <div>
               <div style={{ marginBottom: tokens.spacing[2] }}>
-                Approve payout of <strong>{formatCurrency(selectedPayPeriod.netPayout)}</strong> to{' '}
-                {selectedPayPeriod.sitterName || `Sitter ${selectedPayPeriod.sitterId.slice(0, 8)}`}?
-              </div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                Period: {formatDate(selectedPayPeriod.startDate)} - {formatDate(selectedPayPeriod.endDate)}
+                Approve payroll run for period <strong>{formatDate(runToApprove.startDate)} – {formatDate(runToApprove.endDate)}</strong>?
+                Total payout: <strong>{formatCurrency(runToApprove.totalPayout)}</strong> ({runToApprove.sitterCount} sitter{runToApprove.sitterCount !== 1 ? 's' : ''}).
               </div>
             </div>
             <Flex gap={3}>
-              <Button
-                variant="primary"
-                onClick={handleApprove}
-                disabled={approving}
-                style={{ flex: 1 }}
-              >
+              <Button variant="primary" onClick={handleApprove} disabled={approving} style={{ flex: 1 }}>
                 {approving ? 'Approving...' : 'Approve'}
               </Button>
-              <Button
-                variant="tertiary"
-                onClick={() => setShowApprovalModal(false)}
-                style={{ flex: 1 }}
-              >
+              <Button variant="tertiary" onClick={() => { setShowApprovalModal(false); setRunToApprove(null); }} style={{ flex: 1 }}>
                 Cancel
               </Button>
             </Flex>
@@ -540,4 +478,3 @@ export default function PayrollPage() {
     </AppShell>
   );
 }
-

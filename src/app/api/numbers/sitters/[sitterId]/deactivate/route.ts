@@ -1,98 +1,43 @@
-/**
- * Deactivate Sitter Route
- * 
- * POST /api/numbers/sitters/[sitterId]/deactivate
- * Proxies to NestJS API to deactivate a sitter.
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { mintApiJWT } from '@/lib/api/jwt';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { getRequestContext } from '@/lib/request-context';
+import { getScopedDb } from '@/lib/tenancy';
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ sitterId: string }> }
 ) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (ctx.role !== 'owner' && ctx.role !== 'admin') {
+    return NextResponse.json({ error: 'Owner access required' }, { status: 403 });
   }
 
   const params = await context.params;
   const sitterId = params.sitterId;
-
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
-
-  let apiToken: string;
-  try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
-
-  const apiUrl = `${API_BASE_URL}/api/numbers/sitters/${sitterId}/deactivate`;
+  const db = getScopedDb({ orgId: ctx.orgId });
 
   try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-      body: JSON.stringify({}),
+    const activeAssignments = await db.assignmentWindow.count({
+      where: { orgId: ctx.orgId, sitterId, status: 'active', endAt: { gte: new Date() } },
     });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
-        },
-      });
-    }
-
-    return NextResponse.json(responseData, {
-      status: response.status,
-      headers: {
-        'Content-Type': contentType || 'application/json',
-      },
+    const numbersAffected = await db.messageNumber.updateMany({
+      where: { orgId: ctx.orgId, assignedSitterId: sitterId },
+      data: { assignedSitterId: null, numberClass: 'pool', status: 'active' },
+    });
+    return NextResponse.json({
+      success: true,
+      message: 'Sitter deactivated and assigned numbers released to pool',
+      activeAssignments,
+      numbersAffected: numbersAffected.count,
+    }, {
+      status: 200,
+      headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': ctx.orgId },
     });
   } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward deactivate sitter request:', error);
-    return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
-    );
+    return NextResponse.json({ error: error?.message || 'Failed to deactivate sitter' }, { status: 500 });
   }
 }

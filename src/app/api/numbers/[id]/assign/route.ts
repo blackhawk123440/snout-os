@@ -1,118 +1,39 @@
-/**
- * Number Assign to Sitter Route
- * 
- * Specific route for POST /api/numbers/[id]/assign to avoid conflict with [id] route.
- * This proxies to the NestJS API.
- */
-
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { mintApiJWT } from '@/lib/api/jwt';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+import { getRequestContext } from '@/lib/request-context';
+import { getScopedDb } from '@/lib/tenancy';
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  if (!API_BASE_URL) {
-    return NextResponse.json(
-      { error: 'API server not configured' },
-      { status: 500 }
-    );
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (ctx.role !== 'owner' && ctx.role !== 'admin') {
+    return NextResponse.json({ error: 'Owner access required' }, { status: 403 });
   }
 
   const params = await context.params;
-
-  // Get NextAuth session
-  const session = await auth();
-
-  if (!session?.user) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+  const body = await request.json().catch(() => null);
+  const sitterId = body?.sitterId as string | undefined;
+  if (!sitterId) {
+    return NextResponse.json({ error: 'sitterId is required' }, { status: 400 });
   }
-
-  // Mint API JWT token from session
-  let apiToken: string;
+  const db = getScopedDb({ orgId: ctx.orgId });
   try {
-    const user = session.user as any;
-    apiToken = await mintApiJWT({
-      userId: user.id || user.email || '',
-      orgId: user.orgId || 'default',
-      role: user.role || (user.sitterId ? 'sitter' : 'owner'),
-      sitterId: user.sitterId || null,
+    const existing = await db.messageNumber.findFirst({
+      where: { id: params.id, orgId: ctx.orgId },
     });
+    if (!existing) return NextResponse.json({ error: 'Number not found' }, { status: 404 });
+    await db.messageNumber.update({
+      where: { id: existing.id },
+      data: { assignedSitterId: sitterId, numberClass: 'sitter', status: 'active' },
+    });
+    return NextResponse.json({ success: true, message: 'Number assigned to sitter successfully' }, { status: 200 });
   } catch (error: any) {
-    console.error('[BFF Proxy] Failed to mint API JWT:', error);
-    return NextResponse.json(
-      { error: 'Failed to authenticate with API' },
-      { status: 500 }
-    );
-  }
-
-  // Read request body
-  let body: string;
-  try {
-    body = await request.text();
-  } catch {
-    return NextResponse.json(
-      { error: 'Invalid request body' },
-      { status: 400 }
-    );
-  }
-
-  // Forward to API
-  const apiUrl = `${API_BASE_URL}/api/numbers/${params.id}/assign-to-sitter`;
-
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiToken}`,
-      },
-      body,
-    });
-
-    const contentType = response.headers.get('content-type');
-    let responseData: any;
-    
-    if (contentType?.includes('application/json')) {
-      responseData = await response.json();
-    } else {
-      responseData = await response.text();
-    }
-
-    if (!response.ok) {
-      console.error('[BFF Proxy] API error response:', responseData);
-      return NextResponse.json(responseData, {
-        status: response.status,
-        headers: {
-          'Content-Type': contentType || 'application/json',
-        },
-      });
-    }
-
-    // Transform API response to match frontend expectations
-    // Frontend expects { success, message }
-    const transformedResponse = {
-      success: true,
-      message: 'Number assigned to sitter successfully',
-    };
-
-    return NextResponse.json(transformedResponse, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  } catch (error: any) {
-    console.error('[BFF Proxy] Failed to forward assign request:', error);
-    return NextResponse.json(
-      { error: 'Failed to reach API server', message: error.message },
-      { status: 502 }
-    );
+    return NextResponse.json({ error: error?.message || 'Failed to assign number' }, { status: 500 });
   }
 }

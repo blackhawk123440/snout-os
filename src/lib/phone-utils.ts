@@ -26,14 +26,14 @@ export async function getSitterPhone(
  */
 export async function getOwnerPhone(
   phoneType?: "personal" | "openphone",
-  automationType?: string // e.g., "ownerNewBookingAlert", "sitterPoolOffers", "dailySummary", etc.
+  automationType?: string, // e.g., "ownerNewBookingAlert", "sitterPoolOffers", "dailySummary", etc.
+  orgId?: string
 ): Promise<string | null> {
-  // If phoneType is provided, use it
   let preferredType = phoneType;
 
   if (!preferredType && automationType) {
     try {
-      const automationSettings = await getAutomationSettings();
+      const automationSettings = await getAutomationSettings(orgId ?? "default");
       const automationConfig = automationSettings[automationType];
       if (automationConfig?.ownerPhoneType) {
         preferredType = automationConfig.ownerPhoneType;

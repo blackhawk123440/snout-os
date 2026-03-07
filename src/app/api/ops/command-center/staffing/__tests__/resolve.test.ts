@@ -46,10 +46,14 @@ vi.mock('@/lib/rate-limit', () => ({
   getRateLimitIdentifier: vi.fn().mockReturnValue('127.0.0.1'),
   rateLimitResponse: vi.fn(() => new Response(JSON.stringify({ error: 'Too many requests' }), { status: 429 })),
 }));
+vi.mock('@/lib/calendar-queue', () => ({
+  enqueueCalendarSync: vi.fn().mockResolvedValue('job-id'),
+}));
 
 import { POST } from '@/app/api/ops/command-center/staffing/resolve/route';
 import { getRequestContext } from '@/lib/request-context';
 import { forceAssignSitter } from '@/lib/dispatch-control';
+import { enqueueCalendarSync } from '@/lib/calendar-queue';
 
 function makeReq(body: unknown) {
   return new NextRequest('http://localhost/api/ops/command-center/staffing/resolve', {
@@ -227,6 +231,13 @@ describe('POST /api/ops/command-center/staffing/resolve', () => {
     expect(res.status).toBe(200);
     expect(body.assignmentId).toBe('staffing_assign:booking-1');
     expect(body.sitterId).toBe(null);
+    // Calendar consistency: rollback must enqueue delete for old sitter (no upsert when previousSitterId is null)
+    expect(enqueueCalendarSync).toHaveBeenCalledWith({
+      type: 'delete',
+      bookingId: 'booking-1',
+      sitterId: 'sitter-1',
+      orgId: 'org-1',
+    });
   });
 
   it('rollback invalid token', async () => {

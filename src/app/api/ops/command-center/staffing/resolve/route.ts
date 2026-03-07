@@ -4,6 +4,7 @@ import { getRequestContext } from '@/lib/request-context';
 import { ForbiddenError, requireOwnerOrAdmin } from '@/lib/rbac';
 import { getScopedDb } from '@/lib/tenancy';
 import { forceAssignSitter } from '@/lib/dispatch-control';
+import { enqueueCalendarSync } from '@/lib/calendar-queue';
 import { logEvent } from '@/lib/log-event';
 import {
   checkRateLimit,
@@ -299,6 +300,23 @@ export async function POST(request: NextRequest) {
           status: parsed.previousStatus || 'pending',
         },
       });
+
+      // Calendar consistency: remove event from sitter we rolled back from, sync for restored sitter
+      if (booking.sitterId) {
+        enqueueCalendarSync({
+          type: 'delete',
+          bookingId: booking.id,
+          sitterId: booking.sitterId,
+          orgId: ctx.orgId,
+        }).catch((e) => console.error('[Staffing Rollback] calendar delete enqueue failed:', e));
+      }
+      if (parsed.previousSitterId) {
+        enqueueCalendarSync({
+          type: 'upsert',
+          bookingId: booking.id,
+          orgId: ctx.orgId,
+        }).catch((e) => console.error('[Staffing Rollback] calendar upsert enqueue failed:', e));
+      }
 
       if (!parsed.previousAttentionState) {
         await db.commandCenterAttentionState.deleteMany({

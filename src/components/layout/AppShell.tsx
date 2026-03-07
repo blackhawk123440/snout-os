@@ -41,7 +41,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       if (item.href === '/messages') {
         return false; // Sitters use /sitter/inbox instead
       }
-      if (['/bookings', '/calendar', '/clients', '/bookings/sitters', '/automation', '/payments', '/payroll', '/pricing', '/settings'].includes(item.href)) {
+      if (['/bookings', '/calendar', '/clients', '/bookings/sitters', '/automations', '/payments', '/payroll', '/pricing', '/settings'].includes(item.href)) {
         return false;
       }
     }

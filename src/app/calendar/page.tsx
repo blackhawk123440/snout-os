@@ -7,8 +7,8 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Section,
   Grid,
@@ -73,8 +73,9 @@ interface Booking {
 
 type CalendarView = 'day' | 'week' | 'month';
 
-export default function CalendarPage() {
+function CalendarPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isMobile = useMobile();
   const { showToast } = useToast();
   const { context: commandContext } = useCommands();
@@ -83,6 +84,7 @@ export default function CalendarPage() {
   // State
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [sitters, setSitters] = useState<Array<{ id: string; firstName: string; lastName: string }>>([]);
+  const [conflictBookingIds, setConflictBookingIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -147,7 +149,13 @@ export default function CalendarPage() {
     };
   }, [currentDate, viewMode]);
 
-  // Load view preference
+  // Load view preference and URL params (e.g. ?conflicts=show_only from command center)
+  useEffect(() => {
+    const conflictsParam = searchParams.get('conflicts');
+    if (conflictsParam === 'show_only' || conflictsParam === 'hide') {
+      setFilterValues((prev) => ({ ...prev, conflicts: conflictsParam }));
+    }
+  }, [searchParams]);
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('calendar-view') as CalendarView;
@@ -177,25 +185,29 @@ export default function CalendarPage() {
     setLoading(true);
     setError(null);
     try {
-      // Note: These endpoints are from the legacy booking system
-      // They may not exist if only using the messaging dashboard
-      const [bookingsRes, sittersRes] = await Promise.all([
-        fetch('/api/bookings').catch(() => null), // Legacy endpoint - BFF returns empty
-        fetch('/api/sitters').catch(() => null), // BFF proxy maps to /api/numbers/sitters
+      const [bookingsRes, sittersRes, conflictsRes] = await Promise.all([
+        fetch('/api/bookings').catch(() => null),
+        fetch('/api/sitters').catch(() => null),
+        fetch('/api/bookings/conflicts').catch(() => null),
       ]);
 
       if (bookingsRes?.ok) {
         const data = await bookingsRes.json();
         setBookings(data.bookings || []);
       } else if (bookingsRes && !bookingsRes.ok && bookingsRes.status !== 404) {
-        // Only throw error if it's not a 404 (expected for messaging-only deployments)
         throw new Error('Failed to fetch bookings');
       }
 
       if (sittersRes?.ok) {
         const data = await sittersRes.json();
-        // API returns array directly, not { sitters: [] }
         setSitters(Array.isArray(data) ? data : (data.sitters || []));
+      }
+
+      if (conflictsRes?.ok) {
+        const data = await conflictsRes.json();
+        setConflictBookingIds(new Set(data.conflictBookingIds || []));
+      } else {
+        setConflictBookingIds(new Set());
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load calendar data');
@@ -216,6 +228,7 @@ export default function CalendarPage() {
     const paid = filterValues.paid ?? 'all';
     const completed = filterValues.completed ?? 'all';
     const unpaid = filterValues.unpaid ?? 'all';
+    const conflictsFilter = filterValues.conflicts ?? 'all';
     return bookings.filter((booking) => {
       if (svc !== 'all' && booking.service !== svc) return false;
       if (st !== 'all' && booking.status !== st) return false;
@@ -224,9 +237,12 @@ export default function CalendarPage() {
       if (paid !== 'all' && booking.paidStatus !== paid) return false;
       if (completed === 'hide' && booking.status === 'completed') return false;
       if (unpaid === 'hide' && booking.paidStatus === 'unpaid') return false;
+      const inConflict = conflictBookingIds.has(booking.id);
+      if (conflictsFilter === 'show_only' && !inConflict) return false;
+      if (conflictsFilter === 'hide' && inConflict) return false;
       return true;
     });
-  }, [bookings, filterValues]);
+  }, [bookings, filterValues, conflictBookingIds]);
 
   // Get bookings for selected date/range
   const selectedBookings = useMemo(() => {
@@ -341,6 +357,39 @@ export default function CalendarPage() {
     });
   }
 
+  // Day view: single day's bookings sorted by start time
+  const dayViewBookings = useMemo(() => {
+    const d = new Date(currentDate);
+    d.setHours(0, 0, 0, 0);
+    const dateStr = d.toISOString().split('T')[0];
+    return filteredBookings
+      .filter((b) => new Date(b.startAt).toISOString().split('T')[0] === dateStr)
+      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+  }, [currentDate, filteredBookings]);
+
+  // Week view: 7 days (Sun–Sat) containing currentDate, each with bookings
+  const weekViewDays = useMemo(() => {
+    const start = new Date(currentDate);
+    start.setDate(start.getDate() - start.getDay());
+    start.setHours(0, 0, 0, 0);
+    const days: Array<{ date: Date; isToday: boolean; bookings: Booking[] }> = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      date.setHours(0, 0, 0, 0);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayBookings = filteredBookings.filter((b) => new Date(b.startAt).toISOString().split('T')[0] === dateStr);
+      days.push({
+        date,
+        isToday: date.getTime() === today.getTime(),
+        bookings: dayBookings.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()),
+      });
+    }
+    return days;
+  }, [currentDate, filteredBookings]);
+
   // Register event commands when booking selected
   useEffect(() => {
     if (selectedBooking) {
@@ -364,9 +413,191 @@ export default function CalendarPage() {
     return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   };
 
+  const periodLabel = useMemo(() => {
+    if (viewMode === 'day') {
+      return currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    if (viewMode === 'week') {
+      const start = new Date(currentDate);
+      start.setDate(start.getDate() - start.getDay());
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+    return formatDate(currentDate);
+  }, [viewMode, currentDate]);
+
   const formatTime = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
     return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  };
+
+  // In day view, keep Event List in sync with the single day shown
+  useEffect(() => {
+    if (viewMode === 'day') {
+      setSelectedDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()));
+    }
+  }, [viewMode, currentDate]);
+
+  // Day view: single day timeline list
+  const renderDayView = () => {
+    if (loading) {
+      return (
+        <div style={{ padding: tokens.spacing[6] }}>
+          <Skeleton height="400px" />
+        </div>
+      );
+    }
+    if (error) {
+      return <AppErrorState message={error} onRetry={fetchData} />;
+    }
+    return (
+      <div style={{ padding: tokens.spacing[4] }}>
+        <div
+          style={{
+            fontSize: tokens.typography.fontSize.sm[0],
+            color: tokens.colors.text.secondary,
+            marginBottom: tokens.spacing[3],
+          }}
+        >
+          {dayViewBookings.length} {dayViewBookings.length === 1 ? 'booking' : 'bookings'}
+        </div>
+        {dayViewBookings.length === 0 ? (
+          <EmptyState
+            title="No bookings"
+            description="No bookings scheduled for this day."
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+            {dayViewBookings.map((booking) => (
+              <button
+                key={booking.id}
+                type="button"
+                onClick={() => {
+                  setSelectedBooking(booking);
+                  setShowBookingDrawer(true);
+                }}
+                style={{
+                  padding: tokens.spacing[3],
+                  border: `1px solid ${tokens.colors.border.default}`,
+                  borderRadius: tokens.radius.md,
+                  backgroundColor: tokens.colors.surface.primary,
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = tokens.colors.accent.secondary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = tokens.colors.surface.primary;
+                }}
+              >
+                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                  {formatTime(booking.startAt)} – {formatTime(booking.endAt)}
+                </div>
+                <div style={{ color: tokens.colors.text.primary }}>
+                  {booking.firstName} {booking.lastName}
+                </div>
+                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                  {booking.service}
+                  {booking.sitter ? ` · ${booking.sitter.firstName} ${booking.sitter.lastName}` : ' · Unassigned'}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Week view: 7 columns, each day with its bookings
+  const renderWeekView = () => {
+    if (loading) {
+      return (
+        <div style={{ padding: tokens.spacing[6] }}>
+          <Skeleton height="400px" />
+        </div>
+      );
+    }
+    if (error) {
+      return <AppErrorState message={error} onRetry={fetchData} />;
+    }
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, 1fr)',
+          gap: tokens.spacing[2],
+          padding: tokens.spacing[4],
+          minHeight: 320,
+        }}
+      >
+        {weekViewDays.map((day, colIndex) => (
+          <div
+            key={day.date.getTime()}
+            style={{
+              border: `1px solid ${tokens.colors.border.default}`,
+              borderRadius: tokens.radius.sm,
+              padding: tokens.spacing[2],
+              backgroundColor: day.isToday ? tokens.colors.accent.secondary : tokens.colors.surface.primary,
+            }}
+          >
+            <div
+              style={{
+                fontSize: tokens.typography.fontSize.sm[0],
+                fontWeight: day.isToday ? tokens.typography.fontWeight.bold : tokens.typography.fontWeight.semibold,
+                color: day.isToday ? tokens.colors.primary.DEFAULT : tokens.colors.text.secondary,
+                marginBottom: tokens.spacing[2],
+              }}
+            >
+              {dayHeaders[colIndex]}
+            </div>
+            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginBottom: tokens.spacing[2] }}>
+              {day.date.getDate()} {day.date.toLocaleDateString('en-US', { month: 'short' })}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
+              {day.bookings.length === 0 ? (
+                <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>No bookings</span>
+              ) : (
+                day.bookings.map((booking) => (
+                  <button
+                    key={booking.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedBooking(booking);
+                      setShowBookingDrawer(true);
+                    }}
+                    style={{
+                      padding: tokens.spacing[2],
+                      border: `1px solid ${tokens.colors.border.default}`,
+                      borderRadius: tokens.radius.sm,
+                      backgroundColor: tokens.colors.surface.primary,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      fontSize: tokens.typography.fontSize.xs[0],
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = tokens.colors.accent.secondary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = tokens.colors.surface.primary;
+                    }}
+                  >
+                    <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                      {formatTime(booking.startAt)}
+                    </div>
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {booking.firstName} {booking.lastName}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   // Render calendar grid
@@ -438,6 +669,11 @@ export default function CalendarPage() {
         ]},
         { key: 'unpaid', label: 'Unpaid', type: 'select', options: [
           { value: 'all', label: 'Show' }, { value: 'hide', label: 'Hide' },
+        ]},
+        { key: 'conflicts', label: 'Conflicts', type: 'select', options: [
+          { value: 'all', label: 'All' },
+          { value: 'show_only', label: 'Show only conflicts' },
+          { value: 'hide', label: 'Hide conflicts' },
         ]},
       ]}
       values={filterValues}
@@ -689,7 +925,7 @@ export default function CalendarPage() {
                       textAlign: 'center',
                     }}
                   >
-                    {formatDate(currentDate)}
+                    {periodLabel}
                   </div>
                   <IconButton
                     icon={<i className="fas fa-chevron-right" />}
@@ -737,12 +973,9 @@ export default function CalendarPage() {
               </div>
 
               {/* Calendar Body */}
-              {viewMode === 'month' ? renderCalendarGrid() : (
-                <EmptyState
-                  title={`${viewMode.charAt(0).toUpperCase() + viewMode.slice(1)} view coming soon`}
-                  description="Month view is currently available. Day and week views will be implemented in a future update."
-                />
-              )}
+              {viewMode === 'month' && renderCalendarGrid()}
+              {viewMode === 'day' && renderDayView()}
+              {viewMode === 'week' && renderWeekView()}
             </Panel>
 
             {/* Event List */}
@@ -911,5 +1144,13 @@ export default function CalendarPage() {
         )}
       </AppDrawer>
     </AppShell>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: tokens.spacing[6] }}><Skeleton height="400px" /></div>}>
+      <CalendarPageContent />
+    </Suspense>
   );
 }

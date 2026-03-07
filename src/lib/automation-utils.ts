@@ -1,34 +1,71 @@
 /**
- * Helper functions for automation management
+ * Helper functions for automation management.
+ * Reads/writes canonical automation settings from Setting table (org-scoped).
  */
 
 import { prisma } from "@/lib/db";
 import { formatClientNameForSitter } from "@/lib/booking-utils";
+import {
+  AUTOMATION_SETTINGS_KEY,
+  getDefaultAutomationSettings,
+  type AutomationSettings,
+  type AutomationTypeId,
+} from "@/lib/automations/types";
 
 /**
- * Get automation settings from database
- * Note: API schema doesn't have Setting model - automations are stored in Automation model
- * This function returns empty object for compatibility
+ * Get automation settings for an org from the database.
+ * Returns merged default + persisted; missing row = all automations disabled.
  */
-export async function getAutomationSettings(): Promise<Record<string, any>> {
-  // API schema doesn't have Setting model - return empty for compatibility
-  // Automation settings are stored in Automation.templates JSON field
-  return {};
+export async function getAutomationSettings(orgId: string): Promise<Record<string, any>> {
+  const safeOrgId = orgId || "default";
+  const row = await prisma.setting.findUnique({
+    where: {
+      orgId_key: { orgId: safeOrgId, key: AUTOMATION_SETTINGS_KEY },
+    },
+  });
+  if (!row?.value) {
+    return getDefaultAutomationSettings() as unknown as Record<string, any>;
+  }
+  try {
+    const parsed = JSON.parse(row.value) as Partial<AutomationSettings>;
+    const defaults = getDefaultAutomationSettings();
+    return {
+      ...defaults,
+      ...parsed,
+      bookingConfirmation: { ...defaults.bookingConfirmation, ...parsed.bookingConfirmation },
+      nightBeforeReminder: { ...defaults.nightBeforeReminder, ...parsed.nightBeforeReminder },
+      paymentReminder: { ...defaults.paymentReminder, ...parsed.paymentReminder },
+      sitterAssignment: { ...defaults.sitterAssignment, ...parsed.sitterAssignment },
+      postVisitThankYou: { ...defaults.postVisitThankYou, ...parsed.postVisitThankYou },
+      ownerNewBookingAlert: { ...defaults.ownerNewBookingAlert, ...parsed.ownerNewBookingAlert },
+    } as unknown as Record<string, any>;
+  } catch {
+    return getDefaultAutomationSettings() as unknown as Record<string, any>;
+  }
 }
 
+const RECIPIENT_TEMPLATE_KEYS: Record<"client" | "sitter" | "owner", string> = {
+  client: "messageTemplateClient",
+  sitter: "messageTemplateSitter",
+  owner: "messageTemplateOwner",
+};
+
 /**
- * Get message template from database for a specific automation type and recipient
- * Prioritizes individual messageTemplate.* settings over automation JSON object
- * to ensure latest saved templates are used
+ * Get message template for an automation type and recipient from persisted settings.
+ * Returns null if not set so caller can use default template.
  */
 export async function getMessageTemplate(
   automationType: string,
-  recipient: "client" | "sitter" | "owner" = "client"
+  recipient: "client" | "sitter" | "owner",
+  orgId: string
 ): Promise<string | null> {
-  // API schema doesn't have Setting model - templates are in Automation.templates JSON
-  // Return null to let caller use default templates
-  // TODO: Query Automation model if needed: prisma.automation.findMany({ where: { status: 'active' } })
-  return null;
+  const settings = await getAutomationSettings(orgId);
+  const block = settings[automationType];
+  if (!block || typeof block !== "object") return null;
+  const key = RECIPIENT_TEMPLATE_KEYS[recipient];
+  const value = block[key];
+  if (typeof value !== "string" || value.trim() === "") return null;
+  return value;
 }
 
 /**
@@ -46,120 +83,119 @@ export function replaceTemplateVariables(
   }
 ): string {
   let message = template;
-  
+
   // For sitter messages, format client names as "FirstName LastInitial"
   if (options?.isSitterMessage) {
-    const firstName = variables.firstName ? String(variables.firstName) : '';
-    const lastName = variables.lastName ? String(variables.lastName) : '';
-    
+    const firstName = variables.firstName ? String(variables.firstName) : "";
+    const lastName = variables.lastName ? String(variables.lastName) : "";
+
     if (firstName && lastName) {
       const clientName = formatClientNameForSitter(firstName, lastName);
-      // Replace {{clientName}} if present
       message = message.replace(/\{\{clientName\}\}/g, clientName);
-      // Replace patterns like "{{firstName}} {{lastName}}" with formatted name
       message = message.replace(/\{\{firstName\}\}\s+\{\{lastName\}\}/g, clientName);
       message = message.replace(/\{\{firstName\}\}\s+{{lastName}}/g, clientName);
-      // Also handle patterns like "John Doe" or "John's" - replace full name with formatted
-      const fullNamePattern = new RegExp(`\\b${firstName}\\s+${lastName}\\b`, 'g');
+      const fullNamePattern = new RegExp(`\\b${firstName}\\s+${lastName}\\b`, "g");
       message = message.replace(fullNamePattern, clientName);
-      // Handle possessive forms like "John Doe's" -> "John D's"
-      const possessivePattern = new RegExp(`\\b${firstName}\\s+${lastName}'s\\b`, 'g');
+      const possessivePattern = new RegExp(`\\b${firstName}\\s+${lastName}'s\\b`, "g");
       message = message.replace(possessivePattern, `${clientName}'s`);
     }
   }
-  
-  // If this is a sitter message and commission percentage is provided, calculate earnings for totalPrice/total
+
   if (options?.isSitterMessage && options?.sitterCommissionPercentage !== undefined) {
-    // Get totalPrice from variables (could be number or string)
     let totalPrice: number | null = null;
     if (variables.totalPrice !== undefined) {
-      totalPrice = typeof variables.totalPrice === 'number' ? variables.totalPrice : parseFloat(String(variables.totalPrice));
+      totalPrice =
+        typeof variables.totalPrice === "number"
+          ? variables.totalPrice
+          : parseFloat(String(variables.totalPrice));
     } else if (variables.total !== undefined) {
-      totalPrice = typeof variables.total === 'number' ? variables.total : parseFloat(String(variables.total));
+      totalPrice =
+        typeof variables.total === "number"
+          ? variables.total
+          : parseFloat(String(variables.total));
     }
-    
-    // If we have a valid totalPrice, calculate earnings
     if (totalPrice !== null && !isNaN(totalPrice)) {
       const earnings = (totalPrice * options.sitterCommissionPercentage) / 100;
-      // Replace totalPrice and total with earnings for sitter messages
       message = message.replace(/\{\{totalPrice\}\}/g, earnings.toFixed(2));
       message = message.replace(/\{\{total\}\}/g, earnings.toFixed(2));
-      // Also support old format
       message = message.replace(/\[TotalPrice\]/gi, earnings.toFixed(2));
       message = message.replace(/\[Total\]/gi, earnings.toFixed(2));
     }
   }
-  
-  Object.keys(variables).forEach(key => {
-    // Skip totalPrice and total if we already handled them for sitter messages
-    if (options?.isSitterMessage && (key === 'totalPrice' || key === 'total')) {
-      return;
-    }
+
+  Object.keys(variables).forEach((key) => {
+    if (options?.isSitterMessage && (key === "totalPrice" || key === "total")) return;
     const value = String(variables[key]);
-    message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
-    // Also support old format [VariableName]
-    const oldKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1').trim();
-    message = message.replace(new RegExp(`\\[${oldKey}\\]`, 'gi'), value);
+    message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
+    const oldKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, " $1").trim();
+    message = message.replace(new RegExp(`\\[${oldKey}\\]`, "gi"), value);
   });
   return message;
 }
 
 /**
- * Check if an automation is enabled
+ * Check if an automation is enabled for the org.
  */
-export async function isAutomationEnabled(automationType: string): Promise<boolean> {
-  const settings = await getAutomationSettings();
+export async function isAutomationEnabled(
+  automationType: string,
+  orgId: string
+): Promise<boolean> {
+  const settings = await getAutomationSettings(orgId);
   const automation = settings[automationType];
-  
-  if (!automation || typeof automation !== 'object') {
-    return false;
-  }
-  
+  if (!automation || typeof automation !== "object") return false;
   return automation.enabled === true;
 }
 
 /**
- * Check if automation should send to a specific recipient
+ * Check if automation should send to a specific recipient (org-scoped).
  */
 export async function shouldSendToRecipient(
   automationType: string,
-  recipient: 'client' | 'sitter' | 'owner'
+  recipient: "client" | "sitter" | "owner",
+  orgId: string
 ): Promise<boolean> {
-  if (!(await isAutomationEnabled(automationType))) {
-    return false;
-  }
-  
-  const settings = await getAutomationSettings();
+  if (!(await isAutomationEnabled(automationType, orgId))) return false;
+  const settings = await getAutomationSettings(orgId);
   const automation = settings[automationType];
-  
-  if (!automation || typeof automation !== 'object') {
-    return false;
-  }
-  
+  if (!automation || typeof automation !== "object") return false;
   switch (recipient) {
-    case 'client':
+    case "client":
       return automation.sendToClient === true;
-    case 'sitter':
+    case "sitter":
       return automation.sendToSitter === true || automation.sendToSitters === true;
-    case 'owner':
+    case "owner":
       return automation.sendToOwner === true;
     default:
       return false;
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * Persist automation settings for an org (owner/admin only; caller must enforce auth).
+ */
+export async function setAutomationSettings(
+  orgId: string,
+  settings: Partial<AutomationSettings>
+): Promise<AutomationSettings> {
+  const safeOrgId = orgId || "default";
+  const current = (await getAutomationSettings(safeOrgId)) as AutomationSettings;
+  const merged: AutomationSettings = {
+    bookingConfirmation: { ...current.bookingConfirmation, ...(settings.bookingConfirmation ?? {}) },
+    nightBeforeReminder: { ...current.nightBeforeReminder, ...(settings.nightBeforeReminder ?? {}) },
+    paymentReminder: { ...current.paymentReminder, ...(settings.paymentReminder ?? {}) },
+    sitterAssignment: { ...current.sitterAssignment, ...(settings.sitterAssignment ?? {}) },
+    postVisitThankYou: { ...current.postVisitThankYou, ...(settings.postVisitThankYou ?? {}) },
+    ownerNewBookingAlert: { ...current.ownerNewBookingAlert, ...(settings.ownerNewBookingAlert ?? {}) },
+  };
+  await prisma.setting.upsert({
+    where: { orgId_key: { orgId: safeOrgId, key: AUTOMATION_SETTINGS_KEY } },
+    create: {
+      orgId: safeOrgId,
+      key: AUTOMATION_SETTINGS_KEY,
+      value: JSON.stringify(merged),
+      category: "automation",
+    },
+    update: { value: JSON.stringify(merged) },
+  });
+  return merged;
+}
