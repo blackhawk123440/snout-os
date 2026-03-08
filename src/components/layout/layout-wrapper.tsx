@@ -27,7 +27,7 @@ export function LayoutWrapper({ children, variant = 'default', className }: Layo
     <div
       className={cn(
         'w-full px-4 py-3 pb-4 sm:px-6 lg:px-8',
-        'flex flex-col gap-3',
+        'flex flex-col gap-4',
         variant === 'narrow' ? 'lg:max-w-4xl lg:mx-auto' : cn('mx-auto', MAX_WIDTH[variant]),
         className
       )}

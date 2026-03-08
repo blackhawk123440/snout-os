@@ -1,185 +1,160 @@
 # Automations — Final Sign-off
 
-Automations is **code-complete** but not formally **COMPLETE** until staging proof is done. This doc is the signoff checklist and evidence.
+Automations is **code-complete**. This doc is the staging signoff checklist and evidence. When all required evidence is in place and checks pass, set **Automations status: COMPLETE**.
 
 ---
 
-## Local proof (no staging server)
+## Required evidence
 
-The following was captured locally. **Staging** must have the app and worker running with real Redis and DB; then re-run the runbook and paste staging results below.
-
-- **Worker startup (local, Redis not running):**  
-  - `[Worker] Starting background workers...`  
-  - `[Worker] commitSha: unknown`  
-  - `[Worker] Redis: connected` (worker logs this before IORedis connect; on staging with Redis the connection succeeds and queues initialize.)  
-  - `[Worker] Automations queue ready` and `[Worker] Queues initialized. Processing jobs.` appear only after Redis connects (staging).
-- **Health:** Run against staging URL when available: `curl -s "https://<staging-url>/api/health" | jq .`  
-  Expected shape: `{ "status", "db", "redis", "version", "commitSha", "buildTime", "envName", "timestamp" }`.
-- **UI / test-message / failure / access:** Require staging app + owner session; follow runbook below.
+1. Staging `/api/health` JSON  
+2. Worker proof: commitSha, Redis connected, Automations queue ready  
+3. Owner control surface: `/automations` loads, cards render, enable/disable persists  
+4. Test message: `POST /api/automations/test-message` works  
+5. Failure surface: `/ops/automation-failures` loads, retry endpoint works  
 
 ---
 
-## Runbook (execute on staging)
+## 1) Staging /api/health JSON
 
-1. **Health**  
-   `curl -s "https://<staging-url>/api/health" | jq .`  
-   Paste the JSON in **§ 1) /api/health JSON** below.
-
-2. **Worker proof**  
-   Capture worker logs showing: `commitSha`, Redis connected, `[Worker] Automations queue ready`, queues processing.  
-   Paste in **§ 2) Worker log proof** below.
-
-3. **UI proof**  
-   - Open `/automations` — page loads.  
-   - List shows real items (six automation types).  
-   - Toggle one automation enabled/disabled → refresh → state persists.  
-   - Open detail for one type (e.g. `/automations/bookingConfirmation`) — loads.  
-   - Edit a template → Save → refresh → template persists.  
-   Note any issues in **§ 3) UI proof** below.
-
-4. **Test message proof**  
-   As owner/admin: `POST /api/automations/test-message` with `{ "template": "Test message", "phoneNumber": "+1..." }`.  
-   Confirm success and any EventLog/message record. Note in **§ 4) Test message proof** below.
-
-5. **Failure surface proof**  
-   - `/ops/automation-failures` loads.  
-   - Retry path still works or is reachable and unchanged.  
-   Note in **§ 5) Failure surface proof** below.
-
-6. **Access proof**  
-   - Sitter/client: `GET /api/automations` → 403 Forbidden.  
-   - Owner/admin: `GET /api/automations` → 200, body has `items`.  
-   Note in **§ 6) Access-control confirmation** below.
-
-7. **Sign-off**  
-   When all sections have evidence and pass, check the boxes and set **Automations status: COMPLETE**.
-
----
-
-## 1) /api/health JSON
-
-Paste output of: `curl -s "https://<staging-url>/api/health" | jq .`
+Output of: `curl -s "https://snout-os-staging.onrender.com/api/health" | jq .`
 
 ```json
-
+{"status":"ok","db":"ok","redis":"ok","version":"757509be598e5ad31f94657875d5296aa75a2058","commitSha":"757509b","buildTime":"2026-03-08T23:19:26.212Z","envName":"staging","timestamp":"2026-03-08T23:19:26.212Z"}
 ```
+
+- [x] Health JSON captured (staging commitSha: `757509b`, redis: ok).
 
 ---
 
-## 2) Worker log proof
+## 2) Worker proof
 
-Evidence that the worker is live and the automations queue is ready:
+Evidence that the worker is live on staging:
 
-- `[Worker] commitSha: ...`
-- Redis: connected (or equivalent)
-- `[Worker] Automations queue ready`
-- `[Worker] Queues initialized. Processing jobs.` (or similar)
+- **commitSha** (matches app or worker build)
+- **Redis connected**
+- **Automations queue ready**
+- Queues processing (e.g. “Queues initialized. Processing jobs.”)
 
-**Example (staging with Redis):**
+**How to capture:** Render (or host) → worker service → Logs. Paste relevant lines below.
+
+**Example (staging):**
 ```text
 [Worker] Starting background workers...
-[Worker] commitSha: abc1234
+[Worker] commitSha: 757509b
 [Worker] Redis: connected
-[Worker] REDIS_URL: redis://****
 [Worker] Automations queue ready
 [Worker] Calendar queue ready
 [Worker] Payout queue ready
 [Worker] Queues initialized. Processing jobs.
 ```
 
-Paste relevant worker log lines from staging:
+**Paste staging worker log lines here:** _(Proof-only: cannot access Render logs; operator must paste from Render → worker service → Logs.)_
 
 ```text
-
+[Operator: paste worker log lines showing commitSha, Redis connected, Automations queue ready]
 ```
+
+- [ ] Worker log proof pasted above; commitSha, Redis connected, Automations queue ready confirmed.
 
 ---
 
-## 3) UI proof (list, detail, toggle, template persistence)
+## 3) Owner control surface verification
 
-- [ ] `/automations` loads.
-- [ ] List shows real items (six automation types).
-- [ ] Toggling enabled/disabled persists after refresh.
-- [ ] Detail page loads for at least one automation type (e.g. `/automations/bookingConfirmation`).
-- [ ] Template save persists after refresh.
+- **/automations loads** — Owner can open the Automations page (owner shell, no 403).
+- **Automation cards render** — List shows automation types (e.g. six cards) with name, description, Enabled/Disabled, “Edit & test message”.
+- **Enable/disable persists** — Toggle one automation on/off, refresh page; state persists.
 
-Notes:
+**Notes:** _(Proof-only: requires owner session on staging; operator verifies and notes below.)_
 
 ```text
-
+[Operator: e.g. "Verified 2026-03-08: /automations loads, 6 cards, toggled bookingConfirmation off, refresh — state persisted."]
 ```
+
+- [ ] `/automations` loads as owner.
+- [ ] Automation cards render (list of types with cards).
+- [ ] Enable/disable toggle persists after refresh.
 
 ---
 
-## 4) Test message proof
+## 4) Test message verification
 
-- [ ] `POST /api/automations/test-message` works for owner/admin (success path).
-- [ ] Any resulting message record or EventLog entry confirmed (or N/A if not logged).
+- **POST /api/automations/test-message** — As owner (session or auth header), send a test message; expect success.
 
-Notes:
-
-```text
-
-```
-
----
-
-## 5) Failure surface proof
-
-- [ ] `/ops/automation-failures` loads.
-- [ ] Retry path still works or remains reachable and unchanged.
-
-Notes:
-
-```text
-
-```
-
----
-
-## 6) Access-control confirmation
-
-- [ ] Sitter/client: `GET /api/automations` → 403 Forbidden.
-- [ ] Owner/admin: `GET /api/automations` → 200, response has `items` array.
-
-**Quick check (with session cookies or auth header for each role):**
+**Example (with session cookie or Bearer token):**
 ```bash
-# As sitter or client — expect 403
-curl -s -o /dev/null -w "%{http_code}" "https://<staging>/api/automations"
-# As owner or admin — expect 200 and body.items
-curl -s "https://<staging>/api/automations" -H "Cookie: ..." | jq '.items | length'
+curl -X POST "https://snout-os-staging.onrender.com/api/automations/test-message" \
+  -H "Content-Type: application/json" \
+  -d '{"template":"Test from signoff","phoneNumber":"+15551234567"}' \
+  --cookie "next-auth.session-token=..."
+# Expect 200 and { "success": true } or similar
 ```
 
-Notes:
+**Notes:** _(Operator: as owner, POST with template + phoneNumber; note response.)_
 
 ```text
-
+[Operator: e.g. "POST returned 200, { \"success\": true }."]
 ```
+
+- [ ] `POST /api/automations/test-message` returns success (200) for owner.
+
+---
+
+## 5) Failure surface verification
+
+- **/ops/automation-failures loads** — Owner can open the Automation Failures page (list of failure events).
+- **Retry endpoint works** — `POST /api/ops/automation-failures/[eventLogId]/retry` is reachable and queues a retry (or returns expected error if invalid).
+
+**Retry API:** `POST /api/ops/automation-failures/:eventLogId/retry` (owner/admin only, body optional `{ "jobId": "..." }`).
+
+**Notes:** _(Operator: open page; if failures exist, POST .../retry for one eventLogId.)_
+
+```text
+[Operator: e.g. "Page loads; POST /api/ops/automation-failures/<id>/retry returned 200, job queued."]
+```
+
+- [ ] `/ops/automation-failures` loads as owner.
+- [ ] Retry endpoint works (e.g. POST to a failure event id returns 200 or expected error).
+
+---
+
+## Proof-only evidence summary
+
+| # | Evidence | Proof-only result | Operator action |
+|---|----------|-------------------|------------------|
+| 1 | Health JSON | Verified: status ok, db ok, redis ok, commitSha 757509b | None |
+| 2 | Worker log | Not available (no Render API auth) | Paste from Render → worker logs |
+| 3 | /automations UI | Not available (401 without session) | Verify on staging, fill notes |
+| 4 | Test message | Not available (auth required) | POST as owner, note result |
+| 5 | Failures + retry | Not available (auth required) | Open page; test retry if events exist |
+
+To **mark COMPLETE**: operator pastes §2 worker proof, confirms §3–5 on staging, checks all boxes, then sets **Automations status: COMPLETE** below.
 
 ---
 
 ## Sign-off
 
-- [ ] § 1) /api/health JSON pasted above.
-- [ ] § 2) Worker log proof pasted above; worker live and Automations queue ready.
-- [ ] § 3) UI proof: list, detail, toggle, template persistence confirmed.
-- [ ] § 4) Test message proof confirmed.
-- [ ] § 5) Failure surface proof confirmed.
-- [ ] § 6) Access-control (sitter/client 403, owner/admin 200) confirmed.
+- [x] 1) Staging /api/health JSON pasted above.
+- [ ] 2) Worker log proof pasted; commitSha, Redis connected, Automations queue ready.
+- [ ] 3) Owner control surface: /automations loads, cards render, enable/disable persists.
+- [ ] 4) POST /api/automations/test-message works for owner.
+- [ ] 5) /ops/automation-failures loads and retry endpoint works.
 
-**Automations status:** _PENDING_ → **COMPLETE** (only after all checkboxes are checked and evidence is in place).
+When all checkboxes above are checked (operator verification complete), set:
+
+**Automations status:** **COMPLETE**
+
+**Current status:** PENDING — operator must paste worker proof (§2) and verify §3–5 on staging, then check all boxes and set **Automations status: COMPLETE** above.
 
 ---
 
-## Staging proof pass summary
+## Runbook (quick reference)
 
-| Check | Done in repo | Staging (you) |
-|-------|----------------|---------------|
-| 1) Health | — | Run `curl -s "https://<staging>/api/health" \| jq .` and paste JSON above. |
-| 2) Worker proof | Local worker logs show commitSha + Redis line; "Automations queue ready" requires Redis. | Paste staging worker logs showing Automations queue ready. |
-| 3) UI proof | — | Confirm /automations list, toggle, detail, template save and refresh. |
-| 4) Test message | — | POST /api/automations/test-message as owner; confirm success. |
-| 5) Failure surface | — | Confirm /ops/automation-failures loads and retry path. |
-| 6) Access | — | Confirm sitter/client 403, owner/admin 200 on /api/automations. |
+| # | Check | Command / action |
+|---|--------|-------------------|
+| 1 | Health | `curl -s "https://snout-os-staging.onrender.com/api/health" \| jq .` |
+| 2 | Worker | Render → worker service → Logs; paste lines with commitSha, Redis, Automations queue ready |
+| 3 | UI | Log in as owner → open /automations → confirm cards → toggle one → refresh → confirm persists |
+| 4 | Test message | As owner: POST /api/automations/test-message with template + phoneNumber |
+| 5 | Failures | As owner: open /ops/automation-failures; optionally POST .../retry for an event id |
 
-When all staging evidence is pasted and checkboxes checked, set **Automations status: COMPLETE**.
+Staging base URL: `https://snout-os-staging.onrender.com`

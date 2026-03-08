@@ -310,7 +310,14 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
       <div className="w-1/3 flex flex-col min-h-0 border-r border-[var(--color-border-default)] bg-[var(--color-surface-secondary)]">
         {/* Filters */}
         <div className="border-b border-[var(--color-border-default)] bg-[var(--color-surface-primary)]" style={{ padding: 'var(--density-padding)' }}>
-          <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-3">Threads</h2>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Threads</h2>
+            {role === 'owner' && (
+              <Button variant="primary" size="sm" onClick={() => setShowNewMessageModal(true)} leftIcon={<i className="fas fa-plus" />}>
+                New message
+              </Button>
+            )}
+          </div>
 
           <Input
             type="text"
@@ -378,14 +385,12 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                   title="No threads yet"
                   description={process.env.NODE_ENV === 'development' || process.env.ALLOW_DEV_SEED === 'true'
                     ? "Create demo data to get started with messaging"
-                    : "Start a conversation to see threads here"}
+                    : "Start a conversation or send a new message to see threads here."}
                   icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
                   action={
-                    (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_ENABLE_OPS_SEED === 'true') && role === 'owner' ? {
-                    label: seeding ? 'Generating...' : 'Generate Demo Data',
-                    onClick: seeding ? () => {} : handleSeed,
-                    variant: 'primary' as const,
-                  } : undefined
+                    role === 'owner'
+                      ? { label: 'New message', onClick: () => setShowNewMessageModal(true), variant: 'primary' as const }
+                      : undefined
                   }
                 />
               ) : (
@@ -410,43 +415,53 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && setSelectedThreadId(thread.id)}
-                className={`cursor-pointer border-b border-[var(--color-border-default)] transition hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-inset ${
+                className={`group cursor-pointer border-b border-[var(--color-border-default)] transition hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-inset ${
                   selectedThreadId === thread.id
                     ? 'bg-[var(--color-teal-50)] dark:bg-teal-900/20 border-l-4 border-l-[var(--color-teal-500)]'
                     : 'bg-[var(--color-surface-primary)]'
                 }`}
-                style={{ padding: 'var(--density-row) var(--density-padding)' }}
+                style={{ padding: `${tokens.spacing[3]} ${tokens.spacing[4]}` }}
               >
-                <div className="flex justify-between items-start mb-1">
-                  <div className="font-medium text-sm text-[var(--color-text-primary)]">
-                    {thread.client.name || 'Unknown'}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-sm text-[var(--color-text-primary)] truncate">
+                        {thread.client.name || 'Unknown'}
+                      </span>
+                      {thread.ownerUnreadCount > 0 && (
+                        <Badge variant="info" className="shrink-0">{thread.ownerUnreadCount}</Badge>
+                      )}
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                      {thread.sitter ? (
+                        <span><span className="font-medium">Sitter:</span> {thread.sitter.name}</span>
+                      ) : (
+                        <span className="text-[var(--color-text-tertiary)]">Unassigned</span>
+                      )}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+                      <Badge
+                        variant={
+                          thread.messageNumber.class === 'front_desk' ? 'default' :
+                          thread.messageNumber.class === 'pool' ? 'info' :
+                          thread.messageNumber.class === 'sitter' ? 'success' : 'default'
+                        }
+                        className="text-xs shrink-0"
+                      >
+                        {thread.messageNumber.class}
+                      </Badge>
+                      <span className="text-xs text-[var(--color-text-tertiary)] font-mono">
+                        {thread.messageNumber.e164}
+                      </span>
+                      <span className="text-xs text-[var(--color-text-tertiary)]">
+                        {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
+                      </span>
+                    </div>
                   </div>
-                  {thread.ownerUnreadCount > 0 && (
-                    <Badge variant="info">{thread.ownerUnreadCount}</Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge
-                    variant={
-                      thread.messageNumber.class === 'front_desk' ? 'default' :
-                      thread.messageNumber.class === 'pool' ? 'info' :
-                      thread.messageNumber.class === 'sitter' ? 'success' : 'default'
-                    }
-                    className="text-xs"
-                  >
-                    {thread.messageNumber.class}
-                  </Badge>
-                  <span className="text-xs text-[var(--color-text-secondary)]">
-                    {thread.messageNumber.e164}
-                  </span>
-                </div>
-                {thread.sitter && (
-                  <div className="text-xs text-[var(--color-text-secondary)] mb-1">
-                    Assigned to {thread.sitter.name}
+                  <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                    <span className="text-xs text-[var(--color-text-tertiary)]">Open</span>
+                    <i className="fas fa-chevron-right text-[var(--color-text-tertiary)]" style={{ fontSize: '0.65rem' }} aria-hidden />
                   </div>
-                )}
-                <div className="text-xs text-[var(--color-text-tertiary)]">
-                  {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
                 </div>
               </div>
             ))

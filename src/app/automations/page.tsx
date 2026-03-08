@@ -10,22 +10,17 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  PageHeader,
   Card,
   Button,
   Input,
-  Select,
   Badge,
   Skeleton,
   EmptyState,
-  MobileFilterBar,
-  Tabs,
-  TabPanel,
   Flex,
   Grid,
   GridCol,
 } from '@/components/ui';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 
@@ -51,9 +46,7 @@ export default function AutomationsPage() {
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterEnabled, setFilterEnabled] = useState<string>('all'); // all, enabled, disabled
-  const [filterTrigger, setFilterTrigger] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all'); // all, draft, active, paused, archived
+  const [filterEnabled, setFilterEnabled] = useState<string>('all');
   const [stats, setStats] = useState<AutomationStats>({
     totalEnabled: 0,
     runsToday: 0,
@@ -123,38 +116,39 @@ export default function AutomationsPage() {
 
   if (loading) {
     return (
-      <AppShell>
-        <PageHeader title="Automations Control Center" />
-        <div style={{ padding: tokens.spacing[6] }}>
-          <Skeleton height={400} />
-        </div>
-      </AppShell>
+      <OwnerAppShell>
+        <LayoutWrapper variant="wide">
+          <PageHeader title="Automations" subtitle="Manage automation types and message templates" />
+          <Section>
+            <Skeleton height={400} />
+          </Section>
+        </LayoutWrapper>
+      </OwnerAppShell>
     );
   }
 
   return (
-    <AppShell>
-      <PageHeader
-        title="Automations"
-        description="Manage automation types, templates, and view run history"
-        actions={
-          <Link href="/ops/automation-failures">
-            <Button variant="secondary" leftIcon={<i className="fas fa-exclamation-triangle" />}>
-              View failures
-            </Button>
-          </Link>
-        }
-      />
+    <OwnerAppShell>
+      <LayoutWrapper variant="wide">
+        <PageHeader
+          title="Automations"
+          subtitle="Manage automation types, templates, and run history"
+          actions={
+            <Link href="/ops/automation-failures">
+              <Button variant="secondary" size="sm" leftIcon={<i className="fas fa-exclamation-triangle" />}>
+                View failures
+              </Button>
+            </Link>
+          }
+        />
 
-      <div style={{ padding: tokens.spacing[6] }}>
-        {/* Stats Cards */}
-        <div style={{ marginBottom: tokens.spacing[6] }}>
-          <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
+        <Section title="Overview" description="Runs and failures are org-wide. Filter by status below.">
+          <Grid gap={4}>
             <GridCol span={12} md={4}>
-              <Card>
+              <Card className="border border-slate-200">
                 <div style={{ padding: tokens.spacing[4] }}>
                   <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                    Enabled Automations
+                    Enabled
                   </div>
                   <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold }}>
                     {stats.totalEnabled}
@@ -163,10 +157,10 @@ export default function AutomationsPage() {
               </Card>
             </GridCol>
             <GridCol span={12} md={4}>
-              <Card>
+              <Card className="border border-slate-200">
                 <div style={{ padding: tokens.spacing[4] }}>
                   <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                    Runs Today
+                    Runs today
                   </div>
                   <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold }}>
                     {stats.runsToday}
@@ -175,105 +169,107 @@ export default function AutomationsPage() {
               </Card>
             </GridCol>
             <GridCol span={12} md={4}>
-              <Card>
+              <Card className="border border-slate-200">
                 <div style={{ padding: tokens.spacing[4] }}>
                   <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                    Failures Today
+                    Failures today
                   </div>
-                  <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.error.DEFAULT }}>
+                  <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: stats.failuresToday > 0 ? tokens.colors.error.DEFAULT : undefined }}>
                     {stats.failuresToday}
                   </div>
+                  {stats.failuresToday > 0 && (
+                    <Link href="/ops/automation-failures" className="text-sm text-teal-600 hover:underline mt-1 inline-block">
+                      View failure log →
+                    </Link>
+                  )}
                 </div>
               </Card>
             </GridCol>
           </Grid>
-        </div>
+        </Section>
 
-        {/* Filters */}
-        <Card style={{ marginBottom: tokens.spacing[4] }}>
-          <div style={{ padding: tokens.spacing[4] }}>
-            <Flex direction={isMobile ? 'column' : 'row'} gap={4} align={isMobile ? 'stretch' : 'center'}> {/* Batch 5: UI Constitution compliance */}
-              <Input
-                placeholder="Search automations..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                leftIcon={<i className="fas fa-search" />}
-                style={{ flex: 1 }}
-              />
-              <Select
-                value={filterEnabled}
-                onChange={(e) => setFilterEnabled(e.target.value)}
-                options={[
-                  { value: 'all', label: 'All' },
-                  { value: 'enabled', label: 'Enabled' },
-                  { value: 'disabled', label: 'Disabled' },
-                ]}
-                style={{ minWidth: isMobile ? '100%' : '150px' }}
-              />
-            </Flex>
-          </div>
-        </Card>
-
-        {/* Automation List */}
-        {filteredAutomations.length === 0 ? (
-          <Card>
-            <EmptyState
-              title="No automations found"
-              description={searchTerm || filterEnabled !== 'all' ? "Try adjusting your filters" : "No automation types configured"}
-              icon="🤖"
+        <Section title="Automation types">
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <Input
+              placeholder="Search automations..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              leftIcon={<i className="fas fa-search" />}
+              style={{ flex: 1, minWidth: 200 }}
             />
-          </Card>
-        ) : (
-          <Flex direction="column" gap={4}>
-            {filteredAutomations.map((automation) => (
-              <Card key={automation.id}>
-                <Flex
-                  direction={isMobile ? 'column' : 'row'}
-                  align={isMobile ? 'stretch' : 'center'}
-                  justify="space-between"
-                  gap={4}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ marginBottom: tokens.spacing[2] }}>
-                      <Flex align="center" gap={2}>
-                        <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, margin: 0 }}>
-                          {automation.name}
-                        </h3>
-                        <Badge variant={automation.enabled ? 'success' : 'neutral'}>
-                          {automation.enabled ? 'On' : 'Off'}
-                        </Badge>
-                        <Badge variant="info">{automation.category}</Badge>
-                      </Flex>
+            <select
+              value={filterEnabled}
+              onChange={(e) => setFilterEnabled(e.target.value)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+              aria-label="Filter by status"
+            >
+              <option value="all">All</option>
+              <option value="enabled">Enabled</option>
+              <option value="disabled">Disabled</option>
+            </select>
+          </div>
+
+          {filteredAutomations.length === 0 ? (
+            <Card>
+              <EmptyState
+                title="No automations found"
+                description={searchTerm || filterEnabled !== 'all' ? 'Try adjusting your filters' : 'No automation types configured'}
+                icon="🤖"
+              />
+            </Card>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
+              {filteredAutomations.map((automation) => (
+                <Card key={automation.id} className="border border-slate-200 overflow-hidden">
+                  <div style={{ padding: tokens.spacing[4] }}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h3 className="text-base font-semibold text-slate-900 m-0">
+                            {automation.name}
+                          </h3>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              automation.enabled
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {automation.enabled ? 'Enabled' : 'Disabled'}
+                          </span>
+                          <Badge variant="info">{automation.category}</Badge>
+                        </div>
+                        <p className="text-sm text-slate-600 m-0">
+                          {automation.description}
+                        </p>
+                        <div className="mt-2 text-xs text-slate-500">
+                          Last run / failures: see <Link href="/ops/automation-failures" className="text-teal-600 hover:underline">failure log</Link>
+                        </div>
+                      </div>
+                      <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+                        <label className="flex cursor-pointer items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={automation.enabled}
+                            onChange={(e) => toggleEnabled(automation.id, e.target.checked)}
+                            className="h-4 w-4 rounded border-slate-300"
+                          />
+                          <span className="text-sm">On / Off</span>
+                        </label>
+                        <Link href={`/automations/${automation.id}`}>
+                          <Button variant="primary" size="sm" leftIcon={<i className="fas fa-paper-plane" />}>
+                            Edit & test message
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
-                    <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, margin: 0 }}>
-                      {automation.description}
-                    </p>
                   </div>
-                  <Flex align="center" gap={2}>
-                    <label style={{ cursor: 'pointer' }}>
-                      <Flex align="center">
-                        <input
-                          type="checkbox"
-                          checked={automation.enabled}
-                          onChange={(e) => toggleEnabled(automation.id, e.target.checked)}
-                        />
-                        <span style={{ marginLeft: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
-                          Enabled
-                        </span>
-                      </Flex>
-                    </label>
-                    <Link href={`/automations/${automation.id}`}>
-                      <Button variant="secondary" size="sm">
-                        Edit templates
-                      </Button>
-                    </Link>
-                  </Flex>
-                </Flex>
-              </Card>
-            ))}
-          </Flex>
-        )}
-      </div>
-    </AppShell>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Section>
+      </LayoutWrapper>
+    </OwnerAppShell>
   );
 }

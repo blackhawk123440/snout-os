@@ -12,18 +12,21 @@ import { tokens } from '@/lib/design-tokens';
 import { SignalBadge } from '@/components/resonance';
 import { Flex } from '@/components/ui/Flex';
 
+interface CalendarEventBooking {
+  id: string;
+  firstName: string;
+  lastName: string;
+  service: string;
+  startAt: Date | string;
+  endAt: Date | string;
+  sitter?: { id: string; firstName: string; lastName: string };
+}
+
 interface CalendarDay {
   date: Date;
   isCurrentMonth: boolean;
   isToday: boolean;
-  bookings: Array<{
-    id: string;
-    firstName: string;
-    lastName: string;
-    service: string;
-    startAt: Date | string;
-    endAt: Date | string;
-  }>;
+  bookings: Array<CalendarEventBooking>;
 }
 
 interface CalendarGridProps {
@@ -127,12 +130,24 @@ export function CalendarGrid({
               {day.bookings.slice(0, 3).map((booking) => {
                 const signals = getEventSignals ? getEventSignals(booking.id) : [];
                 const criticalSignal = signals.find(s => s.severity === 'critical');
+                const sitterLabel = booking.sitter
+                  ? `${booking.sitter.firstName} ${booking.sitter.lastName}`
+                  : 'Unassigned';
+                const hoverPreview = `${booking.firstName} ${booking.lastName} · ${formatTime(booking.startAt)}–${formatTime(booking.endAt)} · ${booking.service} · ${sitterLabel}${criticalSignal ? ` · ${criticalSignal.label}` : ''}`;
                 return (
                   <div
                     key={booking.id}
                     onClick={(e) => {
                       e.stopPropagation();
                       onEventClick(booking, day.date);
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onEventClick(booking, day.date);
+                      }
                     }}
                     style={{
                       fontSize: tokens.typography.fontSize.xs[0],
@@ -143,15 +158,22 @@ export function CalendarGrid({
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                       cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: tokens.spacing[1],
                     }}
-                    title={`${booking.firstName} ${booking.lastName} - ${booking.service}${criticalSignal ? ` - ${criticalSignal.label}` : ''}`}
+                    title={hoverPreview}
                   >
-                    <Flex align="center" gap={1}>
+                    <Flex align="center" gap={1} style={{ minWidth: 0 }}>
                       {criticalSignal && (
-                        <i className="fas fa-exclamation-circle" />
+                        <i className="fas fa-exclamation-circle" style={{ flexShrink: 0 }} aria-hidden />
                       )}
-                      <span>{formatTime(booking.startAt)} {booking.firstName}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {formatTime(booking.startAt)} {booking.firstName}
+                      </span>
                     </Flex>
+                    <i className="fas fa-chevron-right" style={{ fontSize: '0.6rem', opacity: 0.9, flexShrink: 0 }} aria-hidden />
                   </div>
                 );
               })}

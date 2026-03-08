@@ -20,8 +20,8 @@ export default function MessagingHubPage() {
           title="Messaging"
           subtitle="Communication control hub across inbox, masking, routing, and Twilio setup."
           actions={
-            <Link href="/messages?tab=inbox">
-              <Button size="sm">Open owner inbox</Button>
+            <Link href="/messaging/inbox">
+              <Button size="sm" variant="primary">Inbox</Button>
             </Link>
           }
         />

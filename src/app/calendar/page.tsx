@@ -12,7 +12,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Grid,
   GridCol,
-  FrostedCard,
   Panel,
   Button,
   IconButton,
@@ -35,13 +34,7 @@ import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { createCalendarEventCommands } from '@/commands/calendar-commands';
 import { registerCommand } from '@/commands/registry';
 import { CalendarGrid } from './CalendarGrid';
-import {
-  detectCalendarSignals,
-  generateCalendarSuggestions,
-  sortSuggestionsByPriority,
-  filterValidSuggestions,
-} from '@/lib/resonance';
-import { SignalBadge, SuggestionsPanel } from '@/components/resonance';
+import { detectCalendarSignals } from '@/lib/resonance';
 
 interface Booking {
   id: string;
@@ -270,25 +263,14 @@ function CalendarPageContent() {
     return detectCalendarSignals(calendarEvents);
   }, [calendarEvents, ENABLE_RESONANCE_V1]);
 
-  const calendarSuggestions = useMemo(() => {
-    if (!ENABLE_RESONANCE_V1) return [];
-    const suggestions = generateCalendarSuggestions(calendarEvents, calendarSignals);
-    const sorted = sortSuggestionsByPriority(suggestions);
-    return filterValidSuggestions(sorted, (commandId) => {
-      try {
-        const { getCommand } = require('@/commands/registry');
-        return !!getCommand(commandId);
-      } catch {
-        return false;
-      }
-    });
-  }, [calendarEvents, calendarSignals, ENABLE_RESONANCE_V1]);
-
-  // Get signals for a specific booking
+  // Get signals for a specific booking (resonance + conflict overlay)
   const getEventSignals = useCallback((eventId: string) => {
-    if (!ENABLE_RESONANCE_V1) return [];
-    return calendarSignals.filter(s => s.entityId === eventId);
-  }, [calendarSignals, ENABLE_RESONANCE_V1]);
+    const base = ENABLE_RESONANCE_V1 ? calendarSignals.filter(s => s.entityId === eventId) : [];
+    if (conflictBookingIds.has(eventId)) {
+      return [...base, { id: 'conflict', severity: 'critical' as const, label: 'Schedule conflict' }];
+    }
+    return base;
+  }, [calendarSignals, conflictBookingIds, ENABLE_RESONANCE_V1]);
 
   // Calendar days for month view
   const calendarDays = useMemo(() => {
@@ -468,41 +450,72 @@ function CalendarPageContent() {
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
-            {dayViewBookings.map((booking) => (
-              <button
-                key={booking.id}
-                type="button"
-                onClick={() => {
-                  setSelectedBooking(booking);
-                  setShowBookingDrawer(true);
-                }}
-                style={{
-                  padding: tokens.spacing[3],
-                  border: `1px solid ${tokens.colors.border.default}`,
-                  borderRadius: tokens.radius.md,
-                  backgroundColor: tokens.colors.surface.primary,
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = tokens.colors.accent.secondary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = tokens.colors.surface.primary;
-                }}
-              >
-                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
-                  {formatTime(booking.startAt)} – {formatTime(booking.endAt)}
+            {dayViewBookings.map((booking) => {
+              const inConflict = conflictBookingIds.has(booking.id);
+              return (
+                <div
+                  key={booking.id}
+                  style={{
+                    padding: tokens.spacing[3],
+                    border: `1px solid ${inConflict ? tokens.colors.error[300] : tokens.colors.border.default}`,
+                    borderRadius: tokens.radius.md,
+                    backgroundColor: tokens.colors.surface.primary,
+                    position: 'relative',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedBooking(booking);
+                      setShowBookingDrawer(true);
+                    }}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.closest('div')!.style.backgroundColor = tokens.colors.accent.secondary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.closest('div')!.style.backgroundColor = tokens.colors.surface.primary;
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[1] }}>
+                      <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                        {formatTime(booking.startAt)} – {formatTime(booking.endAt)}
+                      </span>
+                      {inConflict && (
+                        <span style={{ color: tokens.colors.error.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }}>
+                          <i className="fas fa-exclamation-circle" /> Conflict
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ color: tokens.colors.text.primary }}>
+                      {booking.firstName} {booking.lastName}
+                    </div>
+                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                      {booking.service}
+                      {booking.sitter ? ` · ${booking.sitter.firstName} ${booking.sitter.lastName}` : ' · Unassigned'}
+                    </div>
+                  </button>
+                  <Button
+                    variant="tertiary"
+                    size="sm"
+                    style={{ marginTop: tokens.spacing[2] }}
+                    onClick={() => {
+                      setSelectedBooking(booking);
+                      setShowBookingDrawer(true);
+                    }}
+                  >
+                    View details
+                  </Button>
                 </div>
-                <div style={{ color: tokens.colors.text.primary }}>
-                  {booking.firstName} {booking.lastName}
-                </div>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                  {booking.service}
-                  {booking.sitter ? ` · ${booking.sitter.firstName} ${booking.sitter.lastName}` : ' · Unassigned'}
-                </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -559,38 +572,44 @@ function CalendarPageContent() {
               {day.bookings.length === 0 ? (
                 <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>No bookings</span>
               ) : (
-                day.bookings.map((booking) => (
-                  <button
-                    key={booking.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedBooking(booking);
-                      setShowBookingDrawer(true);
-                    }}
-                    style={{
-                      padding: tokens.spacing[2],
-                      border: `1px solid ${tokens.colors.border.default}`,
-                      borderRadius: tokens.radius.sm,
-                      backgroundColor: tokens.colors.surface.primary,
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      fontSize: tokens.typography.fontSize.xs[0],
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = tokens.colors.accent.secondary;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = tokens.colors.surface.primary;
-                    }}
-                  >
-                    <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-                      {formatTime(booking.startAt)}
-                    </div>
-                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {booking.firstName} {booking.lastName}
-                    </div>
-                  </button>
-                ))
+                day.bookings.map((booking) => {
+                  const inConflict = conflictBookingIds.has(booking.id);
+                  return (
+                    <button
+                      key={booking.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedBooking(booking);
+                        setShowBookingDrawer(true);
+                      }}
+                      style={{
+                        padding: tokens.spacing[2],
+                        border: `1px solid ${inConflict ? tokens.colors.error[300] : tokens.colors.border.default}`,
+                        borderRadius: tokens.radius.sm,
+                        backgroundColor: tokens.colors.surface.primary,
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: tokens.typography.fontSize.xs[0],
+                        width: '100%',
+                      }}
+                      title={`${booking.firstName} ${booking.lastName} · ${booking.service}${inConflict ? ' · Conflict' : ''}`}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = tokens.colors.accent.secondary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = tokens.colors.surface.primary;
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {inConflict && <i className="fas fa-exclamation-circle" style={{ color: tokens.colors.error.DEFAULT, flexShrink: 0 }} />}
+                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatTime(booking.startAt)}</span>
+                      </div>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {booking.firstName} {booking.lastName}
+                      </div>
+                    </button>
+                  );
+                })
               )}
             </div>
           </div>
@@ -626,6 +645,7 @@ function CalendarPageContent() {
             service: booking.service,
             startAt: booking.startAt,
             endAt: booking.endAt,
+            sitter: booking.sitter,
           })),
         }))}
         selectedDate={selectedDate}
@@ -638,7 +658,7 @@ function CalendarPageContent() {
           }
         }}
         formatTime={formatTime}
-        getEventSignals={ENABLE_RESONANCE_V1 ? getEventSignals : undefined}
+        getEventSignals={getEventSignals}
       />
     );
   };
@@ -754,204 +774,51 @@ function CalendarPageContent() {
       ) : (
         <Section title="Schedule">
         <Grid>
-          {!isMobile && (
-            <GridCol span={3}>
-              <Flex direction="column" gap={4}>
-                <FrostedCard>
-                  <div style={{ padding: tokens.spacing[4] }} className="space-y-4">
-                    <Tabs
-                      tabs={[
-                        { id: 'day', label: 'Day' },
-                        { id: 'week', label: 'Week' },
-                        { id: 'month', label: 'Month' },
-                      ]}
-                      activeTab={viewMode}
-                      onTabChange={(tabId: string) => setViewMode(tabId as CalendarView)}
-                    >
-                      <div />
-                    </Tabs>
-                    {calendarFilterBar}
-                  </div>
-                </FrostedCard>
-
-                <FrostedCard>
-                  <div style={{ padding: tokens.spacing[4] }}>
-                    <div
-                      style={{
-                        fontSize: tokens.typography.fontSize.lg[0],
-                        fontWeight: tokens.typography.fontWeight.bold,
-                        marginBottom: tokens.spacing[4],
-                      }}
-                    >
-                      Today
-                    </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
-                      {todayBookings.length}
-                    </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                      {todayBookings.length === 1 ? 'booking' : 'bookings'}
-                    </div>
-
-                    {upcomingBookings.length > 0 && (
-                      <>
-                        <div
-                          style={{
-                            marginTop: tokens.spacing[6],
-                            fontSize: tokens.typography.fontSize.base[0],
-                            fontWeight: tokens.typography.fontWeight.semibold,
-                            marginBottom: tokens.spacing[3],
-                          }}
-                        >
-                          Upcoming
-                        </div>
-                        {upcomingBookings.map((booking) => (
-                          <div
-                            key={booking.id}
-                            onClick={() => {
-                              setSelectedBooking(booking);
-                              setShowBookingDrawer(true);
-                            }}
-                            style={{
-                              padding: tokens.spacing[2],
-                              borderRadius: tokens.radius.md,
-                              marginBottom: tokens.spacing[2],
-                              cursor: 'pointer',
-                              border: `1px solid ${tokens.colors.border.default}`,
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = tokens.colors.accent.secondary;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'transparent';
-                            }}
-                          >
-                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium }}>
-                              {formatTime(booking.startAt)}
-                            </div>
-                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
-                              {booking.firstName} {booking.lastName}
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                </FrostedCard>
-
-                <FrostedCard>
-                  <div style={{ padding: tokens.spacing[4] }}>
-                    <CommandLauncher
-                      context={calendarCommandContext}
-                      maxSuggestions={3}
-                      onCommandSelect={(command) => {
-                        command.execute(calendarCommandContext).then(result => {
-                          if (result.status === 'success') {
-                            showToast({ variant: 'success', message: result.message || 'Command executed' });
-                            if (result.redirect) {
-                              router.push(result.redirect);
-                            }
-                          } else {
-                            showToast({ variant: 'error', message: result.message || 'Command failed' });
-                          }
-                        });
-                      }}
-                    />
-                  </div>
-                </FrostedCard>
-
-                {/* Resonance: Calendar Suggestions */}
-                {ENABLE_RESONANCE_V1 && (
-                  <SuggestionsPanel
-                    suggestions={calendarSuggestions}
-                    loading={loading}
-                    onExecute={(suggestion) => {
-                      const { getCommand } = require('@/commands/registry');
-                      const command = getCommand(suggestion.actionCommandId);
-                      if (command) {
-                        const context = {
-                          ...calendarCommandContext,
-                          selectedEntity: {
-                            type: 'booking',
-                            id: suggestion.entityId,
-                            data: filteredBookings.find(b => b.id === suggestion.entityId),
-                          },
-                        };
-                        command.execute(context).then((result: CommandResult) => {
-                          if (result.status === 'success') {
-                            showToast({ variant: 'success', message: result.message || 'Action completed' });
-                            if (result.redirect) {
-                              router.push(result.redirect);
-                            }
-                            fetchData();
-                          } else {
-                            showToast({ variant: 'error', message: result.message || 'Action failed' });
-                          }
-                        });
-                      }
-                    }}
-                    maxSuggestions={5}
-                    title="Calendar Suggestions"
-                  />
-                )}
-              </Flex>
-            </GridCol>
-          )}
-
-          <GridCol span={isMobile ? 12 : 9}>
+          <GridCol span={12}>
             <Panel>
-              {/* Calendar Header */}
+              {/* Top bar: period nav + view tabs + Today */}
               <div
                 style={{
-                  padding: tokens.spacing[4],
+                  padding: tokens.spacing[3],
                   borderBottom: `1px solid ${tokens.colors.border.default}`,
                 }}
               >
-                <Flex align="center" justify="space-between">
-                <Flex align="center" gap={4}>
-                  <IconButton
-                    icon={<i className="fas fa-chevron-left" />}
-                    onClick={() => {
-                      const prev = new Date(currentDate);
-                      if (viewMode === 'month') {
-                        prev.setMonth(prev.getMonth() - 1);
-                      } else if (viewMode === 'week') {
-                        prev.setDate(prev.getDate() - 7);
-                      } else {
-                        prev.setDate(prev.getDate() - 1);
-                      }
-                      setCurrentDate(prev);
-                    }}
-                    aria-label="Previous period"
-                  />
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.xl[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                      minWidth: '200px',
-                      textAlign: 'center',
-                    }}
-                  >
-                    {periodLabel}
-                  </div>
-                  <IconButton
-                    icon={<i className="fas fa-chevron-right" />}
-                    onClick={() => {
-                      const next = new Date(currentDate);
-                      if (viewMode === 'month') {
-                        next.setMonth(next.getMonth() + 1);
-                      } else if (viewMode === 'week') {
-                        next.setDate(next.getDate() + 7);
-                      } else {
-                        next.setDate(next.getDate() + 1);
-                      }
-                      setCurrentDate(next);
-                    }}
-                    aria-label="Next period"
-                  />
-                </Flex>
-
-                <Flex align="center" gap={2}>
-                  {!isMobile && (
+                <Flex align="center" justify="space-between" wrap gap={3}>
+                  <Flex align="center" gap={2}>
+                    <IconButton
+                      icon={<i className="fas fa-chevron-left" />}
+                      onClick={() => {
+                        const prev = new Date(currentDate);
+                        if (viewMode === 'month') prev.setMonth(prev.getMonth() - 1);
+                        else if (viewMode === 'week') prev.setDate(prev.getDate() - 7);
+                        else prev.setDate(prev.getDate() - 1);
+                        setCurrentDate(prev);
+                      }}
+                      aria-label="Previous period"
+                    />
+                    <span
+                      style={{
+                        fontSize: tokens.typography.fontSize.lg[0],
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        minWidth: '180px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {periodLabel}
+                    </span>
+                    <IconButton
+                      icon={<i className="fas fa-chevron-right" />}
+                      onClick={() => {
+                        const next = new Date(currentDate);
+                        if (viewMode === 'month') next.setMonth(next.getMonth() + 1);
+                        else if (viewMode === 'week') next.setDate(next.getDate() + 7);
+                        else next.setDate(next.getDate() + 1);
+                        setCurrentDate(next);
+                      }}
+                      aria-label="Next period"
+                    />
+                  </Flex>
+                  <Flex align="center" gap={2}>
                     <Tabs
                       tabs={[
                         { id: 'day', label: 'Day' },
@@ -963,19 +830,78 @@ function CalendarPageContent() {
                     >
                       <div />
                     </Tabs>
-                  )}
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      setCurrentDate(new Date());
-                      setSelectedDate(new Date());
-                    }}
-                  >
-                    Today
-                  </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setCurrentDate(new Date());
+                        setSelectedDate(new Date());
+                      }}
+                    >
+                      Today
+                    </Button>
+                  </Flex>
                 </Flex>
-                </Flex>
+              </div>
+
+              {/* Filters in top bar (compact row) */}
+              <div
+                style={{
+                  padding: tokens.spacing[2],
+                  borderBottom: `1px solid ${tokens.colors.border.default}`,
+                  backgroundColor: tokens.colors.surface.secondary,
+                }}
+              >
+                {isMobile ? (
+                  <Flex align="center" gap={2}>
+                    <Button variant="tertiary" size="sm" onClick={() => setShowFiltersDrawer(true)}>
+                      <i className="fas fa-filter" style={{ marginRight: tokens.spacing[1] }} />
+                      Filters
+                    </Button>
+                  </Flex>
+                ) : (
+                  calendarFilterBar
+                )}
+              </div>
+
+              {/* Today / Upcoming strip */}
+              <div
+                style={{
+                  padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+                  borderBottom: `1px solid ${tokens.colors.border.default}`,
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: tokens.spacing[3],
+                }}
+              >
+                <span style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium }}>
+                  Today: <strong>{todayBookings.length}</strong> {todayBookings.length === 1 ? 'booking' : 'bookings'}
+                </span>
+                {upcomingBookings.length > 0 && (
+                  <Flex gap={1} wrap>
+                    {upcomingBookings.slice(0, 5).map((booking) => (
+                      <button
+                        key={booking.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedBooking(booking);
+                          setShowBookingDrawer(true);
+                        }}
+                        style={{
+                          padding: `${tokens.spacing[0]} ${tokens.spacing[2]}`,
+                          fontSize: tokens.typography.fontSize.xs[0],
+                          border: `1px solid ${tokens.colors.border.default}`,
+                          borderRadius: tokens.radius.sm,
+                          background: tokens.colors.surface.primary,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {formatTime(booking.startAt)} {booking.firstName}
+                      </button>
+                    ))}
+                  </Flex>
+                )}
               </div>
 
               {/* Calendar Body */}

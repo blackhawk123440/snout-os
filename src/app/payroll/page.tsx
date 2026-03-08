@@ -260,10 +260,10 @@ export default function PayrollPage() {
                 leftIcon={<i className="fas fa-download" />}
                 onClick={() => handleExportCSV()}
               >
-                Export CSV
+                Export
               </Button>
               <Button
-                variant="primary"
+                variant="tertiary"
                 size="sm"
                 onClick={fetchPayroll}
                 disabled={loading}
@@ -277,47 +277,44 @@ export default function PayrollPage() {
 
       <Section title="Pay period summary">
         <div className="mb-4">
-          <Grid gap={4}>
-            <GridCol span={12} md={6} lg={3}>
-              <StatCard
-                label="Current Pay Period"
-                value={
-                  currentRun
+          <Card className="border-2 border-slate-200 bg-slate-50/50" style={{ padding: tokens.spacing[4] }}>
+            <Grid gap={4}>
+              <GridCol span={12} md={5}>
+                <div style={{ marginBottom: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                  Current pay period
+                </div>
+                <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+                  {currentRun
                     ? `${formatDate(currentRun.startDate)} – ${formatDate(currentRun.endDate)}`
-                    : '—'
-                }
-                icon={<i className="fas fa-calendar" />}
-              />
-            </GridCol>
-            <GridCol span={12} md={6} lg={3}>
-              <StatCard
-                label="Total Sitters"
-                value={(currentRun?.sitterCount) ?? (runs.reduce((s, r) => s + r.sitterCount, 0) || 0)}
-                icon={<i className="fas fa-users" />}
-              />
-            </GridCol>
-            <GridCol span={12} md={6} lg={3}>
-              <StatCard
-                label="Total Payout"
-                value={formatCurrency(runs.reduce((s, r) => s + r.totalPayout, 0))}
-                icon={<i className="fas fa-dollar-sign" />}
-              />
-            </GridCol>
-            <GridCol span={12} md={6} lg={3}>
-              <StatCard
-                label="Status"
-                value={currentRun?.status ?? '—'}
-                icon={<i className="fas fa-info-circle" />}
-              />
-            </GridCol>
-          </Grid>
-        </div>
-        <div className="mb-4">
-          <Flex gap={4} wrap>
-            <StatCard label="Pending Payouts" value={formatCurrency(totalPending)} icon={<i className="fas fa-clock" />} />
-            <StatCard label="Approved" value={formatCurrency(totalApproved)} icon={<i className="fas fa-check-circle" />} />
-            <StatCard label="Total Paid" value={formatCurrency(totalPaid)} icon={<i className="fas fa-dollar-sign" />} />
-          </Flex>
+                    : '—'}
+                </div>
+                <div style={{ marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                  {(currentRun?.sitterCount) ?? runs.reduce((s, r) => s + r.sitterCount, 0) || 0} sitters · {currentRun?.status ?? '—'}
+                </div>
+              </GridCol>
+              <GridCol span={12} md={4}>
+                <div style={{ marginBottom: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                  Total payout (all runs)
+                </div>
+                <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success.DEFAULT }}>
+                  {formatCurrency(runs.reduce((s, r) => s + r.totalPayout, 0))}
+                </div>
+              </GridCol>
+              <GridCol span={12} md={3}>
+                <Flex direction="column" gap={2}>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    Pending: <strong>{formatCurrency(totalPending)}</strong>
+                  </div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    Approved: <strong>{formatCurrency(totalApproved)}</strong>
+                  </div>
+                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    Paid: <strong>{formatCurrency(totalPaid)}</strong>
+                  </div>
+                </Flex>
+              </GridCol>
+            </Grid>
+          </Card>
         </div>
       </Section>
 
@@ -350,11 +347,12 @@ export default function PayrollPage() {
             />
           </Card>
         ) : (
-          <Card padding={false}>
+          <Card padding={false} className="overflow-hidden">
             <Table
               columns={runColumns}
               data={filteredRuns}
               emptyMessage="No payroll runs found"
+              className="[&_tbody_tr]:border-b [&_tbody_tr:hover]:bg-slate-50 [&_tbody_td]:py-3"
             />
           </Card>
         )}
@@ -401,19 +399,21 @@ export default function PayrollPage() {
               </GridCol>
             </Grid>
 
-            <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Sitters</div>
-            <Table
-              columns={[
-                { key: 'sitter', header: 'Sitter', render: (s) => s.sitterName },
-                { key: 'bookings', header: 'Bookings', render: (s) => s.bookingCount, align: 'center' as const },
-                { key: 'earnings', header: 'Earnings', render: (s) => formatCurrency(s.earnings), align: 'right' as const },
-                { key: 'commission', header: 'Commission', render: (s) => formatCurrency(s.commission), align: 'right' as const },
-                { key: 'payout', header: 'Payout', render: (s) => formatCurrency(s.payoutAmount), align: 'right' as const },
-                { key: 'stripe', header: 'Stripe', render: (s) => (s.stripeAccount ? 'Connected' : '—'), align: 'center' as const },
-              ]}
-              data={detail.sitters}
-              emptyMessage="No sitters"
-            />
+            <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>Sitter payout rows</div>
+            <div className="rounded-lg border border-slate-200 overflow-hidden">
+              <Table
+                columns={[
+                  { key: 'sitter', header: 'Sitter', render: (s) => <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>{s.sitterName}</span> },
+                  { key: 'bookings', header: 'Bookings', render: (s) => s.bookingCount, align: 'center' as const },
+                  { key: 'earnings', header: 'Earnings', render: (s) => formatCurrency(s.earnings), align: 'right' as const },
+                  { key: 'commission', header: 'Commission', render: (s) => formatCurrency(s.commission), align: 'right' as const },
+                  { key: 'payout', header: 'Payout', render: (s) => <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>{formatCurrency(s.payoutAmount)}</span>, align: 'right' as const },
+                  { key: 'stripe', header: 'Stripe', render: (s) => (s.stripeAccount ? 'Connected' : '—'), align: 'center' as const },
+                ]}
+                data={detail.sitters}
+                emptyMessage="No sitters"
+              />
+            </div>
 
             {detail.bookings.length > 0 && (
               <>
@@ -443,8 +443,8 @@ export default function PayrollPage() {
               </>
             )}
 
-            <Button variant="secondary" onClick={() => selectedRunId && handleExportCSV(selectedRunId)}>
-              Export this period CSV
+            <Button variant="primary" size="sm" onClick={() => selectedRunId && handleExportCSV(selectedRunId)} leftIcon={<i className="fas fa-download" />}>
+              Export this period
             </Button>
           </Flex>
         ) : null}
