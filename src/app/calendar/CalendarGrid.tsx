@@ -162,10 +162,11 @@ export function CalendarGrid({
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: tokens.spacing[1],
+                      minWidth: 0,
                     }}
                     title={hoverPreview}
                   >
-                    <Flex align="center" gap={1} style={{ minWidth: 0 }}>
+                    <Flex align="center" gap={1}>
                       {criticalSignal && (
                         <i className="fas fa-exclamation-circle" style={{ flexShrink: 0 }} aria-hidden />
                       )}
