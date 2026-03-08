@@ -289,7 +289,7 @@ export default function PayrollPage() {
                     : '—'}
                 </div>
                 <div style={{ marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                  {(currentRun?.sitterCount) ?? runs.reduce((s, r) => s + r.sitterCount, 0) || 0} sitters · {currentRun?.status ?? '—'}
+                  {(currentRun?.sitterCount) ?? (runs.reduce((s, r) => s + r.sitterCount, 0) || 0)} sitters · {currentRun?.status ?? '—'}
                 </div>
               </GridCol>
               <GridCol span={12} md={4}>
