@@ -1,29 +1,27 @@
 /**
- * SRS List API Endpoint (Owner Only)
+ * SRS List API Endpoint (Owner / Admin only)
  * GET /api/sitters/srs
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getRequestContext } from '@/lib/request-context';
+import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
 import { prisma } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user) {
+  let ctx;
+  try {
+    ctx = await getRequestContext();
+    requireAnyRole(ctx, ['owner', 'admin']);
+  } catch (error) {
+    if (error instanceof ForbiddenError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Owner only
-  const user = session.user as any;
-  if (user.role !== 'owner' && user.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
+  const orgId = ctx.orgId;
   try {
-    const orgId = (session.user as any).orgId;
-    if (!orgId) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 400 });
-    }
 
     // Get all sitters with latest snapshots
     const snapshots = await (prisma as any).sitterTierSnapshot.findMany({
@@ -65,7 +63,10 @@ export async function GET(request: NextRequest) {
       breakdown: JSON.parse(snapshot.rolling30dBreakdownJson),
     }));
 
-    return NextResponse.json({ sitters: results });
+    return NextResponse.json(
+      { sitters: results },
+      { headers: { 'X-Snout-Org-Resolved': '1' } }
+    );
   } catch (error: any) {
     console.error('[SRS List API] Error:', error);
     return NextResponse.json(

@@ -34,22 +34,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const orgId = ctx.orgId;
-  
-  // Fail loudly if orgId is missing in staging
-  if (process.env.NODE_ENV === 'production' && (!orgId || orgId === 'default')) {
-    return NextResponse.json(
-      { error: 'Organization ID missing. Please contact support.', details: 'orgId is required but was not found in session.' },
-      { 
-        status: 401,
-        headers: {
-          'X-Snout-Api': 'sitters-route-hit',
-          'X-Snout-Auth': 'missing-orgid',
-          'X-Snout-OrgId': 'missing',
-        },
-      }
-    );
-  }
+  // Always resolve orgId: context or "default" for single-tenant/staging (no "Organization ID missing" for authenticated owner/admin/sitter)
+  const orgId = (ctx.orgId != null && String(ctx.orgId).trim() !== '') ? String(ctx.orgId).trim() : 'default';
 
   // If API is configured, try to proxy to it
   if (API_BASE_URL) {
@@ -154,6 +140,7 @@ export async function GET(request: NextRequest) {
           'X-Snout-Api': 'sitters-route-hit',
           'X-Snout-Route': 'proxy',
           'X-Snout-OrgId': orgId,
+          'X-Snout-Org-Resolved': '1',
         },
       });
     } catch (error: any) {
@@ -232,6 +219,7 @@ export async function GET(request: NextRequest) {
         'X-Snout-Api': 'sitters-route-hit',
         'X-Snout-Route': 'prisma-fallback',
         'X-Snout-OrgId': orgId,
+        'X-Snout-Org-Resolved': '1',
       },
     });
   } catch (error: any) {
