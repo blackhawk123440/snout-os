@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { AppShell } from "@/components/layout/AppShell";
-import { PageHeader, Card, Button } from "@/components/ui";
+import { OwnerAppShell, LayoutWrapper, PageHeader } from "@/components/layout";
+import { Card, Button } from "@/components/ui";
 import { tokens } from "@/lib/design-tokens";
 
 /**
@@ -12,18 +12,19 @@ import { tokens } from "@/lib/design-tokens";
 export default function CalendarAccountsPage() {
   const router = useRouter();
   return (
-    <AppShell>
-      <PageHeader
-        title="Calendar setup"
-        description="How calendar sync works"
-        actions={
-          <Button variant="secondary" onClick={() => router.push("/calendar")}>
-            Back to Calendar
-          </Button>
-        }
-      />
+    <OwnerAppShell>
+      <LayoutWrapper variant="default">
+        <PageHeader
+          title="Calendar setup"
+          subtitle="How calendar sync works"
+          actions={
+            <Button variant="secondary" onClick={() => router.push("/calendar")}>
+              Back to Calendar
+            </Button>
+          }
+        />
 
-      <div style={{ padding: tokens.spacing[6], maxWidth: 560 }}>
+      <div style={{ padding: 0, maxWidth: 560 }}>
         <Card>
           <div style={{ padding: tokens.spacing[6] }}>
             <h2 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[3] }}>
@@ -49,6 +50,7 @@ export default function CalendarAccountsPage() {
           </div>
         </Card>
       </div>
-    </AppShell>
+      </LayoutWrapper>
+    </OwnerAppShell>
   );
 }

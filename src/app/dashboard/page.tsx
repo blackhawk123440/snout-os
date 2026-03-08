@@ -98,10 +98,16 @@ export default function DashboardPage() {
                 <p className="mt-1 text-2xl font-semibold text-slate-900">
                   ${Math.round(metrics?.revenueYTD ?? 0).toLocaleString()}
                 </p>
+                {(metrics?.revenueYTD ?? 0) === 0 && (metrics?.openBookingsCount ?? 0) > 0 && (
+                  <p className="mt-0.5 text-xs text-slate-500">No collected payments yet</p>
+                )}
               </Card>
               <Card>
                 <p className="text-xs text-slate-500">Retention</p>
                 <p className="mt-1 text-2xl font-semibold text-slate-900">{Math.round(metrics?.retentionRate ?? 0)}%</p>
+                {(metrics?.retentionRate ?? 0) === 0 && (metrics?.openBookingsCount ?? 0) > 0 && (
+                  <p className="mt-0.5 text-xs text-slate-500">No repeat clients yet</p>
+                )}
               </Card>
             </div>
           )}

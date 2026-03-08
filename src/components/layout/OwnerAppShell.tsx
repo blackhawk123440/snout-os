@@ -194,6 +194,11 @@ const HEADER_MAP: Array<{ match: (p: string) => boolean; title: string; subtitle
     subtitle: 'Payout readiness and commission tracking',
   },
   {
+    match: (p) => p.startsWith('/payments'),
+    title: 'Payments',
+    subtitle: 'Payment operations and revenue flow',
+  },
+  {
     match: (p) => p.startsWith('/reports'),
     title: 'Reports',
     subtitle: 'Revenue, utilization, and trend analytics',
@@ -234,11 +239,6 @@ const HEADER_MAP: Array<{ match: (p: string) => boolean; title: string; subtitle
     subtitle: 'Operational failure surfaces and verification tools',
   },
   {
-    match: (p) => p.startsWith('/payments'),
-    title: 'Payments',
-    subtitle: 'Payment operations and revenue flow',
-  },
-  {
     match: (p) => p.startsWith('/finance'),
     title: 'Finance',
     subtitle: 'Revenue, payouts, and reconciliation',
@@ -259,6 +259,9 @@ function matches(pathname: string, href: string): boolean {
   if (href === '/command-center') return pathname === '/command-center' || pathname === '/';
   if (href === '/dashboard') return pathname === '/dashboard';
   if (href === '/messaging') return pathname === '/messaging' || pathname.startsWith('/messaging/');
+  // Avoid /payments matching /payroll and vice versa (exact or single-segment path only)
+  if (href === '/payroll') return pathname === '/payroll' || pathname.startsWith('/payroll/');
+  if (href === '/payments') return pathname === '/payments' || pathname.startsWith('/payments/');
   return pathname.startsWith(href);
 }
 

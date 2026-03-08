@@ -30,7 +30,7 @@ Calendar is **code-complete** but not formally **COMPLETE** until staging proof 
 Paste output of: `curl -s "https://<staging-url>/api/health" | jq .`
 
 ```json
-
+{"status":"ok","db":"ok","redis":"ok","version":"c5b1527b1dcbec3a3ad832767a124dca319c73f9","commitSha":"c5b1527","buildTime":"2026-03-08T22:05:31.310Z","envName":"staging","timestamp":"2026-03-08T22:05:31.310Z"}
 ```
 
 ---
@@ -40,7 +40,15 @@ Paste output of: `curl -s "https://<staging-url>/api/health" | jq .`
 Paste full output of: `BASE_URL="https://<staging-url>" E2E_AUTH_KEY="..." pnpm run verify:calendar`
 
 ```text
+> snout-os@1.0.0 verify:calendar
+> tsx scripts/verify-calendar.ts
 
+verify-calendar started
+bookings.count=108
+conflicts.count=59
+repair.ok=true jobId=28
+repair.validation=400 when sitterId missing
+verify-calendar OK
 ```
 
 ---
@@ -57,7 +65,14 @@ Evidence that the worker is live and the calendar queue is ready, e.g.:
 Paste relevant worker log lines from staging:
 
 ```text
-
+[Worker] Starting background workers...
+[Worker] commitSha: c5b1527
+[Worker] Redis: connected
+[Worker] REDIS_URL: rediss://red-d6k9irfafjfc7393n78g:****@oregon-keyvalue.render.com:6379
+[Worker] Automations queue ready
+[Worker] Calendar queue ready
+[Worker] Payout queue ready
+[Worker] Queues initialized. Processing jobs.
 ```
 
 ---
@@ -97,12 +112,12 @@ Keep this distinction explicit in product and docs so owners are not confused.
 
 ## Sign-off
 
-- [ ] Staging /api/health JSON pasted above.
-- [ ] Full verify:calendar output pasted above; verifier completed successfully.
-- [ ] Worker log proof pasted above; worker is live and Calendar queue ready.
-- [ ] Conflict model note above acknowledged (calendar vs assignment-window vs availability vs Google busy).
+- [x] Staging /api/health JSON pasted above.
+- [x] Full verify:calendar output pasted above; verifier completed successfully.
+- [x] Worker log proof pasted above; worker is live and Calendar queue ready.
+- [x] Conflict model note above acknowledged (calendar vs assignment-window vs availability vs Google busy).
 
-**Calendar status:** _PENDING_ → **COMPLETE** (only after all checkboxes are checked and evidence is in place).
+**Calendar status:** **COMPLETE**
 
 ---
 

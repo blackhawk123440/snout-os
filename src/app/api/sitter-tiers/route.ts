@@ -96,7 +96,10 @@ export async function GET(request: NextRequest) {
         orderBy: [{ priorityLevel: 'asc' }, { name: 'asc' }],
       });
     }
-    return NextResponse.json({ tiers }, { status: 200 });
+    return NextResponse.json(
+      { tiers },
+      { status: 200, headers: { 'X-Snout-Org-Resolved': '1' } }
+    );
   } catch (error: any) {
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

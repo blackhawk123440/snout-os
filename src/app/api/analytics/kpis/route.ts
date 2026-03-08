@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
     const totalRelevantPrev = completedPrev + cancelledPrev;
     const cancellationRatePrev = totalRelevantPrev > 0 ? (cancelledPrev / totalRelevantPrev) * 100 : 0;
 
-    // Failed payments, automation failures, payout volume
+    // Failed payments, automation failures (org- and period-scoped), payout volume
     const [
       failedPaymentCountPeriod,
       failedPaymentCountPrev,

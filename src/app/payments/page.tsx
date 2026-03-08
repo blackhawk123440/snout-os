@@ -496,31 +496,22 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* Comparison Banner */}
+      {/* Period comparison - compact, enterprise tone */}
       {comparison && !isMobile && (
-        <Card style={{ marginBottom: tokens.spacing[4], backgroundColor: comparison.isPositive ? tokens.colors.success[50] : tokens.colors.error[50] }}>
-          <div style={{ padding: tokens.spacing[4] }}>
-            <Flex align="center" justify="space-between">
-            <div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
-                {selectedTimeRange.label} vs Previous Period
+        <Card className="border border-slate-200 bg-slate-50/50" style={{ marginBottom: tokens.spacing[4] }}>
+          <div style={{ padding: tokens.spacing[3] }}>
+            <Flex align="center" justify="space-between" gap={4}>
+              <div>
+                <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                  {selectedTimeRange.label} vs previous period
+                </span>
+                <span style={{ marginLeft: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.primary }}>
+                  {comparison.isPositive ? '+' : ''}{comparison.periodComparison.toFixed(1)}%
+                </span>
               </div>
-              <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.bold }}>
-                {comparison.isPositive ? '+' : ''}{comparison.periodComparison.toFixed(1)}%
-              </div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                Previous: {formatCurrency(comparison.previousPeriodTotal)} → Current: {formatCurrency(kpis.totalCollected)}
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: '1.25rem',
-                color: comparison.isPositive ? tokens.colors.success.DEFAULT : tokens.colors.error.DEFAULT,
-              }}
-              aria-hidden
-            >
-              {comparison.isPositive ? 'Up' : 'Down'}
-            </div>
+              <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                {formatCurrency(comparison.previousPeriodTotal)} → {formatCurrency(kpis.totalCollected)}
+              </span>
             </Flex>
           </div>
         </Card>

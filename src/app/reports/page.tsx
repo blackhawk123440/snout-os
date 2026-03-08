@@ -260,6 +260,9 @@ export default function ReportsPage() {
                   <p className="mt-1 text-lg font-semibold text-slate-900">
                     ${kpis.revenue.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
+                  {kpis.revenue.value === 0 && kpis.bookings.value > 0 && (
+                    <p className="mt-0.5 text-xs text-slate-500">No collected payments yet in this period</p>
+                  )}
                   <Link href="/payments" className="mt-2 inline-block text-sm text-teal-600 hover:underline">
                     View payments →
                   </Link>
