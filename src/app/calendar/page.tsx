@@ -10,7 +10,6 @@
 import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  Section,
   Grid,
   GridCol,
   FrostedCard,
@@ -30,8 +29,8 @@ import { Command, CommandResult } from '@/commands/types';
 import { useCommands } from '@/hooks/useCommands';
 import { useMobile } from '@/lib/use-mobile';
 import { tokens } from '@/lib/design-tokens';
-import { AppShell } from '@/components/layout/AppShell';
-import { AppPageHeader, AppErrorState, AppFilterBar, AppDrawer } from '@/components/app';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
+import { AppErrorState, AppFilterBar, AppDrawer } from '@/components/app';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { createCalendarEventCommands } from '@/commands/calendar-commands';
 import { registerCommand } from '@/commands/registry';
@@ -716,37 +715,44 @@ function CalendarPageContent() {
   }), [commandContext, selectedBooking]);
 
   return (
-    <AppShell>
-      <AppPageHeader
-        title="Calendar"
-        action={
-          <Flex align="center" gap={1.5}> {/* Phase E: Migrated to AppShell - combined left/right actions */}
-            {isMobile && (
+    <OwnerAppShell>
+      <LayoutWrapper variant="wide">
+        <PageHeader
+          title="Calendar"
+          subtitle="Schedules, overlaps, and coverage controls"
+          actions={
+            <Flex align="center" gap={1.5}>
+              {isMobile && (
+                <IconButton
+                  icon={<i className="fas fa-filter" />}
+                  onClick={() => setShowFiltersDrawer(true)}
+                  aria-label="Open filters"
+                />
+              )}
               <IconButton
-                icon={<i className="fas fa-filter" />}
-                onClick={() => setShowFiltersDrawer(true)}
-                aria-label="Open filters"
+                icon={<i className="fas fa-search" />}
+                onClick={openCommandPalette}
+                aria-label="Open command palette"
               />
-            )}
-            <IconButton
-              icon={<i className="fas fa-search" />}
-              onClick={openCommandPalette}
-              aria-label="Open command palette"
-            />
-            <Button onClick={() => router.push('/bookings/new')}>
-              New Booking
-            </Button>
-          </Flex>
-        }
-      />
+              <Button size="sm" onClick={() => router.push('/bookings/new')}>
+                New booking
+              </Button>
+            </Flex>
+          }
+        />
 
       {loading && bookings.length === 0 ? (
-        <div style={{ padding: tokens.spacing[6] }}>
-          <Skeleton height="600px" />
-        </div>
+        <Section>
+          <div className="py-4">
+            <Skeleton height="600px" />
+          </div>
+        </Section>
       ) : error && bookings.length === 0 ? (
-        <AppErrorState message={error} onRetry={fetchData} />
+        <Section>
+          <AppErrorState message={error} onRetry={fetchData} />
+        </Section>
       ) : (
+        <Section title="Schedule">
         <Grid>
           {!isMobile && (
             <GridCol span={3}>
@@ -1044,6 +1050,7 @@ function CalendarPageContent() {
             )}
           </GridCol>
         </Grid>
+        </Section>
       )}
 
       {isMobile && (
@@ -1143,7 +1150,8 @@ function CalendarPageContent() {
           </div>
         )}
       </AppDrawer>
-    </AppShell>
+      </LayoutWrapper>
+    </OwnerAppShell>
   );
 }
 

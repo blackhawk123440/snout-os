@@ -9,7 +9,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  PageHeader,
   Card,
   Button,
   Badge,
@@ -23,7 +22,7 @@ import {
   Grid,
   GridCol,
 } from '@/components/ui';
-import { AppShell } from '@/components/layout/AppShell';
+import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 
@@ -248,34 +247,36 @@ export default function PayrollPage() {
   ];
 
   return (
-    <AppShell>
-      <PageHeader
-        title="Payroll"
-        description="Manage sitter commissions and payouts"
-        actions={
-          <Flex gap={3}>
-            <Button
-              variant="secondary"
-              leftIcon={<i className="fas fa-download" />}
-              onClick={() => handleExportCSV()}
-            >
-              Export CSV
-            </Button>
-            <Button
-              variant="primary"
-              onClick={fetchPayroll}
-              disabled={loading}
-              leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
-            >
-              Refresh
-            </Button>
-          </Flex>
-        }
-      />
+    <OwnerAppShell>
+      <LayoutWrapper variant="wide">
+        <PageHeader
+          title="Payroll"
+          subtitle="Manage sitter commissions and payouts"
+          actions={
+            <Flex gap={2}>
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<i className="fas fa-download" />}
+                onClick={() => handleExportCSV()}
+              >
+                Export CSV
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={fetchPayroll}
+                disabled={loading}
+                leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
+              >
+                Refresh
+              </Button>
+            </Flex>
+          }
+        />
 
-      <div style={{ padding: tokens.spacing[6] }}>
-        {/* Top Summary */}
-        <div style={{ marginBottom: tokens.spacing[6] }}>
+      <Section title="Pay period summary">
+        <div className="mb-4">
           <Grid gap={4}>
             <GridCol span={12} md={6} lg={3}>
               <StatCard
@@ -311,21 +312,22 @@ export default function PayrollPage() {
             </GridCol>
           </Grid>
         </div>
-
-        <div style={{ marginBottom: tokens.spacing[4] }}>
+        <div className="mb-4">
           <Flex gap={4} wrap>
             <StatCard label="Pending Payouts" value={formatCurrency(totalPending)} icon={<i className="fas fa-clock" />} />
             <StatCard label="Approved" value={formatCurrency(totalApproved)} icon={<i className="fas fa-check-circle" />} />
             <StatCard label="Total Paid" value={formatCurrency(totalPaid)} icon={<i className="fas fa-dollar-sign" />} />
           </Flex>
         </div>
+      </Section>
 
-        {/* Status filter */}
-        <div style={{ marginBottom: tokens.spacing[3] }}>
+      <Section title="Payroll runs">
+        <div className="mb-3">
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ padding: tokens.spacing[2], borderRadius: 4 }}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+            aria-label="Filter by status"
           >
             <option value="all">All statuses</option>
             <option value="pending">Pending</option>
@@ -335,7 +337,6 @@ export default function PayrollPage() {
           </select>
         </div>
 
-        {/* Payroll Table: runs with Sitter count, Total Payout, Status; View opens sitters + bookings */}
         {loading ? (
           <Card>
             <Skeleton height={400} />
@@ -357,7 +358,7 @@ export default function PayrollPage() {
             />
           </Card>
         )}
-      </div>
+      </Section>
 
       {/* Run Detail Modal */}
       <Modal
@@ -475,6 +476,7 @@ export default function PayrollPage() {
           </Flex>
         )}
       </Modal>
-    </AppShell>
+      </LayoutWrapper>
+    </OwnerAppShell>
   );
 }
