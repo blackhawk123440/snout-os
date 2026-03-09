@@ -74,7 +74,7 @@ export default function ClientBookingsPage() {
             <AppEmptyState
               title="No upcoming visits"
               subtitle="Book your next visit anytime."
-              cta={{ label: 'Book a visit', onClick: () => router.push('/bookings/new') }}
+              cta={{ label: 'Book a visit', onClick: () => router.push('/client/bookings/new') }}
             />
           ) : (
             <div className="w-full space-y-3 lg:max-w-3xl">

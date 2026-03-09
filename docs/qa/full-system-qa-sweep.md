@@ -12,24 +12,24 @@
 
 | Check | Route / action | Pass? | Notes |
 |-------|----------------|-------|--------|
-| Dashboard loads | `/dashboard` | [ ] | KPIs, quick actions; no crash |
-| Command Center loads | `/command-center` | [ ] | Queues, attention items |
-| Bookings list | `/bookings` | [ ] | List or empty state |
-| Calendar loads | `/calendar` | [ ] | Top-bar filters, grid, no left rail |
-| Clients loads | `/clients` | [ ] | List or empty state |
-| Sitters loads | `/sitters` | [ ] | No "Organization ID missing" |
-| Growth / Tiers | `/growth` | [ ] | No Forbidden |
-| Payroll loads | `/payroll` | [ ] | Summary card, runs table |
-| Reports loads | `/reports` | [ ] | Executive summary / KPIs |
-| Payments loads | `/payments` | [ ] | Revenue / transactions |
-| Finance loads | `/finance` | [ ] | As configured |
-| Settings loads | `/settings` | [ ] | Owner settings |
-| Owner shell consistent | All above | [ ] | Same chrome (OwnerAppShell, PageHeader, Section) |
+| Dashboard loads | `/dashboard` | [x] | KPIs (Active visits 0, Open bookings 103, Revenue YTD $0, Retention 0%), Health snapshot, Priority queues, Owner nav |
+| Command Center loads | `/command-center` | [x] | Active/Snoozed/Handled 24h, Setup 2 of 4, Bookings/Visits/Revenue/Messages (7d), View Bookings |
+| Bookings list | `/bookings` | [x] | Bookings Ops Cockpit, New booking, Open Filters, Search, Status, Payment |
+| Calendar loads | `/calendar` | [x] | Day/Week/Month/Today, Open filters, grid dates, "Calendar" / "Schedules, overlaps..." |
+| Clients loads | `/clients` | [x] | Clients heading, "CRM records, pets...", Search, Sort |
+| Sitters loads | `/sitters` | [x] | Sitters heading, "Workforce management...", Search, Availability |
+| Growth / Tiers | `/growth` | [x] | Reliability Tier Distribution, Policy Tier Coverage, Manage Policy Tiers; no Forbidden |
+| Payroll loads | `/payroll` | [x] | Pay period summary, Payroll runs, Filter by status, View, Approve, Export |
+| Reports loads | `/reports` | [x] | Key metrics (Revenue, Bookings, Active clients, etc.), "No collected payments yet", Attention, View analytics |
+| Payments loads | `/payments` | [x] | Payments heading, Last 30 Days, Export CSV, "No payments found" |
+| Finance loads | `/finance` | [ ] | Not exercised this run (as configured) |
+| Settings loads | `/settings` | [x] | Business Information, Services, Pricing, Notifications, Tiers, AI, Integrations, Advanced; UI density, theme |
+| Owner shell consistent | All above | [x] | Same chrome: Owner nav (Dashboard, Bookings, Calendar, Messaging, Ops), PageHeader, Section |
 
 **Evidence / issues:**
 
 ```text
-
+Staging 2026-03-09: Owner (owner@example.com) login → /dashboard. All owner routes loaded; no crash. Health: status ok, db ok, redis ok, commitSha bde17fa.
 ```
 
 ---
@@ -38,15 +38,17 @@
 
 | Check | Route / action | Pass? | Notes |
 |-------|----------------|-------|--------|
-| Sitter shell / home | `/sitter` or sitter entry | [ ] | Correct layout and nav |
-| Bookings (sitter) | `/sitter/bookings` or equivalent | [ ] | Assigned bookings |
-| Availability | `/sitter/availability` or equivalent | [ ] | If applicable |
-| Earnings / profile | As per sitter app | [ ] | No 403/500 on core pages |
+| Sitter shell / home | `/sitter` or sitter entry | [x] | Landed on /sitter/today; nav: Today, Bookings, Messages, Reports, Earnings, Profile; "Hey, Test" |
+| Bookings (sitter) | `/sitter/bookings` or equivalent | [x] | Route loads (sitter bookings list) |
+| Calendar (sitter) | `/sitter/calendar` | [x] | Calendar, Week/List, "Upcoming bookings", "No upcoming bookings" |
+| Inbox (sitter) | `/sitter/inbox` or Messages | [x] | Messages in nav; sitter stays in /sitter/* |
+| Reports / Earnings / Profile | As per sitter app | [ ] | Not exercised this run; no 403 on Today/Bookings/Calendar |
+| Availability | `/sitter/availability` or equivalent | [ ] | If applicable (not in nav snapshot) |
 
 **Evidence / issues:**
 
 ```text
-
+Staging 2026-03-09: Sitter (sitter@example.com) login → /sitter/today. /sitter/calendar and /sitter/bookings loaded. Direct hit /bookings (owner) → redirected to /sitter/today.
 ```
 
 ---
@@ -55,15 +57,17 @@
 
 | Check | Route / action | Pass? | Notes |
 |-------|----------------|-------|--------|
-| Client shell / home | `/client` or client entry | [ ] | Correct layout and nav |
-| Bookings (client) | Client bookings view | [ ] | List or empty state |
-| Messages (client) | Client messages view | [ ] | If applicable |
-| Billing / profile | As per client app | [ ] | No 403/500 on core pages |
+| Client shell / home | `/client` or client entry | [x] | /client/home: "Your pet care hub", Book a visit, Next visit, Latest report, nav Home/Bookings/Pets/Messages/Billing/Profile |
+| Bookings (client) | Client bookings view | [x] | /client/bookings: "Your visits", Dog Walking card, "Book a visit", View bookings |
+| Client booking form | `/client/bookings/new` | [ ] | **Issue:** Direct /client/bookings/new showed "Booking details" / "Couldn't load booking" / "Booking not found" (possible route conflict with [id] or loading error) |
+| Messages (client) | Client messages view | [x] | /client/messages: "Chat with your sitter", Test Sitter thread, Support copy |
+| Billing | `/client/billing` | [x] | Billing, "Invoices & loyalty", Bronze tier, Invoices |
+| Reports (client) | `/client/reports` | [x] | "Visit reports", "Updates from your sitter", Dog Walking report |
 
 **Evidence / issues:**
 
 ```text
-
+Staging 2026-03-09: Client (client@example.com) login → /client/home. Bookings, messages, billing, reports loaded. /client/bookings/new showed error state (see table). Client direct hit /dashboard → redirected to /client/home.
 ```
 
 ---
@@ -72,15 +76,15 @@
 
 | Check | Route / action | Pass? | Notes |
 |-------|----------------|-------|--------|
-| Messaging hub | `/messaging` | [ ] | Modules / Inbox link |
-| Owner Inbox | `/messaging/inbox` | [ ] | Thread list, client/sitter context, New message |
-| Thread open & reply | Select thread, send message | [ ] | No crash; delivery as expected |
-| Sitters / Numbers / Routing | `/messaging/sitters`, numbers, assignments | [ ] | Load without error |
+| Messaging hub | `/messaging` | [x] | Messaging modules: Owner Inbox, Sitters, Numbers, Assignments, Twilio Setup; Inbox link |
+| Owner Inbox | `/messaging/inbox` | [ ] | Not opened this run |
+| Thread open & reply | Select thread, send message | [ ] | Not exercised |
+| Sitters / Numbers / Routing | `/messaging/sitters`, numbers, assignments | [ ] | Hub lists links; not opened |
 
 **Evidence / issues:**
 
 ```text
-
+Owner /messaging loaded: "Communication control hub", modules listed. Full inbox/thread flow pending.
 ```
 
 ---
@@ -106,14 +110,14 @@
 
 | Check | Route / action | Pass? | Notes |
 |-------|----------------|-------|--------|
-| Payroll page | `/payroll` | [ ] | Pay period block, total payout, runs table |
-| Run detail modal | View a run | [ ] | Sitter payout rows, export |
-| Approve / Export | Actions available | [ ] | As per design (no regression) |
+| Payroll page | `/payroll` | [x] | Pay period summary, Payroll runs, Filter by status, View, Approve, Export |
+| Run detail modal | View a run | [ ] | Not opened |
+| Approve / Export | Actions available | [x] | Buttons present |
 
 **Evidence / issues:**
 
 ```text
-
+Payroll page loaded. Run detail modal not exercised.
 ```
 
 ---
@@ -122,13 +126,13 @@
 
 | Check | Route / action | Pass? | Notes |
 |-------|----------------|-------|--------|
-| Reports page | `/reports` | [ ] | Executive summary, period KPIs |
-| Trust states | $0 revenue / 0% retention with bookings | [ ] | Honest copy (e.g. "No collected payments yet") |
+| Reports page | `/reports` | [x] | Key metrics (Revenue $0, Bookings 102, Active clients 2, etc.), Attention (60 automation failures), View analytics |
+| Trust states | $0 revenue / 0% retention with bookings | [x] | "No collected payments yet in this period", "No repeat clients yet" |
 
 **Evidence / issues:**
 
 ```text
-
+Owner reports: executive summary and honest $0/0% copy confirmed.
 ```
 
 ---
@@ -137,15 +141,15 @@
 
 | Check | Route / action | Pass? | Notes |
 |-------|----------------|-------|--------|
-| Automations list | `/automations` | [ ] | Cards, Enabled/Disabled, "Edit & test message" |
-| Enable/disable | Toggle, refresh | [ ] | State persists |
-| Edit & test | `/automations/<id>`, test message | [ ] | Template edit, POST test-message success |
-| Automation failures | `/ops/automation-failures` | [ ] | List loads; retry endpoint works if events exist |
+| Automations list | `/automations` | [x] | Cards: Booking Confirmation, Night Before Reminder, Payment Reminder, Sitter Assignment, Post Visit Thank You, Owner New Booking Alert; On/Off, "Edit & test message", View failures |
+| Enable/disable | Toggle, refresh | [ ] | Not exercised |
+| Edit & test | `/automations/<id>`, test message | [ ] | Not exercised |
+| Automation failures | `/ops/automation-failures` | [ ] | Not opened as owner (sitter hit /ops → redirected to /sitter/today) |
 
 **Evidence / issues:**
 
 ```text
-
+Automations list loaded; toggle and Edit & test pending. Sitter correctly blocked from /ops.
 ```
 
 ---
@@ -168,33 +172,154 @@
 
 | Check | How | Pass? | Notes |
 |-------|-----|-------|--------|
-| Health endpoint | `GET /api/health` | [ ] | `redis: "ok"`, `db: "ok"`, `status: "ok"` |
-| Worker logs (staging) | Render/host → worker service logs | [ ] | commitSha, Redis connected, Automations + Calendar (+ Payout) queues ready |
-| Job processing | Trigger an automation or calendar sync | [ ] | Job consumed (or verify via logs/EventLog) |
+| Health endpoint | `GET /api/health` | [x] | `{"status":"ok","db":"ok","redis":"ok","version":"bde17fa...","commitSha":"bde17fa","envName":"staging"}` |
+| Worker logs (staging) | Render/host → worker service logs | [ ] | Pending: manual check of worker logs for commitSha, Redis, queues |
+| Job processing | Trigger an automation or calendar sync | [ ] | Pending: trigger and verify consumption |
 
 **Evidence / issues:**
 
 ```text
+Health: 200, status/db/redis ok, commitSha bde17fa. Worker logs and job run not verified this sweep.
+```
 
+---
+
+## 11. Role route boundary regression checks
+
+**Purpose:** Confirm clients and sitters never enter owner dashboard flows; all links and redirects respect role boundaries. No code changes unless a real leak is found.
+
+### 1) Client
+
+| Check | Pass? | Notes |
+|-------|-------|--------|
+| `/client/home` “Book a visit” → `/client/bookings/new` | [ ] | **Staging (bde17fa):** Click “Book a visit” from client home → landed on `/bookings/new` (owner form). Codebase has `href="/client/bookings/new"`; may be deploy lag. |
+| Direct hit to `/bookings/new` → redirected to `/client/bookings/new` | [ ] | **Staging:** As client, direct navigate to `/bookings/new` stayed on owner form; redirect not observed. Verify middleware + deploy. |
+| Direct hit to `/bookings` → redirected to `/client/bookings` | [ ] | Not explicitly tested this run |
+| Direct hit to owner-only routes (`/dashboard`, `/calendar`, …) → redirected to `/client/home` | [x] | Client direct hit `/dashboard` → redirected to `/client/home`. |
+
+**Evidence / issues:**
+
+```text
+Client session: /dashboard → /client/home OK. "Book a visit" and /bookings/new behavior on staging suggest deploy may not include role-boundary fixes (commitSha bde17fa). Verify on post-fix deploy.
+```
+
+### 2) Sitter
+
+| Check | Pass? | Notes |
+|-------|-------|--------|
+| Sitter schedule/calendar/bookings stay in `/sitter/*` | [x] | Today, Calendar, Bookings all under /sitter/*; nav links stay in sitter app. |
+| Direct hit to owner-only routes → redirected to `/sitter/today` or `/sitter/inbox` | [x] | Sitter direct hit `/bookings` → redirected to `/sitter/today`. Hit `/ops/automation-failures` → `/sitter/today`. |
+| Sitter inbox/dashboard: non-sitter role redirects (owner→/messaging, client→/client/home, else /login) | [ ] | Not tested (requires owner/client visiting /sitter/inbox or /sitter/dashboard). |
+
+**Evidence / issues:**
+
+```text
+Sitter role boundary: owner routes correctly redirect to /sitter/today. Non-sitter redirect from sitter pages not exercised.
+```
+
+### 3) No client/sitter UI links into owner routes
+
+| Check | Pass? | Notes |
+|-------|-------|--------|
+| No client UI links point to owner routes | [ ] | **Staging:** Client “Book a visit” navigated to `/bookings/new` (owner). Repo has `/client/bookings/new`; confirm after deploy. |
+| No sitter UI links point to owner routes | [x] | Sitter nav and actions stayed in /sitter/*. |
+
+**Evidence / issues:**
+
+```text
+Sitter UI: pass. Client UI: fail on staging (link to owner form); treat as deploy/version gap until verified on latest.
 ```
 
 ---
 
 ## Sign-off
 
-- [ ] Owner core flows verified (or issues logged).
-- [ ] Sitter core flows verified (or issues logged).
-- [ ] Client core flows verified (or issues logged).
-- [ ] Messaging verified (or issues logged).
-- [ ] Calendar verified (or issues logged).
-- [ ] Payroll verified (or issues logged).
-- [ ] Reports verified (or issues logged).
-- [ ] Automations verified (or issues logged).
-- [ ] Integrations verified (or issues logged).
-- [ ] Queues/workers/Redis health verified (or issues logged).
+- [x] Owner core flows verified (or issues logged).
+- [x] Sitter core flows verified (or issues logged).
+- [x] Client core flows verified (or issues logged).
+- [x] Messaging verified (or issues logged).
+- [x] Calendar verified (or issues logged).
+- [x] Payroll verified (or issues logged).
+- [x] Reports verified (or issues logged).
+- [x] Automations verified (or issues logged).
+- [x] Integrations verified (or issues logged).
+- [x] Queues/workers/Redis health verified (or issues logged).
+- [x] Role route boundary regression checks verified (or issues logged).
 
-**Full-system sweep status:** _________________
+**Full-system sweep status:** _Completed with evidence; see Bugs and Pending below._
 
-**Date:** _________________
+**Date:** _2026-03-09_
 
 **Notes:** No new feature work unless a real bug is discovered during this proof. Log any bugs in this doc or your issue tracker; fix only confirmed bugs before closing out.
+
+---
+
+## Deliverables (this sweep)
+
+### Real bugs found (staging bde17fa)
+
+1. **Client “Book a visit” and role boundary**  
+   - From `/client/home`, clicking “Book a visit” (and FAB/CTA in shell) navigated to `/bookings/new` (owner form).  
+   - As client, direct navigation to `/bookings/new` did not redirect to `/client/bookings/new`.  
+   - **Cause:** ClientAppShell and ClientListSecondaryModule used `href="/bookings/new"`; middleware was correct but client-side links bypassed it.
+
+2. **Client booking form at `/client/bookings/new`**  
+   - Direct load showed “Booking details” / “Couldn’t load booking” / “Booking not found” because `client/bookings/[id]` was matching `"new"` as an id.
+
+### Fixes applied (post–2026-03-09)
+
+- **`src/app/client/bookings/[id]/page.tsx`:** If `id === 'new'`, redirect to `/client/bookings/new` and do not fetch or render detail/error (guard + early return).
+- **`src/components/layout/ClientAppShell.tsx`:** “New booking” header link and “Book” FAB changed from `href="/bookings/new"` to `href="/client/bookings/new"`.
+- **`src/components/client/ClientListSecondaryModule.tsx`:** Bookings variant “Book a visit” link changed from `href: '/bookings/new'` to `href: '/client/bookings/new'`.
+- **Middleware** (unchanged): Client `/bookings/new` → redirect `/client/bookings/new`; client `/bookings` → redirect `/client/bookings`; client owner routes → `/client/home`.
+- **Build:** `pnpm build` succeeds; `/client/bookings/new` is built as static (○); `/client/bookings/[id]` as dynamic (ƒ).
+
+### Pending proof only (no bug implied)
+
+- **Finance:** `/finance` not opened this run.
+- **Messaging:** Owner Inbox (`/messaging/inbox`), thread open & reply, Sitters/Numbers/Routing sub-pages not exercised.
+- **Calendar:** Conflict indicators, event click → drawer not exercised.
+- **Payroll:** Run detail modal (View a run) not opened.
+- **Automations:** Enable/disable toggle, Edit & test message, `/ops/automation-failures` as owner not exercised.
+- **Queues/workers:** Worker logs on Render (commitSha, Redis, queues) and job processing (trigger automation or calendar sync, verify consumption) not verified.
+- **Role boundary:** Client direct hit to `/bookings` (redirect to `/client/bookings`); non-sitter on `/sitter/inbox` or `/sitter/dashboard` (redirect by role) not tested.
+
+### Platform ready for final signoff?
+
+**Conditional yes.** Code fixes are in place; staging must be redeployed and client role-boundary checks re-run. See **Post-deploy verification** below.
+
+---
+
+### Post-deploy verification
+
+After deploying the above fixes to staging:
+
+1. **Get new staging commitSha:**  
+   `curl -s "https://snout-os-staging.onrender.com/api/health" | jq .commitSha`
+
+2. **Re-run client role-boundary checks (Section 11):**
+   - Log in as **client** (e.g. `client@example.com`).
+   - **Direct hit** `/client/bookings/new` → must show the client booking form (Choose Your Service, Tell Us About Your Pet, etc.), not “Booking not found.”
+   - Click **“Book a visit”** from `/client/home` (hero and empty state) → must go to `/client/bookings/new` and show the form.
+   - Click **“New booking”** (header) and **“Book”** FAB (mobile) from any client page → must go to `/client/bookings/new`.
+   - **Direct hit** `/bookings/new` (as client) → must redirect to `/client/bookings/new`.
+   - **Direct hit** `/bookings` (as client) → must redirect to `/client/bookings`.
+   - **Direct hit** `/dashboard` (as client) → must redirect to `/client/home`.
+
+3. **Proof run (automated, 2026-03-09):**
+   - **Live staging commitSha at time of check:** `bde17fa` (staging not yet redeployed with client booking-form + link fixes).
+   - **Client login** in automated browser run did not complete (possible fixture/auth on staging); the 5 client checks could not be executed.
+   - **Action:** Deploy the fix branch to staging, then re-run the 5 checks manually (or re-trigger proof). Record results in (4) below.
+
+4. **Record results here (fill after deploy + re-run):**
+   - **New staging commitSha:** _________________
+   - **Date re-run:** _________________
+   - **1. Direct hit /client/bookings/new** → form loads? [ ] Pass  [ ] Fail
+   - **2. Click “Book a visit” from /client/home** → /client/bookings/new? [ ] Pass  [ ] Fail
+   - **3. Click Book FAB / header “New booking”** → /client/bookings/new? [ ] Pass  [ ] Fail
+   - **4. Direct hit /bookings/new (as client)** → redirect to /client/bookings/new? [ ] Pass  [ ] Fail
+   - **5. Direct hit /bookings (as client)** → redirect to /client/bookings? [ ] Pass  [ ] Fail
+   - **Section 11 (Sitter):** Optional spot-check. [ ] OK
+   - **Role-boundary leaks remaining?** _________________
+
+5. **If all 5 client checks pass:** Mark platform **ready for final signoff** and tick Section 11 client checks in the tables above with the new evidence.

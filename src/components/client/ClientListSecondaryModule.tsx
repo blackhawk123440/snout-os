@@ -12,7 +12,7 @@ const CONTENT: Record<
     title: 'Next steps',
     body: 'View booking details to see times, sitter info, and visit reports. Need to reschedule? Contact your sitter from the booking or Messages.',
     linkLabel: 'Book a visit',
-    href: '/bookings/new',
+    href: '/client/bookings/new',
   },
   pets: {
     title: 'How it works',

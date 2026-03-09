@@ -37,7 +37,7 @@ const formatThreadTime = (d: Date) => {
 const QUICK_TEMPLATES: QuickTemplate[] = ['On my way', 'Arrived', 'All done'];
 
 function SitterInboxContent() {
-  const { user, isSitter, loading: authLoading } = useAuth();
+  const { user, isSitter, isOwner, isClient, loading: authLoading } = useAuth();
   const router = useRouter();
   const { isOnline, refreshQueuedCount } = useOffline();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
@@ -65,9 +65,11 @@ function SitterInboxContent() {
 
   useEffect(() => {
     if (!authLoading && !isSitter) {
-      router.push('/messages');
+      if (isOwner) router.push('/messaging');
+      else if (isClient) router.push('/client/home');
+      else router.push('/login');
     }
-  }, [authLoading, isSitter, router]);
+  }, [authLoading, isSitter, isOwner, isClient, router]);
 
   useEffect(() => {
     if (!isMobile && threads.length > 0 && !selectedThreadId) {

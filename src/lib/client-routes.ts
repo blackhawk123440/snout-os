@@ -5,6 +5,5 @@
 
 export function isClientRoute(pathname: string): boolean {
   if (pathname === '/client' || pathname.startsWith('/client/')) return true;
-  if (pathname === '/bookings/new') return true;
   return false;
 }

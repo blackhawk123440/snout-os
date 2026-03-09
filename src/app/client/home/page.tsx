@@ -100,7 +100,7 @@ export default function ClientHomePage() {
                   </>
                 )}
                 <Link
-                  href="/bookings/new"
+                  href="/client/bookings/new"
                   className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
                 >
                   Book a visit
@@ -178,7 +178,7 @@ export default function ClientHomePage() {
               <EmptyState
                 title="No upcoming visits"
                 description="Book your next visit anytime."
-                primaryAction={{ label: 'Book a visit', onClick: () => router.push('/bookings/new') }}
+                primaryAction={{ label: 'Book a visit', onClick: () => router.push('/client/bookings/new') }}
               />
             </div>
           )}

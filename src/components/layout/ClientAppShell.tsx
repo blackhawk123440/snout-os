@@ -131,7 +131,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
               <div className="relative flex shrink-0 items-center gap-2">
                 {showNewBookingCta && (
                   <Link
-                    href="/bookings/new"
+                    href="/client/bookings/new"
                     className="hidden min-h-[44px] items-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 min-[1024px]:inline-flex"
                   >
                     New booking
@@ -195,7 +195,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
 
       {showNewBookingCta && (
         <Link
-          href="/bookings/new"
+          href="/client/bookings/new"
           className="fixed bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] right-4 z-10 flex h-12 items-center gap-2 rounded-full bg-slate-900 px-4 text-sm font-medium text-white shadow-lg transition active:scale-95 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 lg:hidden min-[1024px]:hidden"
           aria-label="Book a visit"
         >

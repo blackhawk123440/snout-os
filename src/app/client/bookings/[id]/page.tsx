@@ -30,8 +30,16 @@ export default function ClientBookingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Never treat "new" as a booking id: redirect to the client new-booking form
+  useEffect(() => {
+    if (id === 'new') {
+      router.replace('/client/bookings/new');
+      return;
+    }
+  }, [id, router]);
+
   const load = useCallback(async () => {
-    if (!id) return;
+    if (!id || id === 'new') return;
     setLoading(true);
     setError(null);
     try {
@@ -59,6 +67,9 @@ export default function ClientBookingDetailPage() {
     new Date(d).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
   const formatTime = (d: string) =>
     new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  // Redirecting to /client/bookings/new; avoid rendering detail/error
+  if (id === 'new') return null;
 
   return (
     <div className="mx-auto max-w-3xl pb-8">

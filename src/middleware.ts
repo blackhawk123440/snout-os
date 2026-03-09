@@ -38,9 +38,15 @@ export async function middleware(request: NextRequest) {
     if (isClientRoute(pathname)) {
       return NextResponse.next();
     }
-    // Client trying to access non-client route -> redirect to client home
+    // Client trying to access non-client route -> redirect to client home or client booking flow
+    if (pathname === '/bookings/new') {
+      return NextResponse.redirect(new URL('/client/bookings/new', request.url));
+    }
+    if (pathname.startsWith('/bookings')) {
+      return NextResponse.redirect(new URL('/client/bookings', request.url));
+    }
     if (pathname.startsWith('/sitter') || pathname.startsWith('/dashboard') || pathname.startsWith('/owner-dashboard') ||
-        pathname.startsWith('/command-center') || pathname.startsWith('/calendar') || (pathname.startsWith('/bookings') && pathname !== '/bookings/new') ||
+        pathname.startsWith('/command-center') || pathname.startsWith('/calendar') ||
         pathname.startsWith('/clients') || pathname.startsWith('/sitters') || pathname.startsWith('/messaging') ||
         pathname.startsWith('/messages') || pathname.startsWith('/numbers') || pathname.startsWith('/assignments') ||
         pathname.startsWith('/twilio-setup') || pathname.startsWith('/reports') || pathname.startsWith('/growth') ||

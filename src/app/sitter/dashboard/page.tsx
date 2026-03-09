@@ -24,7 +24,7 @@ import { MessagingInboxCard } from '@/components/sitter/MessagingInboxCard';
 import { SitterSRSCard } from '@/components/sitter/SitterSRSCard';
 
 function SitterDashboardContent() {
-  const { user, isSitter, loading: authLoading } = useAuth();
+  const { user, isSitter, isOwner, isClient, loading: authLoading } = useAuth();
   const router = useRouter();
   const sitterId = (user as any)?.sitterId;
 
@@ -42,7 +42,9 @@ function SitterDashboardContent() {
   }
 
   if (!isSitter) {
-    router.push('/messages');
+    if (isOwner) router.push('/messaging');
+    else if (isClient) router.push('/client/home');
+    else router.push('/login');
     return null;
   }
 
