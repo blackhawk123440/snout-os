@@ -104,9 +104,8 @@ export default function TodayBoard({
           break;
         case 'payment':
           result = await sendPaymentLinkToBooking(booking.id);
-          if (result.success && result.link) {
-            const copied = await navigator.clipboard.writeText(result.link).catch(() => false);
-            alert(`Payment link generated${copied ? ' and copied to clipboard' : ''}!\n\n${result.link}`);
+          if (result.success) {
+            alert('Payment link sent to client through messaging pipeline.');
           }
           break;
         case 'resend':

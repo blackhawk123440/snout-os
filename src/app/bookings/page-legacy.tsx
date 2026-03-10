@@ -782,36 +782,31 @@ function BookingsPageContent() {
   const handleGeneratePaymentLink = async (booking: Booking) => {
     setGeneratingPaymentLink(true);
     try {
-      const response = await fetch("/api/payments/create-payment-link", {
+      const response = await fetch("/api/messages/send-payment-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bookingId: booking.id,
-          includeTip: true,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Try to copy to clipboard
-        const copied = await copyToClipboard(data.paymentLink);
-        
-        // Show modal with link (works better on mobile)
         setLinkModalContent({
-          title: 'Payment Link Generated',
-          link: data.paymentLink,
-          details: `Service Amount: $${data.baseAmount?.toFixed(2) || 'N/A'}${copied ? '\n\n✓ Copied to clipboard!' : '\n\nTap the link below to copy it'}`
+          title: 'Payment Link Sent',
+          link: data.link || '',
+          details: data.deduped
+            ? 'A matching payment link was already sent recently.'
+            : 'Payment link was sent through the real messaging pipeline.'
         });
         setShowLinkModal(true);
-        
-        // Refresh bookings to show updated payment link
         fetchBookings();
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         setLinkModalContent({
           title: 'Error',
           link: '',
-          details: `Failed to generate payment link: ${errorData.error || 'Unknown error'}${errorData.details ? `\n\nDetails: ${errorData.details}` : ''}`
+          details: `Failed to send payment link: ${errorData.error || 'Unknown error'}${errorData.details ? `\n\nDetails: ${errorData.details}` : ''}`
         });
         setShowLinkModal(true);
       }
@@ -829,7 +824,7 @@ function BookingsPageContent() {
   const handleGenerateTipLink = async (booking: Booking) => {
     setGeneratingTipLink(true);
     try {
-      const response = await fetch("/api/payments/create-tip-link", {
+      const response = await fetch("/api/messages/send-tip-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -839,27 +834,20 @@ function BookingsPageContent() {
 
       if (response.ok) {
         const data = await response.json();
-        // Try to copy to clipboard
-        const copied = await copyToClipboard(data.tipLink);
-        
-        // Show detailed tip calculations
-        const tipCalc = data.tipCalculations;
-        const details = `Service Amount: $${tipCalc.serviceAmount}\n\nTip Options:\n• 10%: $${tipCalc.tip10} (Total: $${tipCalc.total10})\n• 15%: $${tipCalc.tip15} (Total: $${tipCalc.total15})\n• 20%: $${tipCalc.tip20} (Total: $${tipCalc.total20})\n• 25%: $${tipCalc.tip25} (Total: $${tipCalc.total25})${copied ? '\n\n✓ Copied to clipboard!' : '\n\nTap the link below to copy it'}`;
-        
         setLinkModalContent({
-          title: 'Tip Link Generated',
-          link: data.tipLink,
-          details
+          title: 'Tip Link Sent',
+          link: data.link || '',
+          details: data.deduped
+            ? 'A matching tip link was already sent recently.'
+            : 'Tip link was sent through the real messaging pipeline.'
         });
         setShowLinkModal(true);
-        
-        // Refresh bookings to show updated tip link
         fetchBookings();
       } else {
         setLinkModalContent({
           title: 'Error',
           link: '',
-          details: 'Failed to generate tip link. Please try again.'
+          details: 'Failed to send tip link. Please try again.'
         });
         setShowLinkModal(true);
       }

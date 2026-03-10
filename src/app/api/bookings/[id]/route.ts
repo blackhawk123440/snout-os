@@ -94,7 +94,7 @@ export async function GET(
     });
     if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
 
-    const [latestSucceededCharge, latestCalendarFailure] = await Promise.all([
+    const [latestSucceededCharge, latestCalendarFailure, thread] = await Promise.all([
       db.stripeCharge.findFirst({
         where: { bookingId: booking.id, status: 'succeeded' },
         orderBy: { createdAt: 'desc' },
@@ -115,6 +115,46 @@ export async function GET(
         orderBy: { createdAt: 'desc' },
         select: { createdAt: true, error: true, metadata: true },
       }),
+      db.messageThread.findFirst({
+        where: { bookingId: booking.id },
+        select: { id: true },
+      }),
+    ]);
+    const [latestPaymentLinkMessage, latestTipLinkMessage] = await Promise.all([
+      thread
+        ? db.messageEvent.findFirst({
+            where: {
+              threadId: thread.id,
+              direction: 'outbound',
+              metadataJson: { contains: '"templateType":"payment_link"' },
+            },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              createdAt: true,
+              deliveryStatus: true,
+              providerMessageSid: true,
+              failureDetail: true,
+            },
+          })
+        : Promise.resolve(null),
+      thread
+        ? db.messageEvent.findFirst({
+            where: {
+              threadId: thread.id,
+              direction: 'outbound',
+              metadataJson: { contains: '"templateType":"tip_link"' },
+            },
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              createdAt: true,
+              deliveryStatus: true,
+              providerMessageSid: true,
+              failureDetail: true,
+            },
+          })
+        : Promise.resolve(null),
     ]);
 
     const calendarMapping = booking.calendarEvents?.[0] ?? null;
@@ -178,6 +218,22 @@ export async function GET(
               )}`
             : null,
         },
+        paymentMessageState: latestPaymentLinkMessage
+          ? {
+              status: latestPaymentLinkMessage.deliveryStatus,
+              sentAt: latestPaymentLinkMessage.createdAt,
+              providerMessageId: latestPaymentLinkMessage.providerMessageSid,
+              error: latestPaymentLinkMessage.failureDetail,
+            }
+          : null,
+        tipMessageState: latestTipLinkMessage
+          ? {
+              status: latestTipLinkMessage.deliveryStatus,
+              sentAt: latestTipLinkMessage.createdAt,
+              providerMessageId: latestTipLinkMessage.providerMessageSid,
+              error: latestTipLinkMessage.failureDetail,
+            }
+          : null,
       },
     });
   } catch (error: unknown) {

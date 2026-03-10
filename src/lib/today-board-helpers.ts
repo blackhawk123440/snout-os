@@ -43,12 +43,11 @@ export async function sendPaymentLinkToBooking(
   bookingId: string
 ): Promise<{ success: boolean; link?: string; error?: string }> {
   try {
-    const response = await fetch("/api/payments/create-payment-link", {
+    const response = await fetch("/api/messages/send-payment-link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         bookingId,
-        includeTip: true,
       }),
     });
 
@@ -58,7 +57,7 @@ export async function sendPaymentLinkToBooking(
     }
 
     const data = await response.json();
-    return { success: true, link: data.paymentLink };
+    return { success: true, link: data.link };
   } catch (error) {
     return {
       success: false,
