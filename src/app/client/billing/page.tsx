@@ -27,6 +27,19 @@ interface BillingData {
     createdAt: string;
     bookingId: string | null;
   }>;
+  paidCompletions: Array<{
+    status: string;
+    amount: number;
+    paidAt: string;
+    bookingReference: string | null;
+    bookingService: string | null;
+    bookingStartAt: string | null;
+    invoiceReference: string;
+    paymentIntentId: string | null;
+    currency: string;
+    receiptLink: string | null;
+    bookingPaymentStatus: string | null;
+  }>;
   loyalty: { points: number; tier: string };
 }
 
@@ -61,6 +74,8 @@ export default function ClientBillingPage() {
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  const formatDateTime = (d: string) =>
+    new Date(d).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
   return (
     <LayoutWrapper variant="narrow">
@@ -142,6 +157,45 @@ export default function ClientBillingPage() {
                   forceTableLayout
                 />
               </DataTableShell>
+            </div>
+          )}
+
+          {data.paidCompletions?.length > 0 && (
+            <div className="mt-4 border-t border-slate-200 py-3">
+              <h2 className="mb-2 text-sm font-semibold tracking-tight text-slate-900">Payment completion proof</h2>
+              <div className="space-y-2">
+                {data.paidCompletions.slice(0, 5).map((payment) => (
+                  <div
+                    key={`${payment.invoiceReference}-${payment.paidAt}`}
+                    className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <AppStatusPill status="paid" />
+                        <span className="font-semibold text-slate-900">
+                          ${payment.amount.toFixed(2)}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-600">{formatDateTime(payment.paidAt)}</span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-700">
+                      <span>Booking: {payment.bookingReference ? payment.bookingReference.slice(0, 8) : 'N/A'}</span>
+                      <span>Invoice: {payment.invoiceReference.slice(0, 8)}</span>
+                      {payment.paymentIntentId ? <span>Intent: {payment.paymentIntentId.slice(0, 12)}</span> : null}
+                    </div>
+                    {payment.receiptLink ? (
+                      <a
+                        href={payment.receiptLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-flex text-xs font-medium text-slate-700 underline underline-offset-2"
+                      >
+                        View receipt
+                      </a>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

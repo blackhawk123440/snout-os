@@ -382,6 +382,17 @@ export default function PaymentsPage() {
           >
             {getStatusLabel(payment.status)}
           </StatusChip>
+          {(payment.status === 'paid' || payment.status === 'succeeded') && (
+            <div
+              style={{
+                marginTop: tokens.spacing[1],
+                fontSize: tokens.typography.fontSize.xs[0],
+                color: tokens.colors.text.secondary,
+              }}
+            >
+              Paid at {formatDateTime(payment.created)}
+            </div>
+          )}
           {payment.status === 'failed' && payment.lastError && (
             <div
               style={{
@@ -406,14 +417,28 @@ export default function PaymentsPage() {
       mobileOrder: 4,
       hideBelow: 'md',
       render: (payment) => (
-        <div
-          style={{
-            fontSize: tokens.typography.fontSize.sm[0],
-            color: tokens.colors.text.secondary,
-            fontFamily: tokens.typography.fontFamily.mono.join(', '),
-          }}
-        >
-          #{payment.id.slice(-8).toUpperCase()}
+        <div>
+          <div
+            style={{
+              fontSize: tokens.typography.fontSize.sm[0],
+              color: tokens.colors.text.secondary,
+              fontFamily: tokens.typography.fontFamily.mono.join(', '),
+            }}
+          >
+            #{payment.id.slice(-8).toUpperCase()}
+          </div>
+          {payment.bookingId ? (
+            <Link
+              href={`/bookings/${payment.bookingId}`}
+              style={{
+                fontSize: tokens.typography.fontSize.xs[0],
+                color: tokens.colors.primary.DEFAULT,
+                textDecoration: 'underline',
+              }}
+            >
+              Booking {payment.bookingId.slice(0, 8)}
+            </Link>
+          ) : null}
         </div>
       ),
     },

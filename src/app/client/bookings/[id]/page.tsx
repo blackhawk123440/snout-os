@@ -18,8 +18,20 @@ interface BookingDetail {
   startAt: string;
   endAt: string;
   status: string;
+  paymentStatus?: string;
+  totalPrice?: number;
   address: string | null;
   pets: Array<{ id: string; name?: string | null; species?: string | null }>;
+  paymentProof?: {
+    status: string;
+    amount: number;
+    paidAt: string;
+    bookingReference: string;
+    invoiceReference: string;
+    paymentIntentId: string | null;
+    currency: string;
+    receiptLink: string | null;
+  } | null;
 }
 
 export default function ClientBookingDetailPage() {
@@ -111,6 +123,38 @@ export default function ClientBookingDetailPage() {
                 <p className="mt-2 text-sm text-slate-500">
                   Pets: {booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}
                 </p>
+              )}
+            </AppCardBody>
+          </AppCard>
+          <AppCard>
+            <AppCardHeader>
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-slate-900">Payment completion</p>
+                <AppStatusPill status={booking.paymentProof ? 'paid' : booking.paymentStatus || 'unpaid'} />
+              </div>
+            </AppCardHeader>
+            <AppCardBody>
+              {booking.paymentProof ? (
+                <div className="space-y-1 text-sm text-slate-700">
+                  <p>
+                    Paid amount: <span className="font-semibold text-slate-900">${booking.paymentProof.amount.toFixed(2)}</span>
+                  </p>
+                  <p>Paid at: {new Date(booking.paymentProof.paidAt).toLocaleString()}</p>
+                  <p>Booking ref: {booking.paymentProof.bookingReference}</p>
+                  <p>Invoice ref: {booking.paymentProof.invoiceReference}</p>
+                  {booking.paymentProof.receiptLink ? (
+                    <a
+                      href={booking.paymentProof.receiptLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex text-sm font-medium text-slate-700 underline underline-offset-2"
+                    >
+                      View receipt
+                    </a>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600">Payment is not webhook-confirmed yet.</p>
               )}
             </AppCardBody>
           </AppCard>

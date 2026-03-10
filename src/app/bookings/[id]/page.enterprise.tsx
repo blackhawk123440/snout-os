@@ -35,6 +35,25 @@ type Booking = {
   client?: { id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null } | null;
   pets?: Array<{ id: string; name: string; species: string }>;
   hasReport?: boolean;
+  paymentProof?: {
+    status: string;
+    amount: number;
+    paidAt: string;
+    bookingReference: string;
+    paymentReference: string;
+    paymentIntentId: string | null;
+    currency: string;
+    receiptLink: string | null;
+  } | null;
+  calendarSyncProof?: {
+    status: string;
+    externalEventId: string | null;
+    connectedCalendar: string | null;
+    connectedAccount: string | null;
+    lastSyncedAt: string | null;
+    syncError: string | null;
+    openInGoogleCalendarUrl: string | null;
+  } | null;
 };
 
 type EventItem = {
@@ -93,6 +112,8 @@ export default function BookingDetailEnterprisePage() {
     if (eventTypeFilter === 'all') return events;
     return events.filter((e) => e.type.toLowerCase().includes(eventTypeFilter.toLowerCase()));
   }, [events, eventTypeFilter]);
+  const paymentProof = booking?.paymentProof ?? null;
+  const calendarProof = booking?.calendarSyncProof ?? null;
 
   async function patchBooking(payload: Record<string, unknown>, successMessage: string) {
     setBusy(true);
@@ -180,6 +201,68 @@ export default function BookingDetailEnterprisePage() {
             <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Status</div><StatusChip ariaLabel={`Status ${getStatusPill(booking.status).label}`}>{getStatusPill(booking.status).label}</StatusChip></div>
             <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Payment</div><StatusChip ariaLabel={`Payment ${getStatusPill(booking.paymentStatus).label}`}>{getStatusPill(booking.paymentStatus).label}</StatusChip></div>
             <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Report</div><div>{booking.hasReport ? 'Submitted' : 'Not submitted'}</div></div>
+          </div>
+        </Section>
+
+        <Section title="Proof Surfaces">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-lg border p-3">
+              <div className="mb-1 text-sm font-medium">Payment completion proof</div>
+              {paymentProof ? (
+                <div className="space-y-1 text-sm text-slate-700">
+                  <div className="flex items-center gap-2">
+                    <StatusChip ariaLabel="Payment paid">Paid</StatusChip>
+                    <span className="font-semibold text-slate-900">${paymentProof.amount.toFixed(2)}</span>
+                  </div>
+                  <div>Paid at: {new Date(paymentProof.paidAt).toLocaleString()}</div>
+                  <div>Booking ref: {paymentProof.bookingReference}</div>
+                  <div>Invoice ref: {paymentProof.paymentReference}</div>
+                  {paymentProof.paymentIntentId ? <div>Intent: {paymentProof.paymentIntentId}</div> : null}
+                  {paymentProof.receiptLink ? (
+                    <a
+                      href={paymentProof.receiptLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex text-sm font-medium text-slate-700 underline underline-offset-2"
+                    >
+                      View receipt
+                    </a>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-600">No webhook-confirmed payment yet.</p>
+              )}
+            </div>
+            <div className="rounded-lg border p-3">
+              <div className="mb-1 text-sm font-medium">Google Calendar sync proof</div>
+              <div className="space-y-1 text-sm text-slate-700">
+                <div className="flex items-center gap-2">
+                  <StatusChip ariaLabel={`Calendar sync ${calendarProof?.status || 'unknown'}`}>
+                    {calendarProof?.status || 'unknown'}
+                  </StatusChip>
+                </div>
+                <div>External event: {calendarProof?.externalEventId || 'N/A'}</div>
+                <div>Connected calendar: {calendarProof?.connectedCalendar || 'N/A'}</div>
+                <div>Connected account: {calendarProof?.connectedAccount || 'N/A'}</div>
+                <div>
+                  Last synced:{' '}
+                  {calendarProof?.lastSyncedAt
+                    ? new Date(calendarProof.lastSyncedAt).toLocaleString()
+                    : 'N/A'}
+                </div>
+                {calendarProof?.syncError ? <div className="text-red-700">Error: {calendarProof.syncError}</div> : null}
+                {calendarProof?.openInGoogleCalendarUrl ? (
+                  <a
+                    href={calendarProof.openInGoogleCalendarUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex text-sm font-medium text-slate-700 underline underline-offset-2"
+                  >
+                    Open in Google Calendar
+                  </a>
+                ) : null}
+              </div>
+            </div>
           </div>
         </Section>
 

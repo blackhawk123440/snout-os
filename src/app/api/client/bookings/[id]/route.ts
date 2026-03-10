@@ -32,6 +32,22 @@ export async function GET(
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
 
+    const paidCharge = await (prisma as any).stripeCharge.findFirst({
+      where: {
+        orgId: ctx.orgId,
+        bookingId: booking.id,
+        status: 'succeeded',
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        amount: true,
+        createdAt: true,
+        currency: true,
+        paymentIntentId: true,
+      },
+    });
+
     const toIso = (d: Date) => (d instanceof Date ? d.toISOString() : String(d));
     return NextResponse.json({
       id: booking.id,
@@ -39,12 +55,26 @@ export async function GET(
       startAt: toIso(booking.startAt),
       endAt: toIso(booking.endAt),
       status: booking.status,
+      paymentStatus: booking.paymentStatus,
+      totalPrice: Number(booking.totalPrice),
       address: booking.address,
       pets: (booking.pets || []).map((p: any) => ({
         id: p.id,
         name: p.name,
         species: p.species,
       })),
+      paymentProof: paidCharge
+        ? {
+            status: 'paid',
+            amount: Number(paidCharge.amount) / 100,
+            paidAt: toIso(paidCharge.createdAt),
+            bookingReference: booking.id,
+            invoiceReference: paidCharge.id,
+            paymentIntentId: paidCharge.paymentIntentId ?? null,
+            currency: paidCharge.currency || 'usd',
+            receiptLink: null,
+          }
+        : null,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
