@@ -7,8 +7,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestContext } from "@/lib/request-context";
 import { requireOwnerOrAdmin, ForbiddenError } from "@/lib/rbac";
-import { sendMessage } from "@/lib/message-utils";
 import { formatPhoneForAPI } from "@/lib/phone-format";
+import { getMessagingProvider } from "@/lib/messaging/provider-factory";
+import { getScopedDb } from "@/lib/tenancy";
 
 export async function POST(request: NextRequest) {
   let ctx;
@@ -51,14 +52,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sent = await sendMessage(formatted, template);
-    if (!sent) {
+    const db = getScopedDb(ctx);
+    const provider = await getMessagingProvider(ctx.orgId);
+
+    // Prefer a real org number from inventory; fallback to env/provider default path.
+    const fromNumber = await db.messageNumber.findFirst({
+      where: { numberClass: "front_desk", status: "active" },
+      select: { e164: true },
+      orderBy: { updatedAt: "desc" },
+    });
+    const sendResult = await provider.sendMessage({
+      to: formatted,
+      body: template,
+      ...(fromNumber?.e164 ? { fromE164: fromNumber.e164 } : {}),
+    });
+
+    if (!sendResult.success) {
       return NextResponse.json(
-        { success: false, error: "Failed to send test message" },
+        {
+          success: false,
+          error: "Failed to send test message",
+          errorCode: sendResult.errorCode ?? null,
+          message: sendResult.errorMessage ?? null,
+        },
         { status: 500 }
       );
     }
-    return NextResponse.json({ success: true });
+
+    return NextResponse.json({
+      success: true,
+      messageSid: sendResult.messageSid ?? null,
+      fromE164: fromNumber?.e164 ?? null,
+    });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json(

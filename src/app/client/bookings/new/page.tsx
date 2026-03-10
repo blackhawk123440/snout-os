@@ -161,8 +161,8 @@ export default function ClientNewBookingPage() {
       createdFrom: 'Client Portal',
     };
 
-    // Submit to form endpoint (reuses existing validation and mapper)
-    const response = await fetch('/api/form', {
+    // Submit to authenticated client booking endpoint (SaaS-safe, org-scoped)
+    const response = await fetch('/api/client/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
