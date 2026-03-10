@@ -10,12 +10,30 @@ import { releasePoolNumbers } from '../pool-release-job';
 
 describe('Pool Release Job', () => {
   const orgId = 'test-org-release';
+  const sitterId = 'test-sitter-release';
+  const clientPhone = '+15559999999';
 
   beforeEach(async () => {
     // Clean up test data
+    await prisma.assignmentWindow.deleteMany({ where: { orgId } });
     await prisma.messageThread.deleteMany({ where: { orgId } });
+    await prisma.booking.deleteMany({ where: { orgId } });
+    await prisma.client.deleteMany({ where: { orgId } });
+    await prisma.sitter.deleteMany({ where: { orgId } });
     await prisma.messageNumber.deleteMany({ where: { orgId } });
     await prisma.setting.deleteMany({ where: { orgId, key: { startsWith: 'rotation.' } } });
+
+    await prisma.sitter.upsert({
+      where: { id: sitterId },
+      update: { orgId },
+      create: {
+        id: sitterId,
+        orgId,
+        firstName: 'Pool',
+        lastName: 'Sitter',
+        email: 'pool-release-sitter@test.local',
+      },
+    });
   });
 
   it('should release pool numbers after postBookingGraceHours', async () => {
@@ -43,6 +61,27 @@ describe('Pool Release Job', () => {
       },
     });
 
+    const client = await prisma.client.upsert({
+      where: { phone: clientPhone },
+      update: { orgId },
+      create: { orgId, phone: clientPhone, firstName: 'Pool', lastName: 'Client' },
+    });
+    const booking = await prisma.booking.create({
+      data: {
+        orgId,
+        clientId: client.id,
+        sitterId,
+        firstName: 'Pool',
+        lastName: 'Client',
+        phone: client.phone,
+        service: 'Dog Walk',
+        startAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+        endAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+        totalPrice: 50,
+        status: 'confirmed',
+      },
+    });
+
     // Create thread with assignment window that ended 2 hours ago
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
     const thread = await prisma.messageThread.create({
@@ -59,9 +98,10 @@ describe('Pool Release Job', () => {
       data: {
         orgId,
         threadId: thread.id,
-        sitterId: 'test-sitter',
-        startsAt: new Date(twoHoursAgo.getTime() - 2 * 60 * 60 * 1000),
-        endsAt: twoHoursAgo,
+        bookingId: booking.id,
+        sitterId,
+        startAt: new Date(twoHoursAgo.getTime() - 2 * 60 * 60 * 1000),
+        endAt: twoHoursAgo,
         status: 'active',
       },
     });

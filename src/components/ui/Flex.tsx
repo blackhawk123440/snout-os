@@ -8,7 +8,7 @@
 
 'use client';
 
-import { ReactNode } from 'react';
+import { CSSProperties, ReactNode } from 'react';
 import { tokens } from '@/lib/design-tokens';
 import { cn } from './utils';
 
@@ -20,6 +20,7 @@ export interface FlexProps {
   align?: 'flex-start' | 'flex-end' | 'center' | 'stretch';
   justify?: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around';
   className?: string;
+  style?: CSSProperties;
   'data-testid'?: string;
 }
 
@@ -31,6 +32,7 @@ export function Flex({
   align,
   justify,
   className,
+  style,
   'data-testid': testId,
 }: FlexProps) {
   return (
@@ -44,6 +46,7 @@ export function Flex({
         flexWrap: wrap ? 'wrap' : 'nowrap',
         alignItems: align,
         justifyContent: justify,
+        ...style,
       }}
     >
       {children}

@@ -92,8 +92,9 @@ describe("booking conflict integration", () => {
       db: mockDb as any,
       orgId: "org-1",
       sitterId: "s1",
-      start: new Date("2025-03-04T09:00:00Z"),
-      end: new Date("2025-03-04T10:00:00Z"),
+      // 15:00Z-16:00Z is 09:00-10:00 in America/Chicago (inside configured rule)
+      start: new Date("2025-03-04T15:00:00Z"),
+      end: new Date("2025-03-04T16:00:00Z"),
       respectGoogleBusy: true,
       force: false,
     });

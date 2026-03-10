@@ -11,7 +11,7 @@ type StageResult = {
 const BASE_URL = process.env.BASE_URL || 'https://snout-os-staging.onrender.com';
 const E2E_AUTH_KEY = process.env.E2E_AUTH_KEY || 'test-e2e-key-change-in-production';
 
-const TEST_PHONE = '+15551234567';
+const TEST_PHONE = process.env.SMOKE_TEST_PHONE || '+14155550101';
 
 function joinUrl(path: string) {
   return `${BASE_URL.replace(/\/$/, '')}${path}`;

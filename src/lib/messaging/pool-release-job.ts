@@ -33,9 +33,13 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
   };
 
   try {
-    // Note: Setting model not available in API schema
-    // Rotation settings would need to be stored elsewhere or use defaults
-    const rotationSettings: any[] = []; // Empty - no Setting model in API schema
+    const rotationSettings = await (prisma as any).setting.findMany({
+      where: {
+        ...(orgId ? { orgId } : {}),
+        key: { startsWith: 'rotation.' },
+      },
+      select: { key: true, value: true },
+    });
 
     const settings: Record<string, string> = {};
     for (const setting of rotationSettings) {
@@ -54,9 +58,9 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
 
     // Find pool numbers with active threads
     const whereClause: any = {
-      class: 'pool',
+      numberClass: 'pool',
       status: 'active',
-      threads: {
+      MessageThread: {
         some: {
           status: { not: 'archived' },
         },
@@ -67,22 +71,18 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
       whereClause.orgId = orgId;
     }
 
-    // Note: MessageNumber model uses 'threads' relation, but Prisma client may not have it
-    // Use type assertion to access the relation
     const poolNumbers = await (prisma as any).messageNumber.findMany({
       where: whereClause,
       include: {
-        threads: {
+        MessageThread: {
           where: {
-            status: 'active', // Thread model uses 'active' | 'inactive', not 'archived'
+            status: 'open',
           },
           include: {
             assignmentWindows: {
-              where: {
-                // Note: AssignmentWindow model doesn't have status field
-              },
+              where: { status: 'active' },
               orderBy: {
-                endsAt: 'desc', // Field is endsAt, not endAt
+                endAt: 'desc',
               },
               take: 1,
             },
@@ -94,20 +94,20 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
     for (const poolNumber of poolNumbers) {
       try {
         // Check each thread using this pool number
-        for (const thread of poolNumber.threads) {
+        for (const thread of poolNumber.MessageThread) {
           let shouldRelease = false;
           let releaseReason = '';
 
           // Check 1: Post-booking grace period
           const lastWindow = thread.assignmentWindows[0];
-          if (lastWindow && lastWindow.endsAt < gracePeriodCutoff) {
+          if (lastWindow && lastWindow.endAt < gracePeriodCutoff) {
             shouldRelease = true;
             releaseReason = `postBookingGraceHours (${postBookingGraceHours}h) expired`;
             stats.releasedByGracePeriod++;
           }
 
           // Check 2: Inactivity (no messages for inactivityReleaseDays)
-          const lastMessageAt = thread.lastActivityAt || thread.createdAt;
+          const lastMessageAt = thread.lastMessageAt || thread.updatedAt || thread.createdAt;
           if (lastMessageAt < inactivityCutoff) {
             shouldRelease = true;
             releaseReason = `inactivityReleaseDays (${inactivityReleaseDays}d) expired`;
@@ -122,11 +122,14 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
           }
 
           if (shouldRelease) {
-            // Release number from thread
-            // Note: Thread model doesn't have messageNumberId, numberClass, or maskedNumberE164
-            // These are on MessageNumber model - this logic needs to be in the API service
-            // For now, this is a no-op
-            console.warn('[pool-release] Thread number release not supported - should be handled by API service');
+            await (prisma as any).messageThread.update({
+              where: { id: thread.id },
+              data: {
+                messageNumberId: null,
+                numberClass: 'front_desk',
+                maskedNumberE164: null,
+              },
+            });
 
             // Log audit event
             await logMessagingEvent({
@@ -149,20 +152,20 @@ export async function releasePoolNumbers(orgId?: string): Promise<PoolReleaseSta
           }
         }
 
-        // Update number usage count (lastAssignedAt reset if no active threads)
-        // Note: Thread model uses numberId, not messageNumberId, and status is 'active' | 'inactive'
-        const activeThreadCount = await (prisma as any).thread.count({
+        // Update number usage count (lastAssignedAt reset if no open threads remain)
+        const activeThreadCount = await (prisma as any).messageThread.count({
           where: {
             orgId: poolNumber.orgId,
-            numberId: poolNumber.id, // Thread model uses numberId
-            status: 'active',
+            messageNumberId: poolNumber.id,
+            status: 'open',
           },
         });
 
         if (activeThreadCount === 0) {
-          // No active threads - rotation tracking handled by API service
-          // Note: MessageNumber model doesn't have lastAssignedAt field
-          // This logic is handled by the API service
+          await (prisma as any).messageNumber.update({
+            where: { id: poolNumber.id },
+            data: { lastAssignedAt: null },
+          });
         }
       } catch (error: any) {
         stats.errors.push(`Error processing pool number ${poolNumber.id}: ${error.message}`);
