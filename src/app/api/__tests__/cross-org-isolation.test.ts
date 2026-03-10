@@ -37,6 +37,7 @@ describe('cross-org isolation', () => {
 
   describe('GET /api/messages/threads/[id]/messages', () => {
     it('returns 404 when thread belongs to another org (scoped query finds nothing)', async () => {
+      (getRequestContext as any).mockResolvedValue({ orgId: 'org-a', role: 'owner', sitterId: null, clientId: null });
       (auth as any).mockResolvedValue({
         user: { id: 'u1', orgId: 'org-a', role: 'owner' },
       });
@@ -61,6 +62,7 @@ describe('cross-org isolation', () => {
     });
 
     it('returns 404 when thread not found (no cross-org leak)', async () => {
+      (getRequestContext as any).mockResolvedValue({ orgId: 'org-a', role: 'owner', sitterId: null, clientId: null });
       (auth as any).mockResolvedValue({
         user: { id: 'u1', orgId: 'org-a', role: 'owner' },
       });

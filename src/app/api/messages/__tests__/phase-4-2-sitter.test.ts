@@ -20,6 +20,15 @@ vi.mock('@/lib/auth', () => ({
   auth: vi.fn().mockResolvedValue({ user: { id: 'user-1', role: 'owner', orgId: 'org-1' } }),
 }));
 
+vi.mock('@/lib/request-context', () => ({
+  getRequestContext: vi.fn().mockResolvedValue({
+    orgId: 'org-1',
+    role: 'owner',
+    sitterId: null,
+    clientId: null,
+  }),
+}));
+
 vi.mock('@/lib/api/jwt', () => ({
   mintApiJWT: vi.fn().mockResolvedValue('mock-jwt-token'),
 }));

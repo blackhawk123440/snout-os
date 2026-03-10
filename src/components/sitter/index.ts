@@ -31,3 +31,9 @@ export { AppEmptyState as SitterEmptyState } from '@/components/app';
 export { AppErrorState as SitterErrorState } from '@/components/app';
 export { SitterOfflineBanner } from './SitterOfflineBanner';
 export { DailyDelightModal, type DailyDelightModalProps, type DailyDelightBooking } from './DailyDelightModal';
+export {
+  VisitTimerDisplay,
+  formatElapsedTimer,
+  formatDuration,
+  type VisitTimerDisplayProps,
+} from './VisitTimerDisplay';

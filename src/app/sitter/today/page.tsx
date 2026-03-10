@@ -18,6 +18,7 @@ import {
   SitterPageHeader,
   SitterSkeletonList,
   SitterErrorState,
+  VisitTimerDisplay,
 } from '@/components/sitter';
 import { OnboardingChecklist } from '@/components/app/OnboardingChecklist';
 import {
@@ -78,11 +79,11 @@ const statusPillLabel = (status: string) => {
   switch (status) {
     case 'confirmed':
     case 'pending':
-      return 'Scheduled';
+      return 'Upcoming';
     case 'in_progress':
-      return 'In progress';
+      return 'Visit in progress';
     case 'completed':
-      return 'Completed';
+      return 'Visit complete';
     case 'cancelled':
       return 'Cancelled';
     default:
@@ -162,14 +163,13 @@ function NextVisitHero({
             <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
               {getStatusSubtitle(booking)}
             </p>
-            {getLiveVisitText(booking, nowMs) && (
-              <p className="mt-0.5 text-sm font-semibold text-indigo-700">{getLiveVisitText(booking, nowMs)}</p>
-            )}
-            {booking.status === 'in_progress' && booking.checkedInAt && (
-              <p className="text-xs text-neutral-500">
-                Started at {new Date(booking.checkedInAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-              </p>
-            )}
+            <VisitTimerDisplay
+              status={booking.status}
+              checkedInAt={booking.checkedInAt}
+              checkedOutAt={booking.checkedOutAt}
+              nowMs={nowMs}
+              className="mt-0.5"
+            />
             <p className="mt-0.5 font-medium text-neutral-900">{booking.service}</p>
             <p className="text-sm text-neutral-600">{petNames}</p>
             <p className="text-sm text-neutral-500">{booking.clientName}</p>
@@ -202,7 +202,7 @@ function NextVisitHero({
             onClick={() => void onCheckIn(booking.id)}
             disabled={checkingInId === booking.id}
           >
-            {checkingInId === booking.id ? 'Saving…' : 'Start Visit'}
+            {checkingInId === booking.id ? 'Saving…' : 'Start visit'}
           </Button>
         )}
         {booking.status === 'in_progress' && (
@@ -238,7 +238,7 @@ function NextVisitHero({
         )}
         {booking.mapLink?.google && (
           <a href={booking.mapLink.google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[40px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700">
-            Navigate
+            Directions
           </a>
         )}
         <Button variant="secondary" size="sm" onClick={() => router.push(`/sitter/bookings/${booking.id}`)}>
@@ -316,14 +316,13 @@ function VisitCard({
             <p className="font-medium text-neutral-800">{booking.service}</p>
             <p className="text-sm text-neutral-600">{petNames}</p>
             <p className="text-sm text-neutral-500">{booking.clientName}</p>
-            {getLiveVisitText(booking, nowMs) && (
-              <p className="mt-0.5 text-sm font-semibold text-indigo-700">{getLiveVisitText(booking, nowMs)}</p>
-            )}
-            {booking.status === 'in_progress' && booking.checkedInAt && (
-              <p className="text-xs text-neutral-500">
-                Started at {new Date(booking.checkedInAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-              </p>
-            )}
+            <VisitTimerDisplay
+              status={booking.status}
+              checkedInAt={booking.checkedInAt}
+              checkedOutAt={booking.checkedOutAt}
+              nowMs={nowMs}
+              className="mt-0.5"
+            />
             {booking.address && booking.address.length <= 60 && (
               <p className="mt-0.5 truncate text-xs text-neutral-500" title={booking.address}>{booking.address}</p>
             )}
@@ -372,29 +371,6 @@ const formatTimeRange = (startAt: string, endAt: string) => {
     hour: 'numeric',
     minute: '2-digit',
   })}`;
-};
-
-const formatDurationMinutes = (startIso: string, endIso: string) => {
-  const minutes = Math.max(0, Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000));
-  return `${minutes}m`;
-};
-
-const formatElapsedTimer = (fromIso: string, nowMs: number) => {
-  const diff = Math.max(0, nowMs - new Date(fromIso).getTime());
-  const h = Math.floor(diff / 3600000);
-  const m = Math.floor((diff % 3600000) / 60000);
-  const s = Math.floor((diff % 60000) / 1000);
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-};
-
-const getLiveVisitText = (booking: TodayBooking, nowMs: number) => {
-  if (booking.status === 'in_progress' && booking.checkedInAt) {
-    return `In progress — ${formatElapsedTimer(booking.checkedInAt, nowMs)}`;
-  }
-  if (booking.status === 'completed' && booking.checkedInAt && booking.checkedOutAt) {
-    return `Duration ${formatDurationMinutes(booking.checkedInAt, booking.checkedOutAt)}`;
-  }
-  return null;
 };
 
 const getPrimaryActionLabel = (booking: TodayBooking) => {
@@ -571,8 +547,8 @@ export default function SitterTodayPage() {
       }
       const nowIso = new Date().toISOString();
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed', checkedOutAt: nowIso } : b)));
-      toastSuccess('Checked out');
-      void loadBookings();
+      toastSuccess('Visit ended — write your report');
+      router.push(`/sitter/reports/new?bookingId=${bookingId}`);
     } catch {
       toastError('Check out failed');
       void loadBookings();

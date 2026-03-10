@@ -4,12 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LayoutWrapper, PageHeader } from '@/components/layout';
 import { Button, Modal, StatusChip } from '@/components/ui';
-import { toastError, toastSuccess } from '@/lib/toast';
+import { toastError, toastSuccess, toastWarning } from '@/lib/toast';
+import { VisitTimerDisplay } from '@/components/sitter';
 import {
-  formatDurationMinutes,
   getBookingPrimaryAction,
   getOptimisticStatus,
-  getVisitTimerLabel,
   shouldRenderCopyAddress,
   shouldRenderMail,
   shouldRenderTel,
@@ -56,9 +55,9 @@ const statusChipVariant = (status: string): 'info' | 'success' | 'warning' | 'ne
 };
 
 const statusLabel = (status: string) => {
-  if (status === 'pending' || status === 'confirmed') return 'Scheduled';
-  if (status === 'in_progress') return 'In progress';
-  if (status === 'completed') return 'Completed';
+  if (status === 'pending' || status === 'confirmed') return 'Upcoming';
+  if (status === 'in_progress') return 'Visit in progress';
+  if (status === 'completed') return 'Visit complete';
   if (status === 'cancelled') return 'Cancelled';
   return status.replace('_', ' ');
 };
@@ -265,21 +264,13 @@ export default function SitterBookingDetailPage() {
 
           <section className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="text-lg font-semibold text-gray-900">{timeRange}</p>
-            {getVisitTimerLabel(booking.status, booking.timeline.checkedInAt, booking.timeline.checkedOutAt, nowMs) && (
-              <p className="mt-1 text-sm font-semibold text-indigo-700">
-                {getVisitTimerLabel(booking.status, booking.timeline.checkedInAt, booking.timeline.checkedOutAt, nowMs)}
-              </p>
-            )}
-            {booking.status === 'in_progress' && booking.timeline.checkedInAt && (
-              <p className="mt-1 text-xs text-gray-500">
-                Started at {new Date(booking.timeline.checkedInAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-              </p>
-            )}
-            {booking.status === 'completed' && booking.timeline.checkedInAt && booking.timeline.checkedOutAt && (
-              <p className="mt-1 text-xs text-gray-500">
-                Duration {formatDurationMinutes(booking.timeline.checkedInAt, booking.timeline.checkedOutAt)}
-              </p>
-            )}
+            <VisitTimerDisplay
+              status={booking.status}
+              checkedInAt={booking.timeline.checkedInAt}
+              checkedOutAt={booking.timeline.checkedOutAt}
+              nowMs={nowMs}
+              className="mt-1"
+            />
             <p className="mt-1 text-sm text-gray-700">{booking.service}</p>
             <p className="mt-1 text-sm text-gray-600">{booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}</p>
             <div className="mt-2"><StatusChip variant={statusChipVariant(booking.status)}>{statusLabel(booking.status)}</StatusChip></div>

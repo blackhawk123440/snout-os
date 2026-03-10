@@ -40,6 +40,14 @@ Run on mobile viewport first (`390x844`), then sanity check desktop.
 - [ ] Verify locked checklist items cannot be unchecked and display locked affordance.
 - [ ] If offline, queue check-in/check-out and verify state reconciles after replay.
 
+**Visit execution proof — live sitter visit timer (signoff notes):**
+
+- Timer appears on `/sitter/today` (Next up hero + visit cards).
+- Timer appears on `/sitter/bookings/[id]` (booking section under time range).
+- In-progress state uses `checkedInAt` as source of truth; shows "Visit in progress", "Started at {time}", "Elapsed: HH:MM:SS" (live).
+- Completed state uses `checkedInAt` + `checkedOutAt`; shows "Visit complete", "Started at {time}", "Ended at {time}", "Duration: X min" (or "Xh Ym" if ≥ 60 min).
+- Refresh resumes the timer correctly (elapsed derived from `checkedInAt` and current time; no ad-hoc local state).
+
 ## 3) Booking detail ops hub: map/call/message + notes + emergency
 
 - [ ] Open `/sitter/bookings/[id]` from Today and from Calendar.

@@ -23,6 +23,7 @@ import {
 import {
   handlePoolNumberMismatch,
 } from '../../../../lib/messaging/pool-routing';
+import { getMessagingProvider } from '../../../../lib/messaging/provider-factory';
 import {
   findOrCreateOwnerInboxThread,
 } from '../../../../lib/messaging/owner-inbox-routing';
@@ -89,6 +90,24 @@ vi.mock('@/lib/env', () => ({
   },
 }));
 
+// Mock provider factory so handlePoolNumberMismatch uses our mockProvider (avoids prisma.providerCredential in tests)
+vi.mock('@/lib/messaging/provider-factory', () => ({
+  getMessagingProvider: vi.fn(),
+}));
+
+// sendDirectMessage (used by handlePoolNumberMismatch) calls getScopedDb and db.messageEvent.create / messageThread.update
+const scopedDbMock = {
+  messageEvent: {
+    create: vi.fn().mockResolvedValue({ id: 'ev-1' }),
+  },
+  messageThread: {
+    update: vi.fn().mockResolvedValue(undefined),
+  },
+};
+vi.mock('@/lib/tenancy', () => ({
+  getScopedDb: vi.fn(() => scopedDbMock),
+}));
+
 // Mock provider
 const mockProvider: MessagingProvider = {
   verifyWebhook: vi.fn(),
@@ -104,6 +123,7 @@ const mockProvider: MessagingProvider = {
 describe('Phase 1.5 Hardening Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (getMessagingProvider as ReturnType<typeof vi.fn>).mockResolvedValue(mockProvider);
   });
 
   describe('Front Desk Uniqueness Under Concurrency', () => {
