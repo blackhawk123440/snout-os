@@ -9,11 +9,11 @@ vi.mock('googleapis', () => {
   const insert = vi.fn();
   const patch = vi.fn();
   const del = vi.fn();
-  const refreshToken = vi.fn().mockResolvedValue({ credentials: { access_token: 'tok' } });
-  (globalThis as any).__calendarMocks = { insert, patch, delete: del };
+  const refreshAccessTokenMock = vi.fn().mockResolvedValue({ credentials: { access_token: 'tok' } });
+  (globalThis as any).__calendarMocks = { insert, patch, delete: del, refreshAccessToken: refreshAccessTokenMock };
   class MockOAuth2 {
     setCredentials = vi.fn();
-    refreshAccessToken = refreshToken;
+    refreshAccessToken = refreshAccessTokenMock;
   }
   return {
     google: {
@@ -37,13 +37,19 @@ beforeEach(() => {
     mocks.insert.mockResolvedValue({ data: { id: 'google-event-123' } });
     mocks.patch.mockResolvedValue({});
     mocks.delete.mockResolvedValue({});
+    mocks.refreshAccessToken.mockResolvedValue({ credentials: { access_token: 'tok' } });
   }
 });
 
 import { upsertEventForBooking, deleteEventForBooking } from '@/lib/calendar/sync';
 
 function getMocks() {
-  return (globalThis as any).__calendarMocks ?? { insert: vi.fn(), patch: vi.fn(), delete: vi.fn() };
+  return (globalThis as any).__calendarMocks ?? {
+    insert: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+    refreshAccessToken: vi.fn(),
+  };
 }
 
 const ORG_ID = 'org-1';
@@ -89,6 +95,10 @@ function createMockDb(overrides: Record<string, unknown> = {}) {
         googleRefreshToken: 'refresh-tok',
         googleCalendarId: 'primary',
       }),
+      update: vi.fn().mockResolvedValue({}),
+    },
+    businessSettings: {
+      findUnique: vi.fn().mockResolvedValue({ timeZone: 'America/New_York' }),
     },
   };
 
@@ -176,7 +186,7 @@ describe('calendar sync', () => {
       const result = await upsertEventForBooking(db, BOOKING_ID, ORG_ID);
       expect(result.action).toBe('updated');
       expect(getMocks().patch).toHaveBeenCalledTimes(1);
-      expect(db.bookingCalendarEvent.update).toHaveBeenCalled();
+      expect(db.bookingCalendarEvent.upsert).toHaveBeenCalled();
     });
 
     it('recreates when Google event was deleted (404 on patch)', async () => {
@@ -250,6 +260,85 @@ describe('calendar sync', () => {
       const db = createMockDb();
       await expect(upsertEventForBooking(db, BOOKING_ID, ORG_ID)).rejects.toThrow('Google API 500');
     });
+
+    it('marks authExpired when token refresh fails', async () => {
+      getMocks().refreshAccessToken.mockRejectedValueOnce(new Error('invalid_grant'));
+      const db = createMockDb();
+      const result = await upsertEventForBooking(db, BOOKING_ID, ORG_ID);
+      expect(result.action).toBe('skipped');
+      expect(result.error).toContain('invalid_grant');
+      expect(db.bookingCalendarEvent.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({
+            syncStatus: 'AUTH_EXPIRED',
+          }),
+        })
+      );
+    });
+
+    it('refreshes token and persists fresh credentials before sync', async () => {
+      getMocks().refreshAccessToken.mockResolvedValueOnce({
+        credentials: {
+          access_token: 'fresh-access',
+          refresh_token: 'fresh-refresh',
+          expiry_date: Date.now() + 120000,
+        },
+      });
+      const db = createMockDb();
+      await upsertEventForBooking(db, BOOKING_ID, ORG_ID);
+      expect(db.sitter.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: SITTER_ID },
+          data: expect.objectContaining({
+            googleAccessToken: 'fresh-access',
+            googleRefreshToken: 'fresh-refresh',
+            googleAuthExpired: false,
+          }),
+        })
+      );
+    });
+
+    it('uses org timezone deterministically for DST-sensitive bookings', async () => {
+      const db = createMockDb({
+        booking: {
+          findUnique: vi.fn().mockResolvedValue({
+            id: BOOKING_ID,
+            orgId: ORG_ID,
+            sitterId: SITTER_ID,
+            startAt: new Date('2026-03-08T07:30:00.000Z'),
+            endAt: new Date('2026-03-08T08:30:00.000Z'),
+            service: 'Drop-in',
+            firstName: 'Jane',
+            lastName: 'Doe',
+            notes: null,
+            client: { firstName: 'Jane', lastName: 'Doe' },
+            pets: [{ name: 'Max' }],
+            sitter: {
+              id: SITTER_ID,
+              firstName: 'Sarah',
+              lastName: 'Sitter',
+              googleRefreshToken: 'refresh-tok',
+              calendarSyncEnabled: true,
+              googleCalendarId: 'primary',
+              timezone: null,
+            },
+          }),
+        },
+        businessSettings: {
+          findUnique: vi.fn().mockResolvedValue({ timeZone: 'America/New_York' }),
+        },
+      });
+
+      await upsertEventForBooking(db, BOOKING_ID, ORG_ID);
+      expect(getMocks().insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestBody: expect.objectContaining({
+            start: expect.objectContaining({ timeZone: 'America/New_York' }),
+            end: expect.objectContaining({ timeZone: 'America/New_York' }),
+          }),
+        })
+      );
+    });
   });
 
   describe('deleteEventForBooking', () => {
@@ -273,9 +362,14 @@ describe('calendar sync', () => {
           calendarId: 'primary',
         })
       );
-      expect(db.bookingCalendarEvent.deleteMany).toHaveBeenCalledWith({
-        where: { bookingId: BOOKING_ID, sitterId: SITTER_ID },
-      });
+      expect(db.bookingCalendarEvent.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({
+            syncStatus: 'SYNCED',
+            externalEventId: null,
+          }),
+        })
+      );
     });
 
     it('removes mapping when no Google event id (already deleted)', async () => {
@@ -293,7 +387,7 @@ describe('calendar sync', () => {
       const result = await deleteEventForBooking(db, BOOKING_ID, SITTER_ID, ORG_ID);
       expect(result.deleted).toBe(true);
       expect(getMocks().delete).not.toHaveBeenCalled();
-      expect(db.bookingCalendarEvent.deleteMany).toHaveBeenCalled();
+      expect(db.bookingCalendarEvent.upsert).toHaveBeenCalled();
     });
 
     it('ignores 404 from Google (event already deleted)', async () => {
@@ -311,7 +405,7 @@ describe('calendar sync', () => {
       });
       const result = await deleteEventForBooking(db, BOOKING_ID, SITTER_ID, ORG_ID);
       expect(result.deleted).toBe(true);
-      expect(db.bookingCalendarEvent.deleteMany).toHaveBeenCalled();
+      expect(db.bookingCalendarEvent.upsert).toHaveBeenCalled();
     });
 
     it('throws on non-404 Google error so worker can retry / dead-letter', async () => {

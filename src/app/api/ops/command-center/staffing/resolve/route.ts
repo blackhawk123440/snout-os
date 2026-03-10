@@ -308,6 +308,7 @@ export async function POST(request: NextRequest) {
           bookingId: booking.id,
           sitterId: booking.sitterId,
           orgId: ctx.orgId,
+          action: 'reassignment',
         }).catch((e) => console.error('[Staffing Rollback] calendar delete enqueue failed:', e));
       }
       if (parsed.previousSitterId) {
@@ -315,6 +316,7 @@ export async function POST(request: NextRequest) {
           type: 'upsert',
           bookingId: booking.id,
           orgId: ctx.orgId,
+          action: 'reassignment',
         }).catch((e) => console.error('[Staffing Rollback] calendar upsert enqueue failed:', e));
       }
 

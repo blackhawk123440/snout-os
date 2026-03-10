@@ -131,6 +131,7 @@ export async function forceAssignSitter(
       bookingId,
       sitterId: previousSitterId,
       orgId,
+      action: 'reassignment',
     }).catch((e) => console.error('[Force Assign] calendar delete enqueue failed:', e));
   }
 
@@ -179,7 +180,7 @@ export async function forceAssignSitter(
   });
 
   // Enqueue calendar sync for new sitter (fail-open)
-  enqueueCalendarSync({ type: 'upsert', bookingId, orgId }).catch((e) =>
+  enqueueCalendarSync({ type: 'upsert', bookingId, orgId, action: previousSitterId ? 'reassignment' : 'assignment' }).catch((e) =>
     console.error('[Force Assign] calendar sync enqueue failed:', e)
   );
 }

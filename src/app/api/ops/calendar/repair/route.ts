@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
       start: start.toISOString(),
       end: end.toISOString(),
       orgId: ctx.orgId,
+      idempotencyKey: `${ctx.orgId}:repair:${sitterId}:${start.toISOString()}:${end.toISOString()}`,
     });
 
     await logEvent({

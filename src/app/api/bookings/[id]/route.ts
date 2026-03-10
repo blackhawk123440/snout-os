@@ -12,26 +12,6 @@ function truncateExternalEventId(id: string | null | undefined): string | null {
   return `${id.slice(0, 6)}...${id.slice(-4)}`;
 }
 
-function extractSyncError(eventLog: { error?: string | null; metadata?: string | null } | null): string | null {
-  if (!eventLog) return null;
-  if (eventLog.error) return eventLog.error;
-  if (!eventLog.metadata) return null;
-  try {
-    const parsed = JSON.parse(eventLog.metadata) as Record<string, unknown>;
-    const direct =
-      (typeof parsed.error === 'string' && parsed.error) ||
-      (typeof parsed.message === 'string' && parsed.message);
-    if (direct) return direct;
-    const metaError =
-      typeof parsed.metadata === 'object' && parsed.metadata
-        ? (parsed.metadata as Record<string, unknown>).error
-        : null;
-    return typeof metaError === 'string' ? metaError : null;
-  } catch {
-    return null;
-  }
-}
-
 const ALLOWED_BOOKING_STATUSES = new Set([
   'pending',
   'confirmed',
@@ -76,6 +56,8 @@ export async function GET(
             lastName: true,
             calendarSyncEnabled: true,
             googleCalendarId: true,
+            googleAuthExpired: true,
+            googleAuthError: true,
           },
         },
         client: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
@@ -84,6 +66,11 @@ export async function GET(
         calendarEvents: {
           select: {
             googleCalendarEventId: true,
+            externalEventId: true,
+            syncedCalendarId: true,
+            syncStatus: true,
+            lastSyncAttemptAt: true,
+            lastSyncError: true,
             lastSyncedAt: true,
             updatedAt: true,
           },
@@ -94,7 +81,7 @@ export async function GET(
     });
     if (!booking) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
 
-    const [latestSucceededCharge, latestCalendarFailure] = await Promise.all([
+    const [latestSucceededCharge] = await Promise.all([
       db.stripeCharge.findFirst({
         where: { bookingId: booking.id, status: 'succeeded' },
         orderBy: { createdAt: 'desc' },
@@ -106,29 +93,24 @@ export async function GET(
           paymentIntentId: true,
         },
       }),
-      db.eventLog.findFirst({
-        where: {
-          bookingId: booking.id,
-          status: 'failed',
-          eventType: { in: ['calendar.sync.failed', 'calendar.dead', 'calendar.repair.failed'] },
-        },
-        orderBy: { createdAt: 'desc' },
-        select: { createdAt: true, error: true, metadata: true },
-      }),
     ]);
 
     const calendarMapping = booking.calendarEvents?.[0] ?? null;
-    const syncError = extractSyncError(latestCalendarFailure);
-    const hasCalendarSync = Boolean(calendarMapping?.googleCalendarEventId);
+    const syncError = calendarMapping?.lastSyncError || booking.sitter?.googleAuthError || null;
+    const hasCalendarSync = Boolean(calendarMapping?.externalEventId || calendarMapping?.googleCalendarEventId);
     const calendarStatus = !booking.sitter
-      ? 'not_assigned'
+      ? 'PENDING'
+      : booking.sitter.googleAuthExpired
+        ? 'AUTH_EXPIRED'
       : !booking.sitter.calendarSyncEnabled
-        ? 'disabled'
+        ? 'DISABLED'
+        : calendarMapping?.syncStatus
+          ? calendarMapping.syncStatus
         : hasCalendarSync
-          ? 'synced'
+            ? 'SYNCED'
           : syncError
-            ? 'failed'
-            : 'pending';
+              ? 'FAILED'
+              : 'PENDING';
 
     return NextResponse.json({
       booking: {
@@ -165,16 +147,17 @@ export async function GET(
           : null,
         calendarSyncProof: {
           status: calendarStatus,
-          externalEventId: truncateExternalEventId(calendarMapping?.googleCalendarEventId),
-          connectedCalendar: booking.sitter?.googleCalendarId || null,
+          externalEventId: truncateExternalEventId(calendarMapping?.externalEventId || calendarMapping?.googleCalendarEventId),
+          connectedCalendar: calendarMapping?.syncedCalendarId || booking.sitter?.googleCalendarId || null,
           connectedAccount: booking.sitter
             ? `${booking.sitter.firstName} ${booking.sitter.lastName}`.trim()
             : null,
+          lastSyncAttemptAt: calendarMapping?.lastSyncAttemptAt ?? null,
           lastSyncedAt: calendarMapping?.lastSyncedAt ?? null,
           syncError,
-          openInGoogleCalendarUrl: calendarMapping?.googleCalendarEventId
+          openInGoogleCalendarUrl: (calendarMapping?.externalEventId || calendarMapping?.googleCalendarEventId)
             ? `https://calendar.google.com/calendar/u/0/r/search?q=${encodeURIComponent(
-                calendarMapping.googleCalendarEventId
+                calendarMapping.externalEventId || calendarMapping.googleCalendarEventId || ''
               )}`
             : null,
         },
@@ -204,7 +187,12 @@ export async function PATCH(
   const db = getScopedDb(ctx);
 
   try {
-    const body = (await request.json()) as { status?: string; sitterId?: string | null };
+    const body = (await request.json()) as {
+      status?: string;
+      sitterId?: string | null;
+      startAt?: string;
+      endAt?: string;
+    };
     const existing = await db.booking.findFirst({
       where: { id },
       select: { id: true, status: true, sitterId: true },
@@ -242,6 +230,27 @@ export async function PATCH(
       data.status = requestedStatus;
     }
     if (body.sitterId === null || typeof body.sitterId === 'string') data.sitterId = body.sitterId;
+    let parsedStartAt: Date | null = null;
+    let parsedEndAt: Date | null = null;
+    if (typeof body.startAt === 'string') {
+      const value = new Date(body.startAt);
+      if (Number.isNaN(value.getTime())) {
+        return NextResponse.json({ error: 'Invalid startAt timestamp' }, { status: 400 });
+      }
+      parsedStartAt = value;
+      data.startAt = value;
+    }
+    if (typeof body.endAt === 'string') {
+      const value = new Date(body.endAt);
+      if (Number.isNaN(value.getTime())) {
+        return NextResponse.json({ error: 'Invalid endAt timestamp' }, { status: 400 });
+      }
+      parsedEndAt = value;
+      data.endAt = value;
+    }
+    if (parsedStartAt && parsedEndAt && parsedEndAt <= parsedStartAt) {
+      return NextResponse.json({ error: 'endAt must be after startAt' }, { status: 400 });
+    }
     if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: 'No supported fields to update' }, { status: 400 });
     }
@@ -270,6 +279,7 @@ export async function PATCH(
     const newSitterId = updated.sitterId ?? existing.sitterId;
     const cancelled = newStatus === 'cancelled';
     const sitterChanged = body.sitterId !== undefined && existing.sitterId !== newSitterId;
+    const scheduleChanged = parsedStartAt !== null || parsedEndAt !== null;
 
     if (existing.sitterId && (cancelled || sitterChanged)) {
       enqueueCalendarSync({
@@ -277,10 +287,12 @@ export async function PATCH(
         bookingId: existing.id,
         sitterId: existing.sitterId,
         orgId: ctx.orgId,
+        action: cancelled ? 'cancellation' : 'reassignment',
       }).catch((e) => console.error('[Booking PATCH] calendar delete enqueue failed:', e));
     }
     if (newSitterId && !cancelled) {
-      enqueueCalendarSync({ type: 'upsert', bookingId: existing.id, orgId: ctx.orgId }).catch((e) =>
+      const action = sitterChanged ? 'reassignment' : scheduleChanged ? 'schedule_change' : 'assignment';
+      enqueueCalendarSync({ type: 'upsert', bookingId: existing.id, orgId: ctx.orgId, action }).catch((e) =>
         console.error('[Booking PATCH] calendar upsert enqueue failed:', e)
       );
     }

@@ -237,6 +237,7 @@ describe('POST /api/ops/command-center/staffing/resolve', () => {
       bookingId: 'booking-1',
       sitterId: 'sitter-1',
       orgId: 'org-1',
+      action: 'reassignment',
     });
   });
 

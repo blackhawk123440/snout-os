@@ -17,13 +17,13 @@ import { logEventFromLogger } from "./event-logger";
 
 let initialized = false;
 
-function enqueueCalendarForBooking(booking: any): void {
+function enqueueCalendarForBooking(booking: any, action: 'assignment' | 'schedule_change' | 'intake' = 'assignment'): void {
   const orgId = booking?.orgId || 'default';
   const bookingId = booking?.id;
   const sitterId = booking?.sitterId;
   if (!bookingId) return;
   if (sitterId) {
-    enqueueCalendarSync({ type: 'upsert', bookingId, orgId }).catch((e) =>
+    enqueueCalendarSync({ type: 'upsert', bookingId, orgId, action }).catch((e) =>
       console.error('[EventQueueBridge] calendar upsert enqueue failed:', e)
     );
   }
@@ -34,7 +34,7 @@ export function initializeEventQueueBridge(): void {
   initialized = true;
 
   eventEmitter.on("booking.created", async (context: any) => {
-    enqueueCalendarForBooking(context.booking);
+    enqueueCalendarForBooking(context.booking, 'intake');
   });
 
   eventEmitter.on("booking.updated", async (context: any) => {
@@ -45,18 +45,19 @@ export function initializeEventQueueBridge(): void {
         bookingId: booking.id,
         sitterId: booking.sitterId,
         orgId: booking.orgId || 'default',
+        action: 'cancellation',
       }).catch((e) => console.error('[EventQueueBridge] calendar delete enqueue failed:', e));
     } else {
-      enqueueCalendarForBooking(booking);
+      enqueueCalendarForBooking(booking, 'schedule_change');
     }
   });
 
   eventEmitter.on("booking.assigned", async (context: any) => {
-    enqueueCalendarForBooking(context.booking);
+    enqueueCalendarForBooking(context.booking, 'assignment');
   });
 
   eventEmitter.on("sitter.assigned", async (context: any) => {
-    enqueueCalendarForBooking(context.booking);
+    enqueueCalendarForBooking(context.booking, 'assignment');
   });
 
   eventEmitter.on("booking.status.changed", async (context: any) => {

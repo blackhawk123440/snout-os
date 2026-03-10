@@ -50,6 +50,7 @@ type Booking = {
     externalEventId: string | null;
     connectedCalendar: string | null;
     connectedAccount: string | null;
+    lastSyncAttemptAt?: string | null;
     lastSyncedAt: string | null;
     syncError: string | null;
     openInGoogleCalendarUrl: string | null;
@@ -158,6 +159,21 @@ export default function BookingDetailEnterprisePage() {
     }
   }
 
+  async function retryCalendarSync() {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/calendar-sync/retry`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Failed to retry calendar sync');
+      showToast({ variant: 'success', message: 'Calendar sync retry queued' });
+      await load();
+    } catch (e) {
+      showToast({ variant: 'error', message: e instanceof Error ? e.message : 'Retry failed' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading) {
     return (
       <OwnerAppShell>
@@ -245,11 +261,20 @@ export default function BookingDetailEnterprisePage() {
                 <div>Connected calendar: {calendarProof?.connectedCalendar || 'N/A'}</div>
                 <div>Connected account: {calendarProof?.connectedAccount || 'N/A'}</div>
                 <div>
+                  Last attempt:{' '}
+                  {calendarProof?.lastSyncAttemptAt
+                    ? new Date(calendarProof.lastSyncAttemptAt).toLocaleString()
+                    : 'N/A'}
+                </div>
+                <div>
                   Last synced:{' '}
                   {calendarProof?.lastSyncedAt
                     ? new Date(calendarProof.lastSyncedAt).toLocaleString()
                     : 'N/A'}
                 </div>
+                {calendarProof?.status === 'AUTH_EXPIRED' ? (
+                  <div className="font-medium text-amber-700">Auth expired. Reconnect Google Calendar for this sitter.</div>
+                ) : null}
                 {calendarProof?.syncError ? <div className="text-red-700">Error: {calendarProof.syncError}</div> : null}
                 {calendarProof?.openInGoogleCalendarUrl ? (
                   <a
@@ -261,6 +286,13 @@ export default function BookingDetailEnterprisePage() {
                     Open in Google Calendar
                   </a>
                 ) : null}
+                <Button
+                  variant="secondary"
+                  disabled={busy || !booking.sitter}
+                  onClick={() => void retryCalendarSync()}
+                >
+                  Retry sync
+                </Button>
               </div>
             </div>
           </div>

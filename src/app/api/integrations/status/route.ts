@@ -74,6 +74,7 @@ async function getCalendarStatus(orgId: string) {
     select: {
       googleTokenExpiry: true,
       googleRefreshToken: true,
+      googleAuthExpired: true,
     },
   }).catch(() => []);
 
@@ -81,7 +82,7 @@ async function getCalendarStatus(orgId: string) {
   const validConnectedSitters = sitters.filter((s: any) => {
     const hasRefreshToken = !!s.googleRefreshToken;
     const expiry = s.googleTokenExpiry ? new Date(s.googleTokenExpiry) : null;
-    return hasRefreshToken && (!expiry || expiry > now);
+    return hasRefreshToken && !s.googleAuthExpired && (!expiry || expiry > now);
   });
 
   const latestSync = await (prisma as any).bookingCalendarEvent.aggregate({

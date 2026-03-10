@@ -22,7 +22,13 @@ export async function GET() {
       take: 200,
       include: {
         sitter: {
-          select: { id: true, firstName: true, lastName: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            calendarSyncEnabled: true,
+            googleAuthExpired: true,
+          },
         },
         client: {
           select: { id: true, firstName: true, lastName: true },
@@ -31,6 +37,11 @@ export async function GET() {
           take: 1,
           orderBy: { createdAt: 'desc' },
           select: { id: true, createdAt: true },
+        },
+        calendarEvents: {
+          select: { syncStatus: true, updatedAt: true },
+          orderBy: { updatedAt: 'desc' },
+          take: 1,
         },
       },
     });
@@ -51,6 +62,13 @@ export async function GET() {
         totalPrice: Number(b.totalPrice),
         sitter: b.sitter,
         client: b.client,
+        calendarSyncStatus: !b.sitter
+          ? 'PENDING'
+          : b.sitter.googleAuthExpired
+            ? 'AUTH_EXPIRED'
+            : !b.sitter.calendarSyncEnabled
+              ? 'DISABLED'
+              : b.calendarEvents?.[0]?.syncStatus || 'PENDING',
         createdAt: b.createdAt,
         hasReport: b.reports.length > 0,
       })),

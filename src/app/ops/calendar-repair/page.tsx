@@ -16,6 +16,10 @@ interface SitterOption {
   id: string;
   firstName: string;
   lastName: string;
+  calendarSyncEnabled?: boolean;
+  googleAuthExpired?: boolean;
+  googleAuthError?: string | null;
+  googleCalendarId?: string | null;
 }
 
 interface RepairResult {
@@ -37,6 +41,7 @@ export default function CalendarRepairPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [repairing, setRepairing] = useState(false);
   const [result, setResult] = useState<RepairResult | null>(null);
+  const selectedSitter = sitters.find((s) => s.id === sitterId) || null;
 
   const loadSitters = useCallback(async () => {
     setLoading(true);
@@ -176,6 +181,17 @@ export default function CalendarRepairPage() {
                 />
               </div>
             </div>
+            {selectedSitter ? (
+              <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3 text-sm">
+                <div><strong>Sync status:</strong> {selectedSitter.googleAuthExpired ? 'AUTH_EXPIRED' : selectedSitter.calendarSyncEnabled ? 'PENDING' : 'DISABLED'}</div>
+                <div><strong>Calendar:</strong> {selectedSitter.googleCalendarId || 'N/A'}</div>
+                {selectedSitter.googleAuthExpired ? (
+                  <div className="text-amber-700">
+                    Reconnect required{selectedSitter.googleAuthError ? `: ${selectedSitter.googleAuthError}` : '.'}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <Button
               onClick={() => void handleRepair()}
               disabled={!sitterId || repairing}

@@ -65,6 +65,7 @@ export async function POST(
       where: { id: sitterId },
       data: {
         calendarSyncEnabled: enabled,
+        ...(enabled ? { googleAuthExpired: false, googleAuthError: null } : {}),
       },
     });
 

@@ -4,7 +4,6 @@ const mockFindFirst = vi.fn();
 const mockUpdate = vi.fn();
 const mockStatusHistoryCreate = vi.fn();
 const mockStripeChargeFindFirst = vi.fn();
-const mockEventLogFindFirst = vi.fn();
 const mockEnqueueCalendarSync = vi.fn().mockResolvedValue(undefined);
 const mockEnsureEventQueueBridge = vi.fn().mockResolvedValue(undefined);
 const mockEmitBookingUpdated = vi.fn().mockResolvedValue(undefined);
@@ -29,9 +28,6 @@ vi.mock('@/lib/tenancy', () => ({
     },
     stripeCharge: {
       findFirst: (...args: unknown[]) => mockStripeChargeFindFirst(...args),
-    },
-    eventLog: {
-      findFirst: (...args: unknown[]) => mockEventLogFindFirst(...args),
     },
   })),
 }));
@@ -86,11 +82,22 @@ describe('/api/bookings/[id]', () => {
         lastName: 'Sitter',
         calendarSyncEnabled: true,
         googleCalendarId: 'primary',
+        googleAuthExpired: false,
+        googleAuthError: null,
       },
       client: { id: 'c1', firstName: 'Client', lastName: 'One', email: 'client@example.com', phone: '+14155550101' },
       pets: [],
       reports: [],
-      calendarEvents: [{ googleCalendarEventId: 'abcdef1234567890', lastSyncedAt: new Date('2026-03-10T11:45:00.000Z'), updatedAt: new Date('2026-03-10T11:45:00.000Z') }],
+      calendarEvents: [{
+        googleCalendarEventId: 'abcdef1234567890',
+        externalEventId: 'abcdef1234567890',
+        syncedCalendarId: 'primary',
+        syncStatus: 'SYNCED',
+        lastSyncAttemptAt: new Date('2026-03-10T11:44:00.000Z'),
+        lastSyncError: null,
+        lastSyncedAt: new Date('2026-03-10T11:45:00.000Z'),
+        updatedAt: new Date('2026-03-10T11:45:00.000Z'),
+      }],
     });
     mockStripeChargeFindFirst.mockResolvedValueOnce({
       id: 'ch_123',
@@ -99,7 +106,6 @@ describe('/api/bookings/[id]', () => {
       currency: 'usd',
       paymentIntentId: 'pi_123',
     });
-    mockEventLogFindFirst.mockResolvedValueOnce(null);
 
     const res = await GET(new Request('http://localhost/api/bookings/b1') as any, {
       params: Promise.resolve({ id: 'b1' }),
@@ -116,7 +122,7 @@ describe('/api/bookings/[id]', () => {
     );
     expect(body.booking.calendarSyncProof).toEqual(
       expect.objectContaining({
-        status: 'synced',
+        status: 'SYNCED',
         connectedCalendar: 'primary',
         externalEventId: expect.stringContaining('...'),
       })
@@ -141,6 +147,62 @@ describe('/api/bookings/[id]', () => {
     expect(body.error).toBe('Invalid booking status');
     expect(mockUpdate).not.toHaveBeenCalled();
     expect(mockStatusHistoryCreate).not.toHaveBeenCalled();
+  });
+
+  it('serializes auth-expired calendar proof surface state', async () => {
+    mockFindFirst.mockResolvedValueOnce({
+      id: 'b1',
+      firstName: 'Client',
+      lastName: 'One',
+      phone: '+14155550101',
+      email: 'client@example.com',
+      address: '123 Main',
+      service: 'Dog Walk',
+      startAt: new Date('2026-03-10T12:00:00.000Z'),
+      endAt: new Date('2026-03-10T12:30:00.000Z'),
+      status: 'confirmed',
+      paymentStatus: 'paid',
+      totalPrice: 35,
+      notes: null,
+      createdAt: new Date('2026-03-10T11:00:00.000Z'),
+      updatedAt: new Date('2026-03-10T11:30:00.000Z'),
+      sitter: {
+        id: 's1',
+        firstName: 'Sam',
+        lastName: 'Sitter',
+        calendarSyncEnabled: true,
+        googleCalendarId: 'primary',
+        googleAuthExpired: true,
+        googleAuthError: 'invalid_grant',
+      },
+      client: { id: 'c1', firstName: 'Client', lastName: 'One', email: 'client@example.com', phone: '+14155550101' },
+      pets: [],
+      reports: [],
+      calendarEvents: [{
+        googleCalendarEventId: null,
+        externalEventId: null,
+        syncedCalendarId: 'primary',
+        syncStatus: 'AUTH_EXPIRED',
+        lastSyncAttemptAt: new Date('2026-03-10T11:44:00.000Z'),
+        lastSyncError: 'invalid_grant',
+        lastSyncedAt: null,
+        updatedAt: new Date('2026-03-10T11:45:00.000Z'),
+      }],
+    });
+    mockStripeChargeFindFirst.mockResolvedValueOnce(null);
+
+    const res = await GET(new Request('http://localhost/api/bookings/b1') as any, {
+      params: Promise.resolve({ id: 'b1' }),
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.booking.calendarSyncProof).toEqual(
+      expect.objectContaining({
+        status: 'AUTH_EXPIRED',
+        syncError: 'invalid_grant',
+      })
+    );
   });
 
   it('rejects invalid status transitions', async () => {
@@ -207,6 +269,67 @@ describe('/api/bookings/[id]', () => {
           reason: 'owner_operator_update',
         }),
       })
+    );
+  });
+
+  it('reassignment enqueues delete and upsert actions', async () => {
+    mockFindFirst
+      .mockResolvedValueOnce({
+        id: 'b1',
+        status: 'confirmed',
+        sitterId: 's1',
+      })
+      .mockResolvedValueOnce({
+        id: 'b1',
+      });
+    mockUpdate.mockResolvedValueOnce({
+      id: 'b1',
+      status: 'confirmed',
+      sitterId: 's2',
+      updatedAt: new Date('2026-03-09T00:00:00.000Z'),
+    });
+
+    const req = new Request('http://localhost/api/bookings/b1', {
+      method: 'PATCH',
+      body: JSON.stringify({ sitterId: 's2' }),
+    });
+    const res = await PATCH(req as any, { params: Promise.resolve({ id: 'b1' }) });
+
+    expect(res.status).toBe(200);
+    expect(mockEnqueueCalendarSync).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'delete', bookingId: 'b1', sitterId: 's1', action: 'reassignment' })
+    );
+    expect(mockEnqueueCalendarSync).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'upsert', bookingId: 'b1', action: 'reassignment' })
+    );
+  });
+
+  it('cancellation enqueues delete with cancellation action', async () => {
+    mockFindFirst
+      .mockResolvedValueOnce({
+        id: 'b1',
+        status: 'confirmed',
+        sitterId: 's1',
+      })
+      .mockResolvedValueOnce({
+        id: 'b1',
+      });
+    mockUpdate.mockResolvedValueOnce({
+      id: 'b1',
+      status: 'cancelled',
+      sitterId: 's1',
+      updatedAt: new Date('2026-03-09T00:00:00.000Z'),
+    });
+
+    const req = new Request('http://localhost/api/bookings/b1', {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'cancelled' }),
+    });
+    const res = await PATCH(req as any, { params: Promise.resolve({ id: 'b1' }) });
+
+    expect(res.status).toBe(200);
+    expect(mockEnqueueCalendarSync).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'delete', bookingId: 'b1', sitterId: 's1', action: 'cancellation' })
     );
   });
 });

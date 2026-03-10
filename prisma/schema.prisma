@@ -153,6 +153,8 @@ model Sitter {
   googleTokenExpiry    DateTime?
   googleCalendarId     String?   @default("primary")
   calendarSyncEnabled  Boolean   @default(false)
+  googleAuthExpired    Boolean   @default(false)
+  googleAuthError      String?   @db.Text
   respectGoogleBusy    Boolean   @default(false) // When true, block availability from Google busy
   availabilityEnabled  Boolean   @default(true) // Sitter-managed: available for new bookings
   timezone             String?   @default("America/Chicago") // IANA timezone for availability computation
@@ -1877,12 +1879,27 @@ model MessageResponseLink {
 // GOOGLE CALENDAR INTEGRATION
 // ============================================
 
+enum CalendarSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+  DISABLED
+  AUTH_EXPIRED
+}
+
 model BookingCalendarEvent {
   id                     String    @id @default(uuid())
   orgId                  String    @default("default")
   bookingId              String
   sitterId               String
   googleCalendarEventId  String?   // null if not yet synced or event deleted
+  externalEventId        String?   // canonical mirrored external event id
+  syncedCalendarId       String?   // target google calendar id used for last sync
+  syncStatus             CalendarSyncStatus @default(PENDING)
+  lastSyncAttemptAt      DateTime?
+  lastSyncError          String?   @db.Text
+  correlationId          String?
+  failureMetadata        String?   @db.Text // JSON failure metadata for retries/debug
   payloadChecksum        String?   // Deterministic hash; skip update if unchanged
   lastSyncedAt           DateTime?
   createdAt              DateTime  @default(now())

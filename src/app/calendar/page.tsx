@@ -61,6 +61,7 @@ interface Booking {
     endAt: string | Date;
   }>;
   locationZone?: string;
+  calendarSyncStatus?: string;
 }
 
 type CalendarView = 'day' | 'week' | 'month';
@@ -1038,6 +1039,14 @@ function CalendarPageContent() {
                 </div>
                 <div style={{ fontSize: tokens.typography.fontSize.base[0] }}>
                   {selectedBooking.status}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                  Calendar Sync
+                </div>
+                <div style={{ fontSize: tokens.typography.fontSize.base[0] }}>
+                  {selectedBooking.calendarSyncStatus || 'PENDING'}
                 </div>
               </div>
 

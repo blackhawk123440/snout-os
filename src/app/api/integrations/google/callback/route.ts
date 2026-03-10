@@ -88,6 +88,8 @@ export async function GET(request: NextRequest) {
         googleTokenExpiry: expiryDate,
         googleCalendarId: 'primary', // Default to primary calendar
         calendarSyncEnabled: true, // Enable sync by default after connection
+        googleAuthExpired: false,
+        googleAuthError: null,
       },
     });
 

@@ -31,6 +31,7 @@ describe('event-queue-bridge calendar enqueue', () => {
       type: 'upsert',
       bookingId: 'b1',
       orgId: 'org-1',
+      action: 'intake',
     });
   });
 
@@ -49,6 +50,7 @@ describe('event-queue-bridge calendar enqueue', () => {
       bookingId: 'b2',
       sitterId: 's1',
       orgId: 'org-1',
+      action: 'cancellation',
     });
   });
 
@@ -66,6 +68,7 @@ describe('event-queue-bridge calendar enqueue', () => {
       type: 'upsert',
       bookingId: 'b3',
       orgId: 'org-1',
+      action: 'schedule_change',
     });
   });
 
@@ -82,6 +85,7 @@ describe('event-queue-bridge calendar enqueue', () => {
       type: 'upsert',
       bookingId: 'b4',
       orgId: 'org-1',
+      action: 'assignment',
     });
   });
 });

@@ -4,6 +4,7 @@
 
 import { Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
+import { randomUUID } from 'crypto';
 import { getScopedDb } from '@/lib/tenancy';
 import { upsertEventForBooking, deleteEventForBooking, syncRangeForSitter } from '@/lib/calendar/sync';
 import { logEvent } from '@/lib/log-event';
@@ -24,17 +25,48 @@ export const calendarQueue = new Queue('calendar-sync', {
 });
 
 export type CalendarJobType =
-  | { type: 'upsert'; bookingId: string; orgId: string }
-  | { type: 'delete'; bookingId: string; sitterId: string; orgId: string }
-  | { type: 'syncRange'; sitterId: string; start: string; end: string; orgId: string };
+  | {
+      type: 'upsert';
+      bookingId: string;
+      orgId: string;
+      action?: 'assignment' | 'schedule_change' | 'reassignment' | 'retry' | 'intake' | 'repair';
+      correlationId?: string;
+      idempotencyKey?: string;
+    }
+  | {
+      type: 'delete';
+      bookingId: string;
+      sitterId: string;
+      orgId: string;
+      action?: 'cancellation' | 'reassignment' | 'retry' | 'repair';
+      correlationId?: string;
+      idempotencyKey?: string;
+    }
+  | {
+      type: 'syncRange';
+      sitterId: string;
+      start: string;
+      end: string;
+      orgId: string;
+      correlationId?: string;
+      idempotencyKey?: string;
+    };
 
 export async function enqueueCalendarSync(job: CalendarJobType): Promise<string | null> {
-  const j = await calendarQueue.add(`calendar:${job.type}`, job, {
-    jobId: job.type === 'upsert'
-      ? `upsert:${job.bookingId}`
+  const correlationId = job.correlationId || randomUUID();
+  const idempotencyKey =
+    job.idempotencyKey ||
+    (job.type === 'upsert'
+      ? `${job.orgId}:upsert:${job.bookingId}:${job.action || 'assignment'}`
       : job.type === 'delete'
-        ? `delete:${job.bookingId}:${job.sitterId}`
-        : undefined,
+        ? `${job.orgId}:delete:${job.bookingId}:${job.sitterId}:${job.action || 'cancellation'}`
+        : `${job.orgId}:syncRange:${job.sitterId}:${job.start}:${job.end}`);
+  const payload = { ...job, correlationId, idempotencyKey };
+  const j = await calendarQueue.add(`calendar:${job.type}`, payload, {
+    jobId: `calendar:${idempotencyKey}`,
+    attempts: 4,
+    removeOnComplete: 200,
+    removeOnFail: 200,
   });
   return j?.id ?? null;
 }
@@ -47,27 +79,48 @@ function createCalendarWorker(): Worker {
       const db = getScopedDb({ orgId: data.orgId });
 
       if (data.type === 'upsert') {
-        const result = await upsertEventForBooking(db, data.bookingId, data.orgId);
+        const result = await upsertEventForBooking(db, data.bookingId, data.orgId, {
+          correlationId: data.correlationId,
+          idempotencyKey: data.idempotencyKey,
+          action: data.action,
+        });
         await logEvent({
           orgId: data.orgId,
           actorUserId: 'system',
           action: 'calendar.sync.succeeded',
           entityType: 'calendar',
           entityId: data.bookingId,
-          metadata: { bookingId: data.bookingId, action: result.action, ...(result.error && { error: result.error }) },
+          metadata: {
+            bookingId: data.bookingId,
+            action: result.action,
+            correlationId: data.correlationId,
+            idempotencyKey: data.idempotencyKey,
+            ...(result.error && { error: result.error }),
+          },
         });
         return result;
       }
 
       if (data.type === 'delete') {
-        const result = await deleteEventForBooking(db, data.bookingId, data.sitterId, data.orgId);
+        const result = await deleteEventForBooking(db, data.bookingId, data.sitterId, data.orgId, {
+          correlationId: data.correlationId,
+          idempotencyKey: data.idempotencyKey,
+          action: data.action,
+        });
         await logEvent({
           orgId: data.orgId,
           actorUserId: 'system',
           action: result.deleted ? 'calendar.sync.succeeded' : 'calendar.sync.failed',
           entityType: 'calendar',
           entityId: data.bookingId,
-          metadata: { bookingId: data.bookingId, sitterId: data.sitterId, deleted: result.deleted, error: result.error },
+          metadata: {
+            bookingId: data.bookingId,
+            sitterId: data.sitterId,
+            deleted: result.deleted,
+            error: result.error,
+            correlationId: data.correlationId,
+            idempotencyKey: data.idempotencyKey,
+          },
         });
         return result;
       }
@@ -86,7 +139,7 @@ function createCalendarWorker(): Worker {
           action: 'calendar.repair.succeeded',
           entityType: 'calendar',
           entityId: data.sitterId,
-          metadata: { sitterId: data.sitterId, ...result },
+          metadata: { sitterId: data.sitterId, correlationId: data.correlationId, idempotencyKey: data.idempotencyKey, ...result },
         });
         return result;
       }
@@ -127,7 +180,13 @@ export function initializeCalendarWorker(): Worker {
         entityType: 'calendar',
         entityId: (data as any).bookingId || (data as any).sitterId || 'unknown',
         status: 'failed',
-        metadata: { error: (err as Error).message, jobData: data, attempts },
+        metadata: {
+          error: (err as Error).message,
+          jobData: data,
+          attempts,
+          correlationId: (data as any)?.correlationId ?? null,
+          idempotencyKey: (data as any)?.idempotencyKey ?? null,
+        },
       });
       publish(channels.opsFailures(data.orgId), {
         type: action,
