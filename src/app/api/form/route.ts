@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { createHash } from "crypto";
 import { prisma } from "@/lib/db";
 import { checkRateLimit, getRateLimitIdentifier, rateLimitResponse } from "@/lib/rate-limit";
 import { calculateBookingPrice } from "@/lib/rates";
@@ -56,6 +57,154 @@ const buildCorsHeaders = (request: NextRequest) => {
   };
 };
 
+const FORM_ROUTE = "/api/form";
+
+type IdempotencyRecord = {
+  id: string;
+  requestFingerprint: string;
+  statusCode: number | null;
+  responseBodyJson: string | null;
+};
+
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => a.localeCompare(b));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function computeRequestFingerprint(material: Record<string, unknown>): string {
+  const canonical = stableStringify(material);
+  return createHash("sha256").update(canonical).digest("hex");
+}
+
+function parseStoredResponse(json: string | null): Record<string, unknown> {
+  if (!json) return {};
+  try {
+    return JSON.parse(json);
+  } catch {
+    return {};
+  }
+}
+
+async function waitForCompletedRecord(recordId: string): Promise<IdempotencyRecord | null> {
+  for (let i = 0; i < 20; i++) {
+    const existing = await (prisma as any).bookingRequestIdempotency.findUnique({
+      where: { id: recordId },
+      select: {
+        id: true,
+        requestFingerprint: true,
+        statusCode: true,
+        responseBodyJson: true,
+      },
+    });
+    if (existing?.statusCode != null) return existing;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  return null;
+}
+
+async function reserveIdempotency(
+  orgId: string,
+  idempotencyKey: string | null,
+  requestFingerprint: string
+): Promise<
+  | { mode: "none" }
+  | { mode: "reserved"; reservationId: string }
+  | { mode: "replay"; statusCode: number; responseBody: Record<string, unknown> }
+  | { mode: "conflict" }
+> {
+  if (!idempotencyKey) return { mode: "none" };
+
+  const existing = await (prisma as any).bookingRequestIdempotency.findUnique({
+    where: {
+      org_route_idempotency: {
+        orgId,
+        route: FORM_ROUTE,
+        idempotencyKey,
+      },
+    },
+    select: {
+      id: true,
+      requestFingerprint: true,
+      statusCode: true,
+      responseBodyJson: true,
+    },
+  });
+
+  if (existing) {
+    if (existing.requestFingerprint !== requestFingerprint) return { mode: "conflict" };
+    if (existing.statusCode != null) {
+      return {
+        mode: "replay",
+        statusCode: existing.statusCode,
+        responseBody: parseStoredResponse(existing.responseBodyJson),
+      };
+    }
+    const completed = await waitForCompletedRecord(existing.id);
+    if (!completed) return { mode: "conflict" };
+    return {
+      mode: "replay",
+      statusCode: completed.statusCode ?? 200,
+      responseBody: parseStoredResponse(completed.responseBodyJson),
+    };
+  }
+
+  try {
+    const created = await (prisma as any).bookingRequestIdempotency.create({
+      data: {
+        orgId,
+        route: FORM_ROUTE,
+        idempotencyKey,
+        requestFingerprint,
+      },
+      select: { id: true },
+    });
+    return { mode: "reserved", reservationId: created.id };
+  } catch (error: unknown) {
+    if (
+      (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") ||
+      (typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: string }).code === "P2002")
+    ) {
+      return reserveIdempotency(orgId, idempotencyKey, requestFingerprint);
+    }
+    throw error;
+  }
+}
+
+async function persistIdempotentResult(
+  reservationId: string,
+  statusCode: number,
+  body: Record<string, unknown>,
+  resourceId?: string
+) {
+  await (prisma as any).bookingRequestIdempotency.update({
+    where: { id: reservationId },
+    data: {
+      statusCode,
+      responseBodyJson: JSON.stringify(body),
+      resourceType: resourceId ? "booking" : null,
+      resourceId: resourceId ?? null,
+    },
+  });
+}
+
+async function releaseIdempotentReservation(reservationId: string | null) {
+  if (!reservationId) return;
+  await (prisma as any).bookingRequestIdempotency.deleteMany({
+    where: { id: reservationId, statusCode: null },
+  });
+}
+
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -87,6 +236,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const idempotencyKey = request.headers.get("Idempotency-Key")?.trim() || null;
     
     // Phase 1: Check feature flag for mapper
     const useMapper = env.ENABLE_FORM_MAPPER_V1 === true;
@@ -252,13 +402,57 @@ export async function POST(request: NextRequest) {
       // Create booking using mapped input (unchanged persistence logic)
       // Note: booking model exists in main app schema, not enterprise-messaging-dashboard schema
       // Using type assertion to access booking model
-      const booking = await (prisma as any).booking.create({
+      const requestFingerprint = computeRequestFingerprint({
+        firstName: bookingData.firstName,
+        lastName: bookingData.lastName,
+        phone: bookingData.phone,
+        email: bookingData.email,
+        service: bookingData.service,
+        startAt: bookingData.startAt instanceof Date ? bookingData.startAt.toISOString() : bookingData.startAt,
+        endAt: bookingData.endAt instanceof Date ? bookingData.endAt.toISOString() : bookingData.endAt,
+        address: bookingData.address,
+        pickupAddress: bookingData.pickupAddress,
+        dropoffAddress: bookingData.dropoffAddress,
+        notes: bookingData.notes,
+        quantity: bookingData.quantity,
+        afterHours: bookingData.afterHours,
+        pets: petsArray,
+        timeSlots: timeSlotsData.map((slot) => ({
+          startAt: slot.startAt.toISOString(),
+          endAt: slot.endAt.toISOString(),
+          duration: slot.duration,
+        })),
+      });
+      const idempotency = await reserveIdempotency(orgId, idempotencyKey, requestFingerprint);
+      if (idempotency.mode === "conflict") {
+        return NextResponse.json(
+          { error: "Idempotency key conflict: payload does not match original request." },
+          { status: 409, headers: buildCorsHeaders(request) }
+        );
+      }
+      if (idempotency.mode === "replay") {
+        return NextResponse.json(idempotency.responseBody, {
+          status: idempotency.statusCode,
+          headers: {
+            ...buildCorsHeaders(request),
+            "X-Idempotency-Replayed": "true",
+          },
+        });
+      }
+
+      let booking;
+      try {
+        booking = await (prisma as any).booking.create({
         data: bookingData,
         include: {
           pets: true,
           timeSlots: true,
         },
       });
+      } catch (error) {
+        await releaseIdempotentReservation(idempotency.mode === "reserved" ? idempotency.reservationId : null);
+        throw error;
+      }
 
       // Rest of the flow is unchanged (automation, messaging, etc.)
       await ensureEventQueueBridge();
@@ -289,7 +483,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      return NextResponse.json({
+      const responseBody = {
         success: true,
         booking: {
           id: booking.id,
@@ -297,7 +491,11 @@ export async function POST(request: NextRequest) {
           status: booking.status,
           notes: booking.notes || null,
         },
-      }, {
+      };
+      if (idempotency.mode === "reserved") {
+        await persistIdempotentResult(idempotency.reservationId, 200, responseBody, booking.id);
+      }
+      return NextResponse.json(responseBody, {
         headers: buildCorsHeaders(request),
       });
     }
@@ -700,13 +898,57 @@ export async function POST(request: NextRequest) {
 
     // Note: booking model exists in main app schema, not enterprise-messaging-dashboard schema
     // Using type assertion to access booking model
-    const booking = await (prisma as any).booking.create({
+    const requestFingerprint = computeRequestFingerprint({
+      firstName: bookingData.firstName,
+      lastName: bookingData.lastName,
+      phone: bookingData.phone,
+      email: bookingData.email,
+      service: bookingData.service,
+      startAt: bookingData.startAt.toISOString(),
+      endAt: bookingData.endAt.toISOString(),
+      address: bookingData.address,
+      pickupAddress: bookingData.pickupAddress,
+      dropoffAddress: bookingData.dropoffAddress,
+      notes: bookingData.notes,
+      quantity: bookingData.quantity,
+      afterHours: bookingData.afterHours,
+      pets,
+      timeSlots: timeSlotsData.map((slot) => ({
+        startAt: slot.startAt.toISOString(),
+        endAt: slot.endAt.toISOString(),
+        duration: slot.duration,
+      })),
+    });
+    const idempotency = await reserveIdempotency(orgId, idempotencyKey, requestFingerprint);
+    if (idempotency.mode === "conflict") {
+      return NextResponse.json(
+        { error: "Idempotency key conflict: payload does not match original request." },
+        { status: 409, headers: buildCorsHeaders(request) }
+      );
+    }
+    if (idempotency.mode === "replay") {
+      return NextResponse.json(idempotency.responseBody, {
+        status: idempotency.statusCode,
+        headers: {
+          ...buildCorsHeaders(request),
+          "X-Idempotency-Replayed": "true",
+        },
+      });
+    }
+
+    let booking;
+    try {
+      booking = await (prisma as any).booking.create({
       data: bookingData,
       include: {
         pets: true,
         timeSlots: true,
       },
     });
+    } catch (error) {
+      await releaseIdempotentReservation(idempotency.mode === "reserved" ? idempotency.reservationId : null);
+      throw error;
+    }
 
     // Debug: Verify what was actually saved
     console.log('Booking created with notes:', {
@@ -745,7 +987,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
+    const responseBody = {
       success: true,
       booking: {
         id: booking.id,
@@ -753,7 +995,11 @@ export async function POST(request: NextRequest) {
         status: booking.status,
         notes: booking.notes || null, // Explicitly include notes in response
       },
-    }, {
+    };
+    if (idempotency.mode === "reserved") {
+      await persistIdempotentResult(idempotency.reservationId, 200, responseBody, booking.id);
+    }
+    return NextResponse.json(responseBody, {
       headers: buildCorsHeaders(request),
     });
   } catch (error) {
