@@ -6,12 +6,17 @@ type IdempotencyRow = {
   route: string;
   idempotencyKey: string;
   requestFingerprint: string;
+  reservationStatus: "reserved" | "completed" | "failed";
   statusCode: number | null;
   responseBodyJson: string | null;
+  resourceType: string | null;
+  resourceId: string | null;
+  updatedAt: Date;
 };
 
 const idempotencyRows = new Map<string, IdempotencyRow>();
 let bookingCreateCount = 0;
+const mockEnsureEventQueueBridge = vi.fn(async () => undefined);
 
 const makeIdempotencyKey = (orgId: string, route: string, key: string) => `${orgId}:${route}:${key}`;
 
@@ -38,6 +43,12 @@ vi.mock("@/lib/db", () => ({
           sitterId: null,
         };
       }),
+      findUnique: vi.fn(async () => ({
+        id: "booking-1",
+        totalPrice: 42,
+        status: "pending",
+        notes: null,
+      })),
     },
     bookingRequestIdempotency: {
       findUnique: vi.fn(async ({ where }: any) => {
@@ -59,8 +70,12 @@ vi.mock("@/lib/db", () => ({
           route: data.route,
           idempotencyKey: data.idempotencyKey,
           requestFingerprint: data.requestFingerprint,
+          reservationStatus: data.reservationStatus ?? "reserved",
           statusCode: null,
           responseBodyJson: null,
+          resourceType: null,
+          resourceId: null,
+          updatedAt: new Date(),
         };
         idempotencyRows.set(key, row);
         return { id: row.id };
@@ -68,15 +83,21 @@ vi.mock("@/lib/db", () => ({
       update: vi.fn(async ({ where, data }: any) => {
         const row = [...idempotencyRows.values()].find((r) => r.id === where.id);
         if (!row) throw new Error("row not found");
-        row.statusCode = data.statusCode;
-        row.responseBodyJson = data.responseBodyJson;
+        if (data.statusCode !== undefined) row.statusCode = data.statusCode;
+        if (data.responseBodyJson !== undefined) row.responseBodyJson = data.responseBodyJson;
+        if (data.reservationStatus !== undefined) row.reservationStatus = data.reservationStatus;
+        if (data.resourceType !== undefined) row.resourceType = data.resourceType;
+        if (data.resourceId !== undefined) row.resourceId = data.resourceId;
+        row.updatedAt = new Date();
         return row;
       }),
-      deleteMany: vi.fn(async ({ where }: any) => {
-        const row = [...idempotencyRows.values()].find((r) => r.id === where.id && r.statusCode === null);
+      updateMany: vi.fn(async ({ where, data }: any) => {
+        const row = [...idempotencyRows.values()].find((r) => r.id === where.id);
         if (!row) return { count: 0 };
-        const key = makeIdempotencyKey(row.orgId, row.route, row.idempotencyKey);
-        idempotencyRows.delete(key);
+        if (data.reservationStatus !== undefined) row.reservationStatus = data.reservationStatus;
+        if (data.responseBodyJson !== undefined) row.responseBodyJson = data.responseBodyJson;
+        if (data.statusCode !== undefined) row.statusCode = data.statusCode;
+        row.updatedAt = new Date();
         return { count: 1 };
       }),
     },
@@ -127,7 +148,7 @@ vi.mock("@/lib/booking/booking-events", () => ({
 }));
 
 vi.mock("@/lib/event-queue-bridge-init", () => ({
-  ensureEventQueueBridge: vi.fn(async () => undefined),
+  ensureEventQueueBridge: (...args: unknown[]) => mockEnsureEventQueueBridge(...args),
 }));
 
 vi.mock("@/lib/calendar-queue", () => ({
@@ -152,6 +173,7 @@ describe("POST /api/form idempotency", () => {
     vi.clearAllMocks();
     idempotencyRows.clear();
     bookingCreateCount = 0;
+    mockEnsureEventQueueBridge.mockResolvedValue(undefined);
   });
 
   it("same key + same body creates one booking and replays response", async () => {
@@ -224,5 +246,34 @@ describe("POST /api/form idempotency", () => {
     expect(res1.status).toBe(200);
     expect(res2.status).toBe(200);
     expect(bookingCreateCount).toBe(2);
+  });
+
+  it("retry after crash before finalization reuses original booking without duplicate", async () => {
+    mockEnsureEventQueueBridge.mockRejectedValueOnce(new Error("simulated crash"));
+    const req1 = new Request("http://localhost/api/form", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "Idempotency-Key": "idem-crash",
+      },
+      body: JSON.stringify({ firstName: "A" }),
+    });
+    const req2 = new Request("http://localhost/api/form", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "Idempotency-Key": "idem-crash",
+      },
+      body: JSON.stringify({ firstName: "A" }),
+    });
+
+    const res1 = await POST(req1 as any);
+    const res2 = await POST(req2 as any);
+    const body2 = await res2.json();
+
+    expect(res1.status).toBe(500);
+    expect(res2.status).toBe(200);
+    expect(body2.booking.id).toBe("booking-1");
+    expect(bookingCreateCount).toBe(1);
   });
 });

@@ -2060,6 +2060,7 @@ model BookingRequestIdempotency {
   route              String
   idempotencyKey     String
   requestFingerprint String
+  reservationStatus  String   @default("reserved") // reserved | completed | failed
   statusCode         Int?
   responseBodyJson   String?  @db.Text
   resourceType       String?

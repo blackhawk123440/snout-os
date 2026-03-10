@@ -62,9 +62,15 @@ const FORM_ROUTE = "/api/form";
 type IdempotencyRecord = {
   id: string;
   requestFingerprint: string;
+  reservationStatus: "reserved" | "completed" | "failed";
   statusCode: number | null;
   responseBodyJson: string | null;
+  resourceType: string | null;
+  resourceId: string | null;
+  updatedAt: Date;
 };
+
+const IDEMPOTENCY_STALE_MS = 30_000;
 
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
@@ -93,6 +99,23 @@ function parseStoredResponse(json: string | null): Record<string, unknown> {
   }
 }
 
+async function rebuildResponseFromBooking(bookingId: string): Promise<Record<string, unknown> | null> {
+  const booking = await (prisma as any).booking.findUnique({
+    where: { id: bookingId },
+    select: { id: true, totalPrice: true, status: true, notes: true },
+  });
+  if (!booking) return null;
+  return {
+    success: true,
+    booking: {
+      id: booking.id,
+      totalPrice: Number(booking.totalPrice),
+      status: booking.status,
+      notes: booking.notes || null,
+    },
+  };
+}
+
 async function waitForCompletedRecord(recordId: string): Promise<IdempotencyRecord | null> {
   for (let i = 0; i < 20; i++) {
     const existing = await (prisma as any).bookingRequestIdempotency.findUnique({
@@ -100,11 +123,17 @@ async function waitForCompletedRecord(recordId: string): Promise<IdempotencyReco
       select: {
         id: true,
         requestFingerprint: true,
+        reservationStatus: true,
         statusCode: true,
         responseBodyJson: true,
+        resourceType: true,
+        resourceId: true,
+        updatedAt: true,
       },
     });
-    if (existing?.statusCode != null) return existing;
+    if (!existing) return null;
+    if (existing.reservationStatus === "completed") return existing;
+    if (existing.resourceType === "booking" && existing.resourceId) return existing;
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   return null;
@@ -118,6 +147,7 @@ async function reserveIdempotency(
   | { mode: "none" }
   | { mode: "reserved"; reservationId: string }
   | { mode: "replay"; statusCode: number; responseBody: Record<string, unknown> }
+  | { mode: "in_progress" }
   | { mode: "conflict" }
 > {
   if (!idempotencyKey) return { mode: "none" };
@@ -133,22 +163,69 @@ async function reserveIdempotency(
     select: {
       id: true,
       requestFingerprint: true,
+      reservationStatus: true,
       statusCode: true,
       responseBodyJson: true,
+      resourceType: true,
+      resourceId: true,
+      updatedAt: true,
     },
   });
 
   if (existing) {
     if (existing.requestFingerprint !== requestFingerprint) return { mode: "conflict" };
-    if (existing.statusCode != null) {
+    if (existing.reservationStatus === "completed" && existing.statusCode != null) {
       return {
         mode: "replay",
         statusCode: existing.statusCode,
         responseBody: parseStoredResponse(existing.responseBodyJson),
       };
     }
+    if (existing.resourceType === "booking" && existing.resourceId) {
+      const rebuilt = await rebuildResponseFromBooking(existing.resourceId);
+      if (rebuilt) {
+        return { mode: "replay", statusCode: existing.statusCode ?? 200, responseBody: rebuilt };
+      }
+    }
+    if (existing.reservationStatus === "failed") {
+      await (prisma as any).bookingRequestIdempotency.update({
+        where: { id: existing.id },
+        data: {
+          reservationStatus: "reserved",
+          statusCode: null,
+          responseBodyJson: null,
+          resourceType: null,
+          resourceId: null,
+        },
+      });
+      return { mode: "reserved", reservationId: existing.id };
+    }
+    const staleCutoff = new Date(Date.now() - IDEMPOTENCY_STALE_MS);
+    if (existing.reservationStatus === "reserved" && existing.updatedAt < staleCutoff) {
+      const recovered = await (prisma as any).bookingRequestIdempotency.updateMany({
+        where: {
+          id: existing.id,
+          reservationStatus: "reserved",
+          updatedAt: { lt: staleCutoff },
+        },
+        data: {
+          reservationStatus: "reserved",
+          statusCode: null,
+          responseBodyJson: null,
+        },
+      });
+      if (recovered.count > 0) {
+        return { mode: "reserved", reservationId: existing.id };
+      }
+    }
     const completed = await waitForCompletedRecord(existing.id);
-    if (!completed) return { mode: "conflict" };
+    if (!completed) return { mode: "in_progress" };
+    if (completed.resourceType === "booking" && completed.resourceId) {
+      const rebuilt = await rebuildResponseFromBooking(completed.resourceId);
+      if (rebuilt) {
+        return { mode: "replay", statusCode: completed.statusCode ?? 200, responseBody: rebuilt };
+      }
+    }
     return {
       mode: "replay",
       statusCode: completed.statusCode ?? 200,
@@ -163,6 +240,7 @@ async function reserveIdempotency(
         route: FORM_ROUTE,
         idempotencyKey,
         requestFingerprint,
+        reservationStatus: "reserved",
       },
       select: { id: true },
     });
@@ -190,6 +268,7 @@ async function persistIdempotentResult(
   await (prisma as any).bookingRequestIdempotency.update({
     where: { id: reservationId },
     data: {
+      reservationStatus: "completed",
       statusCode,
       responseBodyJson: JSON.stringify(body),
       resourceType: resourceId ? "booking" : null,
@@ -198,10 +277,24 @@ async function persistIdempotentResult(
   });
 }
 
-async function releaseIdempotentReservation(reservationId: string | null) {
+async function persistIdempotentResource(reservationId: string, bookingId: string) {
+  await (prisma as any).bookingRequestIdempotency.update({
+    where: { id: reservationId },
+    data: {
+      resourceType: "booking",
+      resourceId: bookingId,
+    },
+  });
+}
+
+async function failIdempotentReservation(reservationId: string | null, errorMessage: string) {
   if (!reservationId) return;
-  await (prisma as any).bookingRequestIdempotency.deleteMany({
-    where: { id: reservationId, statusCode: null },
+  await (prisma as any).bookingRequestIdempotency.updateMany({
+    where: { id: reservationId },
+    data: {
+      reservationStatus: "failed",
+      responseBodyJson: JSON.stringify({ error: errorMessage }),
+    },
   });
 }
 
@@ -439,6 +532,12 @@ export async function POST(request: NextRequest) {
           },
         });
       }
+      if (idempotency.mode === "in_progress") {
+        return NextResponse.json(
+          { error: "Request with this idempotency key is still processing. Retry shortly." },
+          { status: 409, headers: buildCorsHeaders(request) }
+        );
+      }
 
       let booking;
       try {
@@ -449,8 +548,14 @@ export async function POST(request: NextRequest) {
           timeSlots: true,
         },
       });
+      if (idempotency.mode === "reserved") {
+        await persistIdempotentResource(idempotency.reservationId, booking.id);
+      }
       } catch (error) {
-        await releaseIdempotentReservation(idempotency.mode === "reserved" ? idempotency.reservationId : null);
+        await failIdempotentReservation(
+          idempotency.mode === "reserved" ? idempotency.reservationId : null,
+          error instanceof Error ? error.message : String(error)
+        );
         throw error;
       }
 
@@ -935,6 +1040,12 @@ export async function POST(request: NextRequest) {
         },
       });
     }
+    if (idempotency.mode === "in_progress") {
+      return NextResponse.json(
+        { error: "Request with this idempotency key is still processing. Retry shortly." },
+        { status: 409, headers: buildCorsHeaders(request) }
+      );
+    }
 
     let booking;
     try {
@@ -945,8 +1056,14 @@ export async function POST(request: NextRequest) {
         timeSlots: true,
       },
     });
+    if (idempotency.mode === "reserved") {
+      await persistIdempotentResource(idempotency.reservationId, booking.id);
+    }
     } catch (error) {
-      await releaseIdempotentReservation(idempotency.mode === "reserved" ? idempotency.reservationId : null);
+      await failIdempotentReservation(
+        idempotency.mode === "reserved" ? idempotency.reservationId : null,
+        error instanceof Error ? error.message : String(error)
+      );
       throw error;
     }
 
