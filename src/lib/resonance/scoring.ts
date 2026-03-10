@@ -61,7 +61,7 @@ export function calculateBookingPriorityScore(
   score += getTimeProximityScore(booking.startAt, config);
 
   // Unpaid status
-  if (booking.paidStatus === 'unpaid') {
+  if (booking.paymentStatus === 'unpaid') {
     score += config.weights.unpaid;
   }
 

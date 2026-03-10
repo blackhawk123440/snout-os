@@ -52,7 +52,7 @@ export interface BookingData {
   endAt: Date | string;
   status: string;
   service?: string;
-  paidStatus?: 'paid' | 'unpaid' | 'partial';
+  paymentStatus?: 'paid' | 'unpaid' | 'partial';
   sitter?: {
     id: string;
     firstName?: string;
