@@ -2053,3 +2053,23 @@ model ReconciliationRun {
   @@index([orgId])
   @@index([orgId, createdAt])
 }
+
+model BookingRequestIdempotency {
+  id                 String   @id @default(uuid())
+  orgId              String?
+  route              String
+  idempotencyKey     String
+  requestFingerprint String
+  reservationStatus  String   @default("reserved") // reserved | completed | failed
+  statusCode         Int?
+  responseBodyJson   String?  @db.Text
+  resourceType       String?
+  resourceId         String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([orgId, route, idempotencyKey], name: "org_route_idempotency")
+  @@index([orgId, route])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+}
