@@ -54,6 +54,18 @@ type Booking = {
     syncError: string | null;
     openInGoogleCalendarUrl: string | null;
   } | null;
+  paymentMessageState?: {
+    status: string;
+    sentAt: string;
+    providerMessageId: string | null;
+    error: string | null;
+  } | null;
+  tipMessageState?: {
+    status: string;
+    sentAt: string;
+    providerMessageId: string | null;
+    error: string | null;
+  } | null;
 };
 
 type EventItem = {
@@ -158,6 +170,29 @@ export default function BookingDetailEnterprisePage() {
     }
   }
 
+  async function sendBookingLink(kind: 'payment' | 'tip', forceResend = false) {
+    setBusy(true);
+    try {
+      const endpoint = kind === 'payment' ? '/api/messages/send-payment-link' : '/api/messages/send-tip-link';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, forceResend }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || `Failed to send ${kind} link`);
+      showToast({
+        variant: 'success',
+        message: json.deduped ? `${kind} link already sent recently` : `${kind} link sent`,
+      });
+      await load();
+    } catch (e) {
+      showToast({ variant: 'error', message: e instanceof Error ? e.message : `Failed to send ${kind} link` });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (loading) {
     return (
       <OwnerAppShell>
@@ -232,6 +267,12 @@ export default function BookingDetailEnterprisePage() {
               ) : (
                 <p className="text-sm text-slate-600">No webhook-confirmed payment yet.</p>
               )}
+              <div className="mt-3 rounded border border-slate-200 p-2 text-xs text-slate-700">
+                <div className="font-medium">Payment link delivery</div>
+                <div>Status: {booking.paymentMessageState?.status || 'not sent'}</div>
+                <div>Sent: {booking.paymentMessageState?.sentAt ? new Date(booking.paymentMessageState.sentAt).toLocaleString() : 'N/A'}</div>
+                {booking.paymentMessageState?.error ? <div className="text-red-700">Error: {booking.paymentMessageState.error}</div> : null}
+              </div>
             </div>
             <div className="rounded-lg border p-3">
               <div className="mb-1 text-sm font-medium">Google Calendar sync proof</div>
@@ -286,6 +327,14 @@ export default function BookingDetailEnterprisePage() {
                 <a href={`tel:${booking.phone}`}><Button variant="secondary">Call client</Button></a>
                 {booking.email ? <a href={`mailto:${booking.email}`}><Button variant="secondary">Email client</Button></a> : null}
                 <Link href="/messages"><Button variant="secondary">Messages</Button></Link>
+                <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('payment')}>Send payment link</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('payment', true)}>Resend payment</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('tip')}>Send tip link</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('tip', true)}>Resend tip</Button>
+              </div>
+              <div className="mt-2 text-xs text-slate-700">
+                Tip link status: {booking.tipMessageState?.status || 'not sent'}
+                {booking.tipMessageState?.error ? ` (error: ${booking.tipMessageState.error})` : ''}
               </div>
             </div>
             <div className="rounded-lg border p-3">

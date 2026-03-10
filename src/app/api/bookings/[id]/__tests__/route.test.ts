@@ -5,6 +5,8 @@ const mockUpdate = vi.fn();
 const mockStatusHistoryCreate = vi.fn();
 const mockStripeChargeFindFirst = vi.fn();
 const mockEventLogFindFirst = vi.fn();
+const mockMessageThreadFindFirst = vi.fn();
+const mockMessageEventFindFirst = vi.fn();
 const mockEnqueueCalendarSync = vi.fn().mockResolvedValue(undefined);
 const mockEnsureEventQueueBridge = vi.fn().mockResolvedValue(undefined);
 const mockEmitBookingUpdated = vi.fn().mockResolvedValue(undefined);
@@ -33,6 +35,12 @@ vi.mock('@/lib/tenancy', () => ({
     eventLog: {
       findFirst: (...args: unknown[]) => mockEventLogFindFirst(...args),
     },
+    messageThread: {
+      findFirst: (...args: unknown[]) => mockMessageThreadFindFirst(...args),
+    },
+    messageEvent: {
+      findFirst: (...args: unknown[]) => mockMessageEventFindFirst(...args),
+    },
   })),
 }));
 
@@ -54,6 +62,8 @@ import { getRequestContext } from '@/lib/request-context';
 describe('/api/bookings/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMessageThreadFindFirst.mockResolvedValue(null);
+    mockMessageEventFindFirst.mockResolvedValue(null);
     vi.mocked(getRequestContext).mockResolvedValue({
       orgId: 'org-1',
       role: 'owner',
