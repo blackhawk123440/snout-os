@@ -31,7 +31,7 @@ export function detectBookingSignals(booking: BookingData): Signal[] {
   }
 
   // Unpaid booking
-  if (booking.paidStatus === 'unpaid' && booking.status !== 'cancelled') {
+  if (booking.paymentStatus === 'unpaid' && booking.status !== 'cancelled') {
     signals.push({
       id: `signal-${booking.id}-unpaid`,
       label: 'Unpaid',

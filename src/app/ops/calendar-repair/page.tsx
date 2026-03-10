@@ -49,7 +49,7 @@ export default function CalendarRepairPage() {
         setLoadError(json.error || 'Failed to load sitters');
         return;
       }
-      const list = json.sitters ?? json ?? [];
+      const list = json.sitters;
       setSitters(Array.isArray(list) ? list : []);
       if (list.length && !sitterId) {
         setSitterId(list[0].id ?? '');

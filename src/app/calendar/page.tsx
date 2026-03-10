@@ -48,7 +48,7 @@ interface Booking {
   endAt: string | Date;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   totalPrice: number;
-  paidStatus?: 'paid' | 'unpaid' | 'partial';
+  paymentStatus?: 'paid' | 'unpaid' | 'partial';
   pets?: Array<{ species: string; name?: string }>;
   sitter?: {
     id: string;
@@ -192,7 +192,7 @@ function CalendarPageContent() {
 
       if (sittersRes?.ok) {
         const data = await sittersRes.json();
-        setSitters(Array.isArray(data) ? data : (data.sitters || []));
+        setSitters(Array.isArray(data?.sitters) ? data.sitters : []);
       }
 
       if (conflictsRes?.ok) {
@@ -226,9 +226,9 @@ function CalendarPageContent() {
       if (st !== 'all' && booking.status !== st) return false;
       if (sit !== 'all' && booking.sitter?.id !== sit) return false;
       if (loc !== 'all' && booking.locationZone !== loc) return false;
-      if (paid !== 'all' && booking.paidStatus !== paid) return false;
+      if (paid !== 'all' && booking.paymentStatus !== paid) return false;
       if (completed === 'hide' && booking.status === 'completed') return false;
-      if (unpaid === 'hide' && booking.paidStatus === 'unpaid') return false;
+      if (unpaid === 'hide' && booking.paymentStatus === 'unpaid') return false;
       const inConflict = conflictBookingIds.has(booking.id);
       if (conflictsFilter === 'show_only' && !inConflict) return false;
       if (conflictsFilter === 'hide' && inConflict) return false;
@@ -378,7 +378,7 @@ function CalendarPageContent() {
         bookingId: selectedBooking.id,
         clientId: selectedBooking.email ? 'client-' + selectedBooking.id : undefined,
         hasSitter: !!selectedBooking.sitter,
-        isPaid: selectedBooking.paidStatus === 'paid',
+        isPaid: selectedBooking.paymentStatus === 'paid',
       });
       eventCommands.forEach(cmd => {
         try {

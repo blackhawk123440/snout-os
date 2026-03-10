@@ -33,7 +33,7 @@ describe('Resonance Scoring', () => {
   it('should add unpaid weight to score', () => {
     const booking: BookingData = {
       ...baseBooking,
-      paidStatus: 'unpaid',
+      paymentStatus: 'unpaid',
     };
     const score = calculateBookingPriorityScore(booking);
     expect(score).toBeGreaterThanOrEqual(defaultScoringConfig.weights.unpaid);

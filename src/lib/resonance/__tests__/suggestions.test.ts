@@ -38,7 +38,7 @@ describe('Resonance Suggestions', () => {
         startAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         endAt: new Date(Date.now() + 25 * 60 * 60 * 1000),
         status: 'confirmed',
-        paidStatus: 'unpaid',
+        paymentStatus: 'unpaid',
       };
 
       const signals = detectBookingSignals(booking);

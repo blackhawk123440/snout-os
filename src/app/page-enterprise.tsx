@@ -44,7 +44,7 @@ export default function DashboardHomePage() {
       const activeBookings = (bookings.bookings || []).filter(
         (b: any) => b.status !== 'cancelled' && b.status !== 'completed'
       );
-      const activeSitters = (sitters.sitters || []).filter((s: any) => s.active);
+      const activeSitters = (sitters.sitters || []).filter((s: any) => s.isActive === true);
       const totalRevenue = (bookings.bookings || []).reduce(
         (sum: number, b: any) => sum + (b.totalPrice || 0),
         0
