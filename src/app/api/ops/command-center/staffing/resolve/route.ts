@@ -3,6 +3,7 @@ import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { getRequestContext } from '@/lib/request-context';
 import { ForbiddenError, requireOwnerOrAdmin } from '@/lib/rbac';
 import { getScopedDb } from '@/lib/tenancy';
+import { env } from '@/lib/env';
 import { forceAssignSitter } from '@/lib/dispatch-control';
 import { enqueueCalendarSync } from '@/lib/calendar-queue';
 import { logEvent } from '@/lib/log-event';
@@ -39,7 +40,12 @@ function isAllowedType(type: string): boolean {
 const ROLLBACK_TOKEN_SECRET =
   process.env.ROLLBACK_TOKEN_SECRET ||
   process.env.NEXTAUTH_SECRET ||
-  'dev-rollback-token-secret-change-me';
+  env.NEXTAUTH_SECRET ||
+  (env.IS_PRODUCTION ? '' : 'dev-rollback-token-secret-change-me');
+
+if (!ROLLBACK_TOKEN_SECRET) {
+  throw new Error('ROLLBACK_TOKEN_SECRET or NEXTAUTH_SECRET is required in production.');
+}
 
 function tokenSignature(tokenId: string, assignmentId: string, bookingId: string, actorUserId: string): string {
   return createHmac('sha256', ROLLBACK_TOKEN_SECRET)

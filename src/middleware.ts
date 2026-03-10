@@ -17,11 +17,10 @@ import { getCurrentSitterId } from "@/lib/sitter-helpers";
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Phase 2: Role separation enforcement - ALWAYS ENABLED for production
-  // Feature flags can disable for development, but default to enabled
-  const enableAuthProtection = env.ENABLE_AUTH_PROTECTION !== false; // Default true unless explicitly false
-  const enableSitterAuth = env.ENABLE_SITTER_AUTH !== false; // Default true unless explicitly false
-  const enablePermissionChecks = env.ENABLE_PERMISSION_CHECKS !== false; // Default true unless explicitly false
+  // Production-safe defaults are enforced in env.ts.
+  const enableAuthProtection = env.ENABLE_AUTH_PROTECTION;
+  const enableSitterAuth = env.ENABLE_SITTER_AUTH;
+  const enablePermissionChecks = env.ENABLE_PERMISSION_CHECKS;
 
   // Get session to check role
   const session = await getSessionSafe();
@@ -117,6 +116,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
     
+    // Session exists - allow request to proceed. API routes still enforce RBAC in handlers.
+    if (enablePermissionChecks && pathname.startsWith('/api/')) {
+      return NextResponse.next();
+    }
+
     // Session exists - allow request to proceed
     return NextResponse.next();
   }

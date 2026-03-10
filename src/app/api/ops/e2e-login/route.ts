@@ -107,9 +107,10 @@ export async function POST(req: NextRequest) {
     const secret =
       process.env.NEXTAUTH_SECRET ||
       env.NEXTAUTH_SECRET ||
-      (process.env.NODE_ENV === 'development'
-        ? 'dev-secret-key-change-in-production-min-32-chars'
-        : 'staging-fallback-secret-minimum-32-characters-required-for-nextauth');
+      (env.IS_PRODUCTION ? '' : 'dev-secret-key-change-in-production-min-32-chars');
+    if (!secret) {
+      return NextResponse.json({ error: 'NEXTAUTH_SECRET missing' }, { status: 500 });
+    }
     const secure = process.env.NODE_ENV === 'production';
     const cookieName = secure ? '__Secure-next-auth.session-token' : 'next-auth.session-token';
     const token = await encode({

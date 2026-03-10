@@ -42,8 +42,11 @@ export async function POST(request: NextRequest) {
 
     const signature = request.headers.get('X-Twilio-Signature') || '';
     const webhookUrl = env.TWILIO_WEBHOOK_URL || `${request.nextUrl.origin}/api/messages/webhook/twilio`;
-    const provider = new TwilioProvider();
-    const isValid = provider.verifyWebhook(rawBody, signature, webhookUrl) || isE2eWebhookBypassAllowed(request);
+    const shouldVerifySignature = env.ENABLE_WEBHOOK_VALIDATION;
+    const provider = shouldVerifySignature ? new TwilioProvider() : null;
+    const isValid =
+      (!shouldVerifySignature || provider?.verifyWebhook(rawBody, signature, webhookUrl)) ||
+      isE2eWebhookBypassAllowed(request);
     if (!isValid) {
       await logEvent({
         orgId: 'unknown',

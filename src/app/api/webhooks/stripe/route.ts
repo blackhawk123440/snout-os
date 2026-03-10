@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { env } from '@/lib/env';
 import { getScopedDb } from '@/lib/tenancy';
 import { onBookingConfirmed } from '@/lib/bookings/booking-confirmed-handler';
 import { logEvent } from '@/lib/log-event';
@@ -20,25 +21,27 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
-    const secret = process.env.STRIPE_WEBHOOK_SECRET;
-    if (!secret) {
-      console.error('[Stripe Webhook] STRIPE_WEBHOOK_SECRET not configured');
-      return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
-    }
-
-    const signature = request.headers.get('stripe-signature');
-    if (!signature) {
-      return NextResponse.json({ error: 'Missing stripe-signature' }, { status: 400 });
-    }
-
     const rawBody = await request.text();
     let event: Stripe.Event;
-    try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_dummy', { apiVersion: '2023-10-16' });
-      event = stripe.webhooks.constructEvent(rawBody, signature, secret);
-    } catch (err: any) {
-      console.warn('[Stripe Webhook] Signature verification failed:', err?.message);
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    if (env.ENABLE_WEBHOOK_VALIDATION) {
+      const secret = process.env.STRIPE_WEBHOOK_SECRET;
+      if (!secret) {
+        console.error('[Stripe Webhook] STRIPE_WEBHOOK_SECRET not configured');
+        return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+      }
+      const signature = request.headers.get('stripe-signature');
+      if (!signature) {
+        return NextResponse.json({ error: 'Missing stripe-signature' }, { status: 400 });
+      }
+      try {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_dummy', { apiVersion: '2023-10-16' });
+        event = stripe.webhooks.constructEvent(rawBody, signature, secret);
+      } catch (err: any) {
+        console.warn('[Stripe Webhook] Signature verification failed:', err?.message);
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+      }
+    } else {
+      event = JSON.parse(rawBody) as Stripe.Event;
     }
 
 

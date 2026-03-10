@@ -15,20 +15,15 @@ import * as bcrypt from "bcryptjs";
  */
 // Ensure secret is ALWAYS defined - NextAuth requires it
 const getSecret = () => {
-  // Try multiple sources
-  const secret = 
-    process.env.NEXTAUTH_SECRET || 
-    env.NEXTAUTH_SECRET || 
-    (process.env.NODE_ENV === 'development' 
-      ? 'dev-secret-key-change-in-production-min-32-chars' 
-      : 'staging-fallback-secret-minimum-32-characters-required-for-nextauth');
-  
-  if (!process.env.NEXTAUTH_SECRET && !env.NEXTAUTH_SECRET) {
-    console.warn('[NextAuth] WARNING: NEXTAUTH_SECRET not set in environment, using fallback.');
-    console.warn('[NextAuth] Set NEXTAUTH_SECRET in Render Environment tab to avoid this warning.');
+  if (process.env.NEXTAUTH_SECRET) return process.env.NEXTAUTH_SECRET;
+  if (env.NEXTAUTH_SECRET) return env.NEXTAUTH_SECRET;
+
+  if (env.IS_PRODUCTION) {
+    throw new Error('NEXTAUTH_SECRET is required in production.');
   }
-  
-  return secret;
+
+  console.warn('[NextAuth] NEXTAUTH_SECRET not set; using development fallback secret.');
+  return 'dev-secret-key-change-in-production-min-32-chars';
 };
 
 const secretValue = getSecret();

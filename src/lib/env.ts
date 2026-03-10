@@ -1,98 +1,156 @@
 /**
- * Environment variable validation
- * Validates all required environment variables at startup
+ * Environment variable parsing and validation.
+ *
+ * Production runs fail closed:
+ * - auth/permission/webhook flags are forced on
+ * - critical secrets become mandatory and throw at startup if missing
  */
 
-const requiredEnvVars = {
-  NODE_ENV: process.env.NODE_ENV || "development",
-  DATABASE_URL: process.env.DATABASE_URL,
-} as const;
+function parseBoolean(value: string | undefined, fallback = false): boolean {
+  if (value == null) return fallback;
+  return value.toLowerCase() === 'true';
+}
 
-const optionalEnvVars = {
-  PORT: process.env.PORT || "3000",
-  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-  NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
-  NEXT_PUBLIC_PERSONAL_MODE: process.env.NEXT_PUBLIC_PERSONAL_MODE === "true",
-  PERSONAL_ORG_ID: process.env.PERSONAL_ORG_ID || "default",
-  PERSONAL_BRAND_NAME: process.env.PERSONAL_BRAND_NAME,
-  PERSONAL_PRIMARY_COLOR: process.env.PERSONAL_PRIMARY_COLOR,
-  OPENPHONE_NUMBER_ID: process.env.OPENPHONE_NUMBER_ID,
-  OPENPHONE_WEBHOOK_SECRET: process.env.OPENPHONE_WEBHOOK_SECRET,
-  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
-  STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
-  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
-  REDIS_URL: process.env.REDIS_URL || "redis://localhost:6379",
-  S3_BUCKET: process.env.S3_BUCKET,
-  S3_REGION: process.env.S3_REGION,
-  S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
-  S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
-  OWNER_PHONE: process.env.OWNER_PHONE,
-  OWNER_PERSONAL_PHONE: process.env.OWNER_PERSONAL_PHONE,
-  OWNER_OPENPHONE_PHONE: process.env.OWNER_OPENPHONE_PHONE,
-  // Gate B Phase 1: Auth feature flags (all default to false for zero-risk deployment)
-  ENABLE_AUTH_PROTECTION: process.env.ENABLE_AUTH_PROTECTION === "true",
-  ENABLE_SITTER_AUTH: process.env.ENABLE_SITTER_AUTH === "true",
-  ENABLE_PERMISSION_CHECKS: process.env.ENABLE_PERMISSION_CHECKS === "true",
-  ENABLE_WEBHOOK_VALIDATION: process.env.ENABLE_WEBHOOK_VALIDATION === "true",
-  // Phase 1: Form mapping layer (default to false for zero-risk deployment)
-  ENABLE_FORM_MAPPER_V1: process.env.ENABLE_FORM_MAPPER_V1 === "true",
-  // Phase 2: Pricing engine v1 (default to false for zero-risk deployment)
-  USE_PRICING_ENGINE_V1: process.env.USE_PRICING_ENGINE_V1 === "true",
-  // Messaging Master Spec V1 (default to false for zero-risk deployment)
-  ENABLE_MESSAGING_V1: process.env.ENABLE_MESSAGING_V1 === "true",
-  // Phase 4.3: Proactive thread creation (default to false for zero-risk deployment)
-  ENABLE_PROACTIVE_THREAD_CREATION: process.env.ENABLE_PROACTIVE_THREAD_CREATION === "true",
-  // Phase 4.2: Sitter messages UI (default to false for zero-risk deployment)
-  ENABLE_SITTER_MESSAGES_V1: process.env.ENABLE_SITTER_MESSAGES_V1 === "true",
-  // Debug endpoints (default to false for security)
-  ENABLE_DEBUG_ENDPOINTS: process.env.ENABLE_DEBUG_ENDPOINTS === "true",
-  // Twilio configuration (required when ENABLE_MESSAGING_V1 is true)
-  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
-  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
-  TWILIO_WEBHOOK_AUTH_TOKEN: process.env.TWILIO_WEBHOOK_AUTH_TOKEN,
-  TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
-  TWILIO_MESSAGING_SERVICE_SID: process.env.TWILIO_MESSAGING_SERVICE_SID,
-  TWILIO_PROXY_SERVICE_SID: process.env.TWILIO_PROXY_SERVICE_SID, // Gate 2: For masking/routing
-  TWILIO_WEBHOOK_URL: process.env.TWILIO_WEBHOOK_URL,
-  // Base URL for webhooks (falls back to NEXT_PUBLIC_APP_URL)
-  WEBHOOK_BASE_URL: process.env.WEBHOOK_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-  PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-  // Auth configuration (optional until flags enabled)
-  // Trim whitespace/newlines from NEXTAUTH_URL (common Render issue)
-  NEXTAUTH_URL: (process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").trim(),
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-secret-key-change-in-production' : undefined),
-  // Chaos mode (staging/dev only, requires explicit opt-in)
-  ALLOW_CHAOS_MODE: process.env.ALLOW_CHAOS_MODE,
-  // Google Calendar OAuth (optional)
-  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-} as const;
+function forceEnabledInProduction(explicit: boolean, isProduction: boolean): boolean {
+  return isProduction ? true : explicit;
+}
 
-export function validateEnv() {
+export function validateEnv(runtimeEnv: NodeJS.ProcessEnv = process.env) {
+  const nodeEnv = runtimeEnv.NODE_ENV || 'development';
+  const isProduction = nodeEnv === 'production';
   const missing: string[] = [];
+  const warnings: string[] = [];
 
-  for (const [key, value] of Object.entries(requiredEnvVars)) {
-    if (!value) {
-      missing.push(key);
+  const enableAuthProtection = forceEnabledInProduction(
+    parseBoolean(runtimeEnv.ENABLE_AUTH_PROTECTION, false),
+    isProduction
+  );
+  const enablePermissionChecks = forceEnabledInProduction(
+    parseBoolean(runtimeEnv.ENABLE_PERMISSION_CHECKS, false),
+    isProduction
+  );
+  const enableWebhookValidation = forceEnabledInProduction(
+    parseBoolean(runtimeEnv.ENABLE_WEBHOOK_VALIDATION, true),
+    isProduction
+  );
+
+  const nextAuthSecret = runtimeEnv.NEXTAUTH_SECRET;
+  const stripeWebhookSecret = runtimeEnv.STRIPE_WEBHOOK_SECRET;
+  const twilioAuthToken = runtimeEnv.TWILIO_AUTH_TOKEN;
+  const twilioWebhookAuthToken = runtimeEnv.TWILIO_WEBHOOK_AUTH_TOKEN;
+
+  const stripeRoutesEnabled =
+    parseBoolean(runtimeEnv.ENABLE_STRIPE_WEBHOOKS, false) ||
+    Boolean(runtimeEnv.STRIPE_SECRET_KEY) ||
+    Boolean(stripeWebhookSecret);
+  const twilioRoutesEnabled =
+    parseBoolean(runtimeEnv.ENABLE_TWILIO_WEBHOOKS, false) ||
+    parseBoolean(runtimeEnv.ENABLE_MESSAGING_V1, false) ||
+    Boolean(runtimeEnv.TWILIO_ACCOUNT_SID) ||
+    Boolean(runtimeEnv.TWILIO_PHONE_NUMBER);
+
+  if (!runtimeEnv.DATABASE_URL) {
+    missing.push('DATABASE_URL');
+  }
+
+  if (isProduction) {
+    if (!nextAuthSecret) {
+      missing.push('NEXTAUTH_SECRET');
+    } else if (nextAuthSecret.length < 32) {
+      missing.push('NEXTAUTH_SECRET (must be >= 32 chars)');
+    }
+    if (stripeRoutesEnabled && !stripeWebhookSecret) {
+      missing.push('STRIPE_WEBHOOK_SECRET (required when Stripe routes are enabled)');
+    }
+    if (twilioRoutesEnabled && !twilioAuthToken) {
+      missing.push('TWILIO_AUTH_TOKEN (required when Twilio routes are enabled)');
+    }
+    if (twilioRoutesEnabled && !twilioWebhookAuthToken) {
+      missing.push('TWILIO_WEBHOOK_AUTH_TOKEN (required when Twilio routes are enabled)');
+    }
+  } else {
+    if (!nextAuthSecret) {
+      warnings.push('NEXTAUTH_SECRET is not set (allowed outside production).');
+    }
+    if (stripeRoutesEnabled && !stripeWebhookSecret) {
+      warnings.push('STRIPE_WEBHOOK_SECRET is not set (Stripe signature checks may be bypassed).');
+    }
+    if (twilioRoutesEnabled && (!twilioAuthToken || !twilioWebhookAuthToken)) {
+      warnings.push('Twilio tokens are incomplete (webhook signature checks may be bypassed).');
     }
   }
 
   if (missing.length > 0) {
-    console.warn(
-      `⚠️  Missing required environment variables: ${missing.join(", ")}\n` +
-      "Please check your .env file or .env.local file"
+    throw new Error(
+      `Missing required environment variables: ${missing.join(', ')}`
     );
-    // Don't throw - allow app to start but log warning
-    // Individual API routes will handle missing env vars gracefully
+  }
+
+  if (warnings.length > 0) {
+    console.warn(warnings.join('\n'));
   }
 
   return {
-    ...requiredEnvVars,
-    ...optionalEnvVars,
+    NODE_ENV: nodeEnv,
+    DATABASE_URL: runtimeEnv.DATABASE_URL,
+    PORT: runtimeEnv.PORT || '3000',
+    NEXT_PUBLIC_APP_URL: runtimeEnv.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    NEXT_PUBLIC_BASE_URL: runtimeEnv.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+    NEXT_PUBLIC_PERSONAL_MODE: parseBoolean(runtimeEnv.NEXT_PUBLIC_PERSONAL_MODE, false),
+    PERSONAL_ORG_ID: runtimeEnv.PERSONAL_ORG_ID || 'default',
+    PERSONAL_BRAND_NAME: runtimeEnv.PERSONAL_BRAND_NAME,
+    PERSONAL_PRIMARY_COLOR: runtimeEnv.PERSONAL_PRIMARY_COLOR,
+    OPENPHONE_NUMBER_ID: runtimeEnv.OPENPHONE_NUMBER_ID,
+    OPENPHONE_WEBHOOK_SECRET: runtimeEnv.OPENPHONE_WEBHOOK_SECRET,
+    STRIPE_SECRET_KEY: runtimeEnv.STRIPE_SECRET_KEY,
+    STRIPE_PUBLISHABLE_KEY: runtimeEnv.STRIPE_PUBLISHABLE_KEY,
+    STRIPE_WEBHOOK_SECRET: stripeWebhookSecret,
+    REDIS_URL: runtimeEnv.REDIS_URL || 'redis://localhost:6379',
+    S3_BUCKET: runtimeEnv.S3_BUCKET,
+    S3_REGION: runtimeEnv.S3_REGION,
+    S3_ACCESS_KEY_ID: runtimeEnv.S3_ACCESS_KEY_ID,
+    S3_SECRET_ACCESS_KEY: runtimeEnv.S3_SECRET_ACCESS_KEY,
+    OWNER_PHONE: runtimeEnv.OWNER_PHONE,
+    OWNER_PERSONAL_PHONE: runtimeEnv.OWNER_PERSONAL_PHONE,
+    OWNER_OPENPHONE_PHONE: runtimeEnv.OWNER_OPENPHONE_PHONE,
+    ENABLE_AUTH_PROTECTION: enableAuthProtection,
+    ENABLE_SITTER_AUTH: parseBoolean(runtimeEnv.ENABLE_SITTER_AUTH, false),
+    ENABLE_PERMISSION_CHECKS: enablePermissionChecks,
+    ENABLE_WEBHOOK_VALIDATION: enableWebhookValidation,
+    ENABLE_FORM_MAPPER_V1: parseBoolean(runtimeEnv.ENABLE_FORM_MAPPER_V1, false),
+    USE_PRICING_ENGINE_V1: parseBoolean(runtimeEnv.USE_PRICING_ENGINE_V1, false),
+    ENABLE_MESSAGING_V1: parseBoolean(runtimeEnv.ENABLE_MESSAGING_V1, false),
+    ENABLE_PROACTIVE_THREAD_CREATION: parseBoolean(runtimeEnv.ENABLE_PROACTIVE_THREAD_CREATION, false),
+    ENABLE_SITTER_MESSAGES_V1: parseBoolean(runtimeEnv.ENABLE_SITTER_MESSAGES_V1, false),
+    ENABLE_DEBUG_ENDPOINTS: parseBoolean(runtimeEnv.ENABLE_DEBUG_ENDPOINTS, false),
+    TWILIO_ACCOUNT_SID: runtimeEnv.TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN: twilioAuthToken,
+    TWILIO_WEBHOOK_AUTH_TOKEN: twilioWebhookAuthToken,
+    TWILIO_PHONE_NUMBER: runtimeEnv.TWILIO_PHONE_NUMBER,
+    TWILIO_MESSAGING_SERVICE_SID: runtimeEnv.TWILIO_MESSAGING_SERVICE_SID,
+    TWILIO_PROXY_SERVICE_SID: runtimeEnv.TWILIO_PROXY_SERVICE_SID,
+    TWILIO_WEBHOOK_URL: runtimeEnv.TWILIO_WEBHOOK_URL,
+    WEBHOOK_BASE_URL:
+      runtimeEnv.WEBHOOK_BASE_URL ||
+      runtimeEnv.NEXT_PUBLIC_BASE_URL ||
+      runtimeEnv.NEXT_PUBLIC_APP_URL ||
+      'http://localhost:3000',
+    PUBLIC_BASE_URL:
+      runtimeEnv.PUBLIC_BASE_URL ||
+      runtimeEnv.NEXT_PUBLIC_BASE_URL ||
+      runtimeEnv.NEXT_PUBLIC_APP_URL ||
+      'http://localhost:3000',
+    NEXTAUTH_URL: (runtimeEnv.NEXTAUTH_URL || runtimeEnv.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').trim(),
+    NEXTAUTH_SECRET: nextAuthSecret,
+    ALLOW_CHAOS_MODE: runtimeEnv.ALLOW_CHAOS_MODE,
+    GOOGLE_CLIENT_ID: runtimeEnv.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: runtimeEnv.GOOGLE_CLIENT_SECRET,
+    STRIPE_ROUTES_ENABLED: stripeRoutesEnabled,
+    TWILIO_ROUTES_ENABLED: twilioRoutesEnabled,
+    IS_PRODUCTION: isProduction,
   };
 }
 
-// Export validated environment (will warn but not throw if invalid)
 export const env = validateEnv();
 
 
