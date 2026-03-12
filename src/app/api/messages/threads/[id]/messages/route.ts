@@ -11,6 +11,7 @@ import { getScopedDb } from '@/lib/tenancy';
 import { checkRateLimit, getRateLimitIdentifier } from '@/lib/rate-limit';
 import { getRequestContext } from '@/lib/request-context';
 import { sendThreadMessage, assertMessagingThreadAccess, asMessagingActorRole } from '@/lib/messaging/send';
+import { parseDate, parsePage, parsePageSize } from '@/lib/pagination';
 
 /** Map MessageEvent to Message shape expected by InboxView (deliveries array) */
 function messageEventToMessage(ev: {
@@ -51,8 +52,12 @@ function messageEventToMessage(ev: {
   };
 }
 
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 200;
+const MESSAGE_ACCEPT_RATE_LIMIT_PER_MINUTE = Number(process.env.MESSAGE_ACCEPT_RATE_LIMIT_PER_MINUTE || "6000");
+
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const params = await context.params;
@@ -95,17 +100,56 @@ export async function GET(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const events = await db.messageEvent.findMany({
-    where: { threadId },
-    orderBy: { createdAt: 'asc' },
-  });
+  const url = (request as NextRequest).nextUrl ?? new URL(request.url);
+  const paramsSearch = url.searchParams;
+  const page = parsePage(paramsSearch.get('page'), 1);
+  const pageSize = parsePageSize(paramsSearch.get('pageSize'), DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+  const from = parseDate(paramsSearch.get('from'));
+  const to = parseDate(paramsSearch.get('to'));
+  const direction = paramsSearch.get('direction');
 
-  const messages = events.map((ev) => messageEventToMessage(ev));
+  const where: Record<string, any> = { threadId };
+  if (from || to) {
+    where.createdAt = {
+      ...(from ? { gte: from } : {}),
+      ...(to ? { lte: to } : {}),
+    };
+  }
+  if (direction === 'inbound' || direction === 'outbound') {
+    where.direction = direction;
+  }
 
-  return NextResponse.json(messages, {
-    status: 200,
-    headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': ctx.orgId },
-  });
+  const [total, events] = await Promise.all([
+    db.messageEvent.count({ where }),
+    db.messageEvent.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+  ]);
+
+  const messages = events.map((ev) => messageEventToMessage(ev)).reverse();
+
+  return NextResponse.json(
+    {
+      items: messages,
+      page,
+      pageSize,
+      total,
+      hasMore: page * pageSize < total,
+      sort: { field: 'createdAt', direction: 'desc' },
+      filters: {
+        from: from?.toISOString() ?? null,
+        to: to?.toISOString() ?? null,
+        direction: direction ?? null,
+      },
+    },
+    {
+      status: 200,
+      headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': ctx.orgId },
+    }
+  );
 }
 
 export async function POST(
@@ -115,15 +159,6 @@ export async function POST(
   const params = await context.params;
   const threadId = params.id;
 
-  const id = getRateLimitIdentifier(request);
-  const rl = await checkRateLimit(id, { keyPrefix: 'messages-send', limit: 30, windowSec: 60 });
-  if (!rl.success) {
-    return NextResponse.json(
-      { error: 'Too many requests', retryAfter: rl.retryAfter },
-      { status: 429, headers: { 'Retry-After': String(rl.retryAfter ?? 60) } }
-    );
-  }
-
   let ctx;
   try {
     ctx = await getRequestContext();
@@ -131,12 +166,26 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const id = getRateLimitIdentifier(request);
+  const scopedIdentifier = ctx.userId ? `${id}:${ctx.orgId}:${ctx.userId}` : id;
+  const rl = await checkRateLimit(scopedIdentifier, {
+    keyPrefix: 'messages-accept',
+    limit: Math.max(300, MESSAGE_ACCEPT_RATE_LIMIT_PER_MINUTE),
+    windowSec: 60,
+  });
+  if (!rl.success) {
+    return NextResponse.json(
+      { accepted: false, queued: false, error: 'Too many requests', retryAfter: rl.retryAfter },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter ?? 60) } }
+    );
+  }
+
   let body: { body: string; forceSend?: boolean };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: 'Invalid request body' },
+      { accepted: false, queued: false, error: 'Invalid request body' },
       { status: 400 }
     );
   }
@@ -144,7 +193,7 @@ export async function POST(
   const messageBody = body.body?.trim();
   if (!messageBody) {
     return NextResponse.json(
-      { error: 'Message body cannot be empty' },
+      { accepted: false, queued: false, error: 'Message body cannot be empty' },
       { status: 400 }
     );
   }
@@ -152,6 +201,7 @@ export async function POST(
   try {
     const role = asMessagingActorRole(ctx.role);
     if (!role) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const idempotencyKey = request.headers.get('Idempotency-Key') ?? request.headers.get('idempotency-key') ?? undefined;
     const result = await sendThreadMessage({
       orgId: ctx.orgId,
       threadId,
@@ -163,44 +213,46 @@ export async function POST(
       },
       body: messageBody,
       forceSend: body.forceSend,
+      idempotencyKey,
     });
-    if (result.deliveryStatus === 'failed') {
-      return NextResponse.json(
-        {
-          messageId: result.event.id,
-          hasPolicyViolation: false,
-          error: result.providerErrorMessage ?? 'Failed to send message',
-          errorCode: result.providerErrorCode,
-          twilioError: { code: result.providerErrorCode, message: result.providerErrorMessage },
-        },
-        { status: 500 }
-      );
-    }
+
     return NextResponse.json(
       {
+        accepted: result.accepted,
+        queued: result.queued,
+        replay: result.replay,
         messageId: result.event.id,
+        messageEventId: result.messageEventId,
         providerMessageSid: result.providerMessageSid,
         hasPolicyViolation: false,
+        handoff: result.handoffMeta?.mode ?? (result.queued ? 'async' : 'sync'),
+        handoffMeta: result.handoffMeta ?? null,
       },
       {
-        status: 200,
+        status: result.accepted ? (result.queued ? 202 : 200) : 503,
         headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': ctx.orgId },
       }
     );
   } catch (error: any) {
     const message = String(error?.message ?? '');
     if (message.startsWith('Forbidden')) {
-      return NextResponse.json({ error: message }, { status: 403 });
+      return NextResponse.json({ accepted: false, queued: false, error: message }, { status: 403 });
     }
     if (message.includes('not found')) {
-      return NextResponse.json({ error: message }, { status: 404 });
+      return NextResponse.json({ accepted: false, queued: false, error: message }, { status: 404 });
     }
     if (message.includes('cannot be empty') || message.includes('contact') || message.includes('no client')) {
-      return NextResponse.json({ error: message }, { status: 400 });
+      return NextResponse.json({ accepted: false, queued: false, error: message }, { status: 400 });
+    }
+    if (message.includes('queue unavailable') || message.includes('queue enqueue failed')) {
+      return NextResponse.json(
+        { accepted: false, queued: false, error: 'Message handoff unavailable', reason: message },
+        { status: 503 }
+      );
     }
     console.error('[Messaging Send] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to send message', details: error.message },
+      { accepted: false, queued: false, error: 'Failed to send message', details: error.message },
       { status: 500 }
     );
   }

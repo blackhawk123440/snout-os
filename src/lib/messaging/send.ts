@@ -1,11 +1,20 @@
-import { getScopedDb } from '@/lib/tenancy';
-import { chooseFromNumber } from '@/lib/messaging/choose-from-number';
-import { getClientE164ForClient } from '@/lib/messaging/client-contact-lookup';
-import { getMessagingProvider } from '@/lib/messaging/provider-factory';
-import { logEvent } from '@/lib/log-event';
-import { publish, channels } from '@/lib/realtime/bus';
+import { getScopedDb } from "@/lib/tenancy";
+import { chooseFromNumber } from "@/lib/messaging/choose-from-number";
+import { getClientE164ForClient } from "@/lib/messaging/client-contact-lookup";
+import { getMessagingProvider } from "@/lib/messaging/provider-factory";
+import { enqueueOutboundMessage, getOutboundQueuePressure, isOutboundQueueAvailable } from "@/lib/messaging/outbound-queue";
+import { checkRateLimit } from "@/lib/rate-limit";
+import {
+  getProviderPressureState,
+  recordProviderSendSuccess,
+  recordProviderTransientFailure,
+  shouldForceQueuedOnly,
+} from "@/lib/messaging/provider-pressure";
+import { logEvent } from "@/lib/log-event";
+import { publish, channels } from "@/lib/realtime/bus";
+import type { SendMessageResult } from "@/lib/messaging/provider";
 
-export type MessagingActorRole = 'owner' | 'admin' | 'sitter' | 'client' | 'system' | 'automation';
+export type MessagingActorRole = "owner" | "admin" | "sitter" | "client" | "system" | "automation";
 
 export interface MessagingActor {
   role: MessagingActorRole;
@@ -16,12 +25,12 @@ export interface MessagingActor {
 
 export function asMessagingActorRole(role: string): MessagingActorRole | null {
   if (
-    role === 'owner' ||
-    role === 'admin' ||
-    role === 'sitter' ||
-    role === 'client' ||
-    role === 'system' ||
-    role === 'automation'
+    role === "owner" ||
+    role === "admin" ||
+    role === "sitter" ||
+    role === "client" ||
+    role === "system" ||
+    role === "automation"
   ) {
     return role;
   }
@@ -46,48 +55,293 @@ export function assertMessagingThreadAccess(
   actor: MessagingActor,
   requireActiveWindow: boolean
 ) {
-  if (actor.role === 'owner' || actor.role === 'admin' || actor.role === 'system' || actor.role === 'automation') {
+  if (actor.role === "owner" || actor.role === "admin" || actor.role === "system" || actor.role === "automation") {
     return;
   }
 
-  if (actor.role === 'client') {
+  if (actor.role === "client") {
     if (!actor.clientId || thread.clientId !== actor.clientId) {
-      throw new Error('Forbidden: client cannot access this thread');
+      throw new Error("Forbidden: client cannot access this thread");
     }
     return;
   }
 
-  if (actor.role === 'sitter') {
-    if (!actor.sitterId) throw new Error('Forbidden: sitter context required');
+  if (actor.role === "sitter") {
+    if (!actor.sitterId) throw new Error("Forbidden: sitter context required");
     const activeWindow = thread.assignmentWindows[0];
     const isAssignedSitter = thread.assignedSitterId === actor.sitterId;
     const hasWindow = !!activeWindow && activeWindow.sitterId === actor.sitterId;
     if (!isAssignedSitter && !hasWindow) {
-      throw new Error('Forbidden: sitter cannot access this thread');
+      throw new Error("Forbidden: sitter cannot access this thread");
     }
     if (requireActiveWindow) {
       if (!activeWindow || activeWindow.sitterId !== actor.sitterId) {
-        throw new Error('Forbidden: no active assignment window');
+        throw new Error("Forbidden: no active assignment window");
       }
       const now = new Date();
       if (now < activeWindow.startAt || now > activeWindow.endAt) {
-        throw new Error('Forbidden: assignment window not active');
+        throw new Error("Forbidden: assignment window not active");
       }
     }
     return;
   }
 
-  throw new Error('Forbidden');
+  throw new Error("Forbidden");
 }
 
-function actorTypeForEvent(role: MessagingActorRole): 'client' | 'sitter' | 'owner' | 'system' | 'automation' {
-  if (role === 'admin') return 'owner';
+function actorTypeForEvent(role: MessagingActorRole): "client" | "sitter" | "owner" | "system" | "automation" {
+  if (role === "admin") return "owner";
   return role;
 }
 
 function normalizeProviderErrorCode(code: unknown): string {
-  if (code === null || code === undefined || code === '') return 'UNKNOWN_ERROR';
+  if (code === null || code === undefined || code === "") return "UNKNOWN_ERROR";
   return String(code);
+}
+
+const SEND_PROVIDER_TIMEOUT_MS = Number(process.env.MESSAGE_SEND_PROVIDER_TIMEOUT_MS || "8000");
+const MESSAGE_SEND_ALLOW_FORCE_SYNC = process.env.MESSAGE_SEND_ALLOW_FORCE_SYNC === "true";
+const MESSAGE_PROVIDER_DISPATCH_LIMIT_PER_MINUTE = Number(process.env.MESSAGE_PROVIDER_DISPATCH_LIMIT_PER_MINUTE || "2400");
+const MESSAGE_PROVIDER_RETRY_LIMIT_PER_MINUTE = Number(process.env.MESSAGE_PROVIDER_RETRY_LIMIT_PER_MINUTE || "1200");
+const RETRYABLE_PROVIDER_CODES = new Set(["20429", "429", "ETIMEDOUT", "ECONNRESET", "EAI_AGAIN", "UNKNOWN_ERROR"]);
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
+  let timeoutId: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  }) as Promise<T>;
+}
+
+function isRetryableProviderFailure(providerErrorCode: string | null, providerErrorMessage: string | null): boolean {
+  const code = normalizeProviderErrorCode(providerErrorCode);
+  if (RETRYABLE_PROVIDER_CODES.has(code)) return true;
+  const msg = String(providerErrorMessage || "").toLowerCase();
+  return msg.includes("rate") || msg.includes("throttle") || msg.includes("timeout") || msg.includes("tempor");
+}
+
+function safeIdempotencyFragment(raw: string): string {
+  return raw.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function buildMetadataJson(input: { idempotencyKey?: string; handoff: "sync" | "async" | "none" }): string {
+  return JSON.stringify({
+    handoff: input.handoff,
+    idempotencyKey: input.idempotencyKey || null,
+  });
+}
+
+export class RetryableProviderDeliveryError extends Error {
+  code: string;
+  constructor(message: string, code: string) {
+    super(message);
+    this.name = "RetryableProviderDeliveryError";
+    this.code = code;
+  }
+}
+
+type DeliveryStatus = "queued" | "sent" | "delivered" | "failed";
+
+export interface MessageHandoffMeta {
+  mode: "async" | "sync" | "none";
+  providerDegraded: boolean;
+  queueUnderPressure: boolean;
+}
+
+export interface SendThreadMessageResult {
+  accepted: boolean;
+  queued: boolean;
+  replay: boolean;
+  event: {
+    id: string;
+    threadId: string;
+    deliveryStatus: string;
+    body?: string;
+    direction?: string;
+    actorType?: string;
+    createdAt?: Date;
+    providerMessageSid?: string | null;
+    providerErrorCode?: string | null;
+    providerErrorMessage?: string | null;
+  };
+  messageId: string;
+  messageEventId: string;
+  deliveryStatus: DeliveryStatus;
+  providerMessageSid: string | null;
+  providerErrorCode: string | null;
+  providerErrorMessage: string | null;
+  handoffMeta: MessageHandoffMeta;
+}
+
+async function checkDispatchLimiter(orgId: string, attemptNo: number): Promise<void> {
+  const isRetry = attemptNo > 1;
+  const rl = await checkRateLimit(`${orgId}:twilio`, {
+    keyPrefix: isRetry ? "messages-provider-retry" : "messages-provider-dispatch",
+    limit: Math.max(100, isRetry ? MESSAGE_PROVIDER_RETRY_LIMIT_PER_MINUTE : MESSAGE_PROVIDER_DISPATCH_LIMIT_PER_MINUTE),
+    windowSec: 60,
+  });
+  if (!rl.success) {
+    throw new RetryableProviderDeliveryError(
+      `provider dispatch throttled (${isRetry ? "retry" : "primary"})`,
+      "DISPATCH_RATE_LIMITED"
+    );
+  }
+}
+
+export async function dispatchMessageEventDelivery(params: {
+  orgId: string;
+  messageEventId: string;
+  throwOnRetryable?: boolean;
+  attempt?: number;
+  maxAttempts?: number;
+}): Promise<{
+  deliveryStatus: DeliveryStatus;
+  providerMessageSid: string | null;
+  providerErrorCode: string | null;
+  providerErrorMessage: string | null;
+  retryable: boolean;
+}> {
+  const db = getScopedDb({ orgId: params.orgId });
+  const event = await db.messageEvent.findUnique({
+    where: { id: params.messageEventId },
+    include: {
+      thread: {
+        select: {
+          id: true,
+          clientId: true,
+        },
+      },
+    },
+  });
+  if (!event) throw new Error("Message not found");
+  if (event.direction !== "outbound") throw new Error("Cannot dispatch inbound message");
+  if (!event.thread?.clientId) throw new Error("Thread has no client");
+
+  if ((event.deliveryStatus === "sent" || event.deliveryStatus === "delivered") && event.providerMessageSid) {
+    return {
+      deliveryStatus: event.deliveryStatus as DeliveryStatus,
+      providerMessageSid: event.providerMessageSid,
+      providerErrorCode: event.providerErrorCode ?? null,
+      providerErrorMessage: event.providerErrorMessage ?? null,
+      retryable: false,
+    };
+  }
+
+  const [routingResult, toE164, provider] = await Promise.all([
+    chooseFromNumber(event.threadId, params.orgId),
+    getClientE164ForClient(params.orgId, event.thread.clientId),
+    getMessagingProvider(params.orgId),
+  ]);
+  if (!toE164) throw new Error("Client contact not found");
+  const attemptNo = Math.max(1, params.attempt ?? ((event.attemptCount ?? 0) + 1));
+  const maxAttempts = Math.max(1, params.maxAttempts ?? 1);
+
+  await checkDispatchLimiter(params.orgId, attemptNo);
+
+  const sendResult: SendMessageResult = await withTimeout(
+    provider.sendMessage({
+      to: toE164,
+      fromE164: routingResult.e164,
+      fromNumberSid: undefined,
+      body: event.body,
+    }),
+    SEND_PROVIDER_TIMEOUT_MS,
+    `provider timeout after ${SEND_PROVIDER_TIMEOUT_MS}ms`
+  ).catch((error: unknown) => ({
+    success: false,
+    errorCode: "ETIMEDOUT",
+    errorMessage: error instanceof Error ? error.message : "Provider timeout",
+    messageSid: undefined,
+  }));
+
+  const providerErrorCode = sendResult.success ? null : normalizeProviderErrorCode(sendResult.errorCode);
+  const providerErrorMessage = sendResult.success
+    ? null
+    : sendResult.errorMessage ?? "Failed to send message";
+  const retryable = !sendResult.success && isRetryableProviderFailure(providerErrorCode, providerErrorMessage);
+
+  let deliveryStatus: DeliveryStatus = sendResult.success ? "sent" : "failed";
+  if (retryable) {
+    deliveryStatus = "queued";
+  }
+  if (retryable && params.throwOnRetryable && attemptNo >= maxAttempts) {
+    deliveryStatus = "failed";
+  }
+
+  const updated = await db.messageEvent.update({
+    where: { id: event.id },
+    data: {
+      deliveryStatus,
+      providerMessageSid: sendResult.messageSid ?? event.providerMessageSid,
+      failureCode: sendResult.success ? null : providerErrorCode,
+      failureDetail: sendResult.success ? null : providerErrorMessage,
+      providerErrorCode: sendResult.success ? null : providerErrorCode,
+      providerErrorMessage: sendResult.success ? null : providerErrorMessage,
+      attemptCount: attemptNo,
+      lastAttemptAt: new Date(),
+    },
+  });
+
+  const action = updated.deliveryStatus === "sent" ? "message.sent" : updated.deliveryStatus === "queued" ? "message.queued" : "message.failed";
+  void logEvent({
+    orgId: params.orgId,
+    action,
+    entityType: "message",
+    entityId: updated.id,
+    metadata: {
+      threadId: updated.threadId,
+      retryable,
+      attemptNo,
+      providerMessageSid: updated.providerMessageSid,
+      providerErrorCode,
+      providerErrorMessage,
+    },
+  });
+  void publish(channels.messagesThread(params.orgId, updated.threadId), {
+    type: updated.deliveryStatus === "sent" ? "message.new" : "message.updated",
+    threadId: updated.threadId,
+    messageId: updated.id,
+    ts: Date.now(),
+  }).catch(() => {});
+
+  if (sendResult.success) {
+    await recordProviderSendSuccess({ provider: "twilio", orgId: params.orgId });
+  } else if (retryable) {
+    const pressure = await recordProviderTransientFailure({
+      provider: "twilio",
+      orgId: params.orgId,
+      code: providerErrorCode ?? "UNKNOWN_ERROR",
+      message: providerErrorMessage,
+    });
+    if (pressure.forcedQueuedOnly) {
+      void logEvent({
+        orgId: params.orgId,
+        action: "message.provider.degraded",
+        entityType: "message",
+        entityId: updated.id,
+        metadata: {
+          reason: pressure.reason,
+          transientFailureCount: pressure.transientFailureCount,
+          degradedUntil: pressure.degradedUntil,
+          recentFailureCodes: pressure.recentFailureCodes,
+        },
+      });
+    }
+  }
+
+  if (retryable && params.throwOnRetryable && attemptNo < maxAttempts) {
+    throw new RetryableProviderDeliveryError(providerErrorMessage ?? "Retryable provider failure", providerErrorCode ?? "UNKNOWN_ERROR");
+  }
+
+  return {
+    deliveryStatus,
+    providerMessageSid: updated.providerMessageSid ?? null,
+    providerErrorCode,
+    providerErrorMessage,
+    retryable,
+  };
 }
 
 export async function sendThreadMessage(params: {
@@ -96,7 +350,8 @@ export async function sendThreadMessage(params: {
   actor: MessagingActor;
   body: string;
   forceSend?: boolean;
-}) {
+  idempotencyKey?: string;
+}): Promise<SendThreadMessageResult> {
   const db = getScopedDb({ orgId: params.orgId });
   const thread = await db.messageThread.findUnique({
     where: { id: params.threadId },
@@ -114,53 +369,87 @@ export async function sendThreadMessage(params: {
     },
   });
 
-  if (!thread) throw new Error('Thread not found');
-  assertMessagingThreadAccess(thread, params.actor, params.actor.role === 'sitter');
+  if (!thread) throw new Error("Thread not found");
+  assertMessagingThreadAccess(thread, params.actor, params.actor.role === "sitter");
 
   const messageBody = params.body.trim();
-  if (!messageBody) throw new Error('Message body cannot be empty');
+  if (!messageBody) throw new Error("Message body cannot be empty");
 
-  let deliveryStatus: 'queued' | 'sent' | 'delivered' | 'failed' = 'sent';
-  let providerMessageSid: string | null = null;
-  let providerErrorCode: string | null = null;
-  let providerErrorMessage: string | null = null;
-
-  const shouldDispatchProvider = params.actor.role !== 'client';
-  if (shouldDispatchProvider) {
-    if (!thread.clientId) throw new Error('Thread has no client');
-    const routingResult = await chooseFromNumber(params.threadId, params.orgId);
-    const toE164 = await getClientE164ForClient(params.orgId, thread.clientId);
-    if (!toE164) throw new Error('Client contact not found');
-    const provider = await getMessagingProvider(params.orgId);
-    const sendResult = await provider.sendMessage({
-      to: toE164,
-      fromE164: routingResult.e164,
-      fromNumberSid: undefined,
-      body: messageBody,
+  const eventActorType = actorTypeForEvent(params.actor.role);
+  const idempotencyKey = params.idempotencyKey?.trim() || undefined;
+  if (idempotencyKey) {
+    const existing = await db.messageEvent.findFirst({
+      where: {
+        threadId: params.threadId,
+        orgId: params.orgId,
+        direction: "outbound",
+        actorType: eventActorType,
+        body: messageBody,
+        metadataJson: { contains: `"idempotencyKey":"${safeIdempotencyFragment(idempotencyKey)}"` },
+      },
+      orderBy: { createdAt: "desc" },
     });
-    deliveryStatus = sendResult.success ? 'sent' : 'failed';
-    providerMessageSid = sendResult.messageSid ?? null;
-    providerErrorCode = sendResult.success ? null : normalizeProviderErrorCode(sendResult.errorCode);
-    providerErrorMessage = sendResult.success ? null : (sendResult.errorMessage ?? 'Failed to send message');
+    if (existing) {
+      return {
+        accepted: true,
+        queued: existing.deliveryStatus === "queued",
+        replay: true,
+        event: existing,
+        messageId: existing.id,
+        messageEventId: existing.id,
+        deliveryStatus: existing.deliveryStatus as DeliveryStatus,
+        providerMessageSid: existing.providerMessageSid ?? null,
+        providerErrorCode: existing.providerErrorCode ?? null,
+        providerErrorMessage: existing.providerErrorMessage ?? null,
+        handoffMeta: {
+          mode: existing.deliveryStatus === "queued" ? "async" : "sync",
+          providerDegraded: false,
+          queueUnderPressure: false,
+        },
+      };
+    }
   }
+
+  const shouldDispatchProvider = params.actor.role !== "client";
+  const queueAvailable = isOutboundQueueAvailable();
+  const forceSync = params.forceSend === true && MESSAGE_SEND_ALLOW_FORCE_SYNC;
+  const queuePressure = shouldDispatchProvider ? await getOutboundQueuePressure() : null;
+  const providerDegraded = shouldDispatchProvider
+    ? await shouldForceQueuedOnly({ provider: "twilio", orgId: params.orgId })
+    : false;
+  const queueUnderPressure = !!queuePressure?.forceQueuedOnly;
+  const enforceAsync = providerDegraded || queueUnderPressure;
+  const shouldAsyncHandoff =
+    shouldDispatchProvider &&
+    queueAvailable &&
+    (!forceSync || enforceAsync);
+
+  const providerPressureSnapshot = shouldDispatchProvider
+    ? await getProviderPressureState({ provider: "twilio", orgId: params.orgId })
+    : null;
+  const metadataJson = buildMetadataJson({
+    idempotencyKey,
+    handoff: shouldDispatchProvider ? (shouldAsyncHandoff ? "async" : "sync") : "none",
+  });
 
   const event = await db.messageEvent.create({
     data: {
       threadId: params.threadId,
       orgId: params.orgId,
-      direction: 'outbound',
-      actorType: actorTypeForEvent(params.actor.role),
-      actorUserId: params.actor.role === 'client' ? null : (params.actor.userId ?? null),
-      actorClientId: params.actor.role === 'client' ? (params.actor.clientId ?? null) : null,
+      direction: "outbound",
+      actorType: eventActorType,
+      actorUserId: params.actor.role === "client" ? null : (params.actor.userId ?? null),
+      actorClientId: params.actor.role === "client" ? (params.actor.clientId ?? null) : null,
       body: messageBody,
-      deliveryStatus,
-      providerMessageSid,
-      failureCode: providerErrorCode,
-      failureDetail: providerErrorMessage,
-      providerErrorCode,
-      providerErrorMessage,
-      attemptCount: 1,
-      lastAttemptAt: new Date(),
+      metadataJson,
+      deliveryStatus: shouldDispatchProvider ? "queued" : "sent",
+      providerMessageSid: null,
+      failureCode: null,
+      failureDetail: null,
+      providerErrorCode: null,
+      providerErrorMessage: null,
+      attemptCount: shouldDispatchProvider ? 0 : 1,
+      lastAttemptAt: shouldDispatchProvider ? null : new Date(),
     },
   });
 
@@ -169,40 +458,118 @@ export async function sendThreadMessage(params: {
     data: { lastMessageAt: new Date(), lastOutboundAt: new Date() },
   });
 
-  const actorUserId = params.actor.userId ?? undefined;
-  if (deliveryStatus === 'failed') {
-    await logEvent({
+  if (!shouldDispatchProvider) {
+    void logEvent({
       orgId: params.orgId,
-      actorUserId,
-      action: 'message.failed',
-      entityType: 'message',
+      actorUserId: params.actor.userId ?? undefined,
+      action: "message.sent",
+      entityType: "message",
       entityId: event.id,
-      metadata: { threadId: params.threadId, errorCode: providerErrorCode, errorMessage: providerErrorMessage },
+      metadata: { threadId: params.threadId, clientOriginated: true },
     });
-    await publish(channels.messagesThread(params.orgId, params.threadId), {
-      type: 'message.updated',
+    void publish(channels.messagesThread(params.orgId, params.threadId), {
+      type: "message.new",
       threadId: params.threadId,
       messageId: event.id,
       ts: Date.now(),
     }).catch(() => {});
-  } else {
-    await logEvent({
-      orgId: params.orgId,
-      actorUserId,
-      action: 'message.sent',
-      entityType: 'message',
-      entityId: event.id,
-      metadata: { threadId: params.threadId, providerMessageSid },
-    });
-    await publish(channels.messagesThread(params.orgId, params.threadId), {
-      type: 'message.new',
-      threadId: params.threadId,
+    return {
+      accepted: true,
+      queued: false,
+      replay: false,
+      event,
       messageId: event.id,
-      ts: Date.now(),
-    }).catch(() => {});
+      messageEventId: event.id,
+      deliveryStatus: "sent" as DeliveryStatus,
+      providerMessageSid: null,
+      providerErrorCode: null,
+      providerErrorMessage: null,
+      handoffMeta: {
+        mode: "none",
+        providerDegraded: false,
+        queueUnderPressure: false,
+      },
+    };
   }
 
-  return { event, deliveryStatus, providerMessageSid, providerErrorCode, providerErrorMessage };
+  if (!queueAvailable) {
+    throw new Error("Message queue unavailable");
+  }
+
+  if (shouldAsyncHandoff) {
+    const enqueued = await enqueueOutboundMessage({
+      orgId: params.orgId,
+      messageEventId: event.id,
+    });
+    if (enqueued) {
+      void logEvent({
+        orgId: params.orgId,
+        actorUserId: params.actor.userId ?? undefined,
+        action: "message.queued",
+        entityType: "message",
+        entityId: event.id,
+        metadata: {
+          threadId: params.threadId,
+          handoff: "async",
+          providerThrottleClass: providerDegraded ? "degraded-mode" : queueUnderPressure ? "queue-pressure" : "deferred",
+          providerDegraded,
+          queuePressure,
+          providerPressure: providerPressureSnapshot,
+        },
+      });
+      void publish(channels.messagesThread(params.orgId, params.threadId), {
+        type: "message.updated",
+        threadId: params.threadId,
+        messageId: event.id,
+        ts: Date.now(),
+      }).catch(() => {});
+      return {
+        accepted: true,
+        queued: true,
+        replay: false,
+        event,
+        messageId: event.id,
+        messageEventId: event.id,
+        deliveryStatus: "queued" as DeliveryStatus,
+        providerMessageSid: null,
+        providerErrorCode: null,
+        providerErrorMessage: null,
+        handoffMeta: {
+          mode: "async",
+          providerDegraded,
+          queueUnderPressure,
+        },
+      };
+    }
+    throw new Error("Message queue enqueue failed");
+  }
+
+  const dispatch = await dispatchMessageEventDelivery({
+    orgId: params.orgId,
+    messageEventId: event.id,
+    throwOnRetryable: false,
+    attempt: 1,
+    maxAttempts: 1,
+  });
+  const refreshed = await db.messageEvent.findUnique({ where: { id: event.id } });
+
+  return {
+    accepted: true,
+    queued: dispatch.deliveryStatus === "queued",
+    replay: false,
+    event: refreshed ?? event,
+    messageId: (refreshed ?? event).id,
+    messageEventId: (refreshed ?? event).id,
+    deliveryStatus: dispatch.deliveryStatus,
+    providerMessageSid: dispatch.providerMessageSid,
+    providerErrorCode: dispatch.providerErrorCode,
+    providerErrorMessage: dispatch.providerErrorMessage,
+    handoffMeta: {
+      mode: "sync",
+      providerDegraded,
+      queueUnderPressure,
+    },
+  };
 }
 
 export async function retryThreadMessage(params: {
@@ -231,63 +598,23 @@ export async function retryThreadMessage(params: {
     },
   });
 
-  if (!event) throw new Error('Message not found');
-  if (event.direction !== 'outbound') throw new Error('Cannot retry inbound message');
-  if (event.deliveryStatus !== 'failed') throw new Error('Message already succeeded');
-  assertMessagingThreadAccess(event.thread, params.actor, params.actor.role === 'sitter');
-  if (params.actor.role === 'client') throw new Error('Client cannot retry provider delivery');
-  if (!event.thread.clientId) throw new Error('Thread has no client');
+  if (!event) throw new Error("Message not found");
+  if (event.direction !== "outbound") throw new Error("Cannot retry inbound message");
+  assertMessagingThreadAccess(event.thread, params.actor, params.actor.role === "sitter");
+  if (params.actor.role === "client") throw new Error("Client cannot retry provider delivery");
+  if (!event.thread.clientId) throw new Error("Thread has no client");
 
-  const routingResult = await chooseFromNumber(event.thread.id, params.orgId);
-  const toE164 = await getClientE164ForClient(params.orgId, event.thread.clientId);
-  if (!toE164) throw new Error('Client contact not found');
-  const provider = await getMessagingProvider(params.orgId);
-  const sendResult = await provider.sendMessage({
-    to: toE164,
-    fromE164: routingResult.e164,
-    fromNumberSid: undefined,
-    body: event.body,
-  });
-  const attemptNo = (event.attemptCount ?? 1) + 1;
-
-  const updated = await db.messageEvent.update({
-    where: { id: params.messageId },
-    data: {
-      deliveryStatus: sendResult.success ? 'sent' : 'failed',
-      providerMessageSid: sendResult.messageSid ?? event.providerMessageSid,
-      failureCode: sendResult.success ? null : normalizeProviderErrorCode(sendResult.errorCode),
-      failureDetail: sendResult.success ? null : (sendResult.errorMessage ?? 'Retry failed'),
-      providerErrorCode: sendResult.success ? null : normalizeProviderErrorCode(sendResult.errorCode),
-      providerErrorMessage: sendResult.success ? null : (sendResult.errorMessage ?? 'Retry failed'),
-      attemptCount: attemptNo,
-      lastAttemptAt: new Date(),
-    },
-  });
-
-  await publish(channels.messagesThread(params.orgId, event.thread.id), {
-    type: 'message.updated',
-    threadId: event.thread.id,
-    messageId: event.id,
-    ts: Date.now(),
-  }).catch(() => {});
-
-  await logEvent({
+  const dispatch = await dispatchMessageEventDelivery({
     orgId: params.orgId,
-    actorUserId: params.actor.userId ?? undefined,
-    action: sendResult.success ? 'message.sent' : 'message.failed',
-    entityType: 'message',
-    entityId: event.id,
-    metadata: {
-      threadId: event.thread.id,
-      attemptNo,
-      success: sendResult.success,
-      providerMessageSid: sendResult.messageSid ?? null,
-      errorCode: sendResult.errorCode ?? null,
-      errorMessage: sendResult.errorMessage ?? null,
-    },
+    messageEventId: params.messageId,
+    throwOnRetryable: false,
+    attempt: Math.max(1, (event.attemptCount ?? 0) + 1),
+    maxAttempts: 1,
   });
+  const updated = await db.messageEvent.findUnique({ where: { id: params.messageId } });
+  const attemptNo = updated?.attemptCount ?? (event.attemptCount ?? 0) + 1;
 
-  return { updated, attemptNo, success: sendResult.success };
+  return { updated, attemptNo, success: dispatch.deliveryStatus === "sent" || dispatch.deliveryStatus === "delivered" };
 }
 
 export async function sendDirectMessage(params: {
@@ -317,17 +644,18 @@ export async function sendDirectMessage(params: {
     data: {
       threadId: params.threadId,
       orgId: params.orgId,
-      direction: 'outbound',
+      direction: "outbound",
       actorType: actorTypeForEvent(params.actor.role),
-      actorUserId: params.actor.role === 'client' ? null : (params.actor.userId ?? null),
-      actorClientId: params.actor.role === 'client' ? (params.actor.clientId ?? null) : null,
+      actorUserId: params.actor.role === "client" ? null : (params.actor.userId ?? null),
+      actorClientId: params.actor.role === "client" ? (params.actor.clientId ?? null) : null,
       body: params.body,
-      deliveryStatus: sendResult.success ? 'sent' : 'failed',
+      metadataJson: buildMetadataJson({ handoff: "sync" }),
+      deliveryStatus: sendResult.success ? "sent" : "failed",
       providerMessageSid: sendResult.messageSid ?? null,
       failureCode: sendResult.success ? null : normalizeProviderErrorCode(sendResult.errorCode),
-      failureDetail: sendResult.success ? null : (sendResult.errorMessage ?? 'Failed to send message'),
+      failureDetail: sendResult.success ? null : (sendResult.errorMessage ?? "Failed to send message"),
       providerErrorCode: sendResult.success ? null : normalizeProviderErrorCode(sendResult.errorCode),
-      providerErrorMessage: sendResult.success ? null : (sendResult.errorMessage ?? 'Failed to send message'),
+      providerErrorMessage: sendResult.success ? null : (sendResult.errorMessage ?? "Failed to send message"),
       attemptCount: 1,
       lastAttemptAt: new Date(),
     },
@@ -337,7 +665,7 @@ export async function sendDirectMessage(params: {
     data: { lastMessageAt: new Date(), lastOutboundAt: new Date() },
   });
   await publish(channels.messagesThread(params.orgId, params.threadId), {
-    type: sendResult.success ? 'message.new' : 'message.updated',
+    type: sendResult.success ? "message.new" : "message.updated",
     threadId: params.threadId,
     messageId: event.id,
     ts: Date.now(),

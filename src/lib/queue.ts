@@ -78,6 +78,10 @@ export async function initializeQueues() {
     initializeAutomationWorker();
     console.log("[Worker] Automations queue ready");
 
+    const { initializeOutboundMessageWorker } = await import("./messaging/outbound-queue");
+    initializeOutboundMessageWorker();
+    console.log("[Worker] Messaging outbound queue ready");
+
     // Calendar sync worker (one-way Snout → Google)
     const { initializeCalendarWorker } = await import("./calendar-queue");
     initializeCalendarWorker();
