@@ -4,6 +4,7 @@ import { chooseFromNumber } from "@/lib/messaging/choose-from-number";
 import { getClientE164ForClient } from "@/lib/messaging/client-contact-lookup";
 import { getMessagingProvider } from "@/lib/messaging/provider-factory";
 import { enqueueOutboundMessage, getOutboundQueuePressure, isOutboundQueueAvailable } from "@/lib/messaging/outbound-queue";
+import { enqueueThreadActivityUpdate, isThreadActivityQueueAvailable } from "@/lib/messaging/thread-activity-queue";
 import { checkRateLimit } from "@/lib/rate-limit";
 import {
   recordProviderSendSuccess,
@@ -104,7 +105,6 @@ const SEND_PREHANDOFF_PROBE_TIMEOUT_MS = Number(process.env.MESSAGE_SEND_PREHAND
 const MESSAGE_SEND_ALLOW_FORCE_SYNC = process.env.MESSAGE_SEND_ALLOW_FORCE_SYNC === "true";
 const MESSAGE_PROVIDER_DISPATCH_LIMIT_PER_MINUTE = Number(process.env.MESSAGE_PROVIDER_DISPATCH_LIMIT_PER_MINUTE || "2400");
 const MESSAGE_PROVIDER_RETRY_LIMIT_PER_MINUTE = Number(process.env.MESSAGE_PROVIDER_RETRY_LIMIT_PER_MINUTE || "1200");
-const MESSAGE_THREAD_ACTIVITY_UPDATE_INTERVAL_MS = Number(process.env.MESSAGE_THREAD_ACTIVITY_UPDATE_INTERVAL_MS || "1000");
 const RETRYABLE_PROVIDER_CODES = new Set(["20429", "429", "ETIMEDOUT", "ECONNRESET", "EAI_AGAIN", "UNKNOWN_ERROR"]);
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
@@ -524,15 +524,36 @@ export async function sendThreadMessage(params: {
   if (params.intakeProfile) params.intakeProfile.intentPersistMs = Date.now() - persistStartedAt;
 
   const threadUpdateStartedAt = Date.now();
-  const now = new Date();
-  const activityCutoff = new Date(now.getTime() - Math.max(0, MESSAGE_THREAD_ACTIVITY_UPDATE_INTERVAL_MS));
-  await db.messageThread.updateMany({
-    where: {
-      id: params.threadId,
-      OR: [{ lastOutboundAt: null }, { lastOutboundAt: { lt: activityCutoff } }],
-    },
-    data: { lastMessageAt: now, lastOutboundAt: now },
-  });
+  const activityAtMs = Date.now();
+  let threadActivityQueued = false;
+  if (isThreadActivityQueueAvailable()) {
+    try {
+      threadActivityQueued = await enqueueThreadActivityUpdate({
+        orgId: params.orgId,
+        threadId: params.threadId,
+        activityAtMs,
+      });
+    } catch {
+      threadActivityQueued = false;
+    }
+  }
+  if (!threadActivityQueued) {
+    const now = new Date(activityAtMs);
+    await db.messageThread.updateMany({
+      where: { id: params.threadId },
+      data: { lastMessageAt: now, lastOutboundAt: now },
+    });
+    void logEvent({
+      orgId: params.orgId,
+      actorUserId: params.actor.userId ?? undefined,
+      action: "message.thread_activity.sync_fallback",
+      entityType: "thread",
+      entityId: params.threadId,
+      metadata: {
+        reason: "thread_activity_queue_unavailable",
+      },
+    });
+  }
   if (params.intakeProfile) params.intakeProfile.threadUpdateMs = Date.now() - threadUpdateStartedAt;
 
   if (!shouldDispatchProvider) {

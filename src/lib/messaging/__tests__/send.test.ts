@@ -13,6 +13,8 @@ const mockProviderSend = vi.fn();
 const mockEnqueueOutbound = vi.fn();
 const mockQueueAvailable = vi.fn();
 const mockQueuePressure = vi.fn();
+const mockThreadActivityQueueAvailable = vi.fn();
+const mockEnqueueThreadActivity = vi.fn();
 const mockShouldForceQueuedOnly = vi.fn();
 const mockGetProviderPressureState = vi.fn();
 const mockRecordProviderTransientFailure = vi.fn();
@@ -53,6 +55,11 @@ vi.mock("@/lib/messaging/outbound-queue", () => ({
   enqueueOutboundMessage: (...args: unknown[]) => mockEnqueueOutbound(...args),
   isOutboundQueueAvailable: (...args: unknown[]) => mockQueueAvailable(...args),
   getOutboundQueuePressure: (...args: unknown[]) => mockQueuePressure(...args),
+}));
+
+vi.mock("@/lib/messaging/thread-activity-queue", () => ({
+  isThreadActivityQueueAvailable: (...args: unknown[]) => mockThreadActivityQueueAvailable(...args),
+  enqueueThreadActivityUpdate: (...args: unknown[]) => mockEnqueueThreadActivity(...args),
 }));
 
 vi.mock("@/lib/messaging/provider-pressure", () => ({
@@ -101,6 +108,8 @@ describe("messaging async handoff", () => {
       deliveryStatus: "queued",
     });
     mockQueueAvailable.mockReturnValue(true);
+    mockThreadActivityQueueAvailable.mockReturnValue(true);
+    mockEnqueueThreadActivity.mockResolvedValue(true);
     mockQueuePressure.mockResolvedValue({
       available: true,
       waiting: 0,
@@ -149,6 +158,12 @@ describe("messaging async handoff", () => {
     expect(result.deliveryStatus).toBe("queued");
     expect(result.accepted).toBe(true);
     expect(result.queued).toBe(true);
+    expect(mockEnqueueThreadActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orgId: "org-1",
+        threadId: "thread-1",
+      })
+    );
     expect(mockEnqueueOutbound).toHaveBeenCalledWith({
       orgId: "org-1",
       messageEventId: "event-1",
