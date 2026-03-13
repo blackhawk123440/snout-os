@@ -5,6 +5,7 @@ const mockMessageCount = vi.fn();
 const mockMessageFindMany = vi.fn();
 const mockSendThreadMessage = vi.fn();
 const mockCheckRateLimit = vi.fn();
+const mockGetOutboundQueuePressure = vi.fn();
 
 vi.mock("@/lib/request-context", () => ({
   getRequestContext: vi.fn(),
@@ -33,6 +34,11 @@ vi.mock("@/lib/rate-limit", () => ({
   getRateLimitIdentifier: vi.fn(() => "ip-1"),
 }));
 
+vi.mock("@/lib/messaging/outbound-queue", () => ({
+  isOutboundQueueAvailable: vi.fn(() => true),
+  getOutboundQueuePressure: (...args: unknown[]) => mockGetOutboundQueuePressure(...args),
+}));
+
 import { getRequestContext } from "@/lib/request-context";
 import { GET, POST } from "@/app/api/messages/threads/[id]/messages/route";
 
@@ -55,6 +61,13 @@ describe("GET /api/messages/threads/[id]/messages", () => {
       assignmentWindows: [],
     });
     mockCheckRateLimit.mockResolvedValue({ success: true, remaining: 100, resetAt: Date.now() / 1000 + 60 });
+    mockGetOutboundQueuePressure.mockResolvedValue({
+      available: true,
+      waiting: 0,
+      active: 0,
+      delayed: 0,
+      forceQueuedOnly: false,
+    });
     mockSendThreadMessage.mockReset();
   });
 

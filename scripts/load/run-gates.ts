@@ -114,6 +114,7 @@ interface RunnerOptions {
   requestTimeoutMs: number;
   cooldownMs: number;
   rampProfile: RampStage[];
+  messageRecipientPool: string[];
 }
 
 const DEFAULTS = {
@@ -136,6 +137,16 @@ const DEFAULTS = {
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter((s): s is RampStage => s === "low" || s === "medium" || s === "high"),
+  messageRecipientPool: (() => {
+    const raw = process.env.LOAD_TEST_MESSAGE_RECIPIENTS || process.env.LOAD_TEST_MESSAGE_RECIPIENT || "";
+    const parsed = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parsed.length) return parsed;
+    // Twilio-compatible E.164 defaults used only by load harness bootstrap.
+    return ["+15005550006", "+14155552671"];
+  })(),
 };
 
 const nowIso = () => new Date().toISOString();
@@ -172,7 +183,12 @@ function parseArgs(): RunnerOptions {
     requestTimeoutMs: Number(arg("--request-timeout-ms") || DEFAULTS.requestTimeoutMs),
     cooldownMs: Number(arg("--cooldown-ms") || DEFAULTS.cooldownMs),
     rampProfile: rampProfile.length ? rampProfile : ["low", "medium", "high"],
+    messageRecipientPool: DEFAULTS.messageRecipientPool,
   };
+}
+
+function isE164(value: string): boolean {
+  return /^\+[1-9]\d{7,14}$/.test(value.trim());
 }
 
 function percentile(values: number[], p: number): number {
@@ -206,8 +222,8 @@ function shouldUseApiBackedQueueMode(options: RunnerOptions): boolean {
 
 function parseCookieFromSetCookie(setCookie: string | null): string | null {
   if (!setCookie) return null;
-  const first = setCookie.split(",")[0];
-  const token = first.split(";")[0]?.trim();
+  // Preserve full cookie token even when Expires contains commas.
+  const token = setCookie.split(";")[0]?.trim();
   return token || null;
 }
 
@@ -260,18 +276,8 @@ async function ensureThreadForMessaging(options: RunnerOptions): Promise<void> {
     options.threadId = process.env.LOAD_TEST_THREAD_ID;
     return;
   }
-  const createRes = await apiFetch(options, options.threadsEndpoint, {
-    method: "POST",
-    cookie: options.ownerCookie,
-    body: {
-      phoneNumber: "+1555" + String(seedHash(`thread:${Date.now()}`)).slice(0, 7),
-      initialMessage: `loadtest bootstrap ${new Date().toISOString()}`,
-    },
-  });
-  if (createRes.ok && createRes.json?.threadId) {
-    options.threadId = String(createRes.json.threadId);
-    return;
-  }
+
+  // Reuse an existing thread first to avoid creating noise fixtures.
   const listRes = await apiFetch(options, `${options.threadsEndpoint}?pageSize=1`, {
     method: "GET",
     cookie: options.ownerCookie,
@@ -281,7 +287,32 @@ async function ensureThreadForMessaging(options: RunnerOptions): Promise<void> {
     options.threadId = String(first.id);
     return;
   }
-  throw new Error("Unable to discover or create a thread for live messaging scenarios");
+
+  const recipients = options.messageRecipientPool.filter(isE164);
+  if (!recipients.length) {
+    throw new Error(
+      "No valid E.164 recipients configured for messaging load bootstrap. Set LOAD_TEST_MESSAGE_RECIPIENTS."
+    );
+  }
+
+  for (const recipient of recipients) {
+    const createRes = await apiFetch(options, options.threadsEndpoint, {
+      method: "POST",
+      cookie: options.ownerCookie,
+      body: {
+        phoneNumber: recipient,
+        initialMessage: `loadtest bootstrap ${new Date().toISOString()}`,
+      },
+    });
+    if (createRes.ok && createRes.json?.threadId) {
+      options.threadId = String(createRes.json.threadId);
+      return;
+    }
+  }
+
+  throw new Error(
+    `Unable to discover or create a thread for live messaging scenarios using recipient pool: ${recipients.join(", ")}`
+  );
 }
 
 async function verifyCrossOrgAndRoleBoundary(options: RunnerOptions): Promise<void> {

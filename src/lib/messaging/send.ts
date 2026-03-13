@@ -5,7 +5,6 @@ import { getMessagingProvider } from "@/lib/messaging/provider-factory";
 import { enqueueOutboundMessage, getOutboundQueuePressure, isOutboundQueueAvailable } from "@/lib/messaging/outbound-queue";
 import { checkRateLimit } from "@/lib/rate-limit";
 import {
-  getProviderPressureState,
   recordProviderSendSuccess,
   recordProviderTransientFailure,
   shouldForceQueuedOnly,
@@ -100,6 +99,7 @@ function normalizeProviderErrorCode(code: unknown): string {
 }
 
 const SEND_PROVIDER_TIMEOUT_MS = Number(process.env.MESSAGE_SEND_PROVIDER_TIMEOUT_MS || "8000");
+const SEND_PREHANDOFF_PROBE_TIMEOUT_MS = Number(process.env.MESSAGE_SEND_PREHANDOFF_PROBE_TIMEOUT_MS || "250");
 const MESSAGE_SEND_ALLOW_FORCE_SYNC = process.env.MESSAGE_SEND_ALLOW_FORCE_SYNC === "true";
 const MESSAGE_PROVIDER_DISPATCH_LIMIT_PER_MINUTE = Number(process.env.MESSAGE_PROVIDER_DISPATCH_LIMIT_PER_MINUTE || "2400");
 const MESSAGE_PROVIDER_RETRY_LIMIT_PER_MINUTE = Number(process.env.MESSAGE_PROVIDER_RETRY_LIMIT_PER_MINUTE || "1200");
@@ -413,9 +413,19 @@ export async function sendThreadMessage(params: {
   const shouldDispatchProvider = params.actor.role !== "client";
   const queueAvailable = isOutboundQueueAvailable();
   const forceSync = params.forceSend === true && MESSAGE_SEND_ALLOW_FORCE_SYNC;
-  const queuePressure = shouldDispatchProvider ? await getOutboundQueuePressure() : null;
+  const queuePressure = shouldDispatchProvider
+    ? await withTimeout(
+        getOutboundQueuePressure(),
+        Math.max(100, SEND_PREHANDOFF_PROBE_TIMEOUT_MS),
+        "queue pressure probe timeout"
+      ).catch(() => null)
+    : null;
   const providerDegraded = shouldDispatchProvider
-    ? await shouldForceQueuedOnly({ provider: "twilio", orgId: params.orgId })
+    ? await withTimeout(
+        shouldForceQueuedOnly({ provider: "twilio", orgId: params.orgId }),
+        Math.max(100, SEND_PREHANDOFF_PROBE_TIMEOUT_MS),
+        "provider pressure probe timeout"
+      ).catch(() => false)
     : false;
   const queueUnderPressure = !!queuePressure?.forceQueuedOnly;
   const enforceAsync = providerDegraded || queueUnderPressure;
@@ -424,9 +434,6 @@ export async function sendThreadMessage(params: {
     queueAvailable &&
     (!forceSync || enforceAsync);
 
-  const providerPressureSnapshot = shouldDispatchProvider
-    ? await getProviderPressureState({ provider: "twilio", orgId: params.orgId })
-    : null;
   const metadataJson = buildMetadataJson({
     idempotencyKey,
     handoff: shouldDispatchProvider ? (shouldAsyncHandoff ? "async" : "sync") : "none",
@@ -514,7 +521,7 @@ export async function sendThreadMessage(params: {
           providerThrottleClass: providerDegraded ? "degraded-mode" : queueUnderPressure ? "queue-pressure" : "deferred",
           providerDegraded,
           queuePressure,
-          providerPressure: providerPressureSnapshot,
+          providerPressure: null,
         },
       });
       void publish(channels.messagesThread(params.orgId, params.threadId), {

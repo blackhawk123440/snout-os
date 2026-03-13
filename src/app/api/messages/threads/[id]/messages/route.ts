@@ -11,6 +11,7 @@ import { getScopedDb } from '@/lib/tenancy';
 import { checkRateLimit, getRateLimitIdentifier } from '@/lib/rate-limit';
 import { getRequestContext } from '@/lib/request-context';
 import { sendThreadMessage, assertMessagingThreadAccess, asMessagingActorRole } from '@/lib/messaging/send';
+import { getOutboundQueuePressure, isOutboundQueueAvailable } from '@/lib/messaging/outbound-queue';
 import { parseDate, parsePage, parsePageSize } from '@/lib/pagination';
 
 /** Map MessageEvent to Message shape expected by InboxView (deliveries array) */
@@ -55,6 +56,19 @@ function messageEventToMessage(ev: {
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
 const MESSAGE_ACCEPT_RATE_LIMIT_PER_MINUTE = Number(process.env.MESSAGE_ACCEPT_RATE_LIMIT_PER_MINUTE || "6000");
+const MESSAGE_FRONTDOOR_MAX_INFLIGHT = Number(process.env.MESSAGE_FRONTDOOR_MAX_INFLIGHT || "120");
+const MESSAGE_FRONTDOOR_PRESSURE_CHECK_INFLIGHT = Number(process.env.MESSAGE_FRONTDOOR_PRESSURE_CHECK_INFLIGHT || "80");
+const MESSAGE_FRONTDOOR_SHED_QUEUE_WAITING_THRESHOLD = Number(process.env.MESSAGE_FRONTDOOR_SHED_QUEUE_WAITING_THRESHOLD || "320");
+const MESSAGE_FRONTDOOR_SHED_QUEUE_ACTIVE_THRESHOLD = Number(process.env.MESSAGE_FRONTDOOR_SHED_QUEUE_ACTIVE_THRESHOLD || "24");
+const MESSAGE_FRONTDOOR_PREHANDOFF_BUDGET_MS = Number(process.env.MESSAGE_FRONTDOOR_PREHANDOFF_BUDGET_MS || "2200");
+let messagePostInFlight = 0;
+
+function overloadResponse(reason: string, retryAfterSec = 1) {
+  return NextResponse.json(
+    { accepted: false, queued: false, error: 'Message intake overloaded', reason },
+    { status: 503, headers: { 'Retry-After': String(retryAfterSec) } }
+  );
+}
 
 export async function GET(
   request: NextRequest,
@@ -156,9 +170,31 @@ export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const startedAt = Date.now();
   const params = await context.params;
   const threadId = params.id;
 
+  if (!isOutboundQueueAvailable()) {
+    return overloadResponse('queue_unavailable', 2);
+  }
+
+  if (messagePostInFlight >= Math.max(1, MESSAGE_FRONTDOOR_MAX_INFLIGHT)) {
+    return overloadResponse('inflight_limit', 1);
+  }
+
+  if (messagePostInFlight >= Math.max(1, MESSAGE_FRONTDOOR_PRESSURE_CHECK_INFLIGHT)) {
+    const pressure = await getOutboundQueuePressure();
+    if (
+      pressure.available &&
+      pressure.waiting >= Math.max(1, MESSAGE_FRONTDOOR_SHED_QUEUE_WAITING_THRESHOLD) &&
+      pressure.active >= Math.max(1, MESSAGE_FRONTDOOR_SHED_QUEUE_ACTIVE_THRESHOLD)
+    ) {
+      return overloadResponse('queue_pressure', 2);
+    }
+  }
+
+  messagePostInFlight += 1;
+  try {
   let ctx;
   try {
     ctx = await getRequestContext();
@@ -196,6 +232,10 @@ export async function POST(
       { accepted: false, queued: false, error: 'Message body cannot be empty' },
       { status: 400 }
     );
+  }
+
+  if (Date.now() - startedAt > Math.max(300, MESSAGE_FRONTDOOR_PREHANDOFF_BUDGET_MS)) {
+    return overloadResponse('prehandoff_budget_exhausted', 1);
   }
 
   try {
@@ -255,5 +295,8 @@ export async function POST(
       { accepted: false, queued: false, error: 'Failed to send message', details: error.message },
       { status: 500 }
     );
+  }
+  } finally {
+    messagePostInFlight = Math.max(0, messagePostInFlight - 1);
   }
 }
