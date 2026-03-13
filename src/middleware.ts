@@ -13,6 +13,7 @@ import { isClientRoute } from "@/lib/client-routes";
 import { env } from "@/lib/env";
 import { getSessionSafe } from "@/lib/auth-helpers";
 import { getCurrentSitterId } from "@/lib/sitter-helpers";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -25,6 +26,25 @@ export async function middleware(request: NextRequest) {
 
   // Get session to check role
   const session = await getSessionSafe();
+
+  // Keep general authenticated API traffic on its own limiter class so /api/auth/session
+  // burst traffic doesn't collapse regular app requests.
+  if (pathname.startsWith("/api/") && !pathname.startsWith("/api/auth/") && session?.user) {
+    const user = session.user as Record<string, unknown>;
+    const userId = typeof user.id === "string" ? user.id : "unknown";
+    const orgId = typeof user.orgId === "string" ? user.orgId : "default";
+    const rl = await checkRateLimit(`${orgId}:${userId}`, {
+      keyPrefix: "auth-traffic",
+      limit: Number(process.env.AUTH_TRAFFIC_LIMIT_PER_MINUTE || "1800"),
+      windowSec: 60,
+    });
+    if (!rl.success) {
+      return NextResponse.json(
+        { error: "Too many requests", retryAfter: rl.retryAfter },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfter ?? 60) } }
+      );
+    }
+  }
 
   // Client role: redirect owner/sitter routes to client portal
   const isClient = session?.user && (
@@ -104,9 +124,6 @@ export async function middleware(request: NextRequest) {
 
   // Check if route is protected
   if (isProtectedRoute(pathname)) {
-    // Phase 2.2: Check for valid session
-    const session = await getSessionSafe();
-    
     if (!session) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

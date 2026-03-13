@@ -22,19 +22,33 @@ export default function ClientsEnterprisePage() {
   const [rows, setRows] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<Record<string, string>>({ search: '', sort: 'recent' });
+  const [filters, setFilters] = useState<Record<string, string>>({
+    search: '',
+    sort: 'recent',
+    status: 'all',
+  });
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
+  const [total, setTotal] = useState(0);
 
   async function load() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/clients');
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('pageSize', String(pageSize));
+      if (filters.search) params.set('search', filters.search);
+      if (filters.status && filters.status !== 'all') params.set('status', filters.status);
+      const res = await fetch(`/api/clients?${params.toString()}`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Failed to load clients');
-      setRows(Array.isArray(json.clients) ? json.clients : []);
+      setRows(Array.isArray(json.items) ? json.items : []);
+      setTotal(typeof json.total === 'number' ? json.total : 0);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load clients');
       setRows([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -42,25 +56,17 @@ export default function ClientsEnterprisePage() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [page, pageSize, filters.search, filters.status]);
 
   const filtered = useMemo(() => {
-    const term = (filters.search || '').toLowerCase();
-    const mapped = rows.filter((r) => {
-      if (!term) return true;
-      return (
-        `${r.firstName} ${r.lastName}`.toLowerCase().includes(term) ||
-        r.email.toLowerCase().includes(term) ||
-        r.phone.includes(term)
-      );
-    });
     if (filters.sort === 'name') {
-      return [...mapped].sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
+      return [...rows].sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
     }
-    return [...mapped].sort((a, b) => new Date(b.lastBooking || 0).getTime() - new Date(a.lastBooking || 0).getTime());
-  }, [rows, filters]);
+    return [...rows].sort((a, b) => new Date(b.lastBooking || 0).getTime() - new Date(a.lastBooking || 0).getTime());
+  }, [rows, filters.sort]);
 
-  const activeFilterCount = Number(Boolean(filters.search)) + Number(filters.sort !== 'recent');
+  const activeFilterCount =
+    Number(Boolean(filters.search)) + Number(filters.sort !== 'recent') + Number(filters.status !== 'all');
 
   return (
     <OwnerAppShell>
@@ -80,6 +86,16 @@ export default function ClientsEnterprisePage() {
               filters={[
                 { key: 'search', label: 'Search', type: 'search', placeholder: 'Name, phone, email' },
                 {
+                  key: 'status',
+                  label: 'Status',
+                  type: 'select',
+                  options: [
+                    { value: 'all', label: 'All' },
+                    { value: 'active', label: 'Active' },
+                    { value: 'inactive', label: 'Inactive' },
+                  ],
+                },
+                {
                   key: 'sort',
                   label: 'Sort',
                   type: 'select',
@@ -90,8 +106,14 @@ export default function ClientsEnterprisePage() {
                 },
               ]}
               values={filters}
-              onChange={(k, v) => setFilters((p) => ({ ...p, [k]: v }))}
-              onClear={() => setFilters({ search: '', sort: 'recent' })}
+              onChange={(k, v) => {
+                setFilters((p) => ({ ...p, [k]: v }));
+                setPage(1);
+              }}
+              onClear={() => {
+                setFilters({ search: '', sort: 'recent', status: 'all' });
+                setPage(1);
+              }}
             />
           </MobileFilterDrawer>
         </Section>
@@ -107,46 +129,71 @@ export default function ClientsEnterprisePage() {
               primaryAction={{ label: 'Create booking', onClick: () => (window.location.href = '/bookings/new') }}
             />
           ) : (
-            <DataTableShell stickyHeader>
-              <Table<ClientRow>
-                forceTableLayout
-                columns={[
-                  {
-                    key: 'name',
-                    header: 'Client',
-                    mobileOrder: 1,
-                    mobileLabel: 'Client',
-                    render: (r) => (
-                      <div>
-                        <div className="font-medium">{r.firstName} {r.lastName}</div>
-                        <div className="text-xs text-[var(--color-text-secondary)]">{r.email}</div>
-                      </div>
-                    ),
-                  },
-                  { key: 'phone', header: 'Phone', mobileOrder: 2, mobileLabel: 'Phone' },
-                  {
-                    key: 'bookings',
-                    header: 'Bookings',
-                    mobileOrder: 3,
-                    mobileLabel: 'Bookings',
-                    hideBelow: 'md',
-                    render: (r) => String(r.totalBookings || 0),
-                  },
-                  {
-                    key: 'lastBooking',
-                    header: 'Last Booking',
-                    mobileOrder: 4,
-                    mobileLabel: 'Last Booking',
-                    hideBelow: 'lg',
-                    render: (r) => (r.lastBooking ? new Date(r.lastBooking).toLocaleDateString() : 'Never'),
-                  },
-                ]}
-                data={filtered}
-                keyExtractor={(r) => r.id}
-                onRowClick={(r) => (window.location.href = `/clients/${r.id}`)}
-                emptyMessage="No clients"
-              />
-            </DataTableShell>
+            <>
+              <DataTableShell stickyHeader>
+                <Table<ClientRow>
+                  forceTableLayout
+                  columns={[
+                    {
+                      key: 'name',
+                      header: 'Client',
+                      mobileOrder: 1,
+                      mobileLabel: 'Client',
+                      render: (r) => (
+                        <div>
+                          <div className="font-medium">{r.firstName} {r.lastName}</div>
+                          <div className="text-xs text-[var(--color-text-secondary)]">{r.email}</div>
+                        </div>
+                      ),
+                    },
+                    { key: 'phone', header: 'Phone', mobileOrder: 2, mobileLabel: 'Phone' },
+                    {
+                      key: 'bookings',
+                      header: 'Bookings',
+                      mobileOrder: 3,
+                      mobileLabel: 'Bookings',
+                      hideBelow: 'md',
+                      render: (r) => String(r.totalBookings || 0),
+                    },
+                    {
+                      key: 'lastBooking',
+                      header: 'Last Booking',
+                      mobileOrder: 4,
+                      mobileLabel: 'Last Booking',
+                      hideBelow: 'lg',
+                      render: (r) => (r.lastBooking ? new Date(r.lastBooking).toLocaleDateString() : 'Never'),
+                    },
+                  ]}
+                  data={filtered}
+                  keyExtractor={(r) => r.id}
+                  onRowClick={(r) => (window.location.href = `/clients/${r.id}`)}
+                  emptyMessage="No clients"
+                />
+              </DataTableShell>
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm text-[var(--color-text-secondary)]">
+                  Page {page} · {total} clients
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={page * pageSize >= total}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </Section>
       </LayoutWrapper>

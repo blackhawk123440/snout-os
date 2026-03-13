@@ -178,21 +178,21 @@ function CalendarPageContent() {
     setError(null);
     try {
       const [bookingsRes, sittersRes, conflictsRes] = await Promise.all([
-        fetch('/api/bookings').catch(() => null),
-        fetch('/api/sitters').catch(() => null),
+        fetch('/api/bookings?page=1&pageSize=200').catch(() => null),
+        fetch('/api/sitters?page=1&pageSize=200').catch(() => null),
         fetch('/api/bookings/conflicts').catch(() => null),
       ]);
 
       if (bookingsRes?.ok) {
         const data = await bookingsRes.json();
-        setBookings(data.bookings || []);
+        setBookings(data.items || []);
       } else if (bookingsRes && !bookingsRes.ok && bookingsRes.status !== 404) {
         throw new Error('Failed to fetch bookings');
       }
 
       if (sittersRes?.ok) {
         const data = await sittersRes.json();
-        setSitters(Array.isArray(data?.sitters) ? data.sitters : []);
+        setSitters(Array.isArray(data?.items) ? data.items : []);
       }
 
       if (conflictsRes?.ok) {

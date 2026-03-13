@@ -10,8 +10,11 @@ import { mintApiJWT } from '@/lib/api/jwt';
 import { prisma } from '@/lib/db';
 import { getRequestContext } from '@/lib/request-context';
 import { requireAnyRole, ForbiddenError } from '@/lib/rbac';
+import { parsePage, parsePageSize } from '@/lib/pagination';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 200;
 
 export async function GET(request: NextRequest) {
   let ctx;
@@ -36,6 +39,14 @@ export async function GET(request: NextRequest) {
 
   // Always resolve orgId: context or "default" for single-tenant/staging (no "Organization ID missing" for authenticated owner/admin/sitter)
   const orgId = (ctx.orgId != null && String(ctx.orgId).trim() !== '') ? String(ctx.orgId).trim() : 'default';
+  const url = (request as NextRequest).nextUrl ?? new URL(request.url);
+  const params = url.searchParams;
+  const page = parsePage(params.get('page'), 1);
+  const pageSize = parsePageSize(params.get('pageSize'), DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+  const statusParam = params.get('status')?.trim().toLowerCase();
+  const search = params.get('search')?.trim();
+  const activeFilter =
+    statusParam === 'active' ? true : statusParam === 'inactive' ? false : null;
 
   // If API is configured, try to proxy to it
   if (API_BASE_URL) {
@@ -81,13 +92,27 @@ export async function GET(request: NextRequest) {
       } else if (responseData.sitters && Array.isArray(responseData.sitters)) {
         sitters = responseData.sitters;
       }
+      if (activeFilter !== null) {
+        sitters = sitters.filter((s: any) => Boolean(s.active ?? s.isActive) === activeFilter);
+      }
+      if (search) {
+        const term = search.toLowerCase();
+        sitters = sitters.filter((s: any) =>
+          String(s.firstName || s.name || '').toLowerCase().includes(term) ||
+          String(s.lastName || '').toLowerCase().includes(term) ||
+          String(s.email || '').toLowerCase().includes(term) ||
+          String(s.phone || '').toLowerCase().includes(term)
+        );
+      }
       if (ctx.role === 'sitter' && ctx.sitterId) {
         sitters = sitters.filter((s: any) => s.id === ctx.sitterId);
       }
 
       // If backend API doesn't include assignedNumberId, fetch it from Prisma
       // (user and orgId already declared above)
-      const sitterIds = sitters.map((s: any) => s.id).filter(Boolean);
+      const total = sitters.length;
+      const paged = sitters.slice((page - 1) * pageSize, page * pageSize);
+      const sitterIds = paged.map((s: any) => s.id).filter(Boolean);
       
       let numberMap = new Map<string, string>();
       if (sitterIds.length > 0) {
@@ -116,7 +141,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Transform to match frontend expectations
-      const transformedSitters = sitters.map((sitter: any) => ({
+      const transformedSitters = paged.map((sitter: any) => ({
         id: sitter.id,
         firstName: sitter.firstName || (sitter.name ? sitter.name.split(' ')[0] : ''),
         lastName: sitter.lastName || (sitter.name ? sitter.name.split(' ').slice(1).join(' ') : ''),
@@ -133,16 +158,30 @@ export async function GET(request: NextRequest) {
         deletedAt: sitter.deletedAt ?? null,
       }));
 
-      return NextResponse.json({ sitters: transformedSitters }, {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Snout-Api': 'sitters-route-hit',
-          'X-Snout-Route': 'proxy',
-          'X-Snout-OrgId': orgId,
-          'X-Snout-Org-Resolved': '1',
+      return NextResponse.json(
+        {
+          items: transformedSitters,
+          page,
+          pageSize,
+          total,
+          hasMore: page * pageSize < total,
+          sort: { field: 'createdAt', direction: 'desc' },
+          filters: {
+            status: statusParam ?? null,
+            search: search ?? null,
+          },
         },
-      });
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Snout-Api': 'sitters-route-hit',
+            'X-Snout-Route': 'proxy',
+            'X-Snout-OrgId': orgId,
+            'X-Snout-Org-Resolved': '1',
+          },
+        }
+      );
     } catch (error: any) {
       console.error('[BFF Proxy] Failed to forward sitters request, falling back to Prisma:', error);
       // Fall through to Prisma fallback
@@ -153,15 +192,26 @@ export async function GET(request: NextRequest) {
   try {
     // (user and orgId already declared above)
 
+    const where: Record<string, any> = {
+      orgId,
+      ...(ctx.role === 'sitter' && ctx.sitterId ? { id: ctx.sitterId } : {}),
+    };
+    if (activeFilter !== null) where.active = activeFilter;
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    const total = await (prisma as any).sitter.count({ where });
     // Get sitters for this org with their assigned numbers
     const sitters = await (prisma as any).sitter.findMany({
-      where: {
-        orgId, // CRITICAL: Filter by orgId
-        ...(ctx.role === 'sitter' && ctx.sitterId ? { id: ctx.sitterId } : {}),
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     }) as any[];
 
     // Get assigned numbers for all sitters in one query
@@ -214,14 +264,28 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ sitters: transformedSitters }, {
-      headers: {
-        'X-Snout-Api': 'sitters-route-hit',
-        'X-Snout-Route': 'prisma-fallback',
-        'X-Snout-OrgId': orgId,
-        'X-Snout-Org-Resolved': '1',
+    return NextResponse.json(
+      {
+        items: transformedSitters,
+        page,
+        pageSize,
+        total,
+        hasMore: page * pageSize < total,
+        sort: { field: 'createdAt', direction: 'desc' },
+        filters: {
+          status: statusParam ?? null,
+          search: search ?? null,
+        },
       },
-    });
+      {
+        headers: {
+          'X-Snout-Api': 'sitters-route-hit',
+          'X-Snout-Route': 'prisma-fallback',
+          'X-Snout-OrgId': orgId,
+          'X-Snout-Org-Resolved': '1',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('[Sitters API] Failed to fetch sitters:', error);
     return NextResponse.json(

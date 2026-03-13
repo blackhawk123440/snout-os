@@ -49,7 +49,7 @@ describe('Messaging Routes Compatibility', () => {
 
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(Array.isArray(body.threads)).toBe(true);
+      expect(Array.isArray(body.items)).toBe(true);
     });
   });
 

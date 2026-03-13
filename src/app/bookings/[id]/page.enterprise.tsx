@@ -98,7 +98,7 @@ export default function BookingDetailEnterprisePage() {
       const [bookingRes, eventsRes, sittersRes] = await Promise.all([
         fetch(`/api/bookings/${bookingId}`),
         fetch(`/api/bookings/${bookingId}/events`),
-        fetch('/api/sitters'),
+        fetch('/api/sitters?page=1&pageSize=200'),
       ]);
       const bookingJson = await bookingRes.json().catch(() => ({}));
       const eventsJson = await eventsRes.json().catch(() => ({}));
@@ -108,7 +108,7 @@ export default function BookingDetailEnterprisePage() {
       setBooking(bookingJson.booking || null);
       setSitterId(bookingJson.booking?.sitter?.id || '');
       setEvents(Array.isArray(eventsJson.items) ? eventsJson.items : []);
-      setSitters(Array.isArray(sittersJson.sitters) ? sittersJson.sitters : []);
+      setSitters(Array.isArray(sittersJson.items) ? sittersJson.items : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load booking');
     } finally {

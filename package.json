@@ -39,7 +39,15 @@
     "verify:messaging": "tsx scripts/verify-messaging.ts",
     "verify:payroll": "tsx scripts/verify-payroll.ts",
     "verify:calendar": "tsx scripts/verify-calendar.ts",
-    "scenario-test": "tsx scripts/run-real-world-scenarios.ts"
+    "scenario-test": "tsx scripts/run-real-world-scenarios.ts",
+    "load:smoke": "tsx scripts/load/run-gates.ts --suite smoke",
+    "load:bookings": "tsx scripts/load/run-gates.ts --suite bookings",
+    "load:messages": "tsx scripts/load/run-gates.ts --suite messages",
+    "load:reads": "tsx scripts/load/run-gates.ts --suite reads",
+    "load:queues": "tsx scripts/load/run-gates.ts --suite queues",
+    "load:full": "tsx scripts/load/run-gates.ts --suite full",
+    "load:live:ramp": "tsx scripts/load/run-gates.ts --suite live-ramp",
+    "load:explain:plans": "tsx scripts/load/explain-query-plans.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",

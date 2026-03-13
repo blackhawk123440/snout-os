@@ -38,6 +38,7 @@ const localState = new Map<string, MutableState>();
 let redisClient: IORedis | null = null;
 
 function redisEnabled(): boolean {
+  if (process.env.NODE_ENV === "test") return false;
   return !!process.env.REDIS_URL;
 }
 

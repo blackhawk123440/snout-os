@@ -318,7 +318,8 @@ export async function POST(request: NextRequest) {
   try {
     let orgId: string;
     try {
-      orgId = getPublicOrgContext().orgId;
+      const requestHost = request.headers.get("host") || "";
+      orgId = getPublicOrgContext(requestHost).orgId;
     } catch (error) {
       return NextResponse.json(
         {

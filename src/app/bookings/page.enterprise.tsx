@@ -30,19 +30,38 @@ export default function BookingsEnterprisePage() {
     search: '',
     status: 'all',
     payment: 'all',
+    from: '',
+    to: '',
+    sitterId: '',
+    clientId: '',
   });
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
+  const [total, setTotal] = useState(0);
 
   async function load() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/bookings');
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('pageSize', String(pageSize));
+      if (filters.search) params.set('search', filters.search);
+      if (filters.status && filters.status !== 'all') params.set('status', filters.status);
+      if (filters.payment && filters.payment !== 'all') params.set('paymentStatus', filters.payment);
+      if (filters.from) params.set('from', filters.from);
+      if (filters.to) params.set('to', filters.to);
+      if (filters.sitterId) params.set('sitterId', filters.sitterId);
+      if (filters.clientId) params.set('clientId', filters.clientId);
+      const res = await fetch(`/api/bookings?${params.toString()}`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Failed to load bookings');
-      setRows(Array.isArray(json.bookings) ? json.bookings : []);
+      setRows(Array.isArray(json.items) ? json.items : []);
+      setTotal(typeof json.total === 'number' ? json.total : 0);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load bookings');
       setRows([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -50,26 +69,18 @@ export default function BookingsEnterprisePage() {
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [page, pageSize, filters.search, filters.status, filters.payment, filters.from, filters.to, filters.sitterId, filters.clientId]);
 
-  const filtered = useMemo(() => {
-    const search = (filters.search || '').toLowerCase().trim();
-    return rows.filter((r) => {
-      if (filters.status !== 'all' && r.status !== filters.status) return false;
-      if (filters.payment !== 'all' && r.paymentStatus !== filters.payment) return false;
-      if (!search) return true;
-      return (
-        `${r.firstName} ${r.lastName}`.toLowerCase().includes(search) ||
-        r.service.toLowerCase().includes(search) ||
-        (r.sitter ? `${r.sitter.firstName} ${r.sitter.lastName}`.toLowerCase().includes(search) : false)
-      );
-    });
-  }, [rows, filters]);
+  const filtered = useMemo(() => rows, [rows]);
 
   const activeFilterCount =
     Number(Boolean(filters.search)) +
     Number(filters.status !== 'all') +
-    Number(filters.payment !== 'all');
+    Number(filters.payment !== 'all') +
+    Number(Boolean(filters.from)) +
+    Number(Boolean(filters.to)) +
+    Number(Boolean(filters.sitterId)) +
+    Number(Boolean(filters.clientId));
 
   return (
     <OwnerAppShell>
@@ -89,6 +100,10 @@ export default function BookingsEnterprisePage() {
             <AppFilterBar
               filters={[
                 { key: 'search', label: 'Search', type: 'search', placeholder: 'Client, service, sitter...' },
+                { key: 'from', label: 'From', type: 'date' },
+                { key: 'to', label: 'To', type: 'date' },
+                { key: 'sitterId', label: 'Sitter Id', type: 'search', placeholder: 'Sitter ID' },
+                { key: 'clientId', label: 'Client Id', type: 'search', placeholder: 'Client ID' },
                 {
                   key: 'status',
                   label: 'Status',
@@ -115,8 +130,22 @@ export default function BookingsEnterprisePage() {
                 },
               ]}
               values={filters}
-              onChange={(k, v) => setFilters((p) => ({ ...p, [k]: v }))}
-              onClear={() => setFilters({ search: '', status: 'all', payment: 'all' })}
+              onChange={(k, v) => {
+                setFilters((p) => ({ ...p, [k]: v }));
+                setPage(1);
+              }}
+              onClear={() => {
+                setFilters({
+                  search: '',
+                  status: 'all',
+                  payment: 'all',
+                  from: '',
+                  to: '',
+                  sitterId: '',
+                  clientId: '',
+                });
+                setPage(1);
+              }}
             />
           </MobileFilterDrawer>
         </Section>
@@ -133,70 +162,95 @@ export default function BookingsEnterprisePage() {
               primaryAction={{ label: 'Create booking', onClick: () => (window.location.href = '/bookings/new') }}
             />
           ) : (
-            <DataTableShell stickyHeader>
-              <Table<BookingRow>
-                forceTableLayout
-                columns={[
-                  {
-                    key: 'client',
-                    header: 'Client',
-                    mobileOrder: 1,
-                    mobileLabel: 'Client',
-                    render: (r) => (
-                      <div>
-                        <div className="font-medium">{r.firstName} {r.lastName}</div>
-                        <div className="text-xs text-[var(--color-text-secondary)]">{r.service}</div>
-                      </div>
-                    ),
-                  },
-                  {
-                    key: 'startAt',
-                    header: 'Scheduled',
-                    mobileOrder: 2,
-                    mobileLabel: 'Scheduled',
-                    render: (r) => new Date(r.startAt).toLocaleString(),
-                  },
-                  {
-                    key: 'status',
-                    header: 'Status',
-                    mobileOrder: 3,
-                    mobileLabel: 'Status',
-                    render: (r) => {
-                      const pill = getStatusPill(r.status);
-                      return <StatusChip variant="neutral" ariaLabel={`Booking status: ${pill.label}`}>{pill.label}</StatusChip>;
+            <>
+              <DataTableShell stickyHeader>
+                <Table<BookingRow>
+                  forceTableLayout
+                  columns={[
+                    {
+                      key: 'client',
+                      header: 'Client',
+                      mobileOrder: 1,
+                      mobileLabel: 'Client',
+                      render: (r) => (
+                        <div>
+                          <div className="font-medium">{r.firstName} {r.lastName}</div>
+                          <div className="text-xs text-[var(--color-text-secondary)]">{r.service}</div>
+                        </div>
+                      ),
                     },
-                  },
-                  {
-                    key: 'sitter',
-                    header: 'Sitter',
-                    mobileOrder: 4,
-                    mobileLabel: 'Sitter',
-                    hideBelow: 'md',
-                    render: (r) => (r.sitter ? `${r.sitter.firstName} ${r.sitter.lastName}` : 'Unassigned'),
-                  },
-                  {
-                    key: 'payment',
-                    header: 'Payment',
-                    mobileOrder: 5,
-                    mobileLabel: 'Payment',
-                    hideBelow: 'lg',
-                    render: (r) => getStatusPill(r.paymentStatus).label,
-                  },
-                  {
-                    key: 'total',
-                    header: 'Total',
-                    mobileOrder: 6,
-                    mobileLabel: 'Total',
-                    align: 'right',
-                    render: (r) => `$${Number(r.totalPrice).toFixed(2)}`,
-                  },
-                ]}
-                data={filtered}
-                keyExtractor={(r) => r.id}
-                onRowClick={(r) => (window.location.href = `/bookings/${r.id}`)}
-                emptyMessage="No bookings"
-              />
-            </DataTableShell>
+                    {
+                      key: 'startAt',
+                      header: 'Scheduled',
+                      mobileOrder: 2,
+                      mobileLabel: 'Scheduled',
+                      render: (r) => new Date(r.startAt).toLocaleString(),
+                    },
+                    {
+                      key: 'status',
+                      header: 'Status',
+                      mobileOrder: 3,
+                      mobileLabel: 'Status',
+                      render: (r) => {
+                        const pill = getStatusPill(r.status);
+                        return <StatusChip variant="neutral" ariaLabel={`Booking status: ${pill.label}`}>{pill.label}</StatusChip>;
+                      },
+                    },
+                    {
+                      key: 'sitter',
+                      header: 'Sitter',
+                      mobileOrder: 4,
+                      mobileLabel: 'Sitter',
+                      hideBelow: 'md',
+                      render: (r) => (r.sitter ? `${r.sitter.firstName} ${r.sitter.lastName}` : 'Unassigned'),
+                    },
+                    {
+                      key: 'payment',
+                      header: 'Payment',
+                      mobileOrder: 5,
+                      mobileLabel: 'Payment',
+                      hideBelow: 'lg',
+                      render: (r) => getStatusPill(r.paymentStatus).label,
+                    },
+                    {
+                      key: 'total',
+                      header: 'Total',
+                      mobileOrder: 6,
+                      mobileLabel: 'Total',
+                      align: 'right',
+                      render: (r) => `$${Number(r.totalPrice).toFixed(2)}`,
+                    },
+                  ]}
+                  data={filtered}
+                  keyExtractor={(r) => r.id}
+                  onRowClick={(r) => (window.location.href = `/bookings/${r.id}`)}
+                  emptyMessage="No bookings"
+                />
+              </DataTableShell>
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm text-[var(--color-text-secondary)]">
+                  Page {page} · {total} bookings
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={page * pageSize >= total}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </Section>
       </LayoutWrapper>

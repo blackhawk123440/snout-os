@@ -14,15 +14,40 @@ import { publish, channels } from "@/lib/realtime/bus";
 
 // Redis connection
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379");
+const AUTOMATION_WORKER_CONCURRENCY = Number(process.env.AUTOMATION_WORKER_CONCURRENCY || "12");
+const AUTOMATION_HIGH_WORKER_CONCURRENCY = Number(
+  process.env.AUTOMATION_HIGH_WORKER_CONCURRENCY || "8"
+);
+const AUTOMATION_QUEUE_DEFAULT = "automations";
+const AUTOMATION_QUEUE_HIGH = "automations.high";
+const HIGH_PRIORITY_AUTOMATIONS = new Set(
+  String(process.env.AUTOMATION_HIGH_PRIORITY_TYPES || "bookingConfirmation,ownerNewBookingAlert")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+);
 
 // Create automation queue
-export const automationQueue = new Queue("automations", { 
+export const automationQueue = new Queue(AUTOMATION_QUEUE_DEFAULT, {
   connection,
   defaultJobOptions: {
     attempts: 3, // Retry 3 times
     backoff: {
       type: "exponential",
-      delay: 2000, // Start with 2 seconds, exponential backoff
+      delay: 3000, // Increase initial delay to reduce retry amplification under saturation
+    },
+    removeOnComplete: 100, // Keep last 100 completed jobs
+    removeOnFail: 50, // Keep last 50 failed jobs
+  },
+});
+
+export const automationHighQueue = new Queue(AUTOMATION_QUEUE_HIGH, {
+  connection,
+  defaultJobOptions: {
+    attempts: 3, // Retry 3 times
+    backoff: {
+      type: "exponential",
+      delay: 3000, // Increase initial delay to reduce retry amplification under saturation
     },
     removeOnComplete: 100, // Keep last 100 completed jobs
     removeOnFail: 50, // Keep last 50 failed jobs
@@ -38,9 +63,16 @@ export interface AutomationJobData {
   context: {
     bookingId?: string;
     sitterId?: string;
+    orgId?: string;
     [key: string]: any; // Additional context data
   };
   idempotencyKey?: string; // Optional idempotency key to prevent duplicate execution
+  queueClass?: "high" | "default";
+}
+
+function resolveQueueClass(automationType: string): "high" | "default" {
+  if (HIGH_PRIORITY_AUTOMATIONS.has(automationType)) return "high";
+  return "default";
 }
 
 /**
@@ -58,22 +90,27 @@ export async function enqueueAutomation(
     recipient,
     context,
     idempotencyKey,
+    queueClass: resolveQueueClass(automationType),
   };
 
   const jobOptions: any = {
     jobId: idempotencyKey, // Use idempotency key as job ID to prevent duplicates
   };
-
-  await automationQueue.add(`automation:${automationType}:${recipient}`, jobData, jobOptions);
+  const queue = jobData.queueClass === "high" ? automationHighQueue : automationQueue;
+  await queue.add(`automation:${automationType}:${recipient}`, jobData, jobOptions);
 }
 
 /**
  * Create worker for processing automation jobs
  * This worker will execute automations and write EventLog records
  */
-export function createAutomationWorker(): Worker {
+export function createAutomationWorker(
+  queueName: string,
+  concurrency: number,
+  queueClass: "high" | "default"
+): Worker {
   return new Worker(
-    "automations",
+    queueName,
     async (job) => {
       const { automationType, recipient, context } = job.data as AutomationJobData;
       const jobId = job.id;
@@ -88,6 +125,7 @@ export function createAutomationWorker(): Worker {
             jobId, 
             recipient, 
             context,
+            queueClass,
             message: `Starting automation: ${automationType} for ${recipient}`
           }
         }
@@ -109,6 +147,7 @@ export function createAutomationWorker(): Worker {
             metadata: {
               jobId,
               recipient,
+              queueClass,
               result,
               message: `Automation executed successfully: ${automationType} for ${recipient}`
             }
@@ -131,6 +170,7 @@ export function createAutomationWorker(): Worker {
             metadata: {
               jobId,
               recipient,
+              queueClass,
               context,
               stack: error?.stack,
               message: `Automation failed: ${automationType} for ${recipient} - ${errorMessage}`,
@@ -143,7 +183,7 @@ export function createAutomationWorker(): Worker {
     },
     { 
       connection,
-      concurrency: 5, // Process up to 5 jobs concurrently
+      concurrency: Math.max(1, concurrency),
     }
   );
 }
@@ -153,12 +193,17 @@ export function createAutomationWorker(): Worker {
  * Call this when the application starts
  */
 let automationWorker: Worker | null = null;
+let automationHighWorker: Worker | null = null;
 
 const DEAD_LETTER_AFTER_ATTEMPTS = 3;
 
 export function initializeAutomationWorker(): Worker {
   if (!automationWorker) {
-    automationWorker = createAutomationWorker();
+    automationWorker = createAutomationWorker(
+      AUTOMATION_QUEUE_DEFAULT,
+      AUTOMATION_WORKER_CONCURRENCY,
+      "default"
+    );
     
     automationWorker.on("completed", (job) => {
       console.log(`[Automation Queue] Job ${job.id} completed: ${job.data.automationType} for ${job.data.recipient}`);
@@ -188,6 +233,7 @@ export function initializeAutomationWorker(): Worker {
               context: (job.data as AutomationJobData).context,
               jobId: job.id,
               attempts,
+              queueClass: "default",
             },
           });
           publish(channels.opsFailures(orgId), { type: "automation.dead", ts: Date.now() }).catch(() => {});
@@ -195,6 +241,20 @@ export function initializeAutomationWorker(): Worker {
           console.error("[Automation Queue] Failed to log dead letter:", e);
         }
       }
+    });
+  }
+
+  if (!automationHighWorker) {
+    automationHighWorker = createAutomationWorker(
+      AUTOMATION_QUEUE_HIGH,
+      AUTOMATION_HIGH_WORKER_CONCURRENCY,
+      "high"
+    );
+    automationHighWorker.on("completed", (job) => {
+      console.log(`[Automation Queue High] Job ${job.id} completed: ${job.data.automationType}`);
+    });
+    automationHighWorker.on("failed", (job, err) => {
+      console.error(`[Automation Queue High] Job ${job?.id} failed`, err);
     });
   }
   

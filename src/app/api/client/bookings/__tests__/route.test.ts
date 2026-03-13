@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockFindMany = vi.fn();
+const mockCount = vi.fn();
 
 vi.mock('@/lib/db', () => ({
   prisma: {
     booking: {
       findMany: (...args: unknown[]) => mockFindMany(...args),
+      count: (...args: unknown[]) => mockCount(...args),
     },
   },
 }));
@@ -42,7 +44,7 @@ describe('GET /api/client/bookings', () => {
   it('returns 401 when unauthenticated', async () => {
     vi.mocked(getRequestContext).mockRejectedValueOnce(new Error('no session'));
 
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/client/bookings'));
     expect(res.status).toBe(401);
   });
 
@@ -58,12 +60,14 @@ describe('GET /api/client/bookings', () => {
         sitter: { id: 's1', firstName: 'Alex', lastName: 'Lee' },
       },
     ]);
+    mockCount.mockResolvedValueOnce(1);
 
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/client/bookings?page=1&pageSize=20'));
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.bookings).toEqual([
+    expect(body.sort).toEqual({ field: 'startAt', direction: 'desc' });
+    expect(body.items).toEqual([
       {
         id: 'b1',
         service: 'Dog Walk',
@@ -77,8 +81,9 @@ describe('GET /api/client/bookings', () => {
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { orgId: 'org-1', clientId: 'client-1' },
-        orderBy: { startAt: 'desc' },
-        take: 50,
+        orderBy: [{ startAt: 'desc' }, { id: 'asc' }],
+        skip: 0,
+        take: 20,
       })
     );
   });
@@ -95,11 +100,12 @@ describe('GET /api/client/bookings', () => {
         sitter: null,
       },
     ]);
+    mockCount.mockResolvedValueOnce(1);
 
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/client/bookings'));
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.bookings[0].sitter).toBeNull();
+    expect(body.items[0].sitter).toBeNull();
   });
 });

@@ -64,6 +64,7 @@ export async function getWorkerStatus(): Promise<{
   lastJobProcessed?: string;
   queues: {
     automation: { waiting: number; active: number; completed: number; failed: number };
+    automationHigh: { waiting: number; active: number; completed: number; failed: number };
     reminders: { waiting: number; active: number; completed: number; failed: number };
     summary: { waiting: number; active: number; completed: number; failed: number };
     reconciliation: { waiting: number; active: number; completed: number; failed: number };
@@ -77,17 +78,24 @@ export async function getWorkerStatus(): Promise<{
 
     // Check automation queue (most important for worker status)
     const automationQueue = new Queue("automations", { connection });
+    const automationHighQueue = new Queue("automations.high", { connection });
     const reminderQueue = new Queue("reminders", { connection });
     const summaryQueue = new Queue("daily-summary", { connection });
     const reconciliationQueue = new Queue("reconciliation", { connection });
 
     // Get queue stats
-    const [automationStats, reminderStats, summaryStats, reconciliationStats] = await Promise.all([
+    const [automationStats, automationHighStats, reminderStats, summaryStats, reconciliationStats] = await Promise.all([
       Promise.all([
         automationQueue.getWaitingCount(),
         automationQueue.getActiveCount(),
         automationQueue.getCompletedCount(),
         automationQueue.getFailedCount(),
+      ]).then(([waiting, active, completed, failed]) => ({ waiting, active, completed, failed })),
+      Promise.all([
+        automationHighQueue.getWaitingCount(),
+        automationHighQueue.getActiveCount(),
+        automationHighQueue.getCompletedCount(),
+        automationHighQueue.getFailedCount(),
       ]).then(([waiting, active, completed, failed]) => ({ waiting, active, completed, failed })),
       Promise.all([
         reminderQueue.getWaitingCount(),
@@ -122,6 +130,7 @@ export async function getWorkerStatus(): Promise<{
     }
 
     await automationQueue.close();
+    await automationHighQueue.close();
     await reminderQueue.close();
     await summaryQueue.close();
     await reconciliationQueue.close();
@@ -132,6 +141,7 @@ export async function getWorkerStatus(): Promise<{
       lastJobProcessed,
       queues: {
         automation: automationStats,
+        automationHigh: automationHighStats,
         reminders: reminderStats,
         summary: summaryStats,
         reconciliation: reconciliationStats,
@@ -142,6 +152,7 @@ export async function getWorkerStatus(): Promise<{
       hasWorkers: false,
       queues: {
         automation: { waiting: 0, active: 0, completed: 0, failed: 0 },
+        automationHigh: { waiting: 0, active: 0, completed: 0, failed: 0 },
         reminders: { waiting: 0, active: 0, completed: 0, failed: 0 },
         summary: { waiting: 0, active: 0, completed: 0, failed: 0 },
         reconciliation: { waiting: 0, active: 0, completed: 0, failed: 0 },

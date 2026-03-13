@@ -59,8 +59,9 @@ export default function ConversationList({
       
       // Add filters if provided
       if (sitterId) {
-        params.append('assignedSitterId', sitterId);
+        params.append('sitterId', sitterId);
       }
+      params.append('pageSize', '50');
 
       // Phase 4.1: Filter by scope for owner inbox
       if (scope === 'internal') {
@@ -89,7 +90,7 @@ export default function ConversationList({
       }
 
       const data = await response.json();
-      setConversations(data.threads || []);
+      setConversations(data.items || data.threads || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load conversations');
     } finally {
