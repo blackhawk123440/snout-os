@@ -1,4 +1,5 @@
 import { getScopedDb } from "@/lib/tenancy";
+import { createHash } from "node:crypto";
 import { chooseFromNumber } from "@/lib/messaging/choose-from-number";
 import { getClientE164ForClient } from "@/lib/messaging/client-contact-lookup";
 import { getMessagingProvider } from "@/lib/messaging/provider-factory";
@@ -103,6 +104,7 @@ const SEND_PREHANDOFF_PROBE_TIMEOUT_MS = Number(process.env.MESSAGE_SEND_PREHAND
 const MESSAGE_SEND_ALLOW_FORCE_SYNC = process.env.MESSAGE_SEND_ALLOW_FORCE_SYNC === "true";
 const MESSAGE_PROVIDER_DISPATCH_LIMIT_PER_MINUTE = Number(process.env.MESSAGE_PROVIDER_DISPATCH_LIMIT_PER_MINUTE || "2400");
 const MESSAGE_PROVIDER_RETRY_LIMIT_PER_MINUTE = Number(process.env.MESSAGE_PROVIDER_RETRY_LIMIT_PER_MINUTE || "1200");
+const MESSAGE_THREAD_ACTIVITY_UPDATE_INTERVAL_MS = Number(process.env.MESSAGE_THREAD_ACTIVITY_UPDATE_INTERVAL_MS || "1000");
 const RETRYABLE_PROVIDER_CODES = new Set(["20429", "429", "ETIMEDOUT", "ECONNRESET", "EAI_AGAIN", "UNKNOWN_ERROR"]);
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
@@ -122,8 +124,15 @@ function isRetryableProviderFailure(providerErrorCode: string | null, providerEr
   return msg.includes("rate") || msg.includes("throttle") || msg.includes("timeout") || msg.includes("tempor");
 }
 
-function safeIdempotencyFragment(raw: string): string {
-  return raw.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+function computeIdempotencyFingerprint(input: {
+  orgId: string;
+  threadId: string;
+  actorType: string;
+  body: string;
+}): string {
+  return createHash("sha256")
+    .update(`${input.orgId}|${input.threadId}|${input.actorType}|${input.body}`)
+    .digest("hex");
 }
 
 function buildMetadataJson(input: { idempotencyKey?: string; handoff: "sync" | "async" | "none" }): string {
@@ -411,6 +420,14 @@ export async function sendThreadMessage(params: {
 
   const eventActorType = actorTypeForEvent(params.actor.role);
   const idempotencyKey = params.idempotencyKey?.trim() || undefined;
+  const idempotencyFingerprint = idempotencyKey
+    ? computeIdempotencyFingerprint({
+        orgId: params.orgId,
+        threadId: params.threadId,
+        actorType: eventActorType,
+        body: messageBody,
+      })
+    : undefined;
   if (idempotencyKey) {
     const idemStartedAt = Date.now();
     const existing = await db.messageEvent.findFirst({
@@ -419,13 +436,15 @@ export async function sendThreadMessage(params: {
         orgId: params.orgId,
         direction: "outbound",
         actorType: eventActorType,
-        body: messageBody,
-        metadataJson: { contains: `"idempotencyKey":"${safeIdempotencyFragment(idempotencyKey)}"` },
+        idempotencyKey,
       },
       orderBy: { createdAt: "desc" },
     });
     if (params.intakeProfile) params.intakeProfile.idempotencyLookupMs = Date.now() - idemStartedAt;
     if (existing) {
+      if (existing.idempotencyFingerprint && existing.idempotencyFingerprint !== idempotencyFingerprint) {
+        throw new Error("Conflict: idempotency key reused with a different payload");
+      }
       return {
         accepted: true,
         queued: existing.deliveryStatus === "queued",
@@ -489,6 +508,8 @@ export async function sendThreadMessage(params: {
       actorUserId: params.actor.role === "client" ? null : (params.actor.userId ?? null),
       actorClientId: params.actor.role === "client" ? (params.actor.clientId ?? null) : null,
       body: messageBody,
+      idempotencyKey: idempotencyKey ?? null,
+      idempotencyFingerprint: idempotencyFingerprint ?? null,
       metadataJson,
       deliveryStatus: shouldDispatchProvider ? "queued" : "sent",
       providerMessageSid: null,
@@ -503,9 +524,14 @@ export async function sendThreadMessage(params: {
   if (params.intakeProfile) params.intakeProfile.intentPersistMs = Date.now() - persistStartedAt;
 
   const threadUpdateStartedAt = Date.now();
-  await db.messageThread.update({
-    where: { id: params.threadId },
-    data: { lastMessageAt: new Date(), lastOutboundAt: new Date() },
+  const now = new Date();
+  const activityCutoff = new Date(now.getTime() - Math.max(0, MESSAGE_THREAD_ACTIVITY_UPDATE_INTERVAL_MS));
+  await db.messageThread.updateMany({
+    where: {
+      id: params.threadId,
+      OR: [{ lastOutboundAt: null }, { lastOutboundAt: { lt: activityCutoff } }],
+    },
+    data: { lastMessageAt: now, lastOutboundAt: now },
   });
   if (params.intakeProfile) params.intakeProfile.threadUpdateMs = Date.now() - threadUpdateStartedAt;
 

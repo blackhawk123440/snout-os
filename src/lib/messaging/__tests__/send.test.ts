@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockThreadFindUnique = vi.fn();
 const mockThreadUpdate = vi.fn();
+const mockThreadUpdateMany = vi.fn();
 const mockEventFindFirst = vi.fn();
 const mockEventCreate = vi.fn();
 const mockEventFindUnique = vi.fn();
@@ -23,6 +24,7 @@ vi.mock("@/lib/tenancy", () => ({
     messageThread: {
       findUnique: (...args: unknown[]) => mockThreadFindUnique(...args),
       update: (...args: unknown[]) => mockThreadUpdate(...args),
+      updateMany: (...args: unknown[]) => mockThreadUpdateMany(...args),
     },
     messageEvent: {
       findFirst: (...args: unknown[]) => mockEventFindFirst(...args),
@@ -88,6 +90,7 @@ describe("messaging async handoff", () => {
       assignmentWindows: [],
     });
     mockThreadUpdate.mockResolvedValue({});
+    mockThreadUpdateMany.mockResolvedValue({ count: 1 });
     mockEventFindFirst.mockResolvedValue(null);
     mockEventCreate.mockResolvedValue({
       id: "event-1",

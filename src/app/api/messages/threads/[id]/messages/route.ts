@@ -322,6 +322,9 @@ export async function POST(
     if (message.includes('cannot be empty') || message.includes('contact') || message.includes('no client')) {
       return NextResponse.json({ accepted: false, queued: false, error: message }, { status: 400 });
     }
+    if (message.includes('idempotency key reused')) {
+      return NextResponse.json({ accepted: false, queued: false, error: message }, { status: 409 });
+    }
     if (message.includes('queue unavailable') || message.includes('queue enqueue failed')) {
       return NextResponse.json(
         { accepted: false, queued: false, error: 'Message handoff unavailable', reason: message },
