@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getScopedDb } from '@/lib/tenancy';
 import { checkRateLimit, getRateLimitIdentifier } from '@/lib/rate-limit';
 import { getRequestContext } from '@/lib/request-context';
-import { sendThreadMessage, assertMessagingThreadAccess, asMessagingActorRole } from '@/lib/messaging/send';
+import { sendThreadMessage, assertMessagingThreadAccess, asMessagingActorRole, type MessageIntakeStepProfile } from '@/lib/messaging/send';
 import { getOutboundQueuePressure, isOutboundQueueAvailable } from '@/lib/messaging/outbound-queue';
 import { parseDate, parsePage, parsePageSize } from '@/lib/pagination';
 
@@ -68,6 +68,13 @@ function overloadResponse(reason: string, retryAfterSec = 1) {
     { accepted: false, queued: false, error: 'Message intake overloaded', reason },
     { status: 503, headers: { 'Retry-After': String(retryAfterSec) } }
   );
+}
+
+function buildServerTiming(parts: Array<[string, number | undefined]>): string {
+  return parts
+    .filter(([, v]) => typeof v === 'number')
+    .map(([k, v]) => `${k};dur=${Math.max(0, Number(v ?? 0)).toFixed(1)}`)
+    .join(', ');
 }
 
 export async function GET(
@@ -171,6 +178,8 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   const startedAt = Date.now();
+  const wantProfile = request.headers.get('x-message-intake-profile') === '1';
+  const profile: MessageIntakeStepProfile = {};
   const params = await context.params;
   const threadId = params.id;
 
@@ -195,20 +204,24 @@ export async function POST(
 
   messagePostInFlight += 1;
   try {
+  const authStartedAt = Date.now();
   let ctx;
   try {
     ctx = await getRequestContext();
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const authMs = Date.now() - authStartedAt;
 
   const id = getRateLimitIdentifier(request);
   const scopedIdentifier = ctx.userId ? `${id}:${ctx.orgId}:${ctx.userId}` : id;
+  const rateLimitStartedAt = Date.now();
   const rl = await checkRateLimit(scopedIdentifier, {
     keyPrefix: 'messages-accept',
     limit: Math.max(300, MESSAGE_ACCEPT_RATE_LIMIT_PER_MINUTE),
     windowSec: 60,
   });
+  const rateLimitMs = Date.now() - rateLimitStartedAt;
   if (!rl.success) {
     return NextResponse.json(
       { accepted: false, queued: false, error: 'Too many requests', retryAfter: rl.retryAfter },
@@ -217,6 +230,7 @@ export async function POST(
   }
 
   let body: { body: string; forceSend?: boolean };
+  const parseBodyStartedAt = Date.now();
   try {
     body = await request.json();
   } catch {
@@ -225,6 +239,7 @@ export async function POST(
       { status: 400 }
     );
   }
+  const parseBodyMs = Date.now() - parseBodyStartedAt;
 
   const messageBody = body.body?.trim();
   if (!messageBody) {
@@ -239,6 +254,7 @@ export async function POST(
   }
 
   try {
+    const sendStartedAt = Date.now();
     const role = asMessagingActorRole(ctx.role);
     if (!role) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     const idempotencyKey = request.headers.get('Idempotency-Key') ?? request.headers.get('idempotency-key') ?? undefined;
@@ -254,9 +270,11 @@ export async function POST(
       body: messageBody,
       forceSend: body.forceSend,
       idempotencyKey,
+      intakeProfile: profile,
     });
+    const sendMs = Date.now() - sendStartedAt;
 
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         accepted: result.accepted,
         queued: result.queued,
@@ -273,6 +291,26 @@ export async function POST(
         headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': ctx.orgId },
       }
     );
+    if (wantProfile) {
+      const serverTiming = buildServerTiming([
+        ['auth', authMs],
+        ['rate_limit', rateLimitMs],
+        ['parse_body', parseBodyMs],
+        ['thread_lookup', profile.threadLookupMs],
+        ['idempotency', profile.idempotencyLookupMs],
+        ['queue_probe', profile.queuePressureProbeMs],
+        ['provider_probe', profile.providerPressureProbeMs],
+        ['persist', profile.intentPersistMs],
+        ['thread_update', profile.threadUpdateMs],
+        ['enqueue', profile.enqueueMs],
+        ['send_total', sendMs],
+        ['total', Date.now() - startedAt],
+      ]);
+      if (serverTiming) {
+        response.headers.set('Server-Timing', serverTiming);
+      }
+    }
+    return response;
   } catch (error: any) {
     const message = String(error?.message ?? '');
     if (message.startsWith('Forbidden')) {

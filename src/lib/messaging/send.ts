@@ -175,6 +175,18 @@ export interface SendThreadMessageResult {
   handoffMeta: MessageHandoffMeta;
 }
 
+export interface MessageIntakeStepProfile {
+  threadLookupMs?: number;
+  idempotencyLookupMs?: number;
+  queuePressureProbeMs?: number;
+  providerPressureProbeMs?: number;
+  intentPersistMs?: number;
+  threadUpdateMs?: number;
+  enqueueMs?: number;
+}
+
+const MESSAGE_INTAKE_OPTIMIZED_THREAD_LOOKUP = process.env.MESSAGE_INTAKE_OPTIMIZED_THREAD_LOOKUP === "true";
+
 async function checkDispatchLimiter(orgId: string, attemptNo: number): Promise<void> {
   const isRetry = attemptNo > 1;
   const rl = await checkRateLimit(`${orgId}:twilio`, {
@@ -351,26 +363,48 @@ export async function sendThreadMessage(params: {
   body: string;
   forceSend?: boolean;
   idempotencyKey?: string;
+  intakeProfile?: MessageIntakeStepProfile;
 }): Promise<SendThreadMessageResult> {
   const db = getScopedDb({ orgId: params.orgId });
-  const thread = await db.messageThread.findUnique({
-    where: { id: params.threadId },
-    select: {
-      id: true,
-      orgId: true,
-      clientId: true,
-      assignedSitterId: true,
-      assignmentWindows: {
-        where: { startAt: { lte: new Date() }, endAt: { gte: new Date() } },
-        orderBy: { startAt: 'desc' },
-        take: 1,
-        select: { id: true, sitterId: true, startAt: true, endAt: true },
-      },
-    },
-  });
+  const threadLookupStartedAt = Date.now();
+  const needsWindow = params.actor.role === "sitter" || !MESSAGE_INTAKE_OPTIMIZED_THREAD_LOOKUP;
+  const thread = needsWindow
+    ? await db.messageThread.findUnique({
+        where: { id: params.threadId },
+        select: {
+          id: true,
+          orgId: true,
+          clientId: true,
+          assignedSitterId: true,
+          assignmentWindows: {
+            where: { startAt: { lte: new Date() }, endAt: { gte: new Date() } },
+            orderBy: { startAt: 'desc' },
+            take: 1,
+            select: { id: true, sitterId: true, startAt: true, endAt: true },
+          },
+        },
+      })
+    : await db.messageThread.findUnique({
+        where: { id: params.threadId },
+        select: {
+          id: true,
+          orgId: true,
+          clientId: true,
+          assignedSitterId: true,
+          assignmentWindows: false,
+        },
+      });
+  if (params.intakeProfile) params.intakeProfile.threadLookupMs = Date.now() - threadLookupStartedAt;
 
   if (!thread) throw new Error("Thread not found");
-  assertMessagingThreadAccess(thread, params.actor, params.actor.role === "sitter");
+  const threadForAccess: ThreadForSend = {
+    id: thread.id,
+    orgId: thread.orgId,
+    clientId: thread.clientId,
+    assignedSitterId: thread.assignedSitterId,
+    assignmentWindows: Array.isArray((thread as any).assignmentWindows) ? (thread as any).assignmentWindows : [],
+  };
+  assertMessagingThreadAccess(threadForAccess, params.actor, params.actor.role === "sitter");
 
   const messageBody = params.body.trim();
   if (!messageBody) throw new Error("Message body cannot be empty");
@@ -378,6 +412,7 @@ export async function sendThreadMessage(params: {
   const eventActorType = actorTypeForEvent(params.actor.role);
   const idempotencyKey = params.idempotencyKey?.trim() || undefined;
   if (idempotencyKey) {
+    const idemStartedAt = Date.now();
     const existing = await db.messageEvent.findFirst({
       where: {
         threadId: params.threadId,
@@ -389,6 +424,7 @@ export async function sendThreadMessage(params: {
       },
       orderBy: { createdAt: "desc" },
     });
+    if (params.intakeProfile) params.intakeProfile.idempotencyLookupMs = Date.now() - idemStartedAt;
     if (existing) {
       return {
         accepted: true,
@@ -413,6 +449,7 @@ export async function sendThreadMessage(params: {
   const shouldDispatchProvider = params.actor.role !== "client";
   const queueAvailable = isOutboundQueueAvailable();
   const forceSync = params.forceSend === true && MESSAGE_SEND_ALLOW_FORCE_SYNC;
+  const queueProbeStartedAt = Date.now();
   const queuePressure = shouldDispatchProvider
     ? await withTimeout(
         getOutboundQueuePressure(),
@@ -420,6 +457,8 @@ export async function sendThreadMessage(params: {
         "queue pressure probe timeout"
       ).catch(() => null)
     : null;
+  if (params.intakeProfile) params.intakeProfile.queuePressureProbeMs = Date.now() - queueProbeStartedAt;
+  const providerProbeStartedAt = Date.now();
   const providerDegraded = shouldDispatchProvider
     ? await withTimeout(
         shouldForceQueuedOnly({ provider: "twilio", orgId: params.orgId }),
@@ -427,6 +466,7 @@ export async function sendThreadMessage(params: {
         "provider pressure probe timeout"
       ).catch(() => false)
     : false;
+  if (params.intakeProfile) params.intakeProfile.providerPressureProbeMs = Date.now() - providerProbeStartedAt;
   const queueUnderPressure = !!queuePressure?.forceQueuedOnly;
   const enforceAsync = providerDegraded || queueUnderPressure;
   const shouldAsyncHandoff =
@@ -439,6 +479,7 @@ export async function sendThreadMessage(params: {
     handoff: shouldDispatchProvider ? (shouldAsyncHandoff ? "async" : "sync") : "none",
   });
 
+  const persistStartedAt = Date.now();
   const event = await db.messageEvent.create({
     data: {
       threadId: params.threadId,
@@ -459,11 +500,14 @@ export async function sendThreadMessage(params: {
       lastAttemptAt: shouldDispatchProvider ? null : new Date(),
     },
   });
+  if (params.intakeProfile) params.intakeProfile.intentPersistMs = Date.now() - persistStartedAt;
 
+  const threadUpdateStartedAt = Date.now();
   await db.messageThread.update({
     where: { id: params.threadId },
     data: { lastMessageAt: new Date(), lastOutboundAt: new Date() },
   });
+  if (params.intakeProfile) params.intakeProfile.threadUpdateMs = Date.now() - threadUpdateStartedAt;
 
   if (!shouldDispatchProvider) {
     void logEvent({
@@ -504,10 +548,12 @@ export async function sendThreadMessage(params: {
   }
 
   if (shouldAsyncHandoff) {
+    const enqueueStartedAt = Date.now();
     const enqueued = await enqueueOutboundMessage({
       orgId: params.orgId,
       messageEventId: event.id,
     });
+    if (params.intakeProfile) params.intakeProfile.enqueueMs = Date.now() - enqueueStartedAt;
     if (enqueued) {
       void logEvent({
         orgId: params.orgId,
