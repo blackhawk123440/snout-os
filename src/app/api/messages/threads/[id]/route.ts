@@ -37,6 +37,24 @@ export async function GET(
       },
       client: { select: { id: true, firstName: true, lastName: true } },
       sitter: { select: { id: true, firstName: true, lastName: true } },
+      conversationFlags: {
+        where: { resolvedAt: null },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { id: true, type: true, severity: true, createdAt: true },
+      },
+      availabilityRequests: {
+        orderBy: { requestedAt: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          status: true,
+          requestedAt: true,
+          respondedAt: true,
+          responseLatencySec: true,
+          sitterId: true,
+        },
+      },
     },
   });
 
@@ -72,6 +90,12 @@ export async function GET(
       | 'assignment'
       | 'pool'
       | 'other',
+    laneType: t.laneType ?? 'company',
+    activationStage: t.activationStage ?? 'intake',
+    lifecycleStatus: t.lifecycleStatus ?? 'active',
+    assignedRole: t.assignedRole ?? 'front_desk',
+    clientApprovedAt: t.clientApprovedAt ? t.clientApprovedAt.toISOString() : null,
+    sitterApprovedAt: t.sitterApprovedAt ? t.sitterApprovedAt.toISOString() : null,
     status: (t.status === 'open' ? 'active' : t.status === 'closed' || t.status === 'archived' ? 'inactive' : 'active') as
       | 'active'
       | 'inactive',
@@ -97,6 +121,24 @@ export async function GET(
       id: w.id,
       startsAt: w.startAt.toISOString(),
       endsAt: w.endAt.toISOString(),
+    })),
+    serviceWindow: t.serviceWindowStart && t.serviceWindowEnd
+      ? { startAt: t.serviceWindowStart.toISOString(), endAt: t.serviceWindowEnd.toISOString() }
+      : null,
+    graceEndsAt: t.graceEndsAt ? t.graceEndsAt.toISOString() : null,
+    flags: (t.conversationFlags ?? []).map((flag) => ({
+      id: flag.id,
+      type: flag.type,
+      severity: flag.severity,
+      createdAt: flag.createdAt.toISOString(),
+    })),
+    availabilityResponses: (t.availabilityRequests ?? []).map((req) => ({
+      id: req.id,
+      status: req.status,
+      requestedAt: req.requestedAt.toISOString(),
+      respondedAt: req.respondedAt?.toISOString() ?? null,
+      responseLatencySec: req.responseLatencySec ?? null,
+      sitterId: req.sitterId,
     })),
   };
 

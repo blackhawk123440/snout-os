@@ -8,6 +8,7 @@ import { emitBookingCreated } from '@/lib/event-emitter';
 import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 import { emitAndEnqueueBookingEvent } from '@/lib/booking/booking-events';
 import { parseCsv, parseDate, parsePage, parsePageSize } from '@/lib/pagination';
+import { syncConversationLifecycleWithBookingWorkflow } from '@/lib/messaging/conversation-service';
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
@@ -203,6 +204,31 @@ export async function POST(request: NextRequest) {
       },
       include: { pets: true, timeSlots: true },
     });
+    let lifecycleSyncError: { code?: string; message: string } | null = null;
+    try {
+      await syncConversationLifecycleWithBookingWorkflow({
+        orgId: ctx.orgId,
+        bookingId: booking.id,
+        clientId: booking.clientId ?? ctx.clientId,
+        phone: booking.phone,
+        firstName: booking.firstName,
+        lastName: booking.lastName,
+        bookingStatus: booking.status,
+        sitterId: booking.sitterId,
+        serviceWindowStart: booking.startAt,
+        serviceWindowEnd: booking.endAt,
+      });
+    } catch (conversationError: unknown) {
+      const err = conversationError as { code?: string; message?: string };
+      const code = err?.code != null ? String(err.code) : undefined;
+      const message = err?.message != null ? String(err.message) : String(conversationError);
+      lifecycleSyncError = { ...(code ? { code } : {}), message };
+      console.error(
+        '[api/client/bookings] company lane ensure failed (non-blocking):',
+        code ?? '',
+        message
+      );
+    }
 
     await ensureEventQueueBridge();
     try {
@@ -225,14 +251,17 @@ export async function POST(request: NextRequest) {
       },
     }).catch((err) => console.error('[api/client/bookings] emitAndEnqueueBookingEvent failed:', err));
 
-    return NextResponse.json({
+    const res: { success: true; booking: { id: string; totalPrice: number; status: string }; orgId?: string; lifecycleSyncError?: { code?: string; message: string } } = {
       success: true,
       booking: {
         id: booking.id,
         totalPrice: Number(booking.totalPrice),
         status: booking.status,
       },
-    });
+    };
+    res.orgId = ctx.orgId;
+    if (lifecycleSyncError) res.lifecycleSyncError = lifecycleSyncError;
+    return NextResponse.json(res);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(

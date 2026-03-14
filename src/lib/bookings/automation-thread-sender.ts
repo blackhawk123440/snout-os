@@ -8,6 +8,7 @@
  */
 
 import { prisma } from '@/lib/db';
+import { sendThreadMessage } from '@/lib/messaging/send';
 
 interface SendAutomationMessageParams {
   bookingId: string;
@@ -15,19 +16,22 @@ interface SendAutomationMessageParams {
   clientId: string;
   message: string;
   recipient: 'client' | 'sitter' | 'owner';
-  recipientPhone?: string; // Fallback if thread not found
 }
 
 /**
  * Send automation message using thread masking number
  * 
- * Finds the thread for the booking and sends via messaging API
- * Falls back to old sendMessage if thread not found (backward compatibility)
+ * Finds the thread for the booking and sends via thread routing.
+ * For client/sitter delivery this fails closed when masking cannot be used.
  */
 export async function sendAutomationMessageViaThread(
   params: SendAutomationMessageParams
 ): Promise<{ success: boolean; error?: string; usedThread?: boolean }> {
-  const { bookingId, orgId, clientId, message, recipient, recipientPhone } = params;
+  const { bookingId, orgId, message, recipient } = params;
+
+  const maskedOnlyEnforced =
+    process.env.ENFORCE_MASKED_ONLY_MESSAGING === 'true' || process.env.NODE_ENV === 'production';
+  const mustUseMaskedThread = recipient === 'client' || recipient === 'sitter';
 
   try {
     // Find thread for this booking (via assignment window bookingRef)
@@ -48,35 +52,21 @@ export async function sendAutomationMessageViaThread(
     const thread = window?.thread;
 
     if (!thread || !thread.numberId || !thread.messageNumber) {
-      // Thread not found or no number assigned - fallback to old method
-      console.warn(`[sendAutomationMessageViaThread] Thread not found for booking ${bookingId}, falling back to old sendMessage`);
-      
-      if (recipientPhone) {
-        const { sendMessage } = await import('@/lib/message-utils');
-        const sent = await sendMessage(recipientPhone, message, bookingId);
-        return { success: sent, usedThread: false };
+      const reason = `Masked delivery required: no thread/number mapping for booking ${bookingId}`;
+      if (mustUseMaskedThread || maskedOnlyEnforced) {
+        return { success: false, error: reason, usedThread: false };
       }
-      
-      return { success: false, error: 'Thread not found and no recipient phone provided', usedThread: false };
+      return { success: false, error: reason, usedThread: false };
     }
 
-    // Send via Next.js BFF proxy route (handles auth automatically)
-    // The messaging API enforces that messages use the thread's assigned number
-    const response = await fetch(`/api/messages/threads/${thread.id}/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        body: message,
-        forceSend: false, // Automations should respect policy
-      }),
+    await sendThreadMessage({
+      orgId,
+      threadId: thread.id,
+      actor: { role: 'automation', userId: null },
+      body: message,
+      forceSend: false,
+      idempotencyKey: `automation:${recipient}:${bookingId}:${message.length}`,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-      return { success: false, error: errorData.error || 'Failed to send message', usedThread: true };
-    }
 
     return { success: true, usedThread: true };
   } catch (error: any) {

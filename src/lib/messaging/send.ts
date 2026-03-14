@@ -11,6 +11,8 @@ import {
   recordProviderTransientFailure,
   shouldForceQueuedOnly,
 } from "@/lib/messaging/provider-pressure";
+import { createSoftAntiPoachingFlag } from "@/lib/messaging/anti-poaching-flags";
+import { captureAvailabilityResponseFromMessage } from "@/lib/messaging/conversation-service";
 import { logEvent } from "@/lib/log-event";
 import { publish, channels } from "@/lib/realtime/bus";
 import type { SendMessageResult } from "@/lib/messaging/provider";
@@ -510,6 +512,7 @@ export async function sendThreadMessage(params: {
       body: messageBody,
       idempotencyKey: idempotencyKey ?? null,
       idempotencyFingerprint: idempotencyFingerprint ?? null,
+      routingDisposition: "normal",
       metadataJson,
       deliveryStatus: shouldDispatchProvider ? "queued" : "sent",
       providerMessageSid: null,
@@ -539,9 +542,19 @@ export async function sendThreadMessage(params: {
   }
   if (!threadActivityQueued) {
     const now = new Date(activityAtMs);
+    const actorThreadUpdate =
+      params.actor.role === "client"
+        ? { lastClientMessageAt: now }
+        : params.actor.role === "sitter"
+          ? { lastSitterMessageAt: now }
+          : {};
     await db.messageThread.updateMany({
       where: { id: params.threadId },
-      data: { lastMessageAt: now, lastOutboundAt: now },
+      data: {
+        lastMessageAt: now,
+        lastOutboundAt: now,
+        ...actorThreadUpdate,
+      },
     });
     void logEvent({
       orgId: params.orgId,
@@ -553,6 +566,23 @@ export async function sendThreadMessage(params: {
         reason: "thread_activity_queue_unavailable",
       },
     });
+  }
+
+  // Keep intake path minimal: moderation + YES/NO response capture are soft side-effects.
+  void createSoftAntiPoachingFlag({
+    orgId: params.orgId,
+    threadId: params.threadId,
+    messageEventId: event.id,
+    body: messageBody,
+  }).catch(() => {});
+  if (params.actor.role === "sitter" && params.actor.sitterId) {
+    void captureAvailabilityResponseFromMessage({
+      orgId: params.orgId,
+      threadId: params.threadId,
+      sitterId: params.actor.sitterId,
+      body: messageBody,
+      responseMessageEventId: event.id,
+    }).catch(() => {});
   }
   if (params.intakeProfile) params.intakeProfile.threadUpdateMs = Date.now() - threadUpdateStartedAt;
 

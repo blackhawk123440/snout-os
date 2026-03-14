@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
+import { getProviderCredentials, getTwilioClientFromCredentials } from '@/lib/messaging/provider-credentials';
 import { upsertCanonicalMessageNumbersFromTwilio } from '@/lib/messaging/sync-inventory';
 
 export async function POST(request: NextRequest) {
@@ -34,8 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const twilio = require('twilio');
-    const client = twilio(credentials.accountSid, credentials.authToken);
+    const client = getTwilioClientFromCredentials(credentials);
     const list = await client.incomingPhoneNumbers.list({ limit: 100 });
 
     if (list.length === 0) {

@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { encrypt } from '@/lib/messaging/encryption';
-import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
+import { getProviderCredentials, getTwilioClientFromCredentials } from '@/lib/messaging/provider-credentials';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const user = session.user as any;
   const orgId = user.orgId || 'default';
 
-  let body: { accountSid: string; authToken: string };
+  let body: { accountSid: string; authToken?: string; apiKeySid?: string; apiKeySecret?: string };
   try {
     body = await request.json();
   } catch {
@@ -36,10 +36,20 @@ export async function POST(request: NextRequest) {
   }
 
   const accountSid = String(body.accountSid ?? '').trim();
-  const authToken = String(body.authToken ?? '').trim();
-  if (!accountSid || !authToken) {
+  const authToken = body.authToken != null ? String(body.authToken).trim() : '';
+  const apiKeySid = body.apiKeySid != null ? String(body.apiKeySid).trim() : '';
+  const apiKeySecret = body.apiKeySecret != null ? String(body.apiKeySecret).trim() : '';
+  const useApiKey = !!(apiKeySid && apiKeySecret);
+
+  if (!accountSid) {
     return NextResponse.json(
-      { success: false, message: 'Account SID and Auth Token are required' },
+      { success: false, message: 'Account SID is required' },
+      { status: 400 }
+    );
+  }
+  if (!useApiKey && !authToken) {
+    return NextResponse.json(
+      { success: false, message: 'Either Auth Token or API Key (apiKeySid + apiKeySecret) is required' },
       { status: 400 }
     );
   }
@@ -47,11 +57,15 @@ export async function POST(request: NextRequest) {
   // Always use direct Prisma so connect and status use the same DB (dashboard self-contained).
   try {
     let encryptedConfig: string;
+    const config: Record<string, string> = { accountSid };
+    if (useApiKey) {
+      config.apiKeySid = apiKeySid;
+      config.apiKeySecret = apiKeySecret;
+    } else {
+      config.authToken = authToken;
+    }
     try {
-      encryptedConfig = encrypt(JSON.stringify({
-        accountSid,
-        authToken,
-      }));
+      encryptedConfig = encrypt(JSON.stringify(config));
     } catch (encErr: any) {
       console.error('[Connect] Encryption failed:', encErr);
       return NextResponse.json({
@@ -97,8 +111,7 @@ export async function POST(request: NextRequest) {
 
     // Verify Twilio accepts these credentials (same API used by webhook install)
     try {
-      const twilio = require('twilio');
-      const client = twilio(verifiedCreds!.accountSid, verifiedCreds!.authToken);
+      const client = getTwilioClientFromCredentials(verifiedCreds!);
       await client.incomingPhoneNumbers.list({ limit: 1 });
     } catch (twilioErr: any) {
       const isAuthError =
@@ -109,7 +122,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         message: isAuthError
-          ? 'Twilio rejected the credentials. Check Account SID and Auth Token (e.g. no extra spaces, use the secret Auth Token from Twilio Console).'
+          ? 'Twilio rejected the credentials. Check Account SID and Auth Token (or API Key SID + Secret).'
           : twilioErr?.message || 'Twilio verification failed.',
         verified: false,
         ok: false,

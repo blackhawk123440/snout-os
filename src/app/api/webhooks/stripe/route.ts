@@ -12,6 +12,7 @@ import Stripe from 'stripe';
 import { getScopedDb } from '@/lib/tenancy';
 import { onBookingConfirmed } from '@/lib/bookings/booking-confirmed-handler';
 import { logEvent } from '@/lib/log-event';
+import { syncConversationLifecycleWithBookingWorkflow } from '@/lib/messaging/conversation-service';
 import {
   persistPaymentSucceeded,
   persistPaymentFailed,
@@ -89,6 +90,17 @@ export async function POST(request: NextRequest) {
               await db.booking.update({
                 where: { id: bookingId },
                 data: { status: 'confirmed', paymentStatus: 'paid' },
+              });
+              await syncConversationLifecycleWithBookingWorkflow({
+                orgId: booking.orgId || orgId,
+                bookingId,
+                clientId: booking.clientId,
+                sitterId: booking.sitterId,
+                bookingStatus: 'confirmed',
+                serviceWindowStart: booking.startAt ? new Date(booking.startAt) : null,
+                serviceWindowEnd: booking.endAt ? new Date(booking.endAt) : null,
+              }).catch((error) => {
+                console.error('[Stripe Webhook] messaging lifecycle sync failed:', error);
               });
             } catch (e: any) {
               console.error('[Stripe Webhook] onBookingConfirmed failed:', e);

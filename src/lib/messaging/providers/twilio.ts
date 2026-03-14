@@ -22,6 +22,7 @@ import type {
   UpdateSessionParticipantsOptions,
 } from '../provider';
 import type { ProviderCredentials } from '../provider-credentials';
+import { getTwilioClientFromCredentials } from '../provider-credentials';
 
 // Twilio SDK is optional - type only imported when available
 let twilioClient: any = null;
@@ -43,10 +44,6 @@ async function getTwilioClient(orgId?: string): Promise<any> {
   }
 
   try {
-    // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
-    const twilio = require('twilio');
-    twilioLib = twilio;
-    
     // Resolve credentials from DB or env
     const { getProviderCredentials } = require('@/lib/messaging/provider-credentials');
     const { getOrgIdFromContext } = require('@/lib/messaging/org-helpers');
@@ -58,24 +55,23 @@ async function getTwilioClient(orgId?: string): Promise<any> {
       throw new Error('Twilio credentials not configured. Please connect provider in /setup.');
     }
     
-    const { accountSid, authToken } = credentials;
-    
-    if (!accountSid || !authToken) {
-      throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set');
+    const { accountSid, apiKeySid, apiKeySecret } = credentials;
+    const useApiKey = !!(apiKeySid && apiKeySecret);
+    const hasAuth = useApiKey || !!credentials.authToken;
+
+    if (!accountSid || !hasAuth) {
+      throw new Error('Twilio credentials not set: need Account SID and either Auth Token or API Key (apiKeySid + apiKeySecret)');
     }
-    
-    // In test environment, allow test SIDs to pass through
-    // Real Twilio SDK will validate format, but we allow test values for unit tests
-    if (accountSid.startsWith('TEST_') || accountSid.startsWith('AC')) {
-      const client = twilio(accountSid, authToken);
-      // Cache for default org (backward compatibility)
+
+    // Allow AC (account), TEST_, or SK (API Key SID) for account resolution
+    if (accountSid.startsWith('TEST_') || accountSid.startsWith('AC') || (useApiKey && apiKeySid!.startsWith('SK'))) {
+      const client = getTwilioClientFromCredentials(credentials);
       if (!orgId) {
         twilioClient = client;
       }
       return client;
-    } else {
-      throw new Error('TWILIO_ACCOUNT_SID must start with AC or TEST_');
     }
+    throw new Error('TWILIO_ACCOUNT_SID must start with AC or TEST_');
   } catch (error) {
     throw new Error(`Twilio SDK not available: ${error instanceof Error ? error.message : String(error)}. Install with: npm install twilio`);
   }
@@ -83,16 +79,13 @@ async function getTwilioClient(orgId?: string): Promise<any> {
 
 async function getTwilioClientWithCredentials(credentials: ProviderCredentials): Promise<any> {
   try {
-    // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
-    const twilio = require('twilio');
-    const { accountSid, authToken } = credentials;
-    if (!accountSid || !authToken) {
-      throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set');
+    const { accountSid, apiKeySid, apiKeySecret, authToken } = credentials;
+    const useApiKey = !!(apiKeySid && apiKeySecret);
+    const hasAuth = useApiKey || !!authToken;
+    if (!accountSid || !hasAuth) {
+      throw new Error('Twilio credentials not set: need Account SID and either Auth Token or API Key');
     }
-    if (accountSid.startsWith('TEST_') || accountSid.startsWith('AC')) {
-      return twilio(accountSid, authToken);
-    }
-    throw new Error('TWILIO_ACCOUNT_SID must start with AC or TEST_');
+    return getTwilioClientFromCredentials(credentials);
   } catch (error) {
     throw new Error(`Twilio SDK not available: ${error instanceof Error ? error.message : String(error)}. Install with: npm install twilio`);
   }

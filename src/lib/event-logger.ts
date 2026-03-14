@@ -9,6 +9,7 @@
  */
 
 import { prisma } from "@/lib/db";
+import { redactSensitiveMetadata } from "@/lib/privacy/redact-metadata";
 
 export type EventLogStatus = "success" | "failed" | "skipped" | "pending";
 
@@ -31,6 +32,11 @@ export async function logAutomationRun(
   }
 ): Promise<void> {
   try {
+    const metadata = redactSensitiveMetadata({
+      automationType,
+      ...options?.metadata,
+    });
+
     await (prisma as any).eventLog.create({
       data: {
         orgId: options?.orgId ?? 'default',
@@ -39,10 +45,7 @@ export async function logAutomationRun(
         status,
         error: options?.error ?? null,
         bookingId: options?.bookingId ?? null,
-        metadata: JSON.stringify({
-          automationType,
-          ...options?.metadata,
-        }),
+        metadata: JSON.stringify(metadata),
       },
     });
   } catch (error) {
@@ -66,6 +69,7 @@ export async function logEventFromLogger(
   }
 ): Promise<void> {
   try {
+    const metadata = redactSensitiveMetadata(options?.metadata ?? {});
     await (prisma as any).eventLog.create({
       data: {
         orgId: options?.orgId ?? 'default',
@@ -73,7 +77,7 @@ export async function logEventFromLogger(
         status,
         error: options?.error ?? null,
         bookingId: options?.bookingId ?? null,
-        metadata: JSON.stringify(options?.metadata ?? {}),
+        metadata: JSON.stringify(metadata),
       },
     });
   } catch (error) {

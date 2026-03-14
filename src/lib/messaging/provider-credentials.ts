@@ -12,6 +12,9 @@ import { env } from "@/lib/env";
 export interface ProviderCredentials {
   accountSid: string;
   authToken: string;
+  /** When set, use API Key auth: twilio(apiKeySid, apiKeySecret, accountSid) */
+  apiKeySid?: string;
+  apiKeySecret?: string;
   source: 'database' | 'environment';
 }
 
@@ -44,11 +47,23 @@ export async function getProviderCredentials(orgId: string): Promise<ProviderCre
     const config = JSON.parse(decrypted);
     const accountSid = String(config.accountSid ?? '').trim();
     const authToken = String(config.authToken ?? '').trim();
-    if (!accountSid || !authToken) {
-      console.error('[provider-credentials] Stored credentials missing accountSid or authToken for orgId:', orgId);
+    const apiKeySid = config.apiKeySid != null ? String(config.apiKeySid).trim() : undefined;
+    const apiKeySecret = config.apiKeySecret != null ? String(config.apiKeySecret).trim() : undefined;
+    const useApiKey = !!(apiKeySid && apiKeySecret);
+    if (!accountSid) {
+      console.error('[provider-credentials] Stored credentials missing accountSid for orgId:', orgId);
       return null;
     }
-    return { accountSid, authToken, source: 'database' as const };
+    if (!useApiKey && !authToken) {
+      console.error('[provider-credentials] Stored credentials missing authToken (and no API Key) for orgId:', orgId);
+      return null;
+    }
+    return {
+      accountSid,
+      authToken: authToken || '',
+      ...(useApiKey ? { apiKeySid, apiKeySecret } : {}),
+      source: 'database' as const,
+    };
   } catch (error) {
     console.error('[provider-credentials] Failed to load/decrypt credentials for orgId:', orgId, error);
     // When a DB row exists but decrypt/parse failed, do NOT fall back to env — that would
@@ -68,4 +83,24 @@ export async function getProviderCredentials(orgId: string): Promise<ProviderCre
     }
     return null;
   }
+}
+
+/**
+ * Create a Twilio client from credentials (Account SID + Auth Token, or API Key SID + Secret + Account SID).
+ * Use this everywhere we need a Twilio client so API Key auth is supported.
+ */
+export function getTwilioClientFromCredentials(credentials: ProviderCredentials): any {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const twilio = require('twilio');
+  const { accountSid, authToken, apiKeySid, apiKeySecret } = credentials;
+  if (!accountSid) {
+    throw new Error('Twilio accountSid is required');
+  }
+  if (apiKeySid && apiKeySecret) {
+    return twilio(apiKeySid, apiKeySecret, accountSid);
+  }
+  if (!authToken) {
+    throw new Error('Twilio authToken or API Key (apiKeySid + apiKeySecret) is required');
+  }
+  return twilio(accountSid, authToken);
 }

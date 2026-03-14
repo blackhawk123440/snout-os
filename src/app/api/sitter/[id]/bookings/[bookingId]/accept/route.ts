@@ -14,6 +14,7 @@ import { enqueueCalendarSync } from '@/lib/calendar-queue';
 import { emitBookingUpdated } from '@/lib/event-emitter';
 import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 import { validateSitterAssignment } from '@/lib/availability/booking-conflict';
+import { syncConversationLifecycleWithBookingWorkflow } from '@/lib/messaging/conversation-service';
 
 export async function POST(
   request: NextRequest,
@@ -145,6 +146,20 @@ export async function POST(
         sitterId: sitterId,
         status: 'confirmed',
       },
+    });
+    await syncConversationLifecycleWithBookingWorkflow({
+      orgId,
+      bookingId,
+      clientId: (booking as any).clientId ?? null,
+      phone: (booking as any).phone ?? null,
+      firstName: (booking as any).firstName ?? null,
+      lastName: (booking as any).lastName ?? null,
+      sitterId,
+      bookingStatus: 'confirmed',
+      serviceWindowStart: booking.startAt,
+      serviceWindowEnd: booking.endAt,
+    }).catch((error) => {
+      console.error('[Accept Booking] lifecycle sync failed:', error);
     });
 
     if (previousStatus !== 'confirmed') {
