@@ -83,7 +83,12 @@ model Booking {
   @@index([sitterId])
   @@index([orgId])
   @@index([orgId, startAt])
+  @@index([orgId, createdAt(sort: Desc), id])
+  @@index([orgId, status, startAt, id])
+  @@index([orgId, paymentStatus, startAt, id])
   @@index([orgId, sitterId])
+  @@index([orgId, status])
+  @@index([orgId, paymentStatus])
   @@index([status])
   @@index([createdAt])
   @@index([clientId])
@@ -782,6 +787,7 @@ model Client {
   @@index([phone])
   @@index([email])
   @@index([orgId])
+  @@index([orgId, lastBookingAt])
   @@index([deletedAt])
 }
 
@@ -1391,6 +1397,10 @@ model MessageThread {
   @@index([assignedSitterId])
   @@index([status])
   @@index([lastMessageAt])
+  @@index([orgId, lastMessageAt])
+  @@index([orgId, status, lastMessageAt(sort: Desc), id(sort: Desc)])
+  @@index([orgId, assignedSitterId, status, lastMessageAt(sort: Desc), id(sort: Desc)])
+  @@index([orgId, clientId, status, lastMessageAt(sort: Desc), id(sort: Desc)])
   @@index([numberClass])
   @@index([messageNumberId])
   @@index([assignmentWindowId])
@@ -1442,6 +1452,8 @@ model MessageEvent {
   responseSlaSeconds          Int?
   responsibleSitterIdSnapshot String?
   promptId                    String?
+  idempotencyKey              String?  @db.VarChar(128)
+  idempotencyFingerprint      String?  @db.VarChar(64)
   metadataJson                String?  @db.Text // JSON object
   correlationIds              String?  @db.Text // JSON array for audit trail
   answeredAt                  DateTime? // When this message was answered (if requiresResponse=true)
@@ -1465,10 +1477,13 @@ model MessageEvent {
   @@index([actorType])
   @@index([deliveryStatus])
   @@index([createdAt])
+  @@index([orgId, threadId, createdAt(sort: Desc)])
+  @@index([threadId, direction, createdAt(sort: Desc)])
   @@index([providerMessageSid])
   @@index([requiresResponse])
   @@index([responseToMessageId])
   @@index([answeredAt])
+  @@index([orgId, threadId, direction, actorType, idempotencyKey, createdAt(sort: Desc)])
 }
 
 model ThreadAssignmentAudit {

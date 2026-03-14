@@ -34,18 +34,18 @@ export default function DashboardHomePage() {
   const fetchStats = async () => {
     try {
       const [bookingsRes, sittersRes] = await Promise.all([
-        fetch('/api/bookings').catch(() => null),
-        fetch('/api/sitters').catch(() => null),
+        fetch('/api/bookings?page=1&pageSize=200').catch(() => null),
+        fetch('/api/sitters?page=1&pageSize=200').catch(() => null),
       ]);
 
-      const bookings = bookingsRes?.ok ? await bookingsRes.json() : { bookings: [] };
-      const sitters = sittersRes?.ok ? await sittersRes.json() : { sitters: [] };
+      const bookings = bookingsRes?.ok ? await bookingsRes.json() : { items: [] };
+      const sitters = sittersRes?.ok ? await sittersRes.json() : { items: [] };
 
-      const activeBookings = (bookings.bookings || []).filter(
+      const activeBookings = (bookings.items || []).filter(
         (b: any) => b.status !== 'cancelled' && b.status !== 'completed'
       );
-      const activeSitters = (sitters.sitters || []).filter((s: any) => s.isActive === true);
-      const totalRevenue = (bookings.bookings || []).reduce(
+      const activeSitters = (sitters.items || []).filter((s: any) => s.isActive === true);
+      const totalRevenue = (bookings.items || []).reduce(
         (sum: number, b: any) => sum + (b.totalPrice || 0),
         0
       );

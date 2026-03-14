@@ -60,16 +60,22 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   const [pendingMessages, setPendingMessages] = useState<Array<{ tempId: string; body: string; status: 'sending' | 'failed'; error?: string }>>([]);
 
   // Apply filters to API call - explicitly pass each filter
-  const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useThreads({
+  const threadsQuery = useThreads({
     unreadOnly: filters.unreadOnly,
     hasPolicyViolation: filters.hasPolicyViolation,
     hasDeliveryFailure: filters.hasDeliveryFailure,
     sitterId: filters.sitterId,
     search: filters.search,
     inbox, // Pass inbox filter to hook
+    pageSize: 40,
   });
+  const threads = threadsQuery.data?.pages.flatMap((p) => p.items) ?? [];
+  const threadsLoading = threadsQuery.isLoading;
+  const threadsError = threadsQuery.error;
   const { data: selectedThread } = useThread(selectedThreadId);
-  const { data: messages = [], isLoading: messagesLoading } = useMessages(selectedThreadId);
+  const messagesQuery = useMessages(selectedThreadId, { pageSize: 50 });
+  const messages = messagesQuery.data?.pages.slice().reverse().flatMap((p) => p.items) ?? [];
+  const messagesLoading = messagesQuery.isLoading;
   const { data: routingHistory } = useRoutingHistory(selectedThreadId);
   const sendMessage = useSendMessage();
   const retryMessage = useRetryMessage();
@@ -408,63 +414,77 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
               )}
             </div>
           ) : (
-            filteredThreads.map((thread) => (
-              <div
-                key={thread.id}
-                onClick={() => setSelectedThreadId(thread.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && setSelectedThreadId(thread.id)}
-                className={`group cursor-pointer border-b border-[var(--color-border-default)] transition hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-inset ${
-                  selectedThreadId === thread.id
-                    ? 'bg-[var(--color-teal-50)] dark:bg-teal-900/20 border-l-4 border-l-[var(--color-teal-500)]'
-                    : 'bg-[var(--color-surface-primary)]'
-                }`}
-                style={{ padding: `${tokens.spacing[3]} ${tokens.spacing[4]}` }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm text-[var(--color-text-primary)] truncate">
-                        {thread.client.name || 'Unknown'}
-                      </span>
-                      {thread.ownerUnreadCount > 0 && (
-                        <Badge variant="info" className="shrink-0">{thread.ownerUnreadCount}</Badge>
-                      )}
+            <div>
+              {filteredThreads.map((thread) => (
+                <div
+                  key={thread.id}
+                  onClick={() => setSelectedThreadId(thread.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && setSelectedThreadId(thread.id)}
+                  className={`group cursor-pointer border-b border-[var(--color-border-default)] transition hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-inset ${
+                    selectedThreadId === thread.id
+                      ? 'bg-[var(--color-teal-50)] dark:bg-teal-900/20 border-l-4 border-l-[var(--color-teal-500)]'
+                      : 'bg-[var(--color-surface-primary)]'
+                  }`}
+                  style={{ padding: `${tokens.spacing[3]} ${tokens.spacing[4]}` }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm text-[var(--color-text-primary)] truncate">
+                          {thread.client.name || 'Unknown'}
+                        </span>
+                        {thread.ownerUnreadCount > 0 && (
+                          <Badge variant="info" className="shrink-0">{thread.ownerUnreadCount}</Badge>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                        {thread.sitter ? (
+                          <span><span className="font-medium">Sitter:</span> {thread.sitter.name}</span>
+                        ) : (
+                          <span className="text-[var(--color-text-tertiary)]">Unassigned</span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant={
+                            thread.messageNumber.class === 'front_desk' ? 'default' :
+                            thread.messageNumber.class === 'pool' ? 'info' :
+                            thread.messageNumber.class === 'sitter' ? 'success' : 'default'
+                          }
+                          className="text-xs shrink-0"
+                        >
+                          {thread.messageNumber.class}
+                        </Badge>
+                        <span className="text-xs text-[var(--color-text-tertiary)] font-mono">
+                          {thread.messageNumber.e164}
+                        </span>
+                        <span className="text-xs text-[var(--color-text-tertiary)]">
+                          {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
+                        </span>
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
-                      {thread.sitter ? (
-                        <span><span className="font-medium">Sitter:</span> {thread.sitter.name}</span>
-                      ) : (
-                        <span className="text-[var(--color-text-tertiary)]">Unassigned</span>
-                      )}
+                    <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                      <span className="text-xs text-[var(--color-text-tertiary)]">Open</span>
+                      <i className="fas fa-chevron-right text-[var(--color-text-tertiary)]" style={{ fontSize: '0.65rem' }} aria-hidden />
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 flex-wrap">
-                      <Badge
-                        variant={
-                          thread.messageNumber.class === 'front_desk' ? 'default' :
-                          thread.messageNumber.class === 'pool' ? 'info' :
-                          thread.messageNumber.class === 'sitter' ? 'success' : 'default'
-                        }
-                        className="text-xs shrink-0"
-                      >
-                        {thread.messageNumber.class}
-                      </Badge>
-                      <span className="text-xs text-[var(--color-text-tertiary)] font-mono">
-                        {thread.messageNumber.e164}
-                      </span>
-                      <span className="text-xs text-[var(--color-text-tertiary)]">
-                        {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-                    <span className="text-xs text-[var(--color-text-tertiary)]">Open</span>
-                    <i className="fas fa-chevron-right text-[var(--color-text-tertiary)]" style={{ fontSize: '0.65rem' }} aria-hidden />
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+              {threadsQuery.hasNextPage && (
+                <div className="p-3 flex justify-center">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => threadsQuery.fetchNextPage()}
+                    disabled={threadsQuery.isFetchingNextPage}
+                  >
+                    {threadsQuery.isFetchingNextPage ? 'Loading…' : 'Load more'}
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -538,6 +558,18 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                 <div style={{ textAlign: 'center', color: tokens.colors.text.secondary }}>No messages yet</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  {messagesQuery.hasNextPage && (
+                    <div className="flex justify-center">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => messagesQuery.fetchNextPage()}
+                        disabled={messagesQuery.isFetchingNextPage}
+                      >
+                        {messagesQuery.isFetchingNextPage ? 'Loading…' : 'Load earlier messages'}
+                      </Button>
+                    </div>
+                  )}
                   {messages.map((message) => {
                     const delivery = getDeliveryStatus(message);
                     const senderLabel = getSenderLabel(message);

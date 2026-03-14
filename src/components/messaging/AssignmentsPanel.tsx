@@ -71,7 +71,8 @@ function useDeleteWindow() {
 export function AssignmentsPanel() {
   const { data: windows = [], isLoading } = useAssignmentWindows();
   const { data: sitters = [] } = useSitters();
-  const { data: threads = [] } = useThreads({});
+  const threadsQuery = useThreads({ pageSize: 200 });
+  const threads = threadsQuery.data?.pages.flatMap((p) => p.items) ?? [];
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({
     threadId: '',

@@ -21,6 +21,7 @@ import type {
   SendViaProxyResult,
   UpdateSessionParticipantsOptions,
 } from '../provider';
+import type { ProviderCredentials } from '../provider-credentials';
 
 // Twilio SDK is optional - type only imported when available
 let twilioClient: any = null;
@@ -80,16 +81,35 @@ async function getTwilioClient(orgId?: string): Promise<any> {
   }
 }
 
+async function getTwilioClientWithCredentials(credentials: ProviderCredentials): Promise<any> {
+  try {
+    // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
+    const twilio = require('twilio');
+    const { accountSid, authToken } = credentials;
+    if (!accountSid || !authToken) {
+      throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set');
+    }
+    if (accountSid.startsWith('TEST_') || accountSid.startsWith('AC')) {
+      return twilio(accountSid, authToken);
+    }
+    throw new Error('TWILIO_ACCOUNT_SID must start with AC or TEST_');
+  } catch (error) {
+    throw new Error(`Twilio SDK not available: ${error instanceof Error ? error.message : String(error)}. Install with: npm install twilio`);
+  }
+}
+
 export class TwilioProvider implements MessagingProvider {
   private webhookAuthToken: string;
   private orgId?: string;
+  private credentials?: ProviderCredentials;
 
-  constructor(webhookAuthToken?: string, orgId?: string) {
+  constructor(webhookAuthToken?: string, orgId?: string, credentials?: ProviderCredentials) {
     // Use provided token or fall back to env var
     // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
     const { env } = require('@/lib/env');
     this.webhookAuthToken = webhookAuthToken || env.TWILIO_WEBHOOK_AUTH_TOKEN || '';
     this.orgId = orgId;
+    this.credentials = credentials;
   }
 
   verifyWebhook(rawBody: string, signature: string, webhookUrl: string): boolean {
@@ -199,7 +219,7 @@ export class TwilioProvider implements MessagingProvider {
 
   async sendMessage(options: SendMessageOptions): Promise<SendMessageResult> {
     try {
-      const client = await getTwilioClient(this.orgId);
+      const client = this.credentials ? await getTwilioClientWithCredentials(this.credentials) : await getTwilioClient(this.orgId);
       
       // Determine from number - use explicit E164 if provided, otherwise fallback
       // CRITICAL: Use the actual E164 from the chosen masked number, not env vars

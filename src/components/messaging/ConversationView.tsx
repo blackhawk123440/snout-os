@@ -86,10 +86,10 @@ export default function ConversationView({
 
   const fetchSitters = async () => {
     try {
-      const response = await fetch('/api/sitters');
+      const response = await fetch('/api/sitters?page=1&pageSize=200');
       if (response.ok) {
         const data = await response.json();
-        setSitters(data.sitters || []);
+        setSitters(data.items || []);
       }
     } catch (err) {
       // Silently fail - sitters not critical

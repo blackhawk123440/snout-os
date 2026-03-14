@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSitterFindMany = vi.fn();
 const mockMessageNumberFindMany = vi.fn();
+const mockSitterCount = vi.fn();
 
 vi.mock('@/lib/request-context', () => ({
   getRequestContext: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock('@/lib/db', () => ({
   prisma: {
     sitter: {
       findMany: (...args: unknown[]) => mockSitterFindMany(...args),
+      count: (...args: unknown[]) => mockSitterCount(...args),
     },
     messageNumber: {
       findMany: (...args: unknown[]) => mockMessageNumberFindMany(...args),
@@ -42,7 +44,7 @@ describe('sitters API contract', () => {
     } as never);
   });
 
-  it('returns canonical { sitters: [...] } shape', async () => {
+  it('returns canonical paginated sitter shape', async () => {
     mockSitterFindMany.mockResolvedValueOnce([
       {
         id: 's1',
@@ -54,16 +56,20 @@ describe('sitters API contract', () => {
       },
     ]);
     mockMessageNumberFindMany.mockResolvedValueOnce([]);
+    mockSitterCount.mockResolvedValueOnce(1);
 
-    const req = new Request('http://localhost/api/sitters');
+    const req = new Request('http://localhost/api/sitters?page=1&pageSize=50');
     const res = await GET(req as never);
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(Object.keys(body)).toEqual(['sitters']);
-    expect(Array.isArray(body.sitters)).toBe(true);
-    expect(body.sitters).toHaveLength(1);
-    expect(body.sitters[0]).toMatchObject({
+    expect(Array.isArray(body.items)).toBe(true);
+    expect(body.items).toHaveLength(1);
+    expect(body.page).toBe(1);
+    expect(body.pageSize).toBe(50);
+    expect(body.total).toBe(1);
+    expect(body.sort).toEqual({ field: 'createdAt', direction: 'desc' });
+    expect(body.items[0]).toMatchObject({
       id: 's1',
       firstName: 'Sam',
       lastName: 'Sitter',

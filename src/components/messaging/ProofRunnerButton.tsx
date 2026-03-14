@@ -65,7 +65,7 @@ export function ProofRunnerButton() {
     try {
       const threadsRes = await fetch('/api/messages/threads');
       const threadsData = await threadsRes.json();
-      const threads = threadsData.threads || threadsData || [];
+      const threads = threadsData.items || threadsData.threads || threadsData || [];
       newResults[1] = {
         check: 'Get threads list',
         status: threadsRes.ok && threads.length > 0 ? 'pass' : 'fail',
@@ -83,7 +83,7 @@ export function ProofRunnerButton() {
         try {
           const messagesRes = await fetch(`/api/messages/threads/${threadId}/messages`);
           const messagesData = await messagesRes.json();
-          const messages = messagesData.messages || messagesData || [];
+          const messages = messagesData.items || messagesData.messages || messagesData || [];
           newResults[2] = {
             check: 'Get thread messages',
             status: messagesRes.ok ? 'pass' : 'fail',

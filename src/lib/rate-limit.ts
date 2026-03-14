@@ -21,6 +21,7 @@ export interface RateLimitConfig {
 }
 
 const REDIS_URL = process.env.REDIS_URL;
+let redisClientPromise: Promise<any> | null = null;
 
 // In-memory store: Map<key, { count, resetAt }>
 const memoryStore = new Map<string, { count: number; resetAt: number }>();
@@ -71,8 +72,19 @@ async function checkMemory(identifier: string, config: RateLimitConfig): Promise
 
 async function checkRedis(identifier: string, config: RateLimitConfig): Promise<RateLimitResult> {
   try {
-    const Redis = (await import('ioredis')).default;
-    const redis = new Redis(REDIS_URL!, { maxRetriesPerRequest: 1 });
+    if (!redisClientPromise) {
+      redisClientPromise = import('ioredis').then(({ default: Redis }) =>
+        new Redis(REDIS_URL!, {
+          maxRetriesPerRequest: 1,
+          enableAutoPipelining: true,
+          lazyConnect: true,
+        })
+      );
+    }
+    const redis = await redisClientPromise;
+    if (redis.status === 'wait') {
+      await redis.connect().catch(() => {});
+    }
     const key = `${config.keyPrefix}:${identifier}`;
     const now = Date.now() / 1000;
     const windowStart = Math.floor(now / config.windowSec) * config.windowSec;
@@ -87,8 +99,6 @@ async function checkRedis(identifier: string, config: RateLimitConfig): Promise<
     const remaining = Math.max(0, config.limit - count);
     const success = count <= config.limit;
 
-    redis.disconnect();
-
     return {
       success,
       remaining,
@@ -97,6 +107,7 @@ async function checkRedis(identifier: string, config: RateLimitConfig): Promise<
     };
   } catch (err) {
     console.warn('[rate-limit] Redis failed, falling back to memory:', err);
+    redisClientPromise = null;
     return checkMemory(identifier, config);
   }
 }

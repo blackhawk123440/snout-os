@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { checkRedisConnection } from "@/lib/health-checks";
 import { getRuntimeEnvName, isRedisRequiredEnv } from "@/lib/runtime-env";
+import { getRuntimeDiagnostics, getStagingInfraRecommendations } from "@/lib/runtime-diagnostics";
 
 function getVersion(): string {
   return (
@@ -55,6 +56,7 @@ export async function GET() {
       ? String(version).slice(0, 7)
       : version;
   const buildTime = getBuildTime();
+  const runtimeDiagnostics = getRuntimeDiagnostics();
   return NextResponse.json({
     status,
     db: dbStatus,
@@ -63,6 +65,8 @@ export async function GET() {
     commitSha,
     buildTime: buildTime ?? new Date().toISOString(),
     envName,
+    runtimeDiagnostics,
+    infraRecommendations: envName === "staging" ? getStagingInfraRecommendations() : undefined,
     timestamp: new Date().toISOString(),
   });
 }

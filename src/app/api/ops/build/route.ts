@@ -8,8 +8,10 @@
  */
 
 import { NextResponse } from 'next/server';
+import { getRuntimeDiagnostics } from '@/lib/runtime-diagnostics';
 
 export async function GET() {
+  const runtimeDiagnostics = getRuntimeDiagnostics();
   return NextResponse.json({
     gitSha: process.env.NEXT_PUBLIC_GIT_SHA || 
             process.env.GIT_SHA || 
@@ -19,5 +21,6 @@ export async function GET() {
     buildTime: process.env.NEXT_PUBLIC_BUILD_TIME || 
                process.env.BUILD_TIME ||
                new Date().toISOString(),
+    runtimeDiagnostics,
   });
 }

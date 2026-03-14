@@ -6,7 +6,7 @@
  */
 
 import type { MessagingProvider } from './provider';
-import { getProviderCredentials } from './provider-credentials';
+import { getProviderCredentials, type ProviderCredentials } from './provider-credentials';
 import { TwilioProvider } from './providers/twilio';
 
 /**
@@ -54,9 +54,9 @@ class MockProvider implements MessagingProvider {
  * @returns MessagingProvider instance
  */
 export async function getMessagingProvider(orgId: string): Promise<MessagingProvider> {
-  const credentials = await getProviderCredentials(orgId);
+  const credentials: ProviderCredentials | null = await getProviderCredentials(orgId);
   if (credentials) {
-    return new TwilioProvider(undefined, orgId);
+    return new TwilioProvider(undefined, orgId, credentials);
   }
   return new MockProvider();
 }
