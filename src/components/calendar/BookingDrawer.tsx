@@ -157,7 +157,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                 <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
                   Phone
                 </div>
-                <a href={`tel:${booking.phone}`} style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none' }}>
+                <a href={`tel:${booking.phone}`} title="Owner/admin operational call exception" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none' }}>
                   {booking.phone}
                 </a>
               </div>

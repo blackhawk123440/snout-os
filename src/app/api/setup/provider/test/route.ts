@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
   const user = session.user as any;
   const orgId = user.orgId || 'default';
 
-  let body: { accountSid?: string; authToken?: string };
+  let body: { accountSid?: string; authToken?: string; apiKeySid?: string; apiKeySecret?: string };
   try {
     body = await request.json();
   } catch {
@@ -75,32 +75,32 @@ export async function POST(request: NextRequest) {
 
   // Fallback: Direct Twilio API test
   try {
-    // Get credentials from request or database
-    let accountSid: string;
-    let authToken: string;
+    const { getTwilioClientFromCredentials } = await import('@/lib/messaging/provider-credentials');
+    type Creds = { accountSid: string; authToken: string; source: 'database' | 'environment'; apiKeySid?: string; apiKeySecret?: string };
+    let credentials: Creds;
 
-    if (body.accountSid && body.authToken) {
-      // Use provided credentials
-      accountSid = body.accountSid;
-      authToken = body.authToken;
+    const useBodyApiKey = !!(body.apiKeySid && body.apiKeySecret);
+    const useBodyAuth = !!(body.accountSid && body.authToken);
+    if (body.accountSid && (useBodyApiKey || useBodyAuth)) {
+      credentials = {
+        accountSid: body.accountSid,
+        authToken: body.authToken || '',
+        source: 'environment',
+        ...(useBodyApiKey ? { apiKeySid: body.apiKeySid!, apiKeySecret: body.apiKeySecret! } : {}),
+      };
     } else {
-      // Use saved credentials
-      const credentials = await getProviderCredentials(orgId);
-      if (!credentials) {
+      const saved = await getProviderCredentials(orgId);
+      if (!saved) {
         return NextResponse.json({
           success: false,
           message: 'No credentials found. Please save credentials first.',
         }, { status: 400 });
       }
-      accountSid = credentials.accountSid;
-      authToken = credentials.authToken;
+      credentials = saved;
     }
 
-    // Real Twilio API call: Fetch account details
-    const twilio = require('twilio');
-    const client = twilio(accountSid, authToken);
-    
-    // Test connection by fetching account info
+    const client = getTwilioClientFromCredentials(credentials);
+    const accountSid = credentials.accountSid;
     const account = await client.api.accounts(accountSid).fetch();
     
     if (account && account.sid) {

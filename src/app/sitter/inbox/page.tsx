@@ -27,6 +27,7 @@ import {
 import { formatDistanceToNow, format } from 'date-fns';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { triggerTemplateSend, type QuickTemplate } from './template-actions';
+import { SITTER_BOUNDARY_HELPER } from '@/lib/messaging/policy-copy';
 
 const formatThreadTime = (d: Date) => {
   const now = new Date();
@@ -159,7 +160,7 @@ function SitterInboxContent() {
   if (authLoading) {
     return (
       <div className="mx-auto max-w-4xl pb-8">
-        <SitterPageHeader title="Inbox" subtitle="Messages from clients" />
+        <SitterPageHeader title="Inbox" subtitle="Client conversations for active visits" />
         <SitterSkeletonList count={4} />
       </div>
     );
@@ -202,7 +203,7 @@ function SitterInboxContent() {
               {messagesLoading ? (
                 <SitterSkeletonList count={2} />
               ) : messages.length === 0 && pendingMessages.length === 0 ? (
-                <p className="py-8 text-center text-sm text-neutral-500">No messages yet. Say hi!</p>
+                <p className="py-8 text-center text-sm text-neutral-500">No messages yet. Start with a short professional update.</p>
               ) : (
                 <div className="space-y-4">
                   {messages.map((msg) => (
@@ -260,7 +261,7 @@ function SitterInboxContent() {
                     value={composeMessage}
                     onChange={(e) => setComposeMessage(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type a message..."
+                    placeholder="Share a visit update..."
                     rows={2}
                     className="min-h-[44px] flex-1 resize-none rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
                   />
@@ -282,8 +283,9 @@ function SitterInboxContent() {
         <>
           <SitterPageHeader
             title="Inbox"
-            subtitle="Messages from clients during your active assignments"
+            subtitle="Visit-related messages during active assignments"
           />
+          <p className="px-4 pt-3 text-xs text-neutral-500 md:px-6">{SITTER_BOUNDARY_HELPER}</p>
 
           <div className="flex min-h-[60vh] flex-col gap-0 rounded-2xl border border-neutral-200 bg-white shadow-sm md:flex-row">
             {/* Thread list - hidden on mobile when conversation open */}
@@ -313,7 +315,7 @@ function SitterInboxContent() {
               <div className="p-4">
                 <SitterEmptyState
                   title="No active assignments"
-                  subtitle="Messages will appear here when you have visits."
+                  subtitle="Client threads appear automatically when you're assigned to a visit."
                 />
               </div>
             ) : (
@@ -385,7 +387,7 @@ function SitterInboxContent() {
                     <p className="text-xs text-neutral-500">
                       {activeWindow
                         ? `Active until ${format(activeWindow.endsAt, 'MMM d, h:mm a')}`
-                        : 'Window inactive'}
+                        : 'Office-handled outside active window'}
                     </p>
                   </div>
                 </div>
@@ -460,6 +462,7 @@ function SitterInboxContent() {
               <div className="border-t border-neutral-200 bg-amber-50/40 p-4">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="text-sm font-medium text-neutral-800">Quick templates</span>
+                  <span className="text-xs text-neutral-500">Use for short professional status updates.</span>
                 </div>
                 <div className="md:hidden flex flex-wrap gap-2">
                   {QUICK_TEMPLATES.map((template) => (
@@ -508,7 +511,7 @@ function SitterInboxContent() {
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     <p className="font-medium">Can&apos;t send right now</p>
                     <p className="mt-0.5 text-xs">
-                      Messages are only available during your active assignment window.
+                      Messaging is paused outside your active window. Office support continues client follow-up from the same thread.
                     </p>
                   </div>
                 ) : (
@@ -524,7 +527,7 @@ function SitterInboxContent() {
                       value={composeMessage}
                       onChange={(e) => setComposeMessage(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Type a message..."
+                      placeholder="Share a visit update..."
                       rows={2}
                       className="min-h-[44px] flex-1 resize-none rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     />

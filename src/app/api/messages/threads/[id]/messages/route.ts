@@ -28,6 +28,7 @@ function messageEventToMessage(ev: {
   failureDetail: string | null;
   providerErrorCode: string | null;
   providerErrorMessage: string | null;
+  routingDisposition: string;
   createdAt: Date;
 }) {
   const delivery = {
@@ -47,6 +48,7 @@ function messageEventToMessage(ev: {
     body: ev.body,
     redactedBody: null as string | null,
     hasPolicyViolation: false,
+    routingDisposition: ev.routingDisposition ?? 'normal',
     createdAt: ev.createdAt.toISOString(),
     deliveries: [delivery],
     policyViolations: [],

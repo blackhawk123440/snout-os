@@ -133,6 +133,24 @@ export async function GET(req: NextRequest) {
       },
       client: { select: { id: true, firstName: true, lastName: true } },
       sitter: { select: { id: true, firstName: true, lastName: true } },
+      conversationFlags: {
+        where: { resolvedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+        select: { id: true, type: true, severity: true, createdAt: true },
+      },
+      availabilityRequests: {
+        orderBy: { requestedAt: "desc" },
+        take: 3,
+        select: {
+          id: true,
+          status: true,
+          requestedAt: true,
+          respondedAt: true,
+          responseLatencySec: true,
+          sitterId: true,
+        },
+      },
     },
   });
 
@@ -143,10 +161,17 @@ export async function GET(req: NextRequest) {
   const threads = items.map((t) => ({
     id: t.id,
     orgId: t.orgId,
+    bookingId: t.bookingId ?? null,
     clientId: t.clientId ?? '',
     sitterId: t.assignedSitterId ?? null,
     numberId: t.messageNumberId ?? '',
     threadType: t.threadType ?? (t.messageNumber?.numberClass === 'sitter' ? 'assignment' : 'front_desk'),
+    laneType: t.laneType ?? 'company',
+    activationStage: t.activationStage ?? 'intake',
+    lifecycleStatus: t.lifecycleStatus ?? 'active',
+    assignedRole: t.assignedRole ?? 'front_desk',
+    clientApprovedAt: t.clientApprovedAt ? t.clientApprovedAt.toISOString() : null,
+    sitterApprovedAt: t.sitterApprovedAt ? t.sitterApprovedAt.toISOString() : null,
     status: t.status === 'open' ? 'active' : t.status === 'closed' || t.status === 'archived' ? 'inactive' : 'active',
     ownerUnreadCount: t.ownerUnreadCount ?? 0,
     lastActivityAt: (t.lastMessageAt ?? t.createdAt).toISOString(),
@@ -170,6 +195,24 @@ export async function GET(req: NextRequest) {
       id: w.id,
       startsAt: w.startAt.toISOString(),
       endsAt: w.endAt.toISOString(),
+    })),
+    serviceWindow: t.serviceWindowStart && t.serviceWindowEnd
+      ? { startAt: t.serviceWindowStart.toISOString(), endAt: t.serviceWindowEnd.toISOString() }
+      : null,
+    graceEndsAt: t.graceEndsAt ? t.graceEndsAt.toISOString() : null,
+    flags: (t.conversationFlags ?? []).map((flag) => ({
+      id: flag.id,
+      type: flag.type,
+      severity: flag.severity,
+      createdAt: flag.createdAt.toISOString(),
+    })),
+    availabilityResponses: (t.availabilityRequests ?? []).map((req) => ({
+      id: req.id,
+      status: req.status,
+      requestedAt: req.requestedAt.toISOString(),
+      respondedAt: req.respondedAt?.toISOString() ?? null,
+      responseLatencySec: req.responseLatencySec ?? null,
+      sitterId: req.sitterId,
     })),
   }));
 

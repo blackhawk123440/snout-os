@@ -21,6 +21,7 @@ import { serializePricingSnapshot } from "@/lib/pricing-snapshot-helpers";
 import { enqueueCalendarSync } from "@/lib/calendar-queue";
 import { ensureEventQueueBridge } from "@/lib/event-queue-bridge-init";
 import { getPublicOrgContext } from "@/lib/request-context";
+import { syncConversationLifecycleWithBookingWorkflow } from "@/lib/messaging/conversation-service";
 
 const parseOrigins = (value?: string | null) => {
   if (!value) return [];
@@ -552,6 +553,22 @@ export async function POST(request: NextRequest) {
       if (idempotency.mode === "reserved") {
         await persistIdempotentResource(idempotency.reservationId, booking.id);
       }
+      try {
+        await syncConversationLifecycleWithBookingWorkflow({
+          orgId,
+          bookingId: booking.id,
+          clientId: booking.clientId ?? null,
+          phone: booking.phone,
+          firstName: booking.firstName,
+          lastName: booking.lastName,
+          bookingStatus: booking.status,
+          sitterId: booking.sitterId,
+          serviceWindowStart: booking.startAt,
+          serviceWindowEnd: booking.endAt,
+        });
+      } catch (conversationError) {
+        console.error("[Form] Failed to ensure company lane conversation (non-blocking):", conversationError);
+      }
       } catch (error) {
         await failIdempotentReservation(
           idempotency.mode === "reserved" ? idempotency.reservationId : null,
@@ -1059,6 +1076,22 @@ export async function POST(request: NextRequest) {
     });
     if (idempotency.mode === "reserved") {
       await persistIdempotentResource(idempotency.reservationId, booking.id);
+    }
+    try {
+      await syncConversationLifecycleWithBookingWorkflow({
+        orgId,
+        bookingId: booking.id,
+        clientId: booking.clientId ?? null,
+        phone: booking.phone,
+        firstName: booking.firstName,
+        lastName: booking.lastName,
+        bookingStatus: booking.status,
+        sitterId: booking.sitterId,
+        serviceWindowStart: booking.startAt,
+        serviceWindowEnd: booking.endAt,
+      });
+    } catch (conversationError) {
+      console.error("[Form] Failed to ensure company lane conversation (non-blocking):", conversationError);
     }
     } catch (error) {
       await failIdempotentReservation(

@@ -324,7 +324,7 @@ export default function BookingDetailEnterprisePage() {
             <div className="rounded-lg border p-3">
               <div className="mb-2 text-sm font-medium">Comms</div>
               <div className="flex flex-wrap gap-2">
-                <a href={`tel:${booking.phone}`}><Button variant="secondary">Call client</Button></a>
+                <a href={`tel:${booking.phone}`}><Button variant="secondary">Call client (ops exception)</Button></a>
                 {booking.email ? <a href={`mailto:${booking.email}`}><Button variant="secondary">Email client</Button></a> : null}
                 <Link href="/messages"><Button variant="secondary">Messages</Button></Link>
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('payment')}>Send payment link</Button>
@@ -332,6 +332,7 @@ export default function BookingDetailEnterprisePage() {
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('tip')}>Send tip link</Button>
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('tip', true)}>Resend tip</Button>
               </div>
+              <div className="mt-2 text-xs text-slate-600">Direct calling is an owner/admin operational exception; normal service communication stays in masked inbox threads.</div>
               <div className="mt-2 text-xs text-slate-700">
                 Tip link status: {booking.tipMessageState?.status || 'not sent'}
                 {booking.tipMessageState?.error ? ` (error: ${booking.tipMessageState.error})` : ''}

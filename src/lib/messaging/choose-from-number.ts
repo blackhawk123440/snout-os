@@ -13,6 +13,7 @@
 
 import { prisma } from '@/lib/db';
 import { getEffectiveNumberForThread } from './dynamic-number-routing';
+import { resolveConversationRouting } from './conversation-lifecycle';
 
 export interface ChooseFromNumberResult {
   numberId: string;
@@ -43,6 +44,80 @@ export async function chooseFromNumber(
   atTime?: Date
 ): Promise<ChooseFromNumberResult> {
   const now = atTime || new Date();
+  const thread = await prisma.messageThread.findUnique({
+    where: { id: threadId },
+    select: {
+      laneType: true,
+      activationStage: true,
+      lifecycleStatus: true,
+      assignedRole: true,
+      assignedSitterId: true,
+      serviceWindowStart: true,
+      serviceWindowEnd: true,
+      graceEndsAt: true,
+      messageNumber: {
+        select: { id: true, e164: true, numberClass: true },
+      },
+    },
+  });
+  if (!thread) {
+    throw new Error(`Thread ${threadId} not found`);
+  }
+  const lifecycle = resolveConversationRouting(
+    {
+      laneType: thread.laneType,
+      activationStage: thread.activationStage,
+      lifecycleStatus: thread.lifecycleStatus,
+      assignedRole: thread.assignedRole,
+      assignedSitterId: thread.assignedSitterId,
+      serviceWindowStart: thread.serviceWindowStart,
+      serviceWindowEnd: thread.serviceWindowEnd,
+      graceEndsAt: thread.graceEndsAt,
+    },
+    now
+  );
+
+  if (lifecycle.laneType === 'company') {
+    if (thread.messageNumber?.e164 && thread.messageNumber.numberClass === 'front_desk') {
+      return {
+        numberId: thread.messageNumber.id,
+        e164: thread.messageNumber.e164,
+        numberClass: 'front_desk',
+        reason: lifecycle.reason,
+        routingTrace: [
+          {
+            step: 1,
+            rule: 'deterministic_company_lane',
+            condition: lifecycle.reason,
+            result: true,
+            explanation: 'Company lane enforces front desk masked identity',
+          },
+        ],
+      };
+    }
+    const frontDesk = await prisma.messageNumber.findFirst({
+      where: { orgId, status: 'active', numberClass: 'front_desk' },
+      select: { id: true, e164: true },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (frontDesk?.e164) {
+      return {
+        numberId: frontDesk.id,
+        e164: frontDesk.e164,
+        numberClass: 'front_desk',
+        reason: lifecycle.reason,
+        routingTrace: [
+          {
+            step: 1,
+            rule: 'deterministic_company_lane',
+            condition: lifecycle.reason,
+            result: true,
+            explanation: 'Company lane falls back to front desk number',
+          },
+        ],
+      };
+    }
+  }
   
   // Use existing routing logic
   const routingResult = await getEffectiveNumberForThread(orgId, threadId, now);

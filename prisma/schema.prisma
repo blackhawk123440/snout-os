@@ -67,6 +67,7 @@ model Booking {
   offerEvents          OfferEvent[]
   visitEvents          VisitEvent[]
   assignmentWindows    AssignmentWindow[]
+  availabilityRequests SitterAvailabilityRequest[]
   sitterPoolOffers     SitterPoolOffer[]
   sitterPool           BookingSitterPool[]    @relation("BookingSitterPool")
   client               Client?                @relation(fields: [clientId], references: [id], onDelete: SetNull)
@@ -153,6 +154,7 @@ model Sitter {
   PayrollAdjustment    PayrollAdjustment[]
   maskedNumber         SitterMaskedNumber?
   assignmentWindows    AssignmentWindow[]
+  availabilityRequests SitterAvailabilityRequest[]
   googleAccessToken    String?   @db.Text // Encrypted access token
   googleRefreshToken   String?   @db.Text // Encrypted refresh token
   googleTokenExpiry    DateTime?
@@ -1322,7 +1324,12 @@ model MessageNumber {
   market             String? // e.g., "US"
   status             String              @default("active") // active, disabled
   numberClass        String              @default("pool") // front_desk | sitter | pool
+  poolType           String              @default("company") // company | service
   assignedSitterId   String? // For sitter numbers
+  assignedThreadId   String?
+  assignedAt         DateTime?
+  releasedAt         DateTime?
+  poolAlertedAt      DateTime?
   ownerId            String? // For front desk numbers
   isRotating         Boolean             @default(false) // For pool numbers
   rotationPriority   Int? // For pool number rotation
@@ -1338,7 +1345,9 @@ model MessageNumber {
   @@index([e164])
   @@index([status])
   @@index([numberClass])
+  @@index([poolType])
   @@index([assignedSitterId])
+  @@index([assignedThreadId])
 }
 
 // Provider Credentials (encrypted at rest)
@@ -1360,7 +1369,11 @@ model MessageThread {
   bookingId              String?
   clientId               String?
   assignedSitterId       String?
+  assignedRole           String    @default("front_desk") // front_desk | sitter | owner | automation
+  laneType               String    @default("company") // company | service
   status                 String    @default("open") // open, closed, archived
+  lifecycleStatus        String    @default("active") // active | grace | expired | archived
+  activationStage        String    @default("intake") // intake | staffing | meet_and_greet | service | follow_up
   providerSessionSid     String?
   maskedNumberE164       String?
   numberClass            String? // front_desk | sitter | pool
@@ -1368,8 +1381,17 @@ model MessageThread {
   isOneTimeClient        Boolean   @default(false)
   isMeetAndGreet         Boolean   @default(false)
   meetAndGreetApprovedAt DateTime?
+  meetAndGreetConfirmedAt DateTime?
+  clientApprovedAt       DateTime?
+  sitterApprovedAt       DateTime?
+  serviceApprovedAt      DateTime?
+  serviceWindowStart     DateTime?
+  serviceWindowEnd       DateTime?
+  graceEndsAt            DateTime?
   assignmentWindowId     String?
   lastMessageAt          DateTime?
+  lastClientMessageAt    DateTime?
+  lastSitterMessageAt    DateTime?
   lastInboundAt          DateTime?
   lastOutboundAt         DateTime?
   ownerUnreadCount       Int       @default(0)
@@ -1387,6 +1409,8 @@ model MessageThread {
   messageNumber       MessageNumber?          @relation(fields: [messageNumberId], references: [id], onDelete: SetNull)
   assignmentWindows   AssignmentWindow[]
   AntiPoachingAttempt AntiPoachingAttempt[]
+  conversationFlags   MessageConversationFlag[]
+  availabilityRequests SitterAvailabilityRequest[]
   offerEvents         OfferEvent[]
   visitEvents         VisitEvent[]
   responseLinks       MessageResponseLink[]
@@ -1396,8 +1420,13 @@ model MessageThread {
   @@index([clientId])
   @@index([assignedSitterId])
   @@index([status])
+  @@index([lifecycleStatus])
+  @@index([activationStage])
+  @@index([laneType])
   @@index([lastMessageAt])
+  @@index([graceEndsAt])
   @@index([orgId, lastMessageAt])
+  @@index([orgId, laneType, activationStage, lifecycleStatus, lastMessageAt(sort: Desc), id(sort: Desc)])
   @@index([orgId, status, lastMessageAt(sort: Desc), id(sort: Desc)])
   @@index([orgId, assignedSitterId, status, lastMessageAt(sort: Desc), id(sort: Desc)])
   @@index([orgId, clientId, status, lastMessageAt(sort: Desc), id(sort: Desc)])
@@ -1454,6 +1483,7 @@ model MessageEvent {
   promptId                    String?
   idempotencyKey              String?  @db.VarChar(128)
   idempotencyFingerprint      String?  @db.VarChar(64)
+  routingDisposition          String   @default("normal") // normal | blocked | rerouted
   metadataJson                String?  @db.Text // JSON object
   correlationIds              String?  @db.Text // JSON array for audit trail
   answeredAt                  DateTime? // When this message was answered (if requiresResponse=true)
@@ -1466,10 +1496,13 @@ model MessageEvent {
   // Relations
   thread              MessageThread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
   AntiPoachingAttempt AntiPoachingAttempt?
+  conversationFlags   MessageConversationFlag[]
   responseTo          MessageEvent?        @relation("ResponseTo", fields: [responseToMessageId], references: [id], onDelete: SetNull)
   responses           MessageEvent[]       @relation("ResponseTo")
   requiresResponseLinks MessageResponseLink[] @relation("RequiresResponse")
   responseLinks       MessageResponseLink[] @relation("Response")
+  availabilityRequestLinks SitterAvailabilityRequest[] @relation("AvailabilityRequestMessage")
+  availabilityResponseLinks SitterAvailabilityRequest[] @relation("AvailabilityResponseMessage")
 
   @@index([threadId])
   @@index([orgId])
@@ -1483,7 +1516,55 @@ model MessageEvent {
   @@index([requiresResponse])
   @@index([responseToMessageId])
   @@index([answeredAt])
+  @@index([routingDisposition])
   @@index([orgId, threadId, direction, actorType, idempotencyKey, createdAt(sort: Desc)])
+}
+
+model MessageConversationFlag {
+  id           String   @id @default(uuid())
+  orgId        String
+  threadId     String
+  messageEventId String?
+  type         String // anti_poaching | escalation | delivery_issue | policy
+  severity     String @default("medium") // low | medium | high | critical
+  metadataJson String? @db.Text
+  createdAt    DateTime @default(now())
+  resolvedAt   DateTime?
+
+  thread       MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  messageEvent MessageEvent? @relation(fields: [messageEventId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, threadId, createdAt(sort: Desc)])
+  @@index([orgId, type, severity, createdAt(sort: Desc)])
+  @@index([resolvedAt])
+}
+
+model SitterAvailabilityRequest {
+  id                    String    @id @default(uuid())
+  orgId                 String
+  threadId              String
+  bookingId             String?
+  sitterId              String
+  requestedByUserId     String?
+  status                String    @default("pending") // pending | yes | no | expired
+  requestMessageEventId String?
+  responseMessageEventId String?
+  responseText          String?
+  requestedAt           DateTime  @default(now())
+  respondedAt           DateTime?
+  responseLatencySec    Int?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  thread                MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  booking               Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  sitter                Sitter        @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+  requestMessageEvent   MessageEvent? @relation("AvailabilityRequestMessage", fields: [requestMessageEventId], references: [id], onDelete: SetNull)
+  responseMessageEvent  MessageEvent? @relation("AvailabilityResponseMessage", fields: [responseMessageEventId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, threadId, status, requestedAt(sort: Desc)])
+  @@index([orgId, sitterId, status, requestedAt(sort: Desc)])
+  @@index([orgId, bookingId])
 }
 
 model ThreadAssignmentAudit {

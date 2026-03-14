@@ -33,6 +33,8 @@ interface SitterProfileTabProps {
 }
 
 export function SitterProfileTab({ sitter, isMobile }: SitterProfileTabProps) {
+  const safePhone = sitter.maskedNumber || 'Messaging handled through masked inbox';
+
   if (isMobile) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
@@ -83,9 +85,9 @@ export function SitterProfileTab({ sitter, isMobile }: SitterProfileTabProps) {
               <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
                 Phone
               </div>
-              <a href={`tel:${sitter.phone}`} style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none' }}>
-                {sitter.phone}
-              </a>
+              <div style={{ color: tokens.colors.text.primary }}>
+                {safePhone}
+              </div>
             </div>
           </div>
         </Card>
@@ -169,15 +171,9 @@ export function SitterProfileTab({ sitter, isMobile }: SitterProfileTabProps) {
             <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
               Phone
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              style={{ width: '100%', justifyContent: 'flex-start' }}
-              onClick={() => window.location.href = `tel:${sitter.phone}`}
-              leftIcon={<i className="fas fa-phone" />}
-            >
-              {sitter.phone}
-            </Button>
+            <div style={{ color: tokens.colors.text.primary }}>
+              {safePhone}
+            </div>
           </div>
         </div>
       </Card>

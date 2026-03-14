@@ -258,8 +258,8 @@ export default function SitterBookingDetailPage() {
           <div className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-white p-3 md:flex">
             {primaryAction}
             {booking.threadId && <Button variant="secondary" size="md" onClick={() => router.push(`/sitter/inbox?thread=${encodeURIComponent(booking.threadId || '')}`)}>Message client</Button>}
-            {shouldRenderTel(booking.client?.phone) && <a href={`tel:${booking.client?.phone}`} className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-neutral-800">Call client</a>}
-            {shouldRenderTel(booking.supportPhone) && <a href={`tel:${booking.supportPhone}`} className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-neutral-800">Call support</a>}
+            <span className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-neutral-800">Client calls routed via office</span>
+            {shouldRenderTel(booking.supportPhone) && <a href={`tel:${booking.supportPhone}`} title="Intentional support exception" className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-neutral-800">Call support</a>}
           </div>
 
           <section className="rounded-xl border border-gray-200 bg-white p-4">
@@ -367,11 +367,7 @@ export default function SitterBookingDetailPage() {
             <div className="mt-2 space-y-2 text-sm text-gray-700">
               <p className="text-xs uppercase tracking-wide text-gray-500">Client contact</p>
               <div className="flex flex-wrap gap-3">
-                {shouldRenderTel(booking.client?.phone) && (
-                  <a href={`tel:${booking.client?.phone}`} className="break-all text-blue-700 underline underline-offset-2">
-                    {booking.client?.phone}
-                  </a>
-                )}
+                <span className="text-gray-600">Use the masked inbox thread for client communication.</span>
                 {shouldRenderMail(booking.client?.email) && (
                   <a href={`mailto:${booking.client?.email}`} className="break-all text-blue-700 underline underline-offset-2">
                     {booking.client?.email}
@@ -389,7 +385,7 @@ export default function SitterBookingDetailPage() {
             <section className="rounded-xl border border-red-200 bg-red-50 p-4">
               <p className="text-sm font-semibold text-red-900">Emergency contact</p>
               <p className="mt-1 text-sm text-red-900">{booking.emergencyContact.name}{booking.emergencyContact.relationship ? ` · ${booking.emergencyContact.relationship}` : ''}</p>
-              <a href={`tel:${booking.emergencyContact.phone}`} className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-red-300 bg-white px-4 text-sm font-medium text-red-900">
+              <a href={`tel:${booking.emergencyContact.phone}`} title="Intentional emergency exception" className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-red-300 bg-white px-4 text-sm font-medium text-red-900">
                 {booking.emergencyContact.phone}
               </a>
             </section>
@@ -402,8 +398,8 @@ export default function SitterBookingDetailPage() {
           <div className="flex flex-wrap gap-2">
             {primaryAction}
             {booking.threadId && <Button variant="secondary" size="md" onClick={() => router.push(`/sitter/inbox?thread=${encodeURIComponent(booking.threadId || '')}`)}>Message</Button>}
-            {shouldRenderTel(booking.client?.phone) && <a href={`tel:${booking.client?.phone}`} className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-3 text-sm font-medium text-neutral-800">Call client</a>}
-            {shouldRenderTel(booking.supportPhone) && <a href={`tel:${booking.supportPhone}`} className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-3 text-sm font-medium text-neutral-800">Support</a>}
+            <span className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-3 text-sm font-medium text-neutral-800">Client calls via office</span>
+            {shouldRenderTel(booking.supportPhone) && <a href={`tel:${booking.supportPhone}`} title="Intentional support exception" className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-3 text-sm font-medium text-neutral-800">Support</a>}
           </div>
         </div>
       )}

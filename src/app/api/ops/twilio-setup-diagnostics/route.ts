@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
+import { getProviderCredentials, getTwilioClientFromCredentials } from '@/lib/messaging/provider-credentials';
 import { getTwilioWebhookUrl, webhookUrlMatches } from '@/lib/setup/webhook-url';
 
 export async function GET(request: NextRequest) {
@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
     orgId: string;
     credentialsExist: boolean;
     credentialSource?: 'database' | 'environment';
+    /** 'apiKey' when stored credentials use API Key SID+Secret; 'authToken' otherwise */
+    authType?: 'apiKey' | 'authToken';
     accountSidUsed: string | null;
     webhookTarget: string;
     webhookUrlExpected: string;
@@ -50,6 +52,7 @@ export async function GET(request: NextRequest) {
     const credentials = await getProviderCredentials(orgId);
     out.credentialsExist = !!credentials;
     out.credentialSource = credentials?.source;
+    out.authType = credentials?.apiKeySid && credentials?.apiKeySecret ? 'apiKey' : 'authToken';
     out.accountSidUsed = credentials?.accountSid
       ? `${credentials.accountSid.substring(0, 4)}...${credentials.accountSid.substring(credentials.accountSid.length - 4)}`
       : null;
@@ -59,8 +62,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(out, { status: 200 });
     }
 
-    const twilio = require('twilio');
-    const client = twilio(credentials.accountSid, credentials.authToken);
+    const client = getTwilioClientFromCredentials(credentials);
     const incomingNumbers = await client.incomingPhoneNumbers.list({ limit: 50 });
     for (const n of incomingNumbers) {
       out.twilioConfiguredUrls.push({

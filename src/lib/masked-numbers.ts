@@ -43,7 +43,16 @@ export function maskPhoneNumber(phone: string): string {
  * Get the real phone number (owner only)
  * Returns the actual phone number without masking
  */
-export function getRealPhoneNumber(phone: string): string {
+export function getRealPhoneNumber(
+  phone: string,
+  access?: { isInternalAdmin?: boolean; reason?: string }
+): string {
+  if (!access?.isInternalAdmin) {
+    throw new Error("Real number access denied: internal admin authorization required");
+  }
+  if (!access.reason || access.reason.trim().length < 3) {
+    throw new Error("Real number access denied: explicit access reason is required");
+  }
   return phone;
 }
 
@@ -53,9 +62,13 @@ export function getRealPhoneNumber(phone: string): string {
  * @param viewerRole - 'owner' | 'sitter' | 'client'
  * @returns Masked or real phone number based on viewer role
  */
-export function getPhoneForViewer(phone: string, viewerRole: 'owner' | 'sitter' | 'client'): string {
-  if (viewerRole === 'owner') {
-    return getRealPhoneNumber(phone);
+export function getPhoneForViewer(
+  phone: string,
+  viewerRole: 'owner' | 'sitter' | 'client',
+  access?: { isInternalAdmin?: boolean; reason?: string }
+): string {
+  if (viewerRole === 'owner' && access?.isInternalAdmin) {
+    return getRealPhoneNumber(phone, access);
   }
   return maskPhoneNumber(phone);
 }

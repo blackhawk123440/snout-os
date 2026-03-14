@@ -46,8 +46,8 @@ export function MessagingInboxCard({ unreadCount }: MessagingInboxCardProps) {
             color: tokens.colors.text.secondary,
           }}>
             {unreadCount > 0 
-              ? `You have ${unreadCount} ${unreadCount === 1 ? 'message' : 'messages'} requiring your attention`
-              : 'No unread messages'}
+              ? `${unreadCount} ${unreadCount === 1 ? 'client update' : 'client updates'} ready`
+              : 'No pending client updates'}
           </div>
         </div>
         <Link href="/sitter/inbox">

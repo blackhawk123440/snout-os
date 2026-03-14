@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
+import { getProviderCredentials, getTwilioClientFromCredentials } from '@/lib/messaging/provider-credentials';
 import { getTwilioWebhookUrl, webhookUrlMatches } from '@/lib/setup/webhook-url';
 import { upsertCanonicalMessageNumbersFromTwilio } from '@/lib/messaging/sync-inventory';
 
@@ -54,8 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     const newSmsUrl = getTwilioWebhookUrl();
-    const twilio = require('twilio');
-    const client = twilio(credentials.accountSid, credentials.authToken);
+    const client = getTwilioClientFromCredentials(credentials);
     const accountSidMasked = credentials.accountSid
       ? `${credentials.accountSid.substring(0, 4)}...${credentials.accountSid.substring(credentials.accountSid.length - 4)}`
       : null;

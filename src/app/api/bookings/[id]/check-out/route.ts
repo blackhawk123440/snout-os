@@ -7,6 +7,8 @@ import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 import { publish, channels } from '@/lib/realtime/bus';
 import { calculatePayoutForBooking, executePayout } from '@/lib/payout/payout-engine';
 import { persistPayrollRunFromTransfer } from '@/lib/payroll/payroll-service';
+import { syncConversationLifecycleWithBookingWorkflow } from '@/lib/messaging/conversation-service';
+import { emitClientLifecycleNoticeIfNeeded } from '@/lib/messaging/lifecycle-client-copy';
 
 /**
  * POST /api/bookings/[id]/check-out
@@ -59,6 +61,29 @@ export async function POST(
       where: { id },
       data: { status: 'completed' },
     });
+    const lifecycleSync = await syncConversationLifecycleWithBookingWorkflow({
+      orgId: ctx.orgId,
+      bookingId: booking.id,
+      clientId: booking.clientId,
+      phone: booking.phone,
+      firstName: booking.firstName,
+      lastName: booking.lastName,
+      sitterId: booking.sitterId,
+      bookingStatus: 'completed',
+      serviceWindowStart: booking.startAt,
+      serviceWindowEnd: booking.endAt,
+    }).catch((error) => {
+      console.error('[check-out] lifecycle sync failed:', error);
+      return null;
+    });
+    if (lifecycleSync?.threadId) {
+      void emitClientLifecycleNoticeIfNeeded({
+        orgId: ctx.orgId,
+        threadId: lifecycleSync.threadId,
+        notice: 'post_service_grace',
+        dedupeKey: `${booking.id}:checkout`,
+      }).catch(() => {});
+    }
 
     const existingVisitEvent = await db.visitEvent.findFirst({
       where: { bookingId: id, sitterId: ctx.sitterId, orgId: ctx.orgId },
