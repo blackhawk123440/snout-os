@@ -8,7 +8,7 @@
     "worker": "tsx src/worker/index.ts",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 prisma generate && cross-env NODE_OPTIONS=--max-old-space-size=4096 next build",
     "build:with-db": "prisma generate && prisma db push --skip-generate && next build",
-    "start": "prisma migrate deploy && next start",
+    "start": "next start",
     "lint": "eslint . --fix",
     "format": "prettier --write .",
     "typecheck": "cross-env NODE_OPTIONS=--max-old-space-size=4096 tsc --noEmit -p tsconfig.typecheck.json",
