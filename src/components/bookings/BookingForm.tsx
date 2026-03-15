@@ -981,7 +981,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
               style={{ width: '18px', height: '18px', marginTop: '2px', flexShrink: 0 }}
             />
             <span style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
-              I agree to the <a href="#" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Terms of Service</a> and <a href="#" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Privacy Policy</a>
+              I agree to the <a href="https://snoutservices.com/tearms-and-conditions" target="_blank" rel="noopener noreferrer" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Terms of Service</a> and <a href="https://snoutservices.com/policies" target="_blank" rel="noopener noreferrer" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Privacy Policy</a>, and I consent to receive SMS messages about my bookings and pet care updates from Snout services. Message &amp; data rates may apply. Reply STOP to opt out.
             </span>
           </label>
         </div>
