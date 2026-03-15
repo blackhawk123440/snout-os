@@ -4,7 +4,6 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { prisma } from '@/lib/db';
 import { env } from '@/lib/env';
 import { publish, channels } from '@/lib/realtime/bus';
 import { logEvent } from '@/lib/log-event';
@@ -17,6 +16,7 @@ import { reconcileConversationLifecycleForThread } from '@/lib/messaging/convers
 import { mapTwilioStatusToLifecycle } from '@/lib/messaging/message-lifecycle';
 import { sendThreadMessage } from '@/lib/messaging/send';
 import { CLIENT_EXPIRED_SERVICE_LANE_REPLY } from '@/lib/messaging/policy-copy';
+import { getScopedDb } from '@/lib/tenancy';
 
 function twimlOk() {
   return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
@@ -73,10 +73,12 @@ export async function POST(request: NextRequest) {
       return twimlOk();
     }
 
+    const db = getScopedDb({ orgId });
+
     if (messageSid && messageStatus) {
       const lifecycle = mapTwilioStatusToLifecycle(messageStatus);
       const mappedStatus = lifecycle === 'accepted' ? 'queued' : lifecycle;
-      await prisma.messageEvent.updateMany({
+      await db.messageEvent.updateMany({
         where: { orgId, providerMessageSid: messageSid },
         data: {
           deliveryStatus: mappedStatus,
@@ -89,7 +91,7 @@ export async function POST(request: NextRequest) {
       return twimlOk();
     }
 
-    const messageNumber = await prisma.messageNumber.findFirst({
+    const messageNumber = await db.messageNumber.findFirst({
       where: {
         orgId,
         status: 'active',
@@ -108,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     const existing = messageSid
-      ? await prisma.messageEvent.findFirst({
+      ? await db.messageEvent.findFirst({
           where: { orgId, providerMessageSid: messageSid },
           select: { id: true, threadId: true },
         })
@@ -118,14 +120,14 @@ export async function POST(request: NextRequest) {
     const existingContact = await findClientContactByPhone(orgId, from);
     let clientId = existingContact?.clientId ?? null;
     if (!clientId) {
-      const existingClient = await prisma.client.findFirst({
+      const existingClient = await db.client.findFirst({
         where: { orgId, phone: from },
         select: { id: true },
       });
       clientId = existingClient?.id ?? null;
     }
     if (!clientId) {
-      const guest = await (prisma as any).client.create({
+      const guest = await db.client.create({
         data: {
           orgId,
           firstName: 'Guest',
@@ -145,7 +147,7 @@ export async function POST(request: NextRequest) {
     }
     if (!clientId) return twimlOk();
 
-    let thread = await prisma.messageThread.findFirst({
+    let thread = await db.messageThread.findFirst({
       where: {
         orgId,
         clientId,
@@ -156,7 +158,7 @@ export async function POST(request: NextRequest) {
       orderBy: { lastMessageAt: 'desc' },
     });
     if (!thread) {
-      thread = await prisma.messageThread.create({
+      thread = await db.messageThread.create({
         data: {
           orgId,
           clientId,
@@ -176,7 +178,7 @@ export async function POST(request: NextRequest) {
       orgId,
       threadId: thread.id,
     }).catch(() => ({ rerouted: false, laneType: "company", reason: "lifecycle_unavailable" }));
-    const created = await prisma.messageEvent.create({
+    const created = await db.messageEvent.create({
       data: {
         threadId: thread.id,
         orgId,
@@ -191,7 +193,7 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     });
 
-    await prisma.messageThread.update({
+    await db.messageThread.update({
       where: { id: thread.id },
       data: {
         lastMessageAt: new Date(),
@@ -207,7 +209,7 @@ export async function POST(request: NextRequest) {
       body: messageBody,
     }).catch(() => {});
     if (lifecycle.rerouted) {
-      const recentlyNotified = await prisma.messageEvent.findFirst({
+      const recentlyNotified = await db.messageEvent.findFirst({
         where: {
           orgId,
           threadId: thread.id,

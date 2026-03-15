@@ -189,6 +189,7 @@ export async function GET(
         notes: booking.notes,
         createdAt: booking.createdAt,
         updatedAt: booking.updatedAt,
+        threadId: thread?.id ?? null,
         sitter: booking.sitter,
         client: booking.client,
         pets: booking.pets,

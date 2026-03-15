@@ -285,7 +285,7 @@ async function findOrCreateAssignmentWindow(params: {
     where: {
       orgId,
       threadId,
-      bookingRef: bookingId,
+      bookingId: bookingId,
     },
   });
 
@@ -297,8 +297,8 @@ async function findOrCreateAssignmentWindow(params: {
     await (prisma as any).assignmentWindow.update({
       where: { id: existing.id },
       data: {
-        startsAt,
-        endsAt,
+        startAt: startsAt,
+        endAt: endsAt,
         sitterId: sitterId,
       },
     });
@@ -313,8 +313,8 @@ async function findOrCreateAssignmentWindow(params: {
       OR: [
         {
           AND: [
-            { startsAt: { lte: endsAt } },
-            { endsAt: { gte: startsAt } },
+            { startAt: { lte: endsAt } },
+            { endAt: { gte: startsAt } },
           ],
         },
       ],
@@ -329,10 +329,10 @@ async function findOrCreateAssignmentWindow(params: {
     await (prisma as any).assignmentWindow.update({
       where: { id: overlapping.id },
       data: {
-        startsAt,
-        endsAt,
+        startAt: startsAt,
+        endAt: endsAt,
         sitterId: sitterId,
-        bookingRef: bookingId,
+        bookingId: bookingId,
       },
     });
     return { id: overlapping.id, reused: true };
@@ -347,9 +347,9 @@ async function findOrCreateAssignmentWindow(params: {
       orgId,
       threadId,
       sitterId: sitterId,
-      bookingRef: bookingId,
-      startsAt,
-      endsAt,
+      bookingId: bookingId,
+      startAt: startsAt,
+      endAt: endsAt,
     },
   });
 

@@ -12,6 +12,7 @@ model Org {
   name        String
   mode        String   @default("personal") // personal | saas
   brandingJson String? @db.Text
+  clientContacts ClientContact[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -777,6 +778,7 @@ model Client {
   deletedAt     DateTime?          // Soft delete
   customFields  CustomFieldValue[]
   bookings      Booking[]
+  contacts      ClientContact[]
   emergencyContacts ClientEmergencyContact[]
   threads       MessageThread[]
   loyaltyRewards LoyaltyReward[]
@@ -791,6 +793,22 @@ model Client {
   @@index([orgId])
   @@index([orgId, lastBookingAt])
   @@index([deletedAt])
+}
+
+model ClientContact {
+  id        String   @id @default(cuid())
+  orgId     String
+  clientId  String
+  e164      String
+  label     String?
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  org    Org    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, e164])
+  @@index([orgId, clientId])
 }
 
 model ClientEmergencyContact {

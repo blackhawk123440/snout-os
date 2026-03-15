@@ -42,10 +42,10 @@ export async function resolveRoutingForInboundMessage(
   const activeWindows = await (prisma as any).assignmentWindow.findMany({
     where: {
       threadId,
-      startsAt: {
+      startAt: {
         lte: timestamp,
       },
-      endsAt: {
+      endAt: {
         gte: timestamp,
       },
     },
@@ -58,7 +58,7 @@ export async function resolveRoutingForInboundMessage(
       },
     },
     orderBy: {
-      startsAt: 'asc', // Field is startsAt, not startAt
+      startAt: 'asc',
     },
   });
 
@@ -122,10 +122,10 @@ export async function hasActiveAssignmentWindow(
       sitterId,
       threadId,
       // status field doesn't exist - filter by time range only
-      startsAt: {
+      startAt: {
         lte: timestamp,
       },
-      endsAt: {
+      endAt: {
         gte: timestamp,
       },
     },
@@ -154,20 +154,20 @@ export async function getActiveAssignmentWindows(
       sitterId,
       threadId,
       // status field doesn't exist - filter by time range only
-      startsAt: {
+      startAt: {
         lte: timestamp,
       },
-      endsAt: {
+      endAt: {
         gte: timestamp,
       },
     },
     select: {
       id: true,
-      startsAt: true, // Field is startsAt, not startAt
-      endsAt: true, // Field is endsAt, not endAt
+      startAt: true,
+      endAt: true,
     },
     orderBy: {
-      startsAt: 'asc', // Field is startsAt, not startAt
+      startAt: 'asc',
     },
   });
 
@@ -188,10 +188,10 @@ export async function getNextUpcomingWindow(
       sitterId,
       threadId,
       // status field doesn't exist - filter by time range only
-      startsAt: { gt: after }, // Field is startsAt, not startAt
+      startAt: { gt: after },
     },
-    select: { startsAt: true, endsAt: true }, // Fields are startsAt/endsAt
-    orderBy: { startsAt: 'asc' }, // Field is startsAt, not startAt
+    select: { startAt: true, endAt: true },
+    orderBy: { startAt: 'asc' },
   });
   return window;
 }

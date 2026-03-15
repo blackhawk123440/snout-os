@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
   const response = rows.map((n) => ({
     id: n.id,
     e164: n.e164,
+    orgId: n.orgId,
+    numberClass: (n.numberClass ?? 'pool') as 'front_desk' | 'sitter' | 'pool',
     class: (n.numberClass ?? 'pool') as 'front_desk' | 'sitter' | 'pool',
     status: (n.status === 'quarantined' || n.status === 'inactive' ? n.status : 'active') as
       | 'active'

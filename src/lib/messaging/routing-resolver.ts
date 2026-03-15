@@ -35,13 +35,13 @@ async function getActiveAssignment(
   const sitterId = user?.sitter?.id || sitterUserId;
   
   // Note: AssignmentWindow model doesn't have bookingId or status fields
-  // Field names are: startsAt, endsAt (not startAt, endAt)
+  // Field names are: startAt, endAt
   const assignment = await (prisma as any).assignmentWindow.findFirst({
     where: {
       orgId,
       sitterId,
-      startsAt: { lte: now },
-      endsAt: { gte: now },
+      startAt: { lte: now },
+      endAt: { gte: now },
       // Note: AssignmentWindow doesn't have status field
     },
     select: { id: true },
