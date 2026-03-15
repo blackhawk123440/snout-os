@@ -31,6 +31,7 @@ type Booking = {
   paymentStatus: string;
   totalPrice: number;
   notes?: string | null;
+  threadId: string | null;
   sitter?: { id: string; firstName: string; lastName: string } | null;
   client?: { id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null } | null;
   pets?: Array<{ id: string; name: string; species: string }>;
@@ -326,7 +327,10 @@ export default function BookingDetailEnterprisePage() {
               <div className="flex flex-wrap gap-2">
                 <a href={`tel:${booking.phone}`}><Button variant="secondary">Call client (ops exception)</Button></a>
                 {booking.email ? <a href={`mailto:${booking.email}`}><Button variant="secondary">Email client</Button></a> : null}
-                <Link href="/messages"><Button variant="secondary">Messages</Button></Link>
+                {booking.threadId
+                  ? <Link href={`/messages?thread=${booking.threadId}`}><Button variant="secondary">Open Thread</Button></Link>
+                  : <Button variant="secondary" disabled title="No messaging thread yet — check Twilio setup">No Thread ⚠️</Button>
+                }
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('payment')}>Send payment link</Button>
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('payment', true)}>Resend payment</Button>
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('tip')}>Send tip link</Button>

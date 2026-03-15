@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-14T22:36:12.608Z",
+  "generatedAt": "2026-03-15T04:41:11.574Z",
   "envSetup": {
     "baseUrl": "https://snout-os-staging.onrender.com",
     "e2eAuthMode": "api/ops/e2e-login with staging key",
@@ -24,7 +24,7 @@
         "message": "Webhooks installed"
       },
       "overall": true,
-      "checkedAt": "2026-03-14T22:36:00.621Z"
+      "checkedAt": "2026-03-15T04:40:56.634Z"
     },
     "providerStatus": {
       "connected": true,
@@ -32,7 +32,7 @@
       "hasAuthToken": true,
       "lastTestedAt": null,
       "testResult": null,
-      "checkedAt": "2026-03-14T22:36:00.817Z",
+      "checkedAt": "2026-03-15T04:40:56.818Z",
       "verified": true
     },
     "providerTest": {
@@ -44,7 +44,7 @@
       "url": "https://snout-os-staging.onrender.com/api/messages/webhook/twilio",
       "lastReceivedAt": null,
       "status": "installed",
-      "checkedAt": "2026-03-14T22:36:01.678Z",
+      "checkedAt": "2026-03-15T04:40:57.896Z",
       "verified": true,
       "webhookTarget": "incoming_phone_numbers",
       "numbersFetchedCount": 4,
@@ -91,17 +91,17 @@
       "redis": "ok",
       "version": "27f95b4a8f574ea1e83205048c7c930e81816ccb",
       "commitSha": "27f95b4",
-      "buildTime": "2026-03-14T22:36:03.849Z",
+      "buildTime": "2026-03-15T04:41:02.817Z",
       "envName": "staging",
       "runtimeDiagnostics": {
         "nodeVersion": "v22.16.0",
         "platform": "linux",
-        "uptimeSec": 18591,
-        "pid": 167,
+        "uptimeSec": 757,
+        "pid": 185,
         "memoryMb": {
-          "rss": 373.8,
-          "heapUsed": 219.5,
-          "heapTotal": 233.8
+          "rss": 341.6,
+          "heapUsed": 215.4,
+          "heapTotal": 230.9
         },
         "eventLoop": {
           "activeHandles": 11,
@@ -125,7 +125,7 @@
         "Raise and segment auth/session limits for valid session checks; keep mutation limits strict.",
         "Confirm database connection pool sizing (Prisma + PostgreSQL max_connections) so web + worker pools do not contend."
       ],
-      "timestamp": "2026-03-14T22:36:03.849Z"
+      "timestamp": "2026-03-15T04:41:02.817Z"
     }
   },
   "fixtureChecks": {
@@ -174,7 +174,7 @@
       "queueNotes": "N/A",
       "automations": "N/A",
       "bugsOrGaps": [
-        "thread lookup failed for 47ea3c30-a65e-485a-9961-cf9f353a6953: 200 {\"items\":[],\"nextCursor\":null,\"hasMore\":false,\"pageSize\":100,\"sort\":{\"field\":\"lastMessageAt\",\"direction\":\"desc\"},\"filters\":{\"sitterId\":null,\"clientId\":null,\"status\":null,\"unreadOnly\":null,\"scope\":null,\"inbox\":null,\"bookingId\":\"47ea3c30-a65e-485a-9961-cf9f353a6953\",\"participant\":null,\"from\":null,\"to\":null}}"
+        "thread lookup failed for fa68e23a-5345-41b3-9da0-08304e39b143: 200 {\"items\":[],\"nextCursor\":null,\"hasMore\":false,\"pageSize\":100,\"sort\":{\"field\":\"lastMessageAt\",\"direction\":\"desc\"},\"filters\":{\"sitterId\":null,\"clientId\":null,\"status\":null,\"unreadOnly\":null,\"scope\":null,\"inbox\":null,\"bookingId\":\"fa68e23a-5345-41b3-9da0-08304e39b143\",\"participant\":null,\"from\":null,\"to\":null}}"
       ]
     },
     {
@@ -192,7 +192,7 @@
       "queueNotes": "N/A",
       "automations": "N/A",
       "bugsOrGaps": [
-        "thread lookup failed for 46f8a72c-06d3-4a67-b71f-2c8c9d45e6ea: 200 {\"items\":[],\"nextCursor\":null,\"hasMore\":false,\"pageSize\":100,\"sort\":{\"field\":\"lastMessageAt\",\"direction\":\"desc\"},\"filters\":{\"sitterId\":null,\"clientId\":null,\"status\":null,\"unreadOnly\":null,\"scope\":null,\"inbox\":null,\"bookingId\":\"46f8a72c-06d3-4a67-b71f-2c8c9d45e6ea\",\"participant\":null,\"from\":null,\"to\":null}}"
+        "thread lookup failed for 2e22af11-4948-4d6a-981a-d4df88bf2201: 200 {\"items\":[],\"nextCursor\":null,\"hasMore\":false,\"pageSize\":100,\"sort\":{\"field\":\"lastMessageAt\",\"direction\":\"desc\"},\"filters\":{\"sitterId\":null,\"clientId\":null,\"status\":null,\"unreadOnly\":null,\"scope\":null,\"inbox\":null,\"bookingId\":\"2e22af11-4948-4d6a-981a-d4df88bf2201\",\"participant\":null,\"from\":null,\"to\":null}}"
       ]
     },
     {
@@ -210,7 +210,7 @@
       "queueNotes": "N/A",
       "automations": "N/A",
       "bugsOrGaps": [
-        "thread lookup failed for ae5f419c-8fb5-4c2a-9d1d-31c856210e80: 200 {\"items\":[],\"nextCursor\":null,\"hasMore\":false,\"pageSize\":100,\"sort\":{\"field\":\"lastMessageAt\",\"direction\":\"desc\"},\"filters\":{\"sitterId\":null,\"clientId\":null,\"status\":null,\"unreadOnly\":null,\"scope\":null,\"inbox\":null,\"bookingId\":\"ae5f419c-8fb5-4c2a-9d1d-31c856210e80\",\"participant\":null,\"from\":null,\"to\":null}}"
+        "thread lookup failed for ad43856e-a5bc-4987-80aa-6b5af35503f8: 200 {\"items\":[],\"nextCursor\":null,\"hasMore\":false,\"pageSize\":100,\"sort\":{\"field\":\"lastMessageAt\",\"direction\":\"desc\"},\"filters\":{\"sitterId\":null,\"clientId\":null,\"status\":null,\"unreadOnly\":null,\"scope\":null,\"inbox\":null,\"bookingId\":\"ad43856e-a5bc-4987-80aa-6b5af35503f8\",\"participant\":null,\"from\":null,\"to\":null}}"
       ]
     },
     {
@@ -228,7 +228,7 @@
       "queueNotes": "N/A",
       "automations": "N/A",
       "bugsOrGaps": [
-        "thread lookup failed for 11b7e64c-9208-4819-ae79-370eb7c3ec44: 200 {\"items\":[],\"nextCursor\":null,\"hasMore\":false,\"pageSize\":100,\"sort\":{\"field\":\"lastMessageAt\",\"direction\":\"desc\"},\"filters\":{\"sitterId\":null,\"clientId\":null,\"status\":null,\"unreadOnly\":null,\"scope\":null,\"inbox\":null,\"bookingId\":\"11b7e64c-9208-4819-ae79-370eb7c3ec44\",\"participant\":null,\"from\":null,\"to\":null}}"
+        "thread lookup failed for b9c7de3b-87a7-4f1a-a4e0-f58389d2e776: 200 {\"items\":[],\"nextCursor\":null,\"hasMore\":false,\"pageSize\":100,\"sort\":{\"field\":\"lastMessageAt\",\"direction\":\"desc\"},\"filters\":{\"sitterId\":null,\"clientId\":null,\"status\":null,\"unreadOnly\":null,\"scope\":null,\"inbox\":null,\"bookingId\":\"b9c7de3b-87a7-4f1a-a4e0-f58389d2e776\",\"participant\":null,\"from\":null,\"to\":null}}"
       ]
     },
     {
@@ -300,7 +300,7 @@
       "queueNotes": "N/A",
       "automations": "N/A",
       "bugsOrGaps": [
-        "thread lookup failed for 895b9468-6d3f-4954-a3d1-8cc86b35ff24: 200 {\"items\":[],\"nextCursor\":null,\"hasMore\":false,\"pageSize\":100,\"sort\":{\"field\":\"lastMessageAt\",\"direction\":\"desc\"},\"filters\":{\"sitterId\":null,\"clientId\":null,\"status\":null,\"unreadOnly\":null,\"scope\":null,\"inbox\":null,\"bookingId\":\"895b9468-6d3f-4954-a3d1-8cc86b35ff24\",\"participant\":null,\"from\":null,\"to\":null}}"
+        "thread lookup failed for 98c0b41a-813a-40cc-8df2-37d3e68b343d: 200 {\"items\":[],\"nextCursor\":null,\"hasMore\":false,\"pageSize\":100,\"sort\":{\"field\":\"lastMessageAt\",\"direction\":\"desc\"},\"filters\":{\"sitterId\":null,\"clientId\":null,\"status\":null,\"unreadOnly\":null,\"scope\":null,\"inbox\":null,\"bookingId\":\"98c0b41a-813a-40cc-8df2-37d3e68b343d\",\"participant\":null,\"from\":null,\"to\":null}}"
       ]
     },
     {

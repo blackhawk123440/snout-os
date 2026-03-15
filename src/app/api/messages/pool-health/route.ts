@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getRequestContext } from "@/lib/request-context";
 import { getNumberPoolHealth } from "@/lib/messaging/conversation-service";
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET() {
   let ctx;
   try {
