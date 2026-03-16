@@ -2,7 +2,29 @@ import { sendMessage } from "@/lib/message-utils";
 import { formatPetsByQuantity, formatClientNameForSitter } from "@/lib/booking-utils";
 import { getOwnerPhone, getSitterPhone } from "@/lib/phone-utils";
 
-interface Booking {
+function isMaskedOnlyEnforced(): boolean {
+  return process.env.ENFORCE_MASKED_ONLY_MESSAGING === "true" || process.env.NODE_ENV === "production";
+}
+
+function directSendAllowed(audience: "client" | "sitter" | "owner"): boolean {
+  if (!isMaskedOnlyEnforced()) return true;
+  return audience === "owner";
+}
+
+async function sendDirectMessageOrFail(
+  audience: "client" | "sitter" | "owner",
+  to: string | null | undefined,
+  message: string
+): Promise<boolean> {
+  if (!to) return false;
+  if (!directSendAllowed(audience)) {
+    console.error(`[sms-templates] Blocked raw direct-send for ${audience}; masked thread delivery is required.`);
+    return false;
+  }
+  return sendMessage(to, message);
+}
+
+export interface Booking {
   id: string;
   firstName: string;
   lastName: string;
@@ -22,23 +44,23 @@ interface Booking {
 
 export async function sendInitialBookingConfirmation(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll see you soon!`;
+  const message = `✅ Booking confirmed\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll coordinate all updates in this same thread.`;
   
-  return await sendMessage(booking.phone, message);
+  return await sendDirectMessageOrFail("client", booking.phone, message);
 }
 
 export async function sendBookingConfirmedToClient(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
-  const message = `🐾 BOOKING CONFIRMED!\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll see you soon!`;
+  const message = `✅ Booking confirmed\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking is confirmed for ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nWe'll coordinate all updates in this same thread.`;
   
-  return await sendMessage(booking.phone, message);
+  return await sendDirectMessageOrFail("client", booking.phone, message);
 }
 
 export async function sendClientNightBeforeReminder(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `🌙 REMINDER!\n\nHi ${booking.firstName},\n\nJust a friendly reminder about your ${booking.service} appointment tomorrow at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\n\nWe're excited to care for your pets!`;
   
-  return await sendMessage(booking.phone, message);
+  return await sendDirectMessageOrFail("client", booking.phone, message);
 }
 
 export async function sendSitterNightBeforeReminder(booking: Booking, sitterId?: string): Promise<boolean> {
@@ -73,14 +95,14 @@ export async function sendSitterNightBeforeReminder(booking: Booking, sitterId?:
     return false;
   }
   
-  return await sendMessage(sitterPhone, message);
+  return await sendDirectMessageOrFail("sitter", sitterPhone, message);
 }
 
 export async function sendPostVisitThankYou(booking: Booking): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `🐾 THANK YOU!\n\nHi ${booking.firstName},\n\nThank you for choosing Snout Services! We hope your pets enjoyed their ${booking.service.toLowerCase()}.\n\nPets: ${petQuantities}\n\nWe look forward to caring for your pets again soon!`;
   
-  return await sendMessage(booking.phone, message);
+  return await sendDirectMessageOrFail("client", booking.phone, message);
 }
 
 export async function sendSitterAssignmentNotification(booking: Booking, sitterId?: string): Promise<boolean> {
@@ -103,7 +125,7 @@ export async function sendSitterAssignmentNotification(booking: Booking, sitterI
   }
   
   const clientName = formatClientNameForSitter(booking.firstName, booking.lastName);
-  const message = `👋 SITTER ASSIGNED!\n\nHi,\n\nYou've been assigned to ${clientName}'s ${booking.service} booking on ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease confirm your availability.`;
+  const message = `✅ New assignment\n\nHi,\n\nYou've been assigned to ${clientName}'s ${booking.service} booking on ${booking.startAt.toLocaleDateString()} at ${booking.startAt.toLocaleTimeString()}.\n\nPets: ${petQuantities}\nAddress: ${booking.address}${earningsText}\n\nPlease use this thread for visit-related updates only.`;
   
   let sitterPhone: string | null = null;
   if (sitterId) {
@@ -115,14 +137,14 @@ export async function sendSitterAssignmentNotification(booking: Booking, sitterI
     return false;
   }
   
-  return await sendMessage(sitterPhone, message);
+  return await sendDirectMessageOrFail("sitter", sitterPhone, message);
 }
 
 export async function sendReportToClient(booking: Booking, reportContent: string): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `🐾 VISIT REPORT\n\nHi ${booking.firstName},\n\nYour ${booking.service} visit has been completed!\n\nPets: ${petQuantities}\nSitter: ${booking.sitter?.firstName || 'Assigned sitter'}\n\nReport: ${reportContent}\n\nThank you for choosing Snout Services!`;
   
-  return await sendMessage(booking.phone, message);
+  return await sendDirectMessageOrFail("client", booking.phone, message);
 }
 
 export async function sendOwnerAlert(
@@ -142,12 +164,12 @@ export async function sendOwnerAlert(
     return false;
   }
   
-  return await sendMessage(ownerPhone, message);
+  return await sendDirectMessageOrFail("owner", ownerPhone, message);
 }
 
 export async function sendPaymentReminder(booking: Booking, paymentLink: string): Promise<boolean> {
   const petQuantities = formatPetsByQuantity(booking.pets);
   const message = `💳 PAYMENT REMINDER\n\nHi ${booking.firstName},\n\nYour ${booking.service} booking on ${booking.startAt.toLocaleDateString()} is ready for payment.\n\nPets: ${petQuantities}\nTotal: $${booking.totalPrice.toFixed(2)}\n\nPay now: ${paymentLink}`;
   
-  return await sendMessage(booking.phone, message);
+  return await sendDirectMessageOrFail("client", booking.phone, message);
 }

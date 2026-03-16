@@ -14,6 +14,7 @@ import { logEventFromLogger } from "./event-logger";
 import { getOwnerPhone, getSitterPhone } from "./phone-utils";
 import { sendAutomationMessageViaThread } from "./bookings/automation-thread-sender";
 import { onBookingConfirmed } from "./bookings/booking-confirmed-handler";
+import { redactPhoneNumber } from "./messaging/logging-helpers";
 import { 
   formatDatesAndTimesForMessage, 
   formatDateForMessage, 
@@ -26,7 +27,6 @@ import {
 export interface AutomationContext {
   bookingId?: string;
   sitterId?: string;
-  correlationId?: string;
   [key: string]: any;
 }
 
@@ -35,6 +35,10 @@ export interface AutomationResult {
   message?: string;
   error?: string;
   metadata?: Record<string, any>;
+}
+
+function redactedPhone(phone: string | null | undefined): string {
+  return redactPhoneNumber(phone);
 }
 
 /**
@@ -141,7 +145,7 @@ async function executeOwnerNewBookingAlert(
     const orgIdNewBooking = booking.orgId || "default";
     let template = await getMessageTemplate("ownerNewBookingAlert", "client", orgIdNewBooking);
     if (!template || template.trim() === "") {
-      template = "🐾 BOOKING RECEIVED!\n\nHi {{firstName}},\n\nWe've received your {{service}} booking request:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll confirm your booking shortly. Thank you!";
+      template = "🐾 Booking received\n\nHi {{firstName}},\n\nThanks for choosing Snout. We've received your {{service}} request for:\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll confirm details shortly in this same thread.";
     }
 
     const message = replaceTemplateVariables(template, {
@@ -161,8 +165,6 @@ async function executeOwnerNewBookingAlert(
       clientId: booking.clientId || '',
       message,
       recipient: 'client',
-      recipientPhone: booking.phone,
-      correlationId: context.correlationId,
     });
     
     if (!result.success && result.usedThread === false) {
@@ -182,7 +184,7 @@ async function executeOwnerNewBookingAlert(
     return {
       success: result.success,
       message: result.success ? "Client notification sent" : result.error || "Failed to send client notification",
-      metadata: { recipient: "client", phone: booking.phone, usedThread: result.usedThread },
+      metadata: { recipient: "client", phone: redactedPhone(booking.phone), usedThread: result.usedThread },
     };
   }
 
@@ -239,7 +241,7 @@ async function executeOwnerNewBookingAlert(
     return {
       success: sent,
       message: sent ? "Owner notification sent" : "Failed to send owner notification",
-      metadata: { recipient: "owner", phone: ownerPhone },
+      metadata: { recipient: "owner", phone: redactedPhone(ownerPhone) },
     };
   }
 
@@ -271,7 +273,7 @@ async function executeBookingConfirmation(
     const orgIdBc = booking.orgId || "default";
     let template = await getMessageTemplate("bookingConfirmation", "client", orgIdBc);
     if (!template || template.trim() === "") {
-      template = "🐾 BOOKING CONFIRMED!\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nWe'll see you soon!";
+      template = "✅ Booking confirmed\n\nHi {{firstName}},\n\nYour {{service}} booking is confirmed:\n{{datesTimes}}\n\nPets: {{petQuantities}}\nTotal: ${{totalPrice}}\n\nWe'll coordinate any updates right here.";
     }
 
     const breakdown = calculatePriceBreakdown({
@@ -304,8 +306,6 @@ async function executeBookingConfirmation(
       clientId: booking.clientId || '',
       message,
       recipient: 'client',
-      recipientPhone: booking.phone, // Fallback
-      correlationId: context.correlationId,
     });
     
     const sent = result.success;
@@ -315,7 +315,7 @@ async function executeBookingConfirmation(
       message: sent ? "Booking confirmation sent to client" : result.error || "Failed to send booking confirmation",
       metadata: { 
         recipient: "client", 
-        phone: booking.phone,
+        phone: redactedPhone(booking.phone),
         usedThread: result.usedThread || false,
       },
     };
@@ -355,7 +355,7 @@ async function executeBookingConfirmation(
     return {
       success: sent,
       message: sent ? "Booking confirmation notification sent to owner" : "Failed to send owner notification",
-      metadata: { recipient: "owner", phone: ownerPhone },
+      metadata: { recipient: "owner", phone: redactedPhone(ownerPhone) },
     };
   }
 
@@ -382,7 +382,6 @@ async function executeNightBeforeReminder(
     await logEventFromLogger("reminder.failed", "skipped", {
       orgId,
       bookingId: booking.id,
-      correlationId: context.correlationId,
       metadata: { recipient, reason: "booking_cancelled" },
     });
     return {
@@ -501,8 +500,6 @@ async function executeNightBeforeReminder(
       clientId: booking.clientId || '',
       message,
       recipient: 'client',
-      recipientPhone: targetPhone,
-      correlationId: context.correlationId,
     });
     
     if (!result.success && result.usedThread === false) {
@@ -523,7 +520,6 @@ async function executeNightBeforeReminder(
       await logEventFromLogger("reminder.sent", "success", {
         orgId,
         bookingId: booking.id,
-        correlationId: context.correlationId,
         metadata: { recipient },
       });
     } else {
@@ -531,14 +527,13 @@ async function executeNightBeforeReminder(
         orgId,
         bookingId: booking.id,
         error: result.error,
-        correlationId: context.correlationId,
         metadata: { recipient },
       });
     }
     return {
       success: result.success,
       message: result.success ? `${recipient} reminder sent` : result.error || `Failed to send ${recipient} reminder`,
-      metadata: { recipient, phone: targetPhone, bookingId: booking.id, usedThread: result.usedThread },
+      metadata: { recipient, phone: redactedPhone(targetPhone), bookingId: booking.id, usedThread: result.usedThread },
     };
   }
 
@@ -549,14 +544,12 @@ async function executeNightBeforeReminder(
     await logEventFromLogger("reminder.sent", "success", {
       orgId,
       bookingId: booking.id,
-      correlationId: context.correlationId,
       metadata: { recipient },
     });
   } else {
     await logEventFromLogger("reminder.failed", "failed", {
       orgId,
       bookingId: booking.id,
-      correlationId: context.correlationId,
       metadata: { recipient },
     });
   }
@@ -564,7 +557,7 @@ async function executeNightBeforeReminder(
   return {
     success: sent,
     message: sent ? `${recipient} reminder sent` : `Failed to send ${recipient} reminder`,
-    metadata: { recipient, phone: targetPhone, bookingId: booking.id },
+    metadata: { recipient, phone: redactedPhone(targetPhone), bookingId: booking.id },
   };
 }
 
@@ -612,7 +605,7 @@ async function executeSitterAssignment(
 
     let template = await getMessageTemplate("sitterAssignment", "sitter", orgIdAssign);
     if (!template || template.trim() === "") {
-      template = "✅ NEW ASSIGNMENT!\n\nYou've been assigned to a {{service}} booking:\n\nClient: {{clientName}}\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nAddress: {{address}}";
+      template = "✅ New assignment\n\nYou are assigned to a {{service}} visit.\n\nClient: {{clientName}}\n{{datesTimes}}\nPets: {{petQuantities}}\nAddress: {{address}}\n\nUse this thread for visit-related updates only.";
     }
 
     const breakdown = calculatePriceBreakdown({
@@ -651,7 +644,7 @@ async function executeSitterAssignment(
     return {
       success: sent,
       message: sent ? "Sitter assignment notification sent" : "Failed to send sitter notification",
-      metadata: { recipient: "sitter", phone: sitterPhone, sitterId },
+      metadata: { recipient: "sitter", phone: redactedPhone(sitterPhone), sitterId },
     };
   }
 
@@ -667,7 +660,7 @@ async function executeSitterAssignment(
 
     let template = await getMessageTemplate("sitterAssignment", "client", orgIdAssignClient);
     if (!template || template.trim() === "") {
-      template = "🐾 SITTER ASSIGNED!\n\nHi {{firstName}},\n\nYour sitter for {{service}} has been assigned:\n\nSitter: {{sitterName}}\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll see you soon!";
+      template = "🐾 Your care team is set\n\nHi {{firstName}},\n\nWe've assigned your sitter for {{service}}:\n\nSitter: {{sitterName}}\n{{datesTimes}}\n\nPets: {{petQuantities}}\n\nWe'll coordinate meet-and-greet and service updates here.";
     }
 
     const message = replaceTemplateVariables(template, {
@@ -688,8 +681,6 @@ async function executeSitterAssignment(
       clientId: booking.clientId || '',
       message,
       recipient: 'client',
-      recipientPhone: booking.phone,
-      correlationId: context.correlationId,
     });
     
     if (!result.success && result.usedThread === false) {
@@ -712,14 +703,12 @@ async function executeSitterAssignment(
           clientId: booking.clientId || '',
           message,
           recipient: 'client',
-          recipientPhone: booking.phone,
-          correlationId: context.correlationId,
         });
         
         return {
           success: retryResult.success,
           message: retryResult.success ? "Sitter assignment notification sent to client" : retryResult.error || "Failed to send client notification",
-          metadata: { recipient: "client", phone: booking.phone, usedThread: retryResult.usedThread },
+          metadata: { recipient: "client", phone: redactedPhone(booking.phone), usedThread: retryResult.usedThread },
         };
       } catch (error: any) {
         // Log audit warning
@@ -739,7 +728,7 @@ async function executeSitterAssignment(
     return {
       success: result.success,
       message: result.success ? "Sitter assignment notification sent to client" : result.error || "Failed to send client notification",
-      metadata: { recipient: "client", phone: booking.phone, usedThread: result.usedThread },
+      metadata: { recipient: "client", phone: redactedPhone(booking.phone), usedThread: result.usedThread },
     };
   }
 
@@ -817,8 +806,6 @@ async function executePaymentReminder(
       clientId: booking.clientId || '',
       message,
       recipient: 'client',
-      recipientPhone: booking.phone,
-      correlationId: context.correlationId,
     });
     
     if (!result.success && result.usedThread === false) {
@@ -838,7 +825,7 @@ async function executePaymentReminder(
     return {
       success: result.success,
       message: result.success ? "Payment reminder sent to client" : result.error || "Failed to send payment reminder",
-      metadata: { recipient: "client", phone: booking.phone, paymentLink: paymentLink || null, usedThread: result.usedThread },
+      metadata: { recipient: "client", phone: redactedPhone(booking.phone), paymentLink: paymentLink || null, usedThread: result.usedThread },
     };
   }
 
@@ -890,7 +877,7 @@ async function executePaymentReminder(
     return {
       success: sent,
       message: sent ? "Payment reminder notification sent to owner" : "Failed to send owner notification",
-      metadata: { recipient: "owner", phone: ownerPhone },
+      metadata: { recipient: "owner", phone: redactedPhone(ownerPhone) },
     };
   }
 
@@ -931,7 +918,7 @@ async function executePostVisitThankYou(
     const orgIdThankYou = booking.orgId || "default";
     let template = await getMessageTemplate("postVisitThankYou", "client", orgIdThankYou);
     if (!template || template.trim() === "") {
-      template = "🐾 THANK YOU!\n\nHi {{firstName}},\n\nThank you for choosing Snout Services! We hope your pets enjoyed their {{service}}.\n\n{{datesTimes}}\nPets: {{petQuantities}}\n\nWe look forward to caring for your pets again soon!";
+      template = "🐾 Thank you\n\nHi {{firstName}},\n\nThanks for trusting Snout with your {{service}} visit.\n\n{{datesTimes}}\nPets: {{petQuantities}}\n\nIf you'd like to book again, reply REBOOK in this thread and our team will help.";
     }
 
     const message = replaceTemplateVariables(template, {
@@ -952,8 +939,6 @@ async function executePostVisitThankYou(
       clientId: booking.clientId || '',
       message,
       recipient: 'client',
-      recipientPhone: booking.phone,
-      correlationId: context.correlationId,
     });
     
     if (!result.success && result.usedThread === false) {
@@ -974,7 +959,6 @@ async function executePostVisitThankYou(
       await logEventFromLogger("review.sent", "success", {
         orgId,
         bookingId: booking.id,
-        correlationId: context.correlationId,
         metadata: { recipient: "client" },
       });
     } else {
@@ -982,14 +966,13 @@ async function executePostVisitThankYou(
         orgId,
         bookingId: booking.id,
         error: result.error,
-        correlationId: context.correlationId,
         metadata: { recipient: "client" },
       });
     }
     return {
       success: result.success,
       message: result.success ? "Post visit thank you sent to client" : result.error || "Failed to send post visit thank you",
-      metadata: { recipient: "client", phone: booking.phone, usedThread: result.usedThread },
+      metadata: { recipient: "client", phone: redactedPhone(booking.phone), usedThread: result.usedThread },
     };
   }
 
@@ -1021,21 +1004,19 @@ async function executePostVisitThankYou(
       await logEventFromLogger("review.sent", "success", {
         orgId,
         bookingId: booking.id,
-        correlationId: context.correlationId,
         metadata: { recipient: "sitter" },
       });
     } else {
       await logEventFromLogger("review.failed", "failed", {
         orgId,
         bookingId: booking.id,
-        correlationId: context.correlationId,
         metadata: { recipient: "sitter" },
       });
     }
     return {
       success: sent,
       message: sent ? "Post visit thank you sent to sitter" : "Failed to send sitter thank you",
-      metadata: { recipient: "sitter", phone: sitterPhone, sitterId: booking.sitterId },
+      metadata: { recipient: "sitter", phone: redactedPhone(sitterPhone), sitterId: booking.sitterId },
     };
   }
 

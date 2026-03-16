@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, EmptyState, Skeleton, Badge } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { formatDistanceToNow } from 'date-fns';
+import { SITTER_BOUNDARY_HELPER } from '@/lib/messaging/policy-copy';
 
 interface SitterMessagesTabProps {
   sitterId: string;
@@ -107,13 +108,13 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
               color: tokens.colors.text.secondary,
               fontSize: tokens.typography.fontSize.sm[0],
             }}>
-              Sitter-scoped inbox: Only threads assigned to this sitter
+              Conversations tied to this sitter's active work windows
             </p>
           </div>
 
           <EmptyState
             title="No Messages"
-            description="This sitter has no active message threads."
+            description="No active visit conversations yet."
             icon="💬"
           />
         </Card>
@@ -136,7 +137,7 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
             color: tokens.colors.text.secondary,
             fontSize: tokens.typography.fontSize.sm[0],
           }}>
-            Sitter-scoped inbox: Only threads assigned to this sitter
+            {SITTER_BOUNDARY_HELPER}
           </p>
         </div>
 

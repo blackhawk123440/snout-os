@@ -138,7 +138,7 @@ export async function POST(
       body: result.event.body,
       direction: result.event.direction,
       actorType: result.event.actorType,
-      createdAt: toIso(result.event.createdAt),
+      createdAt: result.event.createdAt ? toIso(result.event.createdAt) : new Date().toISOString(),
       isFromClient: true,
     });
   } catch (error: unknown) {

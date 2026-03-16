@@ -14,8 +14,13 @@ const GetQuerySchema = z.object({
   unreadOnly: z.coerce.boolean().optional(),
   scope: z.string().optional(),
   inbox: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+  limit: z.coerce.number().int().min(1).default(50),
+  pageSize: z.coerce.number().int().min(1).optional(),
   cursor: z.string().optional(),
+  bookingId: z.string().optional(),
+  participant: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -26,10 +31,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const parsed = GetQuerySchema.safeParse(Object.fromEntries(req.nextUrl.searchParams));
+  const url = (req as NextRequest).nextUrl ?? new URL(req.url);
+  const parsed = GetQuerySchema.safeParse(Object.fromEntries(url.searchParams));
   if (!parsed.success) return NextResponse.json({ error: 'Invalid query' }, { status: 400 });
 
-  const { sitterId, clientId, status, unreadOnly, scope, inbox, limit, cursor } = parsed.data;
+  const {
+    sitterId,
+    clientId,
+    status,
+    unreadOnly,
+    scope,
+    inbox,
+    limit,
+    pageSize,
+    cursor,
+    bookingId,
+    participant,
+    from,
+    to,
+  } = parsed.data;
+  const pageLimit = Math.min(pageSize ?? limit, 200);
 
   const where: {
     assignedSitterId?: string | null;
@@ -37,9 +58,13 @@ export async function GET(req: NextRequest) {
     status?: string;
     threadType?: string;
     ownerUnreadCount?: { gt: number };
+    bookingId?: string;
+    updatedAt?: { gte?: Date; lte?: Date };
+    OR?: Array<Record<string, any>>;
   } = {};
   if (sitterId) where.assignedSitterId = sitterId;
   if (clientId) where.clientId = clientId;
+  if (bookingId) where.bookingId = bookingId;
   if (status) where.status = status;
   if (unreadOnly) where.ownerUnreadCount = { gt: 0 };
   if (scope === 'internal' || inbox === 'owner') {
@@ -57,42 +82,96 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
+  const fromDate = from ? new Date(from) : null;
+  const toDate = to ? new Date(to) : null;
+  if (fromDate && !Number.isNaN(fromDate.getTime())) {
+    where.updatedAt = { ...(where.updatedAt ?? {}), gte: fromDate };
+  }
+  if (toDate && !Number.isNaN(toDate.getTime())) {
+    where.updatedAt = { ...(where.updatedAt ?? {}), lte: toDate };
+  }
+  if (participant) {
+    const term = participant.trim();
+    if (term) {
+      where.OR = [
+        { client: { firstName: { contains: term, mode: 'insensitive' } } },
+        { client: { lastName: { contains: term, mode: 'insensitive' } } },
+        { sitter: { firstName: { contains: term, mode: 'insensitive' } } },
+        { sitter: { lastName: { contains: term, mode: 'insensitive' } } },
+        { maskedNumberE164: { contains: term } },
+      ];
+    }
+  }
+
   const db = getScopedDb({ orgId: ctx.orgId });
-  const missingLinks = await db.messageThread.findMany({
-    where: { messageNumberId: null },
-    select: { id: true },
-    take: 25,
-    orderBy: { updatedAt: 'desc' },
-  });
-  await Promise.all(missingLinks.map((t) => ensureThreadHasMessageNumber(ctx.orgId, t.id)));
+  const shouldRunRepairSweep =
+    !cursor &&
+    ((ctx.role === "owner" || ctx.role === "admin") &&
+      Math.random() < Number(process.env.THREAD_NUMBER_REPAIR_SAMPLE_RATE || "0.15"));
+  if (shouldRunRepairSweep) {
+    const missingLinks = await db.messageThread.findMany({
+      where: { messageNumberId: null },
+      select: { id: true },
+      take: 10,
+      orderBy: { updatedAt: "desc" },
+    });
+    // Keep this opportunistic and sampled to avoid read-path amplification under load.
+    void Promise.allSettled(missingLinks.map((t) => ensureThreadHasMessageNumber(ctx.orgId, t.id)));
+  }
   const rows = await db.messageThread.findMany({
     where,
-    take: limit + 1,
+    take: pageLimit + 1,
     ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-    orderBy: { lastMessageAt: 'desc' },
+    orderBy: [{ lastMessageAt: 'desc' }, { id: 'desc' }],
     include: {
       messageNumber: { select: { id: true, e164: true, numberClass: true, status: true } },
       assignmentWindows: {
         where: { endAt: { gte: new Date() } },
         orderBy: { startAt: 'desc' },
         take: 1,
+        select: { id: true, sitterId: true, startAt: true, endAt: true },
       },
       client: { select: { id: true, firstName: true, lastName: true } },
       sitter: { select: { id: true, firstName: true, lastName: true } },
+      conversationFlags: {
+        where: { resolvedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+        select: { id: true, type: true, severity: true, createdAt: true },
+      },
+      availabilityRequests: {
+        orderBy: { requestedAt: "desc" },
+        take: 3,
+        select: {
+          id: true,
+          status: true,
+          requestedAt: true,
+          respondedAt: true,
+          responseLatencySec: true,
+          sitterId: true,
+        },
+      },
     },
   });
 
-  const hasMore = rows.length > limit;
-  const items = hasMore ? rows.slice(0, limit) : rows;
+  const hasMore = rows.length > pageLimit;
+  const items = hasMore ? rows.slice(0, pageLimit) : rows;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
   const threads = items.map((t) => ({
     id: t.id,
     orgId: t.orgId,
-    clientId: t.clientId ?? undefined,
+    bookingId: t.bookingId ?? null,
+    clientId: t.clientId ?? '',
     sitterId: t.assignedSitterId ?? null,
-    numberId: t.messageNumberId ?? undefined,
+    numberId: t.messageNumberId ?? '',
     threadType: t.threadType ?? (t.messageNumber?.numberClass === 'sitter' ? 'assignment' : 'front_desk'),
+    laneType: t.laneType ?? 'company',
+    activationStage: t.activationStage ?? 'intake',
+    lifecycleStatus: t.lifecycleStatus ?? 'active',
+    assignedRole: t.assignedRole ?? 'front_desk',
+    clientApprovedAt: t.clientApprovedAt ? t.clientApprovedAt.toISOString() : null,
+    sitterApprovedAt: t.sitterApprovedAt ? t.sitterApprovedAt.toISOString() : null,
     status: t.status === 'open' ? 'active' : t.status === 'closed' || t.status === 'archived' ? 'inactive' : 'active',
     ownerUnreadCount: t.ownerUnreadCount ?? 0,
     lastActivityAt: (t.lastMessageAt ?? t.createdAt).toISOString(),
@@ -117,10 +196,46 @@ export async function GET(req: NextRequest) {
       startsAt: w.startAt.toISOString(),
       endsAt: w.endAt.toISOString(),
     })),
+    serviceWindow: t.serviceWindowStart && t.serviceWindowEnd
+      ? { startAt: t.serviceWindowStart.toISOString(), endAt: t.serviceWindowEnd.toISOString() }
+      : null,
+    graceEndsAt: t.graceEndsAt ? t.graceEndsAt.toISOString() : null,
+    flags: (t.conversationFlags ?? []).map((flag) => ({
+      id: flag.id,
+      type: flag.type,
+      severity: flag.severity,
+      createdAt: flag.createdAt.toISOString(),
+    })),
+    availabilityResponses: (t.availabilityRequests ?? []).map((req) => ({
+      id: req.id,
+      status: req.status,
+      requestedAt: req.requestedAt.toISOString(),
+      respondedAt: req.respondedAt?.toISOString() ?? null,
+      responseLatencySec: req.responseLatencySec ?? null,
+      sitterId: req.sitterId,
+    })),
   }));
 
   return NextResponse.json(
-    { threads, nextCursor, hasMore },
+    {
+      items: threads,
+      nextCursor,
+      hasMore,
+      pageSize: pageLimit,
+      sort: { field: 'lastMessageAt', direction: 'desc' },
+      filters: {
+        sitterId: sitterId ?? null,
+        clientId: clientId ?? null,
+        status: status ?? null,
+        unreadOnly: unreadOnly ?? null,
+        scope: scope ?? null,
+        inbox: inbox ?? null,
+        bookingId: bookingId ?? null,
+        participant: participant ?? null,
+        from: fromDate?.toISOString() ?? null,
+        to: toDate?.toISOString() ?? null,
+      },
+    },
     { status: 200, headers: { 'X-Snout-Route': 'prisma', 'X-Snout-OrgId': ctx.orgId } }
   );
 }

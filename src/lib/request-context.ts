@@ -85,10 +85,11 @@ export async function getRequestContext(request?: Request): Promise<RequestConte
   };
 }
 
-export function getPublicOrgContext(request?: Request): RequestContext {
+export function getPublicOrgContext(requestOrHost?: Request | string): RequestContext {
   if (!isPersonalMode()) {
     throw new Error("Public booking is disabled in SaaS mode until org binding is configured");
   }
+  const request = typeof requestOrHost === "string" ? undefined : requestOrHost;
 
   return {
     orgId: getLockedOrgId(),
@@ -98,4 +99,39 @@ export function getPublicOrgContext(request?: Request): RequestContext {
     clientId: null,
     correlationId: resolveCorrelationId(request),
   };
+}
+
+export interface PublicBookingStagingStatus {
+  runtime: string;
+  enabled: boolean;
+  configured: boolean;
+  requestHost: string;
+  orgId: string | null;
+  reason: string | null;
+}
+
+export function getPublicBookingStagingStatus(requestHost?: string): PublicBookingStagingStatus {
+  const runtime = process.env.RUNTIME_ENV_NAME || "development";
+  const enabled = runtime === "staging" && process.env.ENABLE_PUBLIC_BOOKING_STAGING === "true";
+  const requestHostLower = String(requestHost || "").toLowerCase();
+  const bindings = String(process.env.PUBLIC_BOOKING_STAGING_ORG_BINDINGS || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const [host, orgId] = entry.split("=").map((part) => part.trim());
+      return { host: host?.toLowerCase(), orgId: orgId || null };
+    })
+    .filter((entry) => !!entry.host && !!entry.orgId);
+  const binding = bindings.find((entry) => entry.host === requestHostLower);
+  if (!enabled) {
+    return { runtime, enabled: false, configured: bindings.length > 0, requestHost: requestHostLower, orgId: null, reason: "ENABLE_PUBLIC_BOOKING_STAGING must be true in staging" };
+  }
+  if (bindings.length === 0) {
+    return { runtime, enabled: true, configured: false, requestHost: requestHostLower, orgId: null, reason: "PUBLIC_BOOKING_STAGING_ORG_BINDINGS is empty" };
+  }
+  if (!binding?.orgId) {
+    return { runtime, enabled: true, configured: false, requestHost: requestHostLower, orgId: null, reason: "request host is not bound to a staging org" };
+  }
+  return { runtime, enabled: true, configured: true, requestHost: requestHostLower, orgId: binding.orgId, reason: null };
 }

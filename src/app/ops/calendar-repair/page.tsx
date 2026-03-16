@@ -42,14 +42,14 @@ export default function CalendarRepairPage() {
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await fetch('/api/sitters');
+      const res = await fetch('/api/sitters?page=1&pageSize=200');
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSitters([]);
         setLoadError(json.error || 'Failed to load sitters');
         return;
       }
-      const list = json.sitters;
+      const list = json.items;
       setSitters(Array.isArray(list) ? list : []);
       if (list.length && !sitterId) {
         setSitterId(list[0].id ?? '');

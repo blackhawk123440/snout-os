@@ -4,7 +4,6 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { prisma } from '@/lib/db';
 import { env } from '@/lib/env';
 import { publish, channels } from '@/lib/realtime/bus';
 import { logEvent } from '@/lib/log-event';
@@ -12,6 +11,12 @@ import { TwilioProvider } from '@/lib/messaging/providers/twilio';
 import { normalizeE164 } from '@/lib/messaging/phone-utils';
 import { getOrgIdFromNumber } from '@/lib/messaging/number-org-mapping';
 import { createClientContact, findClientContactByPhone } from '@/lib/messaging/client-contact-lookup';
+import { createSoftAntiPoachingFlag } from '@/lib/messaging/anti-poaching-flags';
+import { reconcileConversationLifecycleForThread } from '@/lib/messaging/conversation-service';
+import { mapTwilioStatusToLifecycle } from '@/lib/messaging/message-lifecycle';
+import { sendThreadMessage } from '@/lib/messaging/send';
+import { CLIENT_EXPIRED_SERVICE_LANE_REPLY } from '@/lib/messaging/policy-copy';
+import { getScopedDb } from '@/lib/tenancy';
 
 function twimlOk() {
   return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
@@ -39,6 +44,7 @@ export async function POST(request: NextRequest) {
     from = normalizeE164(body.get('From') || '');
     to = normalizeE164(body.get('To') || '');
     const messageBody = (body.get('Body') || '').trim();
+    const messageStatus = (body.get('MessageStatus') || '').trim().toLowerCase();
 
     const signature = request.headers.get('X-Twilio-Signature') || '';
     const webhookUrl = env.TWILIO_WEBHOOK_URL || `${request.nextUrl.origin}/api/messages/webhook/twilio`;
@@ -67,7 +73,25 @@ export async function POST(request: NextRequest) {
       return twimlOk();
     }
 
-    const messageNumber = await prisma.messageNumber.findFirst({
+    const db = getScopedDb({ orgId });
+
+    if (messageSid && messageStatus) {
+      const lifecycle = mapTwilioStatusToLifecycle(messageStatus);
+      const mappedStatus = lifecycle === 'accepted' ? 'queued' : lifecycle;
+      await db.messageEvent.updateMany({
+        where: { orgId, providerMessageSid: messageSid },
+        data: {
+          deliveryStatus: mappedStatus,
+          providerErrorCode: body.get('ErrorCode') || null,
+          providerErrorMessage: body.get('ErrorMessage') || null,
+          failureCode: mappedStatus === 'failed' ? body.get('ErrorCode') || null : null,
+          failureDetail: mappedStatus === 'failed' ? body.get('ErrorMessage') || null : null,
+        },
+      });
+      return twimlOk();
+    }
+
+    const messageNumber = await db.messageNumber.findFirst({
       where: {
         orgId,
         status: 'active',
@@ -86,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     const existing = messageSid
-      ? await prisma.messageEvent.findFirst({
+      ? await db.messageEvent.findFirst({
           where: { orgId, providerMessageSid: messageSid },
           select: { id: true, threadId: true },
         })
@@ -96,14 +120,14 @@ export async function POST(request: NextRequest) {
     const existingContact = await findClientContactByPhone(orgId, from);
     let clientId = existingContact?.clientId ?? null;
     if (!clientId) {
-      const existingClient = await prisma.client.findFirst({
+      const existingClient = await db.client.findFirst({
         where: { orgId, phone: from },
         select: { id: true },
       });
       clientId = existingClient?.id ?? null;
     }
     if (!clientId) {
-      const guest = await (prisma as any).client.create({
+      const guest = await db.client.create({
         data: {
           orgId,
           firstName: 'Guest',
@@ -123,7 +147,7 @@ export async function POST(request: NextRequest) {
     }
     if (!clientId) return twimlOk();
 
-    let thread = await prisma.messageThread.findFirst({
+    let thread = await db.messageThread.findFirst({
       where: {
         orgId,
         clientId,
@@ -134,7 +158,7 @@ export async function POST(request: NextRequest) {
       orderBy: { lastMessageAt: 'desc' },
     });
     if (!thread) {
-      thread = await prisma.messageThread.create({
+      thread = await db.messageThread.create({
         data: {
           orgId,
           clientId,
@@ -150,7 +174,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const created = await prisma.messageEvent.create({
+    const lifecycle = await reconcileConversationLifecycleForThread({
+      orgId,
+      threadId: thread.id,
+    }).catch(() => ({ rerouted: false, laneType: "company", reason: "lifecycle_unavailable" }));
+    const created = await db.messageEvent.create({
       data: {
         threadId: thread.id,
         orgId,
@@ -160,18 +188,48 @@ export async function POST(request: NextRequest) {
         providerMessageSid: messageSid || null,
         body: messageBody,
         deliveryStatus: 'received',
+        routingDisposition: lifecycle.rerouted ? 'rerouted' : 'normal',
       },
       select: { id: true },
     });
 
-    await prisma.messageThread.update({
+    await db.messageThread.update({
       where: { id: thread.id },
       data: {
         lastMessageAt: new Date(),
+        lastClientMessageAt: new Date(),
         lastInboundAt: new Date(),
         ownerUnreadCount: { increment: 1 },
       },
     });
+    void createSoftAntiPoachingFlag({
+      orgId,
+      threadId: thread.id,
+      messageEventId: created.id,
+      body: messageBody,
+    }).catch(() => {});
+    if (lifecycle.rerouted) {
+      const recentlyNotified = await db.messageEvent.findFirst({
+        where: {
+          orgId,
+          threadId: thread.id,
+          direction: 'outbound',
+          actorType: 'automation',
+          body: CLIENT_EXPIRED_SERVICE_LANE_REPLY,
+          createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        },
+        select: { id: true },
+      });
+      if (!recentlyNotified) {
+        void sendThreadMessage({
+          orgId,
+          threadId: thread.id,
+          actor: { role: 'automation', userId: null },
+          body: CLIENT_EXPIRED_SERVICE_LANE_REPLY,
+          idempotencyKey: messageSid ? `reroute-notice:${messageSid}` : undefined,
+        }).catch(() => {});
+      }
+    }
 
     await publish(channels.messagesThread(orgId, thread.id), {
       type: 'message.new',

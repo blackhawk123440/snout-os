@@ -27,30 +27,42 @@ export default function ClientBookingsPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const [total, setTotal] = useState(0);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (targetPage = 1, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
-      const res = await fetch('/api/client/bookings');
+      const res = await fetch(`/api/client/bookings?page=${targetPage}&pageSize=${pageSize}`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(json.error || 'Unable to load bookings');
-        setBookings([]);
+        if (!append) setBookings([]);
         return;
       }
-      setBookings(Array.isArray(json.bookings) ? json.bookings : []);
+      const items = Array.isArray(json.items) ? json.items : [];
+      setBookings((prev) => (append ? [...prev, ...items] : items));
+      setPage(targetPage);
+      setTotal(typeof json.total === 'number' ? json.total : 0);
     } catch {
       setError('Unable to load bookings');
-      setBookings([]);
+      if (!append) setBookings([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, []);
+  }, [pageSize]);
 
   useEffect(() => {
-    void load();
+    void load(1, false);
   }, [load]);
 
   const formatDate = (d: string) =>
@@ -62,7 +74,7 @@ export default function ClientBookingsPage() {
       <AppPageHeader
         title="Bookings"
         subtitle="Your visits"
-        action={<ClientRefreshButton onRefresh={load} loading={loading} />}
+        action={<ClientRefreshButton onRefresh={() => load(1, false)} loading={loading} />}
       />
       <div className="lg:grid lg:grid-cols-[1fr,auto] lg:gap-6">
         <div className="min-w-0">
@@ -104,6 +116,18 @@ export default function ClientBookingsPage() {
                   </InteractiveRow>
                 ))}
               </div>
+              {bookings.length < total && (
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    className="rounded-lg border border-border-default px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-secondary"
+                    onClick={() => load(page + 1, true)}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? 'Loading…' : 'Load more'}
+                  </button>
+                </div>
+              )}
               <ClientListSecondaryModule variant="bookings" />
             </div>
           )}

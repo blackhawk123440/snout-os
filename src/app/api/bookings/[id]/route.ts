@@ -5,6 +5,8 @@ import { getScopedDb } from '@/lib/tenancy';
 import { enqueueCalendarSync } from '@/lib/calendar-queue';
 import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 import { emitBookingUpdated } from '@/lib/event-emitter';
+import { syncConversationLifecycleWithBookingWorkflow } from '@/lib/messaging/conversation-service';
+import { emitClientLifecycleNoticeIfNeeded } from '@/lib/messaging/lifecycle-client-copy';
 
 function truncateExternalEventId(id: string | null | undefined): string | null {
   if (!id) return null;
@@ -187,6 +189,7 @@ export async function GET(
         notes: booking.notes,
         createdAt: booking.createdAt,
         updatedAt: booking.updatedAt,
+        threadId: thread?.id ?? null,
         sitter: booking.sitter,
         client: booking.client,
         pets: booking.pets,
@@ -260,10 +263,28 @@ export async function PATCH(
   const db = getScopedDb(ctx);
 
   try {
-    const body = (await request.json()) as { status?: string; sitterId?: string | null };
+    const body = (await request.json()) as {
+      status?: string;
+      sitterId?: string | null;
+      meetAndGreetScheduledAt?: string | null;
+      meetAndGreetConfirmed?: boolean;
+      clientApprovedSitter?: boolean;
+      sitterApprovedClient?: boolean;
+    };
     const existing = await db.booking.findFirst({
       where: { id },
-      select: { id: true, status: true, sitterId: true },
+      select: {
+        id: true,
+        orgId: true,
+        clientId: true,
+        status: true,
+        sitterId: true,
+        startAt: true,
+        endAt: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+      },
     });
     if (!existing) return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
 
@@ -298,15 +319,43 @@ export async function PATCH(
       data.status = requestedStatus;
     }
     if (body.sitterId === null || typeof body.sitterId === 'string') data.sitterId = body.sitterId;
-    if (Object.keys(data).length === 0) {
+
+    const parseOptionalDate = (value: string | null | undefined): Date | null | undefined => {
+      if (value === undefined) return undefined;
+      if (value === null) return null;
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+    };
+    const meetAndGreetScheduledAt = parseOptionalDate(body.meetAndGreetScheduledAt);
+    const meetAndGreetConfirmedAt =
+      body.meetAndGreetConfirmed === true ? new Date() : body.meetAndGreetConfirmed === false ? null : undefined;
+    const clientApprovedAt =
+      body.clientApprovedSitter === true ? new Date() : body.clientApprovedSitter === false ? null : undefined;
+    const sitterApprovedAt =
+      body.sitterApprovedClient === true ? new Date() : body.sitterApprovedClient === false ? null : undefined;
+    const hasWorkflowUpdate =
+      meetAndGreetScheduledAt !== undefined ||
+      meetAndGreetConfirmedAt !== undefined ||
+      clientApprovedAt !== undefined ||
+      sitterApprovedAt !== undefined;
+
+    if (Object.keys(data).length === 0 && !hasWorkflowUpdate) {
       return NextResponse.json({ error: 'No supported fields to update' }, { status: 400 });
     }
 
-    const updated = await db.booking.update({
-      where: { id: existing.id },
-      data,
-      select: { id: true, status: true, sitterId: true, updatedAt: true },
-    });
+    const updated =
+      Object.keys(data).length > 0
+        ? await db.booking.update({
+            where: { id: existing.id },
+            data,
+            select: { id: true, status: true, sitterId: true, updatedAt: true },
+          })
+        : {
+            id: existing.id,
+            status: existing.status,
+            sitterId: existing.sitterId,
+            updatedAt: new Date(),
+          };
 
     if (requestedStatus && requestedStatus !== existing.status) {
       await db.bookingStatusHistory.create({
@@ -319,6 +368,50 @@ export async function PATCH(
           reason: 'owner_operator_update',
         },
       });
+    }
+
+    const lifecycleSync = await syncConversationLifecycleWithBookingWorkflow({
+      orgId: ctx.orgId,
+      bookingId: existing.id,
+      clientId: existing.clientId,
+      phone: existing.phone,
+      firstName: existing.firstName,
+      lastName: existing.lastName,
+      sitterId: updated.sitterId,
+      bookingStatus: updated.status,
+      serviceWindowStart: existing.startAt,
+      serviceWindowEnd: existing.endAt,
+      meetAndGreetScheduledAt,
+      meetAndGreetConfirmedAt,
+      clientApprovedAt,
+      sitterApprovedAt,
+    }).catch((error) => {
+      console.error('[Booking PATCH] Failed to sync messaging lifecycle:', error);
+      return null;
+    });
+    if (lifecycleSync?.threadId && meetAndGreetScheduledAt) {
+      void emitClientLifecycleNoticeIfNeeded({
+        orgId: ctx.orgId,
+        threadId: lifecycleSync.threadId,
+        notice: 'meet_greet_scheduled',
+        dedupeKey: `${existing.id}:${updated.updatedAt.toISOString()}`,
+      }).catch(() => {});
+    }
+    if (lifecycleSync?.threadId && meetAndGreetConfirmedAt) {
+      void emitClientLifecycleNoticeIfNeeded({
+        orgId: ctx.orgId,
+        threadId: lifecycleSync.threadId,
+        notice: 'meet_greet_confirmed',
+        dedupeKey: `${existing.id}:${updated.updatedAt.toISOString()}`,
+      }).catch(() => {});
+    }
+    if (lifecycleSync?.threadId && clientApprovedAt && sitterApprovedAt) {
+      void emitClientLifecycleNoticeIfNeeded({
+        orgId: ctx.orgId,
+        threadId: lifecycleSync.threadId,
+        notice: 'service_activated',
+        dedupeKey: `${existing.id}:${updated.updatedAt.toISOString()}`,
+      }).catch(() => {});
     }
 
     // Calendar consistency: enqueue sync/delete so booking and calendar stay in sync

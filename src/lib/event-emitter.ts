@@ -6,6 +6,7 @@
  */
 
 import { logEvent } from '@/lib/log-event';
+import { redactPhoneLikeString } from '@/lib/privacy/redact-metadata';
 
 type EventType =
   | "booking.created"
@@ -113,7 +114,7 @@ export async function emitBookingCreated(booking: any, correlationId?: string): 
     booking,
     service: booking.service,
     clientName: `${booking.firstName} ${booking.lastName}`,
-    clientPhone: booking.phone,
+    clientPhone: redactPhoneLikeString(booking.phone),
     clientEmail: booking.email,
     totalPrice: booking.totalPrice,
     status: booking.status,
@@ -300,7 +301,7 @@ export async function emitClientCreated(client: any, correlationId?: string): Pr
     clientId: client.id,
     client,
     clientName: `${client.firstName} ${client.lastName}`,
-    phone: client.phone,
+    phone: redactPhoneLikeString(client.phone),
     email: client.email,
     correlationId,
   });

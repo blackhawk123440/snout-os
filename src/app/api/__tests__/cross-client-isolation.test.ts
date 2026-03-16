@@ -16,7 +16,7 @@ vi.mock('@/lib/request-context', () => ({
 
 vi.mock('@/lib/db', () => ({
   prisma: {
-    booking: { findMany: vi.fn(), findFirst: vi.fn() },
+    booking: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn() },
     report: { findMany: vi.fn(), findFirst: vi.fn() },
     messageThread: { findMany: vi.fn(), findFirst: vi.fn() },
     messageEvent: { findMany: vi.fn() },
@@ -42,6 +42,7 @@ describe('cross-client isolation', () => {
       (prisma as any).booking.findMany.mockResolvedValue([
         { id: 'b1', clientId: 'client-a', service: 'Drop-in' },
       ]);
+      (prisma as any).booking.count.mockResolvedValue(1);
 
       const { GET } = await import('@/app/api/client/bookings/route');
       const res = await GET(new Request('http://localhost/api/client/bookings'));
@@ -53,8 +54,8 @@ describe('cross-client isolation', () => {
           where: expect.objectContaining({ clientId: 'client-a' }),
         })
       );
-      expect(body.bookings).toHaveLength(1);
-      expect(body.bookings[0].id).toBe('b1');
+      expect(body.items).toHaveLength(1);
+      expect(body.items[0].id).toBe('b1');
     });
 
     it('returns 403 when clientId is missing on session', async () => {

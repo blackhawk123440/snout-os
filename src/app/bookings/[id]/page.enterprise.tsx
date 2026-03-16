@@ -31,6 +31,7 @@ type Booking = {
   paymentStatus: string;
   totalPrice: number;
   notes?: string | null;
+  threadId: string | null;
   sitter?: { id: string; firstName: string; lastName: string } | null;
   client?: { id: string; firstName: string; lastName: string; email?: string | null; phone?: string | null } | null;
   pets?: Array<{ id: string; name: string; species: string }>;
@@ -98,7 +99,7 @@ export default function BookingDetailEnterprisePage() {
       const [bookingRes, eventsRes, sittersRes] = await Promise.all([
         fetch(`/api/bookings/${bookingId}`),
         fetch(`/api/bookings/${bookingId}/events`),
-        fetch('/api/sitters'),
+        fetch('/api/sitters?page=1&pageSize=200'),
       ]);
       const bookingJson = await bookingRes.json().catch(() => ({}));
       const eventsJson = await eventsRes.json().catch(() => ({}));
@@ -108,7 +109,7 @@ export default function BookingDetailEnterprisePage() {
       setBooking(bookingJson.booking || null);
       setSitterId(bookingJson.booking?.sitter?.id || '');
       setEvents(Array.isArray(eventsJson.items) ? eventsJson.items : []);
-      setSitters(Array.isArray(sittersJson.sitters) ? sittersJson.sitters : []);
+      setSitters(Array.isArray(sittersJson.items) ? sittersJson.items : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load booking');
     } finally {
@@ -324,14 +325,18 @@ export default function BookingDetailEnterprisePage() {
             <div className="rounded-lg border p-3">
               <div className="mb-2 text-sm font-medium">Comms</div>
               <div className="flex flex-wrap gap-2">
-                <a href={`tel:${booking.phone}`}><Button variant="secondary">Call client</Button></a>
+                <a href={`tel:${booking.phone}`}><Button variant="secondary">Call client (ops exception)</Button></a>
                 {booking.email ? <a href={`mailto:${booking.email}`}><Button variant="secondary">Email client</Button></a> : null}
-                <Link href="/messages"><Button variant="secondary">Messages</Button></Link>
+                {booking.threadId
+                  ? <Link href={`/messages?thread=${booking.threadId}`}><Button variant="secondary">Open Thread</Button></Link>
+                  : <Button variant="secondary" disabled title="No messaging thread yet — check Twilio setup">No Thread ⚠️</Button>
+                }
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('payment')}>Send payment link</Button>
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('payment', true)}>Resend payment</Button>
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('tip')}>Send tip link</Button>
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('tip', true)}>Resend tip</Button>
               </div>
+              <div className="mt-2 text-xs text-slate-600">Direct calling is an owner/admin operational exception; normal service communication stays in masked inbox threads.</div>
               <div className="mt-2 text-xs text-slate-700">
                 Tip link status: {booking.tipMessageState?.status || 'not sent'}
                 {booking.tipMessageState?.error ? ` (error: ${booking.tipMessageState.error})` : ''}

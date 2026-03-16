@@ -112,7 +112,7 @@ export default function SitterDetailEnterprisePage() {
             <div className="flex gap-2">
               <Link href="/sitters"><Button variant="secondary">Back</Button></Link>
               <Link href="/bookings/new"><Button>New booking</Button></Link>
-              {sitter.phone ? <a href={`tel:${sitter.phone}`}><Button variant="secondary">Call</Button></a> : null}
+              {sitter.phone ? <a href={`tel:${sitter.phone}`} title="Owner/admin operational call exception"><Button variant="secondary">Call (ops exception)</Button></a> : null}
               <Link href={`/ops/calendar-repair?sitterId=${sitter.id}`}><Button variant="secondary">Repair calendar</Button></Link>
               <Link href={`/ops/payouts?sitterId=${sitter.id}`}><Button variant="secondary">View payouts</Button></Link>
             </div>

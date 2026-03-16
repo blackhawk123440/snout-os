@@ -2,7 +2,7 @@
  * React Query hooks for Messaging API calls
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import { useSSE } from '@/hooks/useSSE';
 import { usePageVisible } from '@/hooks/usePageVisible';
@@ -20,6 +20,42 @@ const threadSchema = z.object({
   sitterId: z.string().nullable(),
   numberId: z.string(),
   threadType: z.enum(['front_desk', 'assignment', 'pool', 'other']),
+  laneType: z.enum(['company', 'service']).optional(),
+  activationStage: z.enum(['intake', 'staffing', 'meet_and_greet', 'service', 'follow_up']).optional(),
+  lifecycleStatus: z.enum(['active', 'grace', 'expired', 'archived']).optional(),
+  assignedRole: z.enum(['front_desk', 'sitter', 'owner', 'automation']).optional(),
+  clientApprovedAt: z.string().nullable().optional(),
+  sitterApprovedAt: z.string().nullable().optional(),
+  serviceWindow: z
+    .object({
+      startAt: z.string().transform((s) => new Date(s)),
+      endAt: z.string().transform((s) => new Date(s)),
+    })
+    .nullable()
+    .optional(),
+  graceEndsAt: z.string().nullable().optional(),
+  flags: z
+    .array(
+      z.object({
+        id: z.string(),
+        type: z.string(),
+        severity: z.string(),
+        createdAt: z.string(),
+      })
+    )
+    .optional(),
+  availabilityResponses: z
+    .array(
+      z.object({
+        id: z.string(),
+        status: z.string(),
+        requestedAt: z.string(),
+        respondedAt: z.string().nullable(),
+        responseLatencySec: z.number().nullable(),
+        sitterId: z.string(),
+      })
+    )
+    .optional(),
   status: z.enum(['active', 'inactive']),
   ownerUnreadCount: z.number(),
   lastActivityAt: z.string().transform((s) => new Date(s)),
@@ -49,6 +85,13 @@ const threadSchema = z.object({
 
 export type Thread = z.infer<typeof threadSchema>;
 
+const threadListSchema = z.object({
+  items: z.array(threadSchema),
+  nextCursor: z.string().nullable().optional(),
+  hasMore: z.boolean().optional(),
+  pageSize: z.number().optional(),
+});
+
 export function useThreads(filters?: {
   clientId?: string;
   sitterId?: string;
@@ -58,6 +101,7 @@ export function useThreads(filters?: {
   hasDeliveryFailure?: boolean;
   search?: string;
   inbox?: 'all' | 'owner'; // Filter by inbox type: 'all' = all threads, 'owner' = owner inbox only
+  pageSize?: number;
 }) {
   const queryParams = new URLSearchParams();
   if (filters?.clientId) queryParams.set('clientId', filters.clientId);
@@ -66,6 +110,8 @@ export function useThreads(filters?: {
   if (filters?.unreadOnly) queryParams.set('unreadOnly', 'true');
   if (filters?.hasPolicyViolation) queryParams.set('hasPolicyViolation', 'true');
   if (filters?.hasDeliveryFailure) queryParams.set('hasDeliveryFailure', 'true');
+  if (filters?.search) queryParams.set('participant', filters.search);
+  if (filters?.pageSize) queryParams.set('pageSize', String(filters.pageSize));
   if (filters?.inbox) {
     if (filters.inbox === 'owner') {
       queryParams.set('scope', 'internal'); // Owner inbox uses scope='internal'
@@ -74,17 +120,17 @@ export function useThreads(filters?: {
   }
 
   const queryString = queryParams.toString();
-  const endpoint = `/api/messages/threads${queryString ? `?${queryString}` : ''}`;
+  const baseEndpoint = `/api/messages/threads${queryString ? `?${queryString}` : ''}`;
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['threads', filters],
-    queryFn: async () => {
-      // apiGet will store fetch metadata in window.__lastThreadsFetch
-      const response = await apiGet<{ threads: Thread[] }>(endpoint, z.object({
-        threads: z.array(threadSchema),
-      }));
-      return response.threads;
+    queryFn: async ({ pageParam }: { pageParam: string | undefined }) => {
+      const url = pageParam ? `${baseEndpoint}${queryString ? '&' : '?'}cursor=${pageParam}` : baseEndpoint;
+      const response = await apiGet(url, threadListSchema);
+      return response;
     },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     // Prevent excessive refetching
     refetchInterval: false,
     refetchOnWindowFocus: false, // Disable to prevent 429s on tab switch
@@ -181,6 +227,7 @@ const messageSchema = z.object({
   body: z.string(),
   redactedBody: z.string().nullable(),
   hasPolicyViolation: z.boolean(),
+  routingDisposition: z.enum(['normal', 'blocked', 'rerouted']).optional(),
   createdAt: z.string().transform((s) => new Date(s)),
   deliveries: z.array(deliverySchema),
   policyViolations: z.array(policyViolationSchema),
@@ -188,7 +235,18 @@ const messageSchema = z.object({
 
 export type Message = z.infer<typeof messageSchema>;
 
-export function useMessages(threadId: string | null, options?: { useSSE?: boolean }) {
+const messageListSchema = z.object({
+  items: z.array(messageSchema),
+  page: z.number(),
+  pageSize: z.number(),
+  total: z.number(),
+  hasMore: z.boolean().optional(),
+});
+
+export function useMessages(
+  threadId: string | null,
+  options?: { useSSE?: boolean; pageSize?: number }
+) {
   const useSSEEnabled = options?.useSSE ?? true;
   const refetchRef = useRef<() => void>();
 
@@ -202,13 +260,18 @@ export function useMessages(threadId: string | null, options?: { useSSE?: boolea
     !!threadId && useSSEEnabled && pageVisible
   );
 
-  const query = useQuery({
-    queryKey: ['messages', threadId],
-    queryFn: () =>
-      apiGet<Message[]>(
-        `/api/messages/threads/${threadId}/messages`,
-        z.array(messageSchema),
-      ),
+  const query = useInfiniteQuery({
+    queryKey: ['messages', threadId, options?.pageSize],
+    queryFn: ({ pageParam }) => {
+      const page = typeof pageParam === 'number' ? pageParam : 1;
+      const pageSize = options?.pageSize ?? 50;
+      return apiGet(
+        `/api/messages/threads/${threadId}/messages?page=${page}&pageSize=${pageSize}`,
+        messageListSchema
+      );
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
     enabled: !!threadId,
     refetchInterval: threadId && sseError ? 8000 : false,
     refetchOnWindowFocus: false,
@@ -240,6 +303,76 @@ export function useSendMessage() {
       ),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['messages', variables.threadId] });
+      queryClient.invalidateQueries({ queryKey: ['threads'] });
+    },
+  });
+}
+
+const poolHealthSchema = z.object({
+  availableCompany: z.number(),
+  availableService: z.number(),
+  assigned: z.number(),
+  exhausted: z.boolean(),
+  shouldProvision: z.boolean(),
+});
+
+export function useMessagePoolHealth() {
+  return useQuery({
+    queryKey: ['messages', 'pool-health'],
+    queryFn: () => apiGet('/api/messages/pool-health', poolHealthSchema),
+    staleTime: 30000,
+  });
+}
+
+export function useUpdateThreadLifecycle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { threadId: string; payload: Record<string, unknown> }) =>
+      apiPatch(`/api/messages/threads/${params.threadId}/lifecycle`, params.payload),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['thread', vars.threadId] });
+      queryClient.invalidateQueries({ queryKey: ['threads'] });
+    },
+  });
+}
+
+const timelineItemSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['event', 'flag']),
+  eventType: z.string(),
+  label: z.string(),
+  status: z.string(),
+  metadata: z.record(z.string(), z.unknown()),
+  createdAt: z.string().transform((s) => new Date(s)),
+});
+
+export function useThreadTimeline(threadId: string | null) {
+  return useQuery({
+    queryKey: ['thread', threadId, 'timeline'],
+    queryFn: () =>
+      apiGet<{ items: z.infer<typeof timelineItemSchema>[] }>(
+        `/api/messages/threads/${threadId}/timeline`,
+        z.object({ items: z.array(timelineItemSchema) })
+      ),
+    enabled: !!threadId,
+    staleTime: 10000,
+  });
+}
+
+export function useThreadWorkflowAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: {
+      threadId: string;
+      payload:
+        | { action: 'schedule_meet_and_greet'; scheduledAt: string }
+        | { action: 'confirm_meet_and_greet' }
+        | { action: 'client_approves_sitter' }
+        | { action: 'sitter_approves_client' };
+    }) => apiPost(`/api/messages/threads/${params.threadId}/workflow`, params.payload),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['thread', vars.threadId] });
+      queryClient.invalidateQueries({ queryKey: ['thread', vars.threadId, 'timeline'] });
       queryClient.invalidateQueries({ queryKey: ['threads'] });
     },
   });

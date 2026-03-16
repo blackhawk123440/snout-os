@@ -12,6 +12,7 @@ import { attachQueueWorkerInstrumentation, recordQueueJobQueued } from "@/lib/qu
 import { resolveCorrelationId } from "@/lib/correlation-id";
 
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379");
+const FINANCE_RECONCILE_WORKER_CONCURRENCY = Number(process.env.FINANCE_RECONCILE_WORKER_CONCURRENCY || "4");
 
 export const financeReconcileQueue = new Queue("finance.reconcile", {
   connection,
@@ -135,7 +136,10 @@ export function initializeFinanceReconcileWorker(): Worker {
         throw err;
       }
     },
-    { connection }
+    {
+      connection,
+      concurrency: Math.max(1, FINANCE_RECONCILE_WORKER_CONCURRENCY),
+    }
   );
   attachQueueWorkerInstrumentation(worker, (job) => {
     const data = job.data as FinanceReconcileJobData;

@@ -69,18 +69,18 @@ export default function DashboardHomePage() {
     } catch {
       // Fallback: try legacy endpoints
       const [bookingsRes, sittersRes] = await Promise.all([
-        fetch('/api/bookings').catch(() => null),
-        fetch('/api/sitters').catch(() => null),
+        fetch('/api/bookings?page=1&pageSize=200').catch(() => null),
+        fetch('/api/sitters?page=1&pageSize=200').catch(() => null),
       ]);
-      const bookings = bookingsRes?.ok ? await bookingsRes.json() : { bookings: [] };
-      const sitters = sittersRes?.ok ? await sittersRes.json() : { sitters: [] };
-      const activeBookings = (bookings.bookings || []).filter(
+      const bookings = bookingsRes?.ok ? await bookingsRes.json() : { items: [] };
+      const sitters = sittersRes?.ok ? await sittersRes.json() : { items: [] };
+      const activeBookings = (bookings.items || []).filter(
         (b: any) => b.status !== 'cancelled' && b.status !== 'completed'
       );
       setMetrics({
         activeVisitsCount: activeBookings.filter((b: any) => b.status === 'in_progress').length,
         openBookingsCount: activeBookings.length,
-        revenueYTD: (bookings.bookings || []).reduce((s: number, b: any) => s + (b.totalPrice || 0), 0),
+        revenueYTD: (bookings.items || []).reduce((s: number, b: any) => s + (b.totalPrice || 0), 0),
         retentionRate: 0,
       });
     } finally {

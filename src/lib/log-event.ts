@@ -5,6 +5,7 @@
 
 import { prisma } from '@/lib/db';
 import { publish, channels } from '@/lib/realtime/bus';
+import { redactSensitiveMetadata } from '@/lib/privacy/redact-metadata';
 
 export interface LogEventParams {
   orgId: string;
@@ -15,7 +16,7 @@ export interface LogEventParams {
   bookingId?: string;
   status?: 'success' | 'failed' | 'pending';
   metadata?: Record<string, unknown>;
-  correlationId?: string;
+  correlationId?: string; // preserved for call-site compatibility
 }
 
 const OPS_FAILURE_ACTIONS = ['message.failed', 'automation.failed', 'automation.dead', 'calendar.sync.failed', 'calendar.dead'];
@@ -25,19 +26,20 @@ const OPS_FAILURE_ACTIONS = ['message.failed', 'automation.failed', 'automation.
  */
 export async function logEvent(params: LogEventParams): Promise<void> {
   try {
+    const metadata = redactSensitiveMetadata({
+      actorUserId: params.actorUserId,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      ...params.metadata,
+    });
+
     await (prisma as any).eventLog.create({
       data: {
         orgId: params.orgId,
         eventType: params.action,
         status: params.status ?? 'success',
         bookingId: params.bookingId ?? null,
-        metadata: JSON.stringify({
-          actorUserId: params.actorUserId,
-          entityType: params.entityType,
-          entityId: params.entityId,
-          correlationId: params.correlationId,
-          ...params.metadata,
-        }),
+        metadata: JSON.stringify(metadata),
       },
     });
     if (OPS_FAILURE_ACTIONS.includes(params.action)) {

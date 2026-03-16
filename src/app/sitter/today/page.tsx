@@ -231,11 +231,9 @@ function NextVisitHero({
         <Button variant="secondary" size="sm" onClick={() => onMessage(booking)}>
           Message
         </Button>
-        {booking.clientPhone && (
-          <a href={`tel:${booking.clientPhone}`} className="inline-flex min-h-[40px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700">
-            Call
-          </a>
-        )}
+        <span className="inline-flex min-h-[40px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700">
+          Client calls are routed through office
+        </span>
         {booking.mapLink?.google && (
           <a href={booking.mapLink.google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[40px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700">
             Directions
@@ -348,11 +346,9 @@ function VisitCard({
           <Button variant="secondary" size="sm" onClick={() => onMessage(booking)}>
             Message
           </Button>
-          {booking.clientPhone && (
-            <a href={`tel:${booking.clientPhone}`} className="inline-flex min-h-[36px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700">
-              Call
-            </a>
-          )}
+          <span className="inline-flex min-h-[36px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700">
+            Office handles calls
+          </span>
           {booking.mapLink?.google && (
             <a href={booking.mapLink.google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[36px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700">
               Navigate

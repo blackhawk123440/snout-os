@@ -11,6 +11,7 @@ import { enqueueCalendarSync } from '@/lib/calendar-queue';
 import { emitBookingUpdated } from '@/lib/event-emitter';
 import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 import { checkAssignmentAllowed } from '@/lib/availability/booking-conflict';
+import { syncConversationLifecycleWithBookingWorkflow } from '@/lib/messaging/conversation-service';
 
 export type DispatchStatus = 'auto' | 'manual_required' | 'manual_in_progress' | 'assigned';
 
@@ -75,6 +76,10 @@ export async function forceAssignSitter(
       status: true,
       startAt: true,
       endAt: true,
+      clientId: true,
+      phone: true,
+      firstName: true,
+      lastName: true,
     },
   });
 
@@ -145,6 +150,20 @@ export async function forceAssignSitter(
       dispatchStatus: 'assigned',
       status: 'confirmed',
     },
+  });
+  await syncConversationLifecycleWithBookingWorkflow({
+    orgId,
+    bookingId,
+    clientId: booking.clientId,
+    phone: booking.phone,
+    firstName: booking.firstName,
+    lastName: booking.lastName,
+    sitterId,
+    bookingStatus: 'confirmed',
+    serviceWindowStart: booking.startAt,
+    serviceWindowEnd: booking.endAt,
+  }).catch((error) => {
+    console.error('[Force Assign] lifecycle sync failed:', error);
   });
 
   if (previousStatus !== 'confirmed') {

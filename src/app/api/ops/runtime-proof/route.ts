@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getPublicBookingStagingStatus } from '@/lib/request-context';
 
 interface RouteCheck {
   path: string;
@@ -54,6 +55,13 @@ export async function GET(request: NextRequest) {
       sessionOk: boolean;
       cookieSecure: boolean;
     };
+    publicBookingStaging: {
+      enabled: boolean;
+      configured: boolean;
+      requestHost: string;
+      orgId: string | null;
+      reason: string | null;
+    };
     ok: boolean;
     errors: string[];
   } = {
@@ -67,6 +75,13 @@ export async function GET(request: NextRequest) {
       userRole: user?.role || 'unknown',
       sessionOk: !!session,
       cookieSecure: false,
+    },
+    publicBookingStaging: {
+      enabled: false,
+      configured: false,
+      requestHost: '',
+      orgId: null,
+      reason: null,
     },
     ok: false,
     errors: [],
@@ -170,6 +185,14 @@ export async function GET(request: NextRequest) {
   // Check auth cookie security
   const cookies = request.headers.get('cookie') || '';
   proof.auth.cookieSecure = cookies.includes('__Secure-') || cookies.includes('Secure');
+  const status = getPublicBookingStagingStatus(request.headers.get('host') || '');
+  proof.publicBookingStaging = {
+    enabled: status.enabled,
+    configured: status.configured,
+    requestHost: status.requestHost,
+    orgId: status.orgId,
+    reason: status.reason,
+  };
 
   // Determine overall ok status
   proof.ok = 

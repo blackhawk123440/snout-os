@@ -16,6 +16,10 @@ import {
   useRetryMessage,
   useMarkThreadRead,
   useRoutingHistory,
+  useMessagePoolHealth,
+  useUpdateThreadLifecycle,
+  useThreadTimeline,
+  useThreadWorkflowAction,
   type Thread,
   type Message,
 } from '@/lib/api/hooks';
@@ -26,6 +30,7 @@ import { useAuth } from '@/lib/auth-client';
 import { isMessagingEnabled } from '@/lib/flags';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { NewMessageModal } from './NewMessageModal';
+import { MESSAGING_POLICY_RULES, OWNER_LIFECYCLE_HELPERS } from '@/lib/messaging/policy-copy';
 
 interface InboxViewProps {
   role?: 'owner' | 'sitter';
@@ -60,22 +65,34 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   const [pendingMessages, setPendingMessages] = useState<Array<{ tempId: string; body: string; status: 'sending' | 'failed'; error?: string }>>([]);
 
   // Apply filters to API call - explicitly pass each filter
-  const { data: threads = [], isLoading: threadsLoading, error: threadsError } = useThreads({
+  const threadsQuery = useThreads({
     unreadOnly: filters.unreadOnly,
     hasPolicyViolation: filters.hasPolicyViolation,
     hasDeliveryFailure: filters.hasDeliveryFailure,
     sitterId: filters.sitterId,
     search: filters.search,
     inbox, // Pass inbox filter to hook
+    pageSize: 40,
   });
+  const threads = threadsQuery.data?.pages.flatMap((p) => p.items) ?? [];
+  const threadsLoading = threadsQuery.isLoading;
+  const threadsError = threadsQuery.error;
   const { data: selectedThread } = useThread(selectedThreadId);
-  const { data: messages = [], isLoading: messagesLoading } = useMessages(selectedThreadId);
+  const { data: timelineData } = useThreadTimeline(selectedThreadId);
+  const { data: poolHealth } = useMessagePoolHealth();
+  const updateLifecycle = useUpdateThreadLifecycle();
+  const workflowAction = useThreadWorkflowAction();
+  const messagesQuery = useMessages(selectedThreadId, { pageSize: 50 });
+  const messages = messagesQuery.data?.pages.slice().reverse().flatMap((p) => p.items) ?? [];
+  const messagesLoading = messagesQuery.isLoading;
   const { data: routingHistory } = useRoutingHistory(selectedThreadId);
   const sendMessage = useSendMessage();
   const retryMessage = useRetryMessage();
   const markRead = useMarkThreadRead();
   const { user } = useAuth();
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [manualStage, setManualStage] = useState<'intake' | 'staffing' | 'meet_and_greet' | 'follow_up'>('staffing');
+  const [meetAndGreetAt, setMeetAndGreetAt] = useState('');
   const [lastFetch, setLastFetch] = useState<{ url?: string; status?: number; responseSize?: number; error?: string } | null>(null);
 
   // Poll window.__lastThreadsFetch for diagnostics (set by apiRequest in client.ts)
@@ -293,6 +310,45 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
     }
   };
 
+  const stageLabel = (value?: string) => {
+    if (!value) return 'Intake';
+    if (value === 'meet_and_greet') return 'Meet & Greet';
+    return value
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const lifecycleLabel = (value?: string) => {
+    if (!value) return 'Active';
+    if (value === 'grace') return 'Post-service grace';
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  };
+
+  const runLifecycleAction = async (payload: Record<string, unknown>) => {
+    if (!selectedThreadId) return;
+    try {
+      await updateLifecycle.mutateAsync({ threadId: selectedThreadId, payload });
+    } catch (error: any) {
+      alert(error?.message || 'Failed to update lifecycle');
+    }
+  };
+
+  const runWorkflowAction = async (
+    payload:
+      | { action: 'schedule_meet_and_greet'; scheduledAt: string }
+      | { action: 'confirm_meet_and_greet' }
+      | { action: 'client_approves_sitter' }
+      | { action: 'sitter_approves_client' }
+  ) => {
+    if (!selectedThreadId) return;
+    try {
+      await workflowAction.mutateAsync({ threadId: selectedThreadId, payload });
+    } catch (error: any) {
+      alert(error?.message || 'Failed to run workflow action');
+    }
+  };
+
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden h-full">
       {/* Diagnostics Panel (dev + owner-only) */}
@@ -318,6 +374,17 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
               </Button>
             )}
           </div>
+          {role === 'owner' && poolHealth && (
+            <details className="mb-3 rounded border border-[var(--color-border-default)] bg-[var(--color-surface-secondary)] p-2 text-xs">
+              <summary className="cursor-pointer font-semibold text-[var(--color-text-primary)]">System health</summary>
+              <div className="mt-1 text-[var(--color-text-secondary)]">
+                Office numbers: {poolHealth.availableCompany} available | Service numbers: {poolHealth.availableService} available | Assigned: {poolHealth.assigned}
+              </div>
+              {poolHealth.shouldProvision && (
+                <div className="mt-1 text-[var(--color-warning-700)]">Add numbers soon to avoid fallback routing.</div>
+              )}
+            </details>
+          )}
 
           <Input
             type="text"
@@ -408,63 +475,96 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
               )}
             </div>
           ) : (
-            filteredThreads.map((thread) => (
-              <div
-                key={thread.id}
-                onClick={() => setSelectedThreadId(thread.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && setSelectedThreadId(thread.id)}
-                className={`group cursor-pointer border-b border-[var(--color-border-default)] transition hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-inset ${
-                  selectedThreadId === thread.id
-                    ? 'bg-[var(--color-teal-50)] dark:bg-teal-900/20 border-l-4 border-l-[var(--color-teal-500)]'
-                    : 'bg-[var(--color-surface-primary)]'
-                }`}
-                style={{ padding: `${tokens.spacing[3]} ${tokens.spacing[4]}` }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-sm text-[var(--color-text-primary)] truncate">
-                        {thread.client.name || 'Unknown'}
-                      </span>
-                      {thread.ownerUnreadCount > 0 && (
-                        <Badge variant="info" className="shrink-0">{thread.ownerUnreadCount}</Badge>
-                      )}
+            <div>
+              {filteredThreads.map((thread) => (
+                <div
+                  key={thread.id}
+                  onClick={() => setSelectedThreadId(thread.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && setSelectedThreadId(thread.id)}
+                  className={`group cursor-pointer border-b border-[var(--color-border-default)] transition hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-inset ${
+                    selectedThreadId === thread.id
+                      ? 'bg-[var(--color-teal-50)] dark:bg-teal-900/20 border-l-4 border-l-[var(--color-teal-500)]'
+                      : 'bg-[var(--color-surface-primary)]'
+                  }`}
+                  style={{ padding: `${tokens.spacing[3]} ${tokens.spacing[4]}` }}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-sm text-[var(--color-text-primary)] truncate">
+                          {thread.client.name || 'Unknown'}
+                        </span>
+                        {thread.ownerUnreadCount > 0 && (
+                          <Badge variant="info" className="shrink-0">{thread.ownerUnreadCount}</Badge>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                        {thread.sitter ? (
+                          <span><span className="font-medium">Sitter:</span> {thread.sitter.name}</span>
+                        ) : (
+                          <span className="text-[var(--color-text-tertiary)]">Unassigned</span>
+                        )}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+                        <Badge variant={thread.laneType === 'service' ? 'success' : 'default'} className="text-xs shrink-0">
+                          {thread.laneType === 'service' ? 'Visit line' : 'Office line'}
+                        </Badge>
+                        <Badge variant="neutral" className="text-xs shrink-0">
+                          {stageLabel(thread.activationStage)}
+                        </Badge>
+                        <Badge variant={thread.lifecycleStatus === 'active' ? 'success' : 'warning'} className="text-xs shrink-0">
+                          {lifecycleLabel(thread.lifecycleStatus)}
+                        </Badge>
+                        <Badge
+                          variant={
+                            thread.messageNumber.class === 'front_desk' ? 'default' :
+                            thread.messageNumber.class === 'pool' ? 'info' :
+                            thread.messageNumber.class === 'sitter' ? 'success' : 'default'
+                          }
+                          className="text-xs shrink-0"
+                        >
+                          {thread.messageNumber.class}
+                        </Badge>
+                        <span className="text-xs text-[var(--color-text-tertiary)] font-mono">
+                          {thread.messageNumber.e164}
+                        </span>
+                        <span className="text-xs text-[var(--color-text-tertiary)]">
+                          {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
+                        </span>
+                        {(thread.flags?.length || 0) > 0 && (
+                          <Badge variant="warning" className="text-xs shrink-0">
+                            {thread.flags?.length} flag{(thread.flags?.length || 0) > 1 ? 's' : ''}
+                          </Badge>
+                        )}
+                        {(thread.availabilityResponses?.length || 0) > 0 && (
+                          <Badge variant="info" className="text-xs shrink-0">
+                            Availability updates
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
-                      {thread.sitter ? (
-                        <span><span className="font-medium">Sitter:</span> {thread.sitter.name}</span>
-                      ) : (
-                        <span className="text-[var(--color-text-tertiary)]">Unassigned</span>
-                      )}
+                    <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                      <span className="text-xs text-[var(--color-text-tertiary)]">Open</span>
+                      <i className="fas fa-chevron-right text-[var(--color-text-tertiary)]" style={{ fontSize: '0.65rem' }} aria-hidden />
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 flex-wrap">
-                      <Badge
-                        variant={
-                          thread.messageNumber.class === 'front_desk' ? 'default' :
-                          thread.messageNumber.class === 'pool' ? 'info' :
-                          thread.messageNumber.class === 'sitter' ? 'success' : 'default'
-                        }
-                        className="text-xs shrink-0"
-                      >
-                        {thread.messageNumber.class}
-                      </Badge>
-                      <span className="text-xs text-[var(--color-text-tertiary)] font-mono">
-                        {thread.messageNumber.e164}
-                      </span>
-                      <span className="text-xs text-[var(--color-text-tertiary)]">
-                        {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-                    <span className="text-xs text-[var(--color-text-tertiary)]">Open</span>
-                    <i className="fas fa-chevron-right text-[var(--color-text-tertiary)]" style={{ fontSize: '0.65rem' }} aria-hidden />
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+              {threadsQuery.hasNextPage && (
+                <div className="p-3 flex justify-center">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => threadsQuery.fetchNextPage()}
+                    disabled={threadsQuery.isFetchingNextPage}
+                  >
+                    {threadsQuery.isFetchingNextPage ? 'Loading…' : 'Load more'}
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -481,6 +581,20 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                     {selectedThread?.client.name || 'Unknown'}
                   </h3>
                   <div className="text-sm text-[var(--color-text-secondary)] flex flex-col gap-1">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                      <Badge variant={selectedThread?.laneType === 'service' ? 'success' : 'default'}>
+                        {selectedThread?.laneType === 'service' ? 'Visit line' : 'Office line'}
+                      </Badge>
+                      <Badge variant="neutral">{stageLabel(selectedThread?.activationStage)}</Badge>
+                      <Badge variant={selectedThread?.lifecycleStatus === 'active' ? 'success' : 'warning'}>
+                        {lifecycleLabel(selectedThread?.lifecycleStatus)}
+                      </Badge>
+                    </div>
+                    {selectedThread?.laneType === 'service' ? (
+                      <div className="text-xs text-[var(--color-text-secondary)]">{OWNER_LIFECYCLE_HELPERS.serviceLane}</div>
+                    ) : (
+                      <div className="text-xs text-[var(--color-text-secondary)]">{OWNER_LIFECYCLE_HELPERS.companyLane}</div>
+                    )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
                       <span>Business Number:</span>
                       <span style={{ fontFamily: 'monospace' }}>{selectedThread?.messageNumber.e164}</span>
@@ -499,6 +613,150 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                       <div>
                         <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Assigned Sitter:</span> {selectedThread.sitter.name}
                       </div>
+                    )}
+                    <div>
+                      <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Approvals:</span>{' '}
+                      Client {selectedThread?.clientApprovedAt ? 'approved' : 'pending'} / Sitter {selectedThread?.sitterApprovedAt ? 'approved' : 'pending'}
+                    </div>
+                    <div className="text-xs text-[var(--color-text-secondary)]">{OWNER_LIFECYCLE_HELPERS.approvals}</div>
+                    {selectedThread?.serviceWindow && (
+                      <div>
+                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Service Window:</span>{' '}
+                        {selectedThread.serviceWindow.startAt.toLocaleString()} - {selectedThread.serviceWindow.endAt.toLocaleString()}
+                      </div>
+                    )}
+                    {selectedThread?.graceEndsAt && (
+                      <div>
+                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Grace Ends:</span>{' '}
+                        {new Date(selectedThread.graceEndsAt).toLocaleString()}
+                      </div>
+                    )}
+                    {(selectedThread?.availabilityResponses?.length || 0) > 0 && (
+                      <div>
+                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Availability:</span>{' '}
+                        {selectedThread?.availabilityResponses
+                          ?.map((r) => `${r.status.toUpperCase()}${r.responseLatencySec != null ? ` (${r.responseLatencySec}s)` : ''}`)
+                          .join(' | ')}
+                      </div>
+                    )}
+                    {(selectedThread?.flags?.length || 0) > 0 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Flags:</span>
+                        {selectedThread?.flags?.map((flag) => (
+                          <Badge key={flag.id} variant={flag.severity === 'high' || flag.severity === 'critical' ? 'error' : 'warning'}>
+                            {flag.type}:{flag.severity}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {role === 'owner' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                        <input
+                          type="datetime-local"
+                          value={meetAndGreetAt}
+                          onChange={(e) => setMeetAndGreetAt(e.target.value)}
+                          style={{
+                            border: `1px solid ${tokens.colors.border.default}`,
+                            borderRadius: tokens.radius.sm,
+                            padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                            fontSize: tokens.typography.fontSize.xs[0],
+                          }}
+                        />
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            if (!meetAndGreetAt) return;
+                            const iso = new Date(meetAndGreetAt).toISOString();
+                            void runWorkflowAction({ action: 'schedule_meet_and_greet', scheduledAt: iso });
+                          }}
+                        >
+                          Schedule M&G
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => runWorkflowAction({ action: 'confirm_meet_and_greet' })}>
+                          Confirm M&G
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => runWorkflowAction({ action: 'client_approves_sitter' })}>
+                          Client approved
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => runWorkflowAction({ action: 'sitter_approves_client' })}>
+                          Sitter approved
+                        </Button>
+                        <select
+                          value={manualStage}
+                          onChange={(e) => setManualStage(e.target.value as typeof manualStage)}
+                          style={{
+                            border: `1px solid ${tokens.colors.border.default}`,
+                            borderRadius: tokens.radius.sm,
+                            padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                            fontSize: tokens.typography.fontSize.xs[0],
+                          }}
+                        >
+                          <option value="intake">intake</option>
+                          <option value="staffing">staffing</option>
+                          <option value="meet_and_greet">meet_and_greet</option>
+                          <option value="follow_up">follow_up</option>
+                        </select>
+                        <Button size="sm" variant="secondary" onClick={() => runLifecycleAction({ action: 'set_stage', stage: manualStage })}>
+                          Override stage
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => runLifecycleAction({ action: 'meet_and_greet_confirmed' })}>
+                          M&G confirmed
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() =>
+                            runLifecycleAction({
+                              action: 'activate_service_lane',
+                              sitterId: selectedThread?.sitter?.id,
+                              serviceWindowStart:
+                                selectedThread?.serviceWindow?.startAt?.toISOString() ??
+                                selectedThread?.assignmentWindows?.[0]?.startsAt?.toISOString(),
+                              serviceWindowEnd:
+                                selectedThread?.serviceWindow?.endAt?.toISOString() ??
+                                selectedThread?.assignmentWindows?.[0]?.endsAt?.toISOString(),
+                            })
+                          }
+                        >
+                          Activate service lane
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => runLifecycleAction({ action: 'expire_if_needed' })}>
+                          Check reroute state
+                        </Button>
+                        <span className="text-xs text-[var(--color-text-secondary)]">{OWNER_LIFECYCLE_HELPERS.reroute}</span>
+                      </div>
+                    )}
+                    {role === 'owner' && (
+                      <details className="rounded border border-[var(--color-border-default)] p-2 text-xs">
+                        <summary className="cursor-pointer font-medium text-[var(--color-text-primary)]">Policy behavior</summary>
+                        <div className="mt-2 flex flex-col gap-1 text-[var(--color-text-secondary)]">
+                          {MESSAGING_POLICY_RULES.map((rule) => (
+                            <div key={rule.key}>
+                              <strong>{rule.scenario}:</strong> {rule.userFacingBehavior}
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                    {role === 'owner' && (
+                      <details className="rounded border border-[var(--color-border-default)] p-2 text-xs">
+                        <summary className="cursor-pointer font-medium text-[var(--color-text-primary)]">Audit timeline</summary>
+                        <div className="mt-2 max-h-40 overflow-y-auto">
+                          {(timelineData?.items ?? []).length === 0 ? (
+                            <div className="text-[var(--color-text-secondary)]">No timeline events yet.</div>
+                          ) : (
+                            <div className="flex flex-col gap-2 text-[var(--color-text-secondary)]">
+                              {(timelineData?.items ?? []).map((item) => (
+                                <div key={`${item.kind}-${item.id}`} className="rounded border border-[var(--color-border-default)] p-2">
+                                  <div className="font-medium text-[var(--color-text-primary)]">{item.label}</div>
+                                  <div>{new Date(item.createdAt).toLocaleString()} • {item.status}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </details>
                     )}
                     {selectedThread?.assignmentWindows?.[0] && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
@@ -538,6 +796,18 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                 <div style={{ textAlign: 'center', color: tokens.colors.text.secondary }}>No messages yet</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  {messagesQuery.hasNextPage && (
+                    <div className="flex justify-center">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => messagesQuery.fetchNextPage()}
+                        disabled={messagesQuery.isFetchingNextPage}
+                      >
+                        {messagesQuery.isFetchingNextPage ? 'Loading…' : 'Load earlier messages'}
+                      </Button>
+                    </div>
+                  )}
                   {messages.map((message) => {
                     const delivery = getDeliveryStatus(message);
                     const senderLabel = getSenderLabel(message);
@@ -580,6 +850,13 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                         <div style={{ fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[2], lineHeight: 1.5 }}>
                           {message.redactedBody || message.body}
                         </div>
+                        {message.routingDisposition && message.routingDisposition !== 'normal' && (
+                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], marginBottom: tokens.spacing[2] }}>
+                            <Badge variant={message.routingDisposition === 'rerouted' ? 'warning' : 'error'}>
+                              Routing: {message.routingDisposition}
+                            </Badge>
+                          </div>
+                        )}
 
                         {message.hasPolicyViolation && (
                           <div style={{ 

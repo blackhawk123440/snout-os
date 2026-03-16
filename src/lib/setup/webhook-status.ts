@@ -4,7 +4,7 @@
  * We use Twilio IncomingPhoneNumbers (per-number smsUrl), not Messaging Service.
  */
 
-import { getProviderCredentials } from '@/lib/messaging/provider-credentials';
+import { getProviderCredentials, getTwilioClientFromCredentials } from '@/lib/messaging/provider-credentials';
 import type { ProviderCredentials } from '@/lib/messaging/provider-credentials';
 import { getTwilioWebhookUrl, webhookUrlMatches } from './webhook-url';
 
@@ -32,8 +32,7 @@ export async function getWebhookStatus(
   credentials: ProviderCredentials
 ): Promise<WebhookStatusResult> {
   const webhookUrlExpected = getTwilioWebhookUrl();
-  const twilio = require('twilio');
-  const client = twilio(credentials.accountSid, credentials.authToken);
+  const client = getTwilioClientFromCredentials(credentials);
   const list = await client.incomingPhoneNumbers.list({ limit: 100 });
 
   const matchedNumbers: WebhookNumberInfo[] = [];

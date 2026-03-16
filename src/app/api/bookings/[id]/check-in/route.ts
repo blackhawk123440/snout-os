@@ -4,6 +4,8 @@ import { getRequestContext } from '@/lib/request-context';
 import { requireRole, ForbiddenError } from '@/lib/rbac';
 import { emitSitterCheckedIn } from '@/lib/event-emitter';
 import { publish, channels } from '@/lib/realtime/bus';
+import { syncConversationLifecycleWithBookingWorkflow } from '@/lib/messaging/conversation-service';
+import { emitClientLifecycleNoticeIfNeeded } from '@/lib/messaging/lifecycle-client-copy';
 
 /**
  * POST /api/bookings/[id]/check-in
@@ -56,6 +58,29 @@ export async function POST(
       where: { id },
       data: { status: 'in_progress' },
     });
+    const lifecycleSync = await syncConversationLifecycleWithBookingWorkflow({
+      orgId: ctx.orgId,
+      bookingId: booking.id,
+      clientId: booking.clientId,
+      phone: booking.phone,
+      firstName: booking.firstName,
+      lastName: booking.lastName,
+      sitterId: booking.sitterId,
+      bookingStatus: 'in_progress',
+      serviceWindowStart: booking.startAt,
+      serviceWindowEnd: booking.endAt,
+    }).catch((error) => {
+      console.error('[check-in] lifecycle sync failed:', error);
+      return null;
+    });
+    if (lifecycleSync?.threadId) {
+      void emitClientLifecycleNoticeIfNeeded({
+        orgId: ctx.orgId,
+        threadId: lifecycleSync.threadId,
+        notice: 'service_activated',
+        dedupeKey: `${booking.id}:checkin`,
+      }).catch(() => {});
+    }
 
     const existingVisitEvent = await db.visitEvent.findFirst({
       where: { bookingId: id, sitterId: ctx.sitterId, orgId: ctx.orgId },

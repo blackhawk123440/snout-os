@@ -41,7 +41,7 @@ export async function sendBookingLinkMessage(params: {
   dedupeWindowMs: number;
   forceResend?: boolean;
   baseUrl: string;
-  correlationId?: string;
+  correlationId?: string; // preserved for call-site compatibility
 }) {
   const db = getScopedDb({ orgId: params.orgId });
   const booking = await db.booking.findFirst({
@@ -115,7 +115,6 @@ export async function sendBookingLinkMessage(params: {
     threadId: thread.id,
     actor: params.actor,
     body,
-    correlationId: params.correlationId,
   });
 
   const metadata = {
@@ -126,7 +125,6 @@ export async function sendBookingLinkMessage(params: {
     templateType: params.templateType,
     providerMessageId: result.providerMessageSid ?? null,
     link,
-    correlationId: params.correlationId ?? null,
   };
 
   const updated = await db.messageEvent.update({

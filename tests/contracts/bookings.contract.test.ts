@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockFindMany = vi.fn();
+const mockCount = vi.fn();
+const mockReportFindMany = vi.fn();
 
 vi.mock('@/lib/request-context', () => ({
   getRequestContext: vi.fn(),
@@ -15,6 +17,10 @@ vi.mock('@/lib/tenancy', () => ({
   getScopedDb: vi.fn(() => ({
     booking: {
       findMany: (...args: unknown[]) => mockFindMany(...args),
+      count: (...args: unknown[]) => mockCount(...args),
+    },
+    report: {
+      findMany: (...args: unknown[]) => mockReportFindMany(...args),
     },
   })),
 }));
@@ -32,6 +38,7 @@ describe('bookings API contract', () => {
       clientId: null,
       sitterId: null,
     } as never);
+    mockReportFindMany.mockResolvedValue([]);
   });
 
   it('returns canonical bookings shape using paymentStatus', async () => {
@@ -52,18 +59,23 @@ describe('bookings API contract', () => {
         sitter: { id: 's1', firstName: 'Sam', lastName: 'Sitter' },
         client: { id: 'c1', firstName: 'Casey', lastName: 'Client' },
         createdAt: new Date('2026-03-09T08:00:00.000Z'),
-        reports: [],
       },
     ]);
+    mockCount.mockResolvedValueOnce(1);
+    mockReportFindMany.mockResolvedValueOnce([]);
 
-    const res = await GET();
+    const res = await GET(new Request('http://localhost/api/bookings?page=1&pageSize=50') as never);
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(Array.isArray(body.bookings)).toBe(true);
-    expect(body.bookings).toHaveLength(1);
+    expect(Array.isArray(body.items)).toBe(true);
+    expect(body.items).toHaveLength(1);
+    expect(body.page).toBe(1);
+    expect(body.pageSize).toBe(50);
+    expect(body.total).toBe(1);
+    expect(body.sort).toEqual({ field: 'startAt', direction: 'asc' });
 
-    const booking = body.bookings[0];
+    const booking = body.items[0];
     expect(booking).toMatchObject({
       id: 'b1',
       firstName: 'Casey',

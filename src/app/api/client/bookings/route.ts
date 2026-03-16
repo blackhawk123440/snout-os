@@ -7,8 +7,13 @@ import { calculateBookingPrice } from '@/lib/rates';
 import { emitBookingCreated } from '@/lib/event-emitter';
 import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 import { emitAndEnqueueBookingEvent } from '@/lib/booking/booking-events';
+import { parseCsv, parseDate, parsePage, parsePageSize } from '@/lib/pagination';
+import { syncConversationLifecycleWithBookingWorkflow } from '@/lib/messaging/conversation-service';
 
-export async function GET() {
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
+
+export async function GET(request: NextRequest) {
   let ctx;
   try {
     ctx = await getRequestContext();
@@ -22,8 +27,28 @@ export async function GET() {
   }
 
   try {
+    const url = (request as NextRequest).nextUrl ?? new URL(request.url);
+    const params = url.searchParams;
+    const page = parsePage(params.get('page'), 1);
+    const pageSize = parsePageSize(params.get('pageSize'), DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+    const statusList = parseCsv(params.get('status'));
+    const paymentStatusList = parseCsv(params.get('paymentStatus'));
+    const from = parseDate(params.get('from'));
+    const to = parseDate(params.get('to'));
+
+    const where: Record<string, any> = whereOrg(ctx.orgId, { clientId: ctx.clientId });
+    if (statusList) where.status = { in: statusList };
+    if (paymentStatusList) where.paymentStatus = { in: paymentStatusList };
+    if (from || to) {
+      where.startAt = {
+        ...(from ? { gte: from } : {}),
+        ...(to ? { lte: to } : {}),
+      };
+    }
+
+    const total = await (prisma as any).booking.count({ where });
     const bookings = await (prisma as any).booking.findMany({
-      where: whereOrg(ctx.orgId, { clientId: ctx.clientId }),
+      where,
       select: {
         id: true,
         service: true,
@@ -34,12 +59,13 @@ export async function GET() {
         sitterId: true,
         sitter: { select: { id: true, firstName: true, lastName: true } },
       },
-      orderBy: { startAt: 'desc' },
-      take: 50,
+      orderBy: [{ startAt: 'desc' }, { id: 'asc' }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     });
 
     const toIso = (d: Date) => (d instanceof Date ? d.toISOString() : String(d));
-    const payload = bookings.map((b: any) => ({
+    const items = bookings.map((b: any) => ({
       id: b.id,
       service: b.service,
       startAt: toIso(b.startAt),
@@ -51,7 +77,20 @@ export async function GET() {
         : null,
     }));
 
-    return NextResponse.json({ bookings: payload });
+    return NextResponse.json({
+      items,
+      page,
+      pageSize,
+      total,
+      hasMore: page * pageSize < total,
+      sort: { field: 'startAt', direction: 'desc' },
+      filters: {
+        status: statusList,
+        paymentStatus: paymentStatusList,
+        from: from?.toISOString() ?? null,
+        to: to?.toISOString() ?? null,
+      },
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
@@ -165,6 +204,31 @@ export async function POST(request: NextRequest) {
       },
       include: { pets: true, timeSlots: true },
     });
+    let lifecycleSyncError: { code?: string; message: string } | null = null;
+    try {
+      await syncConversationLifecycleWithBookingWorkflow({
+        orgId: ctx.orgId,
+        bookingId: booking.id,
+        clientId: booking.clientId ?? ctx.clientId,
+        phone: booking.phone,
+        firstName: booking.firstName,
+        lastName: booking.lastName,
+        bookingStatus: booking.status,
+        sitterId: booking.sitterId,
+        serviceWindowStart: booking.startAt,
+        serviceWindowEnd: booking.endAt,
+      });
+    } catch (conversationError: unknown) {
+      const err = conversationError as { code?: string; message?: string };
+      const code = err?.code != null ? String(err.code) : undefined;
+      const message = err?.message != null ? String(err.message) : String(conversationError);
+      lifecycleSyncError = { ...(code ? { code } : {}), message };
+      console.error(
+        '[api/client/bookings] company lane ensure failed (non-blocking):',
+        code ?? '',
+        message
+      );
+    }
 
     await ensureEventQueueBridge();
     try {
@@ -188,14 +252,17 @@ export async function POST(request: NextRequest) {
       },
     }).catch((err) => console.error('[api/client/bookings] emitAndEnqueueBookingEvent failed:', err));
 
-    return NextResponse.json({
+    const res: { success: true; booking: { id: string; totalPrice: number; status: string }; orgId?: string; lifecycleSyncError?: { code?: string; message: string } } = {
       success: true,
       booking: {
         id: booking.id,
         totalPrice: Number(booking.totalPrice),
         status: booking.status,
       },
-    });
+    };
+    res.orgId = ctx.orgId;
+    if (lifecycleSyncError) res.lifecycleSyncError = lifecycleSyncError;
+    return NextResponse.json(res);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(

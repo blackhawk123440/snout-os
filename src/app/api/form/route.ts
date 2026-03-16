@@ -21,6 +21,7 @@ import { serializePricingSnapshot } from "@/lib/pricing-snapshot-helpers";
 import { enqueueCalendarSync } from "@/lib/calendar-queue";
 import { ensureEventQueueBridge } from "@/lib/event-queue-bridge-init";
 import { getPublicOrgContext } from "@/lib/request-context";
+import { syncConversationLifecycleWithBookingWorkflow } from "@/lib/messaging/conversation-service";
 
 const parseOrigins = (value?: string | null) => {
   if (!value) return [];
@@ -317,11 +318,9 @@ export async function POST(request: NextRequest) {
 
   try {
     let orgId: string;
-    let correlationId: string | undefined;
     try {
-      const publicCtx = getPublicOrgContext(request);
-      orgId = publicCtx.orgId;
-      correlationId = publicCtx.correlationId;
+      const requestHost = request.headers.get("host") || "";
+      orgId = getPublicOrgContext(requestHost).orgId;
     } catch (error) {
       return NextResponse.json(
         {
@@ -554,6 +553,22 @@ export async function POST(request: NextRequest) {
       if (idempotency.mode === "reserved") {
         await persistIdempotentResource(idempotency.reservationId, booking.id);
       }
+      try {
+        await syncConversationLifecycleWithBookingWorkflow({
+          orgId,
+          bookingId: booking.id,
+          clientId: booking.clientId ?? null,
+          phone: booking.phone,
+          firstName: booking.firstName,
+          lastName: booking.lastName,
+          bookingStatus: booking.status,
+          sitterId: booking.sitterId,
+          serviceWindowStart: booking.startAt,
+          serviceWindowEnd: booking.endAt,
+        });
+      } catch (conversationError) {
+        console.error("[Form] Failed to ensure company lane conversation (non-blocking):", conversationError);
+      }
       } catch (error) {
         await failIdempotentReservation(
           idempotency.mode === "reserved" ? idempotency.reservationId : null,
@@ -565,7 +580,7 @@ export async function POST(request: NextRequest) {
       // Rest of the flow is unchanged (automation, messaging, etc.)
       await ensureEventQueueBridge();
       try {
-        await emitBookingCreated(booking, correlationId);
+        await emitBookingCreated(booking);
       } catch (eventError) {
         console.error("[Form] Failed to emit booking created event (non-blocking):", eventError);
       }
@@ -576,7 +591,6 @@ export async function POST(request: NextRequest) {
         clientId: booking.clientId ?? undefined,
         sitterId: booking.sitterId ?? undefined,
         occurredAt: new Date().toISOString(),
-        correlationId,
         metadata: {
           service: booking.service,
           status: booking.status,
@@ -587,7 +601,7 @@ export async function POST(request: NextRequest) {
       }).catch((err) => console.error("[Form] emitAndEnqueueBookingEvent failed:", err));
 
       if (booking.sitterId) {
-        enqueueCalendarSync({ type: 'upsert', bookingId: booking.id, orgId, correlationId }).catch((e) =>
+        enqueueCalendarSync({ type: 'upsert', bookingId: booking.id, orgId }).catch((e) =>
           console.error("[Form] calendar sync enqueue failed:", e)
         );
       }
@@ -1063,6 +1077,22 @@ export async function POST(request: NextRequest) {
     if (idempotency.mode === "reserved") {
       await persistIdempotentResource(idempotency.reservationId, booking.id);
     }
+    try {
+      await syncConversationLifecycleWithBookingWorkflow({
+        orgId,
+        bookingId: booking.id,
+        clientId: booking.clientId ?? null,
+        phone: booking.phone,
+        firstName: booking.firstName,
+        lastName: booking.lastName,
+        bookingStatus: booking.status,
+        sitterId: booking.sitterId,
+        serviceWindowStart: booking.startAt,
+        serviceWindowEnd: booking.endAt,
+      });
+    } catch (conversationError) {
+      console.error("[Form] Failed to ensure company lane conversation (non-blocking):", conversationError);
+    }
     } catch (error) {
       await failIdempotentReservation(
         idempotency.mode === "reserved" ? idempotency.reservationId : null,
@@ -1084,7 +1114,7 @@ export async function POST(request: NextRequest) {
 
     await ensureEventQueueBridge();
     try {
-      await emitBookingCreated(booking, correlationId);
+      await emitBookingCreated(booking);
     } catch (eventError) {
       console.error("[Form] Failed to emit booking created event (non-blocking):", eventError);
     }
@@ -1094,7 +1124,6 @@ export async function POST(request: NextRequest) {
       clientId: booking.clientId ?? undefined,
       sitterId: booking.sitterId ?? undefined,
       occurredAt: new Date().toISOString(),
-      correlationId,
       metadata: {
         service: booking.service,
         status: booking.status,
@@ -1104,7 +1133,7 @@ export async function POST(request: NextRequest) {
       },
     }).catch((err) => console.error("[Form] emitAndEnqueueBookingEvent failed:", err));
     if (booking.sitterId) {
-      enqueueCalendarSync({ type: 'upsert', bookingId: booking.id, orgId, correlationId }).catch((e) =>
+      enqueueCalendarSync({ type: 'upsert', bookingId: booking.id, orgId }).catch((e) =>
         console.error("[Form] calendar sync enqueue failed:", e)
       );
     }
