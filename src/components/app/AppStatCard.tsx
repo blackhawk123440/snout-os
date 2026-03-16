@@ -16,13 +16,13 @@ export interface AppStatCardProps {
 export function AppStatCard({ label, value, icon, trend, sublabel, className = '' }: AppStatCardProps) {
   return (
     <div
-      className={`rounded-lg border border-slate-200 bg-white p-5 shadow-sm ${className}`}
+      className={`rounded-lg border border-border-default bg-surface-primary p-5 shadow-sm ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm text-slate-500">{label}</p>
-          <p className="mt-1 truncate text-2xl font-semibold tabular-nums tracking-tight text-slate-900">{value}</p>
-          {sublabel && <p className="mt-0.5 text-xs text-slate-500">{sublabel}</p>}
+          <p className="text-sm text-text-tertiary">{label}</p>
+          <p className="mt-1 truncate text-2xl font-semibold tabular-nums tracking-tight text-text-primary">{value}</p>
+          {sublabel && <p className="mt-0.5 text-xs text-text-tertiary">{sublabel}</p>}
           {trend !== undefined && (
             <p
               className={`mt-1 text-xs font-medium ${
@@ -33,7 +33,7 @@ export function AppStatCard({ label, value, icon, trend, sublabel, className = '
             </p>
           )}
         </div>
-        {icon && <div className="shrink-0 text-2xl text-slate-400">{icon}</div>}
+        {icon && <div className="shrink-0 text-2xl text-text-tertiary">{icon}</div>}
       </div>
     </div>
   );

@@ -13,19 +13,19 @@ export function AppSkeletonList({ count = 3, className = '' }: AppSkeletonListPr
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="animate-pulse rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
+          className="animate-pulse rounded-lg border border-border-default bg-surface-primary p-5 shadow-sm"
         >
           <div className="mb-3 flex items-start gap-3">
-            <div className="h-10 w-10 shrink-0 rounded-full bg-neutral-200" />
+            <div className="h-10 w-10 shrink-0 rounded-full bg-surface-tertiary" />
             <div className="min-w-0 flex-1">
-              <div className="mb-2 h-4 w-1/2 rounded bg-neutral-200" />
-              <div className="h-3 w-1/3 rounded bg-neutral-100" />
+              <div className="mb-2 h-4 w-1/2 rounded bg-surface-tertiary" />
+              <div className="h-3 w-1/3 rounded bg-surface-secondary" />
             </div>
           </div>
-          <div className="mb-3 h-3 w-full rounded bg-neutral-100" />
+          <div className="mb-3 h-3 w-full rounded bg-surface-secondary" />
           <div className="flex gap-2">
-            <div className="h-9 flex-1 rounded-lg bg-neutral-100" />
-            <div className="h-9 flex-1 rounded-lg bg-neutral-100" />
+            <div className="h-9 flex-1 rounded-lg bg-surface-secondary" />
+            <div className="h-9 flex-1 rounded-lg bg-surface-secondary" />
           </div>
         </div>
       ))}

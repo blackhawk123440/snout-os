@@ -20,14 +20,14 @@ export function AppErrorState({
   const displayTitle = message ?? title ?? 'Something went wrong';
   return (
     <div
-      className={`flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-white px-8 py-12 text-center ${className}`}
+      className={`flex flex-col items-center justify-center rounded-lg border border-dashed border-border-default bg-surface-primary px-8 py-12 text-center ${className}`}
     >
-      <p className="text-base font-medium text-slate-900">{displayTitle}</p>
-      <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+      <p className="text-base font-medium text-text-primary">{displayTitle}</p>
+      <p className="mt-1 text-sm text-text-tertiary">{subtitle}</p>
       <button
         type="button"
         onClick={onRetry}
-        className="mt-4 min-h-[40px] min-w-[120px] rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+        className="mt-4 min-h-[44px] min-w-[120px] rounded-lg border border-border-default bg-surface-primary px-4 py-2 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
       >
         Try again
       </button>

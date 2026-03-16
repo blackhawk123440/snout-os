@@ -4,7 +4,7 @@ import React from 'react';
 
 /** Tier 1 primary card: key summary panels, main dashboard blocks. Mobile: rounded-xl, more padding. */
 const CARD_BASE =
-  'rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm lg:rounded-lg lg:px-0 lg:py-0';
+  'rounded-xl border border-border-default bg-surface-primary px-4 py-4 shadow-sm lg:rounded-lg lg:px-0 lg:py-0';
 
 export interface AppCardProps {
   children: React.ReactNode;
@@ -15,7 +15,7 @@ export interface AppCardProps {
 export function AppCard({ children, className = '', onClick }: AppCardProps) {
   return (
     <div
-      className={`${CARD_BASE} ${onClick ? 'cursor-pointer transition hover:border-slate-300 hover:bg-slate-50/50' : ''} ${className}`}
+      className={`${CARD_BASE} ${onClick ? 'cursor-pointer transition hover:border-border-strong hover:bg-surface-secondary' : ''} ${className}`}
       onClick={onClick}
       onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
       role={onClick ? 'button' : undefined}
@@ -36,7 +36,7 @@ export function AppCardHeader({ title, children, className = '' }: AppCardHeader
   return (
     <div className={`px-0 pt-0 pb-2 lg:px-4 lg:pt-4 ${className}`}>
       {title ? (
-        <h3 className="text-sm font-semibold tracking-tight text-slate-900 lg:text-base">{title}</h3>
+        <h3 className="text-sm font-semibold tracking-tight text-text-primary lg:text-base">{title}</h3>
       ) : (
         children
       )}
@@ -51,7 +51,7 @@ export interface AppCardBodyProps {
 
 export function AppCardBody({ children, className = '' }: AppCardBodyProps) {
   return (
-    <div className={`px-0 pb-0 text-sm text-slate-700 lg:px-4 lg:pb-4 ${className}`}>
+    <div className={`px-0 pb-0 text-sm text-text-secondary lg:px-4 lg:pb-4 ${className}`}>
       {children}
     </div>
   );
