@@ -18,8 +18,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} overflow-x-hidden font-sans`}>
+    <html lang="en" className={`${inter.variable} overflow-x-hidden font-sans theme-snout`}>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('snout-theme');if(t==='light'){document.documentElement.classList.remove('theme-snout')}else if(t==='dark'){document.documentElement.classList.remove('theme-snout');document.documentElement.classList.add('dark')}else if(t==='snout-dark'){document.documentElement.classList.remove('theme-snout');document.documentElement.classList.add('theme-snout-dark')}}catch(e){}})();` }} />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />

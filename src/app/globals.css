@@ -175,6 +175,76 @@
   --foreground: #f1f5f9;
 }
 
+/* Snout brand theme — warm browns and pinks from snoutservices.com */
+.theme-snout {
+  --color-surface-base: #fef7fb;
+  --color-surface-frosted-low: rgba(254, 247, 251, 0.9);
+  --color-surface-frosted-mid: rgba(254, 247, 251, 0.95);
+  --color-surface-frosted-high: rgba(254, 247, 251, 0.98);
+  --color-surface-overlay: #ffffff;
+  --color-surface-modal: #ffffff;
+  --color-surface-primary: #ffffff;
+  --color-surface-secondary: #fef2f8;
+  --color-surface-tertiary: #fef7fb;
+  --color-surface-inverse: #432f21;
+  --color-surface-elevated: #ffffff;
+
+  --color-text-primary: #432f21;
+  --color-text-secondary: #6b5548;
+  --color-text-tertiary: #8c7769;
+  --color-text-disabled: #b8a99e;
+  --color-text-inverse: #ffffff;
+  --color-text-brand: #432f21;
+
+  --color-border-default: rgba(67, 47, 33, 0.12);
+  --color-border-muted: rgba(67, 47, 33, 0.06);
+  --color-border-strong: rgba(67, 47, 33, 0.20);
+  --color-border-focus: #432f21;
+  --color-border-accent: rgba(67, 47, 33, 0.25);
+
+  --color-accent-primary: #432f21;
+  --color-accent-secondary: #fce1ef;
+  --color-accent-tertiary: #f9d0e5;
+
+  --background: #fef7fb;
+  --foreground: #432f21;
+}
+
+/* Snout brand dark — deep brown backgrounds, pink accents */
+.theme-snout-dark {
+  --color-surface-base: #1a0802;
+  --color-surface-frosted-low: rgba(39, 16, 12, 0.9);
+  --color-surface-frosted-mid: rgba(39, 16, 12, 0.95);
+  --color-surface-frosted-high: rgba(39, 16, 12, 0.98);
+  --color-surface-overlay: #27100c;
+  --color-surface-modal: #27100c;
+  --color-surface-primary: #27100c;
+  --color-surface-secondary: #351f16;
+  --color-surface-tertiary: #1a0802;
+  --color-surface-inverse: #fef7fb;
+  --color-surface-elevated: #432f21;
+
+  --color-text-primary: #fef2f8;
+  --color-text-secondary: #f9d0e5;
+  --color-text-tertiary: #d4a999;
+  --color-text-disabled: #8c6b5a;
+  --color-text-inverse: #1a0802;
+  --color-text-brand: #fce1ef;
+
+  --color-border-default: rgba(249, 208, 229, 0.15);
+  --color-border-muted: rgba(249, 208, 229, 0.08);
+  --color-border-strong: rgba(249, 208, 229, 0.25);
+  --color-border-focus: #fce1ef;
+  --color-border-accent: rgba(252, 225, 239, 0.25);
+
+  --color-accent-primary: #fce1ef;
+  --color-accent-secondary: #351f16;
+  --color-accent-tertiary: #432f21;
+
+  --background: #1a0802;
+  --foreground: #fef2f8;
+}
+
 /* Density: Compact */
 [data-density="compact"] {
   --density-row: 0.5rem;

@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-client';
+import { useTheme, type Theme } from '@/lib/theme-context';
 import { ClientBottomNav } from './ClientBottomNav';
 import { ClientSidebarNav } from './ClientSidebarNav';
 import { ClientDeployDebugOverlay } from '@/components/client/ClientDeployDebugOverlay';
@@ -17,6 +18,43 @@ import { ClientSwUpdateToast } from '@/components/client/ClientSwUpdateToast';
 
 export interface ClientAppShellProps {
   children: React.ReactNode;
+}
+
+const THEME_OPTIONS: { value: Theme; label: string; fill: string; ring: string }[] = [
+  { value: 'snout', label: 'Snout', fill: '#432f21', ring: '#fce1ef' },
+  { value: 'light', label: 'Light', fill: '#ffffff', ring: '#d4d4d4' },
+  { value: 'dark', label: 'Dark', fill: '#0f172a', ring: '#3b82f6' },
+  { value: 'snout-dark', label: 'Brand Dark', fill: '#1a0802', ring: '#fce1ef' },
+];
+
+function ThemePicker() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="px-3 py-2">
+      <p className="mb-1.5 text-xs font-medium text-text-tertiary">Theme</p>
+      <div className="flex items-center gap-2">
+        {THEME_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setTheme(opt.value)}
+            aria-label={`Switch to ${opt.label} theme`}
+            title={opt.label}
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md transition hover:bg-surface-secondary focus:outline-none focus:ring-2 focus:ring-border-focus"
+          >
+            <span
+              className="block h-6 w-6 rounded-full border-2"
+              style={{
+                backgroundColor: opt.fill,
+                borderColor: theme === opt.value ? opt.ring : 'transparent',
+                boxShadow: theme === opt.value ? `0 0 0 2px ${opt.ring}` : 'none',
+              }}
+            />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const CONTENT_CONTAINER = 'w-full px-4 sm:px-6 lg:mx-auto lg:max-w-6xl lg:px-8';
@@ -159,8 +197,10 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
                   <div
                     ref={menuRef}
                     role="menu"
-                    className="absolute right-0 top-full z-30 mt-1 min-w-[160px] rounded border border-border-default bg-surface-primary py-1 shadow-lg"
+                    className="absolute right-0 top-full z-30 mt-1 min-w-[200px] rounded border border-border-default bg-surface-primary py-1 shadow-lg"
                   >
+                    <ThemePicker />
+                    <div className="my-1 border-t border-border-muted" />
                     <Link
                       href="/client/profile"
                       role="menuitem"
