@@ -64,7 +64,7 @@ export async function forceAssignSitter(
   sitterId: string,
   reason: string,
   actorId: string,
-  options?: { force?: boolean }
+  options?: { force?: boolean; correlationId?: string }
 ): Promise<void> {
   // Get current booking state (need startAt/endAt for conflict check); org-scoped to prevent cross-org mutation
   const booking = await (prisma as any).booking.findFirst({
@@ -131,6 +131,7 @@ export async function forceAssignSitter(
       bookingId,
       sitterId: previousSitterId,
       orgId,
+      correlationId: options?.correlationId,
     }).catch((e) => console.error('[Force Assign] calendar delete enqueue failed:', e));
   }
 
@@ -153,7 +154,7 @@ export async function forceAssignSitter(
         where: { id: bookingId, orgId },
         include: { pets: true, timeSlots: true, sitter: true, client: true },
       });
-      if (updated) await emitBookingUpdated(updated, previousStatus);
+      if (updated) await emitBookingUpdated(updated, previousStatus, options?.correlationId);
     } catch (err) {
       console.error('[Force Assign] Failed to emit booking.status.changed:', err);
     }
@@ -169,6 +170,7 @@ export async function forceAssignSitter(
     entityType: 'booking',
     entityId: bookingId,
     bookingId,
+    correlationId: options?.correlationId,
     metadata: {
       fromStatus: currentStatus,
       toStatus: 'assigned',
@@ -179,7 +181,7 @@ export async function forceAssignSitter(
   });
 
   // Enqueue calendar sync for new sitter (fail-open)
-  enqueueCalendarSync({ type: 'upsert', bookingId, orgId }).catch((e) =>
+  enqueueCalendarSync({ type: 'upsert', bookingId, orgId, correlationId: options?.correlationId }).catch((e) =>
     console.error('[Force Assign] calendar sync enqueue failed:', e)
   );
 }
@@ -197,7 +199,8 @@ export async function resumeAutomation(
   orgId: string,
   bookingId: string,
   reason: string,
-  actorId: string
+  actorId: string,
+  options?: { correlationId?: string }
 ): Promise<void> {
   // Get current booking state; org-scoped
   const booking = await (prisma as any).booking.findFirst({
@@ -243,6 +246,7 @@ export async function resumeAutomation(
     entityType: 'booking',
     entityId: bookingId,
     bookingId,
+    correlationId: options?.correlationId,
     metadata: {
       fromStatus: currentStatus,
       toStatus: 'auto',

@@ -11,7 +11,7 @@ export async function GET(
 ) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(_request);
     requireRole(ctx, 'client');
     requireClientContext(ctx);
   } catch (error) {
@@ -129,6 +129,7 @@ export async function POST(
         clientId: ctx.clientId,
       },
       body: messageBody,
+      correlationId: ctx.correlationId,
     });
 
     const toIso = (d: Date) => (d instanceof Date ? d.toISOString() : String(d));

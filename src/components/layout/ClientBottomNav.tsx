@@ -15,7 +15,7 @@ export function ClientBottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-20 flex h-14 min-h-[56px] items-stretch justify-around border-t border-slate-200 bg-white lg:hidden min-[1024px]:hidden"
+      className="fixed bottom-0 left-0 right-0 z-20 flex h-14 min-h-[56px] items-stretch justify-around border-t border-border-default bg-surface-primary lg:hidden min-[1024px]:hidden"
       style={{ paddingBottom: 'max(0px, env(safe-area-inset-bottom))' }}
       aria-label="Primary navigation"
     >
@@ -26,11 +26,11 @@ export function ClientBottomNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 border-t-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-inset',
+              'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 border-t-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset',
               'min-h-[44px] touch-manipulation',
               active
-                ? 'border-slate-900 text-slate-900'
-                : 'border-transparent text-slate-500 hover:text-slate-600'
+                ? 'border-text-primary text-text-primary'
+                : 'border-transparent text-text-tertiary hover:text-text-secondary'
             )}
           >
             <i className={cn('text-lg', item.icon)} aria-hidden />

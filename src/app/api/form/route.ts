@@ -317,8 +317,11 @@ export async function POST(request: NextRequest) {
 
   try {
     let orgId: string;
+    let correlationId: string | undefined;
     try {
-      orgId = getPublicOrgContext().orgId;
+      const publicCtx = getPublicOrgContext(request);
+      orgId = publicCtx.orgId;
+      correlationId = publicCtx.correlationId;
     } catch (error) {
       return NextResponse.json(
         {
@@ -562,7 +565,7 @@ export async function POST(request: NextRequest) {
       // Rest of the flow is unchanged (automation, messaging, etc.)
       await ensureEventQueueBridge();
       try {
-        await emitBookingCreated(booking);
+        await emitBookingCreated(booking, correlationId);
       } catch (eventError) {
         console.error("[Form] Failed to emit booking created event (non-blocking):", eventError);
       }
@@ -573,6 +576,7 @@ export async function POST(request: NextRequest) {
         clientId: booking.clientId ?? undefined,
         sitterId: booking.sitterId ?? undefined,
         occurredAt: new Date().toISOString(),
+        correlationId,
         metadata: {
           service: booking.service,
           status: booking.status,
@@ -583,7 +587,7 @@ export async function POST(request: NextRequest) {
       }).catch((err) => console.error("[Form] emitAndEnqueueBookingEvent failed:", err));
 
       if (booking.sitterId) {
-        enqueueCalendarSync({ type: 'upsert', bookingId: booking.id, orgId }).catch((e) =>
+        enqueueCalendarSync({ type: 'upsert', bookingId: booking.id, orgId, correlationId }).catch((e) =>
           console.error("[Form] calendar sync enqueue failed:", e)
         );
       }
@@ -1080,7 +1084,7 @@ export async function POST(request: NextRequest) {
 
     await ensureEventQueueBridge();
     try {
-      await emitBookingCreated(booking);
+      await emitBookingCreated(booking, correlationId);
     } catch (eventError) {
       console.error("[Form] Failed to emit booking created event (non-blocking):", eventError);
     }
@@ -1090,6 +1094,7 @@ export async function POST(request: NextRequest) {
       clientId: booking.clientId ?? undefined,
       sitterId: booking.sitterId ?? undefined,
       occurredAt: new Date().toISOString(),
+      correlationId,
       metadata: {
         service: booking.service,
         status: booking.status,
@@ -1099,7 +1104,7 @@ export async function POST(request: NextRequest) {
       },
     }).catch((err) => console.error("[Form] emitAndEnqueueBookingEvent failed:", err));
     if (booking.sitterId) {
-      enqueueCalendarSync({ type: 'upsert', bookingId: booking.id, orgId }).catch((e) =>
+      enqueueCalendarSync({ type: 'upsert', bookingId: booking.id, orgId, correlationId }).catch((e) =>
         console.error("[Form] calendar sync enqueue failed:", e)
       );
     }

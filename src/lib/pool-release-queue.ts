@@ -8,6 +8,8 @@
 import { Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
 import { releasePoolNumbers } from "./messaging/pool-release-job";
+import { attachQueueWorkerInstrumentation, recordQueueJobQueued } from "@/lib/queue-observability";
+import { resolveCorrelationId } from "@/lib/correlation-id";
 
 // Redis connection
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
@@ -32,7 +34,7 @@ export const poolReleaseQueue = new Queue("pool-release", {
  * Create worker for processing pool release jobs
  */
 export function createPoolReleaseWorker(): Worker {
-  return new Worker(
+  const worker = new Worker(
     "pool-release",
     async (job) => {
       console.log(`[Pool Release Queue] Processing job ${job.id}`);
@@ -45,6 +47,18 @@ export function createPoolReleaseWorker(): Worker {
       concurrency: 1, // Process one job at a time
     }
   );
+  attachQueueWorkerInstrumentation(worker, (job) => {
+    const correlationId = (job.data as any)?.correlationId;
+    return {
+      orgId: "default",
+      subsystem: "messaging",
+      resourceType: "system",
+      resourceId: "pool-release",
+      correlationId,
+      payload: job.data as Record<string, unknown>,
+    };
+  });
+  return worker;
 }
 
 /**
@@ -58,9 +72,10 @@ export async function schedulePoolRelease(): Promise<void> {
   }
 
   // Schedule new repeatable job (every 5 minutes)
-  await poolReleaseQueue.add(
+  const correlationId = resolveCorrelationId();
+  const job = await poolReleaseQueue.add(
     "release-pool-numbers",
-    {},
+    { correlationId },
     {
       repeat: {
         pattern: "*/5 * * * *", // Every 5 minutes
@@ -69,6 +84,17 @@ export async function schedulePoolRelease(): Promise<void> {
       removeOnFail: 5,
     }
   );
+  await recordQueueJobQueued({
+    queueName: poolReleaseQueue.name,
+    jobName: "release-pool-numbers",
+    jobId: String(job.id),
+    orgId: "default",
+    subsystem: "messaging",
+    resourceType: "system",
+    resourceId: "pool-release",
+    correlationId,
+    payload: { correlationId },
+  });
 
   console.log("[Pool Release Queue] Scheduled repeatable job (every 5 minutes)");
 }

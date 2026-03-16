@@ -10,6 +10,7 @@ import {
   rateLimitResponse,
 } from '@/lib/rate-limit';
 import { logEvent } from '@/lib/log-event';
+import { resolveCorrelationId } from '@/lib/correlation-id';
 
 function addMinutes(base: Date, minutes: number): Date {
   return new Date(base.getTime() + minutes * 60_000);
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
   if (envName === 'prod') {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
+  const correlationId = resolveCorrelationId(request);
   const ip = getRateLimitIdentifier(request);
 
   const providedKey = request.headers.get('x-e2e-key');
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest) {
   if (!hasValidE2eBypass) {
     let ctx;
     try {
-      ctx = await getRequestContext();
+      ctx = await getRequestContext(request);
       requireOwnerOrAdmin(ctx);
       orgId = ctx.orgId;
       actorUserId = ctx.userId ?? undefined;
@@ -227,7 +229,7 @@ export async function POST(request: NextRequest) {
         status: 'failed',
         error: `[run:${runId}] Fixture: booking confirmation failed`,
         bookingId: dedupeBooking.id,
-        metadata: JSON.stringify({ runId }),
+        metadata: JSON.stringify({ runId, correlationId }),
       },
       select: { id: true },
     });
@@ -239,7 +241,7 @@ export async function POST(request: NextRequest) {
         status: 'failed',
         error: `[run:${runId}] Fixture: automation dead-letter event`,
         bookingId: dedupeBooking.id,
-        metadata: JSON.stringify({ runId }),
+        metadata: JSON.stringify({ runId, correlationId }),
       },
       select: { id: true },
     });
@@ -261,6 +263,7 @@ export async function POST(request: NextRequest) {
             source: 'seed-fixtures',
           },
           jobId: `seed-retry-${runId}`,
+          correlationId,
         }),
       },
       select: { id: true },
@@ -272,7 +275,7 @@ export async function POST(request: NextRequest) {
         eventType: 'message.failed',
         status: 'failed',
         error: `[run:${runId}] Fixture: outbound message failed for thread A`,
-        metadata: JSON.stringify({ threadId: threadAId, runId }),
+        metadata: JSON.stringify({ threadId: threadAId, runId, correlationId }),
       },
       select: { id: true },
     });
@@ -282,7 +285,7 @@ export async function POST(request: NextRequest) {
         eventType: 'message.failed',
         status: 'failed',
         error: `[run:${runId}] Fixture: outbound message failed for thread B`,
-        metadata: JSON.stringify({ threadId: threadBId, runId }),
+        metadata: JSON.stringify({ threadId: threadBId, runId, correlationId }),
       },
       select: { id: true },
     });
@@ -295,7 +298,7 @@ export async function POST(request: NextRequest) {
         status: 'failed',
         error: `[run:${runId}] Fixture: calendar sync failed for sitter`,
         bookingId: overlapA?.id ?? dedupeBooking.id,
-        metadata: JSON.stringify({ sitterId: sitterId ?? 'unknown', runId }),
+        metadata: JSON.stringify({ sitterId: sitterId ?? 'unknown', runId, correlationId }),
       },
       select: { id: true },
     });

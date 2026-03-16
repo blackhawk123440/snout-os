@@ -71,7 +71,8 @@ export async function persistPaymentFailed(
   orgId: string,
   errorMessage: string,
   bookingId?: string | null,
-  customerEmail?: string | null
+  customerEmail?: string | null,
+  correlationId?: string
 ): Promise<void> {
   try {
     const id = paymentIntentId;
@@ -119,6 +120,7 @@ export async function persistPaymentFailed(
       entityId: paymentIntentId,
       bookingId: bookingId || undefined,
       status: 'failed',
+      correlationId,
       metadata: { error: errorMessage, amount, currency },
     });
   } catch (err) {

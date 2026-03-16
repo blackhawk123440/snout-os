@@ -78,7 +78,7 @@ export default function ClientReportsPage() {
         />
       ) : (
         <div className="w-full space-y-3 lg:max-w-3xl">
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
+          <div className="overflow-hidden rounded-xl border border-border-default bg-surface-primary lg:rounded-lg">
             {reports.map((r) => (
               <InteractiveRow
                 key={r.id}
@@ -87,12 +87,12 @@ export default function ClientReportsPage() {
                 aria-label={`View report ${r.booking?.service || 'Visit report'}`}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-900">
+                  <p className="truncate text-sm font-medium text-text-primary">
                     {r.booking?.service || 'Visit report'}
                   </p>
-                  <p className="line-clamp-1 text-sm text-slate-700">{renderClientPreview(r.content, 120)}</p>
+                  <p className="line-clamp-1 text-sm text-text-secondary">{renderClientPreview(r.content, 120)}</p>
                 </div>
-                <div className="flex shrink-0 text-xs text-slate-500 tabular-nums">
+                <div className="flex shrink-0 text-xs text-text-tertiary tabular-nums">
                   {r.createdAt ? formatDate(r.createdAt) : '—'}
                 </div>
               </InteractiveRow>

@@ -16,7 +16,7 @@ export async function POST(
 ) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
     requireRole(ctx, 'sitter');
   } catch (error) {
     if (error instanceof ForbiddenError) {
@@ -92,7 +92,7 @@ export async function POST(
           eventType: 'sitter.check_in',
           status: 'success',
           bookingId: id,
-          metadata: JSON.stringify({ lat, lng, sitterId: ctx.sitterId }),
+          metadata: JSON.stringify({ lat, lng, sitterId: ctx.sitterId, correlationId: ctx.correlationId }),
         },
       });
     }
@@ -102,7 +102,7 @@ export async function POST(
       include: { sitter: true },
     });
     if (updated?.sitter) {
-      await emitSitterCheckedIn(updated, updated.sitter);
+      await emitSitterCheckedIn(updated, updated.sitter, undefined, ctx.correlationId);
     }
 
     if (updated?.sitterId) {

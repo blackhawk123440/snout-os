@@ -27,6 +27,7 @@ export interface BookingEventPayload {
   sitterId?: string;
   occurredAt: string; // ISO string
   metadata?: Record<string, unknown>;
+  correlationId?: string;
 }
 
 const IDEMPOTENCY_VERSION = 'v1';
@@ -47,6 +48,7 @@ export async function emitBookingEvent(
       entityType: 'booking',
       entityId: payload.bookingId,
       bookingId: payload.bookingId,
+      correlationId: payload.correlationId,
       metadata: {
         visitId: payload.visitId,
         clientId: payload.clientId,
@@ -85,7 +87,8 @@ export async function enqueueAutomationsForBookingEvent(
           phone: meta.phone,
           service: meta.service,
         },
-        `${baseKey}:ownerNewBookingAlert:client`
+        `${baseKey}:ownerNewBookingAlert:client`,
+        payload.correlationId
       );
       await enqueueAutomation(
         'ownerNewBookingAlert',
@@ -98,34 +101,39 @@ export async function enqueueAutomationsForBookingEvent(
           phone: meta.phone,
           service: meta.service,
         },
-        `${baseKey}:ownerNewBookingAlert:owner`
+        `${baseKey}:ownerNewBookingAlert:owner`,
+        payload.correlationId
       );
     } else if (eventName === 'booking.confirmed') {
       await enqueueAutomation(
         'bookingConfirmation',
         'client',
         { orgId, bookingId },
-        `${baseKey}:bookingConfirmation:client`
+        `${baseKey}:bookingConfirmation:client`,
+        payload.correlationId
       );
       await enqueueAutomation(
         'bookingConfirmation',
         'owner',
         { orgId, bookingId },
-        `${baseKey}:bookingConfirmation:owner`
+        `${baseKey}:bookingConfirmation:owner`,
+        payload.correlationId
       );
     } else if (eventName === 'visit.completed') {
       await enqueueAutomation(
         'postVisitThankYou',
         'client',
         { orgId, bookingId },
-        `${baseKey}:postVisitThankYou:client`
+        `${baseKey}:postVisitThankYou:client`,
+        payload.correlationId
       );
       if (sitterId) {
         await enqueueAutomation(
           'postVisitThankYou',
           'sitter',
           { orgId, bookingId, sitterId },
-          `${baseKey}:postVisitThankYou:sitter`
+          `${baseKey}:postVisitThankYou:sitter`,
+          payload.correlationId
         );
       }
     }

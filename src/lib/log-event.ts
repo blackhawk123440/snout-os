@@ -15,6 +15,7 @@ export interface LogEventParams {
   bookingId?: string;
   status?: 'success' | 'failed' | 'pending';
   metadata?: Record<string, unknown>;
+  correlationId?: string;
 }
 
 const OPS_FAILURE_ACTIONS = ['message.failed', 'automation.failed', 'automation.dead', 'calendar.sync.failed', 'calendar.dead'];
@@ -34,6 +35,7 @@ export async function logEvent(params: LogEventParams): Promise<void> {
           actorUserId: params.actorUserId,
           entityType: params.entityType,
           entityId: params.entityId,
+          correlationId: params.correlationId,
           ...params.metadata,
         }),
       },

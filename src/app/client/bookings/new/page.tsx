@@ -12,7 +12,6 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, PageHeader } from '@/components/layout';
 import { BookingForm } from '@/components/bookings/BookingForm';
-import { tokens } from '@/lib/design-tokens';
 import { BookingFormValues } from '@/lib/bookings/booking-form-mapper';
 
 export default function ClientNewBookingPage() {
@@ -198,7 +197,7 @@ export default function ClientNewBookingPage() {
   return (
     <LayoutWrapper variant="narrow">
       <PageHeader title="Book a visit" subtitle="Request a new pet care visit" />
-      <div style={{ padding: tokens.spacing[4], paddingBottom: tokens.spacing[8] }}>
+      <div className="p-4 pb-8">
         <BookingForm mode="create" onSubmit={handleSubmit} onCancel={handleCancel} />
       </div>
     </LayoutWrapper>

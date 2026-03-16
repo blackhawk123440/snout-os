@@ -107,7 +107,7 @@ export const eventEmitter = new EventEmitter();
 /**
  * Helper functions to emit common events
  */
-export async function emitBookingCreated(booking: any): Promise<void> {
+export async function emitBookingCreated(booking: any, correlationId?: string): Promise<void> {
   await eventEmitter.emit("booking.created", {
     bookingId: booking.id,
     booking,
@@ -117,10 +117,15 @@ export async function emitBookingCreated(booking: any): Promise<void> {
     clientEmail: booking.email,
     totalPrice: booking.totalPrice,
     status: booking.status,
+    correlationId,
   });
 }
 
-export async function emitBookingUpdated(booking: any, previousStatus?: string): Promise<void> {
+export async function emitBookingUpdated(
+  booking: any,
+  previousStatus?: string,
+  correlationId?: string
+): Promise<void> {
   await eventEmitter.emit("booking.updated", {
     bookingId: booking.id,
     booking,
@@ -129,6 +134,7 @@ export async function emitBookingUpdated(booking: any, previousStatus?: string):
     clientName: `${booking.firstName} ${booking.lastName}`,
     totalPrice: booking.totalPrice,
     status: booking.status,
+    correlationId,
   });
 
   // Also emit status change if status changed
@@ -139,6 +145,7 @@ export async function emitBookingUpdated(booking: any, previousStatus?: string):
       previousStatus,
       newStatus: booking.status,
       service: booking.service,
+      correlationId,
     });
   }
 
@@ -149,6 +156,7 @@ export async function emitBookingUpdated(booking: any, previousStatus?: string):
     entityType: 'booking',
     entityId: booking.id,
     bookingId: booking.id,
+    correlationId,
     metadata: {
       previousStatus,
       newStatus: booking.status,
@@ -157,7 +165,11 @@ export async function emitBookingUpdated(booking: any, previousStatus?: string):
   }).catch(() => {});
 }
 
-export async function emitSitterAssigned(booking: any, sitter: any): Promise<void> {
+export async function emitSitterAssigned(
+  booking: any,
+  sitter: any,
+  correlationId?: string
+): Promise<void> {
   await eventEmitter.emit("sitter.assigned", {
     bookingId: booking.id,
     booking,
@@ -165,6 +177,7 @@ export async function emitSitterAssigned(booking: any, sitter: any): Promise<voi
     sitter,
     service: booking.service,
     clientName: `${booking.firstName} ${booking.lastName}`,
+    correlationId,
   });
 
   await eventEmitter.emit("booking.assigned", {
@@ -172,38 +185,59 @@ export async function emitSitterAssigned(booking: any, sitter: any): Promise<voi
     booking,
     sitterId: sitter.id,
     sitter,
+    correlationId,
   });
 }
 
-export async function emitSitterUnassigned(booking: any, sitterId: string): Promise<void> {
+export async function emitSitterUnassigned(
+  booking: any,
+  sitterId: string,
+  correlationId?: string
+): Promise<void> {
   await eventEmitter.emit("sitter.unassigned", {
     bookingId: booking.id,
     booking,
     sitterId,
     service: booking.service,
+    correlationId,
   });
 }
 
-export async function emitPaymentSuccess(booking: any, amount: number): Promise<void> {
+export async function emitPaymentSuccess(
+  booking: any,
+  amount: number,
+  correlationId?: string
+): Promise<void> {
   await eventEmitter.emit("payment.success", {
     bookingId: booking.id,
     booking,
     amount,
     service: booking.service,
     clientName: `${booking.firstName} ${booking.lastName}`,
+    correlationId,
   });
 }
 
-export async function emitPaymentFailed(booking: any, error: string): Promise<void> {
+export async function emitPaymentFailed(
+  booking: any,
+  error: string,
+  correlationId?: string
+): Promise<void> {
   await eventEmitter.emit("payment.failed", {
     bookingId: booking.id,
     booking,
     error,
     service: booking.service,
+    correlationId,
   });
 }
 
-export async function emitSitterCheckedIn(booking: any, sitter: any, timeSlot?: any): Promise<void> {
+export async function emitSitterCheckedIn(
+  booking: any,
+  sitter: any,
+  timeSlot?: any,
+  correlationId?: string
+): Promise<void> {
   await eventEmitter.emit("sitter.checked_in", {
     bookingId: booking.id,
     booking,
@@ -211,10 +245,16 @@ export async function emitSitterCheckedIn(booking: any, sitter: any, timeSlot?: 
     sitter,
     timeSlot,
     service: booking.service,
+    correlationId,
   });
 }
 
-export async function emitSitterCheckedOut(booking: any, sitter: any, timeSlot?: any): Promise<void> {
+export async function emitSitterCheckedOut(
+  booking: any,
+  sitter: any,
+  timeSlot?: any,
+  correlationId?: string
+): Promise<void> {
   await eventEmitter.emit("sitter.checked_out", {
     bookingId: booking.id,
     booking,
@@ -222,41 +262,59 @@ export async function emitSitterCheckedOut(booking: any, sitter: any, timeSlot?:
     sitter,
     timeSlot,
     service: booking.service,
+    correlationId,
   });
 }
 
-export async function emitVisitCompleted(booking: any, report: any): Promise<void> {
+export async function emitVisitCompleted(
+  booking: any,
+  report: any,
+  correlationId?: string
+): Promise<void> {
   await eventEmitter.emit("visit.completed", {
     bookingId: booking.id,
     booking,
     report,
     service: booking.service,
+    correlationId,
   });
 }
 
-export async function emitSitterTierChanged(sitter: any, previousTierId: string | null, newTierId: string): Promise<void> {
+export async function emitSitterTierChanged(
+  sitter: any,
+  previousTierId: string | null,
+  newTierId: string,
+  correlationId?: string
+): Promise<void> {
   await eventEmitter.emit("sitter.tier.changed", {
     sitterId: sitter.id,
     sitter,
     previousTierId,
     newTierId,
+    correlationId,
   });
 }
 
-export async function emitClientCreated(client: any): Promise<void> {
+export async function emitClientCreated(client: any, correlationId?: string): Promise<void> {
   await eventEmitter.emit("client.created", {
     clientId: client.id,
     client,
     clientName: `${client.firstName} ${client.lastName}`,
     phone: client.phone,
     email: client.email,
+    correlationId,
   });
 }
 
-export async function emitCustomEvent(eventName: string, context: EventContext): Promise<void> {
+export async function emitCustomEvent(
+  eventName: string,
+  context: EventContext,
+  correlationId?: string
+): Promise<void> {
   await eventEmitter.emit("custom", {
     ...context,
     customEventName: eventName,
+    correlationId,
   });
 }
 

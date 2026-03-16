@@ -28,7 +28,7 @@ type SidebarSection = {
 };
 
 /** Final owner sidebar: clean, executive, one submenu open at a time. Routes unchanged. */
-const OWNER_SIDEBAR_SECTIONS: SidebarSection[] = [
+export const OWNER_SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     title: 'Operations',
     items: [
@@ -90,6 +90,7 @@ const OWNER_SIDEBAR_SECTIONS: SidebarSection[] = [
         defaultCollapsed: true,
         children: [
           { label: 'Automation Failures', href: '/ops/automation-failures', icon: 'fas fa-triangle-exclamation' },
+          { label: 'Queue Failures', href: '/ops/failures', icon: 'fas fa-list-check' },
           { label: 'Message Failures', href: '/ops/message-failures', icon: 'fas fa-comment-slash' },
           { label: 'Calendar Repair', href: '/ops/calendar-repair', icon: 'fas fa-calendar-check' },
           { label: 'Payout Operations', href: '/ops/payouts', icon: 'fas fa-sack-dollar' },
@@ -207,6 +208,11 @@ const HEADER_MAP: Array<{ match: (p: string) => boolean; title: string; subtitle
     match: (p) => p.startsWith('/ops/automation-failures'),
     title: 'Automation Failures',
     subtitle: 'Failures and retries',
+  },
+  {
+    match: (p) => p.startsWith('/ops/failures'),
+    title: 'Queue Failures',
+    subtitle: 'Queue job failures and retries',
   },
   {
     match: (p) => p.startsWith('/ops/payouts'),

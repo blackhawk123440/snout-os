@@ -85,23 +85,23 @@ export default function ClientHomePage() {
           {/* App-style feed: Next visit → Latest report → Upcoming & recent */}
           <AppCard className="shadow-sm w-full">
               <AppCardBody className="flex flex-col gap-3 pb-4">
-                <p className="text-sm font-semibold text-slate-900">Next visit</p>
+                <p className="text-sm font-semibold text-text-primary">Next visit</p>
                 {data.upcomingCount > 0 ? (
                   <>
-                    <p className="text-base font-medium text-slate-900">
+                    <p className="text-base font-medium text-text-primary">
                       {data.upcomingCount} upcoming visit{data.upcomingCount !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-sm text-slate-600">Hi, {data.clientName?.split(' ')[0] || 'there'}</p>
+                    <p className="text-sm text-text-secondary">Hi, {data.clientName?.split(' ')[0] || 'there'}</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-semibold text-slate-900">No upcoming visits</p>
-                    <p className="text-sm text-slate-600">Book your next visit anytime.</p>
+                    <p className="text-sm font-semibold text-text-primary">No upcoming visits</p>
+                    <p className="text-sm text-text-secondary">Book your next visit anytime.</p>
                   </>
                 )}
                 <Link
                   href="/client/bookings/new"
-                  className="inline-flex h-10 items-center justify-center rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-surface-inverse px-4 text-sm font-medium text-text-inverse transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
                 >
                   Book a visit
                 </Link>
@@ -112,46 +112,40 @@ export default function ClientHomePage() {
             <AppCard className="w-full" onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}>
               <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-2 lg:px-0 lg:pt-0">
                 <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Latest report</p>
-                  <p className="mt-0.5 font-semibold text-slate-900">{data.latestReport.service || 'Update'}</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-text-tertiary">Latest report</p>
+                  <p className="mt-0.5 font-semibold text-text-primary">{data.latestReport.service || 'Update'}</p>
                 </div>
                 <Link
                   href="/client/reports"
                   onClick={(e) => e.stopPropagation()}
-                  className="shrink-0 text-sm text-slate-600 hover:text-slate-900 hover:underline"
+                  className="shrink-0 text-sm text-text-secondary hover:text-text-primary hover:underline"
                 >
                   All reports
                 </Link>
               </div>
               <AppCardBody className="relative">
-                <p className="line-clamp-2 text-sm text-slate-700">
+                <p className="line-clamp-2 text-sm text-text-secondary">
                   {renderClientPreview(data.latestReport.content)}
                 </p>
-                <p className="mt-2 text-right text-xs text-slate-500 tabular-nums">
+                <p className="mt-2 text-right text-xs text-text-tertiary tabular-nums">
                   {new Date(data.latestReport.createdAt).toLocaleDateString()}
                 </p>
               </AppCardBody>
             </AppCard>
           ) : (
-            <div className="w-full rounded-xl border border-dashed border-slate-200 bg-white px-6 py-8 lg:rounded-lg">
-              <p className="text-center text-sm font-semibold text-slate-900">No visit reports yet</p>
-              <p className="mt-1 text-center text-sm text-slate-600">After each visit, your sitter will share an update here.</p>
-              <div className="mt-4 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => router.push('/client/bookings')}
-                  className="min-h-[44px] rounded-lg bg-slate-900 px-4 text-sm font-medium text-white transition hover:bg-slate-800"
-                >
-                  View bookings
-                </button>
-              </div>
+            <div className="w-full">
+              <EmptyState
+                title="No visit reports yet"
+                description="After each visit, your sitter will share an update here."
+                primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
+              />
             </div>
           )}
 
           {data.recentBookings?.length > 0 ? (
             <section className="w-full" aria-label="Upcoming and recent visits">
-              <h2 className="mb-2 text-sm font-semibold tracking-tight text-slate-900">Upcoming & recent</h2>
-              <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
+              <h2 className="mb-2 text-sm font-semibold tracking-tight text-text-primary">Upcoming & recent</h2>
+              <div className="w-full overflow-hidden rounded-xl border border-border-default bg-surface-primary lg:rounded-lg">
                 {data.recentBookings.map((b) => (
                   <div
                     key={b.id}
@@ -160,11 +154,11 @@ export default function ClientHomePage() {
                     aria-label={`View booking ${b.service}`}
                     onClick={() => router.push(`/client/bookings/${b.id}`)}
                     onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/bookings/${b.id}`)}
-                    className="flex min-h-[56px] cursor-pointer items-center gap-3 border-b border-slate-200 px-4 py-1.5 last:border-b-0 hover:bg-slate-50 active:bg-slate-100 lg:min-h-[44px]"
+                    className="flex min-h-[56px] cursor-pointer items-center gap-3 border-b border-border-default px-4 py-1.5 last:border-b-0 hover:bg-surface-secondary active:bg-surface-tertiary lg:min-h-[44px]"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-slate-900">{b.service}</p>
-                      <p className="truncate text-xs text-slate-500 tabular-nums">{formatDate(b.startAt)}</p>
+                      <p className="truncate text-sm font-medium text-text-primary">{b.service}</p>
+                      <p className="truncate text-xs text-text-tertiary tabular-nums">{formatDate(b.startAt)}</p>
                     </div>
                     <div className="flex shrink-0">
                       <AppStatusPill status={b.status} />

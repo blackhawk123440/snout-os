@@ -15,7 +15,7 @@ export async function POST(
 ) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
     requireOwnerOrAdmin(ctx);
   } catch (error) {
     if (error instanceof ForbiddenError) {
@@ -83,7 +83,7 @@ export async function POST(
       }
     }
 
-    await enqueueAutomation(automationType, recipient, context, idempotencyKey);
+    await enqueueAutomation(automationType, recipient, context, idempotencyKey, ctx.correlationId);
 
     await db.eventLog.create({
       data: {
@@ -98,6 +98,7 @@ export async function POST(
           recipient,
           context,
           idempotencyKey,
+          correlationId: ctx.correlationId,
         }),
       },
     });
@@ -119,6 +120,7 @@ export async function POST(
         metadata: JSON.stringify({
           actorUserId: ctx.userId ?? 'system',
           eventLogId,
+          correlationId: ctx.correlationId,
         }),
       },
     }).catch(() => {});

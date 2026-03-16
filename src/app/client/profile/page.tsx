@@ -10,6 +10,7 @@ import {
 } from '@/components/app';
 import { PageSkeleton } from '@/components/ui/loading-state';
 import { Button, Modal } from '@/components/ui';
+import { toastError } from '@/lib/toast';
 
 interface MeData {
   firstName?: string | null;
@@ -60,7 +61,7 @@ export default function ClientProfilePage() {
       await signOut({ callbackUrl: '/login' });
       window.location.href = '/login';
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete account');
+      toastError(e instanceof Error ? e.message : 'Failed to delete account');
     } finally {
       setDeleting(false);
     }
@@ -82,11 +83,11 @@ export default function ClientProfilePage() {
         <div className="flex flex-col gap-6">
           <AppCard>
             <AppCardBody>
-              <p className="font-semibold text-slate-900">
+              <p className="font-semibold text-text-primary">
                 {data.name || [data.firstName, data.lastName].filter(Boolean).join(' ') || 'Client'}
               </p>
               {data.email && (
-                <p className="mt-1 text-sm text-slate-500">{data.email}</p>
+                <p className="mt-1 text-sm text-text-tertiary">{data.email}</p>
               )}
             </AppCardBody>
           </AppCard>
@@ -94,24 +95,24 @@ export default function ClientProfilePage() {
             <AppCardBody>
               <a
                 href="/client/settings/export"
-                className="mb-3 block w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-center text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="mb-3 flex min-h-[44px] w-full items-center justify-center rounded-lg border border-border-default bg-surface-primary px-4 text-sm font-medium text-text-secondary hover:bg-surface-secondary"
               >
                 Export your data
               </a>
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-border-default bg-surface-primary px-4 text-sm font-medium text-text-secondary hover:bg-surface-secondary"
               >
                 Sign out
               </button>
             </AppCardBody>
           </AppCard>
 
-          <AppCard className="border-slate-200 shadow-none">
+          <AppCard className="shadow-none">
             <AppCardBody>
-              <p className="mb-2 text-sm font-medium text-slate-900">Delete account</p>
-              <p className="mb-3 text-xs text-slate-500">
+              <p className="mb-2 text-sm font-medium text-text-primary">Delete account</p>
+              <p className="mb-3 text-xs text-text-tertiary">
                 Permanently delete your account. Export your data first if you want to keep a copy. This cannot be undone.
               </p>
               <Button
@@ -148,7 +149,7 @@ export default function ClientProfilePage() {
           </div>
         }
       >
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-text-tertiary">
           Are you sure? This will permanently delete your account. You will be signed out immediately and cannot sign
           in again.
         </p>

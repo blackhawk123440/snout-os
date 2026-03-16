@@ -15,6 +15,9 @@ export interface AppFilterBarProps {
   values: Record<string, string>;
   onChange: (key: string, value: string) => void;
   onClear?: () => void;
+  savedViews?: Array<{ id: string; label: string }>;
+  activeView?: string;
+  onViewChange?: (viewId: string) => void;
   className?: string;
 }
 
@@ -23,13 +26,37 @@ export function AppFilterBar({
   values,
   onChange,
   onClear,
+  savedViews,
+  activeView,
+  onViewChange,
   className = '',
 }: AppFilterBarProps) {
+  const hasActiveFilters = Object.values(values).some((v) => v && v !== 'all' && v !== '');
+
   return (
     <div
       className={`flex flex-wrap items-center gap-3 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] ${className}`}
       style={{ padding: 'var(--density-padding)' }}
     >
+      {savedViews && savedViews.length > 0 && (
+        <div className="flex items-center gap-1 border-r border-[var(--color-border-muted)] pr-3">
+          {savedViews.map((view) => (
+            <button
+              key={view.id}
+              type="button"
+              onClick={() => onViewChange?.(view.id)}
+              className={
+                activeView === view.id
+                  ? 'rounded-md bg-[var(--color-teal-600)] px-2.5 py-1 text-xs font-medium text-white'
+                  : 'rounded-md px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]'
+              }
+            >
+              {view.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {filters.map((f) => (
         <div key={f.key} className="flex items-center gap-2">
           <label className="text-sm font-medium text-[var(--color-text-secondary)]">{f.label}</label>
@@ -64,11 +91,11 @@ export function AppFilterBar({
           )}
         </div>
       ))}
-      {onClear && (
+      {onClear && hasActiveFilters && (
         <button
           type="button"
           onClick={onClear}
-          className="text-sm font-medium text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
+          className="ml-auto text-sm font-medium text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
         >
           Clear
         </button>

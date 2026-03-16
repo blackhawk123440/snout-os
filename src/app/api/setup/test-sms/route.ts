@@ -11,6 +11,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createClientContact, findClientContactByPhone } from '@/lib/messaging/client-contact-lookup';
 import { sendThreadMessage } from '@/lib/messaging/send';
+import { resolveCorrelationId } from '@/lib/correlation-id';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -114,6 +115,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const correlationId = resolveCorrelationId(request);
     const result = await sendThreadMessage({
       orgId,
       threadId: thread.id,
@@ -122,6 +124,7 @@ export async function POST(request: NextRequest) {
         userId: user.id || user.email || 'system',
       },
       body: 'Test SMS from Snout OS messaging system',
+      correlationId,
     });
 
     if (result.deliveryStatus === 'failed') {

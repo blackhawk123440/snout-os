@@ -26,6 +26,7 @@ import {
 export interface AutomationContext {
   bookingId?: string;
   sitterId?: string;
+  correlationId?: string;
   [key: string]: any;
 }
 
@@ -161,6 +162,7 @@ async function executeOwnerNewBookingAlert(
       message,
       recipient: 'client',
       recipientPhone: booking.phone,
+      correlationId: context.correlationId,
     });
     
     if (!result.success && result.usedThread === false) {
@@ -303,6 +305,7 @@ async function executeBookingConfirmation(
       message,
       recipient: 'client',
       recipientPhone: booking.phone, // Fallback
+      correlationId: context.correlationId,
     });
     
     const sent = result.success;
@@ -379,6 +382,7 @@ async function executeNightBeforeReminder(
     await logEventFromLogger("reminder.failed", "skipped", {
       orgId,
       bookingId: booking.id,
+      correlationId: context.correlationId,
       metadata: { recipient, reason: "booking_cancelled" },
     });
     return {
@@ -498,6 +502,7 @@ async function executeNightBeforeReminder(
       message,
       recipient: 'client',
       recipientPhone: targetPhone,
+      correlationId: context.correlationId,
     });
     
     if (!result.success && result.usedThread === false) {
@@ -518,6 +523,7 @@ async function executeNightBeforeReminder(
       await logEventFromLogger("reminder.sent", "success", {
         orgId,
         bookingId: booking.id,
+        correlationId: context.correlationId,
         metadata: { recipient },
       });
     } else {
@@ -525,6 +531,7 @@ async function executeNightBeforeReminder(
         orgId,
         bookingId: booking.id,
         error: result.error,
+        correlationId: context.correlationId,
         metadata: { recipient },
       });
     }
@@ -542,12 +549,14 @@ async function executeNightBeforeReminder(
     await logEventFromLogger("reminder.sent", "success", {
       orgId,
       bookingId: booking.id,
+      correlationId: context.correlationId,
       metadata: { recipient },
     });
   } else {
     await logEventFromLogger("reminder.failed", "failed", {
       orgId,
       bookingId: booking.id,
+      correlationId: context.correlationId,
       metadata: { recipient },
     });
   }
@@ -680,6 +689,7 @@ async function executeSitterAssignment(
       message,
       recipient: 'client',
       recipientPhone: booking.phone,
+      correlationId: context.correlationId,
     });
     
     if (!result.success && result.usedThread === false) {
@@ -703,6 +713,7 @@ async function executeSitterAssignment(
           message,
           recipient: 'client',
           recipientPhone: booking.phone,
+          correlationId: context.correlationId,
         });
         
         return {
@@ -807,6 +818,7 @@ async function executePaymentReminder(
       message,
       recipient: 'client',
       recipientPhone: booking.phone,
+      correlationId: context.correlationId,
     });
     
     if (!result.success && result.usedThread === false) {
@@ -941,6 +953,7 @@ async function executePostVisitThankYou(
       message,
       recipient: 'client',
       recipientPhone: booking.phone,
+      correlationId: context.correlationId,
     });
     
     if (!result.success && result.usedThread === false) {
@@ -961,6 +974,7 @@ async function executePostVisitThankYou(
       await logEventFromLogger("review.sent", "success", {
         orgId,
         bookingId: booking.id,
+        correlationId: context.correlationId,
         metadata: { recipient: "client" },
       });
     } else {
@@ -968,6 +982,7 @@ async function executePostVisitThankYou(
         orgId,
         bookingId: booking.id,
         error: result.error,
+        correlationId: context.correlationId,
         metadata: { recipient: "client" },
       });
     }
@@ -1006,12 +1021,14 @@ async function executePostVisitThankYou(
       await logEventFromLogger("review.sent", "success", {
         orgId,
         bookingId: booking.id,
+        correlationId: context.correlationId,
         metadata: { recipient: "sitter" },
       });
     } else {
       await logEventFromLogger("review.failed", "failed", {
         orgId,
         bookingId: booking.id,
+        correlationId: context.correlationId,
         metadata: { recipient: "sitter" },
       });
     }

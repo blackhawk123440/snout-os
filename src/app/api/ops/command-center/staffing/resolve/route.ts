@@ -127,7 +127,7 @@ async function getAvailableSoonest(
 export async function POST(request: NextRequest) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
     requireOwnerOrAdmin(ctx);
   } catch (error) {
     if (error instanceof ForbiddenError) {
@@ -202,6 +202,7 @@ export async function POST(request: NextRequest) {
           actorUserId,
           itemId,
           assignmentId,
+          correlationId: ctx.correlationId,
         }),
       },
     });
@@ -235,6 +236,7 @@ export async function POST(request: NextRequest) {
               rollbackTokenId: tokenDecoded.tokenId,
               actorUserId,
               assignmentId,
+              correlationId: ctx.correlationId,
             }),
           },
         });
@@ -286,6 +288,7 @@ export async function POST(request: NextRequest) {
               rollbackTokenId: tokenDecoded.tokenId,
               actorUserId,
               assignmentId,
+              correlationId: ctx.correlationId,
             }),
           },
         });
@@ -308,6 +311,7 @@ export async function POST(request: NextRequest) {
           bookingId: booking.id,
           sitterId: booking.sitterId,
           orgId: ctx.orgId,
+          correlationId: ctx.correlationId,
         }).catch((e) => console.error('[Staffing Rollback] calendar delete enqueue failed:', e));
       }
       if (parsed.previousSitterId) {
@@ -315,6 +319,7 @@ export async function POST(request: NextRequest) {
           type: 'upsert',
           bookingId: booking.id,
           orgId: ctx.orgId,
+          correlationId: ctx.correlationId,
         }).catch((e) => console.error('[Staffing Rollback] calendar upsert enqueue failed:', e));
       }
 
@@ -356,6 +361,7 @@ export async function POST(request: NextRequest) {
             tokenId: tokenDecoded.tokenId,
             assignmentId,
             itemId,
+            correlationId: ctx.correlationId,
           }),
         },
       });
@@ -389,6 +395,7 @@ export async function POST(request: NextRequest) {
             rollbackTokenId: tokenDecoded.tokenId,
             actorUserId,
             assignmentId,
+            correlationId: ctx.correlationId,
           }),
         },
       });
@@ -502,7 +509,7 @@ export async function POST(request: NextRequest) {
       selectedSitterId,
       'Command Center one-click assign',
       actorUserId ?? 'system',
-      { force: true }
+      { force: true, correlationId: ctx.correlationId }
     );
 
     const rollbackTokenId = `${rollbackTokenIdPrefix}${randomUUID()}`;
@@ -524,6 +531,7 @@ export async function POST(request: NextRequest) {
           previousStatus: booking.status,
           previousDispatchStatus: booking.dispatchStatus,
           previousAttentionState,
+          correlationId: ctx.correlationId,
         }),
       },
     });
@@ -543,6 +551,7 @@ export async function POST(request: NextRequest) {
             sitterId: selectedSitterId,
             actorUserId,
             rollbackTokenId,
+            correlationId: ctx.correlationId,
           }),
         },
       });
@@ -574,6 +583,7 @@ export async function POST(request: NextRequest) {
             sitterId: selectedSitterId,
             body: rendered,
             templateConfigured: !!template,
+            correlationId: ctx.correlationId,
           }),
         },
       });
@@ -597,6 +607,7 @@ export async function POST(request: NextRequest) {
           notifySent,
           notifyTemplateApplied,
           previousSitterId,
+          correlationId: ctx.correlationId,
         }),
       },
     });
@@ -633,6 +644,7 @@ export async function POST(request: NextRequest) {
           actorUserId,
           assignmentId,
           notifySent,
+          correlationId: ctx.correlationId,
         }),
       },
     });
@@ -661,6 +673,7 @@ export async function POST(request: NextRequest) {
             sitterId: requestSitterId ?? null,
             rollbackTokenId: null,
             actorUserId,
+            correlationId: ctx.correlationId,
           }),
         },
       });

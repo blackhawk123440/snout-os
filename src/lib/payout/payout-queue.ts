@@ -10,6 +10,8 @@ import { getScopedDb } from "@/lib/tenancy";
 import { calculatePayoutForBooking, executePayout } from "./payout-engine";
 import { persistPayrollRunFromTransfer } from "@/lib/payroll/payroll-service";
 import { logEvent } from "@/lib/log-event";
+import { attachQueueWorkerInstrumentation, recordQueueJobQueued } from "@/lib/queue-observability";
+import { resolveCorrelationId } from "@/lib/correlation-id";
 
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379");
 
@@ -33,33 +35,48 @@ export async function enqueuePayoutForBooking(params: {
   orgId: string;
   bookingId: string;
   sitterId: string;
+  correlationId?: string;
 }): Promise<void> {
   const { orgId, bookingId, sitterId } = params;
   const jobId = getPayoutJobId(bookingId);
+  const jobCorrelationId = params.correlationId ?? resolveCorrelationId();
 
   const existing = await payoutQueue.getJob(jobId);
   if (existing && !["failed", "completed"].includes(await existing.getState())) {
     return;
   }
 
-  await payoutQueue.add(
+  const job = await payoutQueue.add(
     "process-payout",
-    { orgId, bookingId, sitterId },
+    { orgId, bookingId, sitterId, correlationId: jobCorrelationId },
     { jobId }
   );
 
   await logEvent({
     action: "payout.scheduled",
     orgId,
+    correlationId: jobCorrelationId,
     metadata: { bookingId, sitterId },
   }).catch(() => {});
+
+  await recordQueueJobQueued({
+    queueName: payoutQueue.name,
+    jobName: "process-payout",
+    jobId: String(job.id),
+    orgId,
+    subsystem: "payout",
+    resourceType: "booking",
+    resourceId: bookingId,
+    correlationId: jobCorrelationId,
+    payload: { orgId, bookingId, sitterId, correlationId: jobCorrelationId },
+  });
 }
 
 export function initializePayoutWorker(): Worker {
-  return new Worker(
+  const worker = new Worker(
     "payouts",
     async (job) => {
-      const { orgId, bookingId, sitterId } = job.data;
+      const { orgId, bookingId, sitterId, correlationId } = job.data;
 
       const db = getScopedDb({ orgId });
       const booking = await db.booking.findUnique({
@@ -94,6 +111,7 @@ export function initializePayoutWorker(): Worker {
         bookingId,
         amountCents: calc.amountCents,
         currency: "usd",
+        correlationId,
       });
 
       if (!result.success) {
@@ -115,4 +133,16 @@ export function initializePayoutWorker(): Worker {
     },
     { connection }
   );
+  attachQueueWorkerInstrumentation(worker, (job) => {
+    const data = job.data as { orgId: string; bookingId: string; sitterId: string; correlationId?: string };
+    return {
+      orgId: data.orgId ?? "default",
+      subsystem: "payout",
+      resourceType: "booking",
+      resourceId: data.bookingId,
+      correlationId: data.correlationId,
+      payload: data as Record<string, unknown>,
+    };
+  });
+  return worker;
 }

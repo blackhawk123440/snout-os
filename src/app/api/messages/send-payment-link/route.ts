@@ -8,7 +8,7 @@ import { asMessagingActorRole } from '@/lib/messaging/send';
 export async function POST(request: NextRequest) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
     requireAnyRole(ctx, ['owner', 'admin']);
   } catch (error) {
     if (error instanceof ForbiddenError) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       dedupeWindowMs: 60_000,
       forceResend: Boolean(body.forceResend),
       baseUrl: process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin,
+      correlationId: ctx.correlationId,
     });
 
     return NextResponse.json({

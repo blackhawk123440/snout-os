@@ -90,8 +90,8 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
-        <p className="text-sm text-neutral-500">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-surface-secondary">
+        <p className="text-sm text-text-tertiary">Loading...</p>
       </div>
     );
   }
@@ -112,27 +112,27 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
   const showNewBookingCta = pathname === '/client/home' || pathname === '/client' || pathname.startsWith('/client/bookings');
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-slate-50" style={{ maxHeight: '100dvh' }}>
+    <div className="fixed inset-0 flex flex-col bg-surface-secondary" style={{ maxHeight: '100dvh' }}>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row min-[1024px]:flex-row">
         <ClientSidebarNav />
 
         <div className="flex min-h-0 flex-1 flex-col">
           <header
-            className={`sticky top-0 z-10 flex min-h-[44px] items-center justify-between gap-3 border-b border-slate-200 bg-white py-2 transition-shadow ${
+            className={`sticky top-0 z-10 flex min-h-[44px] items-center justify-between gap-3 border-b border-border-default bg-surface-primary py-2 transition-shadow ${
               headerShadow ? 'shadow-sm' : ''
             }`}
           >
             <div className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${CONTENT_CONTAINER}`}>
               <div className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${CONTENT_INNER}`}>
               <div className="min-w-0 flex-1 flex flex-col leading-tight">
-                <p className="truncate text-xl font-semibold text-slate-900 lg:text-sm lg:font-semibold">{pageTitle}</p>
-                <p className="hidden truncate text-xs text-slate-500 lg:block">{pageSubtitle}</p>
+                <p className="truncate text-xl font-semibold text-text-primary lg:text-sm lg:font-semibold">{pageTitle}</p>
+                <p className="hidden truncate text-xs text-text-tertiary lg:block">{pageSubtitle}</p>
               </div>
               <div className="relative flex shrink-0 items-center gap-2">
                 {showNewBookingCta && (
                   <Link
                     href="/client/bookings/new"
-                    className="hidden min-h-[44px] items-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 min-[1024px]:inline-flex"
+                    className="hidden min-h-[44px] items-center rounded-md border border-border-strong bg-surface-primary px-3 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary hover:border-border-strong focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-1 min-[1024px]:inline-flex"
                   >
                     New booking
                   </Link>
@@ -140,7 +140,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
                 <button
                   type="button"
                   aria-label="Notifications"
-                  className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 min-[1024px]:flex"
+                  className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded text-text-tertiary transition hover:bg-surface-tertiary hover:text-text-secondary focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-1 min-[1024px]:flex"
                 >
                   <i className="fas fa-bell text-sm" />
                 </button>
@@ -151,7 +151,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
                   aria-label="Account menu"
                   aria-expanded={accountMenuOpen}
                   aria-haspopup="true"
-                  className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded bg-slate-100 text-sm font-medium text-slate-700 transition hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1"
+                  className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded bg-surface-tertiary text-sm font-medium text-text-secondary transition hover:bg-surface-tertiary/70 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-1"
                 >
                   {(firstName || 'C').charAt(0).toUpperCase()}
                 </button>
@@ -159,13 +159,13 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
                   <div
                     ref={menuRef}
                     role="menu"
-                    className="absolute right-0 top-full z-30 mt-1 min-w-[160px] rounded border border-slate-200 bg-white py-1 shadow-lg"
+                    className="absolute right-0 top-full z-30 mt-1 min-w-[160px] rounded border border-border-default bg-surface-primary py-1 shadow-lg"
                   >
                     <Link
                       href="/client/profile"
                       role="menuitem"
                       onClick={() => setAccountMenuOpen(false)}
-                      className="block px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                      className="block px-3 py-1.5 text-left text-sm text-text-secondary hover:bg-surface-secondary"
                     >
                       Profile
                     </Link>
@@ -173,7 +173,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
                       type="button"
                       role="menuitem"
                       onClick={() => void handleLogout()}
-                      className="block w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+                      className="block w-full px-3 py-1.5 text-left text-sm text-text-secondary hover:bg-surface-secondary"
                     >
                       Sign out
                     </button>
@@ -196,7 +196,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
       {showNewBookingCta && (
         <Link
           href="/client/bookings/new"
-          className="fixed bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] right-4 z-10 flex h-12 items-center gap-2 rounded-full bg-slate-900 px-4 text-sm font-medium text-white shadow-lg transition active:scale-95 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 lg:hidden min-[1024px]:hidden"
+          className="fixed bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] right-4 z-10 flex h-12 items-center gap-2 rounded-full bg-surface-inverse px-4 text-sm font-medium text-text-inverse shadow-lg transition active:scale-95 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 lg:hidden min-[1024px]:hidden"
           aria-label="Book a visit"
         >
           <span aria-hidden>+</span>

@@ -45,8 +45,9 @@ export async function executePayout(params: {
   bookingId: string;
   amountCents: number;
   currency?: string;
+  correlationId?: string;
 }): Promise<{ success: boolean; transferId?: string; payoutTransferId?: string; error?: string }> {
-  const { db, orgId, sitterId, bookingId, amountCents, currency = "usd" } = params;
+  const { db, orgId, sitterId, bookingId, amountCents, currency = "usd", correlationId } = params;
 
   const existing = await db.payoutTransfer.findFirst({
     where: { orgId, bookingId, sitterId },
@@ -89,6 +90,7 @@ export async function executePayout(params: {
     await logEvent({
       action: "payout.failed",
       orgId,
+      correlationId,
       metadata: {
         sitterId,
         bookingId,
@@ -99,12 +101,14 @@ export async function executePayout(params: {
   }
 
   try {
+    const metadata: Record<string, string> = { orgId, sitterId, bookingId };
+    if (correlationId) metadata.correlationId = correlationId;
     const { transferId } = await createTransferToConnectedAccount({
       amountCents,
       currency,
       destinationAccountId: account.accountId,
       description: `Payout for booking ${bookingId}`,
-      metadata: { orgId, sitterId, bookingId },
+      metadata,
     });
 
     const pt = await db.payoutTransfer.create({
@@ -134,6 +138,7 @@ export async function executePayout(params: {
     await logEvent({
       action: "payout.sent",
       orgId,
+      correlationId,
       metadata: {
         sitterId,
         bookingId,
@@ -170,6 +175,7 @@ export async function executePayout(params: {
     await logEvent({
       action: "payout.failed",
       orgId,
+      correlationId,
       metadata: {
         sitterId,
         bookingId,

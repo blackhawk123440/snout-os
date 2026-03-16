@@ -96,6 +96,7 @@ export async function sendThreadMessage(params: {
   actor: MessagingActor;
   body: string;
   forceSend?: boolean;
+  correlationId?: string;
 }) {
   const db = getScopedDb({ orgId: params.orgId });
   const thread = await db.messageThread.findUnique({
@@ -144,6 +145,7 @@ export async function sendThreadMessage(params: {
     providerErrorMessage = sendResult.success ? null : (sendResult.errorMessage ?? 'Failed to send message');
   }
 
+  const correlationIds = params.correlationId ? JSON.stringify([params.correlationId]) : null;
   const event = await db.messageEvent.create({
     data: {
       threadId: params.threadId,
@@ -161,6 +163,7 @@ export async function sendThreadMessage(params: {
       providerErrorMessage,
       attemptCount: 1,
       lastAttemptAt: new Date(),
+      correlationIds,
     },
   });
 
@@ -177,6 +180,7 @@ export async function sendThreadMessage(params: {
       action: 'message.failed',
       entityType: 'message',
       entityId: event.id,
+      correlationId: params.correlationId,
       metadata: { threadId: params.threadId, errorCode: providerErrorCode, errorMessage: providerErrorMessage },
     });
     await publish(channels.messagesThread(params.orgId, params.threadId), {
@@ -192,6 +196,7 @@ export async function sendThreadMessage(params: {
       action: 'message.sent',
       entityType: 'message',
       entityId: event.id,
+      correlationId: params.correlationId,
       metadata: { threadId: params.threadId, providerMessageSid },
     });
     await publish(channels.messagesThread(params.orgId, params.threadId), {
@@ -209,6 +214,7 @@ export async function retryThreadMessage(params: {
   orgId: string;
   messageId: string;
   actor: MessagingActor;
+  correlationId?: string;
 }) {
   const db = getScopedDb({ orgId: params.orgId });
   const event = await db.messageEvent.findUnique({
@@ -250,6 +256,17 @@ export async function retryThreadMessage(params: {
   });
   const attemptNo = (event.attemptCount ?? 1) + 1;
 
+  const mergedCorrelationIds = (() => {
+    if (!params.correlationId) return event.correlationIds ?? null;
+    try {
+      const existing = event.correlationIds ? JSON.parse(event.correlationIds) : [];
+      const next = Array.isArray(existing) ? new Set(existing.map(String)) : new Set<string>();
+      next.add(params.correlationId);
+      return JSON.stringify(Array.from(next));
+    } catch {
+      return JSON.stringify([params.correlationId]);
+    }
+  })();
   const updated = await db.messageEvent.update({
     where: { id: params.messageId },
     data: {
@@ -261,6 +278,7 @@ export async function retryThreadMessage(params: {
       providerErrorMessage: sendResult.success ? null : (sendResult.errorMessage ?? 'Retry failed'),
       attemptCount: attemptNo,
       lastAttemptAt: new Date(),
+      correlationIds: mergedCorrelationIds,
     },
   });
 
@@ -277,6 +295,7 @@ export async function retryThreadMessage(params: {
     action: sendResult.success ? 'message.sent' : 'message.failed',
     entityType: 'message',
     entityId: event.id,
+    correlationId: params.correlationId,
     metadata: {
       threadId: event.thread.id,
       attemptNo,
@@ -297,6 +316,7 @@ export async function sendDirectMessage(params: {
   body: string;
   threadId?: string;
   fromE164?: string;
+  correlationId?: string;
 }) {
   const provider = await getMessagingProvider(params.orgId);
   let fromE164 = params.fromE164;
@@ -313,6 +333,7 @@ export async function sendDirectMessage(params: {
   if (!params.threadId) return sendResult;
 
   const db = getScopedDb({ orgId: params.orgId });
+  const correlationIds = params.correlationId ? JSON.stringify([params.correlationId]) : null;
   const event = await db.messageEvent.create({
     data: {
       threadId: params.threadId,
@@ -330,6 +351,7 @@ export async function sendDirectMessage(params: {
       providerErrorMessage: sendResult.success ? null : (sendResult.errorMessage ?? 'Failed to send message'),
       attemptCount: 1,
       lastAttemptAt: new Date(),
+      correlationIds,
     },
   });
   await db.messageThread.update({

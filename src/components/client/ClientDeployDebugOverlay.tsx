@@ -32,25 +32,25 @@ export function ClientDeployDebugOverlay() {
 
   return (
     <div
-      className="pointer-events-none fixed bottom-14 left-0 z-50 rounded-tr bg-slate-900/90 px-2 py-1.5 font-mono text-[10px] text-slate-300 lg:bottom-2"
+      className="pointer-events-none fixed bottom-14 left-0 z-50 rounded-tr bg-surface-inverse/90 px-2 py-1.5 font-mono text-[10px] text-text-inverse/70 lg:bottom-2"
       aria-hidden
     >
       {health ? (
         <>
-          <span className="text-slate-400">{health.envName ?? '—'}</span>
+          <span className="text-text-inverse/50">{health.envName ?? '—'}</span>
           {' · '}
           <span className="tabular-nums">{health.commitSha ?? '—'}</span>
           {health.buildTime && (
             <>
               {' · '}
-              <span className="tabular-nums text-slate-400">
+              <span className="tabular-nums text-text-inverse/50">
                 {health.buildTime}
               </span>
             </>
           )}
         </>
       ) : (
-        <span className="text-slate-500">Loading…</span>
+        <span className="text-text-inverse/40">Loading…</span>
       )}
     </div>
   );

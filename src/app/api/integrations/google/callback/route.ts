@@ -31,10 +31,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/sitters?error=invalid_callback', request.url));
   }
 
+  const orgId = (user as any).orgId ?? 'default';
+  const userId = user.id;
+
   try {
-    // Decode state to get sitterId
-    const stateData = JSON.parse(Buffer.from(state, 'base64').toString());
-    const { sitterId } = stateData;
+    const { decodeAndVerifyOAuthState, logOAuthCallbackRejection } = await import('@/lib/signup-bootstrap');
+    const verified = decodeAndVerifyOAuthState(state, { orgId, userId });
+    if (!verified) {
+      await logOAuthCallbackRejection('invalid_state', { orgId, userId, reason: 'expired_or_mismatch' });
+      return NextResponse.redirect(new URL('/sitters?error=invalid_state', request.url));
+    }
+    const { sitterId } = verified;
 
     if (!sitterId) {
       return NextResponse.redirect(new URL('/sitters?error=invalid_state', request.url));
@@ -44,8 +51,6 @@ export async function GET(request: NextRequest) {
     if (user.role === 'sitter' && user.sitterId !== sitterId) {
       return NextResponse.redirect(new URL('/sitters?error=forbidden', request.url));
     }
-
-    const orgId = (user as any).orgId ?? 'default';
 
     // Tenancy: ensure sitter belongs to caller's org before updating
     const sitter = await (prisma as any).sitter.findFirst({

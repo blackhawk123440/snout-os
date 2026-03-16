@@ -18,13 +18,14 @@ export function initWorkerSentry() {
 
 export function captureWorkerError(
   error: Error,
-  context?: { jobName?: string; orgId?: string; bookingId?: string }
+  context?: { jobName?: string; orgId?: string; bookingId?: string; correlationId?: string }
 ) {
   if (!initialized) return;
   Sentry.withScope((scope) => {
     if (context?.jobName) scope.setTag("jobName", context.jobName);
     if (context?.orgId) scope.setTag("orgId", context.orgId);
     if (context?.bookingId) scope.setTag("bookingId", context.bookingId);
+    if (context?.correlationId) scope.setTag("correlationId", context.correlationId);
     Sentry.captureException(error);
   });
 }

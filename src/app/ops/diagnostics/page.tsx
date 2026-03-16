@@ -6,6 +6,7 @@ import { Card, Button } from '@/components/ui';
 
 const DIAGNOSTICS_LINKS = [
   { label: 'Automation failures', href: '/ops/automation-failures' },
+  { label: 'Queue failures', href: '/ops/failures' },
   { label: 'Message failures', href: '/ops/message-failures' },
   { label: 'Payout operations', href: '/ops/payouts' },
   { label: 'Calendar repair', href: '/ops/calendar-repair' },

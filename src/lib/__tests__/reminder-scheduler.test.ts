@@ -25,6 +25,11 @@ vi.mock("@/lib/event-logger", () => ({
   logEventFromLogger: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@/lib/queue-observability", () => ({
+  recordQueueJobQueued: vi.fn().mockResolvedValue(undefined),
+  attachQueueWorkerInstrumentation: vi.fn(),
+}));
+
 vi.mock("ioredis", () => ({
   default: vi.fn().mockImplementation(function () {
     return {};
@@ -74,12 +79,12 @@ describe("reminder-scheduler-queue", () => {
       expect(mockQueueAdd).toHaveBeenCalledTimes(2);
       expect(mockQueueAdd).toHaveBeenCalledWith(
         "reminder-tick",
-        { orgId: "org-1" },
+        expect.objectContaining({ orgId: "org-1", correlationId: expect.any(String) }),
         expect.objectContaining({ jobId: expect.stringContaining("org-1") })
       );
       expect(mockQueueAdd).toHaveBeenCalledWith(
         "reminder-tick",
-        { orgId: "org-2" },
+        expect.objectContaining({ orgId: "org-2", correlationId: expect.any(String) }),
         expect.objectContaining({ jobId: expect.stringContaining("org-2") })
       );
     });
@@ -133,7 +138,8 @@ describe("reminder-scheduler-queue", () => {
           firstName: "Jane",
           lastName: "Doe",
         }),
-        `nightBeforeReminder:client:b1:${dateKey}`
+        `nightBeforeReminder:client:b1:${dateKey}`,
+        undefined
       );
       expect(enqueueAutomation).toHaveBeenCalledWith(
         "nightBeforeReminder",
@@ -143,7 +149,8 @@ describe("reminder-scheduler-queue", () => {
           bookingId: "b1",
           sitterId: "s1",
         }),
-        `nightBeforeReminder:sitter:b1:${dateKey}`
+        `nightBeforeReminder:sitter:b1:${dateKey}`,
+        undefined
       );
     });
 

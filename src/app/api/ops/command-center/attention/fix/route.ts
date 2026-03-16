@@ -31,7 +31,7 @@ function isCalendarEvent(event: { eventType: string; automationType: string | nu
 export async function POST(request: NextRequest) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
     requireOwnerOrAdmin(ctx);
   } catch (error) {
     if (error instanceof ForbiddenError) {
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       }
 
       const idempotencyKey = jobId || `cc-fix:${event.id}`;
-      await enqueueAutomation(automationType, recipient, context, idempotencyKey);
+      await enqueueAutomation(automationType, recipient, context, idempotencyKey, ctx.correlationId);
       const actionEvent = await db.eventLog.create({
         data: {
           orgId: ctx.orgId,
@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
             itemId,
             eventLogId: event.id,
             idempotencyKey,
+            correlationId: ctx.correlationId,
           }),
         },
       });
@@ -157,6 +158,7 @@ export async function POST(request: NextRequest) {
         orgId: ctx.orgId,
         bookingId,
         sitterId: transfer.sitterId,
+        correlationId: ctx.correlationId,
       });
       const actionEvent = await db.eventLog.create({
         data: {
@@ -170,6 +172,7 @@ export async function POST(request: NextRequest) {
             payoutTransferId: transfer.id,
             sitterId: transfer.sitterId,
             bookingId,
+            correlationId: ctx.correlationId,
           }),
         },
       });
@@ -227,6 +230,7 @@ export async function POST(request: NextRequest) {
       start: start.toISOString(),
       end: end.toISOString(),
       orgId: ctx.orgId,
+      correlationId: ctx.correlationId,
     });
     const actionEvent = await db.eventLog.create({
       data: {
@@ -240,6 +244,7 @@ export async function POST(request: NextRequest) {
           eventLogId: event.id,
           sitterId,
           jobId,
+          correlationId: ctx.correlationId,
         }),
       },
     });

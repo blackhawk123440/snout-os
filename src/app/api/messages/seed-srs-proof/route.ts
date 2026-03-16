@@ -20,6 +20,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { scheduleDailySnapshots, scheduleWeeklyEvaluations } from '@/lib/tiers/srs-queue';
 import { prisma } from '@/lib/db';
+import { resolveCorrelationId } from '@/lib/correlation-id';
 
 const execAsync = promisify(exec);
 
@@ -61,13 +62,14 @@ export async function POST(request: NextRequest) {
 
     // Trigger snapshot directly (not via HTTP)
     const asOfDate = new Date();
-    await scheduleDailySnapshots(orgId, asOfDate);
+    const correlationId = resolveCorrelationId(request);
+    await scheduleDailySnapshots(orgId, asOfDate, correlationId);
 
     // Wait for jobs to process
     await new Promise(resolve => setTimeout(resolve, 3000));
 
     // Trigger weekly evaluation
-    await scheduleWeeklyEvaluations(orgId, asOfDate);
+    await scheduleWeeklyEvaluations(orgId, asOfDate, correlationId);
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Get created snapshots

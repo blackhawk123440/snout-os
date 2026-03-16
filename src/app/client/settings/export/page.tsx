@@ -51,7 +51,7 @@ export default function ClientExportPage() {
       ) : (
         <AppCard>
           <AppCardBody>
-            <p className="mb-4 text-sm text-neutral-600">
+            <p className="mb-4 text-sm text-text-secondary">
               You can download all your data as a JSON file. This includes your profile, pets, bookings, visit reports, messages, and payment history.
             </p>
             <Button

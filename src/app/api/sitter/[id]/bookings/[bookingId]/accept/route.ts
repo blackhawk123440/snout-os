@@ -14,6 +14,7 @@ import { enqueueCalendarSync } from '@/lib/calendar-queue';
 import { emitBookingUpdated } from '@/lib/event-emitter';
 import { ensureEventQueueBridge } from '@/lib/event-queue-bridge-init';
 import { validateSitterAssignment } from '@/lib/availability/booking-conflict';
+import { resolveCorrelationId } from '@/lib/correlation-id';
 
 export async function POST(
   request: NextRequest,
@@ -29,6 +30,7 @@ export async function POST(
   }
 
   try {
+    const correlationId = resolveCorrelationId(request);
     const resolvedParams = await params;
     const sitterId = resolvedParams.id;
     const bookingId = resolvedParams.bookingId;
@@ -154,7 +156,7 @@ export async function POST(
           where: { id: bookingId },
           include: { pets: true, timeSlots: true, sitter: true, client: true },
         });
-        if (updated) await emitBookingUpdated(updated, previousStatus);
+        if (updated) await emitBookingUpdated(updated, previousStatus, correlationId);
       } catch (err) {
         console.error('[Accept Booking] Failed to emit booking.status.changed:', err);
       }
@@ -167,14 +169,15 @@ export async function POST(
       bookingId,
       offer.id,
       responseSeconds,
-      (session.user as any).id
+      (session.user as any).id,
+      correlationId
     );
 
     // Update metrics window with response time
     await updateMetricsWindow(orgId, sitterId, responseSeconds, 'accepted');
 
     // Enqueue calendar sync (fail-open)
-    enqueueCalendarSync({ type: 'upsert', bookingId, orgId }).catch((e) =>
+    enqueueCalendarSync({ type: 'upsert', bookingId, orgId, correlationId }).catch((e) =>
       console.error('[Accept Booking] calendar sync enqueue failed:', e)
     );
 

@@ -9,6 +9,8 @@ import IORedis from "ioredis";
 import { calculateSRS, calculateRolling26WeekScore } from "./srs-engine";
 import { checkPromotionEligibility, checkDemotionRequired, checkAtRisk, checkPayRaiseEligibility, getTierPerks } from "./tier-rules";
 import { prisma } from "@/lib/db";
+import { attachQueueWorkerInstrumentation, recordQueueJobQueued } from "@/lib/queue-observability";
+import { resolveCorrelationId } from "@/lib/correlation-id";
 
 // Redis connection
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
@@ -36,6 +38,7 @@ export interface DailySnapshotJobData {
   orgId: string;
   sitterId: string;
   asOfDate: string; // ISO date string
+  correlationId?: string;
 }
 
 /**
@@ -45,6 +48,7 @@ export interface WeeklyEvaluationJobData {
   orgId: string;
   sitterId: string;
   asOfDate: string; // ISO date string
+  correlationId?: string;
 }
 
 /**
@@ -116,6 +120,7 @@ async function createDailySnapshot(data: DailySnapshotJobData): Promise<void> {
         tier: currentTier,
         provisional: srsResult.provisional,
         snapshotId: snapshot.id,
+        correlationId: data.correlationId ?? null,
       }),
       createdAt: new Date(),
     },
@@ -188,6 +193,7 @@ async function performWeeklyEvaluation(data: WeeklyEvaluationJobData): Promise<v
             toTier: recommendedTier,
             score: currentScore,
             asOfDate: asOfDate,
+            correlationId: data.correlationId ?? null,
           }),
           createdAt: new Date(),
         },
@@ -229,6 +235,7 @@ async function performWeeklyEvaluation(data: WeeklyEvaluationJobData): Promise<v
           reason: demotionCheck.reason,
           score: currentScore,
           asOfDate: asOfDate,
+          correlationId: data.correlationId ?? null,
         }),
         createdAt: new Date(),
       },
@@ -259,6 +266,7 @@ async function performWeeklyEvaluation(data: WeeklyEvaluationJobData): Promise<v
           reason: atRiskCheck.reason,
           score: currentScore,
           asOfDate: asOfDate,
+          correlationId: data.correlationId ?? null,
         }),
         createdAt: new Date(),
       },
@@ -298,7 +306,7 @@ async function performWeeklyEvaluation(data: WeeklyEvaluationJobData): Promise<v
  * Create worker for SRS jobs
  */
 export function createSRSWorker(): Worker {
-  return new Worker(
+  const worker = new Worker(
     "srs",
     async (job) => {
       const jobType = job.name;
@@ -322,12 +330,28 @@ export function createSRSWorker(): Worker {
       concurrency: 5,
     }
   );
+  attachQueueWorkerInstrumentation(worker, (job) => {
+    const data = job.data as DailySnapshotJobData | WeeklyEvaluationJobData;
+    return {
+      orgId: data.orgId ?? "default",
+      subsystem: "srs",
+      resourceType: "sitter",
+      resourceId: data.sitterId,
+      correlationId: data.correlationId,
+      payload: data as unknown as Record<string, unknown>,
+    };
+  });
+  return worker;
 }
 
 /**
  * Schedule daily snapshot for all sitters in an org
  */
-export async function scheduleDailySnapshots(orgId: string, asOfDate: Date = new Date()): Promise<void> {
+export async function scheduleDailySnapshots(
+  orgId: string,
+  asOfDate: Date = new Date(),
+  correlationId?: string
+): Promise<void> {
   // Get all active sitters in org
   const sitters = await (prisma as any).sitter.findMany({
     where: {
@@ -351,24 +375,42 @@ export async function scheduleDailySnapshots(orgId: string, asOfDate: Date = new
 
   // Enqueue snapshot jobs
   for (const sitter of orgSitters) {
-    await srsQueue.add(
+    const jobCorrelationId = correlationId ?? resolveCorrelationId();
+    const payload: DailySnapshotJobData = {
+      orgId,
+      sitterId: sitter.id,
+      asOfDate: asOfDate.toISOString().split('T')[0],
+      correlationId: jobCorrelationId,
+    };
+    const job = await srsQueue.add(
       "daily-snapshot",
-      {
-        orgId,
-        sitterId: sitter.id,
-        asOfDate: asOfDate.toISOString().split('T')[0],
-      },
+      payload,
       {
         jobId: `srs-snapshot-${orgId}-${sitter.id}-${asOfDate.toISOString().split('T')[0]}`,
       }
     );
+    await recordQueueJobQueued({
+      queueName: srsQueue.name,
+      jobName: "daily-snapshot",
+      jobId: String(job.id),
+      orgId,
+      subsystem: "srs",
+      resourceType: "sitter",
+      resourceId: sitter.id,
+      correlationId: jobCorrelationId,
+      payload: payload as unknown as Record<string, unknown>,
+    });
   }
 }
 
 /**
  * Schedule weekly evaluation for all sitters in an org
  */
-export async function scheduleWeeklyEvaluations(orgId: string, asOfDate: Date = new Date()): Promise<void> {
+export async function scheduleWeeklyEvaluations(
+  orgId: string,
+  asOfDate: Date = new Date(),
+  correlationId?: string
+): Promise<void> {
   // Get all sitters with recent snapshots
   const snapshots = await (prisma as any).sitterTierSnapshot.findMany({
     where: {
@@ -384,16 +426,30 @@ export async function scheduleWeeklyEvaluations(orgId: string, asOfDate: Date = 
 
   // Enqueue evaluation jobs
   for (const snapshot of snapshots) {
-    await srsQueue.add(
+    const jobCorrelationId = correlationId ?? resolveCorrelationId();
+    const payload: WeeklyEvaluationJobData = {
+      orgId,
+      sitterId: snapshot.sitterId,
+      asOfDate: asOfDate.toISOString().split('T')[0],
+      correlationId: jobCorrelationId,
+    };
+    const job = await srsQueue.add(
       "weekly-evaluation",
-      {
-        orgId,
-        sitterId: snapshot.sitterId,
-        asOfDate: asOfDate.toISOString().split('T')[0],
-      },
+      payload,
       {
         jobId: `srs-eval-${orgId}-${snapshot.sitterId}-${asOfDate.toISOString().split('T')[0]}`,
       }
     );
+    await recordQueueJobQueued({
+      queueName: srsQueue.name,
+      jobName: "weekly-evaluation",
+      jobId: String(job.id),
+      orgId,
+      subsystem: "srs",
+      resourceType: "sitter",
+      resourceId: snapshot.sitterId,
+      correlationId: jobCorrelationId,
+      payload: payload as unknown as Record<string, unknown>,
+    });
   }
 }

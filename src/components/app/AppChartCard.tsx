@@ -6,11 +6,15 @@ import { AppCard } from './AppCard';
 export interface AppChartCardProps {
   title: string;
   subtitle?: string;
+  timeframes?: Array<{ value: string; label: string }>;
   timeframe?: string;
   onTimeframeChange?: (value: string) => void;
+  headerRight?: React.ReactNode;
   children?: React.ReactNode;
   loading?: boolean;
+  isLoading?: boolean;
   empty?: boolean;
+  isEmpty?: boolean;
   error?: string;
   onRetry?: () => void;
   className?: string;
@@ -25,15 +29,23 @@ const TIMEFRAME_OPTIONS = [
 export function AppChartCard({
   title,
   subtitle,
+  timeframes,
   timeframe = '30d',
   onTimeframeChange,
+  headerRight,
   children,
   loading = false,
+  isLoading = false,
   empty = false,
+  isEmpty = false,
   error,
   onRetry,
   className = '',
 }: AppChartCardProps) {
+  const resolvedLoading = loading || isLoading;
+  const resolvedEmpty = empty || isEmpty;
+  const options = timeframes && timeframes.length > 0 ? timeframes : TIMEFRAME_OPTIONS;
+
   return (
     <AppCard className={className}>
       <div className="px-5 pt-5 pb-3" style={{ padding: 'var(--density-padding)' }}>
@@ -44,20 +56,23 @@ export function AppChartCard({
               <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">{subtitle}</p>
             )}
           </div>
-          {onTimeframeChange && (
-            <select
-              value={timeframe}
-              onChange={(e) => onTimeframeChange(e.target.value)}
-              className="mt-2 rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)] sm:mt-0"
-              aria-label="Timeframe"
-            >
-              {TIMEFRAME_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          )}
+          <div className="mt-2 flex items-center gap-2 sm:mt-0">
+            {onTimeframeChange && (
+              <select
+                value={timeframe}
+                onChange={(e) => onTimeframeChange(e.target.value)}
+                className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)]"
+                aria-label="Timeframe"
+              >
+                {options.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            {headerRight}
+          </div>
         </div>
       </div>
       <div
@@ -77,11 +92,11 @@ export function AppChartCard({
               </button>
             )}
           </div>
-        ) : loading ? (
+        ) : resolvedLoading ? (
           <div className="flex aspect-video animate-pulse items-center justify-center">
             <div className="h-32 w-full rounded bg-[var(--color-border-muted)]" />
           </div>
-        ) : empty ? (
+        ) : resolvedEmpty ? (
           <div className="flex aspect-video items-center justify-center text-sm text-[var(--color-text-tertiary)]">
             No data
           </div>

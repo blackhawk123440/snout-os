@@ -12,7 +12,7 @@ import { sendThreadMessage, asMessagingActorRole } from '@/lib/messaging/send';
 export async function POST(request: NextRequest) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       },
       body: messageBody,
       forceSend: Boolean(body.forceSend),
+      correlationId: ctx.correlationId,
     });
     if (result.deliveryStatus === 'failed') {
       return NextResponse.json(

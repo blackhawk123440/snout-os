@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { LayoutWrapper } from '@/components/layout';
 import {
   AppCard,
   AppCardHeader,
@@ -53,7 +54,7 @@ export default function ClientPetDetailPage() {
   }, [load]);
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
+    <LayoutWrapper variant="narrow">
       <AppPageHeader
         title={pet?.name || 'Pet details'}
         subtitle={pet ? [pet.species, pet.breed].filter(Boolean).join(' · ') : ''}
@@ -61,7 +62,7 @@ export default function ClientPetDetailPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            className="text-sm font-medium text-text-secondary hover:text-text-primary"
           >
             Back
           </button>
@@ -72,22 +73,22 @@ export default function ClientPetDetailPage() {
       ) : error ? (
         <AppErrorState title="Couldn't load pet" subtitle={error} onRetry={() => void load()} />
       ) : pet ? (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-8">
           <AppCard>
             <AppCardHeader>
-              <p className="font-semibold text-slate-900">{pet.name || 'Unnamed pet'}</p>
+              <p className="font-semibold text-text-primary">{pet.name || 'Unnamed pet'}</p>
             </AppCardHeader>
             <AppCardBody>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-text-tertiary">
                 {[pet.species, pet.breed].filter(Boolean).join(' · ') || 'No details'}
               </p>
               {pet.notes && (
-                <p className="mt-2 text-sm text-slate-500">{pet.notes}</p>
+                <p className="mt-2 text-sm text-text-tertiary">{pet.notes}</p>
               )}
             </AppCardBody>
           </AppCard>
         </div>
       ) : null}
-    </div>
+    </LayoutWrapper>
   );
 }

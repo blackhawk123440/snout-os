@@ -14,7 +14,7 @@ import { logEvent } from '@/lib/log-event';
 export async function POST(request: NextRequest) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
     requireOwnerOrAdmin(ctx);
   } catch (error) {
     if (error instanceof ForbiddenError) {
@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
       start: start.toISOString(),
       end: end.toISOString(),
       orgId: ctx.orgId,
+      correlationId: ctx.correlationId,
     });
 
     await logEvent({
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
       action: 'calendar.repair.requested',
       entityType: 'calendar',
       entityId: sitterId,
+      correlationId: ctx.correlationId,
       metadata: { sitterId, start: start.toISOString(), end: end.toISOString(), jobId },
     });
 

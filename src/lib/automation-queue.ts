@@ -11,6 +11,8 @@ import { Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
 import { logAutomationRun, logEventFromLogger } from "./event-logger";
 import { publish, channels } from "@/lib/realtime/bus";
+import { attachQueueWorkerInstrumentation, recordQueueJobQueued } from "@/lib/queue-observability";
+import { resolveCorrelationId } from "@/lib/correlation-id";
 
 // Redis connection
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379");
@@ -41,6 +43,7 @@ export interface AutomationJobData {
     [key: string]: any; // Additional context data
   };
   idempotencyKey?: string; // Optional idempotency key to prevent duplicate execution
+  correlationId?: string;
 }
 
 /**
@@ -51,20 +54,35 @@ export async function enqueueAutomation(
   automationType: string,
   recipient: "client" | "sitter" | "owner",
   context: AutomationJobData["context"],
-  idempotencyKey?: string
+  idempotencyKey?: string,
+  correlationId?: string
 ): Promise<void> {
+  const jobCorrelationId = correlationId ?? resolveCorrelationId();
   const jobData: AutomationJobData = {
     automationType,
     recipient,
     context,
     idempotencyKey,
+    correlationId: jobCorrelationId,
   };
 
   const jobOptions: any = {
     jobId: idempotencyKey, // Use idempotency key as job ID to prevent duplicates
   };
 
-  await automationQueue.add(`automation:${automationType}:${recipient}`, jobData, jobOptions);
+  const job = await automationQueue.add(`automation:${automationType}:${recipient}`, jobData, jobOptions);
+  const orgId = (context as any)?.orgId ?? "default";
+  await recordQueueJobQueued({
+    queueName: automationQueue.name,
+    jobName: `automation:${automationType}:${recipient}`,
+    jobId: String(job.id),
+    orgId,
+    subsystem: "automation",
+    resourceType: context?.bookingId ? "booking" : "automation",
+    resourceId: context?.bookingId ?? automationType,
+    correlationId: jobCorrelationId,
+    payload: jobData as unknown as Record<string, unknown>,
+  });
 }
 
 /**
@@ -72,11 +90,12 @@ export async function enqueueAutomation(
  * This worker will execute automations and write EventLog records
  */
 export function createAutomationWorker(): Worker {
-  return new Worker(
+  const worker = new Worker(
     "automations",
     async (job) => {
-      const { automationType, recipient, context } = job.data as AutomationJobData;
+      const { automationType, recipient, context, correlationId } = job.data as AutomationJobData;
       const jobId = job.id;
+      const contextWithCorrelation = { ...context, correlationId };
       
       // Log that automation run started
       await logAutomationRun(
@@ -84,10 +103,11 @@ export function createAutomationWorker(): Worker {
         "pending",
         {
           bookingId: context.bookingId,
+          correlationId,
           metadata: { 
             jobId, 
             recipient, 
-            context,
+            context: contextWithCorrelation,
             message: `Starting automation: ${automationType} for ${recipient}`
           }
         }
@@ -98,7 +118,7 @@ export function createAutomationWorker(): Worker {
         const { executeAutomationForRecipient } = await import("./automation-executor");
         
         // Execute the automation
-        const result = await executeAutomationForRecipient(automationType, recipient, context);
+        const result = await executeAutomationForRecipient(automationType, recipient, contextWithCorrelation);
         
         // Log success
         await logAutomationRun(
@@ -106,6 +126,7 @@ export function createAutomationWorker(): Worker {
           "success",
           {
             bookingId: context.bookingId,
+            correlationId,
             metadata: {
               jobId,
               recipient,
@@ -128,10 +149,11 @@ export function createAutomationWorker(): Worker {
             orgId,
             bookingId: context.bookingId,
             error: errorMessage,
+            correlationId,
             metadata: {
               jobId,
               recipient,
-              context,
+              context: contextWithCorrelation,
               stack: error?.stack,
               message: `Automation failed: ${automationType} for ${recipient} - ${errorMessage}`,
             },
@@ -146,6 +168,19 @@ export function createAutomationWorker(): Worker {
       concurrency: 5, // Process up to 5 jobs concurrently
     }
   );
+  attachQueueWorkerInstrumentation(worker, (job) => {
+    const data = job.data as AutomationJobData;
+    const orgId = (data.context as any)?.orgId ?? "default";
+    return {
+      orgId,
+      subsystem: "automation",
+      resourceType: data.context?.bookingId ? "booking" : "automation",
+      resourceId: data.context?.bookingId ?? data.automationType,
+      correlationId: data.correlationId,
+      payload: data as unknown as Record<string, unknown>,
+    };
+  });
+  return worker;
 }
 
 /**
@@ -172,6 +207,7 @@ export function initializeAutomationWorker(): Worker {
           jobName: `automation:${(job?.data as any)?.automationType}`,
           orgId: (job?.data as any)?.context?.orgId,
           bookingId: (job?.data as any)?.context?.bookingId,
+          correlationId: (job?.data as any)?.correlationId,
         });
       } catch (_) {}
       const attempts = (job?.attemptsMade ?? 0) + 1;
@@ -182,6 +218,7 @@ export function initializeAutomationWorker(): Worker {
             orgId,
             bookingId: (job.data as any).context?.bookingId,
             error: err?.message || String(err),
+            correlationId: (job.data as any).correlationId,
             metadata: {
               automationType: (job.data as AutomationJobData).automationType,
               recipient: (job.data as AutomationJobData).recipient,

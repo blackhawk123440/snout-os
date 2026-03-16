@@ -205,8 +205,12 @@ export function AppTable<T extends Record<string, unknown>>({
                                 checked={visibleColumns.has(col.key)}
                                 onChange={() => {
                                   const next = new Set(visibleColumns);
-                                  if (next.has(col.key)) next.delete(col.key);
-                                  else next.add(col.key);
+                                  if (next.has(col.key)) {
+                                    // Keep at least one column visible.
+                                    if (next.size > 1) next.delete(col.key);
+                                  } else {
+                                    next.add(col.key);
+                                  }
                                   setVisibleColumns(next);
                                 }}
                               />

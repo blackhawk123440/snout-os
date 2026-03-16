@@ -38,15 +38,15 @@ export function ClientListSecondaryModule({ variant }: { variant: Variant }) {
   const { title, body, linkLabel, href } = CONTENT[variant];
   return (
     <aside
-      className="hidden rounded-lg border border-slate-200 bg-slate-50/80 p-4 lg:block"
+      className="hidden rounded-lg border border-border-default bg-surface-secondary/80 p-4 lg:block"
       aria-label={title}
     >
-      <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-      <p className="mt-1.5 text-sm text-slate-600">{body}</p>
+      <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+      <p className="mt-1.5 text-sm text-text-secondary">{body}</p>
       {linkLabel && href && (
         <Link
           href={href}
-          className="mt-2 inline-block text-sm font-medium text-slate-700 hover:text-slate-900 hover:underline"
+          className="mt-2 inline-block text-sm font-medium text-text-secondary hover:text-text-primary hover:underline"
         >
           {linkLabel}
         </Link>

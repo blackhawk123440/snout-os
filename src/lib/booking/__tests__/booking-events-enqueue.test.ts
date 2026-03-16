@@ -41,7 +41,8 @@ describe('booking.created automation enqueue', () => {
         phone: '+15551234567',
         service: 'Dog Walking',
       }),
-      expect.stringContaining('booking.created:b1:')
+      expect.stringContaining('booking.created:b1:'),
+      undefined
     );
     expect(enqueueAutomation).toHaveBeenCalledWith(
       'ownerNewBookingAlert',
@@ -50,7 +51,8 @@ describe('booking.created automation enqueue', () => {
         orgId: 'org-1',
         bookingId: 'b1',
       }),
-      expect.any(String)
+      expect.any(String),
+      undefined
     );
   });
 });

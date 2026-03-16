@@ -64,7 +64,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
     requireRole(ctx, 'client');
     requireClientContext(ctx);
   } catch (error) {
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
 
     await ensureEventQueueBridge();
     try {
-      await emitBookingCreated(booking);
+      await emitBookingCreated(booking, ctx.correlationId);
     } catch (eventError) {
       console.error('[api/client/bookings] emitBookingCreated failed (non-blocking):', eventError);
     }
@@ -178,6 +178,7 @@ export async function POST(request: NextRequest) {
       clientId: booking.clientId ?? undefined,
       sitterId: booking.sitterId ?? undefined,
       occurredAt: new Date().toISOString(),
+      correlationId: ctx.correlationId,
       metadata: {
         service: booking.service,
         status: booking.status,

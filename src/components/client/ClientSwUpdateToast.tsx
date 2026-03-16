@@ -72,13 +72,13 @@ export function ClientSwUpdateToast() {
   return (
     <div
       role="status"
-      className="fixed bottom-16 left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-lg lg:bottom-4 lg:left-auto lg:right-4 lg:max-w-sm"
+      className="fixed bottom-16 left-4 right-4 z-50 flex items-center justify-between gap-3 rounded-lg border border-border-default bg-surface-primary px-3 py-2 shadow-lg lg:bottom-4 lg:left-auto lg:right-4 lg:max-w-sm"
     >
-      <span className="text-sm text-slate-700">Update available</span>
+      <span className="text-sm text-text-secondary">Update available</span>
       <button
         type="button"
         onClick={handleRefresh}
-        className="shrink-0 text-sm font-medium text-slate-900 underline focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+        className="shrink-0 text-sm font-medium text-text-primary underline focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
       >
         Refresh
       </button>

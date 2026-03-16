@@ -73,7 +73,7 @@ export default function ClientReportDetailPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="text-sm font-medium text-text-secondary hover:text-text-primary"
           >
             Back
           </button>
@@ -85,14 +85,14 @@ export default function ClientReportDetailPage() {
       ) : error ? (
         <AppErrorState title="Couldn't load report" subtitle={error} onRetry={() => void load()} />
       ) : report ? (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-8">
           <AppCard>
             <AppCardHeader>
-              <p className="font-semibold text-neutral-900">
+              <p className="font-semibold text-text-primary">
                 {report.booking?.service || 'Visit report'}
               </p>
               {report.booking && (
-                <p className="mt-1 text-sm text-neutral-600">
+                <p className="mt-1 text-sm text-text-secondary">
                   {formatDate(report.booking.startAt)}
                   {report.booking.startAt && report.booking.endAt && (
                     <> · {formatTime(report.booking.startAt)} – {formatTime(report.booking.endAt)}</>
@@ -101,7 +101,7 @@ export default function ClientReportDetailPage() {
               )}
             </AppCardHeader>
             <AppCardBody>
-              <div className="whitespace-pre-wrap text-sm text-neutral-700">{report.content}</div>
+              <div className="whitespace-pre-wrap text-sm text-text-secondary">{report.content}</div>
               {report.mediaUrls && (() => {
                 let urls: string[] = [];
                 try {
@@ -122,7 +122,7 @@ export default function ClientReportDetailPage() {
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block overflow-hidden rounded-lg border border-neutral-200"
+                        className="block overflow-hidden rounded-lg border border-border-default"
                       >
                         <img
                           src={url}

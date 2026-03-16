@@ -10,6 +10,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { recordOfferExpired, recordOfferReassigned, recordOfferExhausted, recordManualDispatchRequired } from '@/lib/audit-events';
 import { selectEligibleSitter } from '@/lib/sitter-eligibility';
+import { resolveCorrelationId } from '@/lib/correlation-id';
 import {
   getBookingAttemptCount,
   getSittersInCooldown,
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest) {
   // For now, allow unauthenticated (should be protected by API key in production)
   
   try {
+    const correlationId = resolveCorrelationId(request);
     const now = new Date();
 
     // Find all offers that are still "sent" but have expired
@@ -66,7 +68,9 @@ export async function POST(request: NextRequest) {
           offer.orgId,
           offer.sitterId,
           offer.bookingId || '',
-          offer.id
+          offer.id,
+          undefined,
+          correlationId
         );
 
         expiredCount++;
@@ -120,7 +124,9 @@ export async function POST(request: NextRequest) {
                 offer.orgId,
                 offer.bookingId,
                 attemptCount,
-                `Max attempts (${MAX_REASSIGNMENT_ATTEMPTS}) reached for booking`
+                `Max attempts (${MAX_REASSIGNMENT_ATTEMPTS}) reached for booking`,
+                undefined,
+                correlationId
               );
               
               // Only record manual dispatch event once (idempotent check)
@@ -128,7 +134,9 @@ export async function POST(request: NextRequest) {
                 await recordManualDispatchRequired(
                   offer.orgId,
                   offer.bookingId,
-                  `Max reassignment attempts (${attemptCount}) reached`
+                  `Max reassignment attempts (${attemptCount}) reached`,
+                  undefined,
+                  correlationId
                 );
               }
               
@@ -197,7 +205,9 @@ export async function POST(request: NextRequest) {
                 selection.sitterId,
                 offer.bookingId,
                 newOffer.id,
-                `Offer expired (attempt ${attemptCount + 1}/${MAX_REASSIGNMENT_ATTEMPTS}), reassigned to ${selection.reason}`
+                `Offer expired (attempt ${attemptCount + 1}/${MAX_REASSIGNMENT_ATTEMPTS}), reassigned to ${selection.reason}`,
+                undefined,
+                correlationId
               );
             } else {
               // No eligible sitter found - mark for manual dispatch
@@ -216,7 +226,9 @@ export async function POST(request: NextRequest) {
                 await recordManualDispatchRequired(
                   offer.orgId,
                   offer.bookingId,
-                  `No eligible sitter found after ${attemptCount} attempts: ${selection.reason}`
+                  `No eligible sitter found after ${attemptCount} attempts: ${selection.reason}`,
+                  undefined,
+                  correlationId
                 );
               }
               

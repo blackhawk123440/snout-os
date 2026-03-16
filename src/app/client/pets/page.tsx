@@ -80,7 +80,7 @@ export default function ClientPetsPage() {
             />
           ) : (
             <div className="w-full space-y-3 lg:max-w-3xl">
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
+              <div className="overflow-hidden rounded-xl border border-border-default bg-surface-primary lg:rounded-lg">
                 {pets.map((p) => (
                   <InteractiveRow
                     key={p.id}
@@ -89,12 +89,12 @@ export default function ClientPetsPage() {
                     aria-label={`View pet ${p.name || 'Unnamed pet'}`}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-base" aria-hidden>
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-tertiary text-base" aria-hidden>
                         {petEmoji(p.species)}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-slate-900">{p.name || 'Unnamed pet'}</p>
-                        <p className="truncate text-sm text-slate-700">
+                        <p className="truncate text-sm font-medium text-text-primary">{p.name || 'Unnamed pet'}</p>
+                        <p className="truncate text-sm text-text-secondary">
                           {[p.species, p.breed].filter(Boolean).join(' · ') || 'No details'}
                         </p>
                       </div>

@@ -1,5 +1,7 @@
 import { Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
+import { attachQueueWorkerInstrumentation, recordQueueJobQueued } from "@/lib/queue-observability";
+import { resolveCorrelationId } from "@/lib/correlation-id";
 
 // Redis connection
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379");
@@ -16,6 +18,14 @@ export const summaryWorker = new Worker(
   },
   { connection }
 );
+attachQueueWorkerInstrumentation(summaryWorker, (job) => ({
+  orgId: "default",
+  subsystem: "summary",
+  resourceType: "system",
+  resourceId: "daily-summary",
+  correlationId: (job.data as any)?.correlationId,
+  payload: job.data as Record<string, unknown>,
+}));
 
 // Phase 7.2: Pricing reconciliation worker
 export const reconciliationWorker = new Worker(
@@ -26,14 +36,23 @@ export const reconciliationWorker = new Worker(
   },
   { connection }
 );
+attachQueueWorkerInstrumentation(reconciliationWorker, (job) => ({
+  orgId: "default",
+  subsystem: "reconciliation",
+  resourceType: "system",
+  resourceId: "pricing-reconciliation",
+  correlationId: (job.data as any)?.correlationId,
+  payload: job.data as Record<string, unknown>,
+}));
 
 // Reminder scheduling: see reminder-scheduler-queue.ts (org-scoped, no global scan)
 
 export async function scheduleDailySummary() {
   // Schedule daily summary at 9 PM
-  await summaryQueue.add(
+  const correlationId = resolveCorrelationId();
+  const job = await summaryQueue.add(
     "process-daily-summary",
-    {},
+    { correlationId },
     {
       repeat: {
         pattern: "0 21 * * *", // 9 PM daily
@@ -42,15 +61,27 @@ export async function scheduleDailySummary() {
       removeOnFail: 5,
     }
   );
+  await recordQueueJobQueued({
+    queueName: summaryQueue.name,
+    jobName: "process-daily-summary",
+    jobId: String(job.id),
+    orgId: "default",
+    subsystem: "summary",
+    resourceType: "system",
+    resourceId: "daily-summary",
+    correlationId,
+    payload: { correlationId },
+  });
 }
 
 // Phase 7.2: Schedule pricing reconciliation
 // Per Master Spec Section 5.3: Pricing drift detection
 export async function scheduleReconciliation() {
   // Schedule reconciliation daily at 2 AM (low traffic time)
-  await reconciliationQueue.add(
+  const correlationId = resolveCorrelationId();
+  const job = await reconciliationQueue.add(
     "process-pricing-reconciliation",
-    {},
+    { correlationId },
     {
       repeat: {
         pattern: "0 2 * * *", // 2 AM daily
@@ -59,6 +90,17 @@ export async function scheduleReconciliation() {
       removeOnFail: 5,
     }
   );
+  await recordQueueJobQueued({
+    queueName: reconciliationQueue.name,
+    jobName: "process-pricing-reconciliation",
+    jobId: String(job.id),
+    orgId: "default",
+    subsystem: "reconciliation",
+    resourceType: "system",
+    resourceId: "pricing-reconciliation",
+    correlationId,
+    payload: { correlationId },
+  });
 }
 
 // Initialize queues

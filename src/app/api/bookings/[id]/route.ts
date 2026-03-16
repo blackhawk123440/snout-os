@@ -54,7 +54,7 @@ export async function GET(
 ) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(_request);
     requireAnyRole(ctx, ['owner', 'admin']);
   } catch (error) {
     if (error instanceof ForbiddenError) {
@@ -333,12 +333,16 @@ export async function PATCH(
         bookingId: existing.id,
         sitterId: existing.sitterId,
         orgId: ctx.orgId,
+        correlationId: ctx.correlationId,
       }).catch((e) => console.error('[Booking PATCH] calendar delete enqueue failed:', e));
     }
     if (newSitterId && !cancelled) {
-      enqueueCalendarSync({ type: 'upsert', bookingId: existing.id, orgId: ctx.orgId }).catch((e) =>
-        console.error('[Booking PATCH] calendar upsert enqueue failed:', e)
-      );
+      enqueueCalendarSync({
+        type: 'upsert',
+        bookingId: existing.id,
+        orgId: ctx.orgId,
+        correlationId: ctx.correlationId,
+      }).catch((e) => console.error('[Booking PATCH] calendar upsert enqueue failed:', e));
     }
 
     try {
@@ -347,7 +351,7 @@ export async function PATCH(
         where: { id: existing.id },
         include: { pets: true, timeSlots: true, sitter: true, client: true },
       });
-      if (full) await emitBookingUpdated(full, existing.status);
+      if (full) await emitBookingUpdated(full, existing.status, ctx.correlationId);
     } catch (err) {
       console.error('[Booking PATCH] Failed to emit booking.updated:', err);
     }

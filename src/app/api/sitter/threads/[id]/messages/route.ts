@@ -41,7 +41,7 @@ export async function GET(
 ) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -108,7 +108,7 @@ export async function POST(
 ) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -146,6 +146,7 @@ export async function POST(
         sitterId: ctx.sitterId,
       },
       body: messageBody,
+      correlationId: ctx.correlationId,
     });
     if (result.deliveryStatus === 'failed') {
       return NextResponse.json(

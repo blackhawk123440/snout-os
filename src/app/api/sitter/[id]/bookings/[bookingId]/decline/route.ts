@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { recordOfferDeclined } from '@/lib/audit-events';
+import { resolveCorrelationId } from '@/lib/correlation-id';
 
 export async function POST(
   request: NextRequest,
@@ -24,6 +25,7 @@ export async function POST(
   }
 
   try {
+    const correlationId = resolveCorrelationId(request);
     const resolvedParams = await params;
     const sitterId = resolvedParams.id;
     const bookingId = resolvedParams.bookingId;
@@ -102,7 +104,8 @@ export async function POST(
       offer.id,
       responseSeconds,
       isExpired ? 'expired' : 'declined',
-      (session.user as any).id
+      (session.user as any).id,
+      correlationId
     );
 
     // Update metrics window with response time

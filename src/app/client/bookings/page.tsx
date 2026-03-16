@@ -78,7 +78,7 @@ export default function ClientBookingsPage() {
             />
           ) : (
             <div className="w-full space-y-3 lg:max-w-3xl">
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
+              <div className="overflow-hidden rounded-xl border border-border-default bg-surface-primary lg:rounded-lg">
                 {bookings.map((b) => (
                   <InteractiveRow
                     key={b.id}
@@ -87,17 +87,17 @@ export default function ClientBookingsPage() {
                     aria-label={`View booking ${b.service}`}
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-slate-900">{b.service}</p>
-                      <p className="truncate text-xs text-slate-500 tabular-nums">
+                      <p className="truncate text-sm font-medium text-text-primary">{b.service}</p>
+                      <p className="truncate text-xs text-text-tertiary tabular-nums">
                         {formatDate(b.startAt)} · {formatTime(b.startAt)}
                       </p>
                       {b.sitter?.name ? (
-                        <p className="truncate text-xs text-slate-600">with {b.sitter.name}</p>
+                        <p className="truncate text-xs text-text-secondary">with {b.sitter.name}</p>
                       ) : null}
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
                       <AppStatusPill status={b.status} />
-                      <span className="hidden text-sm text-slate-700 tabular-nums sm:inline">
+                      <span className="hidden text-sm text-text-secondary tabular-nums sm:inline">
                         {formatDate(b.startAt)}
                       </span>
                     </div>

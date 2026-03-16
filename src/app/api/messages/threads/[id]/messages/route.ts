@@ -59,7 +59,7 @@ export async function GET(
   const threadId = params.id;
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(_request);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -126,7 +126,7 @@ export async function POST(
 
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -163,6 +163,7 @@ export async function POST(
       },
       body: messageBody,
       forceSend: body.forceSend,
+      correlationId: ctx.correlationId,
     });
     if (result.deliveryStatus === 'failed') {
       return NextResponse.json(

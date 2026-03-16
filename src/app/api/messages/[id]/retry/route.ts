@@ -18,7 +18,7 @@ export async function POST(
   const messageId = params.id;
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
   } catch {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -34,6 +34,7 @@ export async function POST(
         sitterId: ctx.sitterId,
         clientId: ctx.clientId,
       },
+      correlationId: ctx.correlationId,
     });
     return NextResponse.json(
       { success: result.success, attemptNo: result.attemptNo },

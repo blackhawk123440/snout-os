@@ -12,6 +12,7 @@ import Stripe from 'stripe';
 import { getScopedDb } from '@/lib/tenancy';
 import { onBookingConfirmed } from '@/lib/bookings/booking-confirmed-handler';
 import { logEvent } from '@/lib/log-event';
+import { resolveCorrelationId } from '@/lib/correlation-id';
 import {
   persistPaymentSucceeded,
   persistPaymentFailed,
@@ -41,6 +42,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+
+    const correlationId = resolveCorrelationId(request, event.id);
 
     // payment_intent.succeeded
     if (event.type === 'payment_intent.succeeded') {
@@ -102,6 +105,7 @@ export async function POST(request: NextRequest) {
             entityId: pi.id,
             bookingId,
             status: 'success',
+            correlationId,
             metadata: { stripeEventType: event.type },
           }).catch(() => {});
           const { enqueueAutomation } = await import('@/lib/automation-queue');
@@ -109,7 +113,8 @@ export async function POST(request: NextRequest) {
             'bookingConfirmation',
             'client',
             { bookingId },
-            `bookingConfirmation:client:${bookingId}:payment`
+            `bookingConfirmation:client:${bookingId}:payment`,
+            correlationId
           );
         }
       }
@@ -130,7 +135,8 @@ export async function POST(request: NextRequest) {
         orgId,
         err,
         bookingId,
-        pi.receipt_email
+        pi.receipt_email,
+        correlationId
       );
     }
 

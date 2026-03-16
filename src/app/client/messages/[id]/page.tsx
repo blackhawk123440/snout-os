@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
+import { AppCard, AppCardBody, AppErrorState, AppSkeletonList } from '@/components/app';
 import { toastSuccess } from '@/lib/toast';
 
 interface Message {
@@ -59,6 +59,12 @@ export default function ClientMessageThreadPage() {
     void load();
   }, [load]);
 
+  // Poll for new messages every 8s so client sees sitter replies in real-time
+  useEffect(() => {
+    const interval = setInterval(() => void load(), 8000);
+    return () => clearInterval(interval);
+  }, [load]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [thread?.messages?.length]);
@@ -86,7 +92,6 @@ export default function ClientMessageThreadPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ body }),
       });
-      const json = await res.json().catch(() => ({}));
       if (res.ok) {
         toastSuccess('Message sent');
         void load();
@@ -122,7 +127,7 @@ export default function ClientMessageThreadPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            className="text-sm font-medium text-text-secondary hover:text-text-primary"
           >
             Back
           </button>
@@ -130,20 +135,18 @@ export default function ClientMessageThreadPage() {
       />
       <Section>
       {loading ? (
-          <div className="flex flex-col gap-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-lg bg-slate-100" />
-          ))}
-        </div>
+        <AppSkeletonList count={3} />
       ) : error ? (
         <AppErrorState title="Couldn't load thread" subtitle={error} onRetry={() => void load()} />
       ) : thread ? (
         <>
           <div className="flex-1 space-y-3">
             {thread.messages?.length === 0 ? (
-              <div className="rounded-lg border border-slate-200 bg-white px-6 py-4">
-                <p className="text-center text-sm text-slate-500">No messages yet. Say hello!</p>
-              </div>
+              <AppCard>
+                <AppCardBody>
+                  <p className="text-center text-sm text-text-tertiary">No messages yet. Say hello!</p>
+                </AppCardBody>
+              </AppCard>
             ) : (
               thread.messages?.map((m) => {
                 const isPending = String(m.id).startsWith('pending-');
@@ -155,14 +158,14 @@ export default function ClientMessageThreadPage() {
                     <div
                       className={`max-w-[85%] rounded-lg px-4 py-2 ${
                         m.isFromClient
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-slate-100 text-slate-900'
+                          ? 'bg-surface-inverse text-text-inverse'
+                          : 'bg-surface-tertiary text-text-primary'
                       }`}
                     >
                       <p className="text-sm">{m.body}</p>
                       <p
                         className={`mt-1 text-[10px] ${
-                          m.isFromClient ? 'text-slate-300' : 'text-slate-500'
+                          m.isFromClient ? 'text-text-inverse/60' : 'text-text-tertiary'
                         }`}
                       >
                         {isPending ? 'Sending…' : formatTime(m.createdAt)}
@@ -182,14 +185,14 @@ export default function ClientMessageThreadPage() {
               onChange={(e) => setComposerValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && void handleSend()}
               placeholder="Type a message..."
-              className="flex-1 rounded-lg border border-slate-200 px-4 py-3 text-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              className="flex-1 rounded-lg border border-border-default px-4 py-3 text-sm focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus"
               disabled={sending}
             />
             <button
               type="button"
               onClick={() => void handleSend()}
               disabled={!composerValue.trim() || sending}
-              className="rounded-lg bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+              className="rounded-lg bg-surface-inverse px-4 py-3 text-sm font-medium text-text-inverse transition hover:opacity-90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
             >
               Send
             </button>

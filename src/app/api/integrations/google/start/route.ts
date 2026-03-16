@@ -43,8 +43,9 @@ export async function GET(request: NextRequest) {
   try {
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 
-    // Generate state token with sitterId for callback
-    const state = Buffer.from(JSON.stringify({ sitterId, userId: user.id })).toString('base64');
+    const orgId = user.orgId ?? 'default';
+    const { encodeOAuthState } = await import('@/lib/signup-bootstrap');
+    const state = encodeOAuthState({ orgId, userId: user.id, sitterId });
 
     // Scopes: calendar.events for sync, calendar.freebusy for "Respect Google Busy"
     const scopes = [

@@ -8,6 +8,8 @@ import IORedis from "ioredis";
 import { getScopedDb } from "@/lib/tenancy";
 import { reconcileOrgRange } from "./reconcile";
 import { logEvent } from "@/lib/log-event";
+import { attachQueueWorkerInstrumentation, recordQueueJobQueued } from "@/lib/queue-observability";
+import { resolveCorrelationId } from "@/lib/correlation-id";
 
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379");
 
@@ -25,31 +27,48 @@ export interface FinanceReconcileJobData {
   orgId: string;
   start: string; // ISO date
   end: string;   // ISO date
+  correlationId?: string;
 }
 
 export async function enqueueFinanceReconcile(params: {
   orgId: string;
   start: Date;
   end: Date;
+  correlationId?: string;
 }): Promise<string> {
+  const jobCorrelationId = params.correlationId ?? resolveCorrelationId();
+  const payload: FinanceReconcileJobData = {
+    orgId: params.orgId,
+    start: params.start.toISOString(),
+    end: params.end.toISOString(),
+    correlationId: jobCorrelationId,
+  };
   const job = await financeReconcileQueue.add(
     "reconcile",
-    {
-      orgId: params.orgId,
-      start: params.start.toISOString(),
-      end: params.end.toISOString(),
-    } as FinanceReconcileJobData
+    payload as FinanceReconcileJobData
   );
   await logEvent({
     orgId: params.orgId,
     action: "finance.reconcile.requested",
+    correlationId: jobCorrelationId,
     metadata: { jobId: job.id, start: params.start.toISOString(), end: params.end.toISOString() },
   }).catch(() => {});
+  await recordQueueJobQueued({
+    queueName: financeReconcileQueue.name,
+    jobName: "reconcile",
+    jobId: String(job.id),
+    orgId: params.orgId,
+    subsystem: "finance",
+    resourceType: "org",
+    resourceId: params.orgId,
+    correlationId: jobCorrelationId,
+    payload: payload as unknown as Record<string, unknown>,
+  });
   return job.id!;
 }
 
 export function initializeFinanceReconcileWorker(): Worker {
-  return new Worker(
+  const worker = new Worker(
     "finance.reconcile",
     async (job) => {
       const { orgId, start, end } = job.data as FinanceReconcileJobData;
@@ -59,6 +78,7 @@ export function initializeFinanceReconcileWorker(): Worker {
       await logEvent({
         orgId,
         action: "finance.reconcile.started",
+        correlationId: (job.data as FinanceReconcileJobData).correlationId,
         metadata: { jobId: job.id },
       }).catch(() => {});
 
@@ -84,6 +104,7 @@ export function initializeFinanceReconcileWorker(): Worker {
         await logEvent({
           orgId,
           action: "finance.reconcile.succeeded",
+          correlationId: (job.data as FinanceReconcileJobData).correlationId,
           metadata: {
             jobId: job.id,
             totalsByType: result.totalsByType,
@@ -108,6 +129,7 @@ export function initializeFinanceReconcileWorker(): Worker {
           orgId,
           action: "finance.reconcile.failed",
           status: "failed",
+          correlationId: (job.data as FinanceReconcileJobData).correlationId,
           metadata: { jobId: job.id, error: msg },
         }).catch(() => {});
         throw err;
@@ -115,4 +137,16 @@ export function initializeFinanceReconcileWorker(): Worker {
     },
     { connection }
   );
+  attachQueueWorkerInstrumentation(worker, (job) => {
+    const data = job.data as FinanceReconcileJobData;
+    return {
+      orgId: data.orgId ?? "default",
+      subsystem: "finance",
+      resourceType: "org",
+      resourceId: data.orgId,
+      correlationId: data.correlationId,
+      payload: data as unknown as Record<string, unknown>,
+    };
+  });
+  return worker;
 }

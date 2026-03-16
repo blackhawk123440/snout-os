@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { scheduleDailySnapshots } from '@/lib/tiers/srs-queue';
 import { prisma } from '@/lib/db';
+import { resolveCorrelationId } from '@/lib/correlation-id';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -56,7 +57,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Schedule snapshots
-    await scheduleDailySnapshots(orgId, asOfDate);
+    const correlationId = resolveCorrelationId(request);
+    await scheduleDailySnapshots(orgId, asOfDate, correlationId);
 
     // Wait a bit for jobs to process
     await new Promise(resolve => setTimeout(resolve, 2000));

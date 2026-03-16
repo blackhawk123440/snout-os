@@ -21,7 +21,7 @@ function resolveSnoozeUntil(action: AttentionAction): Date | null {
 export async function POST(request: NextRequest) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
     requireOwnerOrAdmin(ctx);
   } catch (error) {
     if (error instanceof ForbiddenError) {
@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
           action,
           handledAt: handledAt?.toISOString() ?? null,
           snoozedUntil: snoozedUntil?.toISOString() ?? null,
+          correlationId: ctx.correlationId,
         }),
       },
     });

@@ -19,7 +19,7 @@ export async function POST(
 ) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
     requireRole(ctx, 'sitter');
   } catch (error) {
     if (error instanceof ForbiddenError) {
@@ -82,7 +82,7 @@ export async function POST(
           eventType: 'sitter.check_out',
           status: 'success',
           bookingId: id,
-          metadata: JSON.stringify({ lat, lng, sitterId: ctx.sitterId }),
+          metadata: JSON.stringify({ lat, lng, sitterId: ctx.sitterId, correlationId: ctx.correlationId }),
         },
       });
     }
@@ -93,7 +93,7 @@ export async function POST(
     });
     if (updated) {
       await ensureEventQueueBridge();
-      await emitVisitCompleted(updated, {});
+      await emitVisitCompleted(updated, {}, ctx.correlationId);
       if (updated.sitterId) {
         publish(channels.sitterToday(updated.orgId ?? ctx.orgId, updated.sitterId), {
           type: 'visit.checkout',
@@ -118,6 +118,7 @@ export async function POST(
                 bookingId: updated.id,
                 amountCents: calc.amountCents,
                 currency: 'usd',
+                correlationId: ctx.correlationId,
               });
               if (payoutResult.success && payoutResult.payoutTransferId) {
                 const commissionAmount = totalPrice - calc.netAmount;

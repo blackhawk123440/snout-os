@@ -28,6 +28,7 @@ export async function logAutomationRun(
     bookingId?: string;
     error?: string;
     metadata?: EventLogMetadata;
+    correlationId?: string;
   }
 ): Promise<void> {
   try {
@@ -41,6 +42,7 @@ export async function logAutomationRun(
         bookingId: options?.bookingId ?? null,
         metadata: JSON.stringify({
           automationType,
+          correlationId: options?.correlationId,
           ...options?.metadata,
         }),
       },
@@ -63,6 +65,7 @@ export async function logEventFromLogger(
     bookingId?: string;
     error?: string;
     metadata?: EventLogMetadata;
+    correlationId?: string;
   }
 ): Promise<void> {
   try {
@@ -73,7 +76,10 @@ export async function logEventFromLogger(
         status,
         error: options?.error ?? null,
         bookingId: options?.bookingId ?? null,
-        metadata: JSON.stringify(options?.metadata ?? {}),
+        metadata: JSON.stringify({
+          correlationId: options?.correlationId,
+          ...(options?.metadata ?? {}),
+        }),
       },
     });
   } catch (error) {
@@ -93,6 +99,7 @@ export async function logEvent(
     bookingId?: string;
     error?: string;
     metadata?: EventLogMetadata;
+    correlationId?: string;
   }
 ): Promise<void> {
   return logEventFromLogger(eventType, status, options);

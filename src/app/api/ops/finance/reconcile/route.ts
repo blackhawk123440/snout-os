@@ -10,7 +10,7 @@ import { enqueueFinanceReconcile } from "@/lib/finance/reconcile-queue";
 export async function POST(request: NextRequest) {
   let ctx;
   try {
-    ctx = await getRequestContext();
+    ctx = await getRequestContext(request);
     requireAnyRole(ctx, ["owner", "admin"]);
   } catch (error) {
     if (error instanceof ForbiddenError) {
@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       orgId: ctx.orgId,
       start,
       end,
+      correlationId: ctx.correlationId,
     });
     return NextResponse.json({ jobId, start: start.toISOString(), end: end.toISOString() });
   } catch (error: unknown) {

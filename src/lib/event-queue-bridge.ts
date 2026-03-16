@@ -17,13 +17,13 @@ import { logEventFromLogger } from "./event-logger";
 
 let initialized = false;
 
-function enqueueCalendarForBooking(booking: any): void {
+function enqueueCalendarForBooking(booking: any, correlationId?: string): void {
   const orgId = booking?.orgId || 'default';
   const bookingId = booking?.id;
   const sitterId = booking?.sitterId;
   if (!bookingId) return;
   if (sitterId) {
-    enqueueCalendarSync({ type: 'upsert', bookingId, orgId }).catch((e) =>
+    enqueueCalendarSync({ type: 'upsert', bookingId, orgId, correlationId }).catch((e) =>
       console.error('[EventQueueBridge] calendar upsert enqueue failed:', e)
     );
   }
@@ -34,7 +34,7 @@ export function initializeEventQueueBridge(): void {
   initialized = true;
 
   eventEmitter.on("booking.created", async (context: any) => {
-    enqueueCalendarForBooking(context.booking);
+    enqueueCalendarForBooking(context.booking, context.correlationId);
   });
 
   eventEmitter.on("booking.updated", async (context: any) => {
@@ -45,18 +45,19 @@ export function initializeEventQueueBridge(): void {
         bookingId: booking.id,
         sitterId: booking.sitterId,
         orgId: booking.orgId || 'default',
+        correlationId: context.correlationId,
       }).catch((e) => console.error('[EventQueueBridge] calendar delete enqueue failed:', e));
     } else {
-      enqueueCalendarForBooking(booking);
+      enqueueCalendarForBooking(booking, context.correlationId);
     }
   });
 
   eventEmitter.on("booking.assigned", async (context: any) => {
-    enqueueCalendarForBooking(context.booking);
+    enqueueCalendarForBooking(context.booking, context.correlationId);
   });
 
   eventEmitter.on("sitter.assigned", async (context: any) => {
-    enqueueCalendarForBooking(context.booking);
+    enqueueCalendarForBooking(context.booking, context.correlationId);
   });
 
   eventEmitter.on("booking.status.changed", async (context: any) => {
@@ -69,13 +70,15 @@ export function initializeEventQueueBridge(): void {
         "bookingConfirmation",
         "client",
         { orgId, bookingId },
-        `bookingConfirmation:client:${bookingId}`
+        `bookingConfirmation:client:${bookingId}`,
+        context.correlationId
       );
       await enqueueAutomation(
         "bookingConfirmation",
         "owner",
         { orgId, bookingId },
-        `bookingConfirmation:owner:${bookingId}`
+        `bookingConfirmation:owner:${bookingId}`,
+        context.correlationId
       );
     } catch (err) {
       console.error("[EventQueueBridge] Failed to enqueue bookingConfirmation:", err);
@@ -91,11 +94,13 @@ export function initializeEventQueueBridge(): void {
         "postVisitThankYou",
         "client",
         { bookingId, orgId },
-        `postVisitThankYou:client:${bookingId}`
+        `postVisitThankYou:client:${bookingId}`,
+        context.correlationId
       );
       await logEventFromLogger("review.scheduled", "success", {
         orgId,
         bookingId,
+        correlationId: context.correlationId,
         metadata: { recipient: "client" },
       });
       if (context.booking?.sitterId) {
@@ -103,11 +108,13 @@ export function initializeEventQueueBridge(): void {
           "postVisitThankYou",
           "sitter",
           { bookingId, sitterId: context.booking.sitterId, orgId },
-          `postVisitThankYou:sitter:${bookingId}`
+          `postVisitThankYou:sitter:${bookingId}`,
+          context.correlationId
         );
         await logEventFromLogger("review.scheduled", "success", {
           orgId,
           bookingId,
+          correlationId: context.correlationId,
           metadata: { recipient: "sitter" },
         });
         const { enqueuePayoutForBooking } = await import("@/lib/payout/payout-queue");
@@ -115,6 +122,7 @@ export function initializeEventQueueBridge(): void {
           orgId,
           bookingId,
           sitterId: context.booking.sitterId,
+          correlationId: context.correlationId,
         }).catch((e) => console.error("[EventQueueBridge] Failed to enqueue payout:", e));
       }
     } catch (err) {
@@ -122,6 +130,7 @@ export function initializeEventQueueBridge(): void {
       await logEventFromLogger("review.scheduled", "failed", {
         orgId,
         bookingId,
+        correlationId: context.correlationId,
         error: err instanceof Error ? err.message : String(err),
       });
     }

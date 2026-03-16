@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { LayoutWrapper } from '@/components/layout';
 import {
   AppCard,
   AppCardHeader,
@@ -84,7 +85,7 @@ export default function ClientBookingDetailPage() {
   if (id === 'new') return null;
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
+    <LayoutWrapper variant="narrow">
       <AppPageHeader
         title="Booking details"
         subtitle={booking ? booking.service : ''}
@@ -92,7 +93,7 @@ export default function ClientBookingDetailPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-sm font-medium text-slate-600 hover:text-slate-900"
+            className="text-sm font-medium text-text-secondary hover:text-text-primary"
           >
             Back
           </button>
@@ -103,24 +104,24 @@ export default function ClientBookingDetailPage() {
       ) : error ? (
         <AppErrorState title="Couldn't load booking" subtitle={error} onRetry={() => void load()} />
       ) : booking ? (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 pb-8">
           <AppCard>
             <AppCardHeader>
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold text-slate-900">{booking.service}</p>
+                <p className="font-semibold text-text-primary">{booking.service}</p>
                 <AppStatusPill status={booking.status} />
               </div>
             </AppCardHeader>
             <AppCardBody>
-              <p className="text-sm text-slate-700">{formatDate(booking.startAt)}</p>
-              <p className="mt-1 text-sm tabular-nums text-slate-700">
+              <p className="text-sm text-text-secondary">{formatDate(booking.startAt)}</p>
+              <p className="mt-1 text-sm tabular-nums text-text-secondary">
                 {formatTime(booking.startAt)} – {formatTime(booking.endAt)}
               </p>
               {booking.address && (
-                <p className="mt-2 text-sm text-slate-500">{booking.address}</p>
+                <p className="mt-2 text-sm text-text-tertiary">{booking.address}</p>
               )}
               {booking.pets?.length > 0 && (
-                <p className="mt-2 text-sm text-slate-500">
+                <p className="mt-2 text-sm text-text-tertiary">
                   Pets: {booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}
                 </p>
               )}
@@ -129,15 +130,15 @@ export default function ClientBookingDetailPage() {
           <AppCard>
             <AppCardHeader>
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold text-slate-900">Payment completion</p>
+                <p className="font-semibold text-text-primary">Payment completion</p>
                 <AppStatusPill status={booking.paymentProof ? 'paid' : booking.paymentStatus || 'unpaid'} />
               </div>
             </AppCardHeader>
             <AppCardBody>
               {booking.paymentProof ? (
-                <div className="space-y-1 text-sm text-slate-700">
+                <div className="space-y-1 text-sm text-text-secondary">
                   <p>
-                    Paid amount: <span className="font-semibold text-slate-900">${booking.paymentProof.amount.toFixed(2)}</span>
+                    Paid amount: <span className="font-semibold text-text-primary">${booking.paymentProof.amount.toFixed(2)}</span>
                   </p>
                   <p>Paid at: {new Date(booking.paymentProof.paidAt).toLocaleString()}</p>
                   <p>Booking ref: {booking.paymentProof.bookingReference}</p>
@@ -147,19 +148,19 @@ export default function ClientBookingDetailPage() {
                       href={booking.paymentProof.receiptLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex text-sm font-medium text-slate-700 underline underline-offset-2"
+                      className="inline-flex text-sm font-medium text-text-secondary underline underline-offset-2"
                     >
                       View receipt
                     </a>
                   ) : null}
                 </div>
               ) : (
-                <p className="text-sm text-slate-600">Payment is not webhook-confirmed yet.</p>
+                <p className="text-sm text-text-secondary">Payment is not webhook-confirmed yet.</p>
               )}
             </AppCardBody>
           </AppCard>
         </div>
       ) : null}
-    </div>
+    </LayoutWrapper>
   );
 }

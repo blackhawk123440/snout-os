@@ -16,15 +16,15 @@ export interface InteractiveRowProps extends React.HTMLAttributes<HTMLDivElement
 export const InteractiveRow = forwardRef<HTMLDivElement, InteractiveRowProps>(
   ({ children, className, as: As = 'div', ...props }, ref) => {
     const base =
-      'cursor-pointer transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1';
-    const hover = 'hover:bg-slate-50';
-    const active = 'active:bg-slate-100';
+      'cursor-pointer transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-offset-1';
+    const hover = 'hover:bg-surface-secondary';
+    const active = 'active:bg-surface-tertiary';
 
     if (As === 'tr') {
       return (
         <tr
           ref={ref as React.Ref<HTMLTableRowElement>}
-          className={cn(base, hover, active, 'border-b border-slate-200', className)}
+          className={cn(base, hover, active, 'border-b border-border-default', className)}
           {...(props as React.HTMLAttributes<HTMLTableRowElement>)}
         >
           {children}
@@ -35,11 +35,20 @@ export const InteractiveRow = forwardRef<HTMLDivElement, InteractiveRowProps>(
     return (
       <div
         ref={ref}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            (e.currentTarget as HTMLDivElement).click();
+          }
+          props.onKeyDown?.(e);
+        }}
         className={cn(
           base,
           hover,
           active,
-          'flex min-h-[56px] items-center gap-3 border-b border-slate-200 px-4 py-2 lg:min-h-[44px] lg:py-1.5',
+          'flex min-h-[56px] items-center gap-3 border-b border-border-default px-4 py-2 lg:min-h-[44px] lg:py-1.5',
           className
         )}
         {...props}

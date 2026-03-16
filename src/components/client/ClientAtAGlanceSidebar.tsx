@@ -64,9 +64,9 @@ export function ClientAtAGlanceSidebar() {
   if (loading) {
     return (
       <aside className="w-full space-y-3 lg:block lg:w-72 lg:shrink-0 lg:space-y-3">
-        <div className="h-16 animate-pulse rounded-xl bg-slate-200 lg:rounded-lg" />
-        <div className="h-16 animate-pulse rounded-xl bg-slate-200 lg:rounded-lg" />
-        <div className="h-16 animate-pulse rounded-xl bg-slate-200 lg:rounded-lg" />
+        <div className="h-16 animate-pulse rounded-xl bg-surface-tertiary lg:rounded-lg" />
+        <div className="h-16 animate-pulse rounded-xl bg-surface-tertiary lg:rounded-lg" />
+        <div className="h-16 animate-pulse rounded-xl bg-surface-tertiary lg:rounded-lg" />
       </aside>
     );
   }
@@ -79,21 +79,21 @@ export function ClientAtAGlanceSidebar() {
     <aside className="w-full space-y-4 lg:w-72 lg:shrink-0 lg:space-y-3">
       <AppCard className="shadow-sm">
         <AppCardBody className="py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Next visit</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-text-tertiary">Next visit</p>
           {nextVisit ? (
             <>
-              <p className="mt-1 font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 font-semibold tabular-nums text-text-primary">
                 {home!.upcomingCount} upcoming
               </p>
               <Link
                 href="/client/bookings"
-                className="mt-1.5 inline-block text-sm font-medium text-slate-600 hover:text-slate-900"
+                className="mt-1.5 inline-block text-sm font-medium text-text-secondary hover:text-text-primary"
               >
                 View bookings
               </Link>
             </>
           ) : (
-            <p className="mt-1 text-sm text-slate-500">No upcoming visits</p>
+            <p className="mt-1 text-sm text-text-tertiary">No upcoming visits</p>
           )}
         </AppCardBody>
       </AppCard>
@@ -103,32 +103,32 @@ export function ClientAtAGlanceSidebar() {
         onClick={() => latestReport && router.push(`/client/reports/${latestReport.id}`)}
       >
         <AppCardBody className="py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Latest report</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-text-tertiary">Latest report</p>
           {latestReport ? (
             <>
-              <p className="mt-1 line-clamp-2 text-sm text-slate-700">
+              <p className="mt-1 line-clamp-2 text-sm text-text-secondary">
                 {renderClientPreview(latestReport.content)}
               </p>
               <Link
                 href="/client/reports"
                 onClick={(e) => e.stopPropagation()}
-                className="mt-1.5 inline-block text-sm font-medium text-slate-600 hover:text-slate-900"
+                className="mt-1.5 inline-block text-sm font-medium text-text-secondary hover:text-text-primary"
               >
                 All reports
               </Link>
             </>
           ) : (
-            <p className="mt-1 text-sm text-slate-500">No reports yet</p>
+            <p className="mt-1 text-sm text-text-tertiary">No reports yet</p>
           )}
         </AppCardBody>
       </AppCard>
 
       <AppCard className="shadow-sm">
         <AppCardBody className="py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Billing</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-text-tertiary">Billing</p>
           {billing ? (
             <>
-              <p className="mt-1 text-sm font-medium text-slate-900">
+              <p className="mt-1 text-sm font-medium text-text-primary">
                 {billing.loyalty.points} points · {billing.loyalty.tier}
               </p>
               {unpaidCount > 0 ? (
@@ -141,14 +141,14 @@ export function ClientAtAGlanceSidebar() {
               ) : (
                 <Link
                   href="/client/billing"
-                  className="mt-1.5 inline-block text-sm font-medium text-slate-600 hover:text-slate-900"
+                  className="mt-1.5 inline-block text-sm font-medium text-text-secondary hover:text-text-primary"
                 >
                   View billing
                 </Link>
               )}
             </>
           ) : (
-            <p className="mt-1 text-sm text-slate-500">—</p>
+            <p className="mt-1 text-sm text-text-tertiary">—</p>
           )}
         </AppCardBody>
       </AppCard>

@@ -67,6 +67,7 @@ export const TENANT_MODELS = [
   'setting',
   'orgNotificationSettings',
   'orgServiceArea',
+  'queueJobRecord',
 ] as const;
 
 export type TenantModelName = (typeof TENANT_MODELS)[number];

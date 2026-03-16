@@ -40,3 +40,19 @@ export const ENABLE_BOOKINGS_V2 =
 export const ENABLE_RESONANCE_V1 = 
   process.env.NEXT_PUBLIC_ENABLE_RESONANCE_V1 === 'true' ||
   process.env.ENABLE_RESONANCE_V1 === 'true';
+
+/**
+ * Enable inbound Google Calendar -> Snout reconciliation adapter.
+ * Off by default until compatibility validation is complete.
+ */
+export const ENABLE_GOOGLE_BIDIRECTIONAL_SYNC =
+  process.env.NEXT_PUBLIC_ENABLE_GOOGLE_BIDIRECTIONAL_SYNC === 'true' ||
+  process.env.ENABLE_GOOGLE_BIDIRECTIONAL_SYNC === 'true';
+
+/**
+ * Enable Stripe Connect payout v2 adapter.
+ * Off by default until schema/lifecycle migration is complete.
+ */
+export const ENABLE_STRIPE_CONNECT_PAYOUTS =
+  process.env.NEXT_PUBLIC_ENABLE_STRIPE_CONNECT_PAYOUTS === 'true' ||
+  process.env.ENABLE_STRIPE_CONNECT_PAYOUTS === 'true';

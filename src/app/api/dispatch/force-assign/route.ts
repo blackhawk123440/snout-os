@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { forceAssignSitter } from '@/lib/dispatch-control';
 import { AvailabilityConflictError } from '@/lib/availability/booking-conflict';
+import { resolveCorrelationId } from '@/lib/correlation-id';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const correlationId = resolveCorrelationId(request);
     const body = await request.json();
     const { bookingId, sitterId, reason, force } = body;
 
@@ -55,7 +57,7 @@ export async function POST(request: NextRequest) {
       sitterId,
       reason || 'Owner force assignment',
       user.id,
-      { force: force === true }
+      { force: force === true, correlationId }
     );
 
     return NextResponse.json({

@@ -41,17 +41,17 @@ export function ClientSidebarNav() {
 
   return (
     <aside
-      className="hidden shrink-0 border-r border-slate-200 bg-white lg:flex lg:w-60 lg:flex-col min-[1024px]:flex min-[1024px]:w-60 min-[1024px]:flex-col"
+      className="hidden shrink-0 border-r border-border-default bg-surface-primary lg:flex lg:w-60 lg:flex-col min-[1024px]:flex min-[1024px]:w-60 min-[1024px]:flex-col"
       aria-label="Client portal navigation"
     >
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="px-4 pt-4 pb-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Client</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-text-tertiary">Client</p>
         </div>
         <nav className="flex flex-1 flex-col gap-1 px-2 py-2">
           {CLIENT_NAV_GROUPS.map((group, groupIndex) => (
             <div key={group.label} className="flex flex-col gap-0.5">
-              <p className={cn('px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-slate-400', groupIndex === 0 ? 'pt-0' : 'pt-2')}>
+              <p className={cn('px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-text-disabled', groupIndex === 0 ? 'pt-0' : 'pt-2')}>
                 {group.label}
               </p>
               {group.items.map((item) => {
@@ -61,10 +61,10 @@ export function ClientSidebarNav() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'flex h-9 min-h-[36px] max-h-[40px] items-center gap-2 rounded-md px-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-inset',
+                      'flex h-9 min-h-[36px] max-h-[40px] items-center gap-2 rounded-md px-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset',
                       active
-                        ? 'border-l-2 border-slate-900 bg-slate-50 font-medium text-slate-900'
-                        : 'border-l-2 border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        ? 'border-l-2 border-text-primary bg-surface-secondary font-medium text-text-primary'
+                        : 'border-l-2 border-transparent text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
                     )}
                   >
                     <i className={`${item.icon} w-4 shrink-0 text-center text-[16px]`} aria-hidden />
@@ -76,15 +76,15 @@ export function ClientSidebarNav() {
           ))}
         </nav>
       </div>
-      <div className="sticky bottom-0 mt-auto border-t border-slate-200 bg-white px-4 py-3">
+      <div className="sticky bottom-0 mt-auto border-t border-border-default bg-surface-primary px-4 py-3">
         <a
           href="/help"
-          className="text-xs text-slate-500 hover:text-slate-700 hover:underline"
+          className="text-xs text-text-tertiary hover:text-text-secondary hover:underline"
         >
           Support
         </a>
         <p
-          className="mt-1 text-[11px] text-slate-400 tabular-nums"
+          className="mt-1 text-[11px] text-text-disabled tabular-nums"
           title={deployInfo?.buildTime ? `Built: ${deployInfo.buildTime}` : undefined}
         >
           {deployInfo?.envName ?? 'staging'}

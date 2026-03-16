@@ -3,6 +3,7 @@
 import React from 'react';
 import { tokens } from '@/lib/design-tokens';
 import { useTheme } from '@/lib/theme-context';
+import { ThemeToggle } from '@/components/app/ThemeToggle';
 
 export interface AppTopbarProps {
   left?: React.ReactNode;
@@ -11,7 +12,7 @@ export interface AppTopbarProps {
 }
 
 export function AppTopbar({ left, right, children }: AppTopbarProps) {
-  const { mode, toggleMode, density, setDensity } = useTheme();
+  const { density, setDensity } = useTheme();
 
   return (
     <header
@@ -37,15 +38,7 @@ export function AppTopbar({ left, right, children }: AppTopbarProps) {
           <option value="comfortable">Comfortable</option>
           <option value="spacious">Spacious</option>
         </select>
-        {/* Dark/light toggle */}
-        <button
-          type="button"
-          onClick={toggleMode}
-          className="rounded-lg p-2 text-[var(--color-text-secondary)] transition hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-          aria-label={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          <i className={mode === 'dark' ? 'fas fa-sun' : 'fas fa-moon'} />
-        </button>
+        <ThemeToggle />
         {right}
       </div>
     </header>

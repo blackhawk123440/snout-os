@@ -16,6 +16,7 @@ interface SendAutomationMessageParams {
   message: string;
   recipient: 'client' | 'sitter' | 'owner';
   recipientPhone?: string; // Fallback if thread not found
+  correlationId?: string;
 }
 
 /**
@@ -62,11 +63,10 @@ export async function sendAutomationMessageViaThread(
 
     // Send via Next.js BFF proxy route (handles auth automatically)
     // The messaging API enforces that messages use the thread's assigned number
+    const { attachCorrelationIdHeader } = await import('@/lib/correlation-id');
     const response = await fetch(`/api/messages/threads/${thread.id}/messages`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: attachCorrelationIdHeader({ 'Content-Type': 'application/json' }, params.correlationId ?? ''),
       body: JSON.stringify({
         body: message,
         forceSend: false, // Automations should respect policy

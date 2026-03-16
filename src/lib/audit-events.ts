@@ -17,6 +17,7 @@ export interface AuditEventParams {
   entityId?: string;
   metadata?: Record<string, any>;
   bookingId?: string;
+  correlationId?: string;
 }
 
 /**
@@ -36,6 +37,7 @@ export async function recordSitterAuditEvent(params: AuditEventParams): Promise<
           actorId: params.actorId,
           entityType: params.entityType,
           entityId: params.entityId,
+          correlationId: params.correlationId ?? null,
           ...params.metadata,
         }),
         createdAt: new Date(),
@@ -60,7 +62,8 @@ export async function recordOfferAccepted(
   bookingId: string,
   offerId: string,
   responseSeconds: number,
-  actorId?: string
+  actorId?: string,
+  correlationId?: string
 ): Promise<void> {
   await recordSitterAuditEvent({
     orgId,
@@ -71,6 +74,7 @@ export async function recordOfferAccepted(
     entityType: 'offer',
     entityId: offerId,
     bookingId,
+    correlationId,
     metadata: {
       responseSeconds,
       offerId,
@@ -88,7 +92,8 @@ export async function recordOfferDeclined(
   offerId: string,
   responseSeconds: number,
   reason?: string,
-  actorId?: string
+  actorId?: string,
+  correlationId?: string
 ): Promise<void> {
   await recordSitterAuditEvent({
     orgId,
@@ -99,6 +104,7 @@ export async function recordOfferDeclined(
     entityType: 'offer',
     entityId: offerId,
     bookingId,
+    correlationId,
     metadata: {
       responseSeconds,
       offerId,
@@ -115,7 +121,8 @@ export async function recordOfferExpired(
   sitterId: string,
   bookingId: string,
   offerId: string,
-  actorId?: string
+  actorId?: string,
+  correlationId?: string
 ): Promise<void> {
   await recordSitterAuditEvent({
     orgId,
@@ -126,6 +133,7 @@ export async function recordOfferExpired(
     entityType: 'offer',
     entityId: offerId,
     bookingId,
+    correlationId,
     metadata: {
       offerId,
     },
@@ -140,7 +148,8 @@ export async function recordSitterStatusChanged(
   sitterId: string,
   oldStatus: string,
   newStatus: string,
-  actorId?: string
+  actorId?: string,
+  correlationId?: string
 ): Promise<void> {
   await recordSitterAuditEvent({
     orgId,
@@ -150,6 +159,7 @@ export async function recordSitterStatusChanged(
     actorId: actorId || 'system',
     entityType: 'sitter',
     entityId: sitterId,
+    correlationId,
     metadata: {
       oldStatus,
       newStatus,
@@ -166,7 +176,8 @@ export async function recordTierChanged(
   oldTier: string | null,
   newTier: string,
   reason: string,
-  actorId?: string
+  actorId?: string,
+  correlationId?: string
 ): Promise<void> {
   await recordSitterAuditEvent({
     orgId,
@@ -176,6 +187,7 @@ export async function recordTierChanged(
     actorId: actorId || 'system',
     entityType: 'sitter',
     entityId: sitterId,
+    correlationId,
     metadata: {
       oldTier,
       newTier,
@@ -191,7 +203,8 @@ export async function recordAvailabilityToggled(
   orgId: string,
   sitterId: string,
   isAvailable: boolean,
-  actorId?: string
+  actorId?: string,
+  correlationId?: string
 ): Promise<void> {
   await recordSitterAuditEvent({
     orgId,
@@ -201,6 +214,7 @@ export async function recordAvailabilityToggled(
     actorId: actorId || 'system',
     entityType: 'sitter',
     entityId: sitterId,
+    correlationId,
     metadata: {
       isAvailable,
     },
@@ -216,7 +230,8 @@ export async function recordOfferAcceptBlocked(
   bookingId: string,
   offerId: string,
   reason: string,
-  actorId?: string
+  actorId?: string,
+  correlationId?: string
 ): Promise<void> {
   await recordSitterAuditEvent({
     orgId,
@@ -227,6 +242,7 @@ export async function recordOfferAcceptBlocked(
     entityType: 'offer',
     entityId: offerId,
     bookingId,
+    correlationId,
     metadata: {
       offerId,
       reason,
@@ -244,7 +260,8 @@ export async function recordOfferReassigned(
   bookingId: string,
   offerId: string,
   reason: string,
-  actorId?: string
+  actorId?: string,
+  correlationId?: string
 ): Promise<void> {
   await recordSitterAuditEvent({
     orgId,
@@ -255,6 +272,7 @@ export async function recordOfferReassigned(
     entityType: 'offer',
     entityId: offerId,
     bookingId,
+    correlationId,
     metadata: {
       fromSitterId,
       toSitterId,
@@ -272,7 +290,8 @@ export async function recordOfferExhausted(
   bookingId: string,
   attempts: number,
   reason: string,
-  actorId?: string
+  actorId?: string,
+  correlationId?: string
 ): Promise<void> {
   await recordSitterAuditEvent({
     orgId,
@@ -283,6 +302,7 @@ export async function recordOfferExhausted(
     entityType: 'booking',
     entityId: bookingId,
     bookingId,
+    correlationId,
     metadata: {
       bookingId,
       attempts,
@@ -298,7 +318,8 @@ export async function recordManualDispatchRequired(
   orgId: string,
   bookingId: string,
   reason: string,
-  actorId?: string
+  actorId?: string,
+  correlationId?: string
 ): Promise<void> {
   await recordSitterAuditEvent({
     orgId,
@@ -309,6 +330,7 @@ export async function recordManualDispatchRequired(
     entityType: 'booking',
     entityId: bookingId,
     bookingId,
+    correlationId,
     metadata: {
       bookingId,
       reason,

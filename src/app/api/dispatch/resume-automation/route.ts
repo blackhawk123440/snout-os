@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { resumeAutomation } from '@/lib/dispatch-control';
+import { resolveCorrelationId } from '@/lib/correlation-id';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -52,7 +53,8 @@ export async function POST(request: NextRequest) {
       orgId,
       bookingId,
       reason || 'Owner resumed automation',
-      user.id
+      user.id,
+      { correlationId: resolveCorrelationId(request) }
     );
 
     return NextResponse.json({

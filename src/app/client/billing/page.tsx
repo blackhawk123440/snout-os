@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/components/layout';
 import { ClientAtAGlanceSidebarLazy } from '@/components/client/ClientAtAGlanceSidebarLazy';
 import {
@@ -8,7 +9,7 @@ import {
   AppCardBody,
   AppErrorState,
 } from '@/components/app';
-import { EmptyState, PageSkeleton, DataTableShell, Table } from '@/components/ui';
+import { EmptyState, PageSkeleton } from '@/components/ui';
 import { AppStatusPill } from '@/components/app';
 
 interface BillingData {
@@ -44,6 +45,7 @@ interface BillingData {
 }
 
 export default function ClientBillingPage() {
+  const router = useRouter();
   const [data, setData] = useState<BillingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -122,11 +124,11 @@ export default function ClientBillingPage() {
                 }
                 return (
                   <div className="flex flex-col gap-2">
-                    <p className="text-sm font-semibold text-slate-900">{currentTierLabel}</p>
-                    <p className="text-sm text-slate-600">{progressLabel}</p>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                    <p className="text-sm font-semibold text-text-primary">{currentTierLabel}</p>
+                    <p className="text-sm text-text-secondary">{progressLabel}</p>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-surface-tertiary">
                       <div
-                        className="h-full rounded-full bg-slate-700 transition-[width]"
+                        className="h-full rounded-full bg-surface-inverse transition-[width]"
                         style={{ width: `${Math.min(100, progressPct * 100)}%` }}
                         aria-hidden
                       />
@@ -138,31 +140,25 @@ export default function ClientBillingPage() {
           </AppCard>
 
           {data.payments.length > 0 && (
-            <div className="mt-4 border-t border-slate-200 py-3">
-              <h2 className="mb-2 text-sm font-semibold tracking-tight text-slate-900">Payment history</h2>
-              <DataTableShell className="mb-0" stickyHeader>
-                <Table
-                  columns={[
-                    { key: 'amount', header: 'Amount', mobileOrder: 1, mobileLabel: 'Amount', render: (p) => (
-                      <span className="text-lg font-semibold tabular-nums text-slate-900">${p.amount.toFixed(2)}</span>
-                    )},
-                    { key: 'date', header: 'Date', mobileOrder: 2, mobileLabel: 'Date', hideBelow: 'md', render: (p) =>
-                      new Date(p.createdAt).toLocaleDateString()
-                    },
-                    { key: 'status', header: 'Status', mobileOrder: 3, mobileLabel: 'Status', render: (p) => <AppStatusPill status={p.status} /> },
-                  ]}
-                  data={data.payments.slice(0, 10)}
-                  keyExtractor={(p) => p.id}
-                  emptyMessage="No payments"
-                  forceTableLayout
-                />
-              </DataTableShell>
+            <div className="mt-4 border-t border-border-default py-3">
+              <h2 className="mb-2 text-sm font-semibold tracking-tight text-text-primary">Payment history</h2>
+              <div className="w-full space-y-2">
+                {data.payments.slice(0, 10).map((p) => (
+                  <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border border-border-default px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-lg font-semibold tabular-nums text-text-primary">${p.amount.toFixed(2)}</p>
+                      <p className="text-xs text-text-tertiary tabular-nums">{new Date(p.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <AppStatusPill status={p.status} />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {data.paidCompletions?.length > 0 && (
-            <div className="mt-4 border-t border-slate-200 py-3">
-              <h2 className="mb-2 text-sm font-semibold tracking-tight text-slate-900">Payment completion proof</h2>
+            <div className="mt-4 border-t border-border-default py-3">
+              <h2 className="mb-2 text-sm font-semibold tracking-tight text-text-primary">Payment completion proof</h2>
               <div className="space-y-2">
                 {data.paidCompletions.slice(0, 5).map((payment) => (
                   <div
@@ -172,13 +168,13 @@ export default function ClientBillingPage() {
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <AppStatusPill status="paid" />
-                        <span className="font-semibold text-slate-900">
+                        <span className="font-semibold text-text-primary">
                           ${payment.amount.toFixed(2)}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-600">{formatDateTime(payment.paidAt)}</span>
+                      <span className="text-xs text-text-secondary">{formatDateTime(payment.paidAt)}</span>
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-700">
+                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
                       <span>Booking: {payment.bookingReference ? payment.bookingReference.slice(0, 8) : 'N/A'}</span>
                       <span>Invoice: {payment.invoiceReference.slice(0, 8)}</span>
                       {payment.paymentIntentId ? <span>Intent: {payment.paymentIntentId.slice(0, 12)}</span> : null}
@@ -188,7 +184,7 @@ export default function ClientBillingPage() {
                         href={payment.receiptLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-1 inline-flex text-xs font-medium text-slate-700 underline underline-offset-2"
+                        className="mt-1 inline-flex text-xs font-medium text-text-secondary underline underline-offset-2"
                       >
                         View receipt
                       </a>
@@ -199,23 +195,23 @@ export default function ClientBillingPage() {
             </div>
           )}
 
-          <div className="mt-4 border-t border-slate-200 py-3">
-            <h2 className="mb-2 text-sm font-semibold tracking-tight text-slate-900">Invoices</h2>
+          <div className="mt-4 border-t border-border-default py-3">
+            <h2 className="mb-2 text-sm font-semibold tracking-tight text-text-primary">Invoices</h2>
             {data.invoices.length > 0 ? (
-              <div className="w-full overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
+              <div className="w-full overflow-hidden rounded-xl border border-border-default bg-surface-primary lg:rounded-lg">
                 {data.invoices.map((inv) => (
                   <div
                     key={inv.id}
-                    className="grid min-h-[56px] grid-cols-1 gap-3 border-b border-slate-200 px-4 py-3 last:border-b-0 hover:bg-slate-50 active:bg-slate-100 sm:grid-cols-[1fr_auto] sm:items-center lg:min-h-[44px] lg:py-2"
+                    className="grid min-h-[56px] grid-cols-1 gap-3 border-b border-border-default px-4 py-3 last:border-b-0 hover:bg-surface-secondary active:bg-surface-tertiary sm:grid-cols-[1fr_auto] sm:items-center lg:min-h-[44px] lg:py-2"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-900">{inv.service}</p>
-                      <p className="truncate text-xs text-slate-500 tabular-nums">{formatDate(inv.startAt)}</p>
+                      <p className="truncate text-sm font-medium text-text-primary">{inv.service}</p>
+                      <p className="truncate text-xs text-text-tertiary tabular-nums">{formatDate(inv.startAt)}</p>
                     </div>
                     <div className="flex shrink-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
                       <div className="flex items-center justify-end gap-2">
                         <AppStatusPill status={inv.paymentStatus} />
-                        <span className="font-medium tabular-nums text-slate-900">
+                        <span className="font-medium tabular-nums text-text-primary">
                           ${inv.totalPrice.toFixed(2)}
                         </span>
                       </div>
@@ -225,7 +221,7 @@ export default function ClientBillingPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label={`Pay invoice ${inv.service} ${formatDate(inv.startAt)}`}
-                          className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-lg bg-slate-900 px-3 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 sm:w-auto sm:min-w-[44px]"
+                          className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-lg bg-surface-inverse px-3 text-sm font-medium text-text-inverse transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 sm:w-auto sm:min-w-[44px]"
                         >
                           Pay now
                         </a>
@@ -238,7 +234,7 @@ export default function ClientBillingPage() {
               <EmptyState
                 title="No unpaid invoices"
                 description="You're all caught up. Invoices will appear here after visits."
-                primaryAction={{ label: 'View bookings', onClick: () => window.location.assign('/client/bookings') }}
+                primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
               />
             )}
           </div>

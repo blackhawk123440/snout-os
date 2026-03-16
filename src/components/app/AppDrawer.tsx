@@ -7,7 +7,9 @@ export interface AppDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  subtitle?: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   width?: string | number;
   side?: 'left' | 'right';
 }
@@ -24,7 +26,9 @@ export function AppDrawer({
   isOpen,
   onClose,
   title,
+  subtitle,
   children,
+  footer,
   width = '480px',
   side = 'right',
 }: AppDrawerProps) {
@@ -106,17 +110,24 @@ export function AppDrawer({
             }}
             tabIndex={-1}
           >
-            {title && (
+            {(title || subtitle) && (
               <div
                 className="flex items-center justify-between border-b border-[var(--color-border-default)]"
                 style={{ padding: 'var(--density-padding)' }}
               >
-                <h2
-                  id="app-drawer-title"
-                  className="text-lg font-semibold text-[var(--color-text-primary)]"
-                >
-                  {title}
-                </h2>
+                <div>
+                  {title && (
+                    <h2
+                      id="app-drawer-title"
+                      className="text-lg font-semibold text-[var(--color-text-primary)]"
+                    >
+                      {title}
+                    </h2>
+                  )}
+                  {subtitle && (
+                    <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">{subtitle}</p>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={onClose}
@@ -130,6 +141,14 @@ export function AppDrawer({
             <div className="flex-1 overflow-y-auto" style={{ padding: 'var(--density-padding)' }}>
               {children}
             </div>
+            {footer && (
+              <div
+                className="flex justify-end gap-2 border-t border-[var(--color-border-default)] bg-[var(--color-surface-secondary)]"
+                style={{ padding: 'var(--density-padding)' }}
+              >
+                {footer}
+              </div>
+            )}
           </motion.aside>
         </>
       )}

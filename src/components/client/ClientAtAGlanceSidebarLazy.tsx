@@ -7,9 +7,9 @@ const ClientAtAGlanceSidebar = dynamic(
   {
     loading: () => (
       <aside className="w-full space-y-3 lg:w-72 lg:shrink-0 lg:space-y-3">
-        <div className="h-16 animate-pulse rounded-xl bg-slate-200 lg:rounded-lg" />
-        <div className="h-16 animate-pulse rounded-xl bg-slate-200 lg:rounded-lg" />
-        <div className="h-16 animate-pulse rounded-xl bg-slate-200 lg:rounded-lg" />
+        <div className="h-16 animate-pulse rounded-xl bg-surface-tertiary lg:rounded-lg" />
+        <div className="h-16 animate-pulse rounded-xl bg-surface-tertiary lg:rounded-lg" />
+        <div className="h-16 animate-pulse rounded-xl bg-surface-tertiary lg:rounded-lg" />
       </aside>
     ),
     ssr: false,

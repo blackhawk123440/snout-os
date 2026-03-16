@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { env } from "@/lib/env";
 import { prisma } from "@/lib/db";
+import { resolveCorrelationId } from "@/lib/correlation-id";
 
 export type AppRole = "owner" | "admin" | "sitter" | "client" | "public";
 
@@ -10,6 +11,7 @@ export interface RequestContext {
   userId: string | null;
   sitterId: string | null;
   clientId: string | null;
+  correlationId?: string;
 }
 
 const normalizeRole = (role: unknown): AppRole => {
@@ -24,7 +26,7 @@ const getLockedOrgId = () => env.PERSONAL_ORG_ID || "default";
 
 export const isPersonalMode = () => env.NEXT_PUBLIC_PERSONAL_MODE === true;
 
-export async function getRequestContext(): Promise<RequestContext> {
+export async function getRequestContext(request?: Request): Promise<RequestContext> {
   const session = await auth();
   if (!session?.user) {
     throw new Error("Unauthorized");
@@ -56,6 +58,8 @@ export async function getRequestContext(): Promise<RequestContext> {
   }
   if (role === "public" && userId && !sitterId && !clientId) role = "owner";
 
+  const correlationId = resolveCorrelationId(request);
+
   if (isPersonalMode()) {
     return {
       orgId: getLockedOrgId(),
@@ -63,6 +67,7 @@ export async function getRequestContext(): Promise<RequestContext> {
       userId,
       sitterId,
       clientId,
+      correlationId,
     };
   }
 
@@ -76,10 +81,11 @@ export async function getRequestContext(): Promise<RequestContext> {
     userId,
     sitterId,
     clientId,
+    correlationId,
   };
 }
 
-export function getPublicOrgContext(): RequestContext {
+export function getPublicOrgContext(request?: Request): RequestContext {
   if (!isPersonalMode()) {
     throw new Error("Public booking is disabled in SaaS mode until org binding is configured");
   }
@@ -90,5 +96,6 @@ export function getPublicOrgContext(): RequestContext {
     userId: null,
     sitterId: null,
     clientId: null,
+    correlationId: resolveCorrelationId(request),
   };
 }

@@ -73,7 +73,7 @@ export default function ClientMessagesPage() {
               />
             ) : (
               <div className="w-full space-y-3 lg:max-w-3xl">
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white lg:rounded-lg">
+                <div className="overflow-hidden rounded-xl border border-border-default bg-surface-primary lg:rounded-lg">
                   {threads.map((t) => (
                     <InteractiveRow
                       key={t.id}
@@ -82,14 +82,14 @@ export default function ClientMessagesPage() {
                       aria-label={`Open conversation with ${t.sitter?.name || t.booking?.service || 'sitter'}`}
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-slate-900">
+                        <p className="truncate text-sm font-medium text-text-primary">
                           {t.sitter?.name || t.booking?.service || 'Conversation'}
                         </p>
-                        <p className="truncate text-sm text-slate-600">
+                        <p className="truncate text-sm text-text-secondary">
                           {(t.preview ? renderClientPreview(t.preview).trim() : '') || (t.booking?.service && t.booking.startAt ? `${t.booking.service} · ${formatDate(t.booking.startAt)}` : '') || '—'}
                         </p>
                       </div>
-                      <div className="flex shrink-0 text-xs text-slate-500 tabular-nums">
+                      <div className="flex shrink-0 text-xs text-text-tertiary tabular-nums">
                         {t.lastActivityAt ? formatDate(t.lastActivityAt) : '—'}
                       </div>
                     </InteractiveRow>

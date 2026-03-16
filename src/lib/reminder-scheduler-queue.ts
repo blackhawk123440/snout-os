@@ -15,6 +15,8 @@ import { prisma } from "@/lib/db";
 import { getScopedDb } from "@/lib/tenancy";
 import { enqueueAutomation } from "@/lib/automation-queue";
 import { logEventFromLogger } from "@/lib/event-logger";
+import { attachQueueWorkerInstrumentation, recordQueueJobQueued } from "@/lib/queue-observability";
+import { resolveCorrelationId } from "@/lib/correlation-id";
 
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379");
 
@@ -30,12 +32,16 @@ export const reminderSchedulerQueue = new Queue("reminder-scheduler", {
 
 export interface ReminderTickJobData {
   orgId: string;
+  correlationId?: string;
 }
 
 /**
  * Process reminders for a single org. Uses getScopedDb for tenant safety.
  */
-export async function processRemindersForOrg(orgId: string): Promise<{ processed: number }> {
+export async function processRemindersForOrg(
+  orgId: string,
+  correlationId?: string
+): Promise<{ processed: number }> {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
@@ -77,12 +83,14 @@ export async function processRemindersForOrg(orgId: string): Promise<{ processed
           phone: booking.phone,
           service: booking.service,
         },
-        clientKey
+        clientKey,
+        correlationId
       );
 
       await logEventFromLogger("reminder.scheduled", "success", {
         orgId,
         bookingId: booking.id,
+        correlationId,
         metadata: { recipient: "client", dateKey },
       });
 
@@ -98,12 +106,14 @@ export async function processRemindersForOrg(orgId: string): Promise<{ processed
             lastName: booking.lastName,
             service: booking.service,
           },
-          sitterKey
+          sitterKey,
+          correlationId
         );
 
         await logEventFromLogger("reminder.scheduled", "success", {
           orgId,
           bookingId: booking.id,
+          correlationId,
           metadata: { recipient: "sitter", dateKey },
         });
       }
@@ -114,6 +124,7 @@ export async function processRemindersForOrg(orgId: string): Promise<{ processed
       await logEventFromLogger("reminder.scheduled", "failed", {
         orgId,
         bookingId: booking.id,
+        correlationId,
         error: err instanceof Error ? err.message : String(err),
       });
     }
@@ -131,13 +142,25 @@ export async function runReminderDispatcher(): Promise<{ orgsProcessed: number }
   });
 
   for (const org of orgs) {
-    await reminderSchedulerQueue.add(
+    const correlationId = resolveCorrelationId();
+    const job = await reminderSchedulerQueue.add(
       "reminder-tick",
-      { orgId: org.id } as ReminderTickJobData,
+      { orgId: org.id, correlationId } as ReminderTickJobData,
       {
         jobId: `reminder-tick:${org.id}:${Date.now()}`,
       }
     );
+    await recordQueueJobQueued({
+      queueName: reminderSchedulerQueue.name,
+      jobName: "reminder-tick",
+      jobId: String(job.id),
+      orgId: org.id,
+      subsystem: "reminder",
+      resourceType: "org",
+      resourceId: org.id,
+      correlationId,
+      payload: { orgId: org.id, correlationId },
+    });
   }
 
   return { orgsProcessed: orgs.length };
@@ -147,7 +170,7 @@ export async function runReminderDispatcher(): Promise<{ orgsProcessed: number }
  * Create worker for reminder scheduler.
  */
 export function createReminderSchedulerWorker(): Worker {
-  return new Worker(
+  const worker = new Worker(
     "reminder-scheduler",
     async (job) => {
       const { name, data } = job;
@@ -157,15 +180,27 @@ export function createReminderSchedulerWorker(): Worker {
       }
 
       if (name === "reminder-tick") {
-        const { orgId } = data as ReminderTickJobData;
+        const { orgId, correlationId } = data as ReminderTickJobData;
         if (!orgId) throw new Error("orgId required for reminder-tick");
-        return await processRemindersForOrg(orgId);
+        return await processRemindersForOrg(orgId, correlationId);
       }
 
       throw new Error(`Unknown job name: ${name}`);
     },
     { connection, concurrency: 3 }
   );
+  attachQueueWorkerInstrumentation(worker, (job) => {
+    const data = job.data as ReminderTickJobData;
+    return {
+      orgId: data.orgId ?? "default",
+      subsystem: "reminder",
+      resourceType: "org",
+      resourceId: data.orgId,
+      correlationId: data.correlationId,
+      payload: data as unknown as Record<string, unknown>,
+    };
+  });
+  return worker;
 }
 
 let reminderSchedulerWorker: Worker | null = null;
@@ -199,12 +234,24 @@ export async function scheduleReminderDispatcher(): Promise<void> {
     }
   }
 
-  await reminderSchedulerQueue.add(
+  const correlationId = resolveCorrelationId();
+  const job = await reminderSchedulerQueue.add(
     "reminder-dispatcher",
-    {},
+    { correlationId },
     {
       repeat: { pattern: REMINDER_DISPATCHER_CRON },
       removeOnComplete: 10,
     }
   );
+  await recordQueueJobQueued({
+    queueName: reminderSchedulerQueue.name,
+    jobName: "reminder-dispatcher",
+    jobId: String(job.id),
+    orgId: "default",
+    subsystem: "reminder",
+    resourceType: "system",
+    resourceId: "reminder-dispatcher",
+    correlationId,
+    payload: { correlationId },
+  });
 }
