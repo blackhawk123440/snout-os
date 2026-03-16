@@ -101,7 +101,7 @@ export default function ClientHomePage() {
                 )}
                 <Link
                   href="/client/bookings/new"
-                  className="inline-flex h-10 items-center justify-center rounded-lg bg-surface-inverse px-4 text-sm font-medium text-text-inverse transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-surface-inverse px-4 text-sm font-medium text-text-inverse transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
                 >
                   Book a visit
                 </Link>

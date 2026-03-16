@@ -120,7 +120,7 @@ export default function ClientBookingsPage() {
                 <div className="flex justify-center">
                   <button
                     type="button"
-                    className="rounded-lg border border-border-default px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-secondary"
+                    className="min-h-[44px] rounded-lg border border-border-default px-4 py-2 text-sm font-medium text-text-secondary hover:bg-surface-secondary"
                     onClick={() => load(page + 1, true)}
                     disabled={loadingMore}
                   >

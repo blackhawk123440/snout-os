@@ -73,7 +73,7 @@ export default function ClientReportDetailPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-sm font-medium text-text-secondary hover:text-text-primary"
+            className="min-h-[44px] text-sm font-medium text-text-secondary hover:text-text-primary"
           >
             Back
           </button>

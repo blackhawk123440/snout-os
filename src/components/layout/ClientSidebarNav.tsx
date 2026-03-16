@@ -61,7 +61,7 @@ export function ClientSidebarNav() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'flex h-9 min-h-[36px] max-h-[40px] items-center gap-2 rounded-md px-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset',
+                      'flex h-11 min-h-[44px] items-center gap-2 rounded-md px-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset',
                       active
                         ? 'border-l-2 border-text-primary bg-surface-secondary font-medium text-text-primary'
                         : 'border-l-2 border-transparent text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
