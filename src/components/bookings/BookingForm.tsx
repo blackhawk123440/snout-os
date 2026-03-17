@@ -60,13 +60,6 @@ const SERVICE_CARDS = [
     icon: '🚗',
     apiName: 'Pet Taxi'
   },
-  {
-    dataService: 'meet-greet',
-    name: 'Meet & Greet',
-    description: 'Introduction visit (free)',
-    icon: '🤝',
-    apiName: 'Meet & Greet'
-  },
 ] as const;
 
 const PET_TYPES = [

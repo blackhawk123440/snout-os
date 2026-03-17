@@ -55,13 +55,61 @@ export async function GET(request: NextRequest) {
     const tier = latestSnapshot?.tier || currentSRS?.tierRecommendation || 'foundation';
     const perks = getTierPerks(tier as any);
 
+    // Enriched metrics
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+    const [recentOffers, prevOffers, ratings, completedBookings30d] = await Promise.all([
+      (prisma as any).offerEvent.findMany({
+        where: { sitterId, offeredAt: { gte: thirtyDaysAgo }, OR: [{ acceptedAt: { not: null } }, { declinedAt: { not: null } }] },
+        select: { offeredAt: true, acceptedAt: true, declinedAt: true },
+        orderBy: { offeredAt: 'desc' },
+        take: 100,
+      }),
+      (prisma as any).offerEvent.findMany({
+        where: { sitterId, offeredAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo }, OR: [{ acceptedAt: { not: null } }, { declinedAt: { not: null } }] },
+        select: { offeredAt: true, acceptedAt: true, declinedAt: true },
+        take: 100,
+      }),
+      (prisma as any).report.findMany({
+        where: { sitterId, clientRating: { not: null } },
+        select: { clientRating: true },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      }),
+      (prisma as any).booking.count({ where: { sitterId, status: 'completed', updatedAt: { gte: thirtyDaysAgo } } }),
+    ]);
+
+    const calcAvgResponseMin = (offers: any[]) => {
+      const times = offers.map((o: any) => {
+        const responded = o.acceptedAt || o.declinedAt;
+        if (!responded) return null;
+        return (new Date(responded).getTime() - new Date(o.offeredAt).getTime()) / 60000;
+      }).filter((t): t is number => t !== null && t >= 0);
+      return times.length > 0 ? times.reduce((s, t) => s + t, 0) / times.length : 0;
+    };
+
+    const avgResponseTimeMinutes = Math.round(calcAvgResponseMin(recentOffers) * 10) / 10;
+    const prevAvgResponse = calcAvgResponseMin(prevOffers);
+    const responseTimeTrend = prevAvgResponse > 0 ? Math.round(((avgResponseTimeMinutes - prevAvgResponse) / prevAvgResponse) * 100) : 0;
+
+    const last5ResponseTimes = recentOffers.slice(0, 5).map((o: any) => {
+      const responded = o.acceptedAt || o.declinedAt;
+      return responded ? Math.round((new Date(responded).getTime() - new Date(o.offeredAt).getTime()) / 60000) : 0;
+    });
+
+    const allRatings = ratings.map((r: any) => r.clientRating).filter(Boolean);
+    const avgClientRating = allRatings.length > 0 ? Math.round((allRatings.reduce((s: number, r: number) => s + r, 0) / allRatings.length) * 10) / 10 : 0;
+
     return NextResponse.json({
       tier,
       score: latestSnapshot?.rolling30dScore || currentSRS?.score || 0,
       provisional: latestSnapshot?.provisional ?? currentSRS?.provisional ?? false,
       atRisk: latestSnapshot?.atRisk || false,
       atRiskReason: latestSnapshot?.atRiskReason,
-      breakdown: latestSnapshot 
+      breakdown: latestSnapshot
         ? JSON.parse(latestSnapshot.rolling30dBreakdownJson)
         : currentSRS?.breakdown,
       visits30d: latestSnapshot?.visits30d || currentSRS?.visits30d || 0,
@@ -72,6 +120,14 @@ export async function GET(request: NextRequest) {
       } : null,
       perks,
       nextActions: generateNextActions(latestSnapshot || currentSRS, tier),
+      // Enriched metrics
+      avgResponseTimeMinutes,
+      last5ResponseTimes,
+      responseTimeTrend,
+      completedBookings30d,
+      avgClientRating,
+      reviewCount: allRatings.length,
+      tierThresholds: { responsiveness: 15, acceptance: 10, completion: 7, timeliness: 15, accuracy: 15, engagement: 8, conduct: 8 },
     });
   } catch (error: any) {
     console.error('[Sitter SRS API] Error:', error);

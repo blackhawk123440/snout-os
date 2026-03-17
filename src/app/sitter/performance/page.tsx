@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { SitterCard, SitterCardHeader, SitterCardBody, SitterPageHeader } from '@/components/sitter';
-import { Badge } from '@/components/ui';
 
-type SrsPayload = {
+interface SrsPayload {
   tier: string;
   score: number;
   rolling26w?: number | null;
@@ -12,16 +11,43 @@ type SrsPayload = {
   atRisk: boolean;
   atRiskReason?: string;
   visits30d: number;
-  breakdown: {
-    responsiveness: number;
-    acceptance: number;
-    completion: number;
-    timeliness: number;
-    accuracy: number;
-    engagement: number;
-    conduct: number;
-  };
+  breakdown: Record<string, number>;
   nextActions: string[];
+  compensation?: { basePay: number; nextReviewDate?: string } | null;
+  perks?: string[];
+  avgResponseTimeMinutes?: number;
+  last5ResponseTimes?: number[];
+  responseTimeTrend?: number;
+  completedBookings30d?: number;
+  avgClientRating?: number;
+  reviewCount?: number;
+  tierThresholds?: Record<string, number>;
+}
+
+const METRICS = [
+  { key: 'responsiveness', label: 'Responsiveness', max: 20 },
+  { key: 'acceptance', label: 'Acceptance', max: 12 },
+  { key: 'completion', label: 'Completion', max: 8 },
+  { key: 'timeliness', label: 'Timeliness', max: 20 },
+  { key: 'accuracy', label: 'Accuracy', max: 20 },
+  { key: 'engagement', label: 'Engagement', max: 10 },
+  { key: 'conduct', label: 'Conduct', max: 10 },
+];
+
+const TIER_BENEFITS = [
+  { tier: 'foundation', label: 'Foundation', commission: '70%', perks: ['Basic assignments'] },
+  { tier: 'reliant', label: 'Reliant', commission: '75%', perks: ['Priority booking', 'Reduced oversight'] },
+  { tier: 'trusted', label: 'Trusted', commission: '80%', perks: ['Holiday pay', 'Mentorship access', 'Priority booking'] },
+  { tier: 'preferred', label: 'Preferred', commission: '85%', perks: ['Top priority', 'Holiday pay', 'Mentorship', 'Pool leadership'] },
+];
+
+const tierColor = (tier: string) => {
+  switch (tier.toLowerCase()) {
+    case 'preferred': return 'bg-amber-100 text-amber-800 border-amber-300';
+    case 'trusted': return 'bg-blue-100 text-blue-800 border-blue-300';
+    case 'reliant': return 'bg-green-100 text-green-800 border-green-300';
+    default: return 'bg-surface-tertiary text-text-secondary border-border-default';
+  }
 };
 
 export default function SitterPerformancePage() {
@@ -30,121 +56,192 @@ export default function SitterPerformancePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
+    (async () => {
       setLoading(true);
-      setError(null);
-      const response = await fetch('/api/sitter/me/srs');
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setError(body.error || 'Failed to load performance data');
-        setLoading(false);
-        return;
-      }
+      const res = await fetch('/api/sitter/me/srs');
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(body.error || 'Failed'); setLoading(false); return; }
       setData(body);
       setLoading(false);
-    }
-    void load();
+    })();
   }, []);
 
-  const tierLabel = data ? `${data.tier.charAt(0).toUpperCase()}${data.tier.slice(1)}` : 'Foundation';
+  const tierLabel = data ? data.tier.charAt(0).toUpperCase() + data.tier.slice(1) : 'Foundation';
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-3xl pb-8">
+        <SitterPageHeader title="Performance" subtitle="Loading..." />
+        <div className="space-y-4">{[1, 2, 3].map((i) => (<SitterCard key={i}><SitterCardBody><div className="h-20 animate-pulse rounded bg-surface-tertiary" /></SitterCardBody></SitterCard>))}</div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="mx-auto max-w-3xl pb-8">
+        <SitterPageHeader title="Performance" subtitle="Your metrics" />
+        <SitterCard><SitterCardBody><p className="text-sm text-red-700">{error || 'No data available'}</p></SitterCardBody></SitterCard>
+      </div>
+    );
+  }
+
+  const thresholds = data.tierThresholds || {};
 
   return (
     <div className="mx-auto max-w-3xl pb-8">
-      <SitterPageHeader title="Performance" subtitle="Your Service Reliability Score (SRS) and tier progress" />
+      <SitterPageHeader title="Performance" subtitle="Your Service Reliability Score and tier progress" />
       <div className="space-y-4">
+
+        {/* Section 1: Tier Hero */}
+        <SitterCard>
+          <SitterCardBody>
+            <div className="flex items-center gap-4">
+              <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-2 text-2xl font-bold ${tierColor(data.tier)}`}>
+                {tierLabel.charAt(0)}
+              </div>
+              <div className="flex-1">
+                <p className="text-lg font-bold text-text-primary">{tierLabel} Tier</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <div className="flex-1 h-3 overflow-hidden rounded-full bg-surface-tertiary">
+                    <div className="h-full rounded-full bg-accent-primary transition-[width]" style={{ width: `${data.score}%` }} />
+                  </div>
+                  <span className="text-sm font-bold text-text-primary tabular-nums">{data.score.toFixed(1)}</span>
+                </div>
+                {data.rolling26w != null && <p className="mt-0.5 text-xs text-text-tertiary">26-week average: {data.rolling26w.toFixed(1)}</p>}
+                {data.provisional && <p className="mt-0.5 text-xs text-amber-700">Provisional \u2014 complete 15+ visits to activate</p>}
+                {data.atRisk && <p className="mt-0.5 text-xs text-red-700">At risk: {data.atRiskReason || 'Below tier minimum'}</p>}
+              </div>
+            </div>
+          </SitterCardBody>
+        </SitterCard>
+
+        {/* Section 2: Response Time */}
         <SitterCard>
           <SitterCardHeader>
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-text-primary">Current Reliability Tier</h3>
-              {data && <Badge variant="info">{tierLabel}</Badge>}
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{'\u26a1'}</span>
+              <h3 className="font-semibold text-text-primary">Response Time</h3>
             </div>
           </SitterCardHeader>
           <SitterCardBody>
-            {loading ? (
-              <p className="text-sm text-text-secondary">Loading SRS...</p>
-            ) : error ? (
-              <p className="text-sm text-rose-700">{error}</p>
-            ) : data ? (
-              <div className="space-y-2">
-                <p className="text-2xl font-semibold text-text-primary">{data.score.toFixed(1)} / 100</p>
-                <p className="text-sm text-text-secondary">
-                  Rolling 30-day reliability score. {data.rolling26w ? `26-week average: ${data.rolling26w.toFixed(1)}.` : ''}
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-bold text-text-primary tabular-nums">{data.avgResponseTimeMinutes?.toFixed(1) || '0'}</p>
+              <p className="text-sm text-text-secondary">minutes avg</p>
+            </div>
+            {data.responseTimeTrend != null && data.responseTimeTrend !== 0 && (
+              <p className={`mt-1 text-xs font-medium ${data.responseTimeTrend < 0 ? 'text-green-700' : 'text-amber-700'}`}>
+                {data.responseTimeTrend < 0 ? '\u2193' : '\u2191'} {Math.abs(data.responseTimeTrend)}% vs last month
+              </p>
+            )}
+            {data.last5ResponseTimes && data.last5ResponseTimes.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs text-text-tertiary mb-1">Last 5 responses:</p>
+                <div className="flex gap-2">
+                  {data.last5ResponseTimes.map((t, i) => (
+                    <span key={i} className={`rounded-full px-2 py-0.5 text-xs font-medium ${t <= 15 ? 'bg-green-100 text-green-800' : t <= 30 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
+                      {t}m {t <= 15 ? '\u2705' : '\u26a0\ufe0f'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            <p className="mt-2 text-xs text-text-tertiary">Tier requires: respond within 15 minutes</p>
+          </SitterCardBody>
+        </SitterCard>
+
+        {/* Section 3: All 7 Metrics */}
+        <SitterCard>
+          <SitterCardHeader><h3 className="font-semibold text-text-primary">Score Breakdown</h3></SitterCardHeader>
+          <SitterCardBody>
+            <div className="space-y-3">
+              {METRICS.map((m) => {
+                const value = data.breakdown?.[m.key] ?? 0;
+                const threshold = thresholds[m.key] ?? m.max * 0.75;
+                const meetsThreshold = value >= threshold;
+                const pct = Math.min(100, (value / m.max) * 100);
+                return (
+                  <div key={m.key}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-text-secondary">{m.label}</span>
+                      <span className="text-xs tabular-nums text-text-primary">
+                        {value.toFixed(1)}/{m.max} {meetsThreshold ? '\u2705' : '\u26a0\ufe0f'}
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-surface-tertiary">
+                      <div className={`h-full rounded-full transition-[width] ${meetsThreshold ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </SitterCardBody>
+        </SitterCard>
+
+        {/* Section 4: Earnings */}
+        <SitterCard>
+          <SitterCardHeader><h3 className="font-semibold text-text-primary">Earnings & Ratings</h3></SitterCardHeader>
+          <SitterCardBody>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-border-default bg-surface-secondary p-3">
+                <p className="text-xs text-text-tertiary">Visits (30d)</p>
+                <p className="text-lg font-semibold text-text-primary">{data.completedBookings30d ?? data.visits30d}</p>
+              </div>
+              <div className="rounded-xl border border-border-default bg-surface-secondary p-3">
+                <p className="text-xs text-text-tertiary">Client rating</p>
+                <p className="text-lg font-semibold text-text-primary">
+                  {data.avgClientRating ? `${data.avgClientRating} \u2605` : 'N/A'}
                 </p>
-                <p className="text-sm text-text-secondary">Activity sample: {data.visits30d} visits in last 30 days.</p>
-                {data.provisional && <p className="text-xs text-amber-700">Provisional score until enough sample size is reached.</p>}
-                {data.atRisk && <p className="text-xs text-rose-700">At risk: {data.atRiskReason || 'Score below tier target'}</p>}
+                {data.reviewCount != null && <p className="text-[10px] text-text-disabled">{data.reviewCount} review{data.reviewCount !== 1 ? 's' : ''}</p>}
               </div>
-            ) : (
-              <p className="text-sm text-text-secondary">No reliability data yet.</p>
-            )}
+              {data.compensation && (
+                <div className="rounded-xl border border-border-default bg-surface-secondary p-3">
+                  <p className="text-xs text-text-tertiary">Commission</p>
+                  <p className="text-lg font-semibold text-text-primary">{data.compensation.basePay}%</p>
+                </div>
+              )}
+            </div>
           </SitterCardBody>
         </SitterCard>
 
-        <SitterCard>
-          <SitterCardHeader>
-            <h3 className="font-semibold text-text-primary">Recent Trend and Period Summary</h3>
-          </SitterCardHeader>
-          <SitterCardBody>
-            {loading ? (
-              <p className="text-sm text-text-secondary">Loading trend...</p>
-            ) : data ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-border-default bg-surface-secondary p-3">
-                  <p className="text-xs text-text-tertiary">30d Score</p>
-                  <p className="text-lg font-semibold text-text-primary">{data.score.toFixed(1)}</p>
-                </div>
-                <div className="rounded-xl border border-border-default bg-surface-secondary p-3">
-                  <p className="text-xs text-text-tertiary">26w Avg</p>
-                  <p className="text-lg font-semibold text-text-primary">{data.rolling26w ? data.rolling26w.toFixed(1) : 'N/A'}</p>
-                </div>
-                <div className="rounded-xl border border-border-default bg-surface-secondary p-3">
-                  <p className="text-xs text-text-tertiary">Visits (30d)</p>
-                  <p className="text-lg font-semibold text-text-primary">{data.visits30d}</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-text-secondary">Trend unavailable until activity data exists.</p>
-            )}
-          </SitterCardBody>
-        </SitterCard>
-
-        <SitterCard>
-          <SitterCardHeader>
-            <h3 className="font-semibold text-text-primary">What Affects Your Score</h3>
-          </SitterCardHeader>
-          <SitterCardBody>
-            {loading ? (
-              <p className="text-sm text-text-secondary">Loading factors...</p>
-            ) : data ? (
-              <div className="grid grid-cols-1 gap-2 text-sm text-text-secondary sm:grid-cols-2">
-                <p>Responsiveness: {data.breakdown.responsiveness.toFixed(1)} / 20</p>
-                <p>Acceptance: {data.breakdown.acceptance.toFixed(1)} / 12</p>
-                <p>Completion: {data.breakdown.completion.toFixed(1)} / 8</p>
-                <p>Timeliness: {data.breakdown.timeliness.toFixed(1)} / 20</p>
-                <p>Accuracy: {data.breakdown.accuracy.toFixed(1)} / 20</p>
-                <p>Engagement: {data.breakdown.engagement.toFixed(1)} / 10</p>
-                <p>Conduct: {data.breakdown.conduct.toFixed(1)} / 10</p>
-              </div>
-            ) : (
-              <p className="text-sm text-text-secondary">No score factors yet.</p>
-            )}
-          </SitterCardBody>
-        </SitterCard>
-
-        <SitterCard>
-          <SitterCardBody>
-            <p className="text-sm font-medium text-text-secondary">Next Actions</p>
-            {loading ? (
-              <p className="mt-1 text-xs text-text-tertiary">Loading recommended actions...</p>
-            ) : data?.nextActions?.length ? (
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-text-secondary">
-                {data.nextActions.map((item) => (
-                  <li key={item}>{item}</li>
+        {/* Section 5: How to Level Up */}
+        {data.nextActions?.length > 0 && (
+          <SitterCard>
+            <SitterCardHeader><h3 className="font-semibold text-text-primary">How to Level Up</h3></SitterCardHeader>
+            <SitterCardBody>
+              <div className="space-y-2">
+                {data.nextActions.map((action, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="text-accent-primary text-sm shrink-0 mt-0.5">{'\u2192'}</span>
+                    <p className="text-sm text-text-secondary">{action}</p>
+                  </div>
                 ))}
-              </ul>
-            ) : (
-              <p className="mt-1 text-xs text-text-tertiary">Keep completing visits and responding quickly to maintain reliability.</p>
-            )}
+              </div>
+            </SitterCardBody>
+          </SitterCard>
+        )}
+
+        {/* Section 6: Tier Benefits Comparison */}
+        <SitterCard>
+          <SitterCardHeader><h3 className="font-semibold text-text-primary">Tier Benefits</h3></SitterCardHeader>
+          <SitterCardBody>
+            <div className="space-y-2">
+              {TIER_BENEFITS.map((t) => {
+                const isCurrent = t.tier === data.tier.toLowerCase();
+                const isLocked = TIER_BENEFITS.findIndex((x) => x.tier === t.tier) > TIER_BENEFITS.findIndex((x) => x.tier === data.tier.toLowerCase());
+                return (
+                  <div key={t.tier} className={`rounded-xl border p-3 ${isCurrent ? 'border-accent-primary bg-accent-tertiary/20' : isLocked ? 'border-border-muted opacity-50' : 'border-border-default'}`}>
+                    <div className="flex items-center justify-between">
+                      <p className={`text-sm font-semibold ${isCurrent ? 'text-accent-primary' : 'text-text-primary'}`}>
+                        {t.label} {isCurrent && '\u2190 You'}
+                      </p>
+                      <span className="text-xs text-text-secondary">{t.commission} commission</span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-text-tertiary">{t.perks.join(' \u00b7 ')}</p>
+                  </div>
+                );
+              })}
+            </div>
           </SitterCardBody>
         </SitterCard>
       </div>

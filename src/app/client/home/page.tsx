@@ -180,6 +180,12 @@ export default function ClientHomePage() {
                 >
                   Book a visit
                 </Link>
+                <Link
+                  href="/client/meet-greet"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-border-default px-4 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary"
+                >
+                  Schedule a meet & greet
+                </Link>
               </AppCardBody>
             </AppCard>
 

@@ -5,26 +5,20 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
 import {
   SitterCard,
-  SitterCardHeader,
   SitterCardBody,
-  SitterCardActions,
   SitterPageHeader,
   SitterSkeletonList,
-  SitterEmptyState,
   SitterErrorState,
-  FeatureStatusPill,
-  DailyDelightModal,
+  SitterEmptyState,
 } from '@/components/sitter';
 
-type ViewMode = 'week' | 'list';
+/* ─── Types ─────────────────────────────────────────────────────────── */
 
-type BookingStatus = string;
-
-type AlertType = 'allergy' | 'medication' | 'behavior' | 'new_pet';
+type ViewMode = 'day' | 'week' | 'list';
 
 interface CalendarBooking {
   id: string;
-  status: BookingStatus;
+  status: string;
   service: string;
   startAt: string;
   endAt: string;
@@ -32,54 +26,81 @@ interface CalendarBooking {
   clientName: string;
   pets: Array<{ id: string; name?: string | null; species?: string | null }>;
   threadId: string | null;
-  alerts?: AlertType[];
 }
 
-const statusBadgeClass = (status: string) => {
-  switch (status) {
-    case 'confirmed':
-      return 'bg-blue-100 text-blue-800';
-    case 'pending':
-      return 'bg-amber-100 text-amber-800';
-    case 'in_progress':
-      return 'bg-purple-100 text-purple-800';
-    case 'completed':
-      return 'bg-green-100 text-green-800';
-    default:
-      return 'bg-surface-tertiary text-text-secondary';
-  }
-};
+interface GoogleEvent {
+  id: string;
+  summary: string;
+  start: string;
+  end: string;
+  allDay: boolean;
+  source: 'google';
+}
 
-const statusPillLabel = (status: string) => {
-  switch (status) {
-    case 'confirmed':
-    case 'pending':
-      return 'Scheduled';
-    case 'in_progress':
-      return 'In progress';
-    case 'completed':
-      return 'Completed';
-    default:
-      return status.replace('_', ' ');
-  }
-};
+/* ─── Helpers ───────────────────────────────────────────────────────── */
 
-const formatDate = (d: string) =>
-  new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+const DAY_START = 6;
+const DAY_END = 21;
+const TOTAL_MINUTES = (DAY_END - DAY_START) * 60;
+
+function getBlockPosition(startAt: string, endAt: string) {
+  const start = new Date(startAt);
+  const end = new Date(endAt);
+  const startMin = start.getHours() * 60 + start.getMinutes();
+  const endMin = end.getHours() * 60 + end.getMinutes();
+  const topPct = Math.max(0, ((startMin - DAY_START * 60) / TOTAL_MINUTES) * 100);
+  const heightPct = Math.max(3, ((endMin - startMin) / TOTAL_MINUTES) * 100);
+  return { top: `${topPct}%`, height: `${heightPct}%` };
+}
+
 const formatTime = (d: string) =>
   new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-const formatDateTime = (d: string) =>
-  new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const formatDateLabel = (d: Date) =>
+  d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+const isoDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const isSameDay = (a: Date, b: Date) => isoDate(a) === isoDate(b);
+const isToday = (d: Date) => isSameDay(d, new Date());
+
+const statusBg = (status: string) => {
+  switch (status) {
+    case 'confirmed': return 'bg-blue-50 border-blue-200';
+    case 'in_progress': return 'bg-purple-50 border-purple-200';
+    case 'completed': return 'bg-green-50 border-green-200';
+    case 'pending': return 'bg-amber-50 border-amber-200';
+    default: return 'bg-surface-secondary border-border-default';
+  }
+};
+
+const statusDot = (status: string) => {
+  switch (status) {
+    case 'confirmed': return 'bg-blue-500';
+    case 'in_progress': return 'bg-purple-500';
+    case 'completed': return 'bg-green-500';
+    case 'pending': return 'bg-amber-500';
+    default: return 'bg-surface-tertiary';
+  }
+};
+
+const petEmoji = (species: string | null) => {
+  if (!species) return '\ud83d\udc3e';
+  const s = species.toLowerCase();
+  if (s.includes('dog')) return '\ud83d\udc15';
+  if (s.includes('cat')) return '\ud83d\udc08';
+  return '\ud83d\udc3e';
+};
+
+/* ─── Main Page ─────────────────────────────────────────────────────── */
 
 export default function SitterCalendarPage() {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('day');
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<CalendarBooking[]>([]);
+  const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
+  const [googleConnected, setGoogleConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [delightBooking, setDelightBooking] = useState<CalendarBooking | null>(null);
-  const [checkingInId, setCheckingInId] = useState<string | null>(null);
-  const [checkingOutId, setCheckingOutId] = useState<string | null>(null);
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
@@ -87,25 +108,31 @@ export default function SitterCalendarPage() {
     try {
       const res = await fetch('/api/sitter/calendar');
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error || 'Unable to load calendar');
-        setBookings([]);
-        return;
-      }
+      if (!res.ok) { setError(data.error || 'Unable to load'); setBookings([]); return; }
       setBookings(Array.isArray(data.bookings) ? data.bookings : []);
-    } catch {
-      setError('Unable to load calendar');
-      setBookings([]);
-    } finally {
-      setLoading(false);
-    }
+      if (data.calendarConnected !== undefined) setGoogleConnected(data.calendarConnected);
+      else if (data.connected !== undefined) setGoogleConnected(data.connected);
+    } catch { setError('Unable to load'); setBookings([]); }
+    finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
-    void loadBookings();
-  }, [loadBookings]);
+  const loadGoogleEvents = useCallback(async () => {
+    const weekStart = new Date(currentDate);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    try {
+      const res = await fetch(`/api/sitter/calendar/google-events?start=${weekStart.toISOString()}&end=${weekEnd.toISOString()}`);
+      const data = await res.json().catch(() => ({}));
+      if (data.connected !== undefined) setGoogleConnected(data.connected);
+      setGoogleEvents(Array.isArray(data.events) ? data.events : []);
+    } catch { /* silent */ }
+  }, [currentDate]);
 
-  // Detect scheduling conflicts (overlapping bookings)
+  useEffect(() => { void loadBookings(); }, [loadBookings]);
+  useEffect(() => { void loadGoogleEvents(); }, [loadGoogleEvents]);
+
   const conflictIds = useMemo(() => {
     const ids = new Set<string>();
     const active = bookings.filter((b) => !['cancelled', 'completed'].includes(b.status));
@@ -119,140 +146,160 @@ export default function SitterCalendarPage() {
     return ids;
   }, [bookings]);
 
-  const handleViewBooking = (id: string) => {
-    router.push(`/sitter/bookings/${id}`);
+  const navigateDate = (offset: number) => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() + offset);
+    setCurrentDate(d);
   };
+  const goToday = () => setCurrentDate(new Date());
 
-  const handleOpenChat = (booking: CalendarBooking) => {
-    const query = booking.threadId ? `?thread=${encodeURIComponent(booking.threadId)}` : '';
-    router.push(`/sitter/inbox${query}`);
-  };
+  const bookingsForDay = (date: Date) => bookings.filter((b) => isSameDay(new Date(b.startAt), date));
+  const googleForDay = (date: Date) => googleEvents.filter((e) => !e.allDay && isSameDay(new Date(e.start), date));
 
-  const handleCheckIn = async (bookingId: string) => {
-    setCheckingInId(bookingId);
-    try {
-      const res = await fetch(`/api/bookings/${bookingId}/check-in`, { method: 'POST' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Check in failed');
-      setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'in_progress' } : b)));
-    } catch {
-      // Fail-soft: could show toast
-    } finally {
-      setCheckingInId(null);
-    }
-  };
-
-  const handleCheckOut = async (bookingId: string) => {
-    setCheckingOutId(bookingId);
-    try {
-      const res = await fetch(`/api/bookings/${bookingId}/check-out`, { method: 'POST' });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Check out failed');
-      setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b)));
-    } catch {
-      // Fail-soft
-    } finally {
-      setCheckingOutId(null);
-    }
-  };
+  const weekDays = useMemo(() => {
+    const start = new Date(currentDate);
+    if (viewMode === 'week') start.setDate(start.getDate() - start.getDay());
+    return Array.from({ length: 7 }, (_, i) => { const d = new Date(start); d.setDate(d.getDate() + i); return d; });
+  }, [currentDate, viewMode]);
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
-      <SitterPageHeader
-        title="Calendar"
-        subtitle="Upcoming bookings"
-        action={
-          <Button variant="secondary" size="sm" onClick={() => void loadBookings()} disabled={loading}>
-            Refresh
-          </Button>
-        }
-      />
+    <div className="mx-auto max-w-4xl pb-8">
+      <SitterPageHeader title="Calendar" subtitle={formatDateLabel(currentDate)} action={<Button variant="secondary" size="sm" onClick={() => void loadBookings()} disabled={loading}>Refresh</Button>} />
+
+      {/* Google Calendar connection */}
+      {!googleConnected && (
+        <SitterCard className="mb-4 border-blue-200 bg-blue-50">
+          <SitterCardBody>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-blue-800">Connect Google Calendar</p>
+                <p className="text-xs text-blue-700">See all your events and auto-sync Snout visits.</p>
+              </div>
+              <a href="/api/integrations/google/start?returnUrl=/sitter/calendar" className="min-h-[44px] inline-flex items-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 transition">Connect</a>
+            </div>
+          </SitterCardBody>
+        </SitterCard>
+      )}
+      {googleConnected && (
+        <p className="mb-3 flex items-center gap-1.5 text-xs text-text-tertiary"><span className="h-2 w-2 rounded-full bg-green-500" /> Google Calendar synced</p>
+      )}
+
+      {/* View mode + navigation */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex rounded-xl border border-border-default p-0.5">
-          <button
-            type="button"
-            onClick={() => setViewMode('week')}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${viewMode === 'week' ? 'bg-surface-tertiary text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
-          >
-            Week
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('list')}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${viewMode === 'list' ? 'bg-surface-tertiary text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
-          >
-            List
-          </button>
+          {(['day', 'week', 'list'] as const).map((mode) => (
+            <button key={mode} type="button" onClick={() => setViewMode(mode)} className={`rounded-lg px-3 py-1.5 text-sm font-medium transition min-h-[36px] ${viewMode === mode ? 'bg-surface-tertiary text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}>
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button type="button" onClick={() => navigateDate(viewMode === 'week' ? -7 : -1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default text-text-secondary hover:bg-surface-secondary transition" aria-label="Previous"><i className="fas fa-chevron-left text-xs" /></button>
+          {!isToday(currentDate) && (<button type="button" onClick={goToday} className="min-h-[36px] rounded-lg border border-border-default px-3 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition">Today</button>)}
+          <button type="button" onClick={() => navigateDate(viewMode === 'week' ? 7 : 1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default text-text-secondary hover:bg-surface-secondary transition" aria-label="Next"><i className="fas fa-chevron-right text-xs" /></button>
         </div>
       </div>
 
-      <SitterCard className="mb-4 border-dashed">
-        <SitterCardBody>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-text-secondary">Soon: the best route for your day 🚗🐾</p>
-            <FeatureStatusPill featureKey="route_optimization" />
-          </div>
-          <p className="mt-1 text-xs text-text-tertiary">We&apos;ll optimize based on timing + pet needs.</p>
-        </SitterCardBody>
-      </SitterCard>
-
-      {loading ? (
-        <SitterSkeletonList count={3} />
-      ) : error ? (
-        <SitterErrorState
-          title="Couldn't load calendar"
-          subtitle={error}
-          onRetry={() => void loadBookings()}
-        />
-      ) : bookings.length === 0 ? (
-        <SitterEmptyState
-          title="No upcoming bookings"
-          subtitle="Check back when you have visits scheduled."
-        />
+      {loading ? (<SitterSkeletonList count={3} />) : error ? (<SitterErrorState title="Couldn't load calendar" subtitle={error} onRetry={() => void loadBookings()} />) : viewMode === 'list' ? (
+        <ListView bookings={bookings} googleEvents={googleEvents} conflictIds={conflictIds} onView={(id) => router.push(`/sitter/bookings/${id}`)} />
+      ) : viewMode === 'day' ? (
+        <DayView date={currentDate} bookings={bookingsForDay(currentDate)} googleEvents={googleForDay(currentDate)} conflictIds={conflictIds} onView={(id) => router.push(`/sitter/bookings/${id}`)} />
       ) : (
-        <div className="space-y-4">
-          {bookings.map((b) => (
-            <SitterCard key={b.id} onClick={() => handleViewBooking(b.id)} className={conflictIds.has(b.id) ? 'border-red-300' : ''}>
-              <SitterCardHeader>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-text-primary">{b.clientName}</p>
-                    <p className="text-sm text-text-secondary">{b.service}</p>
-                    {conflictIds.has(b.id) && (
-                      <p className="text-xs font-medium text-red-600 mt-0.5">{'\u26a0\ufe0f'} Schedule conflict</p>
-                    )}
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(b.status)}`}>
-                    {statusPillLabel(b.status)}
-                  </span>
-                </div>
-              </SitterCardHeader>
-              <SitterCardBody>
-                <p>
-                  {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
-                </p>
-                {b.address && <p className="mt-1 text-text-secondary">{b.address}</p>}
-                {b.pets.length > 0 && (
-                  <p className="mt-1 text-text-secondary">
-                    {b.pets.map((p) => (p.name ? `${p.name}${p.species ? ` (${p.species})` : ''}` : p.species || 'Pet')).join(', ')}
-                  </p>
-                )}
-              </SitterCardBody>
-              <SitterCardActions stopPropagation>
-                <Button variant="secondary" size="md" onClick={(e) => { e.stopPropagation(); handleOpenChat(b); }}>
-                  Message
-                </Button>
-              </SitterCardActions>
-            </SitterCard>
-          ))}
-        </div>
+        <WeekView days={weekDays} bookingsForDay={bookingsForDay} googleForDay={googleForDay} conflictIds={conflictIds} currentDate={currentDate} onView={(id) => router.push(`/sitter/bookings/${id}`)} />
       )}
+    </div>
+  );
+}
 
-      <DailyDelightModal
-        booking={delightBooking}
-        isOpen={!!delightBooking}
-        onClose={() => setDelightBooking(null)}
-      />
+/* ─── Day View ──────────────────────────────────────────────────────── */
+
+function DayView({ date, bookings, googleEvents, conflictIds, onView }: { date: Date; bookings: CalendarBooking[]; googleEvents: GoogleEvent[]; conflictIds: Set<string>; onView: (id: string) => void }) {
+  const hours = Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_START + i);
+  return (
+    <div className="relative rounded-xl border border-border-default bg-surface-primary overflow-hidden" style={{ minHeight: '600px' }}>
+      {hours.map((h) => {
+        const topPct = ((h - DAY_START) * 60 / TOTAL_MINUTES) * 100;
+        return (<div key={h} className="absolute left-0 right-0 border-t border-border-muted" style={{ top: `${topPct}%` }}><span className="absolute -top-2.5 left-1 text-[10px] text-text-tertiary tabular-nums">{h > 12 ? h - 12 : h}{h >= 12 ? 'pm' : 'am'}</span></div>);
+      })}
+      {bookings.map((b) => {
+        const pos = getBlockPosition(b.startAt, b.endAt);
+        const hasConflict = conflictIds.has(b.id);
+        return (
+          <button key={b.id} type="button" onClick={() => onView(b.id)} className={`absolute left-10 right-2 rounded-lg border px-2 py-1 text-left overflow-hidden transition hover:opacity-90 min-h-[24px] ${statusBg(b.status)} ${hasConflict ? 'ring-2 ring-red-400' : ''}`} style={{ top: pos.top, height: pos.height, zIndex: 10 }}>
+            <p className="text-xs font-semibold text-text-primary truncate">{petEmoji(b.pets?.[0]?.species ?? null)} {b.service}</p>
+            <p className="text-[10px] text-text-secondary truncate">{formatTime(b.startAt)}\u2013{formatTime(b.endAt)} \u00b7 {b.clientName}</p>
+            {hasConflict && <p className="text-[10px] text-red-600 font-medium">{'\u26a0\ufe0f'} Conflict</p>}
+          </button>
+        );
+      })}
+      {googleEvents.map((e) => {
+        const pos = getBlockPosition(e.start, e.end);
+        return (
+          <div key={e.id} className="absolute left-10 right-2 rounded-lg border border-border-muted bg-surface-tertiary/50 px-2 py-1 overflow-hidden min-h-[24px]" style={{ top: pos.top, height: pos.height, zIndex: 5 }}>
+            <p className="text-xs text-text-tertiary truncate italic">{e.summary}</p>
+            <p className="text-[10px] text-text-disabled truncate">{formatTime(e.start)}\u2013{formatTime(e.end)} (Personal)</p>
+          </div>
+        );
+      })}
+      {bookings.length === 0 && googleEvents.length === 0 && (<div className="flex items-center justify-center h-full"><p className="text-sm text-text-tertiary">No events for {formatDateLabel(date)}</p></div>)}
+    </div>
+  );
+}
+
+/* ─── Week View ─────────────────────────────────────────────────────── */
+
+function WeekView({ days, bookingsForDay, googleForDay, conflictIds, currentDate, onView }: { days: Date[]; bookingsForDay: (d: Date) => CalendarBooking[]; googleForDay: (d: Date) => GoogleEvent[]; conflictIds: Set<string>; currentDate: Date; onView: (id: string) => void }) {
+  return (
+    <div className="grid grid-cols-7 gap-1">
+      {days.map((day) => {
+        const dayBookings = bookingsForDay(day);
+        const dayGoogle = googleForDay(day);
+        const today = isToday(day);
+        return (
+          <div key={isoDate(day)} className={`rounded-lg border p-1.5 min-h-[120px] ${today ? 'border-accent-primary bg-accent-tertiary/20' : 'border-border-default bg-surface-primary'}`}>
+            <p className={`text-xs font-medium mb-1 ${today ? 'text-accent-primary' : 'text-text-secondary'}`}>{day.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}</p>
+            <div className="space-y-0.5">
+              {dayBookings.map((b) => (
+                <button key={b.id} type="button" onClick={() => onView(b.id)} className={`w-full rounded px-1 py-0.5 text-left ${statusBg(b.status)} ${conflictIds.has(b.id) ? 'ring-1 ring-red-400' : ''}`}>
+                  <p className="text-[10px] text-text-primary font-medium truncate">{formatTime(b.startAt)} {b.service}</p>
+                </button>
+              ))}
+              {dayGoogle.map((e) => (
+                <div key={e.id} className="rounded bg-surface-tertiary/50 px-1 py-0.5 text-[10px] text-text-tertiary truncate italic">{formatTime(e.start)} {e.summary}</div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── List View ─────────────────────────────────────────────────────── */
+
+function ListView({ bookings, googleEvents, conflictIds, onView }: { bookings: CalendarBooking[]; googleEvents: GoogleEvent[]; conflictIds: Set<string>; onView: (id: string) => void }) {
+  if (bookings.length === 0 && googleEvents.length === 0) return <SitterEmptyState title="No upcoming events" subtitle="Check back when you have visits scheduled." />;
+  return (
+    <div className="space-y-2">
+      {bookings.map((b) => (
+        <button key={b.id} type="button" onClick={() => onView(b.id)} className={`w-full rounded-xl border bg-surface-primary px-4 py-3 text-left transition hover:bg-surface-secondary min-h-[44px] ${conflictIds.has(b.id) ? 'border-red-300' : 'border-border-default'}`}>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-text-primary">{b.clientName}</p>
+              <p className="text-xs text-text-secondary">{b.service} \u00b7 {formatTime(b.startAt)}\u2013{formatTime(b.endAt)}</p>
+              {b.pets?.length > 0 && <p className="text-xs text-text-tertiary">{b.pets.map((p) => p.name || p.species || 'Pet').join(', ')}</p>}
+              {conflictIds.has(b.id) && <p className="text-xs font-medium text-red-600">{'\u26a0\ufe0f'} Schedule conflict</p>}
+            </div>
+            <span className={`shrink-0 h-2.5 w-2.5 rounded-full mt-1.5 ${statusDot(b.status)}`} />
+          </div>
+        </button>
+      ))}
+      {googleEvents.map((e) => (
+        <div key={e.id} className="rounded-xl border border-border-muted bg-surface-tertiary/30 px-4 py-3">
+          <p className="text-sm text-text-tertiary italic">{e.summary}</p>
+          <p className="text-xs text-text-disabled">{formatTime(e.start)}\u2013{formatTime(e.end)} (Personal)</p>
+        </div>
+      ))}
     </div>
   );
 }
