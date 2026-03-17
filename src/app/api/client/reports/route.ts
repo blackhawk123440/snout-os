@@ -27,29 +27,49 @@ export async function GET() {
         id: true,
         content: true,
         mediaUrls: true,
+        personalNote: true,
         visitStarted: true,
         visitCompleted: true,
         createdAt: true,
+        clientRating: true,
+        sentAt: true,
         bookingId: true,
-        booking: { select: { id: true, service: true, startAt: true } },
+        booking: {
+          select: {
+            id: true,
+            service: true,
+            startAt: true,
+            sitter: { select: { firstName: true, lastName: true } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
 
     const toIso = (d: Date | null) => (d instanceof Date ? d.toISOString() : null);
-    const payload = reports.map((r: any) => ({
-      id: r.id,
-      content: r.content,
-      mediaUrls: r.mediaUrls,
-      visitStarted: toIso(r.visitStarted),
-      visitCompleted: toIso(r.visitCompleted),
-      createdAt: toIso(r.createdAt),
-      bookingId: r.bookingId,
-      booking: r.booking
-        ? { id: r.booking.id, service: r.booking.service, startAt: toIso(r.booking.startAt) }
-        : null,
-    }));
+    const payload = reports.map((r: any) => {
+      const sitter = r.booking?.sitter;
+      const sitterName = sitter
+        ? `${sitter.firstName || ''} ${sitter.lastName || ''}`.trim()
+        : null;
+      return {
+        id: r.id,
+        content: r.content,
+        mediaUrls: r.mediaUrls,
+        personalNote: r.personalNote,
+        visitStarted: toIso(r.visitStarted),
+        visitCompleted: toIso(r.visitCompleted),
+        createdAt: toIso(r.createdAt),
+        clientRating: r.clientRating,
+        sentAt: toIso(r.sentAt),
+        bookingId: r.bookingId,
+        sitterName,
+        booking: r.booking
+          ? { id: r.booking.id, service: r.booking.service, startAt: toIso(r.booking.startAt) }
+          : null,
+      };
+    });
 
     return NextResponse.json({ reports: payload });
   } catch (error: unknown) {

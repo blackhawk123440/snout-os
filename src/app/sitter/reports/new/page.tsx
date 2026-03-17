@@ -17,10 +17,54 @@ interface BookingOption {
   pets: Array<{ id: string; name?: string | null; species?: string | null }>;
 }
 
+/* ─── Quick-fill chip options ───────────────────────────────────────── */
+
+const WALK_DURATIONS = ['15', '20', '30', '45', '60'];
+const POTTY_OPTIONS = ['Normal', '#1 only', '#2 only', 'Both', 'None'];
+const FOOD_OPTIONS = ['Ate well', 'Ate some', "Didn't eat", 'N/A'];
+const WATER_OPTIONS = ['Drank well', 'Drank some', 'Refreshed bowl', 'N/A'];
+const MED_OPTIONS = ['Given as directed', 'Not needed', 'Refused'];
+
+function QuickChips({
+  options,
+  value,
+  onSelect,
+  suffix,
+}: {
+  options: string[];
+  value: string;
+  onSelect: (v: string) => void;
+  suffix?: string;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-1.5">
+      {options.map((opt) => {
+        const label = suffix ? `${opt} ${suffix}` : opt;
+        const isActive = value === opt || value === label;
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onSelect(isActive ? '' : opt)}
+            className={`min-h-[36px] rounded-full px-3 py-1 text-xs font-medium transition ${
+              isActive
+                ? 'bg-accent-primary text-text-inverse'
+                : 'border border-border-default bg-surface-primary text-text-secondary hover:bg-surface-secondary'
+            }`}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function SitterReportNewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingIdParam = searchParams.get('bookingId');
+  const isPostCheckout = searchParams.get('postCheckout') === 'true';
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [bookings, setBookings] = useState<BookingOption[]>([]);
@@ -31,10 +75,12 @@ export default function SitterReportNewPage() {
   const [food, setFood] = useState('');
   const [water, setWater] = useState('');
   const [medication, setMedication] = useState('');
-  const [notes, setNotes] = useState('');
+  const [behaviorNotes, setBehaviorNotes] = useState('');
+  const [personalNote, setPersonalNote] = useState('');
   const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [sentReportId, setSentReportId] = useState<string | null>(null);
 
   const loadBookings = useCallback(async () => {
     setLoadingBookings(true);
@@ -78,7 +124,8 @@ export default function SitterReportNewPage() {
     if (food.trim()) parts.push(`Food: ${food.trim()}`);
     if (water.trim()) parts.push(`Water: ${water.trim()}`);
     if (medication.trim()) parts.push(`Medication: ${medication.trim()}`);
-    if (notes.trim()) parts.push(`Notes: ${notes.trim()}`);
+    if (behaviorNotes.trim()) parts.push(`Behavior: ${behaviorNotes.trim()}`);
+    if (personalNote.trim()) parts.push(personalNote.trim());
     return parts.join('. ') || 'Visit completed.';
   };
 
@@ -116,8 +163,6 @@ export default function SitterReportNewPage() {
     setMediaUrls((prev) => prev.filter((u) => u !== url));
   };
 
-  const [sentReportId, setSentReportId] = useState<string | null>(null);
-
   const handleSubmit = async () => {
     if (!selectedBookingId) {
       toastError('Select a visit');
@@ -133,6 +178,13 @@ export default function SitterReportNewPage() {
         body: JSON.stringify({
           report: reportText,
           mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+          walkDuration: walkDuration ? parseInt(walkDuration, 10) : undefined,
+          pottyNotes: potty || undefined,
+          foodNotes: food || undefined,
+          waterNotes: water || undefined,
+          medicationNotes: medication || undefined,
+          behaviorNotes: behaviorNotes || undefined,
+          personalNote: personalNote || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -140,7 +192,7 @@ export default function SitterReportNewPage() {
         toastError(data.error || 'Failed to submit report');
         return;
       }
-      toastSuccess('Sent to client');
+      toastSuccess(`Sent to ${selectedBooking?.clientName || 'client'}`);
       setSentReportId(data.reportId ?? null);
     } catch {
       toastError('Failed to submit report');
@@ -152,10 +204,13 @@ export default function SitterReportNewPage() {
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 
+  const inputClass =
+    'w-full min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-3 py-2.5 text-sm text-text-primary placeholder:text-text-disabled outline-none focus:border-border-focus focus:ring-1 focus:ring-border-focus';
+
   if (loadingBookings) {
     return (
       <div className="mx-auto max-w-2xl pb-8">
-        <SitterPageHeader title="New report" subtitle="Loading…" />
+        <SitterPageHeader title="New report" subtitle="Loading\u2026" />
         <div className="h-32 animate-pulse rounded-xl bg-surface-tertiary" />
       </div>
     );
@@ -177,141 +232,157 @@ export default function SitterReportNewPage() {
   return (
     <div className="mx-auto max-w-2xl pb-8">
       <SitterPageHeader
-        title="New report"
-        subtitle="Visit report for client"
+        title={isPostCheckout ? 'Send report' : 'New report'}
+        subtitle={selectedBooking ? `${selectedBooking.service} \u00b7 ${selectedBooking.clientName}` : 'Visit report for client'}
         action={
           <Button variant="secondary" size="sm" onClick={() => router.back()}>
-            Cancel
+            {isPostCheckout ? 'Skip' : 'Cancel'}
           </Button>
         }
       />
 
-      <div className="space-y-6">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-text-secondary">Visit</label>
-          <select
-            value={selectedBookingId ?? ''}
-            onChange={(e) => setSelectedBookingId(e.target.value || null)}
-            className="w-full rounded-xl border border-border-strong bg-surface-primary px-4 py-3 text-sm text-text-primary outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus/20"
-          >
-            {bookings.map((b) => (
-              <option key={b.id} value={b.id}>
-                {formatDate(b.startAt)} · {b.service} · {b.clientName}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="rounded-xl border border-border-default bg-surface-primary p-4">
-          <p className="mb-3 text-sm font-medium text-text-secondary">Visit details</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-xs text-text-tertiary">Walk duration (min)</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={walkDuration}
-                onChange={(e) => setWalkDuration(e.target.value.replace(/\D/g, ''))}
-                placeholder="e.g. 20"
-                className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-text-tertiary">Potty</label>
-              <input
-                type="text"
-                value={potty}
-                onChange={(e) => setPotty(e.target.value)}
-                placeholder="e.g. normal"
-                className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-text-tertiary">Food</label>
-              <input
-                type="text"
-                value={food}
-                onChange={(e) => setFood(e.target.value)}
-                placeholder="e.g. ate well"
-                className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-text-tertiary">Water</label>
-              <input
-                type="text"
-                value={water}
-                onChange={(e) => setWater(e.target.value)}
-                placeholder="e.g. refreshed"
-                className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
-              />
-            </div>
+      <div className="space-y-5">
+        {/* Visit selector */}
+        {!isPostCheckout && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-text-secondary">Visit</label>
+            <select
+              value={selectedBookingId ?? ''}
+              onChange={(e) => setSelectedBookingId(e.target.value || null)}
+              className={inputClass}
+            >
+              {bookings.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {formatDate(b.startAt)} \u00b7 {b.service} \u00b7 {b.clientName}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="mt-4">
-            <label className="mb-1 block text-xs text-text-tertiary">Medication</label>
+        )}
+
+        {/* Structured visit details with quick-fill chips */}
+        <div className="rounded-xl border border-border-default bg-surface-primary p-4 space-y-4">
+          <p className="text-sm font-semibold text-text-primary">Visit details</p>
+
+          {/* Walk duration */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary">Walk duration (min)</label>
+            <QuickChips options={WALK_DURATIONS} value={walkDuration} onSelect={setWalkDuration} suffix="min" />
             <input
               type="text"
-              value={medication}
-              onChange={(e) => setMedication(e.target.value)}
-              placeholder="e.g. given as directed"
-              className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
+              inputMode="numeric"
+              value={walkDuration}
+              onChange={(e) => setWalkDuration(e.target.value.replace(/\D/g, ''))}
+              placeholder="Or type custom\u2026"
+              className={`${inputClass} mt-2`}
             />
           </div>
-          <div className="mt-4">
-            <label className="mb-1 block text-xs text-text-tertiary">Notes</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any other details…"
-              rows={3}
-              className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
+
+          {/* Potty */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary">Potty</label>
+            <QuickChips options={POTTY_OPTIONS} value={potty} onSelect={setPotty} />
+          </div>
+
+          {/* Food */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary">Food</label>
+            <QuickChips options={FOOD_OPTIONS} value={food} onSelect={setFood} />
+          </div>
+
+          {/* Water */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary">Water</label>
+            <QuickChips options={WATER_OPTIONS} value={water} onSelect={setWater} />
+          </div>
+
+          {/* Medication */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary">Medication</label>
+            <QuickChips options={MED_OPTIONS} value={medication} onSelect={setMedication} />
+          </div>
+
+          {/* Behavior */}
+          <div>
+            <label className="block text-xs font-medium text-text-secondary">Behavior</label>
+            <input
+              type="text"
+              value={behaviorNotes}
+              onChange={(e) => setBehaviorNotes(e.target.value)}
+              placeholder="How was their mood? Happy, calm, anxious\u2026"
+              className={`${inputClass} mt-1.5`}
             />
           </div>
         </div>
 
+        {/* Personal note */}
         <div className="rounded-xl border border-border-default bg-surface-primary p-4">
-          <p className="mb-2 text-sm font-medium text-text-secondary">Photos (optional)</p>
+          <label className="block text-sm font-semibold text-text-primary mb-2">Personal note to client</label>
+          <textarea
+            value={personalNote}
+            onChange={(e) => setPersonalNote(e.target.value)}
+            placeholder={`"${selectedBooking?.pets?.[0]?.name || 'Your pet'} was so happy today! They played fetch and napped on the couch."`}
+            rows={3}
+            maxLength={2000}
+            className={`${inputClass} resize-y`}
+          />
+          <p className="mt-1 text-xs text-text-tertiary">This appears as a personal message on the client&apos;s report card.</p>
+        </div>
+
+        {/* Photos */}
+        <div className="rounded-xl border border-border-default bg-surface-primary p-4">
+          <p className="mb-3 text-sm font-semibold text-text-primary">Photos</p>
           <input
             ref={fileInputRef}
             type="file"
             accept={ACCEPT}
             multiple
+            capture="environment"
             className="hidden"
             onChange={handleFileChange}
             disabled={uploading || mediaUrls.length >= MAX_PHOTOS}
           />
           {mediaUrls.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">
-              {mediaUrls.map((url) => (
+              {mediaUrls.map((url, i) => (
                 <div key={url} className="relative">
-                  <img src={url} alt="Report" className="h-20 w-20 rounded-lg object-cover" />
+                  <img src={url} alt={`Photo ${i + 1}`} className="h-[120px] w-[120px] rounded-xl object-cover border border-border-default" />
+                  {i === 0 && (
+                    <span className="absolute bottom-1 left-1 rounded bg-accent-primary/80 px-1.5 py-0.5 text-[10px] font-bold text-text-inverse">
+                      Hero
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => removePhoto(url)}
-                    className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white"
+                    className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs text-white shadow"
                     aria-label="Remove photo"
                   >
-                    ×
+                    \u00d7
                   </button>
                 </div>
               ))}
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading || mediaUrls.length >= MAX_PHOTOS}
-            className="w-full rounded-lg border border-border-strong bg-surface-primary py-3 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary disabled:opacity-50"
-          >
-            {uploading ? 'Uploading…' : mediaUrls.length >= MAX_PHOTOS ? `${MAX_PHOTOS} photos max` : 'Add photos'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || mediaUrls.length >= MAX_PHOTOS}
+              className="flex-1 min-h-[44px] rounded-lg border border-border-default bg-surface-primary text-sm font-medium text-text-secondary transition hover:bg-surface-secondary disabled:opacity-50"
+            >
+              {uploading ? 'Uploading\u2026' : mediaUrls.length >= MAX_PHOTOS ? `${MAX_PHOTOS} photos max` : 'Add photos'}
+            </button>
+          </div>
+          <p className="mt-1.5 text-xs text-text-tertiary">First photo becomes the hero image on the client&apos;s report. Up to {MAX_PHOTOS} photos.</p>
         </div>
 
+        {/* Success state */}
         {sentReportId && (
           <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-            <p className="font-semibold text-green-800">Sent to client</p>
-            <p className="mt-0.5 text-sm text-green-700">The client will see this in their Latest report.</p>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <p className="font-semibold text-green-800">Sent to {selectedBooking?.clientName || 'client'}</p>
+            <p className="mt-0.5 text-sm text-green-700">The client will see this in their visit reports.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button
                 variant="secondary"
                 size="sm"
@@ -322,28 +393,26 @@ export default function SitterReportNewPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => router.push('/sitter/reports')}
+                onClick={() => router.push('/sitter/today')}
               >
-                Back to reports
+                Back to today
               </Button>
             </div>
           </div>
         )}
 
-        <div className="flex gap-3">
+        {/* Submit */}
+        {!sentReportId && (
           <Button
             variant="primary"
             size="md"
             onClick={() => void handleSubmit()}
-            disabled={submitting || !!sentReportId}
-            className="min-h-[44px] flex-1"
+            disabled={submitting}
+            className="w-full min-h-[44px]"
           >
-            {submitting ? 'Submitting…' : sentReportId ? 'Sent' : 'Submit report'}
+            {submitting ? 'Sending\u2026' : `Send to ${selectedBooking?.clientName || 'client'}`}
           </Button>
-          <Button variant="secondary" size="md" onClick={() => router.back()} className="min-h-[44px]" disabled={!!sentReportId}>
-            Cancel
-          </Button>
-        </div>
+        )}
       </div>
     </div>
   );

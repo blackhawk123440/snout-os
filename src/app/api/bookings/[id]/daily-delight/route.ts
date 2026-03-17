@@ -34,6 +34,16 @@ export async function POST(
     mediaUrls?: string[];
     /** If provided, use this instead of AI generation (offline sync flow) */
     report?: string;
+    // Structured fields
+    walkDuration?: number;
+    pottyNotes?: string;
+    foodNotes?: string;
+    waterNotes?: string;
+    medicationNotes?: string;
+    behaviorNotes?: string;
+    personalNote?: string;
+    checkOutLat?: number;
+    checkOutLng?: number;
   } = {};
   try {
     body = await request.json();
@@ -91,16 +101,27 @@ export async function POST(
       const created = await db.report.create({
         data: {
           bookingId,
+          sitterId: booking.sitterId ?? null,
+          clientId: booking.clientId ?? null,
           content: report,
           mediaUrls: mediaUrls.length > 0 ? JSON.stringify(mediaUrls) : null,
+          walkDuration: typeof body.walkDuration === 'number' ? body.walkDuration : null,
+          pottyNotes: body.pottyNotes?.trim() || null,
+          foodNotes: body.foodNotes?.trim() || null,
+          waterNotes: body.waterNotes?.trim() || null,
+          medicationNotes: body.medicationNotes?.trim() || null,
+          behaviorNotes: body.behaviorNotes?.trim() || null,
+          personalNote: body.personalNote?.trim() || null,
+          checkOutLat: typeof body.checkOutLat === 'number' ? body.checkOutLat : null,
+          checkOutLng: typeof body.checkOutLng === 'number' ? body.checkOutLng : null,
+          visitStarted: booking.startAt,
+          visitCompleted: booking.endAt,
+          sentToClient: true,
+          sentAt: new Date(),
         },
       });
       reportId = created.id;
-      const booking = await db.booking.findUnique({
-        where: { id: bookingId },
-        select: { sitterId: true, orgId: true },
-      });
-      if (booking?.sitterId) {
+      if (booking.sitterId) {
         publish(channels.sitterToday(booking.orgId ?? 'default', booking.sitterId), {
           type: 'delight.created',
           bookingId,

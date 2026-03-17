@@ -297,15 +297,47 @@ model Report {
   orgId          String    @default("default")
   bookingId      String?
   booking        Booking?  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sitterId       String?
+  clientId       String?
+
+  // Structured visit data
   content        String
+  walkDuration   Int?
+  pottyNotes     String?
+  foodNotes      String?
+  waterNotes     String?
+  medicationNotes String?
+  behaviorNotes  String?
+  personalNote   String?   @db.Text
+
+  // Media
   mediaUrls      String?
+
+  // Visit timing
   visitStarted   DateTime?
   visitCompleted DateTime?
+  checkInLat     Float?
+  checkInLng     Float?
+  checkOutLat    Float?
+  checkOutLng    Float?
+
+  // Client feedback
+  clientRating   Int?
+  clientFeedback String?   @db.Text
+  ratedAt        DateTime?
+
+  // Status
+  sentToClient   Boolean   @default(false)
+  sentAt         DateTime?
+
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
   @@index([bookingId])
   @@index([orgId])
+  @@index([sitterId])
+  @@index([clientId])
+  @@index([orgId, clientId, createdAt(sort: Desc)])
 }
 
 model GoogleCalendarAccount {

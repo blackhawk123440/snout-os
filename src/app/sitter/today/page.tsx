@@ -606,7 +606,7 @@ export default function SitterTodayPage() {
       const nowIso = new Date().toISOString();
       setBookings((prev) => prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed', checkedOutAt: nowIso } : b)));
       toastSuccess('Visit ended — write your report');
-      router.push(`/sitter/reports/new?bookingId=${bookingId}`);
+      router.push(`/sitter/reports/new?bookingId=${bookingId}&postCheckout=true`);
     } catch {
       toastError('Check out failed');
       void loadBookings();

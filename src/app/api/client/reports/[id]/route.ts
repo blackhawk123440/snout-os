@@ -30,7 +30,16 @@ export async function GET(
         booking: { clientId: ctx.clientId },
       },
       include: {
-        booking: { select: { id: true, service: true, startAt: true, endAt: true } },
+        booking: {
+          select: {
+            id: true,
+            service: true,
+            startAt: true,
+            endAt: true,
+            sitter: { select: { firstName: true, lastName: true } },
+            pets: { select: { name: true, species: true } },
+          },
+        },
       },
     });
 
@@ -39,19 +48,40 @@ export async function GET(
     }
 
     const toIso = (d: Date | null) => (d instanceof Date ? d.toISOString() : null);
+    const sitter = report.booking?.sitter;
+    const sitterName = sitter
+      ? `${sitter.firstName || ''} ${sitter.lastName || ''}`.trim()
+      : null;
+
     return NextResponse.json({
       id: report.id,
       content: report.content,
       mediaUrls: report.mediaUrls,
+      walkDuration: report.walkDuration,
+      pottyNotes: report.pottyNotes,
+      foodNotes: report.foodNotes,
+      waterNotes: report.waterNotes,
+      medicationNotes: report.medicationNotes,
+      behaviorNotes: report.behaviorNotes,
+      personalNote: report.personalNote,
       visitStarted: toIso(report.visitStarted),
       visitCompleted: toIso(report.visitCompleted),
+      clientRating: report.clientRating,
+      clientFeedback: report.clientFeedback,
+      ratedAt: toIso(report.ratedAt),
+      sentAt: toIso(report.sentAt),
       createdAt: toIso(report.createdAt),
+      sitterName,
       booking: report.booking
         ? {
             id: report.booking.id,
             service: report.booking.service,
             startAt: toIso(report.booking.startAt),
             endAt: toIso(report.booking.endAt),
+            pets: report.booking.pets?.map((p: any) => ({
+              name: p.name || '',
+              species: p.species || '',
+            })) ?? [],
           }
         : null,
     });
