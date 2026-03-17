@@ -12,6 +12,7 @@ import {
   AppErrorState,
   AppStatusPill,
 } from '@/components/app';
+import { toastSuccess, toastError } from '@/lib/toast';
 
 interface BookingDetail {
   id: string;
@@ -35,6 +36,14 @@ interface BookingDetail {
   } | null;
 }
 
+const ISSUE_TYPES = [
+  { value: 'late_arrival', label: 'Late arrival' },
+  { value: 'missed_service', label: 'Missed service' },
+  { value: 'safety_concern', label: 'Safety concern' },
+  { value: 'billing_issue', label: 'Billing issue' },
+  { value: 'other', label: 'Other' },
+];
+
 export default function ClientBookingDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -42,13 +51,16 @@ export default function ClientBookingDetailPage() {
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showComplaint, setShowComplaint] = useState(false);
+  const [complaintType, setComplaintType] = useState('other');
+  const [complaintDesc, setComplaintDesc] = useState('');
+  const [submittingComplaint, setSubmittingComplaint] = useState(false);
+  const [complaintSent, setComplaintSent] = useState(false);
 
-  // Never treat "new" as a booking id: redirect to the client new-booking form
   useEffect(() => {
-    if (id === 'new') {
-      router.replace('/client/bookings/new');
-      return;
-    }
+    if (id === 'new') { router.replace('/client/bookings/new'); }
   }, [id, router]);
 
   const load = useCallback(async () => {
@@ -58,31 +70,55 @@ export default function ClientBookingDetailPage() {
     try {
       const res = await fetch(`/api/client/bookings/${id}`);
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Booking not found');
-        setBooking(null);
-        return;
-      }
+      if (!res.ok) { setError(json.error || 'Booking not found'); setBooking(null); return; }
       setBooking(json);
-    } catch {
-      setError('Unable to load booking');
-      setBooking(null);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError('Unable to load booking'); setBooking(null); }
+    finally { setLoading(false); }
   }, [id]);
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
   const formatTime = (d: string) =>
     new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
-  // Redirecting to /client/bookings/new; avoid rendering detail/error
+  const canCancel = booking && ['pending', 'confirmed'].includes(booking.status) && new Date(booking.startAt).getTime() > Date.now();
+  const isWithin24h = booking ? new Date(booking.startAt).getTime() - Date.now() < 24 * 60 * 60 * 1000 : false;
+  const isCompleted = booking?.status === 'completed';
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/client/bookings/${id}/cancel`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { toastError(json.error || 'Failed to cancel'); return; }
+      toastSuccess('Booking cancelled');
+      setShowCancelConfirm(false);
+      void load();
+    } catch { toastError('Failed to cancel'); }
+    finally { setCancelling(false); }
+  };
+
+  const handleComplaint = async () => {
+    if (complaintDesc.length < 20) { toastError('Please provide more detail (at least 20 characters)'); return; }
+    setSubmittingComplaint(true);
+    try {
+      const res = await fetch(`/api/client/bookings/${id}/complaint`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ issueType: complaintType, description: complaintDesc }),
+      });
+      if (!res.ok) { toastError('Failed to submit'); return; }
+      setComplaintSent(true);
+      toastSuccess('Feedback submitted');
+    } catch { toastError('Failed to submit'); }
+    finally { setSubmittingComplaint(false); }
+  };
+
   if (id === 'new') return null;
+
+  const inputClass = 'w-full min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-border-focus focus:outline-none';
 
   return (
     <LayoutWrapper variant="narrow">
@@ -90,11 +126,7 @@ export default function ClientBookingDetailPage() {
         title="Booking details"
         subtitle={booking ? booking.service : ''}
         action={
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="min-h-[44px] text-sm font-medium text-text-secondary hover:text-text-primary"
-          >
+          <button type="button" onClick={() => router.back()} className="min-h-[44px] text-sm font-medium text-text-secondary hover:text-text-primary">
             Back
           </button>
         }
@@ -104,7 +136,8 @@ export default function ClientBookingDetailPage() {
       ) : error ? (
         <AppErrorState title="Couldn't load booking" subtitle={error} onRetry={() => void load()} />
       ) : booking ? (
-        <div className="flex flex-col gap-6 pb-8">
+        <div className="flex flex-col gap-4 pb-8">
+          {/* Booking info */}
           <AppCard>
             <AppCardHeader>
               <div className="flex items-center justify-between gap-2">
@@ -115,50 +148,122 @@ export default function ClientBookingDetailPage() {
             <AppCardBody>
               <p className="text-sm text-text-secondary">{formatDate(booking.startAt)}</p>
               <p className="mt-1 text-sm tabular-nums text-text-secondary">
-                {formatTime(booking.startAt)} – {formatTime(booking.endAt)}
+                {formatTime(booking.startAt)} \u2013 {formatTime(booking.endAt)}
               </p>
-              {booking.address && (
-                <p className="mt-2 text-sm text-text-tertiary">{booking.address}</p>
-              )}
+              {booking.address && <p className="mt-2 text-sm text-text-tertiary">{booking.address}</p>}
               {booking.pets?.length > 0 && (
                 <p className="mt-2 text-sm text-text-tertiary">
                   Pets: {booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}
                 </p>
               )}
+              {booking.totalPrice != null && (
+                <p className="mt-2 text-sm font-medium text-text-primary">${booking.totalPrice.toFixed(2)}</p>
+              )}
             </AppCardBody>
           </AppCard>
+
+          {/* Payment */}
           <AppCard>
             <AppCardHeader>
               <div className="flex items-center justify-between gap-2">
-                <p className="font-semibold text-text-primary">Payment completion</p>
+                <p className="font-semibold text-text-primary">Payment</p>
                 <AppStatusPill status={booking.paymentProof ? 'paid' : booking.paymentStatus || 'unpaid'} />
               </div>
             </AppCardHeader>
             <AppCardBody>
               {booking.paymentProof ? (
                 <div className="space-y-1 text-sm text-text-secondary">
-                  <p>
-                    Paid amount: <span className="font-semibold text-text-primary">${booking.paymentProof.amount.toFixed(2)}</span>
-                  </p>
-                  <p>Paid at: {new Date(booking.paymentProof.paidAt).toLocaleString()}</p>
-                  <p>Booking ref: {booking.paymentProof.bookingReference}</p>
-                  <p>Invoice ref: {booking.paymentProof.invoiceReference}</p>
-                  {booking.paymentProof.receiptLink ? (
-                    <a
-                      href={booking.paymentProof.receiptLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex text-sm font-medium text-text-secondary underline underline-offset-2"
-                    >
+                  <p>Paid: <span className="font-semibold text-text-primary">${booking.paymentProof.amount.toFixed(2)}</span></p>
+                  <p>{new Date(booking.paymentProof.paidAt).toLocaleString()}</p>
+                  {booking.paymentProof.receiptLink && (
+                    <a href={booking.paymentProof.receiptLink} target="_blank" rel="noopener noreferrer" className="inline-flex text-sm font-medium text-accent-primary underline">
                       View receipt
                     </a>
-                  ) : null}
+                  )}
                 </div>
               ) : (
-                <p className="text-sm text-text-secondary">Payment is not webhook-confirmed yet.</p>
+                <p className="text-sm text-text-tertiary">Payment pending.</p>
               )}
             </AppCardBody>
           </AppCard>
+
+          {/* Cancel button */}
+          {canCancel && (
+            <div>
+              {!showCancelConfirm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowCancelConfirm(true)}
+                  className="w-full min-h-[44px] rounded-lg border border-red-300 text-sm font-medium text-red-700 hover:bg-red-50 transition"
+                >
+                  Cancel booking
+                </button>
+              ) : (
+                <AppCard className="border-red-300">
+                  <AppCardBody>
+                    <p className="text-sm font-semibold text-red-800">Cancel this booking?</p>
+                    {isWithin24h && (
+                      <p className="mt-1 text-xs text-amber-700">This booking starts within 24 hours. A cancellation fee may apply.</p>
+                    )}
+                    <p className="mt-1 text-sm text-text-secondary">This cannot be undone.</p>
+                    <div className="mt-3 flex gap-2">
+                      <button type="button" onClick={handleCancel} disabled={cancelling} className="min-h-[44px] flex-1 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-50">
+                        {cancelling ? 'Cancelling\u2026' : 'Yes, cancel'}
+                      </button>
+                      <button type="button" onClick={() => setShowCancelConfirm(false)} className="min-h-[44px] flex-1 rounded-lg border border-border-default px-4 text-sm font-medium text-text-secondary hover:bg-surface-secondary transition">
+                        Keep booking
+                      </button>
+                    </div>
+                  </AppCardBody>
+                </AppCard>
+              )}
+            </div>
+          )}
+
+          {/* Complaint / Report issue (completed bookings) */}
+          {isCompleted && !complaintSent && (
+            <div>
+              {!showComplaint ? (
+                <button type="button" onClick={() => setShowComplaint(true)} className="min-h-[44px] text-sm font-medium text-text-tertiary hover:text-text-primary">
+                  Report an issue
+                </button>
+              ) : (
+                <AppCard>
+                  <AppCardBody>
+                    <p className="text-sm font-semibold text-text-primary mb-3">Report an issue</p>
+                    <div className="space-y-3">
+                      <select value={complaintType} onChange={(e) => setComplaintType(e.target.value)} className={inputClass}>
+                        {ISSUE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                      <textarea
+                        value={complaintDesc}
+                        onChange={(e) => setComplaintDesc(e.target.value)}
+                        placeholder="Please describe the issue (at least 20 characters)"
+                        rows={3}
+                        maxLength={2000}
+                        className={`${inputClass} resize-y`}
+                      />
+                      <div className="flex gap-2">
+                        <button type="button" onClick={handleComplaint} disabled={submittingComplaint} className="min-h-[44px] flex-1 rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50">
+                          {submittingComplaint ? 'Submitting\u2026' : 'Submit'}
+                        </button>
+                        <button type="button" onClick={() => setShowComplaint(false)} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary hover:text-text-primary">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </AppCardBody>
+                </AppCard>
+              )}
+            </div>
+          )}
+          {complaintSent && (
+            <AppCard className="border-green-200 bg-green-50">
+              <AppCardBody>
+                <p className="text-sm font-medium text-green-800">Thank you for your feedback. We'll review this and get back to you within 24 hours.</p>
+              </AppCardBody>
+            </AppCard>
+          )}
         </div>
       ) : null}
     </LayoutWrapper>

@@ -840,6 +840,16 @@ model Client {
   lifetimeValue Float              @default(0)
   lastBookingAt DateTime?
   notes         String?
+
+  // Home access info
+  keyLocation       String?
+  lockboxCode       String?
+  doorAlarmCode     String?
+  wifiNetwork       String?
+  wifiPassword      String?
+  entryInstructions String?  @db.Text
+  parkingNotes      String?
+
   deletedAt     DateTime?          // Soft delete
   customFields  CustomFieldValue[]
   bookings      Booking[]
