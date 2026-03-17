@@ -81,6 +81,14 @@ export default function SitterReportNewPage() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [sentReportId, setSentReportId] = useState<string | null>(null);
+  const [petReports, setPetReports] = useState<Record<string, Record<string, string>>>({});
+
+  const updatePetReport = (petId: string, field: string, value: string) => {
+    setPetReports((prev) => ({
+      ...prev,
+      [petId]: { ...prev[petId], [field]: value },
+    }));
+  };
 
   const loadBookings = useCallback(async () => {
     setLoadingBookings(true);
@@ -185,6 +193,14 @@ export default function SitterReportNewPage() {
           medicationNotes: medication || undefined,
           behaviorNotes: behaviorNotes || undefined,
           personalNote: personalNote || undefined,
+          petReports: Object.keys(petReports).length > 0
+            ? JSON.stringify(
+                Object.entries(petReports).map(([petId, data]) => {
+                  const pet = selectedBooking?.pets?.find((p) => p.id === petId);
+                  return { petId, petName: pet?.name || 'Pet', ...data };
+                })
+              )
+            : undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -328,6 +344,30 @@ export default function SitterReportNewPage() {
           />
           <p className="mt-1 text-xs text-text-tertiary">This appears as a personal message on the client&apos;s report card.</p>
         </div>
+
+        {/* Per-pet notes (multi-pet bookings) */}
+        {selectedBooking && selectedBooking.pets && selectedBooking.pets.length > 1 && (
+          <div className="rounded-xl border border-border-default bg-surface-primary p-4">
+            <p className="text-sm font-semibold text-text-primary mb-3">Per-pet details</p>
+            <div className="space-y-3">
+              {selectedBooking.pets.map((pet) => (
+                <details key={pet.id} className="rounded-lg border border-border-default">
+                  <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer min-h-[44px] text-sm font-medium text-text-primary hover:bg-surface-secondary">
+                    {pet.name || pet.species || 'Pet'}
+                  </summary>
+                  <div className="px-3 pb-3 space-y-2">
+                    <input placeholder="Walk duration (min)" value={petReports[pet.id]?.walk || ''} onChange={(e) => updatePetReport(pet.id, 'walk', e.target.value)} className={inputClass} />
+                    <input placeholder="Potty" value={petReports[pet.id]?.potty || ''} onChange={(e) => updatePetReport(pet.id, 'potty', e.target.value)} className={inputClass} />
+                    <input placeholder="Food" value={petReports[pet.id]?.food || ''} onChange={(e) => updatePetReport(pet.id, 'food', e.target.value)} className={inputClass} />
+                    <input placeholder="Water" value={petReports[pet.id]?.water || ''} onChange={(e) => updatePetReport(pet.id, 'water', e.target.value)} className={inputClass} />
+                    <input placeholder="Medication" value={petReports[pet.id]?.meds || ''} onChange={(e) => updatePetReport(pet.id, 'meds', e.target.value)} className={inputClass} />
+                    <input placeholder="Behavior" value={petReports[pet.id]?.behavior || ''} onChange={(e) => updatePetReport(pet.id, 'behavior', e.target.value)} className={inputClass} />
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Photos */}
         <div className="rounded-xl border border-border-default bg-surface-primary p-4">

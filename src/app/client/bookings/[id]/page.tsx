@@ -25,6 +25,7 @@ interface BookingDetail {
   address: string | null;
   pets: Array<{ id: string; name?: string | null; species?: string | null }>;
   sitter?: { name: string; tier: string | null } | null;
+  checkedInAt?: string | null;
   paymentProof?: {
     status: string;
     amount: number;
@@ -173,6 +174,16 @@ export default function ClientBookingDetailPage() {
             </AppCardBody>
           </AppCard>
 
+          {/* Visit Progress */}
+          {booking.status === 'in_progress' && booking.checkedInAt && (
+            <VisitProgress
+              checkedInAt={booking.checkedInAt}
+              scheduledStart={booking.startAt}
+              scheduledEnd={booking.endAt}
+              sitterName={booking.sitter?.name}
+            />
+          )}
+
           {/* Payment */}
           <AppCard>
             <AppCardHeader>
@@ -278,5 +289,56 @@ export default function ClientBookingDetailPage() {
         </div>
       ) : null}
     </LayoutWrapper>
+  );
+}
+
+/* ─── Visit Progress Component ──────────────────────────────────────── */
+
+function VisitProgress({
+  checkedInAt,
+  scheduledStart,
+  scheduledEnd,
+  sitterName,
+}: {
+  checkedInAt: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  sitterName?: string | null;
+}) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const checkInMs = new Date(checkedInAt).getTime();
+  const elapsedMin = Math.max(0, Math.floor((now - checkInMs) / 60000));
+  const scheduledDuration = Math.max(1, Math.floor(
+    (new Date(scheduledEnd).getTime() - new Date(scheduledStart).getTime()) / 60000
+  ));
+  const progressPct = Math.min(100, Math.round((elapsedMin / scheduledDuration) * 100));
+  const checkInTime = new Date(checkedInAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  return (
+    <AppCard className="border-green-200 bg-green-50">
+      <AppCardBody>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
+          <p className="text-sm font-semibold text-green-800">Visit in progress</p>
+        </div>
+        <p className="text-sm text-green-700">
+          {sitterName || 'Your sitter'} started at {checkInTime}
+        </p>
+        <p className="text-sm text-green-700">Duration: {elapsedMin} minutes</p>
+        <div className="mt-2 flex items-center gap-2">
+          <div className="flex-1 h-2 overflow-hidden rounded-full bg-green-200">
+            <div className="h-full rounded-full bg-green-500 transition-[width]" style={{ width: `${progressPct}%` }} />
+          </div>
+          <span className="text-xs font-medium text-green-700 tabular-nums">{elapsedMin}/{scheduledDuration} min</span>
+        </div>
+        <p className="mt-2 text-xs text-green-600">We'll notify you when the visit is complete.</p>
+      </AppCardBody>
+    </AppCard>
   );
 }

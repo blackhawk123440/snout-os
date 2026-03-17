@@ -84,6 +84,14 @@ export async function GET(
         species: p.species,
       })),
       sitter: sitterInfo,
+      checkedInAt: await (async () => {
+        const ve = await (prisma as any).visitEvent.findFirst({
+          where: { bookingId: booking.id },
+          select: { checkInAt: true },
+          orderBy: { createdAt: 'desc' },
+        });
+        return ve?.checkInAt ? toIso(ve.checkInAt) : null;
+      })(),
       paymentProof: paidCharge
         ? {
             status: 'paid',

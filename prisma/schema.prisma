@@ -121,6 +121,7 @@ model Pet {
   behaviorNotes        String?    @db.Text
   houseRules           String?    @db.Text
   walkInstructions     String?    @db.Text
+  medications          String?    @db.Text  // JSON: [{ name, dosage, frequency, time, instructions, active }]
 
   // Vet info
   vetName        String?
@@ -311,6 +312,7 @@ model Report {
   medicationNotes String?
   behaviorNotes  String?
   personalNote   String?   @db.Text
+  petReports     String?   @db.Text  // JSON: [{ petId, petName, walk, potty, food, water, meds, behavior }]
 
   // Media
   mediaUrls      String?
@@ -550,6 +552,29 @@ model CustomFieldValue {
 // ============================================
 // SERVICE CONFIGURATION
 // ============================================
+
+model IncidentReport {
+  id           String    @id @default(uuid())
+  orgId        String
+  bookingId    String
+  sitterId     String
+  clientId     String?
+  petId        String?
+  type         String    // injury, illness, escape, property_damage, bite, other
+  severity     String    // low, medium, high, critical
+  description  String    @db.Text
+  mediaUrls    String?
+  status       String    @default("open")  // open, investigating, resolved
+  resolution   String?   @db.Text
+  resolvedAt   DateTime?
+  resolvedBy   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([orgId, status])
+  @@index([bookingId])
+  @@index([sitterId])
+}
 
 model RecurringSchedule {
   id              String    @id @default(uuid())
@@ -879,6 +904,13 @@ model Client {
   lifetimeValue Float              @default(0)
   lastBookingAt DateTime?
   notes         String?
+
+  // Key tracking
+  keyStatus         String?    @default("none")  // none, with_client, with_sitter, with_owner, lockbox
+  keyHolder         String?
+  keyNotes          String?
+  keyGivenAt        DateTime?
+  keyReturnedAt     DateTime?
 
   // Home access info
   keyLocation       String?

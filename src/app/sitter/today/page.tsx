@@ -408,6 +408,34 @@ function VisitCard({
           <Button variant="secondary" size="sm" onClick={() => onMessage(booking)}>
             Message
           </Button>
+          {booking.status === 'in_progress' && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push(`/sitter/bookings/${booking.id}?emergency=true`)}
+              className="border-red-300 text-red-700 hover:bg-red-50"
+            >
+              Emergency
+            </Button>
+          )}
+          {/* Multi-day daily update prompt */}
+          {booking.status === 'in_progress' && (() => {
+            const startMs = new Date(booking.startAt).getTime();
+            const endMs = new Date(booking.endAt).getTime();
+            const isMultiDay = endMs - startMs > 24 * 60 * 60 * 1000;
+            if (!isMultiDay) return null;
+            const dayNumber = Math.floor((Date.now() - startMs) / (24 * 60 * 60 * 1000)) + 1;
+            const totalDays = Math.ceil((endMs - startMs) / (24 * 60 * 60 * 1000));
+            return (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => router.push(`/sitter/reports/new?bookingId=${booking.id}&postCheckout=true`)}
+              >
+                Daily update (Day {dayNumber}/{totalDays})
+              </Button>
+            );
+          })()}
           <span className="inline-flex min-h-[36px] items-center rounded-lg border border-border-strong bg-surface-primary px-3 text-xs font-medium text-text-secondary">
             Office handles calls
           </span>

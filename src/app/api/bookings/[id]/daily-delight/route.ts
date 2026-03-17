@@ -44,6 +44,7 @@ export async function POST(
     personalNote?: string;
     checkOutLat?: number;
     checkOutLng?: number;
+    petReports?: string;  // JSON string
   } = {};
   try {
     body = await request.json();
@@ -112,6 +113,7 @@ export async function POST(
           medicationNotes: body.medicationNotes?.trim() || null,
           behaviorNotes: body.behaviorNotes?.trim() || null,
           personalNote: body.personalNote?.trim() || null,
+          petReports: body.petReports || null,
           checkOutLat: typeof body.checkOutLat === 'number' ? body.checkOutLat : null,
           checkOutLng: typeof body.checkOutLng === 'number' ? body.checkOutLng : null,
           visitStarted: booking.startAt,
