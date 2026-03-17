@@ -28,7 +28,7 @@ export async function POST(
       where: { id, ...whereOrg(ctx.orgId, { clientId: ctx.clientId }) },
       select: {
         id: true, status: true, startAt: true, sitterId: true,
-        firstName: true, lastName: true, service: true,
+        firstName: true, lastName: true, service: true, paymentStatus: true,
       },
     });
 
@@ -78,6 +78,36 @@ export async function POST(
           startAt: booking.startAt,
         });
       }).catch(() => {});
+    }
+
+    // Process refund if booking was prepaid
+    if (booking.paymentStatus === 'paid') {
+      try {
+        const charge = await (prisma as any).stripeCharge.findFirst({
+          where: { bookingId: id, status: 'succeeded' },
+          select: { id: true, paymentIntentId: true, amount: true },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (charge?.paymentIntentId) {
+          const { stripe } = await import('@/lib/stripe');
+          const refund = await stripe.refunds.create({
+            payment_intent: charge.paymentIntentId,
+          });
+          await (prisma as any).booking.update({
+            where: { id },
+            data: { paymentStatus: 'refunded' },
+          });
+          await logEvent({
+            orgId: ctx.orgId,
+            action: 'payment.refunded',
+            bookingId: id,
+            status: 'success',
+            metadata: { refundId: refund.id, amount: charge.amount, trigger: 'client_cancel' },
+          });
+        }
+      } catch (refundError) {
+        console.error('[cancel] refund failed (non-blocking):', refundError);
+      }
     }
 
     await logEvent({

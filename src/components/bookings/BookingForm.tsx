@@ -118,6 +118,10 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   const [bookingType, setBookingType] = useState<'one-time' | 'recurring'>('one-time');
   const [is247Care, setIs247Care] = useState(false);
 
+  // Client saved pets (fetched when phone matches existing client)
+  const [savedPets, setSavedPets] = useState<Array<{ id: string; name: string; species: string; selected: boolean }>>([]);
+  const [savedPetsLoaded, setSavedPetsLoaded] = useState(false);
+
   // Calendar state
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
@@ -143,6 +147,28 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     afterHours: initialValues?.afterHours || false,
     holiday: initialValues?.holiday || false,
   });
+
+  // Fetch client's saved pets when phone is entered (owner booking flow)
+  useEffect(() => {
+    if (savedPetsLoaded || !formValues.phone || formValues.phone.length < 7) return;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/clients?page=1&pageSize=1&search=${encodeURIComponent(formValues.phone)}`);
+        if (!res.ok) return;
+        const json = await res.json();
+        const client = json.items?.[0];
+        if (!client?.id) return;
+        const petsRes = await fetch(`/api/clients/${client.id}/pets`);
+        if (!petsRes.ok) return;
+        const petsJson = await petsRes.json();
+        if (Array.isArray(petsJson.pets) && petsJson.pets.length > 0) {
+          setSavedPets(petsJson.pets.map((p: any) => ({ id: p.id, name: p.name || 'Pet', species: p.species || 'Dog', selected: true })));
+        }
+        setSavedPetsLoaded(true);
+      } catch { /* silent */ }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [formValues.phone, savedPetsLoaded]);
 
   // Initialize from initialValues
   useEffect(() => {
@@ -291,6 +317,16 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       }
     });
     
+    // Include selected saved pets
+    const selectedSaved = savedPets.filter((p) => p.selected);
+    if (selectedSaved.length > 0) {
+      for (const sp of selectedSaved) {
+        if (!pets.some((p) => p.name === sp.name && p.species === sp.species)) {
+          pets.push({ name: sp.name, species: sp.species });
+        }
+      }
+    }
+
     if (pets.length === 0 && formValues.pets.length > 0) {
       return formValues.pets;
     }
@@ -504,6 +540,39 @@ export const BookingForm: React.FC<BookingFormProps> = ({
           )}
         </div>
       </Card>
+
+      {/* Saved pets from client profile */}
+      {savedPets.length > 0 && (
+        <Card>
+          <SectionHeader title="Your Pets" />
+          <div style={{ padding: tokens.spacing[4] }}>
+            <p style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0] }}>
+              Select which pets are included in this booking:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+              {savedPets.map((pet) => (
+                <button
+                  key={pet.id}
+                  type="button"
+                  onClick={() => setSavedPets((prev) => prev.map((p) => p.id === pet.id ? { ...p, selected: !p.selected } : p))}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: tokens.spacing[3],
+                    padding: tokens.spacing[3], borderRadius: tokens.borderRadius.lg,
+                    border: `1px solid ${pet.selected ? tokens.colors.accent?.primary || '#432f21' : tokens.colors.border.default}`,
+                    backgroundColor: pet.selected ? (tokens.colors.accent?.tertiary || '#fef7fb') : tokens.colors.background?.primary || '#fff',
+                    cursor: 'pointer', textAlign: 'left', minHeight: '44px',
+                  }}
+                >
+                  <span style={{ fontSize: '1.2rem' }}>{pet.selected ? '\u2611' : '\u2610'}</span>
+                  <span style={{ fontWeight: 500, fontSize: tokens.typography.fontSize.sm[0] }}>
+                    {pet.name} ({pet.species})
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Step 2: Pet Selection - Matching booking-form.html exactly */}
       <Card>

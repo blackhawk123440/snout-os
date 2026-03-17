@@ -218,6 +218,46 @@ export async function POST(
       // Don't fail the request if tier computation fails
     }
 
+    // Fire-and-forget notifications for pool acceptance
+    void import('@/lib/notifications/triggers').then(async (triggers) => {
+      const sitter = await (prisma as any).sitter.findUnique({
+        where: { id: sitterId },
+        select: { firstName: true, lastName: true },
+      });
+      const sitterName = sitter ? `${sitter.firstName} ${sitter.lastName}`.trim() : 'Sitter';
+      const clientName = `${(booking as any).firstName || ''} ${(booking as any).lastName || ''}`.trim();
+
+      // N13: Sitter assigned notification
+      triggers.notifySitterAssigned({
+        orgId,
+        bookingId,
+        sitterId,
+        sitterFirstName: sitter?.firstName || 'Sitter',
+        clientName,
+        service: (booking as any).service,
+        startAt: (booking as any).startAt,
+      });
+
+      // N14: Owner pool accepted notification
+      triggers.notifyOwnerPoolAccepted({
+        orgId,
+        bookingId,
+        sitterName,
+        clientName,
+        service: (booking as any).service,
+        startAt: (booking as any).startAt,
+      });
+
+      // N3: Other sitters notified booking is filled
+      triggers.notifyPoolSittersOfferFilled({
+        orgId,
+        bookingId,
+        acceptedSitterId: sitterId,
+        service: (booking as any).service,
+        startAt: (booking as any).startAt,
+      });
+    }).catch(() => {});
+
     return NextResponse.json({ success: true, responseSeconds });
   } catch (error: any) {
     console.error('[Accept Booking API] Failed to accept booking:', error);

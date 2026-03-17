@@ -414,3 +414,70 @@ export async function notifyClientSitterCheckedIn(params: {
     console.error('[notification] clientSitterCheckedIn failed:', error);
   }
 }
+
+// ─── N13: Sitter Assigned → Sitter SMS (S1.9) ───────────────────────
+
+export async function notifySitterAssigned(params: {
+  orgId: string;
+  bookingId: string;
+  sitterId: string;
+  sitterFirstName: string;
+  clientName: string;
+  service: string;
+  startAt: Date | string;
+}): Promise<void> {
+  try {
+    const settings = await getNotifSettings(params.orgId);
+    if (settings && !settings.sitterNotifications) return;
+
+    const threadId = await findThreadForSitter(params.orgId, params.sitterId);
+    if (!threadId) return;
+
+    const body = `Great! You're assigned to ${params.service} for ${params.clientName} on ${fmtDate(params.startAt)}. Check your portal for details.`;
+    await trySendThreadMessage({ orgId: params.orgId, threadId, body });
+
+    await logEvent({
+      orgId: params.orgId,
+      action: 'notification.sitter.assigned',
+      bookingId: params.bookingId,
+      status: 'success',
+    });
+  } catch (error) {
+    console.error('[notification] sitterAssigned failed:', error);
+  }
+}
+
+// ─── N14: Owner Pool Accepted → Owner SSE (S1.10) ───────────────────
+
+export async function notifyOwnerPoolAccepted(params: {
+  orgId: string;
+  bookingId: string;
+  sitterName: string;
+  clientName: string;
+  service: string;
+  startAt: Date | string;
+}): Promise<void> {
+  try {
+    const settings = await getNotifSettings(params.orgId);
+    if (settings && !settings.ownerAlerts) return;
+
+    publish(channels.ownerOps(params.orgId), {
+      type: 'pool.accepted',
+      bookingId: params.bookingId,
+      sitterName: params.sitterName,
+      clientName: params.clientName,
+      service: params.service,
+      ts: Date.now(),
+    }).catch(() => {});
+
+    await logEvent({
+      orgId: params.orgId,
+      action: 'notification.owner.pool_accepted',
+      bookingId: params.bookingId,
+      status: 'success',
+      metadata: { sitterName: params.sitterName },
+    });
+  } catch (error) {
+    console.error('[notification] ownerPoolAccepted failed:', error);
+  }
+}

@@ -25,6 +25,7 @@ interface BookingDetail {
   address: string | null;
   pets: Array<{ id: string; name?: string | null; species?: string | null }>;
   sitter?: { name: string; tier: string | null } | null;
+  pricingSnapshot?: string | null;
   checkedInAt?: string | null;
   paymentProof?: {
     status: string;
@@ -168,8 +169,27 @@ export default function ClientBookingDetailPage() {
                   )}
                 </div>
               )}
-              {booking.totalPrice != null && (
-                <p className="mt-2 text-sm font-medium text-text-primary">${booking.totalPrice.toFixed(2)}</p>
+              {booking.totalPrice != null && booking.totalPrice > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm font-medium text-text-primary">${booking.totalPrice.toFixed(2)}</p>
+                  {booking.pricingSnapshot && (() => {
+                    try {
+                      const snapshot = JSON.parse(booking.pricingSnapshot);
+                      const breakdown: Array<{ label: string; amount: number }> = snapshot.breakdown || snapshot.lineItems || [];
+                      if (breakdown.length <= 1) return null;
+                      return (
+                        <div className="mt-1.5 space-y-0.5">
+                          {breakdown.map((item, i) => (
+                            <div key={i} className="flex justify-between text-xs text-text-secondary">
+                              <span>{item.label}</span>
+                              <span className="tabular-nums">{item.amount < 0 ? '-' : ''}${Math.abs(item.amount).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    } catch { return null; }
+                  })()}
+                </div>
               )}
             </AppCardBody>
           </AppCard>

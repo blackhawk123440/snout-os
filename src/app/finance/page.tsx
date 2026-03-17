@@ -18,6 +18,7 @@ interface FinanceSummary {
   collectionRate: number;
   recentPayments: Array<{
     chargeId: string;
+    bookingId: string | null;
     amount: number;
     clientName: string;
     service: string;
@@ -98,6 +99,16 @@ export default function FinancePage() {
     } catch {
       toastError('Failed to mark as paid');
     }
+  };
+
+  const issueRefund = async (bookingId: string, amount: number) => {
+    if (!confirm(`Refund $${amount.toFixed(2)}? This will be processed via Stripe.`)) return;
+    try {
+      const res = await fetch(`/api/ops/bookings/${bookingId}/refund`, { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) { toastSuccess(`Refund of $${json.amount?.toFixed(2) || amount.toFixed(2)} processed`); void load(); }
+      else toastError(json.error || 'Refund failed');
+    } catch { toastError('Refund failed'); }
   };
 
   const sendReminders = async () => {
@@ -271,6 +282,15 @@ export default function FinancePage() {
                             {p.service} \u00b7 {formatDate(p.paidAt)}
                           </p>
                         </div>
+                        {p.bookingId && (
+                          <button
+                            type="button"
+                            onClick={() => void issueRefund(p.bookingId!, p.amount)}
+                            className="shrink-0 min-h-[36px] rounded-lg border border-border-default px-2.5 text-xs font-medium text-red-600 hover:bg-red-50 transition"
+                          >
+                            Refund
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>

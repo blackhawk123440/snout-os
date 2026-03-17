@@ -562,9 +562,19 @@ function UnassignedCard({
           <div key={visit.bookingId} className="px-4 py-3 lg:px-5">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-text-primary">
-                  {formatTime(visit.startAt)} \u2014 {visit.service}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-text-primary">
+                    {formatTime(visit.startAt)} \u2014 {visit.service}
+                  </p>
+                  {(() => {
+                    const hoursUntil = (new Date(visit.startAt).getTime() - Date.now()) / 3600000;
+                    return hoursUntil > 0 && hoursUntil < 4 ? (
+                      <span className="shrink-0 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
+                        Urgent
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
                 <p className="text-xs text-text-secondary truncate">{visit.clientName}</p>
               </div>
               {sitters.length > 0 && (

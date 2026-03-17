@@ -38,6 +38,8 @@ interface TodayBooking extends TodayVisitLike {
   startAt: string;
   endAt: string;
   address: string | null;
+  pickupAddress?: string | null;
+  dropoffAddress?: string | null;
   clientName: string;
   pets: Array<{ id: string; name?: string | null; species?: string | null }>;
   threadId: string | null;
@@ -383,7 +385,13 @@ function VisitCard({
               nowMs={nowMs}
               className="mt-0.5"
             />
-            {booking.address && booking.address.length <= 60 && (
+            {booking.pickupAddress && (
+              <p className="mt-0.5 text-xs text-text-tertiary"><span className="font-medium">Pickup:</span> {booking.pickupAddress}</p>
+            )}
+            {booking.dropoffAddress && (
+              <p className="mt-0.5 text-xs text-text-tertiary"><span className="font-medium">Dropoff:</span> {booking.dropoffAddress}</p>
+            )}
+            {!booking.pickupAddress && !booking.dropoffAddress && booking.address && booking.address.length <= 60 && (
               <p className="mt-0.5 truncate text-xs text-text-tertiary" title={booking.address}>{booking.address}</p>
             )}
           </div>

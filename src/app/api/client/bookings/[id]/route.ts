@@ -83,6 +83,7 @@ export async function GET(
         name: p.name,
         species: p.species,
       })),
+      pricingSnapshot: booking.pricingSnapshot || null,
       sitter: sitterInfo,
       checkedInAt: await (async () => {
         const ve = await (prisma as any).visitEvent.findFirst({

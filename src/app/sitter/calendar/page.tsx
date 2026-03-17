@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
 import {
@@ -105,6 +105,20 @@ export default function SitterCalendarPage() {
     void loadBookings();
   }, [loadBookings]);
 
+  // Detect scheduling conflicts (overlapping bookings)
+  const conflictIds = useMemo(() => {
+    const ids = new Set<string>();
+    const active = bookings.filter((b) => !['cancelled', 'completed'].includes(b.status));
+    const sorted = [...active].sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+    for (let i = 0; i < sorted.length - 1; i++) {
+      if (new Date(sorted[i].endAt).getTime() > new Date(sorted[i + 1].startAt).getTime()) {
+        ids.add(sorted[i].id);
+        ids.add(sorted[i + 1].id);
+      }
+    }
+    return ids;
+  }, [bookings]);
+
   const handleViewBooking = (id: string) => {
     router.push(`/sitter/bookings/${id}`);
   };
@@ -198,12 +212,15 @@ export default function SitterCalendarPage() {
       ) : (
         <div className="space-y-4">
           {bookings.map((b) => (
-            <SitterCard key={b.id} onClick={() => handleViewBooking(b.id)}>
+            <SitterCard key={b.id} onClick={() => handleViewBooking(b.id)} className={conflictIds.has(b.id) ? 'border-red-300' : ''}>
               <SitterCardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-text-primary">{b.clientName}</p>
                     <p className="text-sm text-text-secondary">{b.service}</p>
+                    {conflictIds.has(b.id) && (
+                      <p className="text-xs font-medium text-red-600 mt-0.5">{'\u26a0\ufe0f'} Schedule conflict</p>
+                    )}
                   </div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(b.status)}`}>
                     {statusPillLabel(b.status)}

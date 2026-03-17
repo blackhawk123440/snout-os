@@ -122,6 +122,7 @@ export async function GET() {
         const bk = c.bookingId ? chargeBookingMap.get(c.bookingId) : null;
         return {
           chargeId: c.id,
+          bookingId: c.bookingId || null,
           amount: c.amount / 100,
           clientName: bk
             ? `${bk.firstName || ''} ${bk.lastName || ''}`.trim()
