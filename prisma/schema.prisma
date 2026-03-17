@@ -81,8 +81,10 @@ model Booking {
   calendarEvents       BookingCalendarEvent[] // Google Calendar event mappings
   petHealthLogs        PetHealthLog[]
   checklistItems       BookingChecklistItem[]
+  recurringScheduleId  String?
 
   @@index([sitterId])
+  @@index([recurringScheduleId])
   @@index([orgId])
   @@index([orgId, startAt])
   @@index([orgId, createdAt(sort: Desc), id])
@@ -548,6 +550,43 @@ model CustomFieldValue {
 // ============================================
 // SERVICE CONFIGURATION
 // ============================================
+
+model RecurringSchedule {
+  id              String    @id @default(uuid())
+  orgId           String
+  clientId        String
+  sitterId        String?
+
+  service         String
+  frequency       String    // daily, weekly, biweekly, monthly
+  daysOfWeek      String?   // JSON array e.g. [1,2,3,4,5]
+  startTime       String    // "09:00"
+  endTime         String    // "09:30"
+  duration        Int?
+
+  effectiveFrom   DateTime
+  effectiveUntil  DateTime?
+
+  address         String?
+  notes           String?
+  totalPrice      Float
+  afterHours      Boolean   @default(false)
+  holiday         Boolean   @default(false)
+
+  petIds          String?   // JSON array of pet IDs
+
+  status          String    @default("active") // active, paused, cancelled
+  lastGeneratedAt DateTime?
+
+  invoicingMode   String    @default("per_visit") // per_visit, weekly, monthly
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([orgId, status])
+  @@index([orgId, clientId])
+  @@index([sitterId])
+}
 
 model ServiceConfig {
   id                 String   @id @default(uuid())

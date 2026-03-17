@@ -53,12 +53,19 @@ const SERVICE_CARDS = [
     icon: '🦴',
     apiName: 'Drop-ins'
   },
-  { 
-    dataService: 'pet-taxi', 
-    name: 'Pet Taxi', 
+  {
+    dataService: 'pet-taxi',
+    name: 'Pet Taxi',
     description: 'Pet transport',
     icon: '🚗',
     apiName: 'Pet Taxi'
+  },
+  {
+    dataService: 'meet-greet',
+    name: 'Meet & Greet',
+    description: 'Introduction visit (free)',
+    icon: '🤝',
+    apiName: 'Meet & Greet'
   },
 ] as const;
 

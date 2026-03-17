@@ -129,7 +129,9 @@ export async function POST(
 
       // Launch reliability: process payout synchronously as a fallback in web path.
       // Worker path remains active and idempotent; executePayout skips duplicates.
-      if (updated.sitterId) {
+      // Skip payout for Meet & Greet (free service, no payout)
+      const isMeetAndGreet = updated.service === 'Meet & Greet';
+      if (updated.sitterId && !isMeetAndGreet) {
         const totalPrice = Number(updated.totalPrice) || 0;
         if (totalPrice > 0) {
           const commissionPct = updated.sitter?.commissionPercentage ?? 80;
