@@ -22,6 +22,7 @@ import {
   Skeleton,
   Modal,
   SectionHeader,
+  useToast,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
@@ -57,6 +58,7 @@ type TabType = "today" | "upcoming" | "completed" | "earnings" | "settings" | "t
 
 function SitterPageContent() {
   const searchParams = useSearchParams();
+  const { showToast } = useToast();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [sitterId, setSitterId] = useState<string>("");
@@ -201,13 +203,13 @@ function SitterPageContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "confirmed" }),
       });
-      alert("Checked in successfully!");
+      showToast({ variant: 'success', message: 'Checked in successfully' });
       fetchSitterBookings(sitterId);
       setShowDetailModal(false);
       setSelectedBooking(null);
     } catch (error) {
       console.error("Failed to check in:", error);
-      alert("Failed to check in");
+      showToast({ variant: 'error', message: 'Failed to check in' });
     }
   };
 

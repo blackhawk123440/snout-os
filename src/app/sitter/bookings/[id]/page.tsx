@@ -385,7 +385,7 @@ export default function SitterBookingDetailPage() {
             <section className="rounded-xl border border-red-200 bg-red-50 p-4">
               <p className="text-sm font-semibold text-red-900">Emergency contact</p>
               <p className="mt-1 text-sm text-red-900">{booking.emergencyContact.name}{booking.emergencyContact.relationship ? ` · ${booking.emergencyContact.relationship}` : ''}</p>
-              <a href={`tel:${booking.emergencyContact.phone}`} title="Intentional emergency exception" className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-red-300 bg-white px-4 text-sm font-medium text-red-900">
+              <a href={`tel:${booking.emergencyContact.phone}`} title="Intentional emergency exception" className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-red-300 bg-surface-primary px-4 text-sm font-medium text-red-900">
                 {booking.emergencyContact.phone}
               </a>
             </section>
