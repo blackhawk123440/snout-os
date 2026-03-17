@@ -25,7 +25,10 @@ export async function GET(
   try {
     const booking = await (prisma as any).booking.findFirst({
       where: whereOrg(ctx.orgId, { id, clientId: ctx.clientId }),
-      include: { pets: { select: { id: true, name: true, species: true } } },
+      include: {
+        pets: { select: { id: true, name: true, species: true } },
+        sitter: { select: { firstName: true, lastName: true, currentTierId: true } },
+      },
     });
 
     if (!booking) {
@@ -48,6 +51,23 @@ export async function GET(
       },
     });
 
+    // Resolve sitter tier name
+    let sitterInfo: { name: string; tier: string | null } | null = null;
+    if (booking.sitter) {
+      let tierName: string | null = null;
+      if (booking.sitter.currentTierId) {
+        const tier = await (prisma as any).sitterTier.findUnique({
+          where: { id: booking.sitter.currentTierId },
+          select: { name: true },
+        });
+        tierName = tier?.name ?? null;
+      }
+      sitterInfo = {
+        name: `${booking.sitter.firstName} ${booking.sitter.lastName}`.trim(),
+        tier: tierName,
+      };
+    }
+
     const toIso = (d: Date) => (d instanceof Date ? d.toISOString() : String(d));
     return NextResponse.json({
       id: booking.id,
@@ -63,6 +83,7 @@ export async function GET(
         name: p.name,
         species: p.species,
       })),
+      sitter: sitterInfo,
       paymentProof: paidCharge
         ? {
             status: 'paid',

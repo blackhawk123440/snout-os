@@ -24,6 +24,7 @@ interface BookingDetail {
   totalPrice?: number;
   address: string | null;
   pets: Array<{ id: string; name?: string | null; species?: string | null }>;
+  sitter?: { name: string; tier: string | null } | null;
   paymentProof?: {
     status: string;
     amount: number;
@@ -155,6 +156,16 @@ export default function ClientBookingDetailPage() {
                 <p className="mt-2 text-sm text-text-tertiary">
                   Pets: {booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}
                 </p>
+              )}
+              {booking.sitter && (
+                <div className="mt-2 flex items-center gap-2">
+                  <p className="text-sm text-text-secondary">Sitter: {booking.sitter.name}</p>
+                  {booking.sitter.tier && (
+                    <span className="rounded-full bg-accent-tertiary px-2 py-0.5 text-[10px] font-medium text-accent-primary">
+                      {booking.sitter.tier}
+                    </span>
+                  )}
+                </div>
               )}
               {booking.totalPrice != null && (
                 <p className="mt-2 text-sm font-medium text-text-primary">${booking.totalPrice.toFixed(2)}</p>
