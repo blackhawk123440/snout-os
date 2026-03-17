@@ -7,7 +7,7 @@ import { logEvent } from '@/lib/log-event';
 
 export async function POST(
   _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   let ctx;
   try {
@@ -18,7 +18,7 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id: clientId } = await params;
+  const { clientId } = await params;
 
   try {
     const client = await (prisma as any).client.findFirst({
