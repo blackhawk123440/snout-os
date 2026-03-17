@@ -18,6 +18,8 @@ interface Pet {
   name: string | null;
   species: string | null;
   breed: string | null;
+  weight: number | null;
+  photoUrl: string | null;
 }
 
 export default function ClientPetsPage() {
@@ -65,7 +67,18 @@ export default function ClientPetsPage() {
       <AppPageHeader
         title="Pets"
         subtitle="Your furry family"
-        action={<ClientRefreshButton onRefresh={load} loading={loading} />}
+        action={
+          <div className="flex items-center gap-2">
+            <ClientRefreshButton onRefresh={load} loading={loading} />
+            <button
+              type="button"
+              onClick={() => router.push('/client/pets/new')}
+              className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition"
+            >
+              Add pet
+            </button>
+          </div>
+        }
       />
       <div className="lg:grid lg:grid-cols-[1fr,auto] lg:gap-6">
         <div className="min-w-0">
@@ -89,13 +102,21 @@ export default function ClientPetsPage() {
                     aria-label={`View pet ${p.name || 'Unnamed pet'}`}
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-tertiary text-base" aria-hidden>
-                        {petEmoji(p.species)}
-                      </span>
+                      {p.photoUrl ? (
+                        <img
+                          src={p.photoUrl}
+                          alt={p.name || 'Pet'}
+                          className="h-10 w-10 shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-tertiary text-lg" aria-hidden>
+                          {petEmoji(p.species)}
+                        </span>
+                      )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-text-primary">{p.name || 'Unnamed pet'}</p>
                         <p className="truncate text-sm text-text-secondary">
-                          {[p.species, p.breed].filter(Boolean).join(' · ') || 'No details'}
+                          {[p.species, p.breed, p.weight ? `${p.weight} lbs` : null].filter(Boolean).join(' · ') || 'No details'}
                         </p>
                       </div>
                     </div>

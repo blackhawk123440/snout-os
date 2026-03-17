@@ -267,6 +267,62 @@ function QuickInsightsStrip({
   );
 }
 
+function PetQuickView({ petId, petName }: { petId: string; petName: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [data, setData] = useState<{ feedingInstructions?: string | null; medicationNotes?: string | null; behaviorNotes?: string | null } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const toggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (expanded) { setExpanded(false); return; }
+    setExpanded(true);
+    if (data) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/sitter/pets/${petId}`);
+      if (res.ok) setData(await res.json());
+    } catch { /* silent */ }
+    setLoading(false);
+  };
+
+  return (
+    <span className="inline" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={toggle}
+        className="inline min-h-[44px] text-sm text-accent-primary hover:underline font-medium"
+        aria-label={`View care info for ${petName}`}
+      >
+        {petName}
+      </button>
+      {expanded && (
+        <div className="mt-1 mb-2 rounded-lg border border-border-default bg-surface-secondary p-3 text-left" onClick={(e) => e.stopPropagation()}>
+          {loading ? (
+            <p className="text-xs text-text-tertiary">Loading care info...</p>
+          ) : data ? (
+            <div className="space-y-1.5">
+              {data.feedingInstructions && (
+                <div><p className="text-xs font-medium text-text-tertiary">{'\ud83c\udf7d\ufe0f'} Feeding</p><p className="text-sm text-text-secondary">{data.feedingInstructions}</p></div>
+              )}
+              {data.medicationNotes && (
+                <div><p className="text-xs font-medium text-text-tertiary">{'\ud83d\udc8a'} Medications</p><p className="text-sm text-text-secondary">{data.medicationNotes}</p></div>
+              )}
+              {data.behaviorNotes && (
+                <div><p className="text-xs font-medium text-text-tertiary">{'\ud83d\udc3e'} Behavior</p><p className="text-sm text-text-secondary">{data.behaviorNotes}</p></div>
+              )}
+              {!data.feedingInstructions && !data.medicationNotes && !data.behaviorNotes && (
+                <p className="text-xs text-text-tertiary italic">No care info on file yet.</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-text-tertiary">Could not load care info.</p>
+          )}
+        </div>
+      )}
+    </span>
+  );
+}
+
 function VisitCard({
   booking,
   nowMs,
@@ -285,9 +341,6 @@ function VisitCard({
   onMessage: (b: TodayBooking) => void;
 }) {
   const router = useRouter();
-  const petNames = booking.pets.length > 0
-    ? booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')
-    : '—';
 
   const runPrimary = () => {
     if (['pending', 'confirmed'].includes(booking.status)) return onCheckIn(booking.id);
@@ -312,7 +365,16 @@ function VisitCard({
               {formatTimeRange(booking.startAt, booking.endAt)}
             </p>
             <p className="font-medium text-text-primary">{booking.service}</p>
-            <p className="text-sm text-text-secondary">{petNames}</p>
+            <p className="text-sm text-text-secondary">
+              {booking.pets.length > 0
+                ? booking.pets.map((p, i) => (
+                    <span key={p.id}>
+                      {i > 0 && ', '}
+                      <PetQuickView petId={p.id} petName={p.name || p.species || 'Pet'} />
+                    </span>
+                  ))
+                : '\u2014'}
+            </p>
             <p className="text-sm text-text-tertiary">{booking.clientName}</p>
             <VisitTimerDisplay
               status={booking.status}

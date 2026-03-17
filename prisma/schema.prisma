@@ -99,18 +99,51 @@ model Booking {
 model Pet {
   id           String             @id @default(uuid())
   orgId        String             @default("default")
+
+  // Core identity
   name         String
   species      String
   breed        String?
   age          Int?
+  weight       Float?
+  gender       String?
+  birthday     DateTime?
+  color        String?
+  microchipId  String?
+  isFixed      Boolean            @default(false)
+  photoUrl     String?
+
+  // Care instructions
+  feedingInstructions  String?    @db.Text
+  medicationNotes      String?    @db.Text
+  behaviorNotes        String?    @db.Text
+  houseRules           String?    @db.Text
+  walkInstructions     String?    @db.Text
+
+  // Vet info
+  vetName        String?
+  vetPhone       String?
+  vetAddress     String?
+  vetClinicName  String?
+
+  // Status
+  isActive       Boolean  @default(true)
+
+  // Relationships
   notes        String?
-  booking      Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  bookingId    String
+  booking      Booking?           @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId    String?
+  clientId     String?
   customFields CustomFieldValue[]
   healthLogs   PetHealthLog[]
 
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @default(now()) @updatedAt
+
   @@index([bookingId])
   @@index([orgId])
+  @@index([clientId])
+  @@index([orgId, clientId])
 }
 
 model TimeSlot {
