@@ -606,6 +606,25 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Fire-and-forget notifications
+      void import('@/lib/notifications/triggers').then(({ notifyClientBookingReceived, notifyOwnerNewBooking }) => {
+        notifyClientBookingReceived({
+          orgId,
+          bookingId: booking.id,
+          clientId: booking.clientId ?? '',
+          clientFirstName: booking.firstName,
+          service: booking.service,
+          startAt: booking.startAt,
+        });
+        notifyOwnerNewBooking({
+          orgId,
+          bookingId: booking.id,
+          clientName: `${booking.firstName} ${booking.lastName}`.trim(),
+          service: booking.service,
+          startAt: booking.startAt,
+        });
+      }).catch(() => {});
+
       const responseBody = {
         success: true,
         booking: {

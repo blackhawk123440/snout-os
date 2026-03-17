@@ -128,6 +128,28 @@ export async function POST(
           ts: Date.now(),
         }).catch(() => {});
       }
+      // N8: Check for medication missed alert
+      const medNotes = body.medicationNotes?.trim()?.toLowerCase() || '';
+      const medMissed = !medNotes || medNotes === 'not given' || medNotes === 'refused' || medNotes === 'n/a';
+      if (medMissed && booking.pets?.length > 0) {
+        // Check if any pet on this booking has medication instructions
+        const petsWithMeds = booking.pets.filter((p: any) => p.medicationNotes?.trim());
+        if (petsWithMeds.length > 0) {
+          const sitter = booking.sitterId
+            ? await db.sitter.findUnique({ where: { id: booking.sitterId }, select: { firstName: true, lastName: true } })
+            : null;
+          void import('@/lib/notifications/triggers').then(({ notifyOwnerMedicationMissed }) => {
+            for (const pet of petsWithMeds) {
+              notifyOwnerMedicationMissed({
+                orgId: booking.orgId ?? 'default',
+                bookingId,
+                sitterName: sitter ? `${sitter.firstName} ${sitter.lastName}`.trim() : 'Sitter',
+                petName: pet.name || 'Pet',
+              });
+            }
+          }).catch(() => {});
+        }
+      }
     } catch (e) {
       console.error('[daily-delight] Failed to create Report (non-blocking):', e);
     }

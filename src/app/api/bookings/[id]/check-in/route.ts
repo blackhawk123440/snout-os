@@ -138,6 +138,24 @@ export async function POST(
       }).catch(() => {});
     }
 
+    // N12: Notify client that sitter has checked in
+    if (updated?.clientId && updated?.sitter) {
+      const pets = await db.pet.findMany({
+        where: { bookingId: id },
+        select: { name: true },
+      });
+      void import('@/lib/notifications/triggers').then(({ notifyClientSitterCheckedIn }) => {
+        notifyClientSitterCheckedIn({
+          orgId: ctx.orgId,
+          bookingId: id,
+          clientId: updated.clientId!,
+          sitterName: `${updated.sitter!.firstName} ${updated.sitter!.lastName}`.trim(),
+          petNames: pets.map((p: any) => p.name).filter(Boolean).join(', '),
+          service: booking.service,
+        });
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ ok: true, status: 'in_progress' });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

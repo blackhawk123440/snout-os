@@ -279,6 +279,7 @@ export async function PATCH(
         clientId: true,
         status: true,
         sitterId: true,
+        service: true,
         startAt: true,
         endAt: true,
         firstName: true,
@@ -369,6 +370,42 @@ export async function PATCH(
         },
       });
     }
+
+    // Fire-and-forget notifications for status/sitter changes
+    void import('@/lib/notifications/triggers').then(async (triggers) => {
+      const clientName = `${existing.firstName} ${existing.lastName}`.trim();
+      // N5: Booking cancelled → sitter
+      if (updated.status === 'cancelled' && existing.sitterId) {
+        triggers.notifySitterBookingCancelled({
+          orgId: ctx.orgId,
+          bookingId: existing.id,
+          sitterId: existing.sitterId,
+          clientName,
+          service: existing.service,
+          startAt: existing.startAt,
+        });
+      }
+      // N6: Sitter changed → client
+      if (body.sitterId && body.sitterId !== existing.sitterId && existing.clientId) {
+        const newSitter = await db.sitter.findUnique({
+          where: { id: body.sitterId },
+          select: { firstName: true, lastName: true },
+        });
+        const pets = await db.pet.findMany({
+          where: { bookingId: existing.id },
+          select: { name: true },
+        });
+        triggers.notifyClientSitterChanged({
+          orgId: ctx.orgId,
+          bookingId: existing.id,
+          clientId: existing.clientId,
+          newSitterName: newSitter ? `${newSitter.firstName} ${newSitter.lastName}`.trim() : 'your new sitter',
+          service: existing.service,
+          startAt: existing.startAt,
+          petNames: pets.map((p: any) => p.name).filter(Boolean).join(', '),
+        });
+      }
+    }).catch(() => {});
 
     const lifecycleSync = await syncConversationLifecycleWithBookingWorkflow({
       orgId: ctx.orgId,

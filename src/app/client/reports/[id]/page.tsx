@@ -122,12 +122,19 @@ export default function ClientReportDetailPage() {
   }
 
   // Structured fields
-  const details: Array<{ icon: string; label: string; value: string }> = [];
+  // Detect health alerts in content
+  const contentLower = (report.content || '').toLowerCase();
+  const hasHealthAlert = contentLower.includes('alert') || contentLower.includes('concern') ||
+    contentLower.includes('limping') || contentLower.includes('emergency') || contentLower.includes('refused');
+  const medAlert = report.medicationNotes?.toLowerCase();
+  const isMedAlert = medAlert === 'refused' || medAlert === 'not given';
+
+  const details: Array<{ icon: string; label: string; value: string; isAlert?: boolean }> = [];
   if (report.walkDuration) details.push({ icon: '\ud83e\udded', label: 'Walk', value: `${report.walkDuration} minutes` });
   if (report.pottyNotes) details.push({ icon: '\ud83d\udebd', label: 'Potty', value: report.pottyNotes });
   if (report.foodNotes) details.push({ icon: '\ud83c\udf7d\ufe0f', label: 'Food', value: report.foodNotes });
   if (report.waterNotes) details.push({ icon: '\ud83d\udca7', label: 'Water', value: report.waterNotes });
-  if (report.medicationNotes) details.push({ icon: '\ud83d\udc8a', label: 'Medication', value: report.medicationNotes });
+  if (report.medicationNotes) details.push({ icon: '\ud83d\udc8a', label: 'Medication', value: report.medicationNotes, isAlert: isMedAlert });
   if (report.behaviorNotes) details.push({ icon: '\ud83d\udc3e', label: 'Behavior', value: report.behaviorNotes });
 
   return (
@@ -147,6 +154,17 @@ export default function ClientReportDetailPage() {
       />
 
       <div className="space-y-4 pb-8">
+        {/* Health alert banner */}
+        {hasHealthAlert && (
+          <div className="flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+            <span className="text-lg" aria-hidden>{'\u26a0\ufe0f'}</span>
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Health concern noted</p>
+              <p className="text-xs text-amber-700">Your sitter flagged a concern during this visit. Review the details below.</p>
+            </div>
+          </div>
+        )}
+
         {/* Hero photo + gallery */}
         {heroPhoto && (
           <AppCard className="overflow-hidden !p-0 lg:!p-0">
@@ -227,11 +245,18 @@ export default function ClientReportDetailPage() {
             <AppCardBody>
               <div className="space-y-3">
                 {details.map((d) => (
-                  <div key={d.label} className="flex items-start gap-3">
-                    <span className="text-base shrink-0 mt-0.5" aria-hidden>{d.icon}</span>
+                  <div
+                    key={d.label}
+                    className={`flex items-start gap-3 ${d.isAlert ? 'rounded-lg border border-amber-300 bg-amber-50 p-2' : ''}`}
+                  >
+                    <span className="text-base shrink-0 mt-0.5" aria-hidden>
+                      {d.isAlert ? '\u26a0\ufe0f' : d.icon}
+                    </span>
                     <div>
-                      <p className="text-xs font-medium text-text-tertiary">{d.label}</p>
-                      <p className="text-sm text-text-primary">{d.value}</p>
+                      <p className={`text-xs font-medium ${d.isAlert ? 'text-amber-700' : 'text-text-tertiary'}`}>
+                        {d.label}{d.isAlert ? ' — Health concern noted' : ''}
+                      </p>
+                      <p className={`text-sm ${d.isAlert ? 'text-amber-900 font-medium' : 'text-text-primary'}`}>{d.value}</p>
                     </div>
                   </div>
                 ))}

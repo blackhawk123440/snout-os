@@ -252,6 +252,25 @@ export async function POST(request: NextRequest) {
       },
     }).catch((err) => console.error('[api/client/bookings] emitAndEnqueueBookingEvent failed:', err));
 
+    // Fire-and-forget notifications
+    void import('@/lib/notifications/triggers').then(({ notifyClientBookingReceived, notifyOwnerNewBooking }) => {
+      notifyClientBookingReceived({
+        orgId: ctx.orgId,
+        bookingId: booking.id,
+        clientId: booking.clientId ?? ctx.clientId,
+        clientFirstName: booking.firstName,
+        service: booking.service,
+        startAt: booking.startAt,
+      });
+      notifyOwnerNewBooking({
+        orgId: ctx.orgId,
+        bookingId: booking.id,
+        clientName: `${booking.firstName} ${booking.lastName}`.trim(),
+        service: booking.service,
+        startAt: booking.startAt,
+      });
+    }).catch(() => {});
+
     const res: { success: true; booking: { id: string; totalPrice: number; status: string }; orgId?: string; lifecycleSyncError?: { code?: string; message: string } } = {
       success: true,
       booking: {

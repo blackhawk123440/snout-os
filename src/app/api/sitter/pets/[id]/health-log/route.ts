@@ -44,7 +44,7 @@ export async function POST(
     // Verify pet exists in this org and sitter has a booking with this pet's client
     const pet = await (prisma as any).pet.findFirst({
       where: whereOrg(ctx.orgId, { id }),
-      select: { id: true, clientId: true },
+      select: { id: true, clientId: true, name: true },
     });
     if (!pet) {
       return NextResponse.json({ error: 'Pet not found' }, { status: 404 });
@@ -69,6 +69,23 @@ export async function POST(
         note: parsed.data.note,
       },
     });
+
+    // N10: Notify owner of health concern (alert or vet types)
+    if (parsed.data.type === 'alert' || parsed.data.type === 'vet') {
+      const sitter = await (prisma as any).sitter.findUnique({
+        where: { id: ctx.sitterId },
+        select: { firstName: true, lastName: true },
+      });
+      void import('@/lib/notifications/triggers').then(({ notifyOwnerHealthConcern }) => {
+        notifyOwnerHealthConcern({
+          orgId: ctx.orgId,
+          petId: id,
+          petName: pet.name || 'Pet',
+          sitterName: sitter ? `${sitter.firstName} ${sitter.lastName}`.trim() : 'Sitter',
+          note: parsed.data.note,
+        });
+      }).catch(() => {});
+    }
 
     return NextResponse.json(
       { id: log.id, type: log.type, note: log.note, createdAt: log.createdAt },

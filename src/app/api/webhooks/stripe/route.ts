@@ -124,6 +124,25 @@ export async function POST(request: NextRequest) {
             amount: pi.amount / 100,
             ts: Date.now(),
           }).catch(() => {});
+          // Notify assigned sitter that payment was received (N4)
+          if (booking.sitterId) {
+            const fullBooking = await db.booking.findUnique({
+              where: { id: bookingId },
+              select: { firstName: true, lastName: true, service: true, startAt: true },
+            });
+            if (fullBooking) {
+              void import('@/lib/notifications/triggers').then(({ notifySitterPaymentReceived }) => {
+                notifySitterPaymentReceived({
+                  orgId: booking.orgId || orgId,
+                  bookingId,
+                  sitterId: booking.sitterId!,
+                  clientName: `${fullBooking.firstName} ${fullBooking.lastName}`.trim(),
+                  service: fullBooking.service,
+                  startAt: fullBooking.startAt,
+                });
+              }).catch(() => {});
+            }
+          }
           const { enqueueAutomation } = await import('@/lib/automation-queue');
           await enqueueAutomation(
             'bookingConfirmation',
