@@ -243,27 +243,27 @@ export default function SitterBookingDetailPage() {
       <PageHeader title="Booking execution" subtitle={booking ? `${booking.service} · ${booking.clientName}` : 'Loading...'} />
 
       {loading ? (
-        <div className="animate-pulse space-y-4 rounded-xl border border-gray-200 bg-white p-4">
-          <div className="h-6 w-48 rounded bg-gray-200" />
-          <div className="h-4 w-full rounded bg-gray-100" />
-          <div className="h-4 w-3/4 rounded bg-gray-100" />
+        <div className="animate-pulse space-y-4 rounded-xl border border-border-default bg-surface-primary p-4">
+          <div className="h-6 w-48 rounded bg-surface-tertiary" />
+          <div className="h-4 w-full rounded bg-surface-tertiary" />
+          <div className="h-4 w-3/4 rounded bg-surface-tertiary" />
         </div>
       ) : error || !booking ? (
-        <div className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-          <p className="text-sm text-gray-600">{error || 'Booking not found'}</p>
+        <div className="rounded-xl border border-dashed border-border-strong bg-surface-primary p-8 text-center">
+          <p className="text-sm text-text-secondary">{error || 'Booking not found'}</p>
           <Button variant="secondary" size="md" className="mt-4" onClick={() => router.push('/sitter/bookings')}>Back</Button>
         </div>
       ) : (
         <>
-          <div className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-white p-3 md:flex">
+          <div className="hidden items-center gap-2 rounded-xl border border-border-default bg-surface-primary p-3 md:flex">
             {primaryAction}
             {booking.threadId && <Button variant="secondary" size="md" onClick={() => router.push(`/sitter/inbox?thread=${encodeURIComponent(booking.threadId || '')}`)}>Message client</Button>}
-            <span className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-neutral-800">Client calls routed via office</span>
-            {shouldRenderTel(booking.supportPhone) && <a href={`tel:${booking.supportPhone}`} title="Intentional support exception" className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-neutral-800">Call support</a>}
+            <span className="inline-flex min-h-[44px] items-center rounded-lg border border-border-strong px-4 text-sm font-medium text-text-primary">Client calls routed via office</span>
+            {shouldRenderTel(booking.supportPhone) && <a href={`tel:${booking.supportPhone}`} title="Intentional support exception" className="inline-flex min-h-[44px] items-center rounded-lg border border-border-strong px-4 text-sm font-medium text-text-primary">Call support</a>}
           </div>
 
-          <section className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-lg font-semibold text-gray-900">{timeRange}</p>
+          <section className="rounded-xl border border-border-default bg-surface-primary p-4">
+            <p className="text-lg font-semibold text-text-primary">{timeRange}</p>
             <VisitTimerDisplay
               status={booking.status}
               checkedInAt={booking.timeline.checkedInAt}
@@ -271,14 +271,14 @@ export default function SitterBookingDetailPage() {
               nowMs={nowMs}
               className="mt-1"
             />
-            <p className="mt-1 text-sm text-gray-700">{booking.service}</p>
-            <p className="mt-1 text-sm text-gray-600">{booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}</p>
+            <p className="mt-1 text-sm text-text-secondary">{booking.service}</p>
+            <p className="mt-1 text-sm text-text-secondary">{booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}</p>
             <div className="mt-2"><StatusChip variant={statusChipVariant(booking.status)}>{statusLabel(booking.status)}</StatusChip></div>
           </section>
 
-          <section className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-sm font-semibold text-gray-900">Address + navigation</p>
-            <div className="mt-2 space-y-1 text-sm text-gray-700">
+          <section className="rounded-xl border border-border-default bg-surface-primary p-4">
+            <p className="text-sm font-semibold text-text-primary">Address + navigation</p>
+            <div className="mt-2 space-y-1 text-sm text-text-secondary">
               {booking.addressParts.line1 && <p className="break-words">{booking.addressParts.line1}</p>}
               {booking.addressParts.line2 && <p className="break-words">{booking.addressParts.line2}</p>}
               <p className="break-words">
@@ -286,7 +286,7 @@ export default function SitterBookingDetailPage() {
               </p>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              {booking.mapLink.google && <a href={booking.mapLink.google} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-4 text-sm font-medium text-neutral-800">Open in Maps</a>}
+              {booking.mapLink.google && <a href={booking.mapLink.google} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center rounded-lg border border-border-strong px-4 text-sm font-medium text-text-primary">Open in Maps</a>}
               {shouldRenderCopyAddress(booking.addressParts.full) && <Button variant="secondary" size="md" onClick={() => void copyAddress()}>Copy address</Button>}
             </div>
             {(booking.doorCode || booking.entryInstructions) && (
@@ -297,16 +297,16 @@ export default function SitterBookingDetailPage() {
             )}
           </section>
 
-          <section className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-sm font-semibold text-gray-900">Pets</p>
+          <section className="rounded-xl border border-border-default bg-surface-primary p-4">
+            <p className="text-sm font-semibold text-text-primary">Pets</p>
             <div className="mt-2 space-y-2">
               {booking.pets.map((pet) => {
                 return (
                   // ui-primitive-ok
-                  <button key={pet.id} type="button" onClick={() => router.push(`/sitter/pets/${pet.id}`)} className="flex min-h-[44px] w-full items-start justify-between rounded-lg border border-gray-100 px-3 py-2 text-left hover:bg-gray-50">
+                  <button key={pet.id} type="button" onClick={() => router.push(`/sitter/pets/${pet.id}`)} className="flex min-h-[44px] w-full items-start justify-between rounded-lg border border-border-default px-3 py-2 text-left hover:bg-surface-secondary">
                     <div className="min-w-0">
-                      <p className="font-medium text-gray-900">🐾 {pet.name || 'Pet'}{pet.species ? ` (${pet.species})` : ''}</p>
-                      {pet.careNotes && <p className="mt-0.5 line-clamp-2 text-xs text-gray-600">{pet.careNotes}</p>}
+                      <p className="font-medium text-text-primary">🐾 {pet.name || 'Pet'}{pet.species ? ` (${pet.species})` : ''}</p>
+                      {pet.careNotes && <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary">{pet.careNotes}</p>}
                     </div>
                     <div className="ml-2 flex shrink-0 gap-1">
                       {pet.flags?.hasMedication && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800">Meds</span>}
@@ -319,8 +319,8 @@ export default function SitterBookingDetailPage() {
           </section>
 
           {booking.status === 'in_progress' && (
-            <section className="rounded-xl border border-gray-200 bg-white p-4">
-              <p className="text-sm font-semibold text-gray-900">Visit checklist</p>
+            <section className="rounded-xl border border-border-default bg-surface-primary p-4">
+              <p className="text-sm font-semibold text-text-primary">Visit checklist</p>
               <div className="mt-2 space-y-2">
                 {booking.checklist.map((item) => {
                   const checked = !!item.checkedAt;
@@ -340,7 +340,7 @@ export default function SitterBookingDetailPage() {
                       disabled={locked}
                       title={locked ? 'Locked' : undefined}
                       className={`flex min-h-[52px] w-full items-center justify-between rounded-lg border px-4 py-2 text-left text-sm ${
-                        checked ? 'border-green-300 bg-green-50 text-green-800' : 'border-gray-200 bg-white text-gray-700'
+                        checked ? 'border-green-300 bg-green-50 text-green-800' : 'border-border-default bg-surface-primary text-text-secondary'
                       } ${locked ? 'cursor-not-allowed opacity-80' : ''}`}
                     >
                       <div>
@@ -349,7 +349,7 @@ export default function SitterBookingDetailPage() {
                       </div>
                       <span
                         className={`inline-flex h-6 w-6 items-center justify-center rounded-md border ${
-                          checked ? 'border-green-600 bg-green-600 text-white' : 'border-gray-300 bg-white text-transparent'
+                          checked ? 'border-green-600 bg-green-600 text-white' : 'border-border-strong bg-surface-primary text-transparent'
                         }`}
                         aria-hidden
                       >
@@ -362,22 +362,22 @@ export default function SitterBookingDetailPage() {
             </section>
           )}
 
-          <section className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-sm font-semibold text-gray-900">Notes</p>
-            <div className="mt-2 space-y-2 text-sm text-gray-700">
-              <p className="text-xs uppercase tracking-wide text-gray-500">Client contact</p>
+          <section className="rounded-xl border border-border-default bg-surface-primary p-4">
+            <p className="text-sm font-semibold text-text-primary">Notes</p>
+            <div className="mt-2 space-y-2 text-sm text-text-secondary">
+              <p className="text-xs uppercase tracking-wide text-text-tertiary">Client contact</p>
               <div className="flex flex-wrap gap-3">
-                <span className="text-gray-600">Use the masked inbox thread for client communication.</span>
+                <span className="text-text-secondary">Use the masked inbox thread for client communication.</span>
                 {shouldRenderMail(booking.client?.email) && (
                   <a href={`mailto:${booking.client?.email}`} className="break-all text-blue-700 underline underline-offset-2">
                     {booking.client?.email}
                   </a>
                 )}
               </div>
-              {booking.client?.notes && <p><span className="font-medium text-gray-900">Client:</span> {booking.client.notes}</p>}
-              {booking.notes && <p><span className="font-medium text-gray-900">Booking:</span> {booking.notes}</p>}
-              {!booking.client?.notes && !booking.notes && <p className="text-gray-500">No notes provided.</p>}
-              <p className="text-xs text-gray-500">Last updated {new Date(booking.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+              {booking.client?.notes && <p><span className="font-medium text-text-primary">Client:</span> {booking.client.notes}</p>}
+              {booking.notes && <p><span className="font-medium text-text-primary">Booking:</span> {booking.notes}</p>}
+              {!booking.client?.notes && !booking.notes && <p className="text-text-tertiary">No notes provided.</p>}
+              <p className="text-xs text-text-tertiary">Last updated {new Date(booking.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
             </div>
           </section>
 
@@ -394,12 +394,12 @@ export default function SitterBookingDetailPage() {
       )}
 
       {booking && (
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 p-3 backdrop-blur md:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border-default bg-surface-primary/95 p-3 backdrop-blur md:hidden">
           <div className="flex flex-wrap gap-2">
             {primaryAction}
             {booking.threadId && <Button variant="secondary" size="md" onClick={() => router.push(`/sitter/inbox?thread=${encodeURIComponent(booking.threadId || '')}`)}>Message</Button>}
-            <span className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-3 text-sm font-medium text-neutral-800">Client calls via office</span>
-            {shouldRenderTel(booking.supportPhone) && <a href={`tel:${booking.supportPhone}`} title="Intentional support exception" className="inline-flex min-h-[44px] items-center rounded-lg border border-neutral-300 px-3 text-sm font-medium text-neutral-800">Support</a>}
+            <span className="inline-flex min-h-[44px] items-center rounded-lg border border-border-strong px-3 text-sm font-medium text-text-primary">Client calls via office</span>
+            {shouldRenderTel(booking.supportPhone) && <a href={`tel:${booking.supportPhone}`} title="Intentional support exception" className="inline-flex min-h-[44px] items-center rounded-lg border border-border-strong px-3 text-sm font-medium text-text-primary">Support</a>}
           </div>
         </div>
       )}
@@ -426,7 +426,7 @@ export default function SitterBookingDetailPage() {
           </>
         }
       >
-        <p className="text-sm text-gray-700">
+        <p className="text-sm text-text-secondary">
           End visit? This will stop the timer. You can still write/edit the report after.
         </p>
       </Modal>

@@ -156,7 +156,7 @@ export default function SitterReportNewPage() {
     return (
       <div className="mx-auto max-w-2xl pb-8">
         <SitterPageHeader title="New report" subtitle="Loading…" />
-        <div className="h-32 animate-pulse rounded-xl bg-neutral-100" />
+        <div className="h-32 animate-pulse rounded-xl bg-surface-tertiary" />
       </div>
     );
   }
@@ -188,11 +188,11 @@ export default function SitterReportNewPage() {
 
       <div className="space-y-6">
         <div>
-          <label className="mb-2 block text-sm font-medium text-neutral-700">Visit</label>
+          <label className="mb-2 block text-sm font-medium text-text-secondary">Visit</label>
           <select
             value={selectedBookingId ?? ''}
             onChange={(e) => setSelectedBookingId(e.target.value || null)}
-            className="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded-xl border border-border-strong bg-surface-primary px-4 py-3 text-sm text-text-primary outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus/20"
           >
             {bookings.map((b) => (
               <option key={b.id} value={b.id}>
@@ -202,75 +202,75 @@ export default function SitterReportNewPage() {
           </select>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white p-4">
-          <p className="mb-3 text-sm font-medium text-neutral-700">Visit details</p>
+        <div className="rounded-xl border border-border-default bg-surface-primary p-4">
+          <p className="mb-3 text-sm font-medium text-text-secondary">Visit details</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs text-neutral-500">Walk duration (min)</label>
+              <label className="mb-1 block text-xs text-text-tertiary">Walk duration (min)</label>
               <input
                 type="text"
                 inputMode="numeric"
                 value={walkDuration}
                 onChange={(e) => setWalkDuration(e.target.value.replace(/\D/g, ''))}
                 placeholder="e.g. 20"
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-neutral-500">Potty</label>
+              <label className="mb-1 block text-xs text-text-tertiary">Potty</label>
               <input
                 type="text"
                 value={potty}
                 onChange={(e) => setPotty(e.target.value)}
                 placeholder="e.g. normal"
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-neutral-500">Food</label>
+              <label className="mb-1 block text-xs text-text-tertiary">Food</label>
               <input
                 type="text"
                 value={food}
                 onChange={(e) => setFood(e.target.value)}
                 placeholder="e.g. ate well"
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-neutral-500">Water</label>
+              <label className="mb-1 block text-xs text-text-tertiary">Water</label>
               <input
                 type="text"
                 value={water}
                 onChange={(e) => setWater(e.target.value)}
                 placeholder="e.g. refreshed"
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
               />
             </div>
           </div>
           <div className="mt-4">
-            <label className="mb-1 block text-xs text-neutral-500">Medication</label>
+            <label className="mb-1 block text-xs text-text-tertiary">Medication</label>
             <input
               type="text"
               value={medication}
               onChange={(e) => setMedication(e.target.value)}
               placeholder="e.g. given as directed"
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+              className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
             />
           </div>
           <div className="mt-4">
-            <label className="mb-1 block text-xs text-neutral-500">Notes</label>
+            <label className="mb-1 block text-xs text-text-tertiary">Notes</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Any other details…"
               rows={3}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+              className="w-full rounded-lg border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus"
             />
           </div>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white p-4">
-          <p className="mb-2 text-sm font-medium text-neutral-700">Photos (optional)</p>
+        <div className="rounded-xl border border-border-default bg-surface-primary p-4">
+          <p className="mb-2 text-sm font-medium text-text-secondary">Photos (optional)</p>
           <input
             ref={fileInputRef}
             type="file"
@@ -301,7 +301,7 @@ export default function SitterReportNewPage() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading || mediaUrls.length >= MAX_PHOTOS}
-            className="w-full rounded-lg border border-neutral-300 bg-white py-3 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-50"
+            className="w-full rounded-lg border border-border-strong bg-surface-primary py-3 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary disabled:opacity-50"
           >
             {uploading ? 'Uploading…' : mediaUrls.length >= MAX_PHOTOS ? `${MAX_PHOTOS} photos max` : 'Add photos'}
           </button>

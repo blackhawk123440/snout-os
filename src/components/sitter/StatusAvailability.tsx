@@ -8,6 +8,7 @@
 
 import { Card, Switch, Badge } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
+import { toastError } from '@/lib/toast';
 import { useUpdateAvailability } from '@/lib/api/sitter-dashboard-hooks';
 import { useState } from 'react';
 
@@ -30,7 +31,7 @@ export function StatusAvailability({ isAvailable, sitterId }: StatusAvailability
       console.error('Failed to update availability:', error);
       // Revert on error
       setLocalAvailable(!checked);
-      alert('Failed to update availability. Please try again.');
+      toastError('Failed to update availability. Please try again.');
     } finally {
       setIsUpdating(false);
     }

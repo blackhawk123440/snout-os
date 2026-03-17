@@ -204,7 +204,7 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
         {data.snapshot?.rolling26wScore && (
           <div style={{
             padding: tokens.spacing[2],
-            backgroundColor: tokens.colors.neutral[50],
+            backgroundColor: 'var(--color-surface-secondary)',
             borderRadius: tokens.borderRadius.md,
             fontSize: tokens.typography.fontSize.sm[0],
           }}>
@@ -280,7 +280,7 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
         {data.compensation && (
           <div style={{
             padding: tokens.spacing[3],
-            backgroundColor: tokens.colors.neutral[50],
+            backgroundColor: 'var(--color-surface-secondary)',
             borderRadius: tokens.borderRadius.md,
           }}>
             <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>

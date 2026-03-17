@@ -113,9 +113,9 @@ const statusBadgeClass = (status: string) => {
     case 'in_progress':
       return 'bg-purple-100 text-purple-800';
     case 'cancelled':
-      return 'bg-gray-200 text-gray-700';
+      return 'bg-surface-tertiary text-text-secondary';
     default:
-      return 'bg-gray-100 text-gray-700';
+      return 'bg-surface-tertiary text-text-secondary';
   }
 };
 
@@ -157,10 +157,10 @@ function NextVisitHero({
         )}
           <div className="mt-2 flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-lg font-semibold tabular-nums text-neutral-900">
+            <p className="text-lg font-semibold tabular-nums text-text-primary">
               {formatTimeRange(booking.startAt, booking.endAt)}
             </p>
-            <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
+            <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-text-tertiary">
               {getStatusSubtitle(booking)}
             </p>
             <VisitTimerDisplay
@@ -170,11 +170,11 @@ function NextVisitHero({
               nowMs={nowMs}
               className="mt-0.5"
             />
-            <p className="mt-0.5 font-medium text-neutral-900">{booking.service}</p>
-            <p className="text-sm text-neutral-600">{petNames}</p>
-            <p className="text-sm text-neutral-500">{booking.clientName}</p>
+            <p className="mt-0.5 font-medium text-text-primary">{booking.service}</p>
+            <p className="text-sm text-text-secondary">{petNames}</p>
+            <p className="text-sm text-text-tertiary">{booking.clientName}</p>
             {addressSnippet && (
-              <p className="mt-0.5 truncate text-xs text-neutral-500" title={booking.address ?? undefined}>
+              <p className="mt-0.5 truncate text-xs text-text-tertiary" title={booking.address ?? undefined}>
                 {addressSnippet}
               </p>
             )}
@@ -231,11 +231,11 @@ function NextVisitHero({
         <Button variant="secondary" size="sm" onClick={() => onMessage(booking)}>
           Message
         </Button>
-        <span className="inline-flex min-h-[40px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700">
+        <span className="inline-flex min-h-[40px] items-center rounded-lg border border-border-strong bg-surface-primary px-3 text-sm font-medium text-text-secondary">
           Client calls are routed through office
         </span>
         {booking.mapLink?.google && (
-          <a href={booking.mapLink.google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[40px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700">
+          <a href={booking.mapLink.google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[40px] items-center rounded-lg border border-border-strong bg-surface-primary px-3 text-sm font-medium text-text-secondary">
             Directions
           </a>
         )}
@@ -255,12 +255,12 @@ function QuickInsightsStrip({
   totalVisits: number;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-4 rounded-2xl border border-neutral-200 bg-white px-4 py-3 shadow-sm">
-      <span className="text-sm text-neutral-600">
-        <span className="font-semibold text-neutral-900">Earnings today</span> — Coming soon
+    <div className="mb-4 flex flex-wrap items-center gap-4 rounded-2xl border border-border-default bg-surface-primary px-4 py-3 shadow-sm">
+      <span className="text-sm text-text-secondary">
+        <span className="font-semibold text-text-primary">Earnings today</span> — Coming soon
       </span>
-      <span className="text-sm text-neutral-600">
-        <span className="font-semibold text-neutral-900">{visitsRemaining}</span> visit{visitsRemaining !== 1 ? 's' : ''} remaining
+      <span className="text-sm text-text-secondary">
+        <span className="font-semibold text-text-primary">{visitsRemaining}</span> visit{visitsRemaining !== 1 ? 's' : ''} remaining
       </span>
       <span className="text-sm text-amber-700">On track</span>
     </div>
@@ -308,12 +308,12 @@ function VisitCard({
       <SitterCardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-lg font-semibold tabular-nums text-neutral-900">
+            <p className="text-lg font-semibold tabular-nums text-text-primary">
               {formatTimeRange(booking.startAt, booking.endAt)}
             </p>
-            <p className="font-medium text-neutral-800">{booking.service}</p>
-            <p className="text-sm text-neutral-600">{petNames}</p>
-            <p className="text-sm text-neutral-500">{booking.clientName}</p>
+            <p className="font-medium text-text-primary">{booking.service}</p>
+            <p className="text-sm text-text-secondary">{petNames}</p>
+            <p className="text-sm text-text-tertiary">{booking.clientName}</p>
             <VisitTimerDisplay
               status={booking.status}
               checkedInAt={booking.checkedInAt}
@@ -322,7 +322,7 @@ function VisitCard({
               className="mt-0.5"
             />
             {booking.address && booking.address.length <= 60 && (
-              <p className="mt-0.5 truncate text-xs text-neutral-500" title={booking.address}>{booking.address}</p>
+              <p className="mt-0.5 truncate text-xs text-text-tertiary" title={booking.address}>{booking.address}</p>
             )}
           </div>
           <div className="flex shrink-0 items-start">
@@ -346,11 +346,11 @@ function VisitCard({
           <Button variant="secondary" size="sm" onClick={() => onMessage(booking)}>
             Message
           </Button>
-          <span className="inline-flex min-h-[36px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700">
+          <span className="inline-flex min-h-[36px] items-center rounded-lg border border-border-strong bg-surface-primary px-3 text-xs font-medium text-text-secondary">
             Office handles calls
           </span>
           {booking.mapLink?.google && (
-            <a href={booking.mapLink.google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[36px] items-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700">
+            <a href={booking.mapLink.google} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[36px] items-center rounded-lg border border-border-strong bg-surface-primary px-3 text-xs font-medium text-text-secondary">
               Navigate
             </a>
           )}
@@ -598,7 +598,7 @@ export default function SitterTodayPage() {
                   href={routeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-neutral-300 bg-white px-3 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-border-strong bg-surface-primary px-3 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary focus:outline-none focus:ring-2 focus:ring-border-focus"
                 >
                   <i className="fas fa-map-marker-alt mr-1.5" />
                   Open in Maps
@@ -639,8 +639,8 @@ export default function SitterTodayPage() {
         ) : bookings.length === 0 ? (
           <SitterCard>
             <SitterCardBody>
-              <p className="text-base font-semibold text-neutral-900">No visits today</p>
-              <p className="mt-1 text-sm text-neutral-500">You are all set for today.</p>
+              <p className="text-base font-semibold text-text-primary">No visits today</p>
+              <p className="mt-1 text-sm text-text-tertiary">You are all set for today.</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button variant="secondary" size="md" onClick={() => router.push('/sitter/calendar')}>
                   Open calendar
@@ -657,11 +657,11 @@ export default function SitterTodayPage() {
         ) : (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-neutral-900">Today command center</h2>
+              <h2 className="text-lg font-semibold text-text-primary">Today command center</h2>
               <button
                 type="button"
                 onClick={toggleShowCancelled}
-                className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700"
+                className="rounded-lg border border-border-strong bg-surface-primary px-3 py-1.5 text-xs font-medium text-text-secondary"
               >
                 {showCancelled ? 'Hide cancelled' : 'Show cancelled'}
               </button>
@@ -670,8 +670,8 @@ export default function SitterTodayPage() {
             {sections.inProgress.length > 0 && (
               <section className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-600">In progress</h3>
-                  <span className="text-xs text-neutral-500">{sections.inProgress.length}</span>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">In progress</h3>
+                  <span className="text-xs text-text-tertiary">{sections.inProgress.length}</span>
                 </div>
                 {sections.inProgress.map((booking) => (
                   <VisitCard
@@ -690,11 +690,11 @@ export default function SitterTodayPage() {
 
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-600">Up next</h3>
-                <span className="text-xs text-neutral-500">{sections.upNext.length}</span>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">Up next</h3>
+                <span className="text-xs text-text-tertiary">{sections.upNext.length}</span>
               </div>
               {sections.upNext.length === 0 ? (
-                <SitterCard><SitterCardBody><p className="text-sm text-neutral-500">No upcoming visits in this section.</p></SitterCardBody></SitterCard>
+                <SitterCard><SitterCardBody><p className="text-sm text-text-tertiary">No upcoming visits in this section.</p></SitterCardBody></SitterCard>
               ) : (
                 sections.upNext.map((booking) => (
                   <VisitCard
@@ -713,8 +713,8 @@ export default function SitterTodayPage() {
 
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-600">Later today</h3>
-                <span className="text-xs text-neutral-500">{sections.laterToday.length}</span>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">Later today</h3>
+                <span className="text-xs text-text-tertiary">{sections.laterToday.length}</span>
               </div>
               {sections.laterToday.map((booking) => (
                 <VisitCard
@@ -732,8 +732,8 @@ export default function SitterTodayPage() {
 
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-600">Completed today</h3>
-                <span className="text-xs text-neutral-500">{sections.completed.length}</span>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">Completed today</h3>
+                <span className="text-xs text-text-tertiary">{sections.completed.length}</span>
               </div>
               {sections.completed.map((booking) => (
                 <VisitCard

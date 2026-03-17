@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-const CARD_BASE = 'rounded-2xl border border-neutral-200 bg-white shadow-sm';
+const CARD_BASE = 'rounded-2xl border border-border-default bg-surface-primary shadow-sm';
 
 export interface SitterCardProps {
   children: React.ReactNode;
@@ -13,9 +13,9 @@ export interface SitterCardProps {
 export function SitterCard({ children, className = '', onClick }: SitterCardProps) {
   return (
     <div
-      className={`${CARD_BASE} ${onClick ? 'cursor-pointer transition hover:border-neutral-300 hover:shadow' : ''} ${className}`}
+      className={`${CARD_BASE} ${onClick ? 'cursor-pointer transition hover:border-border-strong hover:shadow' : ''} ${className}`}
       onClick={onClick}
-      onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
+      onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onClick()) : undefined}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
     >
@@ -39,7 +39,7 @@ export interface SitterCardBodyProps {
 }
 
 export function SitterCardBody({ children, className = '' }: SitterCardBodyProps) {
-  return <div className={`px-5 py-3 text-sm text-neutral-700 ${className}`}>{children}</div>;
+  return <div className={`px-5 py-3 text-sm text-text-secondary ${className}`}>{children}</div>;
 }
 
 export interface SitterCardActionsProps {

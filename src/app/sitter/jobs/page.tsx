@@ -34,8 +34,8 @@ const statusBadgeClass = (status: string) => {
     case 'completed': return 'bg-green-100 text-green-800';
     case 'pending': return 'bg-amber-100 text-amber-800';
     case 'in_progress': return 'bg-purple-100 text-purple-800';
-    case 'cancelled': return 'bg-gray-200 text-gray-700';
-    default: return 'bg-gray-100 text-gray-700';
+    case 'cancelled': return 'bg-surface-tertiary text-text-secondary';
+    default: return 'bg-surface-tertiary text-text-secondary';
   }
 };
 
@@ -91,8 +91,8 @@ export default function SitterJobsPage() {
       <SitterCardHeader>
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="font-semibold text-neutral-900">{job.clientName}</p>
-            <p className="text-sm text-neutral-600">{job.service}</p>
+            <p className="font-semibold text-text-primary">{job.clientName}</p>
+            <p className="text-sm text-text-secondary">{job.service}</p>
           </div>
           <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(job.status)}`}>
             {job.status.replace('_', ' ')}
@@ -100,8 +100,8 @@ export default function SitterJobsPage() {
         </div>
       </SitterCardHeader>
       <SitterCardBody>
-        <p className="text-sm text-neutral-600">{formatDate(job.startAt)} · {formatTime(job.startAt)}</p>
-        {job.address && <p className="mt-1 truncate text-xs text-neutral-500">{job.address}</p>}
+        <p className="text-sm text-text-secondary">{formatDate(job.startAt)} · {formatTime(job.startAt)}</p>
+        {job.address && <p className="mt-1 truncate text-xs text-text-tertiary">{job.address}</p>}
       </SitterCardBody>
       <SitterCardActions stopPropagation>
         <Button variant="secondary" size="sm" onClick={() => router.push(`/sitter/bookings/${job.id}`)}>

@@ -96,8 +96,8 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-neutral-50">
-        <p className="text-sm text-neutral-500">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-surface-secondary">
+        <p className="text-sm text-text-tertiary">Loading...</p>
       </div>
     );
   }
@@ -121,21 +121,21 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
   const firstName = displayName.split(' ')[0] || displayName;
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-neutral-50" style={{ maxHeight: '100dvh' }}>
+    <div className="fixed inset-0 flex flex-col bg-surface-secondary" style={{ maxHeight: '100dvh' }}>
       <SitterOfflineBanner />
       <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden pb-[calc(56px+env(safe-area-inset-bottom)+16px)] lg:pb-8">
         {/* Sticky header: avatar + Hey name + status chip + bell */}
         <header
-          className={`sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b bg-white px-4 transition-shadow ${
-            headerShadow ? 'border-neutral-200 shadow-sm' : 'border-neutral-200'
+          className={`sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b border-border-default bg-surface-primary px-4 transition-shadow ${
+            headerShadow ? 'shadow-sm' : ''
           }`}
         >
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-secondary text-sm font-semibold text-text-brand">
               {(firstName || 'S').charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-neutral-900">
+              <p className="truncate text-base font-semibold text-text-primary">
                 Hey, {firstName}
               </p>
               <span
@@ -151,14 +151,14 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
             <button
               type="button"
               aria-label="Notifications"
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-text-tertiary transition hover:bg-surface-secondary hover:text-text-secondary focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
             >
               <i className="fas fa-bell text-lg" />
             </button>
             <button
               type="button"
               onClick={() => void handleLogout()}
-              className="flex min-h-[44px] items-center rounded-xl px-3 text-sm text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="flex min-h-[44px] items-center rounded-xl px-3 text-sm text-text-tertiary transition hover:bg-surface-secondary hover:text-text-secondary focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
             >
               Logout
             </button>
@@ -170,7 +170,7 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
 
       {/* Bottom nav - 44px hit targets */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-20 flex h-14 min-h-[56px] items-center justify-around border-t border-neutral-200 bg-white"
+        className="fixed bottom-0 left-0 right-0 z-20 flex h-14 min-h-[56px] items-center justify-around border-t border-border-default bg-surface-primary"
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
         aria-label="Primary navigation"
       >
@@ -183,8 +183,8 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                active ? 'text-blue-600' : 'text-neutral-500 hover:text-neutral-700'
+              className={`flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 ${
+                active ? 'text-text-primary' : 'text-text-tertiary hover:text-text-secondary'
               }`}
             >
               <i className={`${item.icon} text-lg`} />

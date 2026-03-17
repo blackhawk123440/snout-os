@@ -33,9 +33,9 @@ const statusBadgeClass = (status: string) => {
     case 'in_progress':
       return 'bg-purple-100 text-purple-800';
     case 'cancelled':
-      return 'bg-gray-200 text-gray-700';
+      return 'bg-surface-tertiary text-text-secondary';
     default:
-      return 'bg-gray-100 text-gray-700';
+      return 'bg-surface-tertiary text-text-secondary';
   }
 };
 
@@ -104,7 +104,7 @@ export default function SitterBookingsPage() {
           cta={{ label: 'Today', onClick: () => router.push('/sitter/today') }}
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+        <div className="overflow-hidden rounded-xl border border-border-default bg-surface-primary">
           {bookings.map((b) => (
             <InteractiveRow
               key={b.id}
@@ -113,11 +113,11 @@ export default function SitterBookingsPage() {
               aria-label={`View booking ${b.service} for ${b.clientName}`}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-neutral-900">{b.service}</p>
-                <p className="truncate text-xs text-neutral-500 tabular-nums">
+                <p className="truncate text-sm font-medium text-text-primary">{b.service}</p>
+                <p className="truncate text-xs text-text-tertiary tabular-nums">
                   {formatDate(b.startAt)} · {formatTime(b.startAt)}
                 </p>
-                <p className="truncate text-xs text-neutral-600">{b.clientName}</p>
+                <p className="truncate text-xs text-text-secondary">{b.clientName}</p>
               </div>
               <div className="flex shrink-0">
                 <span

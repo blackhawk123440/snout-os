@@ -31,7 +31,7 @@ export default function SitterTrainingPage() {
         <SitterCard>
           <SitterCardHeader>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-neutral-900">Checklist modules</h3>
+              <h3 className="font-semibold text-text-primary">Checklist modules</h3>
               <FeatureStatusPill featureKey="training" />
             </div>
           </SitterCardHeader>
@@ -42,16 +42,16 @@ export default function SitterTrainingPage() {
                   key={m.id}
                   type="button"
                   onClick={() => toggle(m.id)}
-                  className="flex min-h-[44px] w-full items-center gap-3 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-left transition hover:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="flex min-h-[44px] w-full items-center gap-3 rounded-xl border border-border-default bg-surface-primary px-4 py-3 text-left transition hover:border-border-strong focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
                 >
                   <div
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${
-                      completed[m.id] ? 'border-green-500 bg-green-500 text-white' : 'border-neutral-300'
+                      completed[m.id] ? 'border-green-500 bg-green-500 text-white' : 'border-border-strong'
                     }`}
                   >
                     {completed[m.id] && <i className="fas fa-check text-xs" />}
                   </div>
-                  <span className={`text-sm font-medium ${completed[m.id] ? 'text-neutral-500 line-through' : 'text-neutral-700'}`}>
+                  <span className={`text-sm font-medium ${completed[m.id] ? 'text-text-tertiary line-through' : 'text-text-secondary'}`}>
                     {m.label}
                   </span>
                 </button>
@@ -62,13 +62,13 @@ export default function SitterTrainingPage() {
         <SitterCard>
           <SitterCardHeader>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-neutral-900">Emergency protocol cards</h3>
+              <h3 className="font-semibold text-text-primary">Emergency protocol cards</h3>
               <FeatureStatusPill featureKey="training" />
             </div>
           </SitterCardHeader>
           <SitterCardBody>
-            <div className="rounded-xl border border-dashed border-neutral-200 bg-neutral-50 p-6 text-center">
-              <p className="text-sm text-neutral-600">Emergency procedures and contacts (coming soon)</p>
+            <div className="rounded-xl border border-dashed border-border-default bg-surface-secondary p-6 text-center">
+              <p className="text-sm text-text-secondary">Emergency procedures and contacts (coming soon)</p>
             </div>
           </SitterCardBody>
         </SitterCard>

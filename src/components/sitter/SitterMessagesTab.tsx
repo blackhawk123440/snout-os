@@ -150,7 +150,15 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
                 cursor: 'pointer',
                 border: `1px solid ${tokens.colors.border.default}`,
               }}
+              role="button"
+              tabIndex={0}
               onClick={() => window.location.href = `/messages?thread=${thread.id}&sitterId=${sitterId}`}
+              onKeyDown={(e: React.KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  window.location.href = `/messages?thread=${thread.id}&sitterId=${sitterId}`;
+                }
+              }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[2] }}>
                 <div style={{ flex: 1 }}>

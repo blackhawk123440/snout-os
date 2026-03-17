@@ -154,14 +154,14 @@ export default function SitterEarningsPage() {
         />
       ) : data ? (
         <div className="space-y-4">
-          <div className="flex gap-2 rounded-xl border border-neutral-200 p-0.5">
+          <div className="flex gap-2 rounded-xl border border-border-default p-0.5">
             {(['today', 'week', 'month'] as const).map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => setPeriodTab(p)}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition ${
-                  periodTab === p ? 'bg-neutral-200 text-neutral-900' : 'text-neutral-600 hover:text-neutral-900'
+                  periodTab === p ? 'bg-surface-tertiary text-text-primary' : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
                 {p}
@@ -170,48 +170,48 @@ export default function SitterEarningsPage() {
           </div>
           <SitterCard>
             <SitterCardHeader>
-              <p className="text-sm font-medium text-neutral-500">Total earnings</p>
-              <p className="mt-1 text-2xl font-bold text-neutral-900">
+              <p className="text-sm font-medium text-text-tertiary">Total earnings</p>
+              <p className="mt-1 text-2xl font-bold text-text-primary">
                 ${data.earningsTotal.toFixed(2)}
               </p>
-              <p className="mt-1 text-sm text-neutral-600">
+              <p className="mt-1 text-sm text-text-secondary">
                 {data.completedBookingsCount} completed visits · {data.commissionPercentage}% after split
               </p>
               {data.completedBookingsCount > 0 && (
-                <p className="mt-0.5 text-sm text-neutral-500">
+                <p className="mt-0.5 text-sm text-text-tertiary">
                   ${data.averagePerVisit.toFixed(2)} average per visit
                 </p>
               )}
             </SitterCardHeader>
           </SitterCard>
 
-          <SitterCard className="border-blue-200 bg-blue-50">
+          <SitterCard className="border-border-brand bg-surface-brand-subtle">
             <SitterCardBody>
-              <p className="text-sm font-medium text-blue-700">Next payout</p>
+              <p className="text-sm font-medium text-text-brand">Next payout</p>
               {transferSummary.hasPaidHistory && transferSummary.nextPayoutDate ? (
                 <>
-                  <p className="mt-1 text-2xl font-semibold text-blue-900">
+                  <p className="mt-1 text-2xl font-semibold text-text-brand">
                     {transferSummary.nextPayoutDate.toLocaleDateString([], {
                       weekday: 'long',
                       month: 'short',
                       day: 'numeric',
                     })}
                   </p>
-                  <p className="mt-1 text-xs font-medium uppercase tracking-wide text-blue-700">Estimated</p>
+                  <p className="mt-1 text-xs font-medium uppercase tracking-wide text-text-brand">Estimated</p>
                 </>
               ) : (
-                <p className="mt-1 text-sm text-blue-900">After first completed visit</p>
+                <p className="mt-1 text-sm text-text-brand">After first completed visit</p>
               )}
             </SitterCardBody>
           </SitterCard>
 
           <SitterCard>
             <SitterCardBody>
-              <p className="text-sm font-medium text-neutral-500">This month</p>
-              <p className="mt-1 text-xl font-semibold text-neutral-900">
+              <p className="text-sm font-medium text-text-tertiary">This month</p>
+              <p className="mt-1 text-xl font-semibold text-text-primary">
                 ${data.earningsThisMonth.toFixed(2)}
               </p>
-              <p className="mt-1 text-sm text-neutral-600">
+              <p className="mt-1 text-sm text-text-secondary">
                 {data.completedThisMonthCount} bookings · Gross ${data.grossThisMonth.toFixed(2)}
               </p>
             </SitterCardBody>
@@ -219,11 +219,11 @@ export default function SitterEarningsPage() {
 
           <SitterCard>
             <SitterCardBody>
-              <p className="text-sm font-medium text-neutral-500">Last month</p>
-              <p className="mt-1 text-xl font-semibold text-neutral-900">
+              <p className="text-sm font-medium text-text-tertiary">Last month</p>
+              <p className="mt-1 text-xl font-semibold text-text-primary">
                 ${data.earningsLastMonth.toFixed(2)}
               </p>
-              <p className="mt-1 text-sm text-neutral-600">
+              <p className="mt-1 text-sm text-text-secondary">
                 {data.completedLastMonthCount} bookings · Gross ${data.grossLastMonth.toFixed(2)}
               </p>
             </SitterCardBody>
@@ -231,21 +231,21 @@ export default function SitterEarningsPage() {
 
           <SitterCard>
             <SitterCardBody>
-              <p className="text-sm font-medium text-neutral-500">Pending</p>
-              <p className="mt-1 text-xl font-semibold text-neutral-900">
+              <p className="text-sm font-medium text-text-tertiary">Pending</p>
+              <p className="mt-1 text-xl font-semibold text-text-primary">
                 ${(transferSummary.pendingCents / 100).toFixed(2)}
               </p>
-              <p className="mt-1 text-xs text-neutral-500">Transfers not yet paid</p>
+              <p className="mt-1 text-xs text-text-tertiary">Transfers not yet paid</p>
             </SitterCardBody>
           </SitterCard>
 
           <SitterCard>
             <SitterCardBody>
-              <p className="text-sm font-medium text-neutral-500">Paid (30d)</p>
-              <p className="mt-1 text-xl font-semibold text-neutral-900">
+              <p className="text-sm font-medium text-text-tertiary">Paid (30d)</p>
+              <p className="mt-1 text-xl font-semibold text-text-primary">
                 ${(transferSummary.paid30dCents / 100).toFixed(2)}
               </p>
-              <p className="mt-1 text-xs text-neutral-500">Completed payouts in the last 30 days</p>
+              <p className="mt-1 text-xs text-text-tertiary">Completed payouts in the last 30 days</p>
             </SitterCardBody>
           </SitterCard>
 
@@ -256,7 +256,7 @@ export default function SitterEarningsPage() {
             <FeatureStatusPill featureKey="instant_payout" />
           </div>
 
-          <h3 className="text-base font-semibold text-neutral-900">Payout transfers</h3>
+          <h3 className="text-base font-semibold text-text-primary">Payout transfers</h3>
           {transfersLoading ? (
             <SitterSkeletonList count={2} />
           ) : transfers.length === 0 ? (
@@ -296,7 +296,7 @@ export default function SitterEarningsPage() {
             </DataTableShell>
           )}
 
-          <h3 className="text-base font-semibold text-neutral-900">Completed jobs</h3>
+          <h3 className="text-base font-semibold text-text-primary">Completed jobs</h3>
           {jobsLoading ? (
             <SitterSkeletonList count={2} />
           ) : jobs.length === 0 ? (
@@ -324,7 +324,7 @@ export default function SitterEarningsPage() {
             </DataTableShell>
           )}
 
-          <p className="text-center text-xs text-neutral-500">
+          <p className="text-center text-xs text-text-tertiary">
             Earnings are based on completed bookings. Payouts are sent to your connected Stripe account.
           </p>
         </div>
@@ -339,26 +339,26 @@ export default function SitterEarningsPage() {
       >
         {selectedJob && (
           <div className="space-y-4">
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-text-secondary">
               {formatDate(selectedJob.startAt)}
               {selectedJob.pets.length > 0 && ` · ${selectedJob.pets.map((p) => p.name || p.species || 'Pet').join(', ')}`}
             </p>
-            <div className="space-y-2 rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+            <div className="space-y-2 rounded-2xl border border-border-default bg-surface-secondary p-4">
               <div className="flex justify-between text-sm">
-                <span className="text-neutral-600">Base</span>
+                <span className="text-text-secondary">Base</span>
                 <span className="font-medium">${selectedJob.base.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-neutral-600">Tip</span>
+                <span className="text-text-secondary">Tip</span>
                 <span className="font-medium">${selectedJob.tip.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-neutral-600">Add-ons</span>
+                <span className="text-text-secondary">Add-ons</span>
                 <span className="font-medium">${selectedJob.addOns.toFixed(2)}</span>
               </div>
-              <div className="border-t border-neutral-200 pt-2 flex justify-between text-sm font-medium">
+              <div className="border-t border-border-default pt-2 flex justify-between text-sm font-medium">
                 <span>After split ({selectedJob.commissionPercentage}%)</span>
-                <span className="text-neutral-900">${selectedJob.afterSplit.toFixed(2)}</span>
+                <span className="text-text-primary">${selectedJob.afterSplit.toFixed(2)}</span>
               </div>
             </div>
           </div>

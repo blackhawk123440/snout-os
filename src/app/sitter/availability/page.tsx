@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
 import { LayoutWrapper } from '@/components/layout';
+import { toastError } from '@/lib/toast';
 import {
   SitterCard,
   SitterCardHeader,
@@ -97,7 +98,7 @@ export default function SitterAvailabilityPage() {
       if (!res.ok) throw new Error('Failed');
       setAvailabilityEnabled(enabled);
     } catch {
-      alert('Failed to update');
+      toastError('Failed to update');
     } finally {
       setToggling(false);
     }
@@ -117,7 +118,7 @@ export default function SitterAvailabilityPage() {
       setBlockOffs((prev) => [...prev, { id: json.id, date: json.date }]);
       setNewBlockDate('');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed');
+      toastError(e instanceof Error ? e.message : 'Failed');
     } finally {
       setAdding(false);
     }
@@ -129,7 +130,7 @@ export default function SitterAvailabilityPage() {
       if (!res.ok) throw new Error('Failed');
       setBlockOffs((prev) => prev.filter((b) => b.id !== id));
     } catch {
-      alert('Failed to remove');
+      toastError('Failed to remove');
     }
   };
 
@@ -158,8 +159,8 @@ export default function SitterAvailabilityPage() {
             <SitterCardBody>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="font-medium text-neutral-900">Available for new bookings</p>
-                  <p className="text-sm text-neutral-500">When off, you won&apos;t receive new assignments</p>
+                  <p className="font-medium text-text-primary">Available for new bookings</p>
+                  <p className="text-sm text-text-tertiary">When off, you won&apos;t receive new assignments</p>
                 </div>
                 <button
                   type="button"
@@ -167,12 +168,12 @@ export default function SitterAvailabilityPage() {
                   aria-checked={availabilityEnabled}
                   onClick={() => void toggleAvailability()}
                   disabled={toggling}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
-                    availabilityEnabled ? 'bg-blue-600' : 'bg-neutral-200'
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 disabled:opacity-50 ${
+                    availabilityEnabled ? 'bg-blue-600' : 'bg-surface-tertiary'
                   }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition ${
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface-primary shadow ring-0 transition ${
                       availabilityEnabled ? 'translate-x-5' : 'translate-x-1'
                     }`}
                   />
@@ -183,16 +184,16 @@ export default function SitterAvailabilityPage() {
 
           <SitterCard>
             <SitterCardHeader>
-              <p className="font-medium text-neutral-900">Block off dates</p>
+              <p className="font-medium text-text-primary">Block off dates</p>
             </SitterCardHeader>
             <SitterCardBody>
-              <p className="mb-3 text-sm text-neutral-500">Days you&apos;re not available</p>
+              <p className="mb-3 text-sm text-text-tertiary">Days you&apos;re not available</p>
               <div className="flex flex-wrap gap-2">
                 <input
                   type="date"
                   value={newBlockDate}
                   onChange={(e) => setNewBlockDate(e.target.value)}
-                  className="rounded-xl border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="rounded-xl border border-border-strong px-3 py-2 text-sm outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus"
                 />
                 <Button variant="secondary" size="md" onClick={() => void addBlockOff()} disabled={!newBlockDate || adding}>
                   {adding ? 'Adding...' : 'Add'}
@@ -201,7 +202,7 @@ export default function SitterAvailabilityPage() {
               {blockOffs.length > 0 && (
                 <ul className="mt-4 space-y-2">
                   {blockOffs.map((b) => (
-                    <li key={b.id} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-sm">
+                    <li key={b.id} className="flex items-center justify-between rounded-lg bg-surface-secondary px-3 py-2 text-sm">
                       <span>{new Date(b.date + 'T12:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
                       <Button type="button" variant="ghost" size="sm" onClick={() => void removeBlockOff(b.id)} className="text-red-600 hover:text-red-700">
                         Remove
@@ -215,12 +216,12 @@ export default function SitterAvailabilityPage() {
 
           <SitterCard>
             <SitterCardHeader>
-              <p className="font-medium text-neutral-900">Recurring availability</p>
+              <p className="font-medium text-text-primary">Recurring availability</p>
             </SitterCardHeader>
             <SitterCardBody>
-              <p className="mb-3 text-sm text-neutral-500">Weekly windows when you&apos;re available (e.g., Mon–Fri 9–5)</p>
+              <p className="mb-3 text-sm text-text-tertiary">Weekly windows when you&apos;re available (e.g., Mon–Fri 9–5)</p>
               {rules.length === 0 ? (
-                <p className="text-sm text-neutral-500">No recurring rules. Add rules via API or ops.</p>
+                <p className="text-sm text-text-tertiary">No recurring rules. Add rules via API or ops.</p>
               ) : (
                 <ul className="space-y-2">
                   {rules.map((r) => {
@@ -235,7 +236,7 @@ export default function SitterAvailabilityPage() {
                     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                     const labels = days.map((i: number) => dayNames[i]).join(', ');
                     return (
-                      <li key={r.id} className="rounded-lg bg-neutral-50 px-3 py-2 text-sm">
+                      <li key={r.id} className="rounded-lg bg-surface-secondary px-3 py-2 text-sm">
                         {labels}: {r.startTime}–{r.endTime}
                       </li>
                     );
@@ -247,20 +248,20 @@ export default function SitterAvailabilityPage() {
 
           <SitterCard>
             <SitterCardHeader>
-              <p className="font-medium text-neutral-900">Availability preview (next 7 days)</p>
+              <p className="font-medium text-text-primary">Availability preview (next 7 days)</p>
             </SitterCardHeader>
             <SitterCardBody>
               {preview.length === 0 ? (
-                <p className="text-sm text-neutral-500">No availability windows in the next 7 days. Add recurring rules above.</p>
+                <p className="text-sm text-text-tertiary">No availability windows in the next 7 days. Add recurring rules above.</p>
               ) : (
                 <ul className="space-y-1 text-sm">
                   {preview.slice(0, 14).map((w, i) => (
-                    <li key={i} className="text-neutral-600">
+                    <li key={i} className="text-text-secondary">
                       {new Date(w.start).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} – {new Date(w.end).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                     </li>
                   ))}
                   {preview.length > 14 && (
-                    <li className="text-neutral-500">…and {preview.length - 14} more</li>
+                    <li className="text-text-tertiary">…and {preview.length - 14} more</li>
                   )}
                 </ul>
               )}

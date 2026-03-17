@@ -187,7 +187,7 @@ function SitterInboxContent() {
             <button
               type="button"
               onClick={() => setSelectedThreadId(null)}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-neutral-600 hover:bg-neutral-100"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-text-secondary hover:bg-surface-tertiary"
               aria-label="Back to threads"
             >
               <i className="fas fa-arrow-left" />
@@ -197,13 +197,13 @@ function SitterInboxContent() {
               subtitle="Conversation"
             />
           </div>
-          <div className="flex flex-col rounded-2xl border border-neutral-200 bg-white shadow-sm">
+          <div className="flex flex-col rounded-2xl border border-border-default bg-surface-primary shadow-sm">
             {/* Messages + compose only */}
             <div className="flex-1 overflow-y-auto p-4 min-h-[50vh]">
               {messagesLoading ? (
                 <SitterSkeletonList count={2} />
               ) : messages.length === 0 && pendingMessages.length === 0 ? (
-                <p className="py-8 text-center text-sm text-neutral-500">No messages yet. Start with a short professional update.</p>
+                <p className="py-8 text-center text-sm text-text-tertiary">No messages yet. Start with a short professional update.</p>
               ) : (
                 <div className="space-y-4">
                   {messages.map((msg) => (
@@ -211,11 +211,11 @@ function SitterInboxContent() {
                       key={msg.id}
                       className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                         msg.direction === 'outbound'
-                          ? 'ml-auto bg-blue-100 text-neutral-900'
-                          : 'bg-neutral-100 text-neutral-900'
+                          ? 'ml-auto bg-surface-brand-subtle text-text-primary'
+                          : 'bg-surface-tertiary text-text-primary'
                       }`}
                     >
-                      <p className="text-xs font-medium text-neutral-600">
+                      <p className="text-xs font-medium text-text-secondary">
                         {msg.direction === 'inbound' ? selectedThread?.client?.name : 'You'} •{' '}
                         {formatDistanceToNow(msg.createdAt, { addSuffix: true })}
                       </p>
@@ -225,9 +225,9 @@ function SitterInboxContent() {
                   {pendingMessages.map((p) => (
                     <div
                       key={p.tempId}
-                      className="ml-auto max-w-[85%] rounded-2xl bg-blue-100 px-4 py-3 text-neutral-900"
+                      className="ml-auto max-w-[85%] rounded-2xl bg-surface-brand-subtle px-4 py-3 text-text-primary"
                     >
-                      <p className="text-xs font-medium text-neutral-600">
+                      <p className="text-xs font-medium text-text-secondary">
                         You • {p.status === 'sending' ? 'Sending…' : 'Failed'}
                       </p>
                       <p className="mt-1 text-sm">{p.body}</p>
@@ -242,7 +242,7 @@ function SitterInboxContent() {
               )}
             </div>
             {isWindowActive && (
-              <div className="border-t border-neutral-200 p-4">
+              <div className="border-t border-border-default p-4">
                 <div className="mb-2 flex flex-wrap gap-2 md:hidden">
                   {QUICK_TEMPLATES.map((template) => (
                     <Button
@@ -263,7 +263,7 @@ function SitterInboxContent() {
                     onKeyDown={handleKeyDown}
                     placeholder="Share a visit update..."
                     rows={2}
-                    className="min-h-[44px] flex-1 resize-none rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-blue-500"
+                    className="min-h-[44px] flex-1 resize-none rounded-xl border border-border-strong px-4 py-3 text-sm outline-none focus:border-border-focus"
                   />
                   <Button
                     variant="primary"
@@ -285,18 +285,18 @@ function SitterInboxContent() {
             title="Inbox"
             subtitle="Visit-related messages during active assignments"
           />
-          <p className="px-4 pt-3 text-xs text-neutral-500 md:px-6">{SITTER_BOUNDARY_HELPER}</p>
+          <p className="px-4 pt-3 text-xs text-text-tertiary md:px-6">{SITTER_BOUNDARY_HELPER}</p>
 
-          <div className="flex min-h-[60vh] flex-col gap-0 rounded-2xl border border-neutral-200 bg-white shadow-sm md:flex-row">
+          <div className="flex min-h-[60vh] flex-col gap-0 rounded-2xl border border-border-default bg-surface-primary shadow-sm md:flex-row">
             {/* Thread list - hidden on mobile when conversation open */}
-            <div className={`flex w-full flex-col border-b border-neutral-200 md:w-80 md:border-b-0 md:border-r ${showListOnMobile ? 'flex' : 'hidden md:flex'}`}>
-          <div className="border-b border-neutral-200 p-4">
+            <div className={`flex w-full flex-col border-b border-border-default md:w-80 md:border-b-0 md:border-r ${showListOnMobile ? 'flex' : 'hidden md:flex'}`}>
+          <div className="border-b border-border-default p-4">
             <input
               type="search"
               placeholder="Search threads..."
               value={threadSearch}
               onChange={(e) => setThreadSearch(e.target.value)}
-              className="w-full rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-xl border border-border-strong px-3 py-2.5 text-sm outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus"
             />
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -336,22 +336,22 @@ function SitterInboxContent() {
                     key={thread.id}
                     type="button"
                     onClick={() => setSelectedThreadId(thread.id)}
-                    className={`flex min-h-[72px] min-w-0 items-center gap-3 border-b border-neutral-100 px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset ${
-                      isSelected ? 'bg-blue-50' : 'hover:bg-neutral-50'
+                    className={`flex min-h-[72px] min-w-0 items-center gap-3 border-b border-border-default px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-inset ${
+                      isSelected ? 'bg-blue-50' : 'hover:bg-surface-secondary'
                     }`}
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-800">
                       {initial}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-neutral-900">
+                      <p className="truncate font-semibold text-text-primary">
                         {displayName} • {formatThreadTime(thread.lastActivityAt)}
                       </p>
-                      <p className="truncate text-xs text-neutral-500">{preview}</p>
+                      <p className="truncate text-xs text-text-tertiary">{preview}</p>
                       <div className="mt-1 flex items-center gap-2">
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                            isActive ? 'bg-green-100 text-green-800' : 'bg-neutral-100 text-neutral-600'
+                            isActive ? 'bg-green-100 text-green-800' : 'bg-surface-tertiary text-text-secondary'
                           }`}
                         >
                           {isActive ? 'Active' : 'Inactive'}
@@ -375,16 +375,16 @@ function SitterInboxContent() {
           {selectedThreadId ? (
             <>
               {/* Thread header bar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-default bg-surface-primary p-4">
                 <div className="flex items-center gap-2">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-800">
                     {(selectedThread?.client?.name || '?').charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-semibold text-neutral-900">
+                    <p className="font-semibold text-text-primary">
                       {selectedThread?.client?.name || 'Unknown'}
                     </p>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-text-tertiary">
                       {activeWindow
                         ? `Active until ${format(activeWindow.endsAt, 'MMM d, h:mm a')}`
                         : 'Office-handled outside active window'}
@@ -406,7 +406,7 @@ function SitterInboxContent() {
                 {messagesLoading ? (
                   <SitterSkeletonList count={2} />
                 ) : messages.length === 0 && pendingMessages.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-neutral-500">No messages yet. Say hi!</p>
+                  <p className="py-8 text-center text-sm text-text-tertiary">No messages yet. Say hi!</p>
                 ) : (
                   <div className="space-y-4">
                     {messages.map((msg) => (
@@ -414,11 +414,11 @@ function SitterInboxContent() {
                         key={msg.id}
                         className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                           msg.direction === 'outbound'
-                            ? 'ml-auto bg-blue-100 text-neutral-900'
-                            : 'bg-neutral-100 text-neutral-900'
+                            ? 'ml-auto bg-surface-brand-subtle text-text-primary'
+                            : 'bg-surface-tertiary text-text-primary'
                         }`}
                       >
-                        <p className="text-xs font-medium text-neutral-600">
+                        <p className="text-xs font-medium text-text-secondary">
                           {msg.direction === 'inbound' ? selectedThread?.client?.name : 'You'} •{' '}
                           {formatDistanceToNow(msg.createdAt, { addSuffix: true })}
                         </p>
@@ -428,9 +428,9 @@ function SitterInboxContent() {
                     {pendingMessages.map((p) => (
                       <div
                         key={p.tempId}
-                        className="ml-auto max-w-[85%] rounded-2xl bg-blue-100 px-4 py-3 text-neutral-900"
+                        className="ml-auto max-w-[85%] rounded-2xl bg-surface-brand-subtle px-4 py-3 text-text-primary"
                       >
-                        <p className="text-xs font-medium text-neutral-600">
+                        <p className="text-xs font-medium text-text-secondary">
                           You • {p.status === 'sending' ? 'Sending…' : 'Failed'}
                         </p>
                         <p className="mt-1 text-sm">{p.body}</p>
@@ -459,10 +459,10 @@ function SitterInboxContent() {
               </div>
 
               {/* Quick templates */}
-              <div className="border-t border-neutral-200 bg-amber-50/40 p-4">
+              <div className="border-t border-border-default bg-amber-50/40 p-4">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-neutral-800">Quick templates</span>
-                  <span className="text-xs text-neutral-500">Use for short professional status updates.</span>
+                  <span className="text-sm font-medium text-text-primary">Quick templates</span>
+                  <span className="text-xs text-text-tertiary">Use for short professional status updates.</span>
                 </div>
                 <div className="md:hidden flex flex-wrap gap-2">
                   {QUICK_TEMPLATES.map((template) => (
@@ -493,7 +493,7 @@ function SitterInboxContent() {
                       }
                     }}
                     disabled={sendMessage.isPending || !selectedThreadId || !isWindowActive}
-                    className="w-full max-w-xs rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-700 outline-none focus:border-blue-500"
+                    className="w-full max-w-xs rounded-lg border border-border-strong bg-surface-primary px-3 py-2 text-sm text-text-secondary outline-none focus:border-border-focus"
                   >
                     <option value="">Templates...</option>
                     {QUICK_TEMPLATES.map((template) => (
@@ -506,7 +506,7 @@ function SitterInboxContent() {
               </div>
 
               {/* Compose */}
-              <div className="border-t border-neutral-200 p-4">
+              <div className="border-t border-border-default p-4">
                 {!isWindowActive ? (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     <p className="font-medium">Can&apos;t send right now</p>
@@ -519,7 +519,7 @@ function SitterInboxContent() {
                     <button
                       type="button"
                       aria-label="Add attachment"
-                      className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-neutral-300 text-neutral-500 hover:bg-neutral-50"
+                      className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-border-strong text-text-tertiary hover:bg-surface-secondary"
                     >
                       <i className="fas fa-paperclip" />
                     </button>
@@ -529,7 +529,7 @@ function SitterInboxContent() {
                       onKeyDown={handleKeyDown}
                       placeholder="Share a visit update..."
                       rows={2}
-                      className="min-h-[44px] flex-1 resize-none rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      className="min-h-[44px] flex-1 resize-none rounded-xl border border-border-strong px-4 py-3 text-sm outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus"
                     />
                     <Button
                       variant="primary"
@@ -545,7 +545,7 @@ function SitterInboxContent() {
               </div>
             </>
           ) : (
-            <div className="flex flex-1 items-center justify-center p-8 text-center text-neutral-500">
+            <div className="flex flex-1 items-center justify-center p-8 text-center text-text-tertiary">
               <p>{isMobile ? 'Tap a thread to open' : 'Select a thread to view messages'}</p>
             </div>
           )}

@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Button, Badge, EmptyState, Skeleton, SectionHeader } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
+import { toastError } from '@/lib/toast';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { useMobile } from '@/lib/use-mobile';
 
@@ -85,11 +86,11 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
         await fetchCalendarData();
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to toggle sync');
+        toastError(error.error || 'Failed to toggle sync');
       }
     } catch (error) {
       console.error('Failed to toggle sync:', error);
-      alert('Failed to toggle sync');
+      toastError('Failed to toggle sync');
     } finally {
       setToggling(false);
     }
@@ -102,7 +103,7 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
       window.location.href = `/api/integrations/google/start?sitterId=${sitterId}`;
     } catch (error) {
       console.error('Failed to start OAuth:', error);
-      alert('Failed to connect Google Calendar');
+      toastError('Failed to connect Google Calendar');
       setConnecting(false);
     }
   };

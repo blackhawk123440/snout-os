@@ -46,7 +46,7 @@ const statusBadgeClass = (status: string) => {
     case 'completed':
       return 'bg-green-100 text-green-800';
     default:
-      return 'bg-neutral-100 text-neutral-700';
+      return 'bg-surface-tertiary text-text-secondary';
   }
 };
 
@@ -154,18 +154,18 @@ export default function SitterCalendarPage() {
         }
       />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex rounded-xl border border-neutral-200 p-0.5">
+        <div className="flex rounded-xl border border-border-default p-0.5">
           <button
             type="button"
             onClick={() => setViewMode('week')}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${viewMode === 'week' ? 'bg-neutral-200 text-neutral-900' : 'text-neutral-600 hover:text-neutral-900'}`}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${viewMode === 'week' ? 'bg-surface-tertiary text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
           >
             Week
           </button>
           <button
             type="button"
             onClick={() => setViewMode('list')}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${viewMode === 'list' ? 'bg-neutral-200 text-neutral-900' : 'text-neutral-600 hover:text-neutral-900'}`}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${viewMode === 'list' ? 'bg-surface-tertiary text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}
           >
             List
           </button>
@@ -175,10 +175,10 @@ export default function SitterCalendarPage() {
       <SitterCard className="mb-4 border-dashed">
         <SitterCardBody>
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium text-neutral-700">Soon: the best route for your day 🚗🐾</p>
+            <p className="text-sm font-medium text-text-secondary">Soon: the best route for your day 🚗🐾</p>
             <FeatureStatusPill featureKey="route_optimization" />
           </div>
-          <p className="mt-1 text-xs text-neutral-500">We&apos;ll optimize based on timing + pet needs.</p>
+          <p className="mt-1 text-xs text-text-tertiary">We&apos;ll optimize based on timing + pet needs.</p>
         </SitterCardBody>
       </SitterCard>
 
@@ -202,8 +202,8 @@ export default function SitterCalendarPage() {
               <SitterCardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-neutral-900">{b.clientName}</p>
-                    <p className="text-sm text-neutral-600">{b.service}</p>
+                    <p className="font-semibold text-text-primary">{b.clientName}</p>
+                    <p className="text-sm text-text-secondary">{b.service}</p>
                   </div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass(b.status)}`}>
                     {statusPillLabel(b.status)}
@@ -214,9 +214,9 @@ export default function SitterCalendarPage() {
                 <p>
                   {formatDate(b.startAt)} · {formatTime(b.startAt)} – {formatTime(b.endAt)}
                 </p>
-                {b.address && <p className="mt-1 text-neutral-600">{b.address}</p>}
+                {b.address && <p className="mt-1 text-text-secondary">{b.address}</p>}
                 {b.pets.length > 0 && (
-                  <p className="mt-1 text-neutral-600">
+                  <p className="mt-1 text-text-secondary">
                     {b.pets.map((p) => (p.name ? `${p.name}${p.species ? ` (${p.species})` : ''}` : p.species || 'Pet')).join(', ')}
                   </p>
                 )}

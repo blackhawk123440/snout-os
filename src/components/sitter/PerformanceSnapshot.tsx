@@ -76,7 +76,7 @@ export function PerformanceSnapshot({ performance, currentTier }: PerformanceSna
         <div style={{ 
           marginTop: tokens.spacing[4],
           padding: tokens.spacing[3],
-          backgroundColor: tokens.colors.neutral[50],
+          backgroundColor: 'var(--color-surface-secondary)',
           borderRadius: tokens.borderRadius.md,
         }}>
           <div style={{ 

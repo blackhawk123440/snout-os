@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react';
 import { Button, Badge, Card } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
+import { toastError } from '@/lib/toast';
 import { useAcceptBooking, useDeclineBooking, type SitterBooking } from '@/lib/api/sitter-dashboard-hooks';
 import { format, formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
@@ -83,22 +84,19 @@ export function PendingRequests({ bookings, sitterId, showHeader = true }: Pendi
       await acceptBooking.mutateAsync({ bookingId, sitterId });
     } catch (error) {
       console.error('Failed to accept booking:', error);
-      alert('Failed to accept booking. Please try again.');
+      toastError('Failed to accept booking. Please try again.');
     } finally {
       setProcessingId(null);
     }
   };
 
   const handleDecline = async (bookingId: string) => {
-    if (!confirm('Are you sure you want to decline this booking request?')) {
-      return;
-    }
     setProcessingId(bookingId);
     try {
       await declineBooking.mutateAsync({ bookingId, sitterId });
     } catch (error) {
       console.error('Failed to decline booking:', error);
-      alert('Failed to decline booking. Please try again.');
+      toastError('Failed to decline booking. Please try again.');
     } finally {
       setProcessingId(null);
     }

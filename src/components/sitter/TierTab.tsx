@@ -294,7 +294,7 @@ export function TierTab({ sitterId }: TierTabProps) {
                   style={{
                     padding: tokens.spacing[3],
                     borderLeft: `3px solid ${tierColors[canonicalName] || tokens.colors.neutral[500]}`,
-                    backgroundColor: tokens.colors.neutral[50],
+                    backgroundColor: 'var(--color-surface-secondary)',
                     borderRadius: tokens.borderRadius.md,
                   }}
                 >

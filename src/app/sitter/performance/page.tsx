@@ -55,68 +55,68 @@ export default function SitterPerformancePage() {
         <SitterCard>
           <SitterCardHeader>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-neutral-900">Current Reliability Tier</h3>
+              <h3 className="font-semibold text-text-primary">Current Reliability Tier</h3>
               {data && <Badge variant="info">{tierLabel}</Badge>}
             </div>
           </SitterCardHeader>
           <SitterCardBody>
             {loading ? (
-              <p className="text-sm text-neutral-600">Loading SRS...</p>
+              <p className="text-sm text-text-secondary">Loading SRS...</p>
             ) : error ? (
               <p className="text-sm text-rose-700">{error}</p>
             ) : data ? (
               <div className="space-y-2">
-                <p className="text-2xl font-semibold text-neutral-900">{data.score.toFixed(1)} / 100</p>
-                <p className="text-sm text-neutral-600">
+                <p className="text-2xl font-semibold text-text-primary">{data.score.toFixed(1)} / 100</p>
+                <p className="text-sm text-text-secondary">
                   Rolling 30-day reliability score. {data.rolling26w ? `26-week average: ${data.rolling26w.toFixed(1)}.` : ''}
                 </p>
-                <p className="text-sm text-neutral-600">Activity sample: {data.visits30d} visits in last 30 days.</p>
+                <p className="text-sm text-text-secondary">Activity sample: {data.visits30d} visits in last 30 days.</p>
                 {data.provisional && <p className="text-xs text-amber-700">Provisional score until enough sample size is reached.</p>}
                 {data.atRisk && <p className="text-xs text-rose-700">At risk: {data.atRiskReason || 'Score below tier target'}</p>}
               </div>
             ) : (
-              <p className="text-sm text-neutral-600">No reliability data yet.</p>
+              <p className="text-sm text-text-secondary">No reliability data yet.</p>
             )}
           </SitterCardBody>
         </SitterCard>
 
         <SitterCard>
           <SitterCardHeader>
-            <h3 className="font-semibold text-neutral-900">Recent Trend and Period Summary</h3>
+            <h3 className="font-semibold text-text-primary">Recent Trend and Period Summary</h3>
           </SitterCardHeader>
           <SitterCardBody>
             {loading ? (
-              <p className="text-sm text-neutral-600">Loading trend...</p>
+              <p className="text-sm text-text-secondary">Loading trend...</p>
             ) : data ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                  <p className="text-xs text-neutral-500">30d Score</p>
-                  <p className="text-lg font-semibold text-neutral-900">{data.score.toFixed(1)}</p>
+                <div className="rounded-xl border border-border-default bg-surface-secondary p-3">
+                  <p className="text-xs text-text-tertiary">30d Score</p>
+                  <p className="text-lg font-semibold text-text-primary">{data.score.toFixed(1)}</p>
                 </div>
-                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                  <p className="text-xs text-neutral-500">26w Avg</p>
-                  <p className="text-lg font-semibold text-neutral-900">{data.rolling26w ? data.rolling26w.toFixed(1) : 'N/A'}</p>
+                <div className="rounded-xl border border-border-default bg-surface-secondary p-3">
+                  <p className="text-xs text-text-tertiary">26w Avg</p>
+                  <p className="text-lg font-semibold text-text-primary">{data.rolling26w ? data.rolling26w.toFixed(1) : 'N/A'}</p>
                 </div>
-                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3">
-                  <p className="text-xs text-neutral-500">Visits (30d)</p>
-                  <p className="text-lg font-semibold text-neutral-900">{data.visits30d}</p>
+                <div className="rounded-xl border border-border-default bg-surface-secondary p-3">
+                  <p className="text-xs text-text-tertiary">Visits (30d)</p>
+                  <p className="text-lg font-semibold text-text-primary">{data.visits30d}</p>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-neutral-600">Trend unavailable until activity data exists.</p>
+              <p className="text-sm text-text-secondary">Trend unavailable until activity data exists.</p>
             )}
           </SitterCardBody>
         </SitterCard>
 
         <SitterCard>
           <SitterCardHeader>
-            <h3 className="font-semibold text-neutral-900">What Affects Your Score</h3>
+            <h3 className="font-semibold text-text-primary">What Affects Your Score</h3>
           </SitterCardHeader>
           <SitterCardBody>
             {loading ? (
-              <p className="text-sm text-neutral-600">Loading factors...</p>
+              <p className="text-sm text-text-secondary">Loading factors...</p>
             ) : data ? (
-              <div className="grid grid-cols-1 gap-2 text-sm text-neutral-700 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 text-sm text-text-secondary sm:grid-cols-2">
                 <p>Responsiveness: {data.breakdown.responsiveness.toFixed(1)} / 20</p>
                 <p>Acceptance: {data.breakdown.acceptance.toFixed(1)} / 12</p>
                 <p>Completion: {data.breakdown.completion.toFixed(1)} / 8</p>
@@ -126,24 +126,24 @@ export default function SitterPerformancePage() {
                 <p>Conduct: {data.breakdown.conduct.toFixed(1)} / 10</p>
               </div>
             ) : (
-              <p className="text-sm text-neutral-600">No score factors yet.</p>
+              <p className="text-sm text-text-secondary">No score factors yet.</p>
             )}
           </SitterCardBody>
         </SitterCard>
 
         <SitterCard>
           <SitterCardBody>
-            <p className="text-sm font-medium text-neutral-700">Next Actions</p>
+            <p className="text-sm font-medium text-text-secondary">Next Actions</p>
             {loading ? (
-              <p className="mt-1 text-xs text-neutral-500">Loading recommended actions...</p>
+              <p className="mt-1 text-xs text-text-tertiary">Loading recommended actions...</p>
             ) : data?.nextActions?.length ? (
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-neutral-600">
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-text-secondary">
                 {data.nextActions.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-1 text-xs text-neutral-500">Keep completing visits and responding quickly to maintain reliability.</p>
+              <p className="mt-1 text-xs text-text-tertiary">Keep completing visits and responding quickly to maintain reliability.</p>
             )}
           </SitterCardBody>
         </SitterCard>

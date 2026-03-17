@@ -7,6 +7,7 @@ import { Button, Modal } from '@/components/ui';
 import { StatusChip } from '@/components/ui/status-chip';
 import { LayoutWrapper } from '@/components/layout';
 import { SITTER_PROFILE_LINKS } from '@/lib/sitter-nav';
+import { toastError } from '@/lib/toast';
 import {
   SitterCard,
   SitterCardHeader,
@@ -103,7 +104,7 @@ export default function SitterProfilePage() {
       await signOut({ callbackUrl: '/login' });
       window.location.href = '/login';
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to delete account');
+      toastError(e instanceof Error ? e.message : 'Failed to delete account');
     } finally {
       setDeleting(false);
     }
@@ -121,7 +122,7 @@ export default function SitterProfilePage() {
         void loadProfile();
       }
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to connect Stripe');
+      toastError(e instanceof Error ? e.message : 'Failed to connect Stripe');
     } finally {
       setConnectingStripe(false);
     }
@@ -141,7 +142,7 @@ export default function SitterProfilePage() {
       if (!res.ok) throw new Error(json.error || 'Failed');
       setProfile((p) => (p ? { ...p, availabilityEnabled: enabled } : null));
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to update');
+      toastError(e instanceof Error ? e.message : 'Failed to update');
     } finally {
       setTogglingAvailability(false);
     }
@@ -161,7 +162,7 @@ export default function SitterProfilePage() {
       setBlockOffs((prev) => [...prev, { id: json.id, date: json.date }]);
       setNewBlockDate('');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to add');
+      toastError(e instanceof Error ? e.message : 'Failed to add');
     } finally {
       setAddingBlock(false);
     }
@@ -173,7 +174,7 @@ export default function SitterProfilePage() {
       if (!res.ok) throw new Error('Failed');
       setBlockOffs((prev) => prev.filter((b) => b.id !== id));
     } catch {
-      alert('Failed to remove');
+      toastError('Failed to remove');
     }
   };
 
@@ -197,19 +198,19 @@ export default function SitterProfilePage() {
                   {profile.name.charAt(0).toUpperCase() || 'S'}
                 </div>
                 <div>
-                  <p className="text-lg font-semibold text-neutral-900">{profile.name}</p>
-                  <p className="text-sm text-neutral-600">{profile.email}</p>
+                  <p className="text-lg font-semibold text-text-primary">{profile.name}</p>
+                  <p className="text-sm text-text-secondary">{profile.email}</p>
                 </div>
               </div>
             </SitterCardHeader>
             <SitterCardBody>
               <dl className="space-y-3 text-sm">
                 <div>
-                  <dt className="font-medium text-neutral-500">Phone</dt>
-                  <dd className="text-neutral-900">{profile.phone || '—'}</dd>
+                  <dt className="font-medium text-text-tertiary">Phone</dt>
+                  <dd className="text-text-primary">{profile.phone || '—'}</dd>
                 </div>
                 <div>
-                  <dt className="font-medium text-neutral-500">Status</dt>
+                  <dt className="font-medium text-text-tertiary">Status</dt>
                   <dd>
                     <StatusChip variant={profile.active ? 'success' : 'neutral'}>
                       {profile.active ? 'Active' : 'Inactive'}
@@ -217,8 +218,8 @@ export default function SitterProfilePage() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="font-medium text-neutral-500">Commission</dt>
-                  <dd className="text-neutral-900">{profile.commissionPercentage}%</dd>
+                  <dt className="font-medium text-text-tertiary">Commission</dt>
+                  <dd className="text-text-primary">{profile.commissionPercentage}%</dd>
                 </div>
               </dl>
             </SitterCardBody>
@@ -226,7 +227,7 @@ export default function SitterProfilePage() {
 
           <SitterCard>
             <SitterCardHeader>
-              <p className="text-base font-semibold text-neutral-900">Stripe Connect</p>
+              <p className="text-base font-semibold text-text-primary">Stripe Connect</p>
             </SitterCardHeader>
             <SitterCardBody>
               <div className="mb-3 flex items-center gap-2">
@@ -240,7 +241,7 @@ export default function SitterProfilePage() {
                 <p className="text-sm text-amber-700">Connected · Complete onboarding to receive payouts</p>
               ) : (
                 <>
-                  <p className="mb-3 text-sm text-neutral-600">Connect your Stripe account to receive payouts from completed bookings.</p>
+                  <p className="mb-3 text-sm text-text-secondary">Connect your Stripe account to receive payouts from completed bookings.</p>
                   <Button variant="primary" size="md" onClick={() => void connectStripe()} disabled={connectingStripe}>
                     {connectingStripe ? 'Connecting...' : 'Connect Stripe account'}
                   </Button>
@@ -252,7 +253,7 @@ export default function SitterProfilePage() {
           <SitterCard className="border-dashed">
             <SitterCardBody>
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-neutral-700">Verification status</p>
+                <p className="text-sm font-medium text-text-secondary">Verification status</p>
                 <FeatureStatusPill featureKey="verification" />
               </div>
             </SitterCardBody>
@@ -260,7 +261,7 @@ export default function SitterProfilePage() {
           <SitterCard className="border-dashed">
             <SitterCardBody>
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-neutral-700">Documents</p>
+                <p className="text-sm font-medium text-text-secondary">Documents</p>
                 <FeatureStatusPill featureKey="documents" />
               </div>
             </SitterCardBody>
@@ -268,7 +269,7 @@ export default function SitterProfilePage() {
           <SitterCard className="border-dashed">
             <SitterCardBody>
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-neutral-700">Offline mode</p>
+                <p className="text-sm font-medium text-text-secondary">Offline mode</p>
                 <FeatureStatusPill featureKey="offline_mode" />
               </div>
             </SitterCardBody>
@@ -276,7 +277,7 @@ export default function SitterProfilePage() {
 
           <SitterCard>
             <SitterCardHeader>
-              <h3 className="text-base font-semibold text-neutral-900">Dashboard</h3>
+              <h3 className="text-base font-semibold text-text-primary">Dashboard</h3>
             </SitterCardHeader>
             <SitterCardBody className="pt-0">
               <nav className="space-y-1">
@@ -284,9 +285,9 @@ export default function SitterProfilePage() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
                   >
-                    <i className={`${item.icon} w-5 text-center text-neutral-500`} />
+                    <i className={`${item.icon} w-5 text-center text-text-tertiary`} />
                     {item.label}
                     <FeatureStatusPill featureKey={item.href.replace('/sitter/', '').split('/')[0]} className="ml-auto" />
                   </Link>
@@ -297,13 +298,13 @@ export default function SitterProfilePage() {
 
           <SitterCard>
             <SitterCardHeader>
-              <h3 className="text-base font-semibold text-neutral-900">Availability</h3>
+              <h3 className="text-base font-semibold text-text-primary">Availability</h3>
             </SitterCardHeader>
             <SitterCardBody>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Available for new bookings</p>
-                  <p className="text-xs text-gray-500">When off, you won&apos;t receive new assignments</p>
+                  <p className="text-sm font-medium text-text-primary">Available for new bookings</p>
+                  <p className="text-xs text-text-tertiary">When off, you won&apos;t receive new assignments</p>
                 </div>
                 <button
                   type="button"
@@ -311,12 +312,12 @@ export default function SitterProfilePage() {
                   aria-checked={profile.availabilityEnabled}
                   onClick={() => void toggleAvailability()}
                   disabled={togglingAvailability}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
-                    profile.availabilityEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 disabled:opacity-50 ${
+                    profile.availabilityEnabled ? 'bg-blue-600' : 'bg-surface-tertiary'
                   }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition ${
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface-primary shadow ring-0 transition ${
                       profile.availabilityEnabled ? 'translate-x-5' : 'translate-x-1'
                     }`}
                   />
@@ -324,14 +325,14 @@ export default function SitterProfilePage() {
               </div>
 
               <div className="mt-6">
-                <p className="mb-2 text-sm font-medium text-neutral-900">Block off days</p>
-                <p className="mb-3 text-xs text-neutral-500">Days you&apos;re not available</p>
+                <p className="mb-2 text-sm font-medium text-text-primary">Block off days</p>
+                <p className="mb-3 text-xs text-text-tertiary">Days you&apos;re not available</p>
                 <div className="flex flex-wrap gap-2">
                   <input
                     type="date"
                     value={newBlockDate}
                     onChange={(e) => setNewBlockDate(e.target.value)}
-                    className="rounded-xl border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className="rounded-xl border border-border-strong px-3 py-2 text-sm outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus"
                   />
                   <Button
                     variant="secondary"
@@ -345,7 +346,7 @@ export default function SitterProfilePage() {
                 {blockOffs.length > 0 && (
                   <ul className="mt-3 space-y-1">
                     {blockOffs.map((b) => (
-                      <li key={b.id} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-sm">
+                      <li key={b.id} className="flex items-center justify-between rounded-lg bg-surface-secondary px-3 py-2 text-sm">
                         <span>{new Date(b.date + 'T12:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         <button
                           type="button"
@@ -364,10 +365,10 @@ export default function SitterProfilePage() {
 
           <SitterCard className="border-red-200">
             <SitterCardHeader>
-              <p className="text-base font-semibold text-neutral-900">Delete account</p>
+              <p className="text-base font-semibold text-text-primary">Delete account</p>
             </SitterCardHeader>
             <SitterCardBody>
-              <p className="mb-3 text-sm text-neutral-600">
+              <p className="mb-3 text-sm text-text-secondary">
                 Permanently delete your sitter account. This cannot be undone. You will be signed out immediately.
               </p>
               <Button
@@ -404,7 +405,7 @@ export default function SitterProfilePage() {
           </div>
         }
       >
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-text-secondary">
           Are you sure? This will permanently delete your sitter account. You will be signed out immediately and cannot sign in again.
         </p>
       </Modal>

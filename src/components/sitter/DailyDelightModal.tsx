@@ -320,87 +320,87 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
     >
       {booking ? (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
-            <p className="font-semibold text-neutral-900">{booking.service}</p>
-            <p className="text-sm text-neutral-600">{formatTimeRange(booking.startAt, booking.endAt)}</p>
+          <div className="rounded-2xl border border-border-default bg-surface-secondary p-4">
+            <p className="font-semibold text-text-primary">{booking.service}</p>
+            <p className="text-sm text-text-secondary">{formatTimeRange(booking.startAt, booking.endAt)}</p>
             {booking.pets.length > 0 && (
-              <p className="mt-1 text-sm text-neutral-600">
+              <p className="mt-1 text-sm text-text-secondary">
                 {booking.pets
                   .map((pet) => (pet.name ? `${pet.name}${pet.species ? ` (${pet.species})` : ''}` : pet.species || 'Pet'))
                   .join(', ')}
               </p>
             )}
           </div>
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-500">Visit details (optional)</p>
+          <div className="rounded-2xl border border-border-default bg-surface-primary p-4">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-text-tertiary">Visit details (optional)</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">Potty</label>
+                <label className="mb-1 block text-xs text-text-tertiary">Potty</label>
                 <input
                   type="text"
                   value={structured.potty}
                   onChange={(e) => setStructured((s) => ({ ...s, potty: e.target.value }))}
                   placeholder="e.g. normal, accident"
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-border-focus"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">Food</label>
+                <label className="mb-1 block text-xs text-text-tertiary">Food</label>
                 <input
                   type="text"
                   value={structured.food}
                   onChange={(e) => setStructured((s) => ({ ...s, food: e.target.value }))}
                   placeholder="e.g. ate well"
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-border-focus"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">Water</label>
+                <label className="mb-1 block text-xs text-text-tertiary">Water</label>
                 <input
                   type="text"
                   value={structured.water}
                   onChange={(e) => setStructured((s) => ({ ...s, water: e.target.value }))}
                   placeholder="e.g. refreshed"
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-border-focus"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">Meds</label>
+                <label className="mb-1 block text-xs text-text-tertiary">Meds</label>
                 <input
                   type="text"
                   value={structured.meds}
                   onChange={(e) => setStructured((s) => ({ ...s, meds: e.target.value }))}
                   placeholder="e.g. given as directed"
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-border-focus"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-neutral-500">Walk (min)</label>
+                <label className="mb-1 block text-xs text-text-tertiary">Walk (min)</label>
                 <input
                   type="text"
                   inputMode="numeric"
                   value={structured.walkDurationMins}
                   onChange={(e) => setStructured((s) => ({ ...s, walkDurationMins: e.target.value.replace(/\D/g, '') }))}
                   placeholder="e.g. 20"
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-border-focus"
                 />
               </div>
             </div>
             <div className="mt-3">
-              <label className="mb-1 block text-xs text-neutral-500">Notes</label>
+              <label className="mb-1 block text-xs text-text-tertiary">Notes</label>
               <textarea
                 value={structured.notes}
                 onChange={(e) => setStructured((s) => ({ ...s, notes: e.target.value }))}
                 placeholder="Any other details…"
                 rows={2}
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm outline-none focus:border-border-focus"
               />
             </div>
             <Button variant="secondary" size="sm" onClick={buildFromStructured} className="mt-2">
               Build from form
             </Button>
           </div>
-          <div className="rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 p-4">
+          <div className="rounded-2xl border-2 border-dashed border-border-default bg-surface-secondary p-4">
             <input
               ref={fileInputRef}
               type="file"
@@ -455,30 +455,30 @@ export function DailyDelightModal({ booking, isOpen, onClose }: DailyDelightModa
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || totalCount >= MAX_PHOTOS}
-              className="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm font-medium text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-50"
+              className="w-full rounded-xl border border-border-strong bg-surface-primary px-4 py-3 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary disabled:opacity-50"
             >
               {uploading ? 'Uploading…' : totalCount >= MAX_PHOTOS ? `${MAX_PHOTOS} photos max` : 'Add photos (optional)'}
             </button>
           </div>
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4">
-            <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-neutral-500">Tone</label>
+          <div className="rounded-2xl border border-border-default bg-surface-primary p-4">
+            <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-text-tertiary">Tone</label>
             <select
               value={tone}
               onChange={(e) => setTone(e.target.value as ToneOption)}
               disabled={loading}
-              className="mb-4 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="mb-4 w-full rounded-xl border border-border-strong bg-surface-primary px-3 py-2.5 text-sm text-text-primary outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus/20"
             >
               <option value="warm">Warm</option>
               <option value="playful">Playful</option>
               <option value="professional">Professional</option>
             </select>
-            <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-neutral-500">Your message</label>
+            <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-text-tertiary">Your message</label>
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="Generate a Daily Delight, then fine-tune here."
               disabled={loading}
-              className={`min-h-44 w-full resize-y rounded-xl border border-neutral-300 bg-white p-3 text-sm text-neutral-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${loading ? 'animate-pulse' : ''}`}
+              className={`min-h-44 w-full resize-y rounded-xl border border-border-strong bg-surface-primary p-3 text-sm text-text-primary outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus/20 ${loading ? 'animate-pulse' : ''}`}
             />
           </div>
           {isStubDraft && (

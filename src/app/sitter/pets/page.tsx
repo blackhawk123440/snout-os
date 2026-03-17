@@ -90,9 +90,9 @@ export default function SitterPetsPage() {
       {loading ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="animate-pulse rounded-2xl border border-neutral-200 bg-white p-4">
-              <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-neutral-200" />
-              <div className="h-4 w-3/4 rounded bg-neutral-100" />
+            <div key={i} className="animate-pulse rounded-2xl border border-border-default bg-surface-primary p-4">
+              <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-surface-tertiary" />
+              <div className="h-4 w-3/4 rounded bg-surface-tertiary" />
             </div>
           ))}
         </div>
@@ -115,13 +115,13 @@ export default function SitterPetsPage() {
                 <div className="mx-auto mb-2 flex h-12 w-12 min-w-[48px] items-center justify-center rounded-full bg-amber-100 text-lg font-semibold text-amber-800">
                   {(pet.name || '?').charAt(0).toUpperCase()}
                 </div>
-                <p className="truncate font-medium text-neutral-900">{pet.name}</p>
-                <p className="truncate text-xs text-neutral-500">
+                <p className="truncate font-medium text-text-primary">{pet.name}</p>
+                <p className="truncate text-xs text-text-tertiary">
                   {pet.species}
                   {pet.breed ? ` · ${pet.breed}` : ''}
                 </p>
                 {pet.clientName && (
-                  <p className="mt-1 truncate text-xs text-neutral-400">{pet.clientName}</p>
+                  <p className="mt-1 truncate text-xs text-text-disabled">{pet.clientName}</p>
                 )}
               </SitterCardBody>
             </SitterCard>

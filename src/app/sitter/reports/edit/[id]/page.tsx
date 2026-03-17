@@ -85,27 +85,27 @@ export default function SitterReportEditPage() {
 
   if (loading || !report) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-4 py-3">
-          <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/sitter/reports')} className="rounded-lg p-2 text-gray-600 hover:bg-gray-100" aria-label="Back">
+      <div className="min-h-screen bg-surface-secondary">
+        <div className="flex items-center gap-2 border-b border-border-default bg-surface-primary px-4 py-3">
+          <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/sitter/reports')} className="rounded-lg p-2 text-text-secondary hover:bg-surface-tertiary" aria-label="Back">
             <i className="fas fa-arrow-left" />
           </Button>
-          <h1 className="text-lg font-semibold text-gray-900">Edit report</h1>
+          <h1 className="text-lg font-semibold text-text-primary">Edit report</h1>
         </div>
         <div className="p-4">
-          <p className="text-gray-500">{loading ? 'Loading…' : 'Report not found.'}</p>
+          <p className="text-text-tertiary">{loading ? 'Loading…' : 'Report not found.'}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-4 py-3">
-        <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/sitter/reports')} className="rounded-lg p-2 text-gray-600 hover:bg-gray-100" aria-label="Back">
+    <div className="min-h-screen bg-surface-secondary">
+      <div className="flex items-center gap-2 border-b border-border-default bg-surface-primary px-4 py-3">
+        <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/sitter/reports')} className="rounded-lg p-2 text-text-secondary hover:bg-surface-tertiary" aria-label="Back">
           <i className="fas fa-arrow-left" />
         </Button>
-        <h1 className="text-lg font-semibold text-gray-900">Edit report</h1>
+        <h1 className="text-lg font-semibold text-text-primary">Edit report</h1>
       </div>
       <div className="p-4 space-y-4">
         {!report.canEdit && (
@@ -118,20 +118,20 @@ export default function SitterReportEditPage() {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Report content</label>
+          <label className="block text-sm font-medium text-text-secondary mb-1">Report content</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             disabled={!report.canEdit}
             rows={8}
-            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 disabled:bg-gray-100 disabled:text-gray-500"
+            className="w-full rounded-xl border border-border-strong bg-surface-primary px-4 py-3 text-text-primary disabled:bg-surface-tertiary disabled:text-text-disabled"
             placeholder="What happened during the visit?"
           />
         </div>
 
         {report.mediaUrls?.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-1">Photos</p>
+            <p className="text-sm font-medium text-text-secondary mb-1">Photos</p>
             <div className="flex flex-wrap gap-2">
               {report.mediaUrls.map((url, i) => (
                 <a
@@ -139,13 +139,13 @@ export default function SitterReportEditPage() {
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block h-20 w-20 rounded-lg bg-gray-200 overflow-hidden"
+                  className="block h-20 w-20 rounded-lg bg-surface-tertiary overflow-hidden"
                 >
                   <img src={url} alt="" className="h-full w-full object-cover" />
                 </a>
               ))}
             </div>
-            <p className="mt-1 text-xs text-gray-500">Photos cannot be changed when editing.</p>
+            <p className="mt-1 text-xs text-text-tertiary">Photos cannot be changed when editing.</p>
           </div>
         )}
 

@@ -130,7 +130,7 @@ export function TierProgression({ currentTierName, metrics }: TierProgressionPro
                   gap: tokens.spacing[3],
                   padding: tokens.spacing[3],
                   borderRadius: tokens.borderRadius.md,
-                  backgroundColor: isCurrent ? tokens.colors.primary[50] : 'transparent',
+                  backgroundColor: isCurrent ? 'var(--color-surface-tertiary)' : 'transparent',
                   border: isCurrent ? `2px solid ${tierColor}` : `1px solid ${tokens.colors.border.default}`,
                   position: 'relative',
                 }}
@@ -196,7 +196,7 @@ export function TierProgression({ currentTierName, metrics }: TierProgressionPro
         {currentTier && metrics && (
           <div style={{
             padding: tokens.spacing[3],
-            backgroundColor: tokens.colors.neutral[50],
+            backgroundColor: 'var(--color-surface-secondary)',
             borderRadius: tokens.borderRadius.md,
             border: `1px solid ${tokens.colors.border.default}`,
           }}>
@@ -229,7 +229,7 @@ export function TierProgression({ currentTierName, metrics }: TierProgressionPro
           <div style={{
             padding: tokens.spacing[4],
             textAlign: 'center',
-            backgroundColor: tokens.colors.neutral[50],
+            backgroundColor: 'var(--color-surface-secondary)',
             borderRadius: tokens.borderRadius.md,
           }}>
             <div style={{

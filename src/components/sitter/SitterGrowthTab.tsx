@@ -78,7 +78,7 @@ export function SitterGrowthTab() {
   });
 
   const tierColors: Record<string, string> = {
-    foundation: tokens.colors.neutral[500],
+    foundation: 'var(--color-text-tertiary)',
     reliant: tokens.colors.info.DEFAULT,
     trusted: tokens.colors.success.DEFAULT,
     preferred: tokens.colors.warning.DEFAULT,
@@ -125,7 +125,7 @@ export function SitterGrowthTab() {
         <Badge
           variant="default"
           style={{
-            backgroundColor: tierColors[row.tier] || tokens.colors.neutral[500],
+            backgroundColor: tierColors[row.tier] || 'var(--color-text-tertiary)',
             color: 'white',
           }}
         >

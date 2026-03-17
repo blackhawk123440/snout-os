@@ -58,12 +58,12 @@ export function VisitTimerDisplay({
   if (!inProgress && !completed) return null;
 
   return (
-    <div className={`space-y-0.5 text-xs text-neutral-600 ${className}`}>
+    <div className={`space-y-0.5 text-xs text-text-secondary ${className}`}>
       {inProgress && (
         <>
-          <p className="font-semibold text-indigo-700">Visit in progress</p>
+          <p className="font-semibold text-text-secondary">Visit in progress</p>
           <p>Started at {formatTime(checkedInAt)}</p>
-          <p className="tabular-nums font-medium text-neutral-800">
+          <p className="tabular-nums font-medium text-text-primary">
             Elapsed: {formatElapsedTimer(checkedInAt, nowMs)}
           </p>
         </>
@@ -73,7 +73,7 @@ export function VisitTimerDisplay({
           <p className="font-semibold text-green-700">Visit complete</p>
           <p>Started at {formatTime(checkedInAt)}</p>
           <p>Ended at {formatTime(checkedOutAt)}</p>
-          <p className="tabular-nums font-medium text-neutral-800">
+          <p className="tabular-nums font-medium text-text-primary">
             Duration: {formatDuration(checkedInAt, checkedOutAt)}
           </p>
         </>
