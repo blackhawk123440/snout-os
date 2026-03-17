@@ -9,7 +9,8 @@ export { stripe };
 export async function createPaymentLink(
   amount: number,
   description: string,
-  customerEmail?: string
+  customerEmail?: string,
+  metadata?: Record<string, string>
 ): Promise<string | null> {
   try {
     // Create a product first
@@ -32,6 +33,10 @@ export async function createPaymentLink(
         },
       ],
       ...(customerEmail && { customer_email: customerEmail }),
+      ...(metadata && { metadata }),
+      payment_intent_data: {
+        ...(metadata && { metadata }),
+      },
     });
 
     return paymentLink.url;

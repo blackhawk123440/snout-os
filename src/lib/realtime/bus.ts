@@ -104,4 +104,5 @@ export const channels = {
   sitterToday: (orgId: string, sitterId: string) =>
     `org:${orgId}:sitter:${sitterId}:today`,
   opsFailures: (orgId: string) => `org:${orgId}:ops:failures`,
+  ownerOps: (orgId: string) => `org:${orgId}:owner:ops`,
 } as const;

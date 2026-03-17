@@ -25,7 +25,8 @@ export async function resolveBookingLink(params: {
     const link = await createPaymentLink(
       amount,
       `${booking.service || 'Pet care'} booking ${booking.id}`,
-      booking.client?.email || booking.email || undefined
+      booking.client?.email || booking.email || undefined,
+      { bookingId: booking.id, orgId: booking.orgId || 'default' }
     );
     return link;
   }

@@ -1,48 +1,82 @@
 /**
  * New Booking Page
- * 
+ *
  * Creates a new booking using the unified BookingForm component.
+ * After creation, shows confirmation with payment link send option.
  */
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { BookingForm } from '@/components/bookings/BookingForm';
 import { tokens } from '@/lib/design-tokens';
 import { BookingFormValues } from '@/lib/bookings/booking-form-mapper';
-import { Modal } from '@/components/ui/Modal';
 import { useMobile } from '@/lib/use-mobile';
+import { toastSuccess, toastError, toastWarning } from '@/lib/toast';
+import { Button } from '@/components/ui';
+
+interface CreatedBooking {
+  id: string;
+  service: string;
+  startAt: string;
+  totalPrice: number;
+  firstName: string;
+  lastName: string;
+  phone: string;
+}
 
 export default function NewBookingPage() {
   const router = useRouter();
   const isMobile = useMobile();
+  const [sendPaymentLink, setSendPaymentLink] = useState(true);
+  const [created, setCreated] = useState<CreatedBooking | null>(null);
+  const [paymentLinkSent, setPaymentLinkSent] = useState(false);
+  const [sendingLink, setSendingLink] = useState(false);
+
+  const sendPaymentLinkForBooking = async (bookingId: string) => {
+    setSendingLink(true);
+    try {
+      const res = await fetch('/api/messages/send-payment-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId }),
+      });
+      if (res.ok) {
+        setPaymentLinkSent(true);
+        toastSuccess('Payment link sent');
+      } else {
+        const json = await res.json().catch(() => ({}));
+        toastWarning(json.error || 'Payment link could not be sent');
+      }
+    } catch {
+      toastWarning('Payment link could not be sent');
+    } finally {
+      setSendingLink(false);
+    }
+  };
 
   const handleSubmit = async (values: BookingFormValues) => {
-    // Use selectedDates and dateTimes from form (matching booking-form.html structure)
     const selectedDates = values.selectedDates || [];
     const dateTimes = values.dateTimes || {};
-    
-    // Calculate startAt and endAt from selectedDates and dateTimes (matching HTML form logic)
+
     let startAt: string;
     let endAt: string;
     let minutes: number = 0;
     let quantity: number;
-    
+
     const isHouseSitting = values.service === 'Housesitting' || values.service === '24/7 Care';
-    
+
     if (isHouseSitting && selectedDates.length > 1) {
-      // For house sitting: use first and last dates with times
       const sortedDates = [...selectedDates].sort();
       const firstDate = sortedDates[0];
       const lastDate = sortedDates[sortedDates.length - 1];
-      
-      // Get first time from first date
+
       const firstDateTimes = dateTimes[firstDate] || [];
       const firstTime = firstDateTimes.length > 0 ? firstDateTimes[0].time : '9:00 AM';
-      
-      // Convert 12-hour to 24-hour
+
       const convertTo24Hour = (time12h: string): string => {
         const [time, modifier] = time12h.split(' ');
         let [hours, minutes] = time.split(':');
@@ -50,36 +84,32 @@ export default function NewBookingPage() {
         if (modifier === 'PM') hours = String(parseInt(hours, 10) + 12).padStart(2, '0');
         return `${String(hours).padStart(2, '0')}:${minutes}:00`;
       };
-      
+
       const createDateInTimezone = (dateStr: string, time24h: string): Date => {
         const [year, month, day] = dateStr.split('-').map(Number);
         const [hours, mins] = time24h.split(':').map(Number);
         const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00.000Z`;
         return new Date(isoString);
       };
-      
+
       const firstTime24h = convertTo24Hour(firstTime);
       startAt = createDateInTimezone(firstDate, firstTime24h).toISOString();
-      
-      // Get last time from last date
+
       const lastDateTimes = dateTimes[lastDate] || [];
-      const lastTime = lastDateTimes.length > 0 
-        ? lastDateTimes[lastDateTimes.length - 1].time 
+      const lastTime = lastDateTimes.length > 0
+        ? lastDateTimes[lastDateTimes.length - 1].time
         : '11:30 PM';
       const lastTime24h = convertTo24Hour(lastTime);
       endAt = createDateInTimezone(lastDate, lastTime24h).toISOString();
-      
-      // Quantity for house sitting is number of nights (number of days - 1)
+
       quantity = sortedDates.length - 1;
-      // For house sitting, minutes is not typically used, but set to 0
       minutes = 0;
     } else {
-      // For other services: use provided startAt/endAt or calculate from first date/time
       if (selectedDates.length > 0 && dateTimes[selectedDates[0]]?.length > 0) {
         const firstDate = selectedDates[0];
         const firstTimeEntry = dateTimes[firstDate][0];
         const duration = firstTimeEntry.duration || 30;
-        
+
         const convertTo24Hour = (time12h: string): string => {
           const [time, modifier] = time12h.split(' ');
           let [hours, minutes] = time.split(':');
@@ -87,26 +117,24 @@ export default function NewBookingPage() {
           if (modifier === 'PM') hours = String(parseInt(hours, 10) + 12).padStart(2, '0');
           return `${String(hours).padStart(2, '0')}:${minutes}:00`;
         };
-        
+
         const createDateInTimezone = (dateStr: string, time24h: string): Date => {
           const [year, month, day] = dateStr.split('-').map(Number);
           const [hours, mins] = time24h.split(':').map(Number);
           const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00.000Z`;
           return new Date(isoString);
         };
-        
+
         const firstTime24h = convertTo24Hour(firstTimeEntry.time);
         const startDateTime = createDateInTimezone(firstDate, firstTime24h);
         startAt = startDateTime.toISOString();
         endAt = new Date(startDateTime.getTime() + duration * 60000).toISOString();
         minutes = duration;
-        
-        // Quantity for other services is total time slots
+
         quantity = selectedDates.reduce((total, date) => {
           return total + (dateTimes[date]?.length || 0);
         }, 0) || 1;
       } else {
-        // Fallback to provided values
         startAt = values.startAt ? new Date(values.startAt).toISOString() : new Date().toISOString();
         endAt = values.endAt ? new Date(values.endAt).toISOString() : new Date(Date.now() + 3600000).toISOString();
         const startDate = new Date(startAt);
@@ -115,38 +143,25 @@ export default function NewBookingPage() {
         quantity = 1;
       }
     }
-    
-    // Ensure pets array has valid entries (filter out empty pets)
+
     const validPets = values.pets.filter(pet => pet.name && pet.name.trim() && pet.species && pet.species.trim());
     if (validPets.length === 0) {
-      // Default to one pet if none provided
       validPets.push({ name: 'Pet', species: 'Dog' });
     }
-    
-    // Determine address requirements based on service type
-    const isHouseSittingService = values.service === 'Housesitting' || values.service === '24/7 Care';
-    const isPetTaxi = values.service === 'Pet Taxi';
-    
-    // For non-house-sitting, non-pet-taxi services, address is required
-    // For Pet Taxi, pickupAddress and dropoffAddress are required
-    // For house sitting, address is optional
-    // Note: Keep as null if not provided - validation will catch missing required addresses
+
     const address = values.address?.trim() || null;
     const pickupAddress = values.pickupAddress?.trim() || null;
     const dropoffAddress = values.dropoffAddress?.trim() || null;
-    
-    // Ensure email is either valid email or empty string (not null)
     const email = values.email?.trim() || '';
-    
-    // Build payload matching form-to-booking-mapper format exactly
+
     const payload = {
       firstName: values.firstName.trim(),
       lastName: values.lastName.trim(),
       phone: values.phone.trim(),
-      email: email, // Empty string or valid email
-      address: address, // null for house sitting/pet taxi, string for others
-      pickupAddress: pickupAddress, // Required for Pet Taxi
-      dropoffAddress: dropoffAddress, // Required for Pet Taxi
+      email: email,
+      address: address,
+      pickupAddress: pickupAddress,
+      dropoffAddress: dropoffAddress,
       service: values.service,
       startAt: startAt,
       endAt: endAt,
@@ -166,7 +181,6 @@ export default function NewBookingPage() {
       createdFrom: 'Admin Dashboard',
     };
 
-    // Submit to form endpoint (reuses existing validation and mapper)
     const response = await fetch('/api/form', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -175,8 +189,7 @@ export default function NewBookingPage() {
 
     if (!response.ok) {
       const errorData = await response.json();
-      
-      // If there are structured validation errors, format them nicely
+
       if (errorData.errors && Array.isArray(errorData.errors)) {
         const errorMessages = errorData.errors.map((err: any) => {
           const field = err.field || 'unknown';
@@ -185,64 +198,170 @@ export default function NewBookingPage() {
         }).join('\n');
         throw new Error(`Validation failed:\n${errorMessages}`);
       }
-      
-      // Otherwise use the general error message
+
       throw new Error(errorData.error || errorData.message || 'Failed to create booking');
     }
 
     const data = await response.json();
-    
-    // Redirect to booking detail page
-    router.push(`/bookings/${data.booking.id}`);
+    const bookingData: CreatedBooking = {
+      id: data.booking.id,
+      service: payload.service,
+      startAt: startAt,
+      totalPrice: data.booking.totalPrice || 0,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      phone: payload.phone,
+    };
+    setCreated(bookingData);
+
+    // Auto-send payment link if toggle is on
+    if (sendPaymentLink && bookingData.totalPrice > 0) {
+      void sendPaymentLinkForBooking(bookingData.id);
+    } else {
+      toastSuccess('Booking created');
+    }
   };
 
   const handleCancel = () => {
     router.back();
   };
 
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const formatTime = (d: string) =>
+    new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const maskPhone = (phone: string) => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length >= 4) return `(***) ***-${digits.slice(-4)}`;
+    return phone;
+  };
+
+  // Post-creation confirmation screen
+  if (created) {
+    return (
+      <OwnerAppShell>
+        <LayoutWrapper variant="wide">
+          <div className="mx-auto max-w-lg py-12">
+            <div className="rounded-xl border border-border-default bg-surface-primary p-6 text-center">
+              <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl mb-4">
+                {'\u2705'}
+              </div>
+              <h2 className="text-xl font-bold text-text-primary">Booking Created</h2>
+              <div className="mt-4 space-y-1 text-sm text-text-secondary">
+                <p className="font-medium text-text-primary">{created.service}</p>
+                <p>{formatDate(created.startAt)} at {formatTime(created.startAt)}</p>
+                {created.totalPrice > 0 && (
+                  <p className="text-lg font-bold text-text-primary">${created.totalPrice.toFixed(2)}</p>
+                )}
+              </div>
+
+              {paymentLinkSent && (
+                <div className="mt-4 rounded-lg bg-surface-secondary p-3">
+                  <p className="text-sm text-text-secondary">
+                    {'\ud83d\udcf1'} Payment link sent to {created.firstName} {created.lastName.charAt(0)}. at {maskPhone(created.phone)}
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-6 flex flex-col gap-2">
+                {!paymentLinkSent && created.totalPrice > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => void sendPaymentLinkForBooking(created.id)}
+                    disabled={sendingLink}
+                    className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50"
+                  >
+                    {sendingLink ? 'Sending\u2026' : 'Send payment link'}
+                  </button>
+                )}
+                {paymentLinkSent && (
+                  <button
+                    type="button"
+                    onClick={() => void sendPaymentLinkForBooking(created.id)}
+                    disabled={sendingLink}
+                    className="min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-4 text-sm font-medium text-text-secondary hover:bg-surface-secondary transition disabled:opacity-50"
+                  >
+                    {sendingLink ? 'Sending\u2026' : 'Send again'}
+                  </button>
+                )}
+                <Link href={`/bookings/${created.id}`}>
+                  <button type="button" className="w-full min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-4 text-sm font-medium text-text-primary hover:bg-surface-secondary transition">
+                    View booking
+                  </button>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => { setCreated(null); setPaymentLinkSent(false); }}
+                  className="min-h-[44px] text-sm font-medium text-accent-primary hover:underline"
+                >
+                  Create another booking
+                </button>
+              </div>
+            </div>
+          </div>
+        </LayoutWrapper>
+      </OwnerAppShell>
+    );
+  }
+
+  // Send payment link toggle
+  const paymentToggle = (
+    <label className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary px-4 py-3 cursor-pointer mt-4">
+      <input
+        type="checkbox"
+        checked={sendPaymentLink}
+        onChange={(e) => setSendPaymentLink(e.target.checked)}
+        className="h-5 w-5 rounded border-border-default text-accent-primary focus:ring-border-focus"
+      />
+      <div>
+        <p className="text-sm font-medium text-text-primary">Send payment link via SMS</p>
+        <p className="text-xs text-text-tertiary">Client receives a Stripe payment link immediately after booking</p>
+      </div>
+    </label>
+  );
+
   if (isMobile) {
-    // Mobile: Full page with bottom action bar
     return (
       <OwnerAppShell>
         <LayoutWrapper variant="wide">
           <PageHeader title="New Booking" subtitle="Create a new booking" />
           <Section>
-        <div style={{ 
-          padding: tokens.spacing[4],
-          paddingBottom: tokens.spacing[16], // Space for bottom action bar
-        }}>
-          <BookingForm
-            mode="create"
-            onSubmit={handleSubmit}
-            onCancel={handleCancel}
-          />
-        </div>
+            <div style={{
+              padding: tokens.spacing[4],
+              paddingBottom: tokens.spacing[16],
+            }}>
+              <BookingForm
+                mode="create"
+                onSubmit={handleSubmit}
+                onCancel={handleCancel}
+              />
+              {paymentToggle}
+            </div>
           </Section>
         </LayoutWrapper>
       </OwnerAppShell>
     );
   }
 
-  // Desktop: Modal or full page (using full page for now)
   return (
     <OwnerAppShell>
       <LayoutWrapper variant="wide">
         <PageHeader title="New Booking" subtitle="Create a new booking" />
         <Section>
-      <div style={{ 
-        padding: tokens.spacing[6],
-        maxWidth: '1200px',
-        margin: '0 auto',
-      }}>
-        <BookingForm
-          mode="create"
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-        />
-      </div>
+          <div style={{
+            padding: tokens.spacing[6],
+            maxWidth: '1200px',
+            margin: '0 auto',
+          }}>
+            <BookingForm
+              mode="create"
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+            />
+            {paymentToggle}
+          </div>
         </Section>
       </LayoutWrapper>
     </OwnerAppShell>
   );
 }
-

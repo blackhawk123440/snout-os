@@ -1,50 +1,125 @@
-/**
- * Finance - Route scaffold
- * Header + actions, filter bar, table, drawer detail.
- */
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import {
-  AppFilterBar,
-  AppErrorState,
-  AppDrawer,
-  AppStatCard,
-} from '@/components/app';
-import { MobileFilterDrawer } from '@/components/app/MobileFilterDrawer';
-import { DataTableShell, EmptyState, Table, TableSkeleton } from '@/components/ui';
+import { AppErrorState, AppStatCard } from '@/components/app';
+import { Button, EmptyState } from '@/components/ui';
 import { PageSkeleton } from '@/components/ui/loading-state';
+import { toastSuccess, toastError } from '@/lib/toast';
 import { useAuth } from '@/lib/auth-client';
 
-const STUB_TRANSACTIONS = [
-  { id: '1', client: 'Jane Doe', amount: 85, date: '2025-02-28', status: 'paid' },
-  { id: '2', client: 'Bob Smith', amount: 120, date: '2025-02-27', status: 'pending' },
-];
+interface FinanceSummary {
+  totalCollectedThisMonth: number;
+  totalCollectedAllTime: number;
+  totalOutstanding: number;
+  outstandingCount: number;
+  collectionRate: number;
+  recentPayments: Array<{
+    chargeId: string;
+    amount: number;
+    clientName: string;
+    service: string;
+    paidAt: string;
+  }>;
+  unpaidInvoices: Array<{
+    bookingId: string;
+    clientName: string;
+    clientPhone: string;
+    service: string;
+    amount: number;
+    createdAt: string;
+    daysSinceCreated: number;
+    paymentLink: string | null;
+    remindersSent: number;
+  }>;
+}
 
 export default function FinancePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const [data, setData] = useState<FinanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sendingReminders, setSendingReminders] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login?redirect=/finance');
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) return;
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const id = setTimeout(() => setLoading(false), 150);
-    return () => clearTimeout(id);
-  }, [authLoading, user]);
+    try {
+      const res = await fetch('/api/ops/finance/summary');
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json.error || 'Failed to load');
+        setData(null);
+        return;
+      }
+      setData(json);
+    } catch {
+      setError('Failed to load finance data');
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && user) void load();
+  }, [authLoading, user, load]);
+
+  const sendPaymentLink = async (bookingId: string) => {
+    try {
+      const res = await fetch('/api/messages/send-payment-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId }),
+      });
+      if (res.ok) toastSuccess('Payment link sent');
+      else toastError('Failed to send link');
+    } catch {
+      toastError('Failed to send link');
+    }
+  };
+
+  const markPaid = async (bookingId: string) => {
+    try {
+      const res = await fetch(`/api/ops/bookings/${bookingId}/mark-paid`, { method: 'POST' });
+      if (res.ok) {
+        toastSuccess('Marked as paid');
+        void load();
+      } else {
+        toastError('Failed to mark as paid');
+      }
+    } catch {
+      toastError('Failed to mark as paid');
+    }
+  };
+
+  const sendReminders = async () => {
+    setSendingReminders(true);
+    try {
+      const res = await fetch('/api/ops/invoicing/send-reminders', { method: 'POST' });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toastSuccess(`Sent ${json.sent} reminder${json.sent !== 1 ? 's' : ''}${json.skipped ? `, ${json.skipped} skipped` : ''}`);
+        void load();
+      } else {
+        toastError(json.error || 'Failed to send reminders');
+      }
+    } catch {
+      toastError('Failed to send reminders');
+    } finally {
+      setSendingReminders(false);
+    }
+  };
+
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric' });
 
   if (authLoading) {
     return (
@@ -62,27 +137,15 @@ export default function FinancePage() {
     <OwnerAppShell>
       <LayoutWrapper variant="wide">
         <PageHeader
-          title="Finance"
-          subtitle="Payments, invoices, and revenue"
+          title="Revenue & Collections"
+          subtitle="Payments, invoices, and outstanding balances"
           actions={
             <div className="flex gap-2">
-              <Link
-                href="/ops/payouts"
-                className="rounded-md border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] no-underline hover:bg-[var(--color-surface-tertiary)]"
-              >
-                Payouts
+              <Link href="/ops/payouts">
+                <Button variant="secondary" size="sm">Payouts</Button>
               </Link>
-              <Link
-                href="/ops/finance/reconciliation"
-                className="rounded-md border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] no-underline hover:bg-[var(--color-surface-tertiary)]"
-              >
-                Reconciliation
-              </Link>
-              <Link
-                href="/payments"
-                className="rounded-md border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-4 py-2 text-sm font-medium text-[var(--color-text-primary)] no-underline hover:bg-[var(--color-surface-tertiary)]"
-              >
-                View Payments
+              <Link href="/payments">
+                <Button variant="secondary" size="sm">All payments</Button>
               </Link>
             </div>
           }
@@ -90,63 +153,131 @@ export default function FinancePage() {
 
         <Section>
           {loading ? (
-            <TableSkeleton rows={6} cols={4} />
+            <PageSkeleton />
           ) : error ? (
-            <AppErrorState title="Couldn't load finance" subtitle={error} onRetry={() => setLoading(true)} />
-          ) : (
-            <>
-          <div className="mb-6 grid gap-4 md:grid-cols-3">
-        <AppStatCard label="Revenue MTD" value="$2,450" icon={<i className="fas fa-dollar-sign" />} />
-        <AppStatCard label="Outstanding" value="$340" icon={<i className="fas fa-clock" />} />
-        <AppStatCard label="Invoices" value="12" icon={<i className="fas fa-file-invoice" />} />
-      </div>
+            <AppErrorState title="Couldn't load finance" subtitle={error} onRetry={() => void load()} />
+          ) : data ? (
+            <div className="space-y-6">
+              {/* Stats strip */}
+              <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                <AppStatCard
+                  label="This month"
+                  value={`$${data.totalCollectedThisMonth.toLocaleString()}`}
+                  icon={<i className="fas fa-dollar-sign" />}
+                />
+                <AppStatCard
+                  label="Outstanding"
+                  value={`$${data.totalOutstanding.toLocaleString()}`}
+                  icon={<i className="fas fa-clock" />}
+                />
+                <AppStatCard
+                  label="Collection rate"
+                  value={`${data.collectionRate}%`}
+                  icon={<i className="fas fa-chart-line" />}
+                />
+                <AppStatCard
+                  label="Unpaid invoices"
+                  value={String(data.outstandingCount)}
+                  icon={<i className="fas fa-file-invoice" />}
+                />
+              </div>
 
-      <MobileFilterDrawer triggerLabel="Filters" activeCount={Object.keys(filterValues).length}>
-        <AppFilterBar
-          filters={[
-            { key: 'status', label: 'Status', type: 'select', options: [
-              { value: 'paid', label: 'Paid' },
-              { value: 'pending', label: 'Pending' },
-            ]},
-            { key: 'date', label: 'Date', type: 'date' },
-          ]}
-          values={filterValues}
-          onChange={(k, v) => setFilterValues((p) => ({ ...p, [k]: v }))}
-          onClear={() => setFilterValues({})}
-        />
-      </MobileFilterDrawer>
+              {/* Unpaid invoices */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-text-primary">
+                    Unpaid Invoices ({data.unpaidInvoices.length})
+                  </h2>
+                  {data.unpaidInvoices.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => void sendReminders()}
+                      disabled={sendingReminders}
+                      className="min-h-[36px] rounded-lg border border-border-default bg-surface-primary px-3 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition disabled:opacity-50"
+                    >
+                      {sendingReminders ? 'Sending\u2026' : 'Send reminders'}
+                    </button>
+                  )}
+                </div>
 
-      <div className="mt-4">
-        {STUB_TRANSACTIONS.length === 0 ? (
-          <EmptyState
-            title="No transactions"
-            description="Finance transactions will appear here."
-            primaryAction={{ label: 'View payments', onClick: () => router.push('/payments') }}
-          />
-        ) : (
-          <DataTableShell stickyHeader>
-            <Table
-              columns={[
-                { key: 'client', header: 'Client', mobileOrder: 1, mobileLabel: 'Client' },
-                { key: 'amount', header: 'Amount', mobileOrder: 2, mobileLabel: 'Amount', align: 'right', render: (r) => `$${r.amount}` },
-                { key: 'date', header: 'Date', mobileOrder: 3, mobileLabel: 'Date', hideBelow: 'md' },
-                { key: 'status', header: 'Status', mobileOrder: 4, mobileLabel: 'Status', hideBelow: 'md', render: (r) => String(r.status).replace(/^./, (m) => m.toUpperCase()) },
-              ]}
-              data={STUB_TRANSACTIONS}
-              keyExtractor={(r) => r.id}
-              onRowClick={(r) => setSelectedId(r.id)}
-              emptyMessage="No transactions"
-              forceTableLayout
-            />
-          </DataTableShell>
-        )}
-      </div>
+                {data.unpaidInvoices.length === 0 ? (
+                  <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-center">
+                    <p className="text-sm font-medium text-green-700">All caught up \u2014 no unpaid invoices</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {data.unpaidInvoices.map((inv) => (
+                      <div
+                        key={inv.bookingId}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-border-default bg-surface-primary px-4 py-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-text-primary">
+                            {inv.clientName} \u00b7 {inv.service}
+                          </p>
+                          <p className="text-xs text-text-tertiary">
+                            ${inv.amount.toFixed(2)} \u00b7 {inv.daysSinceCreated === 0 ? 'today' : `${inv.daysSinceCreated}d ago`}
+                            {inv.remindersSent > 0 && ` \u00b7 ${inv.remindersSent} reminder${inv.remindersSent !== 1 ? 's' : ''} sent`}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => void sendPaymentLink(inv.bookingId)}
+                            className="min-h-[36px] rounded-lg border border-border-default bg-surface-primary px-2.5 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition"
+                          >
+                            Send link
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void markPaid(inv.bookingId)}
+                            className="min-h-[36px] rounded-lg border border-border-default bg-surface-primary px-2.5 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition"
+                          >
+                            Mark paid
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-        <AppDrawer isOpen={!!selectedId} onClose={() => setSelectedId(null)} title={selectedId ? `Transaction #${selectedId}` : ''}>
-          {selectedId && <p className="text-sm">Detail placeholder for transaction {selectedId}</p>}
-        </AppDrawer>
-            </>
-          )}
+              {/* Recent payments */}
+              <div>
+                <h2 className="text-sm font-semibold text-text-primary mb-3">
+                  Recent Payments
+                </h2>
+                {data.recentPayments.length === 0 ? (
+                  <EmptyState
+                    title="No payments yet"
+                    description="Payments will appear here when clients pay their invoices."
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {data.recentPayments.map((p) => (
+                      <div
+                        key={p.chargeId}
+                        className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary px-4 py-3"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 text-sm">
+                          {'\u2713'}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-text-primary">
+                            ${p.amount.toFixed(2)}
+                            <span className="font-normal text-text-secondary"> \u00b7 {p.clientName}</span>
+                          </p>
+                          <p className="text-xs text-text-tertiary">
+                            {p.service} \u00b7 {formatDate(p.paidAt)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </Section>
       </LayoutWrapper>
     </OwnerAppShell>

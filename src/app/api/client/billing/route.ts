@@ -37,6 +37,7 @@ export async function GET() {
           totalPrice: true,
           stripePaymentLinkUrl: true,
           paymentStatus: true,
+          sitter: { select: { firstName: true, lastName: true } },
         },
         orderBy: { startAt: 'desc' },
         take: 20,
@@ -79,14 +80,21 @@ export async function GET() {
       take: 50,
     });
 
-    const invoices = unpaidBookings.map((b) => ({
-      id: b.id,
-      service: b.service,
-      startAt: b.startAt instanceof Date ? b.startAt.toISOString() : b.startAt,
-      totalPrice: b.totalPrice,
-      paymentLink: b.stripePaymentLinkUrl,
-      paymentStatus: b.paymentStatus,
-    }));
+    const invoices = unpaidBookings.map((b: any) => {
+      const sitter = b.sitter;
+      const sitterName = sitter
+        ? `${sitter.firstName || ''} ${sitter.lastName || ''}`.trim()
+        : null;
+      return {
+        id: b.id,
+        service: b.service,
+        startAt: b.startAt instanceof Date ? b.startAt.toISOString() : b.startAt,
+        totalPrice: b.totalPrice,
+        paymentLink: b.stripePaymentLinkUrl,
+        paymentStatus: b.paymentStatus,
+        sitterName,
+      };
+    });
 
     const payments = (paymentHistory || []).map((p: any) => ({
       id: p.id,

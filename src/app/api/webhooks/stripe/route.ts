@@ -18,6 +18,7 @@ import {
   persistPaymentFailed,
   persistRefund,
 } from '@/lib/stripe-webhook-persist';
+import { publish, channels } from '@/lib/realtime/bus';
 
 export async function POST(request: NextRequest) {
   try {
@@ -115,6 +116,13 @@ export async function POST(request: NextRequest) {
             bookingId,
             status: 'success',
             metadata: { stripeEventType: event.type },
+          }).catch(() => {});
+          // Notify owner dashboard via SSE
+          publish(channels.ownerOps(booking.orgId || orgId), {
+            type: 'payment.received',
+            bookingId,
+            amount: pi.amount / 100,
+            ts: Date.now(),
           }).catch(() => {});
           const { enqueueAutomation } = await import('@/lib/automation-queue');
           await enqueueAutomation(
