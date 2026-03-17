@@ -163,7 +163,7 @@ export default function AnalyticsPage() {
               <select
                 value={range}
                 onChange={(e) => setRange(e.target.value)}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                className="rounded-lg border border-border-strong bg-surface-primary px-3 py-2 text-sm text-text-primary"
                 aria-label="Date range"
               >
                 {RANGE_OPTIONS.map((o) => (
@@ -297,7 +297,7 @@ export default function AnalyticsPage() {
 
         {!loading && error && !kpis && (
           <Section>
-            <Card className="p-8 text-center text-sm text-slate-500">
+            <Card className="p-8 text-center text-sm text-text-tertiary">
               No data available. Try another range or retry.
             </Card>
           </Section>

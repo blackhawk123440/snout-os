@@ -24,11 +24,11 @@ export function PageHeader({ title, subtitle, actions, breadcrumbs, className, t
       {breadcrumbs && <div className="mb-1.5">{breadcrumbs}</div>}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900 lg:text-2xl">
+          <h1 className="text-xl font-semibold tracking-tight text-text-primary lg:text-2xl">
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-0.5 text-sm text-slate-600">{subtitle}</p>
+            <p className="mt-0.5 text-sm text-text-secondary">{subtitle}</p>
           )}
         </div>
         {actions && (

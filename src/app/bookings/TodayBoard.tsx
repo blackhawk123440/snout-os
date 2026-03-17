@@ -19,6 +19,7 @@ import {
   Badge,
   Select,
   StatCard,
+  useToast,
 } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 
@@ -67,6 +68,7 @@ export default function TodayBoard({
   onRefresh,
   onBookingClick 
 }: TodayBoardProps) {
+  const { showToast } = useToast();
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
     return d.toLocaleDateString();
@@ -97,7 +99,7 @@ export default function TodayBoard({
       switch (action) {
         case 'assign':
           if (!sitterId) {
-            alert('Please select a sitter first');
+            showToast({ variant: 'warning', message: 'Please select a sitter first' });
             return;
           }
           result = await assignSitterToBooking(booking.id, sitterId);
@@ -105,7 +107,7 @@ export default function TodayBoard({
         case 'payment':
           result = await sendPaymentLinkToBooking(booking.id);
           if (result.success) {
-            alert('Payment link sent to client through messaging pipeline.');
+            showToast({ variant: 'success', message: 'Payment link sent to client.' });
           }
           break;
         case 'resend':
@@ -119,11 +121,11 @@ export default function TodayBoard({
       if (result?.success) {
         onRefresh();
       } else {
-        alert(result?.error || 'Action failed');
+        showToast({ variant: 'error', message: result?.error || 'Action failed' });
       }
     } catch (error) {
       console.error('Quick action failed:', error);
-      alert('Action failed. Please try again.');
+      showToast({ variant: 'error', message: 'Action failed. Please try again.' });
     }
   };
 

@@ -323,8 +323,8 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <p className="text-sm text-slate-500">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-surface-secondary">
+        <p className="text-sm text-text-tertiary">Loading...</p>
       </div>
     );
   }
@@ -332,15 +332,15 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
   const showDeployInfo = deployInfo && deployInfo.envName !== 'prod' && deployInfo.envName !== 'production';
 
   return (
-    <div className="fixed inset-0 flex bg-slate-50">
-      <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
-        <div className="h-14 border-b border-slate-200 px-4">
+    <div className="fixed inset-0 flex bg-surface-secondary">
+      <aside className="hidden w-64 shrink-0 border-r border-border-default bg-surface-primary lg:flex lg:flex-col">
+        <div className="h-14 border-b border-border-default px-4">
           <div className="flex h-full items-center justify-between">
-            <p className="text-sm font-semibold text-slate-900">Owner</p>
+            <p className="text-sm font-semibold text-text-primary">Owner</p>
             <button
               type="button"
               onClick={() => void signOut({ callbackUrl: '/login' })}
-              className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+              className="min-h-[44px] rounded px-2 py-1 text-xs text-text-secondary hover:bg-surface-secondary"
             >
               Sign out
             </button>
@@ -355,7 +355,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                 <p
                   className={cn(
                     'mb-1 px-2.5 py-0.5 font-semibold uppercase tracking-wider',
-                    isDiagnostics ? 'text-[9px] text-slate-400' : isMuted ? 'text-[10px] text-slate-400' : 'text-[10px] text-slate-500'
+                    isDiagnostics ? 'text-[9px] text-text-disabled' : isMuted ? 'text-[10px] text-text-disabled' : 'text-[10px] text-text-tertiary'
                   )}
                 >
                   {section.title}
@@ -368,14 +368,14 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                         key={item.href}
                         href={item.href}
                         className={cn(
-                          'mb-px flex h-9 items-center gap-2 rounded-md px-2.5 text-sm',
+                          'mb-px flex min-h-[44px] items-center gap-2 rounded-md px-2.5 text-sm',
                           active
-                            ? 'bg-slate-100 font-medium text-slate-900'
+                            ? 'bg-surface-tertiary font-medium text-text-primary'
                             : isDiagnostics
-                              ? 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                              ? 'text-text-disabled hover:bg-surface-secondary hover:text-text-secondary'
                               : isMuted
-                                ? 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                ? 'text-text-tertiary hover:bg-surface-secondary hover:text-text-secondary'
+                                : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
                         )}
                       >
                         <i className={cn(item.icon, 'w-4 shrink-0 text-center')} aria-hidden />
@@ -391,14 +391,14 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                     <div key={item.href} className="mb-px">
                       <div
                         className={cn(
-                          'flex h-9 w-full items-center gap-0 rounded-md text-sm',
+                          'flex min-h-[44px] w-full items-center gap-0 rounded-md text-sm',
                           isActive
-                            ? 'bg-slate-100 font-medium text-slate-900 border-l-2 border-slate-300'
+                            ? 'bg-surface-tertiary font-medium text-text-primary border-l-2 border-border-strong'
                             : isDiagnostics
-                              ? 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                              ? 'text-text-disabled hover:bg-surface-secondary hover:text-text-secondary'
                               : isMuted
-                                ? 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                ? 'text-text-tertiary hover:bg-surface-secondary hover:text-text-secondary'
+                                : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
                         )}
                       >
                         <Link
@@ -415,7 +415,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                             e.preventDefault();
                             setExpandedKey(isExpanded ? null : item.href);
                           }}
-                          className="flex h-9 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                          className="flex min-h-[44px] w-7 shrink-0 items-center justify-center rounded-md text-text-disabled hover:bg-surface-tertiary hover:text-text-secondary"
                           aria-label={isExpanded ? 'Collapse' : 'Expand'}
                           aria-expanded={isExpanded}
                         >
@@ -429,7 +429,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                         </button>
                       </div>
                       {isExpanded && (
-                        <div className="ml-3 mt-0.5 border-l border-slate-200 pl-1.5">
+                        <div className="ml-3 mt-0.5 border-l border-border-default pl-1.5">
                           {item.children.map((c) => {
                             const childActive =
                               pathname === c.href || pathname.startsWith(c.href + '/');
@@ -438,18 +438,18 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                                 key={c.href}
                                 href={c.href}
                                 className={cn(
-                                  'mb-0.5 flex h-8 items-center gap-2 rounded-md px-2 text-[13px]',
+                                  'mb-0.5 flex min-h-[44px] items-center gap-2 rounded-md px-2 text-[13px]',
                                   childActive
-                                    ? 'bg-slate-100 font-medium text-slate-900 border-l-2 border-slate-700 pl-2.5'
+                                    ? 'bg-surface-tertiary font-medium text-text-primary border-l-2 border-border-strong pl-2.5'
                                     : isDiagnostics
-                                      ? 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+                                      ? 'text-text-disabled hover:bg-surface-secondary hover:text-text-secondary'
                                       : isMuted
-                                        ? 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-                                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                        ? 'text-text-tertiary hover:bg-surface-secondary hover:text-text-secondary'
+                                        : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
                                 )}
                               >
                                 <i
-                                  className={cn(c.icon, 'w-3.5 shrink-0 text-center', isMuted || isDiagnostics ? 'text-slate-400' : 'text-slate-400')}
+                                  className={cn(c.icon, 'w-3.5 shrink-0 text-center text-text-disabled')}
                                   aria-hidden
                                 />
                                 <span className="truncate">{c.label}</span>
@@ -466,7 +466,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         {showDeployInfo && (
-          <div className="border-t border-slate-200 px-4 py-3 text-[11px] text-slate-500">
+          <div className="border-t border-border-default px-4 py-3 text-[11px] text-text-tertiary">
             {deployInfo.envName} · {deployInfo.commitSha}
           </div>
         )}
@@ -475,27 +475,27 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header
           className={cn(
-            'sticky top-0 z-20 h-14 border-b border-slate-200 bg-white px-4',
+            'sticky top-0 z-20 h-14 border-b border-border-default bg-surface-primary px-4',
             headerShadow && 'shadow-sm'
           )}
         >
           <div className="flex h-full items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-slate-900">{header.title}</p>
-              <p className="truncate text-xs text-slate-500">{header.subtitle}</p>
+              <p className="truncate text-base font-semibold text-text-primary">{header.title}</p>
+              <p className="truncate text-xs text-text-tertiary">{header.subtitle}</p>
             </div>
             <div className="flex items-center gap-2 lg:hidden">
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen((v) => !v)}
-                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                className="min-h-[44px] rounded-md border border-border-strong bg-surface-primary px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-secondary"
               >
                 Menu
               </button>
               <button
                 type="button"
                 onClick={() => void signOut({ callbackUrl: '/login' })}
-                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+                className="min-h-[44px] rounded-md border border-border-strong bg-surface-primary px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-secondary"
               >
                 Sign out
               </button>
@@ -509,7 +509,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
         >
           {children}
           {showDeployInfo && (
-            <div className="px-4 pb-2 text-right text-[11px] text-slate-500 lg:hidden">
+            <div className="px-4 pb-2 text-right text-[11px] text-text-tertiary lg:hidden">
               {deployInfo.envName} · {deployInfo.commitSha}
             </div>
           )}
@@ -517,7 +517,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-30 flex h-14 border-t border-slate-200 bg-white lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-30 flex h-14 border-t border-border-default bg-surface-primary lg:hidden"
         style={{ paddingBottom: 'max(0px, env(safe-area-inset-bottom))' }}
         aria-label="Owner primary navigation"
       >
@@ -529,7 +529,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
               href={item.href}
               className={cn(
                 'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 border-t-2 text-xs',
-                active ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-500'
+                active ? 'border-text-primary text-text-primary' : 'border-transparent text-text-tertiary'
               )}
             >
               <i className={cn(item.icon, 'text-base')} aria-hidden />
@@ -542,15 +542,15 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 bg-black/25 lg:hidden" onClick={() => setMobileMenuOpen(false)}>
           <div
-            className="absolute right-0 top-0 h-full w-[86%] max-w-sm overflow-y-auto border-l border-slate-200 bg-white px-3 py-4"
+            className="absolute right-0 top-0 h-full w-[86%] max-w-sm overflow-y-auto border-l border-border-default bg-surface-primary px-3 py-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-900">Owner</p>
+              <p className="text-sm font-semibold text-text-primary">Owner</p>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="rounded px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                className="min-h-[44px] rounded px-2 py-1 text-xs text-text-secondary hover:bg-surface-secondary"
               >
                 Close
               </button>
@@ -558,7 +558,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
             <div className="flex flex-col gap-0">
               {OWNER_SIDEBAR_SECTIONS.map((section) => (
                 <div key={section.title} className={cn('mb-3', section.muted && 'opacity-80')}>
-                  <p className="mb-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  <p className="mb-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
                     {section.title}
                   </p>
                   {section.items.map((item) => {
@@ -573,10 +573,10 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                           href={link.href}
                           onClick={() => setMobileMenuOpen(false)}
                           className={cn(
-                            'mb-px flex h-9 items-center gap-2 rounded-md px-2.5 text-sm',
+                            'mb-px flex min-h-[44px] items-center gap-2 rounded-md px-2.5 text-sm',
                             active
-                              ? 'bg-slate-100 font-medium text-slate-900'
-                              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                              ? 'bg-surface-tertiary font-medium text-text-primary'
+                              : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
                           )}
                         >
                           <i className={cn(link.icon, 'w-4 shrink-0 text-center')} aria-hidden />
@@ -594,4 +594,3 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

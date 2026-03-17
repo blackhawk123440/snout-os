@@ -245,10 +245,10 @@ export default function BookingDetailEnterprisePage() {
             <div className="rounded-lg border p-3">
               <div className="mb-1 text-sm font-medium">Payment completion proof</div>
               {paymentProof ? (
-                <div className="space-y-1 text-sm text-slate-700">
+                <div className="space-y-1 text-sm text-text-secondary">
                   <div className="flex items-center gap-2">
                     <StatusChip ariaLabel="Payment paid">Paid</StatusChip>
-                    <span className="font-semibold text-slate-900">${paymentProof.amount.toFixed(2)}</span>
+                    <span className="font-semibold text-text-primary">${paymentProof.amount.toFixed(2)}</span>
                   </div>
                   <div>Paid at: {new Date(paymentProof.paidAt).toLocaleString()}</div>
                   <div>Booking ref: {paymentProof.bookingReference}</div>
@@ -259,16 +259,16 @@ export default function BookingDetailEnterprisePage() {
                       href={paymentProof.receiptLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex text-sm font-medium text-slate-700 underline underline-offset-2"
+                      className="inline-flex text-sm font-medium text-text-secondary underline underline-offset-2"
                     >
                       View receipt
                     </a>
                   ) : null}
                 </div>
               ) : (
-                <p className="text-sm text-slate-600">No webhook-confirmed payment yet.</p>
+                <p className="text-sm text-text-secondary">No webhook-confirmed payment yet.</p>
               )}
-              <div className="mt-3 rounded border border-slate-200 p-2 text-xs text-slate-700">
+              <div className="mt-3 rounded border border-border-default p-2 text-xs text-text-secondary">
                 <div className="font-medium">Payment link delivery</div>
                 <div>Status: {booking.paymentMessageState?.status || 'not sent'}</div>
                 <div>Sent: {booking.paymentMessageState?.sentAt ? new Date(booking.paymentMessageState.sentAt).toLocaleString() : 'N/A'}</div>
@@ -277,7 +277,7 @@ export default function BookingDetailEnterprisePage() {
             </div>
             <div className="rounded-lg border p-3">
               <div className="mb-1 text-sm font-medium">Google Calendar sync proof</div>
-              <div className="space-y-1 text-sm text-slate-700">
+              <div className="space-y-1 text-sm text-text-secondary">
                 <div className="flex items-center gap-2">
                   <StatusChip ariaLabel={`Calendar sync ${calendarProof?.status || 'unknown'}`}>
                     {calendarProof?.status || 'unknown'}
@@ -298,7 +298,7 @@ export default function BookingDetailEnterprisePage() {
                     href={calendarProof.openInGoogleCalendarUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex text-sm font-medium text-slate-700 underline underline-offset-2"
+                    className="inline-flex text-sm font-medium text-text-secondary underline underline-offset-2"
                   >
                     Open in Google Calendar
                   </a>
@@ -336,8 +336,8 @@ export default function BookingDetailEnterprisePage() {
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('tip')}>Send tip link</Button>
                 <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('tip', true)}>Resend tip</Button>
               </div>
-              <div className="mt-2 text-xs text-slate-600">Direct calling is an owner/admin operational exception; normal service communication stays in masked inbox threads.</div>
-              <div className="mt-2 text-xs text-slate-700">
+              <div className="mt-2 text-xs text-text-secondary">Direct calling is an owner/admin operational exception; normal service communication stays in masked inbox threads.</div>
+              <div className="mt-2 text-xs text-text-secondary">
                 Tip link status: {booking.tipMessageState?.status || 'not sent'}
                 {booking.tipMessageState?.error ? ` (error: ${booking.tipMessageState.error})` : ''}
               </div>

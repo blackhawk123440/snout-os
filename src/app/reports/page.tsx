@@ -161,7 +161,7 @@ export default function ReportsPage() {
               <select
                 value={range}
                 onChange={(e) => setRange(e.target.value)}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                className="rounded-lg border border-border-strong bg-surface-primary px-3 py-2 text-sm text-text-primary"
                 aria-label="Period"
               >
                 {RANGE_OPTIONS.map((o) => (
@@ -208,8 +208,8 @@ export default function ReportsPage() {
 
             {hasIssues && (
               <Section title="Attention">
-                <Card className="border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm font-medium text-slate-800">Items that may need attention this period:</p>
+                <Card className="border-border-default bg-surface-secondary p-4">
+                  <p className="text-sm font-medium text-text-primary">Items that may need attention this period:</p>
                   <ul className="mt-2 flex flex-wrap gap-3 text-sm">
                     {kpis.failedPaymentCount.value > 0 && (
                       <li>
@@ -233,7 +233,7 @@ export default function ReportsPage() {
                     )}
                     {kpis.cancellationRate.value >= 20 && (
                       <li>
-                        <span className="text-slate-700">
+                        <span className="text-text-secondary">
                           Cancellation rate at {kpis.cancellationRate.value.toFixed(1)}%
                         </span>
                         <Link href="/bookings" className="ml-1 text-teal-600 hover:underline">
@@ -249,27 +249,27 @@ export default function ReportsPage() {
             <Section title="Operational summary">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Card className="p-4">
-                  <p className="text-xs text-slate-500">Bookings ({rangeLabel})</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">{kpis.bookings.value}</p>
+                  <p className="text-xs text-text-tertiary">Bookings ({rangeLabel})</p>
+                  <p className="mt-1 text-lg font-semibold text-text-primary">{kpis.bookings.value}</p>
                   <Link href="/bookings" className="mt-2 inline-block text-sm text-teal-600 hover:underline">
                     View all bookings →
                   </Link>
                 </Card>
                 <Card className="p-4">
-                  <p className="text-xs text-slate-500">Revenue ({rangeLabel})</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">
+                  <p className="text-xs text-text-tertiary">Revenue ({rangeLabel})</p>
+                  <p className="mt-1 text-lg font-semibold text-text-primary">
                     ${kpis.revenue.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                   {kpis.revenue.value === 0 && kpis.bookings.value > 0 && (
-                    <p className="mt-0.5 text-xs text-slate-500">No collected payments yet in this period</p>
+                    <p className="mt-0.5 text-xs text-text-tertiary">No collected payments yet in this period</p>
                   )}
                   <Link href="/payments" className="mt-2 inline-block text-sm text-teal-600 hover:underline">
                     View payments →
                   </Link>
                 </Card>
                 <Card className="p-4">
-                  <p className="text-xs text-slate-500">Active sitters</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">{kpis.activeSitters.value}</p>
+                  <p className="text-xs text-text-tertiary">Active sitters</p>
+                  <p className="mt-1 text-lg font-semibold text-text-primary">{kpis.activeSitters.value}</p>
                   <Link href="/sitters" className="mt-2 inline-block text-sm text-teal-600 hover:underline">
                     View sitters →
                   </Link>
@@ -281,7 +281,7 @@ export default function ReportsPage() {
 
         {!loading && !kpis && !error && (
           <Section>
-            <Card className="p-8 text-center text-sm text-slate-500">
+            <Card className="p-8 text-center text-sm text-text-tertiary">
               No data available. Select a period or try again later.
             </Card>
           </Section>
