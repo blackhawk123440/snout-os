@@ -1,9 +1,7 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
 import { Button } from '@/components/ui';
@@ -145,6 +143,14 @@ const severityBadge = (severity: string) => {
 /* ─── Main Page ─────────────────────────────────────────────────────── */
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<OwnerAppShell><LayoutWrapper variant="wide"><BoardSkeleton /></LayoutWrapper></OwnerAppShell>}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dateParam = searchParams.get('date');

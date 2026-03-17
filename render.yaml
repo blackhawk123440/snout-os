@@ -14,8 +14,7 @@ services:
     region: oregon
     rootDir: .
     buildCommand: pnpm install --frozen-lockfile && pnpm prisma generate && pnpm run build
-    # Ensure schema is migrated before app boot in staging/prod.
-    startCommand: pnpm run start
+    startCommand: npx prisma migrate deploy && pnpm run start
     envVars:
       - key: NODE_ENV
         value: production
