@@ -276,10 +276,143 @@ export default function FinancePage() {
                   </div>
                 )}
               </div>
+              {/* Annual Summary */}
+              <AnnualSummarySection />
+
+              {/* Bulk Cancel */}
+              <BulkCancelSection onDone={load} />
             </div>
           ) : null}
         </Section>
       </LayoutWrapper>
     </OwnerAppShell>
+  );
+}
+
+/* ─── Annual Summary ────────────────────────────────────────────────── */
+
+function AnnualSummarySection() {
+  const [summary, setSummary] = useState<{
+    year: number;
+    monthlyRevenue: Array<{ month: number; label: string; amount: number }>;
+    totalCollected: number;
+    totalOutstanding: number;
+    topClients: Array<{ clientName: string; revenue: number; bookings: number }>;
+    topServices: Array<{ service: string; revenue: number; bookings: number }>;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/ops/finance/annual-summary?year=${new Date().getFullYear()}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d) setSummary(d); })
+      .catch(() => {});
+  }, []);
+
+  if (!summary) return null;
+
+  const maxRevenue = Math.max(...summary.monthlyRevenue.map((m) => m.amount), 1);
+
+  return (
+    <div>
+      <h2 className="text-sm font-semibold text-text-primary mb-3">Year in Review ({summary.year})</h2>
+      <div className="rounded-xl border border-border-default bg-surface-primary p-4">
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <p className="text-xs text-text-tertiary">Total collected</p>
+            <p className="text-lg font-bold text-text-primary">${summary.totalCollected.toLocaleString()}</p>
+          </div>
+          <div>
+            <p className="text-xs text-text-tertiary">Outstanding</p>
+            <p className="text-lg font-bold text-text-primary">${summary.totalOutstanding.toLocaleString()}</p>
+          </div>
+        </div>
+        {/* Monthly bar chart */}
+        <div className="flex items-end gap-1 h-24 mb-2">
+          {summary.monthlyRevenue.map((m) => (
+            <div key={m.month} className="flex-1 flex flex-col items-center">
+              <div
+                className="w-full rounded-t bg-accent-primary min-h-[2px]"
+                style={{ height: `${Math.max(2, (m.amount / maxRevenue) * 100)}%` }}
+                title={`${m.label}: $${m.amount.toFixed(0)}`}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-1">
+          {summary.monthlyRevenue.map((m) => (
+            <div key={m.month} className="flex-1 text-center text-[9px] text-text-tertiary">{m.label}</div>
+          ))}
+        </div>
+        {/* Top clients */}
+        {summary.topClients.length > 0 && (
+          <div className="mt-4">
+            <p className="text-xs font-medium text-text-secondary mb-1">Top clients</p>
+            {summary.topClients.slice(0, 5).map((c, i) => (
+              <div key={i} className="flex justify-between text-xs py-0.5">
+                <span className="text-text-primary">{c.clientName}</span>
+                <span className="text-text-secondary tabular-nums">${c.revenue.toFixed(0)} ({c.bookings})</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Bulk Cancel ───────────────────────────────────────────────────── */
+
+function BulkCancelSection({ onDone }: { onDone: () => void }) {
+  const [showForm, setShowForm] = useState(false);
+  const [date, setDate] = useState('');
+  const [reason, setReason] = useState('weather');
+  const [processing, setProcessing] = useState(false);
+
+  const handleBulkCancel = async () => {
+    if (!date) { toastError('Select a date'); return; }
+    setProcessing(true);
+    try {
+      const res = await fetch('/api/ops/bookings/bulk-cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, reason, notifyClients: true, notifySitters: true }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toastSuccess(`Cancelled ${json.cancelled} bookings for ${date}`);
+        setShowForm(false);
+        onDone();
+      } else toastError(json.error || 'Failed');
+    } catch { toastError('Failed'); }
+    finally { setProcessing(false); }
+  };
+
+  const inputClass = 'w-full min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-border-focus focus:outline-none';
+
+  return (
+    <div>
+      {!showForm ? (
+        <button type="button" onClick={() => setShowForm(true)} className="text-sm font-medium text-red-600 hover:underline">
+          Bulk cancel bookings (weather/emergency)
+        </button>
+      ) : (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-3">
+          <p className="text-sm font-semibold text-red-800">Bulk Cancel</p>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
+          <select value={reason} onChange={(e) => setReason(e.target.value)} className={inputClass}>
+            <option value="weather">Weather</option>
+            <option value="emergency">Emergency</option>
+            <option value="owner_decision">Owner decision</option>
+            <option value="other">Other</option>
+          </select>
+          <div className="flex gap-2">
+            <button type="button" onClick={handleBulkCancel} disabled={processing} className="min-h-[44px] flex-1 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
+              {processing ? 'Cancelling\u2026' : 'Cancel all bookings'}
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary">Nevermind</button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

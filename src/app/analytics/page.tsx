@@ -302,7 +302,71 @@ export default function AnalyticsPage() {
             </Card>
           </Section>
         )}
+
+        {/* Churn risk */}
+        <ChurnRiskSection />
       </LayoutWrapper>
     </OwnerAppShell>
+  );
+}
+
+/* ─── Churn Risk Section ────────────────────────────────────────────── */
+
+function ChurnRiskSection() {
+  const [clients, setClients] = useState<Array<{
+    clientId: string; clientName: string; lastBookingDate: string;
+    daysSinceLastBooking: number; totalBookings: number; lifetimeValue: number;
+    riskLevel: string;
+  }>>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/ops/analytics/churn-risk')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.clients) setClients(d.clients); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  if (!loaded || clients.length === 0) return null;
+
+  const sendWinBack = async (clientId: string) => {
+    try {
+      const res = await fetch(`/api/ops/clients/${clientId}/win-back`, { method: 'POST' });
+      if (res.ok) {
+        const { toastSuccess } = await import('@/lib/toast');
+        toastSuccess('Win-back message sent');
+      }
+    } catch { /* silent */ }
+  };
+
+  return (
+    <Section title={`At-risk clients (${clients.length})`}>
+      <div className="space-y-2">
+        {clients.slice(0, 15).map((c) => (
+          <div key={c.clientId} className="flex items-center justify-between gap-3 rounded-xl border border-border-default bg-surface-primary px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-text-primary">{c.clientName}</p>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  c.riskLevel === 'high' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {c.riskLevel}
+                </span>
+              </div>
+              <p className="text-xs text-text-tertiary">
+                {c.daysSinceLastBooking}d ago \u00b7 {c.totalBookings} visits \u00b7 ${c.lifetimeValue.toFixed(0)} lifetime
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => sendWinBack(c.clientId)}
+              className="shrink-0 min-h-[36px] rounded-lg border border-border-default px-2.5 text-xs font-medium text-accent-primary hover:bg-surface-secondary"
+            >
+              Win back
+            </button>
+          </div>
+        ))}
+      </div>
+    </Section>
   );
 }

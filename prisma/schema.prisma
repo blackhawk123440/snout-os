@@ -921,6 +921,10 @@ model Client {
   entryInstructions String?  @db.Text
   parkingNotes      String?
 
+  // Referral
+  referredBy        String?
+  referralCode      String?    @unique
+
   deletedAt     DateTime?          // Soft delete
   customFields  CustomFieldValue[]
   bookings      Booking[]
@@ -1047,6 +1051,7 @@ model BusinessSettings {
   holidays        String? // JSON array
   taxSettings     String? // JSON object
   contentBlocks   String? // JSON object with policies, terms, etc.
+  cancellationPolicy String? @db.Text  // JSON: { tiers: [{ hoursBeforeStart, feePercent }] }
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
