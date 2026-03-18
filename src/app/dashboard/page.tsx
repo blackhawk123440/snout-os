@@ -342,6 +342,7 @@ function DashboardContent() {
                       <SitterScheduleCard
                         key={schedule.sitter.id}
                         schedule={schedule}
+                        boardDate={board.date}
                       />
                     ))}
 
@@ -431,9 +432,33 @@ function QuickStatsStrip({ stats }: { stats: BoardStats }) {
 
 /* ─── Sitter Schedule Card ──────────────────────────────────────────── */
 
-function SitterScheduleCard({ schedule }: { schedule: SitterSchedule }) {
+interface GooglePersonalEvent {
+  id: string;
+  summary: string;
+  start: string;
+  end: string;
+}
+
+function SitterScheduleCard({ schedule, boardDate }: { schedule: SitterSchedule; boardDate: string }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [googleEvents, setGoogleEvents] = useState<GooglePersonalEvent[]>([]);
+  const [googleConnected, setGoogleConnected] = useState(false);
   const { sitter, visits } = schedule;
+
+  // Fetch Google Calendar events for this sitter
+  useEffect(() => {
+    const dayStart = new Date(boardDate + 'T00:00:00').toISOString();
+    const dayEnd = new Date(boardDate + 'T23:59:59').toISOString();
+    fetch(`/api/ops/sitters/${sitter.id}/google-events?start=${dayStart}&end=${dayEnd}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        if (d) {
+          setGoogleConnected(d.connected ?? false);
+          setGoogleEvents(Array.isArray(d.events) ? d.events : []);
+        }
+      })
+      .catch(() => {});
+  }, [sitter.id, boardDate]);
   const inProgress = visits.filter((v) => v.status === 'in_progress').length;
   const completed = visits.filter((v) => v.status === 'completed').length;
 
@@ -452,6 +477,7 @@ function SitterScheduleCard({ schedule }: { schedule: SitterSchedule }) {
           <div className="min-w-0">
             <p className="text-sm font-semibold text-text-primary truncate">
               {sitter.firstName} {sitter.lastName}
+              {googleConnected && <span className="ml-1" title="Google Calendar connected">{'\ud83d\udcc5'}</span>}
             </p>
             <p className="text-xs text-text-tertiary">
               {visits.length} visit{visits.length !== 1 ? 's' : ''}
@@ -475,12 +501,37 @@ function SitterScheduleCard({ schedule }: { schedule: SitterSchedule }) {
         </div>
       </button>
 
-      {/* Visits */}
+      {/* Visits + Google Calendar events */}
       {!collapsed && (
         <div className="border-t border-border-default divide-y divide-border-muted">
-          {visits.map((visit) => (
-            <VisitRow key={visit.bookingId} visit={visit} />
-          ))}
+          {/* Merge and sort Snout visits + Google events by start time */}
+          {(() => {
+            const allItems: Array<{ type: 'visit'; data: Visit } | { type: 'google'; data: GooglePersonalEvent }> = [
+              ...visits.map((v) => ({ type: 'visit' as const, data: v })),
+              ...googleEvents.map((e) => ({ type: 'google' as const, data: e })),
+            ];
+            allItems.sort((a, b) => {
+              const aTime = a.type === 'visit' ? a.data.startAt : a.data.start;
+              const bTime = b.type === 'visit' ? b.data.startAt : b.data.start;
+              return new Date(aTime).getTime() - new Date(bTime).getTime();
+            });
+            return allItems.map((item) => {
+              if (item.type === 'visit') return <VisitRow key={item.data.bookingId} visit={item.data} />;
+              return (
+                <div key={item.data.id} className="flex items-center gap-3 px-4 py-3 lg:px-5 min-h-[44px]">
+                  <div className="w-20 shrink-0 text-sm tabular-nums text-text-tertiary">
+                    {formatTime(item.data.start)}
+                  </div>
+                  <div className="shrink-0">
+                    <span className="block h-2.5 w-2.5 rounded-full bg-surface-tertiary" />
+                  </div>
+                  <p className="text-sm text-text-tertiary italic truncate">
+                    {item.data.summary} <span className="text-text-disabled">(Personal)</span>
+                  </p>
+                </div>
+              );
+            });
+          })()}
         </div>
       )}
     </div>
