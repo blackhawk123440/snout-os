@@ -15,6 +15,7 @@ import { ClientBottomNav } from './ClientBottomNav';
 import { ClientSidebarNav } from './ClientSidebarNav';
 import { ClientDeployDebugOverlay } from '@/components/client/ClientDeployDebugOverlay';
 import { ClientSwUpdateToast } from '@/components/client/ClientSwUpdateToast';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export interface ClientAppShellProps {
   children: React.ReactNode;
@@ -122,8 +123,42 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-secondary">
-        <p className="text-sm text-text-tertiary">Loading...</p>
+      <div className="fixed inset-0 flex flex-col bg-surface-secondary" style={{ maxHeight: '100dvh' }}>
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row min-[1024px]:flex-row">
+          {/* Sidebar skeleton — desktop only */}
+          <aside className="hidden shrink-0 border-r border-border-default bg-surface-primary lg:flex lg:w-60 lg:flex-col min-[1024px]:flex min-[1024px]:w-60 min-[1024px]:flex-col">
+            <div className="flex flex-col gap-3 px-4 pt-6">
+              <Skeleton variant="text" width="60%" height={12} />
+              <div className="mt-4 flex flex-col gap-2">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <Skeleton key={i} variant="rectangular" height={44} style={{ borderRadius: 8 }} />
+                ))}
+              </div>
+            </div>
+          </aside>
+
+          {/* Main content skeleton */}
+          <div className="flex min-h-0 flex-1 flex-col">
+            {/* Header skeleton */}
+            <div className="flex min-h-[44px] items-center justify-between gap-3 border-b border-border-default bg-surface-primary px-4 py-2 sm:px-6 lg:px-8">
+              <Skeleton variant="text" width={120} height={20} />
+              <Skeleton variant="circular" width={36} height={36} />
+            </div>
+
+            {/* Content skeleton */}
+            <div className="flex-1 px-4 pt-6 sm:px-6 lg:mx-auto lg:max-w-4xl lg:px-8">
+              <div className="flex flex-col gap-4">
+                <Skeleton variant="text" width="40%" height={24} />
+                <Skeleton variant="text" width="60%" height={14} />
+                <div className="mt-4 flex flex-col gap-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} variant="rectangular" height={80} style={{ borderRadius: 12 }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
