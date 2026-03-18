@@ -110,6 +110,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   const [otherPetType, setOtherPetType] = useState('');
   const [bookingType, setBookingType] = useState<'one-time' | 'recurring'>('one-time');
   const [is247Care, setIs247Care] = useState(false);
+  const [smsConsent, setSmsConsent] = useState(false);
 
   // Client saved pets (fetched when phone matches existing client)
   const [savedPets, setSavedPets] = useState<Array<{ id: string; name: string; species: string; selected: boolean }>>([]);
@@ -362,6 +363,10 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       newErrors.dates = 'At least one date is required';
     }
 
+    if (!smsConsent) {
+      newErrors.consent = 'You must agree to the Terms of Service and Privacy Policy';
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -427,6 +432,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         pets: buildPetsArray(),
         selectedDates: sortedDates,
         dateTimes: dateTimes,
+        smsConsent,
       };
       
       await onSubmit(finalValues);
@@ -1039,20 +1045,26 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         </div>
       </Card>
 
-      {/* Policy Agreement - Matching booking-form.html */}
+      {/* Policy Agreement & SMS Consent */}
       <Card>
         <div style={{ padding: tokens.spacing[4] }}>
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[2], cursor: 'pointer' }}>
             <input
               type="checkbox"
-              checked={true}
-              readOnly
+              checked={smsConsent}
+              onChange={(e) => setSmsConsent(e.target.checked)}
+              required
               style={{ width: '18px', height: '18px', marginTop: '2px', flexShrink: 0 }}
             />
             <span style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
-              I agree to the <a href="https://snoutservices.com/tearms-and-conditions" target="_blank" rel="noopener noreferrer" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Terms of Service</a> and <a href="https://snoutservices.com/policies" target="_blank" rel="noopener noreferrer" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Privacy Policy</a>, and I consent to receive SMS messages about my bookings and pet care updates from Snout services. Message &amp; data rates may apply. Reply STOP to opt out.
+              I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Privacy Policy</a>, and I consent to receive SMS text messages from Snout Pet Care regarding my booking, including confirmations, reminders, and updates. Message and data rates may apply. Reply STOP to opt out at any time.
             </span>
           </label>
+          {errors.consent && (
+            <div style={{ color: tokens.colors.error.DEFAULT, fontSize: tokens.typography.fontSize.xs[0], marginTop: tokens.spacing[1] }}>
+              {errors.consent}
+            </div>
+          )}
         </div>
       </Card>
 

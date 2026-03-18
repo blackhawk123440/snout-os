@@ -25,6 +25,7 @@ export interface BookingFormValues {
   dateTimes?: Record<string, Array<{ time: string; duration: number }>>;
   afterHours?: boolean;
   holiday?: boolean;
+  smsConsent?: boolean;
 }
 
 /**

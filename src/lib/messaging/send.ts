@@ -258,6 +258,26 @@ export async function dispatchMessageEventDelivery(params: {
     getMessagingProvider(params.orgId),
   ]);
   if (!toE164) throw new Error("Client contact not found");
+
+  // TCPA compliance: check opt-out before sending
+  const optOut = await db.optOutState.findFirst({
+    where: { orgId: params.orgId, phoneE164: toE164, state: 'opted_out' },
+  });
+  if (optOut) {
+    console.warn(`[SMS] Blocked send to opted-out number`);
+    await db.messageEvent.update({
+      where: { id: event.id },
+      data: { deliveryStatus: 'failed', failureCode: 'opted_out', failureDetail: 'Recipient has opted out of SMS' },
+    });
+    return {
+      deliveryStatus: 'failed' as DeliveryStatus,
+      providerMessageSid: null,
+      providerErrorCode: 'opted_out',
+      providerErrorMessage: 'Recipient has opted out of SMS',
+      retryable: false,
+    };
+  }
+
   const attemptNo = Math.max(1, params.attempt ?? ((event.attemptCount ?? 0) + 1));
   const maxAttempts = Math.max(1, params.maxAttempts ?? 1);
 

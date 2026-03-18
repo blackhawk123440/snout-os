@@ -22,6 +22,7 @@ import { enqueueCalendarSync } from "@/lib/calendar-queue";
 import { ensureEventQueueBridge } from "@/lib/event-queue-bridge-init";
 import { getPublicOrgContext } from "@/lib/request-context";
 import { syncConversationLifecycleWithBookingWorkflow } from "@/lib/messaging/conversation-service";
+import { logEvent } from "@/lib/log-event";
 
 const parseOrigins = (value?: string | null) => {
   if (!value) return [];
@@ -569,6 +570,23 @@ export async function POST(request: NextRequest) {
       } catch (conversationError) {
         console.error("[Form] Failed to ensure company lane conversation (non-blocking):", conversationError);
       }
+      // Log SMS consent if provided (TCPA compliance)
+      if (body.smsConsent) {
+        void logEvent({
+          orgId,
+          action: 'client.sms_consent',
+          entityType: 'booking',
+          entityId: booking.id,
+          bookingId: booking.id,
+          status: 'success',
+          metadata: {
+            phone: booking.phone,
+            consentedAt: new Date().toISOString(),
+            consentSource: 'booking_form',
+            consentLanguage: 'v1',
+          },
+        });
+      }
       } catch (error) {
         await failIdempotentReservation(
           idempotency.mode === "reserved" ? idempotency.reservationId : null,
@@ -1111,6 +1129,23 @@ export async function POST(request: NextRequest) {
       });
     } catch (conversationError) {
       console.error("[Form] Failed to ensure company lane conversation (non-blocking):", conversationError);
+    }
+    // Log SMS consent if provided (TCPA compliance) - legacy path
+    if (body.smsConsent) {
+      void logEvent({
+        orgId,
+        action: 'client.sms_consent',
+        entityType: 'booking',
+        entityId: booking.id,
+        bookingId: booking.id,
+        status: 'success',
+        metadata: {
+          phone: booking.phone,
+          consentedAt: new Date().toISOString(),
+          consentSource: 'booking_form',
+          consentLanguage: 'v1',
+        },
+      });
     }
     } catch (error) {
       await failIdempotentReservation(

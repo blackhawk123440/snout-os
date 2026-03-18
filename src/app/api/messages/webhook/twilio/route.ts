@@ -16,6 +16,7 @@ import { reconcileConversationLifecycleForThread } from '@/lib/messaging/convers
 import { mapTwilioStatusToLifecycle } from '@/lib/messaging/message-lifecycle';
 import { sendThreadMessage } from '@/lib/messaging/send';
 import { CLIENT_EXPIRED_SERVICE_LANE_REPLY } from '@/lib/messaging/policy-copy';
+import { isStopCommand, isHelpCommand, isStartCommand } from '@/lib/messaging/sms-commands';
 import { getScopedDb } from '@/lib/tenancy';
 
 function twimlOk() {
@@ -89,6 +90,56 @@ export async function POST(request: NextRequest) {
         },
       });
       return twimlOk();
+    }
+
+    // TCPA compliance: handle STOP/HELP/START keywords immediately
+    if (isStopCommand(messageBody)) {
+      await db.optOutState.upsert({
+        where: { orgId_phoneE164: { orgId, phoneE164: from } },
+        create: { orgId, phoneE164: from, state: 'opted_out', source: 'inbound_keyword' },
+        update: { state: 'opted_out', source: 'inbound_keyword' },
+      });
+      await logEvent({
+        orgId,
+        action: 'sms.opt_out',
+        entityType: 'opt_out',
+        metadata: { phone: from, keyword: messageBody, messageSid },
+      });
+      return new NextResponse(
+        '<?xml version="1.0" encoding="UTF-8"?><Response><Message>You have been unsubscribed from Snout Pet Care messages. Reply START to re-subscribe.</Message></Response>',
+        { status: 200, headers: { 'Content-Type': 'text/xml' } }
+      );
+    }
+
+    if (isHelpCommand(messageBody)) {
+      await logEvent({
+        orgId,
+        action: 'sms.help_request',
+        entityType: 'opt_out',
+        metadata: { phone: from, keyword: messageBody, messageSid },
+      });
+      return new NextResponse(
+        '<?xml version="1.0" encoding="UTF-8"?><Response><Message>Snout Pet Care: For help, visit snoutservices.com or reply to this message. Reply STOP to unsubscribe.</Message></Response>',
+        { status: 200, headers: { 'Content-Type': 'text/xml' } }
+      );
+    }
+
+    if (isStartCommand(messageBody)) {
+      await db.optOutState.upsert({
+        where: { orgId_phoneE164: { orgId, phoneE164: from } },
+        create: { orgId, phoneE164: from, state: 'opted_in', source: 'inbound_keyword' },
+        update: { state: 'opted_in', source: 'inbound_keyword' },
+      });
+      await logEvent({
+        orgId,
+        action: 'sms.opt_in',
+        entityType: 'opt_out',
+        metadata: { phone: from, keyword: messageBody, messageSid },
+      });
+      return new NextResponse(
+        '<?xml version="1.0" encoding="UTF-8"?><Response><Message>You have been re-subscribed to Snout Pet Care messages. Reply STOP to unsubscribe.</Message></Response>',
+        { status: 200, headers: { 'Content-Type': 'text/xml' } }
+      );
     }
 
     const messageNumber = await db.messageNumber.findFirst({

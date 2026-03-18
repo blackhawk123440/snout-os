@@ -2856,7 +2856,7 @@
         <div class="policy-checkbox">
           <input type="checkbox" id="policyAgreement" name="policyAgreement" required>
           <label for="policyAgreement" class="policy-text">
-            I agree to the <a href="https://snoutservices.com/tearms-and-conditions" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">Terms of Service</a> and <a href="https://snoutservices.com/policies" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">Privacy Policy</a>, and I consent to receive SMS messages about my bookings and pet care updates from Snout services. Message &amp; data rates may apply. Reply STOP to opt out.
+            I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">Privacy Policy</a>, and I consent to receive SMS text messages from Snout Pet Care regarding my booking, including confirmations, reminders, and updates. Message and data rates may apply. Reply STOP to opt out at any time.
           </label>
           <div class="field-error" id="policyError" style="display: none;"></div>
         </div>
@@ -4158,6 +4158,7 @@
           })(),
           afterHours: false,
           holiday: false,
+          smsConsent: true,
           createdFrom: 'Webflow'
         };
 
