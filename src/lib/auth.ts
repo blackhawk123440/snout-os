@@ -14,20 +14,29 @@ import * as bcrypt from "bcryptjs";
  * NextAuth configuration with credentials provider
  */
 // Ensure secret is ALWAYS defined - NextAuth requires it
-const getSecret = () => {
-  // Try multiple sources
-  const secret = 
-    process.env.NEXTAUTH_SECRET || 
-    env.NEXTAUTH_SECRET || 
-    (process.env.NODE_ENV === 'development' 
-      ? 'dev-secret-key-change-in-production-min-32-chars' 
-      : 'staging-fallback-secret-minimum-32-characters-required-for-nextauth');
-  
-  if (!process.env.NEXTAUTH_SECRET && !env.NEXTAUTH_SECRET) {
-    console.warn('[NextAuth] WARNING: NEXTAUTH_SECRET not set in environment, using fallback.');
-    console.warn('[NextAuth] Set NEXTAUTH_SECRET in Render Environment tab to avoid this warning.');
+const getSecret = (): string => {
+  const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      // HARD FAIL in production — do not fall back to any default
+      throw new Error(
+        'FATAL: NEXTAUTH_SECRET environment variable is required in production. ' +
+        'Set it in Render Environment tab. Application cannot start without it.'
+      );
+    }
+    // Development only — use a dev-specific secret
+    console.warn('[NextAuth] WARNING: NEXTAUTH_SECRET not set. Using development fallback. DO NOT use in production.');
+    return 'dev-only-secret-not-for-production-minimum-32-characters';
   }
-  
+
+  if (secret.length < 32) {
+    throw new Error(
+      'FATAL: NEXTAUTH_SECRET must be at least 32 characters. ' +
+      'Generate one with: openssl rand -base64 32'
+    );
+  }
+
   return secret;
 };
 
@@ -87,12 +96,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         let passwordValid: boolean | null = null;
         let bypassedPassword = false;
         const enableE2eAuth =
-          process.env.ENABLE_E2E_AUTH === "true" ||
-          process.env.ENABLE_E2E_LOGIN === "true" ||
-          process.env.NODE_ENV === "test";
+          process.env.NODE_ENV !== 'production' && (
+            process.env.ENABLE_E2E_AUTH === "true" ||
+            process.env.ENABLE_E2E_LOGIN === "true" ||
+            process.env.NODE_ENV === "test"
+          );
 
-        console.log('[NextAuth] Login attempt for:', credentials?.email);
-        console.log('[NextAuth] DATABASE_URL set:', !!process.env.DATABASE_URL);
+        // Log if someone tries to enable E2E in production
+        if (process.env.NODE_ENV === 'production' &&
+            (process.env.ENABLE_E2E_AUTH === 'true' || process.env.ENABLE_E2E_LOGIN === 'true')) {
+          console.error('[NextAuth] SECURITY: E2E auth bypass attempted in production. DENIED. Remove ENABLE_E2E_AUTH from production environment.');
+        }
         
         if (!credentials?.email || !credentials?.password) {
           console.log('[NextAuth] Missing credentials');
@@ -162,7 +176,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               // This allows deterministic E2E authentication without password verification
               if (enableE2eAuth) {
                 // Allow login for E2E - password check bypassed
-                console.log('[NextAuth] E2E auth enabled - bypassing password check for:', user.email);
+                console.log('[NextAuth] E2E auth enabled - bypassing password check');
                 bypassedPassword = true;
               } else {
                 console.log('[NextAuth] Password invalid');
@@ -191,7 +205,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           clientId = client?.id || null;
         }
 
-        console.log('[NextAuth] Authentication successful for:', user.email);
+        console.log('[NextAuth] Authentication successful');
         outcome = "success";
         return {
           id: user.id,

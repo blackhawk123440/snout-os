@@ -30,9 +30,9 @@ const optionalEnvVars = {
   OWNER_PERSONAL_PHONE: process.env.OWNER_PERSONAL_PHONE,
   OWNER_OPENPHONE_PHONE: process.env.OWNER_OPENPHONE_PHONE,
   // Gate B Phase 1: Auth feature flags (all default to false for zero-risk deployment)
-  ENABLE_AUTH_PROTECTION: process.env.ENABLE_AUTH_PROTECTION === "true",
-  ENABLE_SITTER_AUTH: process.env.ENABLE_SITTER_AUTH === "true",
-  ENABLE_PERMISSION_CHECKS: process.env.ENABLE_PERMISSION_CHECKS === "true",
+  ENABLE_AUTH_PROTECTION: process.env.NODE_ENV === 'production' ? true : process.env.ENABLE_AUTH_PROTECTION !== "false",
+  ENABLE_SITTER_AUTH: process.env.NODE_ENV === 'production' ? true : process.env.ENABLE_SITTER_AUTH !== "false",
+  ENABLE_PERMISSION_CHECKS: process.env.NODE_ENV === 'production' ? true : process.env.ENABLE_PERMISSION_CHECKS !== "false",
   ENABLE_WEBHOOK_VALIDATION: process.env.ENABLE_WEBHOOK_VALIDATION === "true",
   // Phase 1: Form mapping layer (default to false for zero-risk deployment)
   ENABLE_FORM_MAPPER_V1: process.env.ENABLE_FORM_MAPPER_V1 === "true",
