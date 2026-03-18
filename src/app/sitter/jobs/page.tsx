@@ -30,10 +30,10 @@ interface Job {
 
 const statusBadgeClass = (status: string) => {
   switch (status) {
-    case 'confirmed': return 'bg-blue-100 text-blue-800';
-    case 'completed': return 'bg-green-100 text-green-800';
-    case 'pending': return 'bg-amber-100 text-amber-800';
-    case 'in_progress': return 'bg-purple-100 text-purple-800';
+    case 'confirmed': return 'bg-status-info-bg text-status-info-text';
+    case 'completed': return 'bg-status-success-bg text-status-success-text';
+    case 'pending': return 'bg-status-warning-bg text-status-warning-text';
+    case 'in_progress': return 'bg-status-purple-bg text-status-purple-text';
     case 'cancelled': return 'bg-surface-tertiary text-text-secondary';
     default: return 'bg-surface-tertiary text-text-secondary';
   }

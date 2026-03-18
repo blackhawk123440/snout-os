@@ -337,10 +337,10 @@ function SitterInboxContent() {
                     type="button"
                     onClick={() => setSelectedThreadId(thread.id)}
                     className={`flex min-h-[72px] min-w-0 items-center gap-3 border-b border-border-default px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-inset ${
-                      isSelected ? 'bg-blue-50' : 'hover:bg-surface-secondary'
+                      isSelected ? 'bg-status-info-bg' : 'hover:bg-surface-secondary'
                     }`}
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-800">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-status-warning-bg text-sm font-semibold text-status-warning-text">
                       {initial}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -351,13 +351,13 @@ function SitterInboxContent() {
                       <div className="mt-1 flex items-center gap-2">
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                            isActive ? 'bg-green-100 text-green-800' : 'bg-surface-tertiary text-text-secondary'
+                            isActive ? 'bg-status-success-bg text-status-success-text' : 'bg-surface-tertiary text-text-secondary'
                           }`}
                         >
                           {isActive ? 'Active' : 'Inactive'}
                         </span>
                         {(thread.ownerUnreadCount ?? 0) > 0 && (
-                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-500 px-1.5 text-[10px] font-medium text-white">
+                          <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-status-info-fill px-1.5 text-[10px] font-medium text-text-inverse">
                             {(thread.ownerUnreadCount ?? 0) > 99 ? '99+' : thread.ownerUnreadCount}
                           </span>
                         )}
@@ -377,7 +377,7 @@ function SitterInboxContent() {
               {/* Thread header bar */}
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-default bg-surface-primary p-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-800">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-status-warning-bg text-sm font-semibold text-status-warning-text">
                     {(selectedThread?.client?.name || '?').charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -445,7 +445,7 @@ function SitterInboxContent() {
                               Retry
                             </Button>
                             {p.error && (
-                              <span className="text-xs text-red-600" title={p.error}>
+                              <span className="text-xs text-status-danger-text" title={p.error}>
                                 {p.error.slice(0, 60)}
                                 {p.error.length > 60 ? '…' : ''}
                               </span>
@@ -459,7 +459,7 @@ function SitterInboxContent() {
               </div>
 
               {/* Quick templates */}
-              <div className="border-t border-border-default bg-amber-50/40 p-4">
+              <div className="border-t border-border-default bg-status-warning-bg p-4">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="text-sm font-medium text-text-primary">Quick templates</span>
                   <span className="text-xs text-text-tertiary">Use for short professional status updates.</span>
@@ -508,7 +508,7 @@ function SitterInboxContent() {
               {/* Compose */}
               <div className="border-t border-border-default p-4">
                 {!isWindowActive ? (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <div className="rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3 text-sm text-status-warning-text">
                     <p className="font-medium">Can&apos;t send right now</p>
                     <p className="mt-0.5 text-xs">
                       Messaging is paused outside your active window. Office support continues client follow-up from the same thread.

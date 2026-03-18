@@ -59,6 +59,18 @@
   --color-status-danger-fill: #dc2626;
   --color-status-danger-fill-hover: #b91c1c;
   --color-status-danger-text-on-fill: #ffffff;
+  /* Status colors - info (blue) */
+  --color-status-info-bg: #eff6ff;
+  --color-status-info-border: #bfdbfe;
+  --color-status-info-text: #1e40af;
+  --color-status-info-fill: #3b82f6;
+  /* Status colors - purple (in-progress) */
+  --color-status-purple-bg: #f5f3ff;
+  --color-status-purple-border: #c4b5fd;
+  --color-status-purple-text: #6d28d9;
+  --color-status-purple-fill: #8b5cf6;
+  /* Status - warning fill */
+  --color-status-warning-fill: #f59e0b;
 
   /* Spacing - Phase 8: Coherent rhythm */
   --spacing-0: 0;
@@ -207,6 +219,15 @@
   --color-status-danger-fill: #ef4444;
   --color-status-danger-fill-hover: #dc2626;
   --color-status-danger-text-on-fill: #ffffff;
+  --color-status-info-bg: rgba(59, 130, 246, 0.1);
+  --color-status-info-border: rgba(59, 130, 246, 0.3);
+  --color-status-info-text: #93c5fd;
+  --color-status-info-fill: #3b82f6;
+  --color-status-purple-bg: rgba(139, 92, 246, 0.1);
+  --color-status-purple-border: rgba(139, 92, 246, 0.3);
+  --color-status-purple-text: #c4b5fd;
+  --color-status-purple-fill: #8b5cf6;
+  --color-status-warning-fill: #f59e0b;
   --color-teal-50: rgba(45, 212, 191, 0.15);
   --color-teal-700: #2dd4bf;
   --background: #0f172a;
@@ -260,6 +281,15 @@
   --color-status-danger-fill: #dc2626;
   --color-status-danger-fill-hover: #b91c1c;
   --color-status-danger-text-on-fill: #ffffff;
+  --color-status-info-bg: #eff6ff;
+  --color-status-info-border: #bfdbfe;
+  --color-status-info-text: #1e40af;
+  --color-status-info-fill: #3b82f6;
+  --color-status-purple-bg: #f5f3ff;
+  --color-status-purple-border: #c4b5fd;
+  --color-status-purple-text: #6d28d9;
+  --color-status-purple-fill: #8b5cf6;
+  --color-status-warning-fill: #f59e0b;
 
   --background: #fef7fb;
   --foreground: #432f21;
@@ -312,6 +342,15 @@
   --color-status-danger-fill: #ef4444;
   --color-status-danger-fill-hover: #dc2626;
   --color-status-danger-text-on-fill: #ffffff;
+  --color-status-info-bg: rgba(59, 130, 246, 0.1);
+  --color-status-info-border: rgba(59, 130, 246, 0.3);
+  --color-status-info-text: #93c5fd;
+  --color-status-info-fill: #3b82f6;
+  --color-status-purple-bg: rgba(139, 92, 246, 0.1);
+  --color-status-purple-border: rgba(139, 92, 246, 0.3);
+  --color-status-purple-text: #c4b5fd;
+  --color-status-purple-fill: #8b5cf6;
+  --color-status-warning-fill: #f59e0b;
 
   --background: #1a0802;
   --foreground: #fef2f8;

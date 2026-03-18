@@ -109,9 +109,9 @@ export default function SitterReportEditPage() {
       </div>
       <div className="p-4 space-y-4">
         {!report.canEdit && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-            <p className="font-semibold text-amber-800">Editing no longer available</p>
-            <p className="mt-0.5 text-sm text-amber-700">
+          <div className="rounded-xl border border-status-warning-border bg-status-warning-bg p-4">
+            <p className="font-semibold text-status-warning-text">Editing no longer available</p>
+            <p className="mt-0.5 text-sm text-status-warning-text-secondary">
               Reports can only be edited within 15 minutes of submission.
             </p>
           </div>

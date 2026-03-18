@@ -169,7 +169,7 @@ export default function SitterAvailabilityPage() {
                   onClick={() => void toggleAvailability()}
                   disabled={toggling}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 disabled:opacity-50 ${
-                    availabilityEnabled ? 'bg-blue-600' : 'bg-surface-tertiary'
+                    availabilityEnabled ? 'bg-accent-primary' : 'bg-surface-tertiary'
                   }`}
                 >
                   <span
@@ -204,7 +204,7 @@ export default function SitterAvailabilityPage() {
                   {blockOffs.map((b) => (
                     <li key={b.id} className="flex items-center justify-between rounded-lg bg-surface-secondary px-3 py-2 text-sm">
                       <span>{new Date(b.date + 'T12:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => void removeBlockOff(b.id)} className="text-red-600 hover:text-red-700">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => void removeBlockOff(b.id)} className="text-status-danger-text-secondary hover:text-status-danger-text">
                         Remove
                       </Button>
                     </li>

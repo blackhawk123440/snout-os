@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui';
+import { statusBadgeClass, statusLabel } from '@/lib/status-colors';
 import { toastSuccess, toastError, toastWarning } from '@/lib/toast';
 import { useAuth } from '@/lib/auth-client';
 import { useOffline } from '@/hooks/useOffline';
@@ -86,10 +87,8 @@ const statusPillLabel = (status: string) => {
       return 'Visit in progress';
     case 'completed':
       return 'Visit complete';
-    case 'cancelled':
-      return 'Cancelled';
     default:
-      return status.replace('_', ' ');
+      return statusLabel(status);
   }
 };
 
@@ -102,23 +101,6 @@ const getStatusSubtitle = (booking: TodayBooking) => {
   if (booking.status === 'in_progress') return `In progress · ${timeStr}`;
   if (booking.status === 'completed') return `Completed · ${timeStr}`;
   return timeStr;
-};
-
-const statusBadgeClass = (status: string) => {
-  switch (status) {
-    case 'confirmed':
-      return 'bg-blue-100 text-blue-800';
-    case 'completed':
-      return 'bg-green-100 text-green-800';
-    case 'pending':
-      return 'bg-amber-100 text-amber-800';
-    case 'in_progress':
-      return 'bg-purple-100 text-purple-800';
-    case 'cancelled':
-      return 'bg-surface-tertiary text-text-secondary';
-    default:
-      return 'bg-surface-tertiary text-text-secondary';
-  }
 };
 
 function NextVisitHero({
@@ -151,11 +133,11 @@ function NextVisitHero({
     : '—';
 
   return (
-    <SitterCard className="mb-4 border-2 border-blue-200 bg-blue-50">
+    <SitterCard className="mb-4 border-2 border-status-info-border bg-status-info-bg">
       <SitterCardHeader>
-        <p className="text-xs font-medium uppercase tracking-wide text-blue-700">Next up</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-status-info-text">Next up</p>
         {countdown && (
-          <p className="mt-1 text-sm font-semibold text-blue-800">{countdown}</p>
+          <p className="mt-1 text-sm font-semibold text-status-info-text">{countdown}</p>
         )}
           <div className="mt-2 flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -186,7 +168,7 @@ function NextVisitHero({
               {booking.pets.slice(0, 3).map((pet) => (
                 <div
                   key={pet.id}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-amber-100 text-sm font-medium text-amber-800"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-status-warning-bg text-sm font-medium text-status-warning-text"
                   title={pet.name || pet.species || 'Pet'}
                 >
                   {(pet.name || pet.species || '?').charAt(0).toUpperCase()}
@@ -264,7 +246,7 @@ function QuickInsightsStrip({
       <span className="text-sm text-text-secondary">
         <span className="font-semibold text-text-primary">{visitsRemaining}</span> visit{visitsRemaining !== 1 ? 's' : ''} remaining
       </span>
-      <span className="text-sm text-amber-700">On track</span>
+      <span className="text-sm text-status-warning-text-secondary">On track</span>
     </div>
   );
 }
@@ -421,7 +403,7 @@ function VisitCard({
               variant="secondary"
               size="sm"
               onClick={() => router.push(`/sitter/bookings/${booking.id}?emergency=true`)}
-              className="border-red-300 text-red-700 hover:bg-red-50"
+              className="border-status-danger-border text-status-danger-text hover:bg-status-danger-bg"
             >
               Emergency
             </Button>

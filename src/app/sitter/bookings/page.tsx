@@ -10,6 +10,7 @@ import {
   SitterErrorState,
 } from '@/components/sitter';
 import { InteractiveRow } from '@/components/ui/interactive-row';
+import { statusBadgeClass } from '@/lib/status-colors';
 
 interface Booking {
   id: string;
@@ -21,23 +22,6 @@ interface Booking {
   clientName: string;
   pets: Array<{ id: string; name?: string | null; species?: string | null }>;
 }
-
-const statusBadgeClass = (status: string) => {
-  switch (status) {
-    case 'confirmed':
-      return 'bg-blue-100 text-blue-800';
-    case 'completed':
-      return 'bg-green-100 text-green-800';
-    case 'pending':
-      return 'bg-amber-100 text-amber-800';
-    case 'in_progress':
-      return 'bg-purple-100 text-purple-800';
-    case 'cancelled':
-      return 'bg-surface-tertiary text-text-secondary';
-    default:
-      return 'bg-surface-tertiary text-text-secondary';
-  }
-};
 
 export default function SitterBookingsPage() {
   const router = useRouter();

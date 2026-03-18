@@ -290,7 +290,7 @@ export default function SitterBookingDetailPage() {
               {shouldRenderCopyAddress(booking.addressParts.full) && <Button variant="secondary" size="md" onClick={() => void copyAddress()}>Copy address</Button>}
             </div>
             {(booking.doorCode || booking.entryInstructions) && (
-              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <div className="mt-3 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">
                 {booking.doorCode && <p><span className="font-semibold">Door code:</span> {booking.doorCode}</p>}
                 {booking.entryInstructions && <p className="mt-1 break-words">{booking.entryInstructions}</p>}
               </div>
@@ -309,7 +309,7 @@ export default function SitterBookingDetailPage() {
                       {pet.careNotes && <p className="mt-0.5 line-clamp-2 text-xs text-text-secondary">{pet.careNotes}</p>}
                     </div>
                     <div className="ml-2 flex shrink-0 gap-1">
-                      {pet.flags?.hasMedication && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-800">Meds</span>}
+                      {pet.flags?.hasMedication && <span className="rounded-full bg-status-info-bg px-2 py-0.5 text-[10px] font-medium text-status-info-text">Meds</span>}
                       {pet.flags?.hasAllergies && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium text-rose-800">Allergy</span>}
                     </div>
                   </button>
@@ -340,16 +340,16 @@ export default function SitterBookingDetailPage() {
                       disabled={locked}
                       title={locked ? 'Locked' : undefined}
                       className={`flex min-h-[52px] w-full items-center justify-between rounded-lg border px-4 py-2 text-left text-sm ${
-                        checked ? 'border-green-300 bg-green-50 text-green-800' : 'border-border-default bg-surface-primary text-text-secondary'
+                        checked ? 'border-status-success-border bg-status-success-bg text-status-success-text' : 'border-border-default bg-surface-primary text-text-secondary'
                       } ${locked ? 'cursor-not-allowed opacity-80' : ''}`}
                     >
                       <div>
                         <p className="font-medium">{subtitle}</p>
-                        {locked && <p className="text-[11px] text-amber-700">Locked</p>}
+                        {locked && <p className="text-[11px] text-status-warning-text-secondary">Locked</p>}
                       </div>
                       <span
                         className={`inline-flex h-6 w-6 items-center justify-center rounded-md border ${
-                          checked ? 'border-green-600 bg-green-600 text-white' : 'border-border-strong bg-surface-primary text-transparent'
+                          checked ? 'border-status-success-fill bg-status-success-fill text-text-inverse' : 'border-border-strong bg-surface-primary text-transparent'
                         }`}
                         aria-hidden
                       >
@@ -369,7 +369,7 @@ export default function SitterBookingDetailPage() {
               <div className="flex flex-wrap gap-3">
                 <span className="text-text-secondary">Use the masked inbox thread for client communication.</span>
                 {shouldRenderMail(booking.client?.email) && (
-                  <a href={`mailto:${booking.client?.email}`} className="break-all text-blue-700 underline underline-offset-2">
+                  <a href={`mailto:${booking.client?.email}`} className="break-all text-accent-primary underline underline-offset-2">
                     {booking.client?.email}
                   </a>
                 )}
@@ -382,10 +382,10 @@ export default function SitterBookingDetailPage() {
           </section>
 
           {booking.emergencyContact && (
-            <section className="rounded-xl border border-red-200 bg-red-50 p-4">
-              <p className="text-sm font-semibold text-red-900">Emergency contact</p>
-              <p className="mt-1 text-sm text-red-900">{booking.emergencyContact.name}{booking.emergencyContact.relationship ? ` · ${booking.emergencyContact.relationship}` : ''}</p>
-              <a href={`tel:${booking.emergencyContact.phone}`} title="Intentional emergency exception" className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-red-300 bg-surface-primary px-4 text-sm font-medium text-red-900">
+            <section className="rounded-xl border border-status-danger-border bg-status-danger-bg p-4">
+              <p className="text-sm font-semibold text-status-danger-text">Emergency contact</p>
+              <p className="mt-1 text-sm text-status-danger-text">{booking.emergencyContact.name}{booking.emergencyContact.relationship ? ` · ${booking.emergencyContact.relationship}` : ''}</p>
+              <a href={`tel:${booking.emergencyContact.phone}`} title="Intentional emergency exception" className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-status-danger-border bg-surface-primary px-4 text-sm font-medium text-status-danger-text">
                 {booking.emergencyContact.phone}
               </a>
             </section>

@@ -395,7 +395,7 @@ export default function SitterReportNewPage() {
                   <button
                     type="button"
                     onClick={() => removePhoto(url)}
-                    className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs text-white shadow"
+                    className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-status-danger-fill text-xs text-status-danger-text-on-fill shadow"
                     aria-label="Remove photo"
                   >
                     \u00d7
@@ -419,9 +419,9 @@ export default function SitterReportNewPage() {
 
         {/* Success state */}
         {sentReportId && (
-          <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-            <p className="font-semibold text-green-800">Sent to {selectedBooking?.clientName || 'client'}</p>
-            <p className="mt-0.5 text-sm text-green-700">The client will see this in their visit reports.</p>
+          <div className="rounded-xl border border-status-success-border bg-status-success-bg p-4">
+            <p className="font-semibold text-status-success-text">Sent to {selectedBooking?.clientName || 'client'}</p>
+            <p className="mt-0.5 text-sm text-status-success-text-secondary">The client will see this in their visit reports.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Button
                 variant="secondary"

@@ -43,9 +43,9 @@ const TIER_BENEFITS = [
 
 const tierColor = (tier: string) => {
   switch (tier.toLowerCase()) {
-    case 'preferred': return 'bg-amber-100 text-amber-800 border-amber-300';
-    case 'trusted': return 'bg-blue-100 text-blue-800 border-blue-300';
-    case 'reliant': return 'bg-green-100 text-green-800 border-green-300';
+    case 'preferred': return 'bg-status-warning-bg text-status-warning-text border-status-warning-border';
+    case 'trusted': return 'bg-status-info-bg text-status-info-text border-status-info-border';
+    case 'reliant': return 'bg-status-success-bg text-status-success-text border-status-success-border';
     default: return 'bg-surface-tertiary text-text-secondary border-border-default';
   }
 };
@@ -81,7 +81,7 @@ export default function SitterPerformancePage() {
     return (
       <div className="mx-auto max-w-3xl pb-8">
         <SitterPageHeader title="Performance" subtitle="Your metrics" />
-        <SitterCard><SitterCardBody><p className="text-sm text-red-700">{error || 'No data available'}</p></SitterCardBody></SitterCard>
+        <SitterCard><SitterCardBody><p className="text-sm text-status-danger-text-secondary">{error || 'No data available'}</p></SitterCardBody></SitterCard>
       </div>
     );
   }
@@ -109,8 +109,8 @@ export default function SitterPerformancePage() {
                   <span className="text-sm font-bold text-text-primary tabular-nums">{data.score.toFixed(1)}</span>
                 </div>
                 {data.rolling26w != null && <p className="mt-0.5 text-xs text-text-tertiary">26-week average: {data.rolling26w.toFixed(1)}</p>}
-                {data.provisional && <p className="mt-0.5 text-xs text-amber-700">Provisional \u2014 complete 15+ visits to activate</p>}
-                {data.atRisk && <p className="mt-0.5 text-xs text-red-700">At risk: {data.atRiskReason || 'Below tier minimum'}</p>}
+                {data.provisional && <p className="mt-0.5 text-xs text-status-warning-text-secondary">Provisional \u2014 complete 15+ visits to activate</p>}
+                {data.atRisk && <p className="mt-0.5 text-xs text-status-danger-text-secondary">At risk: {data.atRiskReason || 'Below tier minimum'}</p>}
               </div>
             </div>
           </SitterCardBody>
@@ -130,7 +130,7 @@ export default function SitterPerformancePage() {
               <p className="text-sm text-text-secondary">minutes avg</p>
             </div>
             {data.responseTimeTrend != null && data.responseTimeTrend !== 0 && (
-              <p className={`mt-1 text-xs font-medium ${data.responseTimeTrend < 0 ? 'text-green-700' : 'text-amber-700'}`}>
+              <p className={`mt-1 text-xs font-medium ${data.responseTimeTrend < 0 ? 'text-status-success-text-secondary' : 'text-status-warning-text-secondary'}`}>
                 {data.responseTimeTrend < 0 ? '\u2193' : '\u2191'} {Math.abs(data.responseTimeTrend)}% vs last month
               </p>
             )}
@@ -139,7 +139,7 @@ export default function SitterPerformancePage() {
                 <p className="text-xs text-text-tertiary mb-1">Last 5 responses:</p>
                 <div className="flex gap-2">
                   {data.last5ResponseTimes.map((t, i) => (
-                    <span key={i} className={`rounded-full px-2 py-0.5 text-xs font-medium ${t <= 15 ? 'bg-green-100 text-green-800' : t <= 30 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
+                    <span key={i} className={`rounded-full px-2 py-0.5 text-xs font-medium ${t <= 15 ? 'bg-status-success-bg text-status-success-text' : t <= 30 ? 'bg-status-warning-bg text-status-warning-text' : 'bg-status-danger-bg text-status-danger-text'}`}>
                       {t}m {t <= 15 ? '\u2705' : '\u26a0\ufe0f'}
                     </span>
                   ))}
@@ -169,7 +169,7 @@ export default function SitterPerformancePage() {
                       </span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-surface-tertiary">
-                      <div className={`h-full rounded-full transition-[width] ${meetsThreshold ? 'bg-green-500' : 'bg-amber-500'}`} style={{ width: `${pct}%` }} />
+                      <div className={`h-full rounded-full transition-[width] ${meetsThreshold ? 'bg-status-success-fill' : 'bg-status-warning-fill'}`} style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 );

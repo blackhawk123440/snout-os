@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-client';
 import { useSitterDashboard } from '@/lib/api/sitter-dashboard-hooks';
+import { statusDotClass, statusLabel } from '@/lib/status-colors';
 import { Button } from '@/components/ui';
 import {
   SitterCard,
@@ -19,25 +20,6 @@ import {
 const formatTime = (d: Date | string) =>
   new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
-const statusDot = (status: string) => {
-  switch (status) {
-    case 'confirmed': return 'bg-blue-500';
-    case 'in_progress': return 'bg-purple-500 animate-pulse';
-    case 'completed': return 'bg-green-500';
-    case 'pending': return 'bg-amber-500';
-    default: return 'bg-surface-tertiary';
-  }
-};
-
-const statusLabel = (status: string) => {
-  switch (status) {
-    case 'confirmed': return 'Upcoming';
-    case 'in_progress': return 'In progress';
-    case 'completed': return 'Done';
-    case 'pending': return 'Pending';
-    default: return status;
-  }
-};
 
 /* ─── Main Content ──────────────────────────────────────────────────── */
 
@@ -115,11 +97,11 @@ function SitterDashboardContent() {
 
         {/* Next Visit Hero */}
         {nextVisit && (
-          <SitterCard className="border-2 border-blue-200 bg-blue-50">
+          <SitterCard className="border-2 border-status-info-border bg-status-info-bg">
             <SitterCardBody>
-              <p className="text-xs font-medium uppercase tracking-wide text-blue-700">Next up</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-status-info-text">Next up</p>
               {minutesUntilNext != null && (
-                <p className="mt-1 text-sm font-semibold text-blue-800">
+                <p className="mt-1 text-sm font-semibold text-status-info-text">
                   {minutesUntilNext < 60 ? `Starts in ${minutesUntilNext} min` : `Starts in ${Math.floor(minutesUntilNext / 60)}h ${minutesUntilNext % 60}m`}
                 </p>
               )}
@@ -151,9 +133,9 @@ function SitterDashboardContent() {
             <SitterCardBody>
               <div className="space-y-2">
                 {pendingRequests.length > 0 && (
-                  <Link href="/sitter/bookings" className="flex items-center justify-between min-h-[44px] rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 hover:bg-amber-100 transition">
-                    <span className="text-sm font-medium text-amber-800">{pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''}</span>
-                    <i className="fas fa-chevron-right text-xs text-amber-600" />
+                  <Link href="/sitter/bookings" className="flex items-center justify-between min-h-[44px] rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 hover:opacity-90 transition">
+                    <span className="text-sm font-medium text-status-warning-text">{pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''}</span>
+                    <i className="fas fa-chevron-right text-xs text-status-warning-text-secondary" />
                   </Link>
                 )}
                 {dash.unreadMessageCount > 0 && (
@@ -202,7 +184,7 @@ function SitterDashboardContent() {
                       onKeyDown={(e) => e.key === 'Enter' && router.push(`/sitter/bookings/${b.id}`)}
                     >
                       <div className="w-16 shrink-0 text-sm font-medium tabular-nums text-text-primary">{formatTime(b.startAt)}</div>
-                      <span className={`shrink-0 h-2.5 w-2.5 rounded-full ${statusDot(b.status)}`} />
+                      <span className={`shrink-0 h-2.5 w-2.5 rounded-full ${statusDotClass(b.status)}`} />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-text-primary truncate">{b.service}</p>
                         <p className="text-xs text-text-secondary truncate">{clientName}</p>
@@ -277,9 +259,9 @@ function SitterDashboardContent() {
 
 function StatCard({ label, value, sub, alert }: { label: string; value: string; sub?: string; alert?: boolean }) {
   return (
-    <div className={`shrink-0 flex-1 min-w-[110px] rounded-xl border p-3 ${alert ? 'border-amber-300 bg-amber-50' : 'border-border-default bg-surface-primary'}`}>
-      <p className={`text-xs font-medium ${alert ? 'text-amber-700' : 'text-text-tertiary'}`}>{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${alert ? 'text-amber-800' : 'text-text-primary'}`}>{value}</p>
+    <div className={`shrink-0 flex-1 min-w-[110px] rounded-xl border p-3 ${alert ? 'border-status-warning-border bg-status-warning-bg' : 'border-border-default bg-surface-primary'}`}>
+      <p className={`text-xs font-medium ${alert ? 'text-status-warning-text-secondary' : 'text-text-tertiary'}`}>{label}</p>
+      <p className={`mt-1 text-2xl font-bold ${alert ? 'text-status-warning-text' : 'text-text-primary'}`}>{value}</p>
       {sub && <p className="mt-0.5 text-xs text-text-tertiary">{sub}</p>}
     </div>
   );

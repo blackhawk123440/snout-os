@@ -194,7 +194,7 @@ export default function SitterProfilePage() {
           <SitterCard>
             <SitterCardHeader>
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-xl font-semibold text-blue-600">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-status-info-bg text-xl font-semibold text-status-info-text">
                   {profile.name.charAt(0).toUpperCase() || 'S'}
                 </div>
                 <div>
@@ -236,9 +236,9 @@ export default function SitterProfilePage() {
                 </StatusChip>
               </div>
               {stripeStatus?.connected && stripeStatus.payoutsEnabled ? (
-                <p className="text-sm text-green-700">Connected · Payouts enabled</p>
+                <p className="text-sm text-status-success-text-secondary">Connected · Payouts enabled</p>
               ) : stripeStatus?.connected ? (
-                <p className="text-sm text-amber-700">Connected · Complete onboarding to receive payouts</p>
+                <p className="text-sm text-status-warning-text-secondary">Connected · Complete onboarding to receive payouts</p>
               ) : (
                 <>
                   <p className="mb-3 text-sm text-text-secondary">Connect your Stripe account to receive payouts from completed bookings.</p>
@@ -313,7 +313,7 @@ export default function SitterProfilePage() {
                   onClick={() => void toggleAvailability()}
                   disabled={togglingAvailability}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 disabled:opacity-50 ${
-                    profile.availabilityEnabled ? 'bg-blue-600' : 'bg-surface-tertiary'
+                    profile.availabilityEnabled ? 'bg-accent-primary' : 'bg-surface-tertiary'
                   }`}
                 >
                   <span
@@ -351,7 +351,7 @@ export default function SitterProfilePage() {
                         <button
                           type="button"
                           onClick={() => void removeBlockOff(b.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-status-danger-text-secondary hover:text-status-danger-text"
                         >
                           Remove
                         </button>
@@ -363,7 +363,7 @@ export default function SitterProfilePage() {
             </SitterCardBody>
           </SitterCard>
 
-          <SitterCard className="border-red-200">
+          <SitterCard className="border-status-danger-border">
             <SitterCardHeader>
               <p className="text-base font-semibold text-text-primary">Delete account</p>
             </SitterCardHeader>
@@ -375,7 +375,7 @@ export default function SitterProfilePage() {
                 variant="secondary"
                 size="md"
                 onClick={() => setDeleteModalOpen(true)}
-                className="border-red-200 text-red-700 hover:bg-red-50"
+                className="border-status-danger-border text-status-danger-text hover:bg-status-danger-bg"
               >
                 Delete account
               </Button>
@@ -398,7 +398,7 @@ export default function SitterProfilePage() {
               variant="secondary"
               onClick={() => void handleDeleteAccount()}
               disabled={deleting}
-              className="bg-red-600 text-white hover:bg-red-700"
+              className="bg-status-danger-fill text-status-danger-text-on-fill hover:bg-status-danger-fill-hover"
             >
               {deleting ? 'Deleting...' : 'Delete account'}
             </Button>

@@ -297,23 +297,23 @@ function VisitProgress({
   const checkInTime = new Date(checkedInAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
   return (
-    <AppCard className="border-green-200 bg-green-50">
+    <AppCard className="border-status-success-border bg-status-success-bg">
       <AppCardBody>
         <div className="flex items-center gap-2 mb-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse" />
-          <p className="text-sm font-semibold text-green-800">Visit in progress</p>
+          <span className="h-2.5 w-2.5 rounded-full bg-status-success-fill animate-pulse" />
+          <p className="text-sm font-semibold text-status-success-text">Visit in progress</p>
         </div>
-        <p className="text-sm text-green-700">
+        <p className="text-sm text-status-success-text-secondary">
           {sitterName || 'Your sitter'} started at {checkInTime}
         </p>
-        <p className="text-sm text-green-700">Duration: {elapsedMin} minutes</p>
+        <p className="text-sm text-status-success-text-secondary">Duration: {elapsedMin} minutes</p>
         <div className="mt-2 flex items-center gap-2">
-          <div className="flex-1 h-2 overflow-hidden rounded-full bg-green-200">
-            <div className="h-full rounded-full bg-green-500 transition-[width]" style={{ width: `${progressPct}%` }} />
+          <div className="flex-1 h-2 overflow-hidden rounded-full bg-status-success-fill-muted">
+            <div className="h-full rounded-full bg-status-success-fill transition-[width]" style={{ width: `${progressPct}%` }} />
           </div>
-          <span className="text-xs font-medium text-green-700 tabular-nums">{elapsedMin}/{scheduledDuration} min</span>
+          <span className="text-xs font-medium text-status-success-text-secondary tabular-nums">{elapsedMin}/{scheduledDuration} min</span>
         </div>
-        <p className="mt-2 text-xs text-green-600">We'll notify you when the visit is complete.</p>
+        <p className="mt-2 text-xs text-status-success-text-secondary">We'll notify you when the visit is complete.</p>
       </AppCardBody>
     </AppCard>
   );

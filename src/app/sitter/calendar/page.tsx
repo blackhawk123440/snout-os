@@ -11,6 +11,7 @@ import {
   SitterErrorState,
   SitterEmptyState,
 } from '@/components/sitter';
+import { statusBlockClass, statusDotClass } from '@/lib/status-colors';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
@@ -61,26 +62,6 @@ const isoDate = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const isSameDay = (a: Date, b: Date) => isoDate(a) === isoDate(b);
 const isToday = (d: Date) => isSameDay(d, new Date());
-
-const statusBg = (status: string) => {
-  switch (status) {
-    case 'confirmed': return 'bg-blue-50 border-blue-200';
-    case 'in_progress': return 'bg-purple-50 border-purple-200';
-    case 'completed': return 'bg-green-50 border-green-200';
-    case 'pending': return 'bg-amber-50 border-amber-200';
-    default: return 'bg-surface-secondary border-border-default';
-  }
-};
-
-const statusDot = (status: string) => {
-  switch (status) {
-    case 'confirmed': return 'bg-blue-500';
-    case 'in_progress': return 'bg-purple-500';
-    case 'completed': return 'bg-green-500';
-    case 'pending': return 'bg-amber-500';
-    default: return 'bg-surface-tertiary';
-  }
-};
 
 const petEmoji = (species: string | null) => {
   if (!species) return '\ud83d\udc3e';
@@ -168,20 +149,20 @@ export default function SitterCalendarPage() {
 
       {/* Google Calendar connection */}
       {!googleConnected && (
-        <SitterCard className="mb-4 border-blue-200 bg-blue-50">
+        <SitterCard className="mb-4 border-status-info-border bg-status-info-bg">
           <SitterCardBody>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-blue-800">Connect Google Calendar</p>
-                <p className="text-xs text-blue-700">See all your events and auto-sync Snout visits.</p>
+                <p className="text-sm font-medium text-status-info-text">Connect Google Calendar</p>
+                <p className="text-xs text-status-info-text">See all your events and auto-sync Snout visits.</p>
               </div>
-              <a href="/api/integrations/google/start?returnUrl=/sitter/calendar" className="min-h-[44px] inline-flex items-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 transition">Connect</a>
+              <a href="/api/integrations/google/start?returnUrl=/sitter/calendar" className="min-h-[44px] inline-flex items-center rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition">Connect</a>
             </div>
           </SitterCardBody>
         </SitterCard>
       )}
       {googleConnected && (
-        <p className="mb-3 flex items-center gap-1.5 text-xs text-text-tertiary"><span className="h-2 w-2 rounded-full bg-green-500" /> Google Calendar synced</p>
+        <p className="mb-3 flex items-center gap-1.5 text-xs text-text-tertiary"><span className="h-2 w-2 rounded-full bg-status-success-fill" /> Google Calendar synced</p>
       )}
 
       {/* View mode + navigation */}
@@ -225,10 +206,10 @@ function DayView({ date, bookings, googleEvents, conflictIds, onView }: { date: 
         const pos = getBlockPosition(b.startAt, b.endAt);
         const hasConflict = conflictIds.has(b.id);
         return (
-          <button key={b.id} type="button" onClick={() => onView(b.id)} className={`absolute left-10 right-2 rounded-lg border px-2 py-1 text-left overflow-hidden transition hover:opacity-90 min-h-[24px] ${statusBg(b.status)} ${hasConflict ? 'ring-2 ring-red-400' : ''}`} style={{ top: pos.top, height: pos.height, zIndex: 10 }}>
+          <button key={b.id} type="button" onClick={() => onView(b.id)} className={`absolute left-10 right-2 rounded-lg border px-2 py-1 text-left overflow-hidden transition hover:opacity-90 min-h-[24px] ${statusBlockClass(b.status)} ${hasConflict ? 'ring-2 ring-status-danger-fill' : ''}`} style={{ top: pos.top, height: pos.height, zIndex: 10 }}>
             <p className="text-xs font-semibold text-text-primary truncate">{petEmoji(b.pets?.[0]?.species ?? null)} {b.service}</p>
             <p className="text-[10px] text-text-secondary truncate">{formatTime(b.startAt)}\u2013{formatTime(b.endAt)} \u00b7 {b.clientName}</p>
-            {hasConflict && <p className="text-[10px] text-red-600 font-medium">{'\u26a0\ufe0f'} Conflict</p>}
+            {hasConflict && <p className="text-[10px] text-status-danger-text font-medium">{'\u26a0\ufe0f'} Conflict</p>}
           </button>
         );
       })}
@@ -260,7 +241,7 @@ function WeekView({ days, bookingsForDay, googleForDay, conflictIds, currentDate
             <p className={`text-xs font-medium mb-1 ${today ? 'text-accent-primary' : 'text-text-secondary'}`}>{day.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })}</p>
             <div className="space-y-0.5">
               {dayBookings.map((b) => (
-                <button key={b.id} type="button" onClick={() => onView(b.id)} className={`w-full rounded px-1 py-0.5 text-left ${statusBg(b.status)} ${conflictIds.has(b.id) ? 'ring-1 ring-red-400' : ''}`}>
+                <button key={b.id} type="button" onClick={() => onView(b.id)} className={`w-full rounded px-1 py-0.5 text-left ${statusBlockClass(b.status)} ${conflictIds.has(b.id) ? 'ring-1 ring-status-danger-fill' : ''}`}>
                   <p className="text-[10px] text-text-primary font-medium truncate">{formatTime(b.startAt)} {b.service}</p>
                 </button>
               ))}
@@ -282,15 +263,15 @@ function ListView({ bookings, googleEvents, conflictIds, onView }: { bookings: C
   return (
     <div className="space-y-2">
       {bookings.map((b) => (
-        <button key={b.id} type="button" onClick={() => onView(b.id)} className={`w-full rounded-xl border bg-surface-primary px-4 py-3 text-left transition hover:bg-surface-secondary min-h-[44px] ${conflictIds.has(b.id) ? 'border-red-300' : 'border-border-default'}`}>
+        <button key={b.id} type="button" onClick={() => onView(b.id)} className={`w-full rounded-xl border bg-surface-primary px-4 py-3 text-left transition hover:bg-surface-secondary min-h-[44px] ${conflictIds.has(b.id) ? 'border-status-danger-border' : 'border-border-default'}`}>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-text-primary">{b.clientName}</p>
               <p className="text-xs text-text-secondary">{b.service} \u00b7 {formatTime(b.startAt)}\u2013{formatTime(b.endAt)}</p>
               {b.pets?.length > 0 && <p className="text-xs text-text-tertiary">{b.pets.map((p) => p.name || p.species || 'Pet').join(', ')}</p>}
-              {conflictIds.has(b.id) && <p className="text-xs font-medium text-red-600">{'\u26a0\ufe0f'} Schedule conflict</p>}
+              {conflictIds.has(b.id) && <p className="text-xs font-medium text-status-danger-text">{'\u26a0\ufe0f'} Schedule conflict</p>}
             </div>
-            <span className={`shrink-0 h-2.5 w-2.5 rounded-full mt-1.5 ${statusDot(b.status)}`} />
+            <span className={`shrink-0 h-2.5 w-2.5 rounded-full mt-1.5 ${statusDotClass(b.status)}`} />
           </div>
         </button>
       ))}

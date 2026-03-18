@@ -64,6 +64,7 @@ module.exports = {
             border: 'var(--color-status-warning-border)',
             text: 'var(--color-status-warning-text)',
             'text-secondary': 'var(--color-status-warning-text-secondary)',
+            fill: 'var(--color-status-warning-fill)',
           },
           danger: {
             bg: 'var(--color-status-danger-bg)',
@@ -73,6 +74,18 @@ module.exports = {
             fill: 'var(--color-status-danger-fill)',
             'fill-hover': 'var(--color-status-danger-fill-hover)',
             'text-on-fill': 'var(--color-status-danger-text-on-fill)',
+          },
+          info: {
+            bg: 'var(--color-status-info-bg)',
+            border: 'var(--color-status-info-border)',
+            text: 'var(--color-status-info-text)',
+            fill: 'var(--color-status-info-fill)',
+          },
+          purple: {
+            bg: 'var(--color-status-purple-bg)',
+            border: 'var(--color-status-purple-border)',
+            text: 'var(--color-status-purple-text)',
+            fill: 'var(--color-status-purple-fill)',
           },
         },
         // Legacy support

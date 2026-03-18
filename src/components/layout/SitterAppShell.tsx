@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-client';
 import { SITTER_TABS } from '@/lib/sitter-nav';
 import { SitterOfflineBanner } from '@/components/sitter/SitterOfflineBanner';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 const NAV_ITEMS = SITTER_TABS;
 
@@ -96,8 +97,32 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-secondary">
-        <p className="text-sm text-text-tertiary">Loading...</p>
+      <div className="fixed inset-0 flex flex-col bg-surface-secondary" style={{ maxHeight: '100dvh' }}>
+        <header className="flex h-14 items-center justify-between gap-3 border-b border-border-default bg-surface-primary px-4">
+          <div className="flex items-center gap-3">
+            <Skeleton variant="circular" width={36} height={36} />
+            <div className="flex flex-col gap-1">
+              <Skeleton variant="text" width={100} height={16} />
+              <Skeleton variant="text" width={50} height={12} />
+            </div>
+          </div>
+          <Skeleton variant="rectangular" width={44} height={44} style={{ borderRadius: 12 }} />
+        </header>
+        <div className="flex-1 px-4 pt-4">
+          <div className="mx-auto max-w-3xl flex flex-col gap-4">
+            <Skeleton variant="text" width="50%" height={24} />
+            <Skeleton variant="text" width="70%" height={14} />
+            <div className="flex gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} variant="rectangular" height={80} style={{ borderRadius: 12, flex: 1, minWidth: 100 }} />
+              ))}
+            </div>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} variant="rectangular" height={100} style={{ borderRadius: 12 }} />
+            ))}
+          </div>
+        </div>
+        <div className="h-14 border-t border-border-default bg-surface-primary" />
       </div>
     );
   }
@@ -140,7 +165,7 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
               </p>
               <span
                 className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                  availabilityEnabled ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                  availabilityEnabled ? 'bg-status-success-bg text-status-success-text' : 'bg-status-warning-bg text-status-warning-text'
                 }`}
               >
                 {availabilityEnabled ? 'Available' : 'Off'}

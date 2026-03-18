@@ -107,7 +107,7 @@ export default function SitterTrainingPage() {
                   className="flex w-full items-start gap-3 rounded-xl border border-border-default bg-surface-primary px-4 py-3 text-left transition hover:border-border-strong min-h-[44px]"
                 >
                   <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${
-                    completed[m.id] ? 'border-green-500 bg-green-500 text-white' : 'border-border-strong'
+                    completed[m.id] ? 'border-status-success-fill bg-status-success-fill text-text-inverse' : 'border-border-strong'
                   }`}>
                     {completed[m.id] && <i className="fas fa-check text-xs" />}
                   </div>

@@ -283,7 +283,7 @@ export default function SitterEarningsPage() {
                         {t.status}
                       </StatusChip>
                       {t.lastError && (
-                        <span className="text-red-600" title={t.lastError}>(failed)</span>
+                        <span className="text-status-danger-text" title={t.lastError}>(failed)</span>
                       )}
                     </span>
                   )},

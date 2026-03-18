@@ -99,11 +99,11 @@ export default function ClientReportDetailPage() {
 
       <div className="space-y-4 pb-8">
         {hasHealthAlert && (
-          <div className="flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+          <div className="flex items-center gap-3 rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3">
             <span className="text-lg" aria-hidden>{'\u26a0\ufe0f'}</span>
             <div>
-              <p className="text-sm font-semibold text-amber-800">Health concern noted</p>
-              <p className="text-xs text-amber-700">Your sitter flagged a concern during this visit. Review the details below.</p>
+              <p className="text-sm font-semibold text-status-warning-text">Health concern noted</p>
+              <p className="text-xs text-status-warning-text-secondary">Your sitter flagged a concern during this visit. Review the details below.</p>
             </div>
           </div>
         )}
@@ -186,16 +186,16 @@ export default function ClientReportDetailPage() {
                 {details.map((d) => (
                   <div
                     key={d.label}
-                    className={`flex items-start gap-3 ${d.isAlert ? 'rounded-lg border border-amber-300 bg-amber-50 p-2' : ''}`}
+                    className={`flex items-start gap-3 ${d.isAlert ? 'rounded-lg border border-status-warning-border bg-status-warning-bg p-2' : ''}`}
                   >
                     <span className="text-base shrink-0 mt-0.5" aria-hidden>
                       {d.isAlert ? '\u26a0\ufe0f' : d.icon}
                     </span>
                     <div>
-                      <p className={`text-xs font-medium ${d.isAlert ? 'text-amber-700' : 'text-text-tertiary'}`}>
+                      <p className={`text-xs font-medium ${d.isAlert ? 'text-status-warning-text-secondary' : 'text-text-tertiary'}`}>
                         {d.label}{d.isAlert ? ' — Health concern noted' : ''}
                       </p>
-                      <p className={`text-sm ${d.isAlert ? 'text-amber-900 font-medium' : 'text-text-primary'}`}>{d.value}</p>
+                      <p className={`text-sm ${d.isAlert ? 'text-status-warning-text font-medium' : 'text-text-primary'}`}>{d.value}</p>
                     </div>
                   </div>
                 ))}

@@ -19,7 +19,7 @@ export function ClientRefreshButton({ onRefresh, loading, className = '' }: Clie
       disabled={loading}
       aria-label="Refresh"
       title="Refresh"
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-text-tertiary transition hover:bg-surface-tertiary hover:text-text-secondary focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 disabled:opacity-50 ${className}`}
+      className={`flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-md text-text-tertiary transition hover:bg-surface-tertiary hover:text-text-secondary focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 disabled:opacity-50 ${className}`}
     >
       {loading ? (
         <i className="fas fa-circle-notch fa-spin text-sm" aria-hidden />

@@ -14,7 +14,7 @@ export default function SitterReportsPage() {
         action={
           <Link
             href="/sitter/reports/new"
-            className="inline-flex min-h-[36px] items-center justify-center rounded-lg bg-blue-600 px-3 text-sm font-medium text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-accent-primary px-3 text-sm font-medium text-text-inverse transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
           >
             New report
           </Link>

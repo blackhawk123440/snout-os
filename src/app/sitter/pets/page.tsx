@@ -112,7 +112,7 @@ export default function SitterPetsPage() {
           {pets.map((pet) => (
             <SitterCard key={pet.id} onClick={() => router.push(`/sitter/pets/${pet.id}`)}>
               <SitterCardBody className="text-center">
-                <div className="mx-auto mb-2 flex h-12 w-12 min-w-[48px] items-center justify-center rounded-full bg-amber-100 text-lg font-semibold text-amber-800">
+                <div className="mx-auto mb-2 flex h-12 w-12 min-w-[48px] items-center justify-center rounded-full bg-status-warning-bg text-lg font-semibold text-status-warning-text">
                   {(pet.name || '?').charAt(0).toUpperCase()}
                 </div>
                 <p className="truncate font-medium text-text-primary">{pet.name}</p>

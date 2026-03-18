@@ -80,7 +80,7 @@ export default function ClientProfilePage() {
             <AppCardBody>
               <p className="mb-2 text-sm font-medium text-text-primary">Delete account</p>
               <p className="mb-3 text-xs text-text-tertiary">Permanently delete your account. This cannot be undone.</p>
-              <button type="button" onClick={() => setDeleteModalOpen(true)} className="min-h-[44px] rounded-lg border border-red-300 px-4 text-sm font-medium text-red-700 hover:bg-red-50 transition">
+              <button type="button" onClick={() => setDeleteModalOpen(true)} className="min-h-[44px] rounded-lg border border-status-danger-border px-4 text-sm font-medium text-status-danger-text hover:bg-status-danger-bg transition">
                 Delete account
               </button>
             </AppCardBody>
@@ -92,7 +92,7 @@ export default function ClientProfilePage() {
         footer={
           <div className="flex gap-2 justify-end">
             <Button variant="secondary" onClick={() => setDeleteModalOpen(false)} disabled={deleting}>Cancel</Button>
-            <Button variant="secondary" onClick={() => void handleDeleteAccount()} disabled={deleting} className="bg-red-600 text-white hover:bg-red-700">
+            <Button variant="secondary" onClick={() => void handleDeleteAccount()} disabled={deleting} className="bg-status-danger-fill text-status-danger-text-on-fill hover:bg-status-danger-fill-hover">
               {deleting ? 'Deleting...' : 'Delete account'}
             </Button>
           </div>
@@ -361,7 +361,7 @@ function EmergencyContactsSection({ contacts, onChanged }: { contacts: ClientEme
                   <p className="text-sm font-medium text-text-primary">{c.name}{c.relationship ? ` (${c.relationship})` : ''}</p>
                   <a href={`tel:${c.phone}`} className="text-sm text-accent-primary hover:underline">{c.phone}</a>
                 </div>
-                <button type="button" onClick={() => handleDelete(c.id)} className="min-h-[44px] min-w-[44px] text-xs text-red-600 hover:underline">Remove</button>
+                <button type="button" onClick={() => handleDelete(c.id)} className="min-h-[44px] min-w-[44px] text-xs text-status-danger-text-secondary hover:underline">Remove</button>
               </div>
             ))}
           </div>
