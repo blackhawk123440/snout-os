@@ -135,6 +135,28 @@ export async function executePayout(params: {
       occurredAt: pt.createdAt,
     });
 
+    // Create SitterEarning record for earnings tracking
+    const grossAmount = amountCents / 100;
+    const platformFee = grossAmount * 0.2; // 20% platform fee (inverse of 80% commission)
+    await db.sitterEarning.upsert({
+      where: {
+        orgId_sitterId_bookingId: { orgId, sitterId, bookingId },
+      },
+      create: {
+        orgId,
+        sitterId,
+        bookingId,
+        amountGross: grossAmount,
+        platformFee,
+        netAmount: grossAmount - platformFee,
+      },
+      update: {
+        amountGross: grossAmount,
+        platformFee,
+        netAmount: grossAmount - platformFee,
+      },
+    }).catch((e) => console.error("[payout] SitterEarning upsert failed:", e));
+
     await logEvent({
       action: "payout.sent",
       orgId,

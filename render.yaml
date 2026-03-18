@@ -33,6 +33,8 @@ services:
         fromDatabase:
           name: snout-os-db
           property: connectionString
+      - key: STRIPE_MOCK_TRANSFER
+        value: "false"
     healthCheckPath: /api/health
 
   # Background worker (calendar sync, payouts, automations, etc.)

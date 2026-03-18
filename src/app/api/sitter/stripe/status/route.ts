@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { getRequestContext } from "@/lib/request-context";
 import { requireRole, ForbiddenError } from "@/lib/rbac";
 import { getScopedDb } from "@/lib/tenancy";
+import { getAccountStatus } from "@/lib/stripe-connect";
 
 export async function GET() {
   let ctx;
@@ -38,6 +39,38 @@ export async function GET() {
         payoutsEnabled: false,
         chargesEnabled: false,
       });
+    }
+
+    // Refresh status from Stripe if onboarding is not yet complete
+    if (account.accountId && (!account.payoutsEnabled || account.onboardingStatus !== "complete")) {
+      try {
+        const liveStatus = await getAccountStatus(account.accountId);
+        const newOnboardingStatus = liveStatus.detailsSubmitted ? "complete" : "onboarding";
+        if (
+          liveStatus.payoutsEnabled !== account.payoutsEnabled ||
+          liveStatus.chargesEnabled !== account.chargesEnabled ||
+          newOnboardingStatus !== account.onboardingStatus
+        ) {
+          await db.sitterStripeAccount.update({
+            where: { id: account.id },
+            data: {
+              payoutsEnabled: liveStatus.payoutsEnabled,
+              chargesEnabled: liveStatus.chargesEnabled,
+              onboardingStatus: newOnboardingStatus,
+            },
+          });
+          return NextResponse.json({
+            connected: true,
+            accountId: account.accountId,
+            onboardingStatus: newOnboardingStatus,
+            payoutsEnabled: liveStatus.payoutsEnabled,
+            chargesEnabled: liveStatus.chargesEnabled,
+          });
+        }
+      } catch (e) {
+        // If Stripe API fails, return cached status
+        console.error("[Stripe Status] Failed to refresh from Stripe:", e);
+      }
     }
 
     return NextResponse.json({
