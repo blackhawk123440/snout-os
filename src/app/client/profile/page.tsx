@@ -100,6 +100,9 @@ export default function ClientProfilePage() {
           {/* Emergency contacts */}
           <EmergencyContactsSection contacts={contacts} onChanged={load} />
 
+          {/* Referral */}
+          <ReferralSection />
+
           {/* Actions */}
           <AppCard>
             <AppCardBody>
@@ -213,6 +216,72 @@ function EditableProfileSection({ data, onSaved }: { data: ProfileData; onSaved:
             {data.phone && <p className="text-sm text-text-secondary">{data.phone}</p>}
             {data.address ? <p className="text-sm text-text-secondary">{data.address}</p> : <p className="text-sm text-text-tertiary italic">No address on file</p>}
           </div>
+        )}
+      </AppCardBody>
+    </AppCard>
+  );
+}
+
+/* ─── Referral Section ──────────────────────────────────────────────── */
+
+function ReferralSection() {
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referralCount, setReferralCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/client/referral')
+      .then((r) => r.json())
+      .then((data) => {
+        setReferralCode(data.referralCode || null);
+        setReferralCount(data.referralCount || 0);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleCopy = async () => {
+    if (!referralCode) return;
+    const text = `Book pet care with Snout and we both get $10 off! Use code ${referralCode} at snoutservices.com`;
+    if (navigator.share) {
+      try { await navigator.share({ text }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(referralCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  if (loading) return null;
+
+  return (
+    <AppCard>
+      <AppCardHeader>
+        <h3 className="text-sm font-semibold text-text-primary">Refer a Friend</h3>
+      </AppCardHeader>
+      <AppCardBody>
+        <p className="text-sm text-text-secondary mb-3">
+          Share your code and you both get $10 off your next booking!
+        </p>
+        {referralCode ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg border border-border-default bg-surface-secondary px-4 py-2 font-mono text-sm font-semibold text-text-primary tracking-wider">
+                {referralCode}
+              </div>
+              <button type="button" onClick={handleCopy} className="min-h-[44px] rounded-lg border border-border-default px-4 text-sm font-medium text-accent-primary hover:bg-surface-secondary transition">
+                {copied ? 'Copied!' : 'Copy code'}
+              </button>
+            </div>
+            {referralCount > 0 && (
+              <p className="text-xs text-text-tertiary">
+                {referralCount} friend{referralCount !== 1 ? 's' : ''} joined with your code
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-text-tertiary italic">Referral code unavailable</p>
         )}
       </AppCardBody>
     </AppCard>

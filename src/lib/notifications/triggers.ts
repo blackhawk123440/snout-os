@@ -7,6 +7,8 @@
 import { prisma } from '@/lib/db';
 import { logEvent } from '@/lib/log-event';
 import { publish, channels } from '@/lib/realtime/bus';
+import { sendEmail } from '@/lib/email';
+import { bookingConfirmationEmail } from '@/lib/email-templates';
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 
@@ -74,6 +76,21 @@ export async function notifyClientBookingReceived(params: {
 
     const body = `Hi ${params.clientFirstName}, Snout has received your booking request for ${params.service} on ${fmtDate(params.startAt)}! We'll review it and get back to you shortly.`;
     await trySendThreadMessage({ orgId: params.orgId, threadId, body });
+
+    // Also send email if client has an email address (fire-and-forget)
+    const client = await (prisma as any).client.findFirst({
+      where: { id: params.clientId },
+      select: { email: true },
+    });
+    if (client?.email) {
+      const emailTemplate = bookingConfirmationEmail({
+        clientName: params.clientFirstName,
+        service: params.service,
+        date: fmtDate(params.startAt),
+        time: fmtTime(params.startAt),
+      });
+      void sendEmail({ to: client.email, ...emailTemplate }).catch(() => {});
+    }
 
     await logEvent({
       orgId: params.orgId,

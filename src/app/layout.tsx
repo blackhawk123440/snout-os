@@ -8,8 +8,15 @@ import { tokens } from '@/lib/design-tokens';
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Snout OS - Pet Care Management System",
-  description: "Complete pet care management system for booking, sitter management, payments, and automation",
+  title: "Snout OS — Professional Pet Care Management",
+  description: "The all-in-one platform for pet care businesses. Booking, scheduling, sitter management, payments, and client communication.",
+  keywords: ['pet sitting', 'dog walking', 'pet care software', 'pet sitter management', 'booking system'],
+  openGraph: {
+    title: "Snout OS — Professional Pet Care Management",
+    description: "Run your pet care business with one platform. Bookings, sitter dispatch, payments, and client communication.",
+    type: 'website',
+    url: 'https://snoutservices.com',
+  },
 };
 
 export default function RootLayout({
@@ -30,10 +37,11 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
         />
-        {/* Google Ads Global Tag */}
+        <link rel="manifest" href="/manifest.json" />
+        {/* Google Ads + GA4 Global Tag */}
         {/* eslint-disable-next-line @next/next/next-script-for-ga */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11558191297"></script>
-        {/* eslint-disable-next-line @next/next/next-script-for-ga -- inline gtag config for Ads; next/script doesn't support dangerouslySetInnerHTML */}
+        {/* eslint-disable-next-line @next/next/next-script-for-ga -- inline gtag config for Ads + GA4; next/script doesn't support dangerouslySetInnerHTML */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -41,6 +49,7 @@ export default function RootLayout({
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
               gtag('config', 'AW-11558191297');
+              ${process.env.NEXT_PUBLIC_GA4_ID ? `gtag('config', '${process.env.NEXT_PUBLIC_GA4_ID}');` : ''}
             `,
           }}
         />
