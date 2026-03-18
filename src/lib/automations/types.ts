@@ -63,40 +63,40 @@ export interface AutomationSettings {
   };
 }
 
-/** Default: all automations disabled so worker skips until owner enables. */
+/** Default: all automations enabled — zero manual ops from day one. */
 export function getDefaultAutomationSettings(): AutomationSettings {
   return {
     bookingConfirmation: {
-      enabled: false,
+      enabled: true,
       sendToClient: true,
       sendToSitter: false,
       sendToOwner: false,
     },
     nightBeforeReminder: {
-      enabled: false,
+      enabled: true,
       sendToClient: true,
       sendToSitter: true,
       reminderTime: "19:00",
     },
     paymentReminder: {
-      enabled: false,
+      enabled: true,
       sendToClient: true,
       reminderDelay: 24,
       repeatReminder: true,
       repeatInterval: 7,
     },
     sitterAssignment: {
-      enabled: false,
+      enabled: true,
       sendToSitter: true,
       sendToOwner: true,
     },
     postVisitThankYou: {
-      enabled: false,
+      enabled: true,
       sendToClient: true,
       delayAfterVisit: 30,
     },
     ownerNewBookingAlert: {
-      enabled: false,
+      enabled: true,
       sendToOwner: true,
       sendToClient: false,
       ownerPhoneType: "messaging",
