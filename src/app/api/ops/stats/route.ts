@@ -108,6 +108,8 @@ export async function GET(request: NextRequest) {
         revenue: trend(revenue, prevRevenue),
         messagesSent: trend(messagesSent, prevMessagesSent),
       },
+    }, {
+      headers: { 'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=30' },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

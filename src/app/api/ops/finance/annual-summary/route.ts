@@ -90,6 +90,8 @@ export async function GET(request: NextRequest) {
         revenue: s._sum?.totalPrice || 0,
         bookings: s._count?.id || 0,
       })),
+    }, {
+      headers: { 'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=30' },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

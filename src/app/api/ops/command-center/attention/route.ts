@@ -314,6 +314,8 @@ export async function GET(request: Request) {
       meta: {
         totalFailures: automationFailureCount + calendarFailureCount,
       },
+    }, {
+      headers: { 'Cache-Control': 'private, s-maxage=10, stale-while-revalidate=5' },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

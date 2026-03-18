@@ -15,7 +15,9 @@ export async function GET() {
 
   try {
     const clients = await detectChurnRisk(ctx.orgId);
-    return NextResponse.json({ clients });
+    return NextResponse.json({ clients }, {
+      headers: { 'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=30' },
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: 'Failed', message }, { status: 500 });

@@ -345,6 +345,8 @@ export async function GET(request: NextRequest) {
         alerts: attentionItems.filter((i) => i.category === 'alerts'),
         staffing: attentionItems.filter((i) => i.category === 'staffing'),
       },
+    }, {
+      headers: { 'Cache-Control': 'private, s-maxage=10, stale-while-revalidate=5' },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

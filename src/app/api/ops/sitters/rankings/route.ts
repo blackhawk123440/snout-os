@@ -72,7 +72,9 @@ export async function GET() {
 
     rankings.sort((a, b) => b.compositeScore - a.compositeScore);
 
-    return NextResponse.json({ rankings });
+    return NextResponse.json({ rankings }, {
+      headers: { 'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=30' },
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: 'Failed', message }, { status: 500 });

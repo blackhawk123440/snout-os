@@ -144,6 +144,8 @@ export async function GET() {
         paymentLink: b.stripePaymentLinkUrl,
         remindersSent: reminderMap.get(b.id) || 0,
       })),
+    }, {
+      headers: { 'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=30' },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

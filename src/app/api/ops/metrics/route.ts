@@ -80,6 +80,8 @@ export async function GET() {
       revenueYTD: Math.round(revenueYTD * 100) / 100,
       retentionRate: Math.round(retentionRate * 10) / 10,
       timestamp: now.toISOString(),
+    }, {
+      headers: { 'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=30' },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
