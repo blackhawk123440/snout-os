@@ -78,25 +78,19 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const { user, isClient, loading: authLoading } = useAuth();
-  const [clientName, setClientName] = useState<string | null>(null);
   const [headerShadow, setHeaderShadow] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+
+  // Lazy import to avoid circular dependency
+  const { useClientMe } = require('@/lib/api/client-hooks');
+  const { data: meData } = useClientMe(isClient);
+  const clientName = meData?.name ?? (meData?.firstName && meData?.lastName ? `${meData.firstName} ${meData.lastName}`.trim() : null) ?? null;
 
   useEffect(() => {
     if (!authLoading && !isClient) {
       router.replace('/login');
     }
   }, [authLoading, isClient, router]);
-
-  useEffect(() => {
-    if (!isClient) return;
-    fetch('/api/client/me')
-      .then((r) => r.json().catch(() => ({})))
-      .then((me) => {
-        const name = me?.name ?? (me?.firstName && me?.lastName ? `${me.firstName} ${me.lastName}`.trim() : null);
-        setClientName(name);
-      });
-  }, [isClient]);
 
   useEffect(() => {
     const el = mainRef.current;

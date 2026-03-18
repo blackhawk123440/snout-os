@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { LayoutWrapper, PageHeader, ClientRefreshButton } from '@/components/layout';
@@ -11,40 +11,12 @@ import {
   AppStatusPill,
 } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
+import { InteractiveRow } from '@/components/ui/interactive-row';
 import { renderClientPreview } from '@/lib/strip-emojis';
-
-interface HomeData {
-  clientName: string;
-  upcomingCount: number;
-  recentBookings: Array<{
-    id: string;
-    service: string;
-    startAt: string;
-    status: string;
-  }>;
-  latestReport?: {
-    id: string;
-    content: string;
-    createdAt: string;
-    service?: string;
-  } | null;
-}
-
-interface OnboardingStatus {
-  hasAccount: boolean;
-  hasPets: boolean;
-  hasEmergencyContact: boolean;
-  hasAddress: boolean;
-  hasHomeAccess: boolean;
-  completionPercent: number;
-}
+import { useClientHome, useClientOnboardingStatus } from '@/lib/api/client-hooks';
 
 export default function ClientHomePage() {
   const router = useRouter();
-  const [data, setData] = useState<HomeData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   // Check localStorage for dismiss state
@@ -58,42 +30,8 @@ export default function ClientHomePage() {
     } catch { /* ignore */ }
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/client/home');
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Unable to load');
-        setData(null);
-        return;
-      }
-      setData(json);
-    } catch {
-      setError('Unable to load');
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-    // Load onboarding status
-    if (!onboardingDismissed) {
-      fetch('/api/client/onboarding-status')
-        .then((r) => r.ok ? r.json() : null)
-        .then((d) => { if (d) setOnboarding(d); })
-        .catch(() => {});
-    }
-  }, [load, onboardingDismissed]);
-
-  // Poll reports every 45s for real-time feed
-  useEffect(() => {
-    const interval = setInterval(load, 45000);
-    return () => clearInterval(interval);
-  }, [load]);
+  const { data, isLoading: loading, error, refetch } = useClientHome();
+  const { data: onboarding } = useClientOnboardingStatus(!onboardingDismissed);
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
@@ -103,12 +41,12 @@ export default function ClientHomePage() {
       <PageHeader
         title="Home"
         subtitle="Your pet care hub"
-        actions={<ClientRefreshButton onRefresh={load} loading={loading} />}
+        actions={<ClientRefreshButton onRefresh={refetch} loading={loading} />}
       />
       {loading ? (
         <PageSkeleton />
       ) : error ? (
-        <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void load()} />
+        <AppErrorState title="Couldn't load" subtitle={error.message || 'Unable to load'} onRetry={() => void refetch()} />
       ) : data ? (
         <div className="flex w-full flex-col gap-4">
           {/* Onboarding checklist */}
@@ -228,14 +166,11 @@ export default function ClientHomePage() {
               <h2 className="mb-2 text-sm font-semibold tracking-tight text-text-primary">Upcoming & recent</h2>
               <div className="w-full overflow-hidden rounded-xl border border-border-default bg-surface-primary lg:rounded-lg">
                 {data.recentBookings.map((b) => (
-                  <div
+                  <InteractiveRow
                     key={b.id}
-                    role="button"
-                    tabIndex={0}
                     aria-label={`View booking ${b.service}`}
                     onClick={() => router.push(`/client/bookings/${b.id}`)}
-                    onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/bookings/${b.id}`)}
-                    className="flex min-h-[56px] cursor-pointer items-center gap-3 border-b border-border-default px-4 py-1.5 last:border-b-0 hover:bg-surface-secondary active:bg-surface-tertiary lg:min-h-[44px]"
+                    className="last:border-b-0"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-text-primary">{b.service}</p>
@@ -244,7 +179,7 @@ export default function ClientHomePage() {
                     <div className="flex shrink-0">
                       <AppStatusPill status={b.status} />
                     </div>
-                  </div>
+                  </InteractiveRow>
                 ))}
               </div>
             </section>

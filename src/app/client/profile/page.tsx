@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { signOut } from 'next-auth/react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import {
@@ -13,58 +13,25 @@ import {
 import { Button, Modal } from '@/components/ui';
 import { PageSkeleton } from '@/components/ui/loading-state';
 import { toastSuccess, toastError } from '@/lib/toast';
-
-interface ProfileData {
-  firstName: string | null;
-  lastName: string | null;
-  name: string | null;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  keyLocation: string | null;
-  lockboxCode: string | null;
-  doorAlarmCode: string | null;
-  wifiNetwork: string | null;
-  wifiPassword: string | null;
-  entryInstructions: string | null;
-  parkingNotes: string | null;
-}
-
-interface EmergencyContact {
-  id: string;
-  name: string;
-  phone: string;
-  relationship: string | null;
-}
+import {
+  useClientProfile,
+  useUpdateClientProfile,
+  useAddEmergencyContact,
+  useDeleteEmergencyContact,
+  useClientReferral,
+  type ClientProfileData,
+  type ClientEmergencyContact,
+} from '@/lib/api/client-hooks';
 
 const inputClass = 'w-full min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus';
 
 export default function ClientProfilePage() {
-  const [data, setData] = useState<ProfileData | null>(null);
-  const [contacts, setContacts] = useState<EmergencyContact[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading: loading, error, refetch } = useClientProfile();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [profileRes, contactsRes] = await Promise.all([
-        fetch('/api/client/me'),
-        fetch('/api/client/emergency-contacts'),
-      ]);
-      const profileJson = await profileRes.json().catch(() => ({}));
-      const contactsJson = await contactsRes.json().catch(() => ({}));
-      if (!profileRes.ok) { setError(profileJson.error || 'Unable to load'); setData(null); return; }
-      setData(profileJson);
-      setContacts(Array.isArray(contactsJson.contacts) ? contactsJson.contacts : []);
-    } catch { setError('Unable to load profile'); setData(null); }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
+  const profileData = data?.profile ?? null;
+  const contacts = data?.contacts ?? [];
 
   const handleDeleteAccount = async () => {
     setDeleting(true);
@@ -83,27 +50,19 @@ export default function ClientProfilePage() {
       <AppPageHeader
         title="Profile"
         subtitle="Your account"
-        action={<ClientRefreshButton onRefresh={load} loading={loading} />}
+        action={<ClientRefreshButton onRefresh={refetch} loading={loading} />}
       />
       {loading ? (
         <PageSkeleton />
       ) : error ? (
-        <AppErrorState title="Couldn't load profile" subtitle={error} onRetry={() => void load()} />
-      ) : data ? (
+        <AppErrorState title="Couldn't load profile" subtitle={error.message || 'Unable to load'} onRetry={() => void refetch()} />
+      ) : profileData ? (
         <div className="flex flex-col gap-4 pb-8">
-          {/* Profile info */}
-          <EditableProfileSection data={data} onSaved={load} />
-
-          {/* Home access */}
-          <HomeAccessSection data={data} onSaved={load} />
-
-          {/* Emergency contacts */}
-          <EmergencyContactsSection contacts={contacts} onChanged={load} />
-
-          {/* Referral */}
+          <EditableProfileSection data={profileData} onSaved={refetch} />
+          <HomeAccessSection data={profileData} onSaved={refetch} />
+          <EmergencyContactsSection contacts={contacts} onChanged={refetch} />
           <ReferralSection />
 
-          {/* Actions */}
           <AppCard>
             <AppCardBody>
               <div className="space-y-2">
@@ -117,7 +76,6 @@ export default function ClientProfilePage() {
             </AppCardBody>
           </AppCard>
 
-          {/* Delete account */}
           <AppCard>
             <AppCardBody>
               <p className="mb-2 text-sm font-medium text-text-primary">Delete account</p>
@@ -148,10 +106,10 @@ export default function ClientProfilePage() {
 
 /* ─── Editable Profile Section ──────────────────────────────────────── */
 
-function EditableProfileSection({ data, onSaved }: { data: ProfileData; onSaved: () => void }) {
+function EditableProfileSection({ data, onSaved }: { data: ClientProfileData; onSaved: () => void }) {
+  const updateProfile = useUpdateClientProfile();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ firstName: '', lastName: '', email: '', phone: '', address: '' });
-  const [saving, setSaving] = useState(false);
 
   const handleEdit = () => {
     setDraft({
@@ -165,25 +123,18 @@ function EditableProfileSection({ data, onSaved }: { data: ProfileData; onSaved:
   };
 
   const handleSave = async () => {
-    setSaving(true);
     try {
-      const res = await fetch('/api/client/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: draft.firstName.trim() || undefined,
-          lastName: draft.lastName.trim() || undefined,
-          email: draft.email.trim() || null,
-          phone: draft.phone.trim() || undefined,
-          address: draft.address.trim() || null,
-        }),
+      await updateProfile.mutateAsync({
+        firstName: draft.firstName.trim() || null,
+        lastName: draft.lastName.trim() || null,
+        email: draft.email.trim() || null,
+        phone: draft.phone.trim() || null,
+        address: draft.address.trim() || null,
       });
-      if (!res.ok) { const j = await res.json().catch(() => ({})); toastError(j.error || 'Failed to save'); return; }
       toastSuccess('Profile updated');
       setEditing(false);
       onSaved();
     } catch { toastError('Failed to save'); }
-    finally { setSaving(false); }
   };
 
   return (
@@ -206,7 +157,7 @@ function EditableProfileSection({ data, onSaved }: { data: ProfileData; onSaved:
             <div><label className="block text-xs text-text-tertiary mb-1">Address</label><input value={draft.address} onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))} placeholder="123 Main St, City, State" className={inputClass} /></div>
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => setEditing(false)} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary">Cancel</button>
-              <button type="button" onClick={handleSave} disabled={saving} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 disabled:opacity-50">{saving ? 'Saving\u2026' : 'Save'}</button>
+              <button type="button" onClick={handleSave} disabled={updateProfile.isPending} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 disabled:opacity-50">{updateProfile.isPending ? 'Saving\u2026' : 'Save'}</button>
             </div>
           </div>
         ) : (
@@ -225,35 +176,22 @@ function EditableProfileSection({ data, onSaved }: { data: ProfileData; onSaved:
 /* ─── Referral Section ──────────────────────────────────────────────── */
 
 function ReferralSection() {
-  const [referralCode, setReferralCode] = useState<string | null>(null);
-  const [referralCount, setReferralCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useClientReferral();
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/client/referral')
-      .then((r) => r.json())
-      .then((data) => {
-        setReferralCode(data.referralCode || null);
-        setReferralCount(data.referralCount || 0);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
   const handleCopy = async () => {
-    if (!referralCode) return;
-    const text = `Book pet care with Snout and we both get $10 off! Use code ${referralCode} at snoutservices.com`;
+    if (!data?.referralCode) return;
+    const text = `Book pet care with Snout and we both get $10 off! Use code ${data.referralCode} at snoutservices.com`;
     if (navigator.share) {
       try { await navigator.share({ text }); } catch {}
     } else {
-      await navigator.clipboard.writeText(referralCode);
+      await navigator.clipboard.writeText(data.referralCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  if (loading) return null;
+  if (isLoading) return null;
 
   return (
     <AppCard>
@@ -264,19 +202,19 @@ function ReferralSection() {
         <p className="text-sm text-text-secondary mb-3">
           Share your code and you both get $10 off your next booking!
         </p>
-        {referralCode ? (
+        {data?.referralCode ? (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="rounded-lg border border-border-default bg-surface-secondary px-4 py-2 font-mono text-sm font-semibold text-text-primary tracking-wider">
-                {referralCode}
+                {data.referralCode}
               </div>
               <button type="button" onClick={handleCopy} className="min-h-[44px] rounded-lg border border-border-default px-4 text-sm font-medium text-accent-primary hover:bg-surface-secondary transition">
                 {copied ? 'Copied!' : 'Copy code'}
               </button>
             </div>
-            {referralCount > 0 && (
+            {data.referralCount > 0 && (
               <p className="text-xs text-text-tertiary">
-                {referralCount} friend{referralCount !== 1 ? 's' : ''} joined with your code
+                {data.referralCount} friend{data.referralCount !== 1 ? 's' : ''} joined with your code
               </p>
             )}
           </div>
@@ -306,13 +244,13 @@ function MaskedField({ label, value }: { label: string; value: string | null }) 
   );
 }
 
-function HomeAccessSection({ data, onSaved }: { data: ProfileData; onSaved: () => void }) {
+function HomeAccessSection({ data, onSaved }: { data: ClientProfileData; onSaved: () => void }) {
+  const updateProfile = useUpdateClientProfile();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({
     keyLocation: '', lockboxCode: '', doorAlarmCode: '',
     wifiNetwork: '', wifiPassword: '', entryInstructions: '', parkingNotes: '',
   });
-  const [saving, setSaving] = useState(false);
   const hasAny = data.keyLocation || data.lockboxCode || data.doorAlarmCode || data.wifiNetwork || data.entryInstructions || data.parkingNotes;
 
   const handleEdit = () => {
@@ -326,21 +264,14 @@ function HomeAccessSection({ data, onSaved }: { data: ProfileData; onSaved: () =
   };
 
   const handleSave = async () => {
-    setSaving(true);
     try {
       const body: Record<string, string | null> = {};
       for (const [k, v] of Object.entries(draft)) body[k] = v.trim() || null;
-      const res = await fetch('/api/client/me', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) { toastError('Failed to save'); return; }
+      await updateProfile.mutateAsync(body as any);
       toastSuccess('Home access info saved');
       setEditing(false);
       onSaved();
     } catch { toastError('Failed to save'); }
-    finally { setSaving(false); }
   };
 
   return (
@@ -365,7 +296,7 @@ function HomeAccessSection({ data, onSaved }: { data: ProfileData; onSaved: () =
             <div><label className="block text-xs text-text-tertiary mb-1">Parking</label><input value={draft.parkingNotes} onChange={(e) => setDraft((d) => ({ ...d, parkingNotes: e.target.value }))} placeholder="Driveway, street parking\u2026" className={inputClass} /></div>
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => setEditing(false)} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary">Cancel</button>
-              <button type="button" onClick={handleSave} disabled={saving} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 disabled:opacity-50">{saving ? 'Saving\u2026' : 'Save'}</button>
+              <button type="button" onClick={handleSave} disabled={updateProfile.isPending} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 disabled:opacity-50">{updateProfile.isPending ? 'Saving\u2026' : 'Save'}</button>
             </div>
           </div>
         ) : hasAny ? (
@@ -388,34 +319,28 @@ function HomeAccessSection({ data, onSaved }: { data: ProfileData; onSaved: () =
 
 /* ─── Emergency Contacts Section ────────────────────────────────────── */
 
-function EmergencyContactsSection({ contacts, onChanged }: { contacts: EmergencyContact[]; onChanged: () => void }) {
+function EmergencyContactsSection({ contacts, onChanged }: { contacts: ClientEmergencyContact[]; onChanged: () => void }) {
+  const addContact = useAddEmergencyContact();
+  const deleteContact = useDeleteEmergencyContact();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ name: '', phone: '', relationship: '' });
-  const [saving, setSaving] = useState(false);
 
   const handleAdd = async () => {
     if (!draft.name.trim() || !draft.phone.trim()) { toastError('Name and phone are required'); return; }
-    setSaving(true);
     try {
-      const res = await fetch('/api/client/emergency-contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: draft.name.trim(), phone: draft.phone.trim(), relationship: draft.relationship.trim() || undefined }),
-      });
-      if (!res.ok) { toastError('Failed to add contact'); return; }
+      await addContact.mutateAsync({ name: draft.name.trim(), phone: draft.phone.trim(), relationship: draft.relationship.trim() || undefined });
       toastSuccess('Contact added');
       setDraft({ name: '', phone: '', relationship: '' });
       setAdding(false);
       onChanged();
     } catch { toastError('Failed to add contact'); }
-    finally { setSaving(false); }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/client/emergency-contacts/${id}`, { method: 'DELETE' });
-      if (res.ok) { toastSuccess('Contact removed'); onChanged(); }
-      else toastError('Failed to remove');
+      await deleteContact.mutateAsync(id);
+      toastSuccess('Contact removed');
+      onChanged();
     } catch { toastError('Failed to remove'); }
   };
 
@@ -451,7 +376,7 @@ function EmergencyContactsSection({ contacts, onChanged }: { contacts: Emergency
             <input value={draft.relationship} onChange={(e) => setDraft((d) => ({ ...d, relationship: e.target.value }))} placeholder="Relationship (optional)" className={inputClass} />
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => setAdding(false)} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary">Cancel</button>
-              <button type="button" onClick={handleAdd} disabled={saving} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 disabled:opacity-50">{saving ? 'Adding\u2026' : 'Add'}</button>
+              <button type="button" onClick={handleAdd} disabled={addContact.isPending} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 disabled:opacity-50">{addContact.isPending ? 'Adding\u2026' : 'Add'}</button>
             </div>
           </div>
         )}

@@ -49,6 +49,32 @@ module.exports = {
           secondary: 'var(--color-accent-secondary)',
           tertiary: 'var(--color-accent-tertiary)',
         },
+        // Status colors (theme-aware)
+        status: {
+          success: {
+            bg: 'var(--color-status-success-bg)',
+            border: 'var(--color-status-success-border)',
+            text: 'var(--color-status-success-text)',
+            'text-secondary': 'var(--color-status-success-text-secondary)',
+            fill: 'var(--color-status-success-fill)',
+            'fill-muted': 'var(--color-status-success-fill-muted)',
+          },
+          warning: {
+            bg: 'var(--color-status-warning-bg)',
+            border: 'var(--color-status-warning-border)',
+            text: 'var(--color-status-warning-text)',
+            'text-secondary': 'var(--color-status-warning-text-secondary)',
+          },
+          danger: {
+            bg: 'var(--color-status-danger-bg)',
+            border: 'var(--color-status-danger-border)',
+            text: 'var(--color-status-danger-text)',
+            'text-secondary': 'var(--color-status-danger-text-secondary)',
+            fill: 'var(--color-status-danger-fill)',
+            'fill-hover': 'var(--color-status-danger-fill-hover)',
+            'text-on-fill': 'var(--color-status-danger-text-on-fill)',
+          },
+        },
         // Legacy support
         primary: '#432f21',
         primaryLight: '#fce1ef',

@@ -1,69 +1,28 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppCard, AppCardBody, AppErrorState, AppSkeletonList } from '@/components/app';
 import { toastSuccess } from '@/lib/toast';
-
-interface Message {
-  id: string;
-  body: string;
-  direction: string;
-  actorType: string;
-  createdAt: string;
-  isFromClient: boolean;
-}
-
-interface ThreadDetail {
-  id: string;
-  status: string;
-  sitter: { id: string; name: string } | null;
-  booking: { id: string; service: string; startAt: string } | null;
-  messages: Message[];
-}
+import {
+  useClientMessageThread,
+  useSendClientMessage,
+  type ClientMessage,
+  type ClientThreadDetail,
+} from '@/lib/api/client-hooks';
 
 export default function ClientMessageThreadPage() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [thread, setThread] = useState<ThreadDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [composerValue, setComposerValue] = useState('');
-  const [sending, setSending] = useState(false);
 
-  const load = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/client/messages/${id}`);
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Thread not found');
-        setThread(null);
-        return;
-      }
-      setThread(json);
-    } catch {
-      setError('Unable to load thread');
-      setThread(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  // Poll for new messages every 8s so client sees sitter replies in real-time
-  useEffect(() => {
-    const interval = setInterval(() => void load(), 8000);
-    return () => clearInterval(interval);
-  }, [load]);
+  const { data: thread, isLoading: loading, error, refetch } = useClientMessageThread(id);
+  const sendMutation = useSendClientMessage(id);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -71,9 +30,9 @@ export default function ClientMessageThreadPage() {
 
   const handleSend = async () => {
     const body = composerValue.trim();
-    if (!body || !id || sending) return;
+    if (!body || !id || sendMutation.isPending) return;
     const tempId = `pending-${Date.now()}`;
-    const optimisticMsg: Message = {
+    const optimisticMsg: ClientMessage = {
       id: tempId,
       body,
       direction: 'outbound',
@@ -82,36 +41,19 @@ export default function ClientMessageThreadPage() {
       isFromClient: true,
     };
     setComposerValue('');
-    setThread((prev) =>
-      prev ? { ...prev, messages: [...prev.messages, optimisticMsg] } : prev
+    // Optimistic update
+    queryClient.setQueryData<ClientThreadDetail>(['client', 'messages', id], (old) =>
+      old ? { ...old, messages: [...old.messages, optimisticMsg] } : old
     );
-    setSending(true);
     try {
-      const res = await fetch(`/api/client/messages/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body }),
-      });
-      if (res.ok) {
-        toastSuccess('Message sent');
-        void load();
-      } else {
-        setThread((prev) =>
-          prev
-            ? { ...prev, messages: prev.messages.filter((m) => m.id !== tempId) }
-            : prev
-        );
-        setComposerValue(body);
-      }
+      await sendMutation.mutateAsync(body);
+      toastSuccess('Message sent');
     } catch {
-      setThread((prev) =>
-        prev
-          ? { ...prev, messages: prev.messages.filter((m) => m.id !== tempId) }
-          : prev
+      // Roll back optimistic update
+      queryClient.setQueryData<ClientThreadDetail>(['client', 'messages', id], (old) =>
+        old ? { ...old, messages: old.messages.filter((m) => m.id !== tempId) } : old
       );
       setComposerValue(body);
-    } finally {
-      setSending(false);
     }
   };
 
@@ -137,7 +79,7 @@ export default function ClientMessageThreadPage() {
       {loading ? (
         <AppSkeletonList count={3} />
       ) : error ? (
-        <AppErrorState title="Couldn't load thread" subtitle={error} onRetry={() => void load()} />
+        <AppErrorState title="Couldn't load thread" subtitle={error.message || 'Thread not found'} onRetry={() => void refetch()} />
       ) : thread ? (
         <>
           <div className="flex-1 space-y-3">
@@ -186,12 +128,12 @@ export default function ClientMessageThreadPage() {
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && void handleSend()}
               placeholder="Type a message..."
               className="flex-1 rounded-lg border border-border-default px-4 py-3 text-sm focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus"
-              disabled={sending}
+              disabled={sendMutation.isPending}
             />
             <button
               type="button"
               onClick={() => void handleSend()}
-              disabled={!composerValue.trim() || sending}
+              disabled={!composerValue.trim() || sendMutation.isPending}
               className="rounded-lg bg-surface-inverse px-4 py-3 text-sm font-medium text-text-inverse transition hover:opacity-90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
             >
               Send

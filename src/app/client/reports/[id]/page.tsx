@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LayoutWrapper } from '@/components/layout';
 import {
@@ -11,34 +11,7 @@ import {
   AppErrorState,
 } from '@/components/app';
 import { toastSuccess, toastError } from '@/lib/toast';
-
-interface ReportDetail {
-  id: string;
-  content: string;
-  mediaUrls: string | null;
-  walkDuration: number | null;
-  pottyNotes: string | null;
-  foodNotes: string | null;
-  waterNotes: string | null;
-  medicationNotes: string | null;
-  behaviorNotes: string | null;
-  personalNote: string | null;
-  visitStarted: string | null;
-  visitCompleted: string | null;
-  clientRating: number | null;
-  clientFeedback: string | null;
-  ratedAt: string | null;
-  sentAt: string | null;
-  createdAt: string | null;
-  sitterName: string | null;
-  booking: {
-    id: string;
-    service: string;
-    startAt: string | null;
-    endAt: string | null;
-    pets: Array<{ name: string; species: string }>;
-  } | null;
-}
+import { useClientReportDetail, useRateReport } from '@/lib/api/client-hooks';
 
 const formatDate = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '';
@@ -59,35 +32,9 @@ export default function ClientReportDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
-  const [report, setReport] = useState<ReportDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/client/reports/${id}`);
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Report not found');
-        setReport(null);
-        return;
-      }
-      setReport(json);
-    } catch {
-      setError('Unable to load report');
-      setReport(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data: report, isLoading: loading, error, refetch } = useClientReportDetail(id);
 
   if (loading) {
     return (
@@ -102,7 +49,7 @@ export default function ClientReportDetailPage() {
     return (
       <LayoutWrapper variant="narrow">
         <AppPageHeader title="Visit report" />
-        <AppErrorState title="Couldn't load report" subtitle={error || ''} onRetry={() => void load()} />
+        <AppErrorState title="Couldn't load report" subtitle={error?.message || ''} onRetry={() => void refetch()} />
       </LayoutWrapper>
     );
   }
@@ -113,7 +60,6 @@ export default function ClientReportDetailPage() {
   const petName = report.booking?.pets?.[0]?.name || 'Pet';
   const petSpecies = report.booking?.pets?.[0]?.species || '';
 
-  // Visit duration
   let durationText: string | null = null;
   if (report.visitStarted && report.visitCompleted) {
     const diff = new Date(report.visitCompleted).getTime() - new Date(report.visitStarted).getTime();
@@ -121,8 +67,6 @@ export default function ClientReportDetailPage() {
     if (mins > 0) durationText = `${mins} min`;
   }
 
-  // Structured fields
-  // Detect health alerts in content
   const contentLower = (report.content || '').toLowerCase();
   const hasHealthAlert = contentLower.includes('alert') || contentLower.includes('concern') ||
     contentLower.includes('limping') || contentLower.includes('emergency') || contentLower.includes('refused');
@@ -154,7 +98,6 @@ export default function ClientReportDetailPage() {
       />
 
       <div className="space-y-4 pb-8">
-        {/* Health alert banner */}
         {hasHealthAlert && (
           <div className="flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
             <span className="text-lg" aria-hidden>{'\u26a0\ufe0f'}</span>
@@ -165,7 +108,6 @@ export default function ClientReportDetailPage() {
           </div>
         )}
 
-        {/* Hero photo + gallery */}
         {heroPhoto && (
           <AppCard className="overflow-hidden !p-0 lg:!p-0">
             <button
@@ -202,7 +144,6 @@ export default function ClientReportDetailPage() {
           </AppCard>
         )}
 
-        {/* Visit header */}
         <AppCard>
           <AppCardBody>
             <div className="flex items-center gap-3">
@@ -223,14 +164,13 @@ export default function ClientReportDetailPage() {
                 )}
               </div>
             </div>
-            {/* Visit timing */}
             {(report.visitStarted || report.booking?.startAt) && (
               <div className="mt-3 flex items-center gap-2 text-sm text-text-secondary">
-                <span aria-hidden>\u23f1</span>
+                <span aria-hidden>{'\u23f1'}</span>
                 <span>
                   {formatTime(report.visitStarted || report.booking?.startAt || null)}
                   {(report.visitCompleted || report.booking?.endAt) && (
-                    <> \u2192 {formatTime(report.visitCompleted || report.booking?.endAt || null)}</>
+                    <> {'\u2192'} {formatTime(report.visitCompleted || report.booking?.endAt || null)}</>
                   )}
                   {durationText && <span className="text-text-tertiary"> ({durationText})</span>}
                 </span>
@@ -239,7 +179,6 @@ export default function ClientReportDetailPage() {
           </AppCardBody>
         </AppCard>
 
-        {/* Structured details */}
         {details.length > 0 && (
           <AppCard>
             <AppCardBody>
@@ -265,7 +204,6 @@ export default function ClientReportDetailPage() {
           </AppCard>
         )}
 
-        {/* Fallback: raw content if no structured fields */}
         {details.length === 0 && report.content && (
           <AppCard>
             <AppCardBody>
@@ -274,7 +212,6 @@ export default function ClientReportDetailPage() {
           </AppCard>
         )}
 
-        {/* Personal note */}
         {report.personalNote && (
           <AppCard>
             <AppCardBody>
@@ -292,16 +229,14 @@ export default function ClientReportDetailPage() {
           </AppCard>
         )}
 
-        {/* Rating */}
         <RatingSection
           reportId={id}
           currentRating={report.clientRating}
           currentFeedback={report.clientFeedback}
-          onRated={load}
+          onRated={refetch}
         />
       </div>
 
-      {/* Photo Lightbox */}
       {lightboxUrl && (
         <PhotoLightbox
           photos={photos}
@@ -326,53 +261,33 @@ function RatingSection({
   currentFeedback: string | null;
   onRated: () => void;
 }) {
+  const rateMutation = useRateReport(reportId);
   const [rating, setRating] = useState(currentRating ?? 0);
   const [hovered, setHovered] = useState(0);
   const [feedback, setFeedback] = useState(currentFeedback ?? '');
   const [showFeedback, setShowFeedback] = useState(!!currentFeedback);
-  const [saving, setSaving] = useState(false);
   const isRated = currentRating !== null;
 
   const handleRate = async (stars: number) => {
     if (isRated) return;
     setRating(stars);
-    setSaving(true);
     try {
-      const res = await fetch(`/api/client/reports/${reportId}/rate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating: stars, feedback: feedback.trim() || undefined }),
-      });
-      if (!res.ok) {
-        toastError('Failed to save rating');
-        setRating(0);
-        return;
-      }
+      await rateMutation.mutateAsync({ rating: stars, feedback: feedback.trim() || undefined });
       toastSuccess('Thanks for the feedback!');
       onRated();
     } catch {
       toastError('Failed to save rating');
       setRating(0);
-    } finally {
-      setSaving(false);
     }
   };
 
   const submitFeedback = async () => {
     if (!feedback.trim()) return;
-    setSaving(true);
     try {
-      const res = await fetch(`/api/client/reports/${reportId}/rate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating: rating || currentRating || 5, feedback: feedback.trim() }),
-      });
-      if (res.ok) {
-        toastSuccess('Feedback saved');
-        onRated();
-      }
+      await rateMutation.mutateAsync({ rating: rating || currentRating || 5, feedback: feedback.trim() });
+      toastSuccess('Feedback saved');
+      onRated();
     } catch { /* silent */ }
-    setSaving(false);
   };
 
   return (
@@ -382,7 +297,6 @@ function RatingSection({
           {isRated ? 'Your rating' : 'How was this visit?'}
         </p>
 
-        {/* Stars */}
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map((star) => {
             const active = star <= (hovered || rating);
@@ -393,19 +307,18 @@ function RatingSection({
                 onClick={() => !isRated && handleRate(star)}
                 onMouseEnter={() => !isRated && setHovered(star)}
                 onMouseLeave={() => setHovered(0)}
-                disabled={saving || isRated}
+                disabled={rateMutation.isPending || isRated}
                 className={`min-h-[44px] min-w-[44px] text-2xl transition ${
                   active ? 'text-amber-400' : 'text-surface-tertiary'
                 } ${isRated ? 'cursor-default' : 'hover:scale-110 cursor-pointer'}`}
                 aria-label={`${star} star${star !== 1 ? 's' : ''}`}
               >
-                \u2605
+                {'\u2605'}
               </button>
             );
           })}
         </div>
 
-        {/* Feedback */}
         {isRated && currentFeedback && (
           <p className="mt-2 text-sm text-text-secondary italic">&ldquo;{currentFeedback}&rdquo;</p>
         )}
@@ -476,17 +389,15 @@ function PhotoLightbox({
       aria-modal="true"
       aria-label="Photo viewer"
     >
-      {/* Close button */}
       <button
         type="button"
         onClick={onClose}
         className="absolute top-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white text-lg hover:bg-white/30 transition"
         aria-label="Close"
       >
-        \u00d7
+        {'\u00d7'}
       </button>
 
-      {/* Previous */}
       {currentIdx > 0 && (
         <button
           type="button"
@@ -498,7 +409,6 @@ function PhotoLightbox({
         </button>
       )}
 
-      {/* Image */}
       <img
         src={photos[currentIdx]}
         alt={`Photo ${currentIdx + 1} of ${photos.length}`}
@@ -506,7 +416,6 @@ function PhotoLightbox({
         onClick={(e) => e.stopPropagation()}
       />
 
-      {/* Next */}
       {currentIdx < photos.length - 1 && (
         <button
           type="button"
@@ -518,7 +427,6 @@ function PhotoLightbox({
         </button>
       )}
 
-      {/* Counter */}
       {photos.length > 1 && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/20 px-3 py-1 text-xs text-white">
           {currentIdx + 1} / {photos.length}

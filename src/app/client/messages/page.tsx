@@ -1,6 +1,5 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/components/layout';
 import { ClientAtAGlanceSidebarLazy } from '@/components/client/ClientAtAGlanceSidebarLazy';
@@ -9,45 +8,12 @@ import { EmptyState, PageSkeleton } from '@/components/ui';
 import { InteractiveRow } from '@/components/ui/interactive-row';
 import { ClientListSecondaryModule } from '@/components/client/ClientListSecondaryModule';
 import { renderClientPreview } from '@/lib/strip-emojis';
-
-interface Thread {
-  id: string;
-  status: string;
-  lastActivityAt: string | null;
-  sitter: { id: string; name: string } | null;
-  booking: { id: string; service: string; startAt: string | null } | null;
-  preview: string | null;
-}
+import { useClientMessages } from '@/lib/api/client-hooks';
 
 export default function ClientMessagesPage() {
   const router = useRouter();
-  const [threads, setThreads] = useState<Thread[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/client/messages');
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Unable to load messages');
-        setThreads([]);
-        return;
-      }
-      setThreads(Array.isArray(json.threads) ? json.threads : []);
-    } catch {
-      setError('Unable to load messages');
-      setThreads([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data, isLoading: loading, error, refetch } = useClientMessages();
+  const threads = data?.threads ?? [];
 
   const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : '';
@@ -57,7 +23,7 @@ export default function ClientMessagesPage() {
       <PageHeader
         title="Messages"
         subtitle="Chat with your sitter"
-        actions={<ClientRefreshButton onRefresh={load} loading={loading} />}
+        actions={<ClientRefreshButton onRefresh={refetch} loading={loading} />}
       />
       <div className="lg:grid lg:grid-cols-[1fr,auto] lg:gap-6">
         <div className="min-w-0">
@@ -65,7 +31,7 @@ export default function ClientMessagesPage() {
             {loading ? (
               <PageSkeleton />
             ) : error ? (
-              <AppErrorState title="Couldn't load messages" subtitle={error} onRetry={() => void load()} />
+              <AppErrorState title="Couldn't load messages" subtitle={error.message || 'Unable to load messages'} onRetry={() => void refetch()} />
             ) : threads.length === 0 ? (
               <EmptyState
                 title="No messages yet"

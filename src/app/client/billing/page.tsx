@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { ClientAtAGlanceSidebarLazy } from '@/components/client/ClientAtAGlanceSidebarLazy';
@@ -13,84 +13,27 @@ import {
 } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 import { toastSuccess } from '@/lib/toast';
-
-interface BillingData {
-  invoices: Array<{
-    id: string;
-    service: string;
-    startAt: string;
-    totalPrice: number;
-    paymentLink: string | null;
-    paymentStatus: string;
-    sitterName: string | null;
-  }>;
-  payments: Array<{
-    id: string;
-    amount: number;
-    status: string;
-    createdAt: string;
-    bookingId: string | null;
-  }>;
-  paidCompletions: Array<{
-    status: string;
-    amount: number;
-    paidAt: string;
-    bookingService: string | null;
-    bookingStartAt: string | null;
-    invoiceReference: string;
-    receiptLink: string | null;
-  }>;
-  loyalty: { points: number; tier: string };
-}
+import { useClientBilling } from '@/lib/api/client-hooks';
 
 export default function ClientBillingPage() {
   const router = useRouter();
-  const [data, setData] = useState<BillingData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading: loading, error, refetch } = useClientBilling();
+  const polledRef = useRef(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/client/billing');
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Unable to load');
-        setData(null);
-        return;
-      }
-      setData(json);
-    } catch {
-      setError('Unable to load');
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Detect return from Stripe payment — poll once after 2s on mount
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  // Detect return from Stripe payment — poll once after 2s
-  useEffect(() => {
+    if (polledRef.current) return;
+    polledRef.current = true;
     const timer = setTimeout(async () => {
-      if (!data) return;
-      const unpaidBefore = data.invoices.filter((i) => i.paymentStatus !== 'paid').length;
-      if (unpaidBefore === 0) return;
-      const res = await fetch('/api/client/billing').catch(() => null);
-      if (!res?.ok) return;
-      const fresh = await res.json().catch(() => null);
+      const before = data?.invoices.filter((i) => i.paymentStatus !== 'paid').length ?? 0;
+      if (before === 0) return;
+      const { data: fresh } = await refetch();
       if (!fresh) return;
-      const unpaidAfter = (fresh.invoices || []).filter((i: any) => i.paymentStatus !== 'paid').length;
-      if (unpaidAfter < unpaidBefore) {
-        toastSuccess('Payment received! Thank you.');
-        setData(fresh);
-      }
+      const after = fresh.invoices.filter((i) => i.paymentStatus !== 'paid').length;
+      if (after < before) toastSuccess('Payment received! Thank you.');
     }, 2000);
     return () => clearTimeout(timer);
-  }, []); // only run on mount
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
@@ -106,14 +49,14 @@ export default function ClientBillingPage() {
       <AppPageHeader
         title="Billing"
         subtitle="Invoices & payments"
-        action={<ClientRefreshButton onRefresh={load} loading={loading} />}
+        action={<ClientRefreshButton onRefresh={refetch} loading={loading} />}
       />
       <div className="lg:grid lg:grid-cols-[1fr,auto] lg:gap-6">
         <div className="min-w-0">
           {loading ? (
             <PageSkeleton />
           ) : error ? (
-            <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void load()} />
+            <AppErrorState title="Couldn't load" subtitle={error.message || 'Unable to load'} onRetry={() => void refetch()} />
           ) : data ? (
             <div className="space-y-5 pb-8">
               {/* Outstanding balance */}
@@ -152,7 +95,7 @@ export default function ClientBillingPage() {
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-text-primary">
-                                {inv.service} \u2014 {formatDate(inv.startAt)}
+                                {inv.service} {'\u2014'} {formatDate(inv.startAt)}
                               </p>
                               {inv.sitterName && (
                                 <p className="text-xs text-text-tertiary">with {inv.sitterName}</p>
@@ -193,7 +136,7 @@ export default function ClientBillingPage() {
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-text-primary">
-                                {p.bookingService || 'Payment'} {p.bookingStartAt ? `\u2014 ${formatDate(p.bookingStartAt)}` : ''}
+                                {p.bookingService || 'Payment'} {p.bookingStartAt ? `${'\u2014'} ${formatDate(p.bookingStartAt)}` : ''}
                               </p>
                               <div className="mt-0.5 flex items-center gap-2">
                                 <span className="text-lg font-bold tabular-nums text-text-primary">

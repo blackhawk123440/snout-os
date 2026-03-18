@@ -1,27 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { AppPageHeader, AppErrorState } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 import { InteractiveRow } from '@/components/ui/interactive-row';
 import { ClientListSecondaryModule } from '@/components/client/ClientListSecondaryModule';
-
-interface Report {
-  id: string;
-  content: string;
-  mediaUrls: string | null;
-  personalNote: string | null;
-  visitStarted: string | null;
-  visitCompleted: string | null;
-  createdAt: string | null;
-  clientRating: number | null;
-  sentAt: string | null;
-  bookingId: string | null;
-  sitterName: string | null;
-  booking: { id: string; service: string; startAt: string | null } | null;
-}
+import { useClientReports } from '@/lib/api/client-hooks';
 
 function parseFirstPhoto(raw: string | null): string | null {
   if (!raw) return null;
@@ -35,38 +20,8 @@ function parseFirstPhoto(raw: string | null): string | null {
 
 export default function ClientReportsPage() {
   const router = useRouter();
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/client/reports');
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Unable to load reports');
-        setReports([]);
-        return;
-      }
-      setReports(Array.isArray(json.reports) ? json.reports : []);
-    } catch {
-      setError('Unable to load reports');
-      setReports([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    const interval = setInterval(load, 30000);
-    return () => clearInterval(interval);
-  }, [load]);
+  const { data, isLoading: loading, error, refetch } = useClientReports();
+  const reports = data?.reports ?? [];
 
   const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : '';
@@ -76,12 +31,12 @@ export default function ClientReportsPage() {
       <AppPageHeader
         title="Visit reports"
         subtitle="Updates from your sitter"
-        action={<ClientRefreshButton onRefresh={load} loading={loading} />}
+        action={<ClientRefreshButton onRefresh={refetch} loading={loading} />}
       />
       {loading ? (
         <PageSkeleton />
       ) : error ? (
-        <AppErrorState title="Couldn't load reports" subtitle={error} onRetry={() => void load()} />
+        <AppErrorState title="Couldn't load reports" subtitle={error.message || 'Unable to load reports'} onRetry={() => void refetch()} />
       ) : reports.length === 0 ? (
         <EmptyState
           title="No reports yet"
@@ -102,7 +57,6 @@ export default function ClientReportsPage() {
                   aria-label={`View report ${r.booking?.service || 'Visit report'}`}
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    {/* Photo thumbnail or pet icon */}
                     {photo ? (
                       <img
                         src={photo}

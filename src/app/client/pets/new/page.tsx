@@ -6,6 +6,7 @@ import { LayoutWrapper } from '@/components/layout';
 import { AppPageHeader } from '@/components/app';
 import { AppCard, AppCardBody } from '@/components/app';
 import { toastSuccess, toastError } from '@/lib/toast';
+import { useCreateClientPet } from '@/lib/api/client-hooks';
 
 const SPECIES_OPTIONS = ['Dog', 'Cat', 'Bird', 'Fish', 'Reptile', 'Other'];
 const GENDER_OPTIONS = [
@@ -17,7 +18,7 @@ const GENDER_OPTIONS = [
 
 export default function NewPetPage() {
   const router = useRouter();
-  const [saving, setSaving] = useState(false);
+  const createPet = useCreateClientPet();
   const [form, setForm] = useState({
     name: '',
     species: 'Dog',
@@ -32,33 +33,21 @@ export default function NewPetPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.species) return;
-    setSaving(true);
-    try {
-      const body: Record<string, unknown> = {
-        name: form.name.trim(),
-        species: form.species,
-      };
-      if (form.breed.trim()) body.breed = form.breed.trim();
-      if (form.weight) body.weight = parseFloat(form.weight);
-      if (form.gender) body.gender = form.gender;
-      if (form.birthday) body.birthday = form.birthday;
+    const body: Record<string, unknown> = {
+      name: form.name.trim(),
+      species: form.species,
+    };
+    if (form.breed.trim()) body.breed = form.breed.trim();
+    if (form.weight) body.weight = parseFloat(form.weight);
+    if (form.gender) body.gender = form.gender;
+    if (form.birthday) body.birthday = form.birthday;
 
-      const res = await fetch('/api/client/pets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toastError(json.error || 'Failed to add pet');
-        return;
-      }
+    try {
+      const data = await createPet.mutateAsync(body);
       toastSuccess(`${form.name} added!`);
-      router.push(`/client/pets/${json.id}`);
-    } catch {
-      toastError('Failed to add pet');
-    } finally {
-      setSaving(false);
+      router.push(`/client/pets/${data.id}`);
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Failed to add pet');
     }
   };
 
@@ -169,10 +158,10 @@ export default function NewPetPage() {
 
             <button
               type="submit"
-              disabled={saving || !form.name.trim()}
+              disabled={createPet.isPending || !form.name.trim()}
               className="w-full min-h-[44px] rounded-lg bg-accent-primary px-4 py-2 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50"
             >
-              {saving ? 'Adding...' : 'Add pet'}
+              {createPet.isPending ? 'Adding...' : 'Add pet'}
             </button>
           </form>
         </AppCardBody>

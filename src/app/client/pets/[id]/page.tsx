@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LayoutWrapper } from '@/components/layout';
 import {
@@ -12,47 +12,18 @@ import {
   AppErrorState,
 } from '@/components/app';
 import { toastSuccess, toastError } from '@/lib/toast';
+import {
+  useClientPetDetail,
+  useUpdateClientPet,
+  useAddPetHealthLog,
+  type ClientPetDetail,
+  type ClientPetHealthLog,
+  type ClientPetEmergencyContact,
+} from '@/lib/api/client-hooks';
 
-interface HealthLog {
-  id: string;
-  type: string;
-  note: string;
-  createdAt: string;
-}
-
-interface EmergencyContact {
-  id: string;
-  name: string;
-  phone: string;
-  relationship: string | null;
-}
-
-interface PetDetail {
-  id: string;
-  name: string | null;
-  species: string | null;
-  breed: string | null;
-  age: number | null;
-  weight: number | null;
-  gender: string | null;
-  birthday: string | null;
-  color: string | null;
-  microchipId: string | null;
-  isFixed: boolean;
-  photoUrl: string | null;
-  feedingInstructions: string | null;
-  medicationNotes: string | null;
-  behaviorNotes: string | null;
-  houseRules: string | null;
-  walkInstructions: string | null;
-  vetName: string | null;
-  vetPhone: string | null;
-  vetAddress: string | null;
-  vetClinicName: string | null;
-  notes: string | null;
-  healthLogs: HealthLog[];
-  emergencyContacts: EmergencyContact[];
-}
+// Re-export local aliases for sub-component signatures
+type PetDetail = ClientPetDetail;
+type HealthLog = ClientPetHealthLog;
 
 const genderLabel = (g: string | null) => {
   if (g === 'female') return '\u2640';
@@ -83,46 +54,17 @@ export default function ClientPetDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
-  const [pet, setPet] = useState<PetDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/client/pets/${id}`);
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Pet not found');
-        setPet(null);
-        return;
-      }
-      setPet(json);
-    } catch {
-      setError('Unable to load pet');
-      setPet(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data: pet, isLoading: loading, error, refetch } = useClientPetDetail(id);
+  const updatePet = useUpdateClientPet(id);
 
   const savePetField = async (data: Record<string, unknown>) => {
-    const res = await fetch(`/api/client/pets/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}));
-      throw new Error(json.error || 'Failed to save');
-    }
-    return res.json();
+    await updatePet.mutateAsync(data);
+  };
+
+  const onSaved = () => {
+    // Mutation's onSuccess already invalidates the query — no manual refetch needed.
+    // This callback exists for sub-component compatibility.
   };
 
   if (loading) {
@@ -138,7 +80,7 @@ export default function ClientPetDetailPage() {
     return (
       <LayoutWrapper variant="narrow">
         <AppPageHeader title="Pet details" />
-        <AppErrorState title="Couldn't load pet" subtitle={error || ''} onRetry={() => void load()} />
+        <AppErrorState title="Couldn't load pet" subtitle={error?.message || ''} onRetry={() => void refetch()} />
       </LayoutWrapper>
     );
   }
@@ -195,42 +137,42 @@ export default function ClientPetDetailPage() {
         {/* Profile Photo URL edit */}
         <EditableTextSection
           title="Profile Photo"
-          icon="\ud83d\udcf7"
+          icon={'\ud83d\udcf7'}
           value={pet.photoUrl}
           fieldKey="photoUrl"
           placeholder="Paste a photo URL for your pet's profile picture"
           onSave={savePetField}
-          onSaved={load}
+          onSaved={onSaved}
           inputType="url"
         />
 
         {/* Feeding */}
         <EditableTextSection
           title="Feeding"
-          icon="\ud83c\udf7d\ufe0f"
+          icon={'\ud83c\udf7d\ufe0f'}
           value={pet.feedingInstructions}
           fieldKey="feedingInstructions"
           placeholder="No feeding instructions yet. Tap edit to add."
           onSave={savePetField}
-          onSaved={load}
+          onSaved={onSaved}
         />
 
         {/* Medications */}
         <EditableTextSection
           title="Medications"
-          icon="\ud83d\udc8a"
+          icon={'\ud83d\udc8a'}
           value={pet.medicationNotes}
           fieldKey="medicationNotes"
           placeholder="No medication notes yet. Tap edit to add."
           onSave={savePetField}
-          onSaved={load}
+          onSaved={onSaved}
         />
 
         {/* Behavior & Walk Notes */}
         <AppCard>
           <AppCardHeader>
             <div className="flex items-center gap-2">
-              <span aria-hidden>\ud83d\udc3e</span>
+              <span aria-hidden>{'\ud83d\udc3e'}</span>
               <h3 className="text-sm font-semibold text-text-primary lg:text-base">Behavior & Walk Notes</h3>
             </div>
           </AppCardHeader>
@@ -241,7 +183,7 @@ export default function ClientPetDetailPage() {
                 { key: 'walkInstructions', label: 'Walk instructions', value: pet.walkInstructions, placeholder: 'No walk instructions yet.' },
               ]}
               onSave={savePetField}
-              onSaved={load}
+              onSaved={onSaved}
             />
           </AppCardBody>
         </AppCard>
@@ -249,25 +191,25 @@ export default function ClientPetDetailPage() {
         {/* House Rules */}
         <EditableTextSection
           title="House Rules"
-          icon="\ud83c\udfe0"
+          icon={'\ud83c\udfe0'}
           value={pet.houseRules}
           fieldKey="houseRules"
           placeholder="No house rules yet. Tap edit to add."
           onSave={savePetField}
-          onSaved={load}
+          onSaved={onSaved}
         />
 
         {/* Vet Info */}
-        <VetSection pet={pet} onSave={savePetField} onSaved={load} />
+        <VetSection pet={pet} onSave={savePetField} onSaved={onSaved} />
 
         {/* Health Timeline */}
-        <HealthTimelineSection petId={id} healthLogs={pet.healthLogs} onAdded={load} />
+        <HealthTimelineSection petId={id} healthLogs={pet.healthLogs} />
 
         {/* Emergency Contacts */}
         <AppCard>
           <AppCardHeader>
             <div className="flex items-center gap-2">
-              <span aria-hidden>\ud83c\udd98</span>
+              <span aria-hidden>{'\ud83c\udd98'}</span>
               <h3 className="text-sm font-semibold text-text-primary lg:text-base">Emergency Contacts</h3>
             </div>
           </AppCardHeader>
@@ -291,7 +233,7 @@ export default function ClientPetDetailPage() {
                       className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-tertiary text-lg hover:bg-surface-secondary transition"
                       aria-label={`Call ${c.name}`}
                     >
-                      \ud83d\udcde
+                      {'\ud83d\udcde'}
                     </a>
                   </div>
                 ))}
@@ -303,12 +245,12 @@ export default function ClientPetDetailPage() {
         {/* General Notes */}
         <EditableTextSection
           title="Notes"
-          icon="\ud83d\udcdd"
+          icon={'\ud83d\udcdd'}
           value={pet.notes}
           fieldKey="notes"
           placeholder="No additional notes. Tap edit to add."
           onSave={savePetField}
-          onSaved={load}
+          onSaved={onSaved}
         />
       </div>
     </LayoutWrapper>
@@ -575,7 +517,7 @@ function VetSection({
       <AppCardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span aria-hidden>\ud83c\udfe5</span>
+            <span aria-hidden>{'\ud83c\udfe5'}</span>
             <h3 className="text-sm font-semibold text-text-primary lg:text-base">Veterinarian</h3>
           </div>
           {!editing && (
@@ -626,7 +568,7 @@ function VetSection({
                   className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-tertiary text-lg hover:bg-surface-secondary transition"
                   aria-label="Call vet"
                 >
-                  \ud83d\udcde
+                  {'\ud83d\udcde'}
                 </a>
               </div>
             )}
@@ -643,39 +585,25 @@ function VetSection({
 /* ─── Health Timeline Section ───────────────────────────────────────── */
 
 function HealthTimelineSection({
-  petId, healthLogs, onAdded,
+  petId, healthLogs,
 }: {
   petId: string;
   healthLogs: HealthLog[];
-  onAdded: () => void;
 }) {
+  const addHealthLog = useAddPetHealthLog(petId);
   const [adding, setAdding] = useState(false);
   const [type, setType] = useState<string>('daily');
   const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
     if (!note.trim()) return;
-    setSaving(true);
     try {
-      const res = await fetch(`/api/client/pets/${petId}/health-log`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, note: note.trim() }),
-      });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        toastError(json.error || 'Failed to add');
-        return;
-      }
+      await addHealthLog.mutateAsync({ type, note: note.trim() });
       toastSuccess('Health note added');
       setNote('');
       setAdding(false);
-      onAdded();
-    } catch {
-      toastError('Failed to add health note');
-    } finally {
-      setSaving(false);
+    } catch (err) {
+      toastError(err instanceof Error ? err.message : 'Failed to add health note');
     }
   };
 
@@ -684,7 +612,7 @@ function HealthTimelineSection({
       <AppCardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span aria-hidden>\ud83d\udccb</span>
+            <span aria-hidden>{'\ud83d\udccb'}</span>
             <h3 className="text-sm font-semibold text-text-primary lg:text-base">Health Timeline</h3>
           </div>
           {!adding && (
@@ -722,7 +650,7 @@ function HealthTimelineSection({
             />
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => { setAdding(false); setNote(''); }} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary hover:text-text-primary">Cancel</button>
-              <button type="button" onClick={handleSubmit} disabled={saving || !note.trim()} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50">{saving ? 'Adding...' : 'Add'}</button>
+              <button type="button" onClick={handleSubmit} disabled={addHealthLog.isPending || !note.trim()} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50">{addHealthLog.isPending ? 'Adding...' : 'Add'}</button>
             </div>
           </div>
         )}

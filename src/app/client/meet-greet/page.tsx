@@ -5,30 +5,24 @@ import { useRouter } from 'next/navigation';
 import { LayoutWrapper } from '@/components/layout';
 import { AppCard, AppCardBody, AppPageHeader } from '@/components/app';
 import { toastSuccess, toastError } from '@/lib/toast';
+import { useSubmitMeetGreet } from '@/lib/api/client-hooks';
 
 const inputClass = 'w-full min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:border-border-focus focus:outline-none';
 
 export default function MeetGreetPage() {
   const router = useRouter();
+  const submitMutation = useSubmitMeetGreet();
   const [preferredDateTime, setPreferredDateTime] = useState('');
   const [notes, setNotes] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async () => {
     if (!preferredDateTime.trim()) { toastError('Please enter a preferred date/time'); return; }
-    setSubmitting(true);
     try {
-      const res = await fetch('/api/client/meet-greet', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ preferredDateTime: preferredDateTime.trim(), notes: notes.trim() || undefined }),
-      });
-      if (!res.ok) { toastError('Failed to send request'); return; }
+      await submitMutation.mutateAsync({ preferredDateTime: preferredDateTime.trim(), notes: notes.trim() || undefined });
       toastSuccess('Meet & greet request sent!');
       setSent(true);
     } catch { toastError('Failed to send request'); }
-    finally { setSubmitting(false); }
   };
 
   return (
@@ -78,8 +72,8 @@ export default function MeetGreetPage() {
                   className={`${inputClass} resize-y`}
                 />
               </div>
-              <button type="button" onClick={handleSubmit} disabled={submitting} className="w-full min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50">
-                {submitting ? 'Sending\u2026' : 'Request meet & greet'}
+              <button type="button" onClick={handleSubmit} disabled={submitMutation.isPending} className="w-full min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50">
+                {submitMutation.isPending ? 'Sending\u2026' : 'Request meet & greet'}
               </button>
             </div>
           )}

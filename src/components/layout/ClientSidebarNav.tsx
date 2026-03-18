@@ -2,37 +2,32 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { CLIENT_NAV_GROUPS } from '@/lib/client-nav';
 import { cn } from '@/components/ui/utils';
+import { useQuery } from '@tanstack/react-query';
+
+function useDeployInfo() {
+  return useQuery({
+    queryKey: ['deploy-info'],
+    queryFn: async () => {
+      const r = await fetch('/api/health');
+      const data = await r.json().catch(() => ({}));
+      const sha = data.commitSha ?? data.version;
+      const envName = data.envName ?? 'staging';
+      const buildTime = data.buildTime ?? null;
+      return {
+        envName: String(envName),
+        commitSha: sha && sha !== 'unknown' ? String(sha).slice(0, 7) : '',
+        buildTime: buildTime ? String(buildTime) : null,
+      };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
 
 export function ClientSidebarNav() {
   const pathname = usePathname();
-  const [deployInfo, setDeployInfo] = useState<{
-    envName: string;
-    commitSha: string;
-    buildTime: string | null;
-  } | null>(null);
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json().catch(() => ({})))
-      .then((data) => {
-        const sha = data.commitSha ?? data.version;
-        const envName = data.envName ?? 'staging';
-        const buildTime = data.buildTime ?? null;
-        if (sha && sha !== 'unknown') {
-          setDeployInfo({
-            envName: String(envName),
-            commitSha: typeof sha === 'string' ? sha.slice(0, 7) : String(sha).slice(0, 7),
-            buildTime: buildTime ? String(buildTime) : null,
-          });
-        } else {
-          setDeployInfo({ envName: String(envName), commitSha: '', buildTime: buildTime ? String(buildTime) : null });
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { data: deployInfo } = useDeployInfo();
 
   const isActive = (href: string) => {
     if (href === '/client/home') return pathname === '/client/home' || pathname === '/client';

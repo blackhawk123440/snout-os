@@ -1,6 +1,5 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { ClientAtAGlanceSidebarLazy } from '@/components/client/ClientAtAGlanceSidebarLazy';
@@ -12,55 +11,22 @@ import {
   AppErrorState,
 } from '@/components/app';
 import { InteractiveRow } from '@/components/ui/interactive-row';
-
-interface Pet {
-  id: string;
-  name: string | null;
-  species: string | null;
-  breed: string | null;
-  weight: number | null;
-  photoUrl: string | null;
-}
+import { useClientPets } from '@/lib/api/client-hooks';
 
 export default function ClientPetsPage() {
   const router = useRouter();
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading: loading, error, refetch } = useClientPets();
+  const pets = data?.pets ?? [];
 
   const petEmoji = (species: string | null) => {
-    if (!species) return '🐾';
+    if (!species) return '\ud83d\udc3e';
     const s = species.toLowerCase();
-    if (s.includes('dog')) return '🐕';
-    if (s.includes('cat')) return '🐈';
-    if (s.includes('bird')) return '🐦';
-    if (s.includes('fish')) return '🐠';
-    return '🐾';
+    if (s.includes('dog')) return '\ud83d\udc15';
+    if (s.includes('cat')) return '\ud83d\udc08';
+    if (s.includes('bird')) return '\ud83d\udc26';
+    if (s.includes('fish')) return '\ud83d\udc20';
+    return '\ud83d\udc3e';
   };
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/client/pets');
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Unable to load pets');
-        setPets([]);
-        return;
-      }
-      setPets(Array.isArray(json.pets) ? json.pets : []);
-    } catch {
-      setError('Unable to load pets');
-      setPets([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   return (
     <LayoutWrapper variant="narrow">
@@ -69,7 +35,7 @@ export default function ClientPetsPage() {
         subtitle="Your furry family"
         action={
           <div className="flex items-center gap-2">
-            <ClientRefreshButton onRefresh={load} loading={loading} />
+            <ClientRefreshButton onRefresh={refetch} loading={loading} />
             <button
               type="button"
               onClick={() => router.push('/client/pets/new')}
@@ -85,7 +51,7 @@ export default function ClientPetsPage() {
           {loading ? (
             <AppSkeletonList count={3} />
           ) : error ? (
-            <AppErrorState title="Couldn't load pets" subtitle={error} onRetry={() => void load()} />
+            <AppErrorState title="Couldn't load pets" subtitle={error.message || 'Unable to load pets'} onRetry={() => void refetch()} />
           ) : pets.length === 0 ? (
             <AppEmptyState
               title="No pets yet"
@@ -116,7 +82,7 @@ export default function ClientPetsPage() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-text-primary">{p.name || 'Unnamed pet'}</p>
                         <p className="truncate text-sm text-text-secondary">
-                          {[p.species, p.breed, p.weight ? `${p.weight} lbs` : null].filter(Boolean).join(' · ') || 'No details'}
+                          {[p.species, p.breed, p.weight ? `${p.weight} lbs` : null].filter(Boolean).join(' \u00b7 ') || 'No details'}
                         </p>
                       </div>
                     </div>
