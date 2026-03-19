@@ -580,3 +580,56 @@ export function useSubmitMeetGreet() {
       }),
   });
 }
+
+// ─── Recurring schedule hooks ───────────────────────────────────────
+
+export function useClientRecurringSchedules() {
+  return useQuery({
+    queryKey: ['client', 'recurring-schedules'],
+    queryFn: () => clientFetch<{ schedules: any[] }>('/api/client/recurring-schedules'),
+  });
+}
+
+export function useCreateRecurringSchedule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      clientFetch<{ schedule: { id: string }; bookingsCreated: number }>('/api/client/recurring-schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client', 'recurring-schedules'] });
+      qc.invalidateQueries({ queryKey: ['client', 'bookings'] });
+    },
+  });
+}
+
+export function useUpdateRecurringSchedule(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) =>
+      clientFetch(`/api/client/recurring-schedules/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client', 'recurring-schedules'] });
+      qc.invalidateQueries({ queryKey: ['client', 'bookings'] });
+    },
+  });
+}
+
+export function useCancelRecurringSchedule(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      clientFetch(`/api/client/recurring-schedules/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client', 'recurring-schedules'] });
+      qc.invalidateQueries({ queryKey: ['client', 'bookings'] });
+    },
+  });
+}
