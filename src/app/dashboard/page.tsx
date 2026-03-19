@@ -171,7 +171,17 @@ function DashboardContent() {
       const res = await fetch('/api/ops/messaging-status');
       return res.ok ? res.json() : null;
     },
-    staleTime: 300000, // 5 min
+    staleTime: 300000,
+  });
+
+  // Payment analytics
+  const { data: paymentStats } = useQuery({
+    queryKey: ['owner', 'payment-analytics'],
+    queryFn: async () => {
+      const res = await fetch('/api/ops/payment-analytics');
+      return res.ok ? res.json() : null;
+    },
+    staleTime: 60000,
   });
 
   const { data: boardData, isLoading: boardLoading, error: boardError, refetch: refetchBoard } = useQuery({
@@ -287,6 +297,34 @@ function DashboardContent() {
             <Link href="/messaging/twilio-setup" className="min-h-[44px] inline-flex items-center rounded-lg border border-status-warning-border px-3 text-sm font-medium text-status-warning-text hover:opacity-90 transition">
               Set up now
             </Link>
+          </div>
+        )}
+
+        {/* Payment stats strip */}
+        {paymentStats && (
+          <div className="mb-4 flex gap-3 overflow-x-auto pb-1">
+            <div className="shrink-0 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-w-[140px]">
+              <p className="text-xs text-text-tertiary">Today</p>
+              <p className="text-lg font-bold text-text-primary tabular-nums">${paymentStats.collected.today.amount.toFixed(0)}</p>
+            </div>
+            <div className="shrink-0 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-w-[140px]">
+              <p className="text-xs text-text-tertiary">This week</p>
+              <p className="text-lg font-bold text-text-primary tabular-nums">${paymentStats.collected.week.amount.toFixed(0)}</p>
+            </div>
+            {paymentStats.outstanding.count > 0 && (
+              <div className="shrink-0 rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3 min-w-[140px]">
+                <p className="text-xs text-status-warning-text-secondary">Outstanding</p>
+                <p className="text-lg font-bold text-status-warning-text tabular-nums">${paymentStats.outstanding.amount.toFixed(0)}</p>
+                <p className="text-xs text-status-warning-text-secondary">{paymentStats.outstanding.count} unpaid</p>
+              </div>
+            )}
+            {paymentStats.failedPayments > 0 && (
+              <div className="shrink-0 rounded-xl border border-status-danger-border bg-status-danger-bg px-4 py-3 min-w-[140px]">
+                <p className="text-xs text-status-danger-text-secondary">Failed</p>
+                <p className="text-lg font-bold text-status-danger-text tabular-nums">{paymentStats.failedPayments}</p>
+                <p className="text-xs text-status-danger-text-secondary">last 30 days</p>
+              </div>
+            )}
           </div>
         )}
 

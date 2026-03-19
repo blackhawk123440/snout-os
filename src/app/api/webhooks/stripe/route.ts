@@ -171,6 +171,30 @@ export async function POST(request: NextRequest) {
         bookingId,
         pi.receipt_email
       );
+
+      // Payment failure recovery: send SMS to client with payment link to retry
+      if (bookingId) {
+        try {
+          const booking = await db.booking.findUnique({
+            where: { id: bookingId },
+            select: { phone: true, firstName: true, stripePaymentLinkUrl: true, service: true },
+          });
+          if (booking?.phone && booking.stripePaymentLinkUrl) {
+            const { sendMessage } = await import('@/lib/message-utils');
+            const msg = `Hi ${booking.firstName || 'there'}, your payment for ${booking.service || 'your booking'} didn't go through. Please try again: ${booking.stripePaymentLinkUrl}`;
+            void sendMessage(booking.phone, msg, bookingId);
+            await logEvent({
+              orgId,
+              action: 'payment.failed.recovery_sent',
+              bookingId,
+              status: 'success',
+              metadata: { error: err },
+            });
+          }
+        } catch (recoveryErr) {
+          console.error('[Stripe Webhook] Payment failure recovery SMS failed:', recoveryErr);
+        }
+      }
     }
 
     // charge.refunded

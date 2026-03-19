@@ -198,7 +198,13 @@ export default function BookingsEnterprisePage() {
                       mobileOrder: 5,
                       mobileLabel: 'Payment',
                       hideBelow: 'lg',
-                      render: (r) => getStatusPill(r.paymentStatus).label,
+                      render: (r) => {
+                        const ps = r.paymentStatus;
+                        if (ps === 'paid') return <span className="rounded-full bg-status-success-bg px-2 py-0.5 text-xs font-medium text-status-success-text">Paid</span>;
+                        if (ps === 'refunded') return <span className="rounded-full bg-surface-tertiary px-2 py-0.5 text-xs font-medium text-text-secondary">Refunded</span>;
+                        if (['confirmed', 'completed'].includes(r.status)) return <span className="rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-medium text-status-warning-text">Payment required</span>;
+                        return <span className="text-xs text-text-tertiary">Unpaid</span>;
+                      },
                     },
                     {
                       key: 'total',
