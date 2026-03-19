@@ -49,6 +49,9 @@ export async function executePayout(params: {
 }): Promise<{ success: boolean; transferId?: string; payoutTransferId?: string; error?: string }> {
   const { db, orgId, sitterId, bookingId, amountCents, currency = "usd", correlationId } = params;
 
+  // Approval mode: if enabled, create as pending_approval instead of executing
+  const approvalRequired = process.env.PAYOUT_APPROVAL_REQUIRED === 'true';
+
   const existing = await db.payoutTransfer.findFirst({
     where: { orgId, bookingId, sitterId },
   });
@@ -115,12 +118,25 @@ export async function executePayout(params: {
     return { success: false, error: "Sitter has no connected Stripe account" };
   }
 
+  // If approval required, create as pending_approval and stop — owner approves later
+  if (approvalRequired) {
+    const pt = await db.payoutTransfer.create({
+      data: { orgId, sitterId, bookingId, amount: amountCents, currency, status: "pending" },
+    });
+    await logEvent({
+      action: "payout.pending_approval",
+      orgId,
+      correlationId,
+      metadata: { sitterId, bookingId, amountCents, payoutTransferId: pt.id },
+    }).catch(() => {});
+    return { success: true, payoutTransferId: pt.id, error: "Pending owner approval" };
+  }
+
   try {
     const metadata: Record<string, string> = { orgId, sitterId, bookingId };
     if (correlationId) metadata.correlationId = correlationId;
 
     // Create PayoutTransfer record FIRST with status "pending" to prevent data loss
-    // if the Stripe transfer succeeds but DB write fails later
     const pt = await db.payoutTransfer.create({
       data: {
         orgId,
