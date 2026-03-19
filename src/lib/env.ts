@@ -57,6 +57,7 @@ const optionalEnvVars = {
   TWILIO_MESSAGING_SERVICE_SID: process.env.TWILIO_MESSAGING_SERVICE_SID,
   TWILIO_PROXY_SERVICE_SID: process.env.TWILIO_PROXY_SERVICE_SID, // Gate 2: For masking/routing
   TWILIO_WEBHOOK_URL: process.env.TWILIO_WEBHOOK_URL,
+  TWILIO_STATUS_CALLBACK_URL: process.env.TWILIO_STATUS_CALLBACK_URL,
   // Base URL for webhooks (falls back to NEXT_PUBLIC_APP_URL)
   WEBHOOK_BASE_URL: process.env.WEBHOOK_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",

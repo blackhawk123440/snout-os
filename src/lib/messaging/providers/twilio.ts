@@ -255,7 +255,9 @@ export class TwilioProvider implements MessagingProvider {
         from: fromNumber, // Use actual E164 or number SID
         to: options.to,
         // Status callback for delivery tracking
-        statusCallback: process.env.TWILIO_STATUS_CALLBACK_URL || undefined,
+        statusCallback: process.env.TWILIO_STATUS_CALLBACK_URL
+          || (process.env.WEBHOOK_BASE_URL ? `${process.env.WEBHOOK_BASE_URL.replace(/\/$/, '')}/api/messages/webhook/twilio` : undefined)
+          || (process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/api/messages/webhook/twilio` : undefined),
       });
 
       // Log success
