@@ -12,6 +12,15 @@ import { tokens } from '@/lib/design-tokens';
 import { SignalBadge } from '@/components/resonance';
 import { Flex } from '@/components/ui/Flex';
 
+function getServicePillColor(service: string): string {
+  const s = service.toLowerCase();
+  if (s.includes('walk')) return 'var(--color-status-info-fill)';
+  if (s.includes('drop') || s.includes('visit')) return 'var(--color-status-success-fill)';
+  if (s.includes('house') || s.includes('sitting') || s.includes('24/7')) return 'var(--color-status-purple-fill)';
+  if (s.includes('taxi')) return 'var(--color-status-warning-fill)';
+  return 'var(--color-status-info-fill)';
+}
+
 interface CalendarEventBooking {
   id: string;
   firstName: string;
@@ -152,7 +161,7 @@ export function CalendarGrid({
                     style={{
                       fontSize: tokens.typography.fontSize.xs[0],
                       padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                      backgroundColor: criticalSignal ? tokens.colors.error.DEFAULT : tokens.colors.primary.DEFAULT,
+                      backgroundColor: criticalSignal ? tokens.colors.error.DEFAULT : getServicePillColor(booking.service),
                       color: tokens.colors.surface.primary,
                       borderRadius: tokens.radius.sm,
                       textOverflow: 'ellipsis',

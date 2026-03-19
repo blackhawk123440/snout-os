@@ -66,6 +66,16 @@ interface Booking {
 
 type CalendarView = 'day' | 'week' | 'month';
 
+/** Service-based color coding for booking cards */
+function getServiceColor(service: string): { bg: string; border: string; text: string } {
+  const s = service.toLowerCase();
+  if (s.includes('walk')) return { bg: 'var(--color-status-info-bg)', border: 'var(--color-status-info-border)', text: 'var(--color-status-info-text)' };
+  if (s.includes('drop') || s.includes('visit')) return { bg: 'var(--color-status-success-bg)', border: 'var(--color-status-success-border)', text: 'var(--color-status-success-text)' };
+  if (s.includes('house') || s.includes('sitting') || s.includes('24/7')) return { bg: 'var(--color-status-purple-bg)', border: 'var(--color-status-purple-border)', text: 'var(--color-status-purple-text)' };
+  if (s.includes('taxi') || s.includes('transport')) return { bg: 'var(--color-status-warning-bg)', border: 'var(--color-status-warning-border)', text: 'var(--color-status-warning-text)' };
+  return { bg: 'var(--color-status-info-bg)', border: 'var(--color-status-info-border)', text: 'var(--color-status-info-text)' };
+}
+
 function CalendarPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -152,6 +162,44 @@ function CalendarPageContent() {
       }
     }
   }, []);
+
+  // Keyboard shortcuts for calendar navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't capture when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const prev = new Date(currentDate);
+        if (viewMode === 'month') prev.setMonth(prev.getMonth() - 1);
+        else if (viewMode === 'week') prev.setDate(prev.getDate() - 7);
+        else prev.setDate(prev.getDate() - 1);
+        setCurrentDate(prev);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const next = new Date(currentDate);
+        if (viewMode === 'month') next.setMonth(next.getMonth() + 1);
+        else if (viewMode === 'week') next.setDate(next.getDate() + 7);
+        else next.setDate(next.getDate() + 1);
+        setCurrentDate(next);
+      } else if (e.key === 't' && !e.metaKey && !e.ctrlKey) {
+        // 't' for Today
+        setCurrentDate(new Date());
+        setSelectedDate(new Date());
+      } else if (e.key === 'd' && !e.metaKey && !e.ctrlKey) {
+        setViewMode('day');
+      } else if (e.key === 'w' && !e.metaKey && !e.ctrlKey) {
+        setViewMode('week');
+      } else if (e.key === 'm' && !e.metaKey && !e.ctrlKey) {
+        setViewMode('month');
+      } else if (e.key === 'Escape') {
+        setShowBookingDrawer(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentDate, viewMode]);
 
   // Save view preference
   useEffect(() => {
@@ -455,12 +503,17 @@ function CalendarPageContent() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
             {dayViewBookings.map((booking) => {
               const inConflict = conflictBookingIds.has(booking.id);
+              const svcColor = getServiceColor(booking.service);
+              const sitterInitial = booking.sitter
+                ? (booking.sitter.firstName || '?').charAt(0).toUpperCase()
+                : '?';
               return (
                 <div
                   key={booking.id}
                   style={{
                     padding: tokens.spacing[3],
-                    border: `1px solid ${inConflict ? tokens.colors.error[300] : tokens.colors.border.default}`,
+                    border: `1px solid ${inConflict ? tokens.colors.error[300] : svcColor.border}`,
+                    borderLeft: `4px solid ${svcColor.border}`,
                     borderRadius: tokens.radius.md,
                     backgroundColor: tokens.colors.surface.primary,
                     position: 'relative',
@@ -497,12 +550,26 @@ function CalendarPageContent() {
                         </span>
                       )}
                     </div>
-                    <div style={{ color: tokens.colors.text.primary }}>
-                      {booking.firstName} {booking.lastName}
-                    </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                      {booking.service}
-                      {booking.sitter ? ` · ${booking.sitter.firstName} ${booking.sitter.lastName}` : ' · Unassigned'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                      {/* Sitter avatar initial */}
+                      <span style={{
+                        width: 28, height: 28, borderRadius: 14,
+                        backgroundColor: svcColor.bg, color: svcColor.text,
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.bold,
+                        flexShrink: 0,
+                      }}>
+                        {sitterInitial}
+                      </span>
+                      <div>
+                        <div style={{ color: tokens.colors.text.primary }}>
+                          {booking.firstName} {booking.lastName}
+                        </div>
+                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          {booking.service}
+                          {booking.sitter ? ` · ${booking.sitter.firstName} ${booking.sitter.lastName}` : ' · Unassigned'}
+                        </div>
+                      </div>
                     </div>
                   </button>
                   <Button
@@ -652,7 +719,14 @@ function CalendarPageContent() {
           })),
         }))}
         selectedDate={selectedDate}
-        onDateSelect={setSelectedDate}
+        onDateSelect={(date) => {
+          // If clicking same date twice, zoom into day view
+          if (selectedDate && date.getTime() === selectedDate.getTime()) {
+            setViewMode('day');
+            setCurrentDate(date);
+          }
+          setSelectedDate(date);
+        }}
         onEventClick={(booking) => {
           const fullBooking = bookings.find(b => b.id === booking.id);
           if (fullBooking) {
@@ -820,6 +894,17 @@ function CalendarPageContent() {
                       }}
                       aria-label="Next period"
                     />
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => {
+                        setCurrentDate(new Date());
+                        setSelectedDate(new Date());
+                      }}
+                      style={{ marginLeft: tokens.spacing[2] }}
+                    >
+                      Today
+                    </Button>
                   </Flex>
                   <Flex align="center" gap={2}>
                     <Tabs
