@@ -287,8 +287,8 @@ export function CommandCenterContent() {
   };
 
   const severityClass = (severity: AttentionItem['severity']) => {
-    if (severity === 'high') return 'bg-red-100 text-red-700';
-    if (severity === 'medium') return 'bg-amber-100 text-amber-700';
+    if (severity === 'high') return 'bg-status-danger-bg text-status-danger-text';
+    if (severity === 'medium') return 'bg-status-warning-bg text-status-warning-text';
     return 'bg-surface-tertiary text-text-secondary';
   };
   const severityLabel = (severity: AttentionItem['severity']) =>

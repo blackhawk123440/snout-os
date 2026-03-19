@@ -26,7 +26,7 @@ export function AppStatCard({ label, value, icon, trend, sublabel, className = '
           {trend !== undefined && (
             <p
               className={`mt-1 text-xs font-medium ${
-                trend.value >= 0 ? 'text-[var(--color-teal-600)]' : 'text-red-600'
+                trend.value >= 0 ? 'text-[var(--color-teal-600)]' : 'text-status-danger-text-secondary'
               }`}
             >
               {trend.value >= 0 ? '↑' : '↓'} {Math.abs(trend.value)}%{trend.label ? ` ${trend.label}` : ''}

@@ -40,7 +40,7 @@ export function AppSidebar({
           style={{ height: tokens.layout.appShell.topBarHeight }}
         >
           <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-teal-600)] text-white"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-teal-600)] text-text-inverse"
             style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}
           >
             S
@@ -74,7 +74,7 @@ export function AppSidebar({
                 <>
                   <span className="flex-1">{item.label}</span>
                   {item.badge != null && item.badge > 0 && (
-                    <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
+                    <span className="rounded-full bg-status-danger-fill px-2 py-0.5 text-xs font-semibold text-text-inverse">
                       {item.badge}
                     </span>
                   )}

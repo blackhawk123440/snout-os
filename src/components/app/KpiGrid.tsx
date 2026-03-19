@@ -54,7 +54,7 @@ function KpiCard({ item }: { item: KpiItem }) {
             <p
               className={cn(
                 'mt-1 text-xs font-medium',
-                item.delta >= 0 ? 'text-[var(--color-teal-600)]' : 'text-red-600'
+                item.delta >= 0 ? 'text-[var(--color-teal-600)]' : 'text-status-danger-text-secondary'
               )}
             >
               {item.delta >= 0 ? '↑' : '↓'} {Math.abs(item.delta)}% vs prior period

@@ -272,7 +272,7 @@ export default function BookingDetailEnterprisePage() {
                 <div className="font-medium">Payment link delivery</div>
                 <div>Status: {booking.paymentMessageState?.status || 'not sent'}</div>
                 <div>Sent: {booking.paymentMessageState?.sentAt ? new Date(booking.paymentMessageState.sentAt).toLocaleString() : 'N/A'}</div>
-                {booking.paymentMessageState?.error ? <div className="text-red-700">Error: {booking.paymentMessageState.error}</div> : null}
+                {booking.paymentMessageState?.error ? <div className="text-status-danger-text">Error: {booking.paymentMessageState.error}</div> : null}
               </div>
             </div>
             <div className="rounded-lg border p-3">
@@ -292,7 +292,7 @@ export default function BookingDetailEnterprisePage() {
                     ? new Date(calendarProof.lastSyncedAt).toLocaleString()
                     : 'N/A'}
                 </div>
-                {calendarProof?.syncError ? <div className="text-red-700">Error: {calendarProof.syncError}</div> : null}
+                {calendarProof?.syncError ? <div className="text-status-danger-text">Error: {calendarProof.syncError}</div> : null}
                 {calendarProof?.openInGoogleCalendarUrl ? (
                   <a
                     href={calendarProof.openInGoogleCalendarUrl}

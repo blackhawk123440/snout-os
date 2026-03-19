@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useAuth } from '@/lib/auth-client';
 import { cn } from '@/components/ui/utils';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 type OwnerNavItem = {
   label: string;
@@ -323,8 +324,38 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-secondary">
-        <p className="text-sm text-text-tertiary">Loading...</p>
+      <div className="fixed inset-0 flex bg-surface-secondary">
+        <aside className="hidden w-60 shrink-0 border-r border-border-default bg-surface-primary lg:flex lg:flex-col">
+          <div className="flex flex-col gap-3 px-4 pt-6">
+            <Skeleton variant="text" width="70%" height={16} />
+            <div className="mt-4 flex flex-col gap-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} variant="rectangular" height={40} style={{ borderRadius: 8 }} />
+              ))}
+            </div>
+          </div>
+        </aside>
+        <div className="flex flex-1 flex-col">
+          <div className="flex h-14 items-center justify-between border-b border-border-default bg-surface-primary px-6">
+            <Skeleton variant="text" width={160} height={20} />
+            <div className="flex items-center gap-3">
+              <Skeleton variant="rectangular" width={44} height={36} style={{ borderRadius: 8 }} />
+              <Skeleton variant="circular" width={36} height={36} />
+            </div>
+          </div>
+          <div className="flex-1 p-6">
+            <div className="mx-auto max-w-6xl flex flex-col gap-4">
+              <Skeleton variant="text" width="30%" height={28} />
+              <Skeleton variant="text" width="50%" height={14} />
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} variant="rectangular" height={100} style={{ borderRadius: 12 }} />
+                ))}
+              </div>
+              <Skeleton variant="rectangular" height={300} style={{ borderRadius: 12 }} />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

@@ -59,7 +59,7 @@ export function OnboardingChecklist() {
           <div className="border-t border-neutral-100 px-3 pb-2 pt-0">
             <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
               <div
-                className="h-full bg-blue-500 transition-all duration-300"
+                className="h-full bg-accent-primary transition-all duration-300"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -93,7 +93,7 @@ function OnboardingItemRow({ item }: { item: OnboardingItem }) {
       {!item.done && (
         <Link
           href={item.href}
-          className="ml-auto text-xs font-medium text-blue-600 hover:underline"
+          className="ml-auto text-xs font-medium text-accent-primary hover:underline"
         >
           {item.label.includes('Connect') || item.label.includes('Add') ? 'Go' : 'Complete'}
         </Link>

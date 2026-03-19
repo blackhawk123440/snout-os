@@ -180,8 +180,8 @@ export default function RecurringSchedulesPage() {
                           </p>
                         </div>
                         <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                          s.status === 'active' ? 'bg-green-100 text-green-800' :
-                          s.status === 'paused' ? 'bg-amber-100 text-amber-800' :
+                          s.status === 'active' ? 'bg-status-success-bg text-status-success-text' :
+                          s.status === 'paused' ? 'bg-status-warning-bg text-status-warning-text' :
                           'bg-surface-tertiary text-text-secondary'
                         }`}>
                           {s.status}
@@ -191,7 +191,7 @@ export default function RecurringSchedulesPage() {
                         <button type="button" onClick={() => handleAction(s.id, 'generate')} className="min-h-[36px] rounded-lg border border-border-default px-2.5 text-xs font-medium text-text-secondary hover:bg-surface-secondary">Generate</button>
                         {s.status === 'active' && <button type="button" onClick={() => handleAction(s.id, 'pause')} className="min-h-[36px] rounded-lg border border-border-default px-2.5 text-xs font-medium text-text-secondary hover:bg-surface-secondary">Pause</button>}
                         {s.status === 'paused' && <button type="button" onClick={() => handleAction(s.id, 'resume')} className="min-h-[36px] rounded-lg border border-border-default px-2.5 text-xs font-medium text-text-secondary hover:bg-surface-secondary">Resume</button>}
-                        {s.status !== 'cancelled' && <button type="button" onClick={() => handleAction(s.id, 'cancel')} className="min-h-[36px] rounded-lg border border-red-200 px-2.5 text-xs font-medium text-red-600 hover:bg-red-50">Cancel</button>}
+                        {s.status !== 'cancelled' && <button type="button" onClick={() => handleAction(s.id, 'cancel')} className="min-h-[36px] rounded-lg border border-status-danger-border px-2.5 text-xs font-medium text-status-danger-text-secondary hover:bg-status-danger-bg">Cancel</button>}
                         {s.invoicingMode !== 'per_visit' && <button type="button" onClick={() => handleAction(s.id, 'invoice')} className="min-h-[36px] rounded-lg border border-border-default px-2.5 text-xs font-medium text-accent-primary hover:bg-surface-secondary">Send invoice</button>}
                       </div>
                     </div>

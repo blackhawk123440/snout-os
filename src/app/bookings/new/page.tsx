@@ -243,7 +243,7 @@ export default function NewBookingPage() {
         <LayoutWrapper variant="wide">
           <div className="mx-auto max-w-lg py-12">
             <div className="rounded-xl border border-border-default bg-surface-primary p-6 text-center">
-              <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-2xl mb-4">
+              <div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-status-success-bg text-2xl mb-4">
                 {'\u2705'}
               </div>
               <h2 className="text-xl font-bold text-text-primary">Booking Created</h2>

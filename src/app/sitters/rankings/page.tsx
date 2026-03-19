@@ -21,7 +21,7 @@ interface RankedSitter {
 }
 
 const metricColor = (value: number, threshold: number) =>
-  value >= threshold ? 'text-green-700' : value >= threshold * 0.8 ? 'text-amber-700' : 'text-red-700';
+  value >= threshold ? 'text-status-success-text' : value >= threshold * 0.8 ? 'text-status-warning-text' : 'text-status-danger-text';
 
 export default function SitterRankingsPage() {
   const [rankings, setRankings] = useState<RankedSitter[]>([]);
@@ -84,7 +84,7 @@ export default function SitterRankingsPage() {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-text-primary">{s.name}</p>
                       <span className="rounded-full bg-accent-tertiary px-2 py-0.5 text-[10px] font-medium text-accent-primary">{s.tier}</span>
-                      {i === 0 && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">Top performer</span>}
+                      {i === 0 && <span className="rounded-full bg-status-warning-bg px-2 py-0.5 text-[10px] font-bold text-status-warning-text">Top performer</span>}
                     </div>
                     <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
                       <span className={metricColor(s.acceptanceRate, 70)}>Accept: {s.acceptanceRate}%</span>

@@ -41,7 +41,7 @@ export function MobileFilterDrawer({
           <i className="fas fa-filter mr-2" aria-hidden />
           {triggerLabel}
           {activeCount != null && activeCount > 0 && (
-            <span className="ml-2 rounded-full bg-[var(--color-accent-primary)] px-2 py-0.5 text-xs text-white">
+            <span className="ml-2 rounded-full bg-[var(--color-accent-primary)] px-2 py-0.5 text-xs text-text-inverse">
               {activeCount}
             </span>
           )}

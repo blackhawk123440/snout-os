@@ -47,7 +47,7 @@ export function AppFilterBar({
               onClick={() => onViewChange?.(view.id)}
               className={
                 activeView === view.id
-                  ? 'rounded-md bg-[var(--color-teal-600)] px-2.5 py-1 text-xs font-medium text-white'
+                  ? 'rounded-md bg-[var(--color-teal-600)] px-2.5 py-1 text-xs font-medium text-text-inverse'
                   : 'rounded-md px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]'
               }
             >

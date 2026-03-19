@@ -212,8 +212,8 @@ export default function FinancePage() {
                 </div>
 
                 {data.unpaidInvoices.length === 0 ? (
-                  <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-center">
-                    <p className="text-sm font-medium text-green-700">All caught up \u2014 no unpaid invoices</p>
+                  <div className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-center">
+                    <p className="text-sm font-medium text-status-success-text">All caught up \u2014 no unpaid invoices</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -270,7 +270,7 @@ export default function FinancePage() {
                         key={p.chargeId}
                         className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary px-4 py-3"
                       >
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 text-sm">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-status-success-bg text-status-success-text text-sm">
                           {'\u2713'}
                         </span>
                         <div className="min-w-0 flex-1">
@@ -286,7 +286,7 @@ export default function FinancePage() {
                           <button
                             type="button"
                             onClick={() => void issueRefund(p.bookingId!, p.amount)}
-                            className="shrink-0 min-h-[36px] rounded-lg border border-border-default px-2.5 text-xs font-medium text-red-600 hover:bg-red-50 transition"
+                            className="shrink-0 min-h-[36px] rounded-lg border border-border-default px-2.5 text-xs font-medium text-status-danger-text-secondary hover:bg-status-danger-bg transition"
                           >
                             Refund
                           </button>
@@ -412,12 +412,12 @@ function BulkCancelSection({ onDone }: { onDone: () => void }) {
   return (
     <div>
       {!showForm ? (
-        <button type="button" onClick={() => setShowForm(true)} className="text-sm font-medium text-red-600 hover:underline">
+        <button type="button" onClick={() => setShowForm(true)} className="text-sm font-medium text-status-danger-text-secondary hover:underline">
           Bulk cancel bookings (weather/emergency)
         </button>
       ) : (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-3">
-          <p className="text-sm font-semibold text-red-800">Bulk Cancel</p>
+        <div className="rounded-xl border border-status-danger-border bg-status-danger-bg p-4 space-y-3">
+          <p className="text-sm font-semibold text-status-danger-text">Bulk Cancel</p>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
           <select value={reason} onChange={(e) => setReason(e.target.value)} className={inputClass}>
             <option value="weather">Weather</option>
@@ -426,7 +426,7 @@ function BulkCancelSection({ onDone }: { onDone: () => void }) {
             <option value="other">Other</option>
           </select>
           <div className="flex gap-2">
-            <button type="button" onClick={handleBulkCancel} disabled={processing} className="min-h-[44px] flex-1 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50">
+            <button type="button" onClick={handleBulkCancel} disabled={processing} className="min-h-[44px] flex-1 rounded-lg bg-status-danger-fill px-4 text-sm font-semibold text-status-danger-text-on-fill hover:bg-status-danger-fill-hover disabled:opacity-50">
               {processing ? 'Cancelling\u2026' : 'Cancel all bookings'}
             </button>
             <button type="button" onClick={() => setShowForm(false)} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary">Nevermind</button>

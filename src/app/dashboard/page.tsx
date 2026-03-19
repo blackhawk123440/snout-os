@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
 import { Button } from '@/components/ui';
 import { toastSuccess, toastError } from '@/lib/toast';
+import { statusDotClass } from '@/lib/status-colors';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
@@ -106,13 +107,13 @@ const isToday = (dateStr: string) => {
 const statusIndicator = (status: string, checkedInAt: string | null) => {
   switch (status) {
     case 'completed':
-      return { dot: 'bg-green-500', label: 'Complete' };
+      return { dot: 'bg-status-success-fill', label: 'Complete' };
     case 'in_progress':
-      return { dot: checkedInAt ? 'bg-green-500 animate-pulse' : 'bg-green-500', label: 'In progress' };
+      return { dot: checkedInAt ? 'bg-status-success-fill animate-pulse' : 'bg-status-success-fill', label: 'In progress' };
     case 'confirmed':
-      return { dot: 'bg-blue-500', label: 'Upcoming' };
+      return { dot: 'bg-status-info-fill', label: 'Upcoming' };
     case 'pending':
-      return { dot: 'bg-amber-500', label: 'Pending' };
+      return { dot: 'bg-status-warning-fill', label: 'Pending' };
     default:
       return { dot: 'bg-surface-tertiary', label: status };
   }
@@ -121,22 +122,22 @@ const statusIndicator = (status: string, checkedInAt: string | null) => {
 const severityColor = (severity: string) => {
   switch (severity) {
     case 'high':
-      return 'border-l-red-500';
+      return 'border-l-status-danger-fill';
     case 'medium':
-      return 'border-l-amber-500';
+      return 'border-l-status-warning-fill';
     default:
-      return 'border-l-blue-500';
+      return 'border-l-status-info-fill';
   }
 };
 
 const severityBadge = (severity: string) => {
   switch (severity) {
     case 'high':
-      return 'bg-red-100 text-red-800';
+      return 'bg-status-danger-bg text-status-danger-text';
     case 'medium':
-      return 'bg-amber-100 text-amber-800';
+      return 'bg-status-warning-bg text-status-warning-text';
     default:
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-status-info-bg text-status-info-text';
   }
 };
 
@@ -412,13 +413,13 @@ function QuickStatsStrip({ stats }: { stats: BoardStats }) {
         <div
           key={card.label}
           className={`shrink-0 flex-1 min-w-[120px] rounded-xl border bg-surface-primary p-3 lg:p-4 ${
-            card.alert ? 'border-red-300 bg-red-50' : 'border-border-default'
+            card.alert ? 'border-status-danger-border bg-status-danger-bg' : 'border-border-default'
           }`}
         >
-          <p className={`text-xs font-medium ${card.alert ? 'text-red-700' : 'text-text-tertiary'}`}>
+          <p className={`text-xs font-medium ${card.alert ? 'text-status-danger-text' : 'text-text-tertiary'}`}>
             {card.label}
           </p>
-          <p className={`mt-1 text-2xl font-bold ${card.alert ? 'text-red-800' : 'text-text-primary'}`}>
+          <p className={`mt-1 text-2xl font-bold ${card.alert ? 'text-status-danger-text' : 'text-text-primary'}`}>
             {card.value}
           </p>
           {card.sub && (
@@ -582,7 +583,7 @@ function VisitRow({ visit }: { visit: Visit }) {
 
       {/* Payment indicator */}
       {visit.paymentStatus === 'unpaid' && (
-        <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+        <span className="shrink-0 rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-medium text-status-warning-text">
           Unpaid
         </span>
       )}
@@ -602,13 +603,13 @@ function UnassignedCard({
   onAssign: (bookingId: string, sitterId: string) => void;
 }) {
   return (
-    <div className="rounded-xl border-2 border-red-300 bg-red-50 overflow-hidden">
+    <div className="rounded-xl border-2 border-status-danger-border bg-status-danger-bg overflow-hidden">
       <div className="px-4 py-3 lg:px-5 lg:py-4">
-        <p className="text-sm font-semibold text-red-800">
+        <p className="text-sm font-semibold text-status-danger-text">
           Unassigned \u2014 {visits.length} visit{visits.length !== 1 ? 's' : ''}
         </p>
       </div>
-      <div className="border-t border-red-200 divide-y divide-red-200">
+      <div className="border-t border-status-danger-border divide-y divide-status-danger-border">
         {visits.map((visit) => (
           <div key={visit.bookingId} className="px-4 py-3 lg:px-5">
             <div className="flex items-center justify-between gap-3">
@@ -620,7 +621,7 @@ function UnassignedCard({
                   {(() => {
                     const hoursUntil = (new Date(visit.startAt).getTime() - Date.now()) / 3600000;
                     return hoursUntil > 0 && hoursUntil < 4 ? (
-                      <span className="shrink-0 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold text-white uppercase">
+                      <span className="shrink-0 rounded-full bg-status-danger-fill px-2 py-0.5 text-[10px] font-bold text-status-danger-text-on-fill uppercase">
                         Urgent
                       </span>
                     ) : null;
@@ -673,10 +674,10 @@ function AttentionQueue({
 
       {allItems.length === 0 ? (
         <div className="px-4 py-6 lg:px-5 text-center">
-          <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-green-100 text-green-600 mb-2">
+          <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-status-success-bg text-status-success-text mb-2">
             <i className="fas fa-check text-sm" />
           </div>
-          <p className="text-sm font-medium text-green-700">All clear</p>
+          <p className="text-sm font-medium text-status-success-text">All clear</p>
           <p className="text-xs text-text-tertiary mt-0.5">No items need attention right now.</p>
         </div>
       ) : (
