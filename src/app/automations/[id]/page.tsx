@@ -56,6 +56,26 @@ const TYPE_META: Record<
     description: 'Alerts owner when a new booking is created',
     recipients: ['client', 'owner'],
   },
+  checkinNotification: {
+    name: 'Check-In Notification',
+    description: 'Notifies client and owner when sitter starts a visit',
+    recipients: ['client', 'owner'],
+  },
+  checkoutNotification: {
+    name: 'Check-Out Notification',
+    description: 'Notifies client and owner when sitter ends a visit',
+    recipients: ['client', 'owner'],
+  },
+  bookingCancellation: {
+    name: 'Booking Cancellation',
+    description: 'Notifies all parties when a booking is cancelled',
+    recipients: ['client', 'sitter', 'owner'],
+  },
+  visitReportNotification: {
+    name: 'Visit Report Notification',
+    description: 'Notifies client when sitter submits a visit report',
+    recipients: ['client'],
+  },
 };
 
 const RECIPIENT_LABEL: Record<'client' | 'sitter' | 'owner', string> = {

@@ -12,7 +12,11 @@ export type AutomationTypeId =
   | "paymentReminder"
   | "sitterAssignment"
   | "postVisitThankYou"
-  | "ownerNewBookingAlert";
+  | "ownerNewBookingAlert"
+  | "checkinNotification"
+  | "checkoutNotification"
+  | "bookingCancellation"
+  | "visitReportNotification";
 
 export interface AutomationSettings {
   bookingConfirmation: {
@@ -61,6 +65,34 @@ export interface AutomationSettings {
     messageTemplateClient?: string;
     messageTemplateOwner?: string;
   };
+  checkinNotification: {
+    enabled: boolean;
+    sendToClient: boolean;
+    sendToOwner: boolean;
+    messageTemplateClient?: string;
+    messageTemplateOwner?: string;
+  };
+  checkoutNotification: {
+    enabled: boolean;
+    sendToClient: boolean;
+    sendToOwner: boolean;
+    messageTemplateClient?: string;
+    messageTemplateOwner?: string;
+  };
+  bookingCancellation: {
+    enabled: boolean;
+    sendToClient: boolean;
+    sendToSitter: boolean;
+    sendToOwner: boolean;
+    messageTemplateClient?: string;
+    messageTemplateSitter?: string;
+    messageTemplateOwner?: string;
+  };
+  visitReportNotification: {
+    enabled: boolean;
+    sendToClient: boolean;
+    messageTemplateClient?: string;
+  };
 }
 
 /** Default: all automations enabled — zero manual ops from day one. */
@@ -99,7 +131,27 @@ export function getDefaultAutomationSettings(): AutomationSettings {
       enabled: true,
       sendToOwner: true,
       sendToClient: false,
-      ownerPhoneType: "messaging",
+      ownerPhoneType: "personal",
+    },
+    checkinNotification: {
+      enabled: true,
+      sendToClient: true,
+      sendToOwner: true,
+    },
+    checkoutNotification: {
+      enabled: true,
+      sendToClient: true,
+      sendToOwner: true,
+    },
+    bookingCancellation: {
+      enabled: true,
+      sendToClient: true,
+      sendToSitter: true,
+      sendToOwner: true,
+    },
+    visitReportNotification: {
+      enabled: true,
+      sendToClient: true,
     },
   };
 }
@@ -111,4 +163,8 @@ export const AUTOMATION_TYPE_IDS: AutomationTypeId[] = [
   "sitterAssignment",
   "postVisitThankYou",
   "ownerNewBookingAlert",
+  "checkinNotification",
+  "checkoutNotification",
+  "bookingCancellation",
+  "visitReportNotification",
 ];

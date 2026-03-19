@@ -58,9 +58,55 @@ export function initializeEventQueueBridge(): void {
 
   eventEmitter.on("sitter.assigned", async (context: any) => {
     enqueueCalendarForBooking(context.booking, context.correlationId);
+    // Also enqueue sitter assignment automation
+    const bookingId = context.bookingId || context.booking?.id;
+    const sitterId = context.sitterId || context.booking?.sitterId;
+    const orgId = context.booking?.orgId || "default";
+    if (bookingId && sitterId) {
+      try {
+        await enqueueAutomation("sitterAssignment", "sitter", { orgId, bookingId, sitterId }, `sitterAssignment:sitter:${bookingId}:${sitterId}`, context.correlationId);
+        await enqueueAutomation("sitterAssignment", "owner", { orgId, bookingId, sitterId }, `sitterAssignment:owner:${bookingId}:${sitterId}`, context.correlationId);
+      } catch (err) { console.error("[EventQueueBridge] Failed to enqueue sitterAssignment:", err); }
+    }
+  });
+
+  eventEmitter.on("sitter.checked_in", async (context: any) => {
+    const bookingId = context.bookingId;
+    const orgId = context.booking?.orgId || "default";
+    if (!bookingId) return;
+    try {
+      await enqueueAutomation("checkinNotification", "client", { orgId, bookingId, sitterId: context.sitterId }, `checkinNotification:client:${bookingId}`, context.correlationId);
+      await enqueueAutomation("checkinNotification", "owner", { orgId, bookingId, sitterId: context.sitterId }, `checkinNotification:owner:${bookingId}`, context.correlationId);
+    } catch (err) { console.error("[EventQueueBridge] Failed to enqueue checkinNotification:", err); }
+  });
+
+  eventEmitter.on("sitter.checked_out", async (context: any) => {
+    const bookingId = context.bookingId;
+    const orgId = context.booking?.orgId || "default";
+    if (!bookingId) return;
+    try {
+      await enqueueAutomation("checkoutNotification", "client", { orgId, bookingId, sitterId: context.sitterId }, `checkoutNotification:client:${bookingId}`, context.correlationId);
+      await enqueueAutomation("checkoutNotification", "owner", { orgId, bookingId, sitterId: context.sitterId }, `checkoutNotification:owner:${bookingId}`, context.correlationId);
+    } catch (err) { console.error("[EventQueueBridge] Failed to enqueue checkoutNotification:", err); }
   });
 
   eventEmitter.on("booking.status.changed", async (context: any) => {
+    // Handle cancellation
+    if (context.newStatus === "cancelled") {
+      const bookingId = context.bookingId;
+      const orgId = context.booking?.orgId || "default";
+      if (bookingId) {
+        try {
+          await enqueueAutomation("bookingCancellation", "client", { orgId, bookingId }, `bookingCancellation:client:${bookingId}`, context.correlationId);
+          await enqueueAutomation("bookingCancellation", "owner", { orgId, bookingId }, `bookingCancellation:owner:${bookingId}`, context.correlationId);
+          if (context.booking?.sitterId) {
+            await enqueueAutomation("bookingCancellation", "sitter", { orgId, bookingId, sitterId: context.booking.sitterId }, `bookingCancellation:sitter:${bookingId}`, context.correlationId);
+          }
+        } catch (err) { console.error("[EventQueueBridge] Failed to enqueue bookingCancellation:", err); }
+      }
+      return;
+    }
+
     if (context.newStatus !== "confirmed") return;
     const bookingId = context.bookingId;
     const orgId = context.booking?.orgId || "default";

@@ -186,6 +186,10 @@ export async function setAutomationSettings(
     sitterAssignment: { ...current.sitterAssignment, ...(settings.sitterAssignment ?? {}) },
     postVisitThankYou: { ...current.postVisitThankYou, ...(settings.postVisitThankYou ?? {}) },
     ownerNewBookingAlert: { ...current.ownerNewBookingAlert, ...(settings.ownerNewBookingAlert ?? {}) },
+    checkinNotification: { ...current.checkinNotification, ...(settings.checkinNotification ?? {}) },
+    checkoutNotification: { ...current.checkoutNotification, ...(settings.checkoutNotification ?? {}) },
+    bookingCancellation: { ...current.bookingCancellation, ...(settings.bookingCancellation ?? {}) },
+    visitReportNotification: { ...current.visitReportNotification, ...(settings.visitReportNotification ?? {}) },
   };
   await prisma.setting.upsert({
     where: { orgId_key: { orgId: safeOrgId, key: AUTOMATION_SETTINGS_KEY } },

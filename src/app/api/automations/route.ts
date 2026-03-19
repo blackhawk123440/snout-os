@@ -44,6 +44,26 @@ const TYPE_META: Record<
     description: "Alerts owner when a new booking is created",
     category: "notification",
   },
+  checkinNotification: {
+    name: "Check-In Notification",
+    description: "Notifies client and owner when sitter starts a visit",
+    category: "notification",
+  },
+  checkoutNotification: {
+    name: "Check-Out Notification",
+    description: "Notifies client and owner when sitter ends a visit",
+    category: "notification",
+  },
+  bookingCancellation: {
+    name: "Booking Cancellation",
+    description: "Notifies all parties when a booking is cancelled",
+    category: "booking",
+  },
+  visitReportNotification: {
+    name: "Visit Report Notification",
+    description: "Notifies client when sitter submits a visit report",
+    category: "notification",
+  },
 };
 
 export async function GET() {

@@ -13,6 +13,7 @@ import { sendMessage } from "./message-utils";
 import { logEventFromLogger } from "./event-logger";
 import { getOwnerPhone, getSitterPhone } from "./phone-utils";
 import { sendAutomationMessageViaThread } from "./bookings/automation-thread-sender";
+import { notifyOwnerPersonalPhone } from "./automation-owner-notify";
 import { onBookingConfirmed } from "./bookings/booking-confirmed-handler";
 import { redactPhoneNumber } from "./messaging/logging-helpers";
 import { 
@@ -112,7 +113,19 @@ export async function executeAutomationForRecipient(
     
     case "postVisitThankYou":
       return await executePostVisitThankYou(recipient, context, booking);
-    
+
+    case "checkinNotification":
+      return await executeCheckinNotification(recipient, context, booking);
+
+    case "checkoutNotification":
+      return await executeCheckoutNotification(recipient, context, booking);
+
+    case "bookingCancellation":
+      return await executeBookingCancellation(recipient, context, booking);
+
+    case "visitReportNotification":
+      return await executeVisitReportNotification(recipient, context, booking);
+
     default:
       return {
         success: false,
@@ -1030,4 +1043,136 @@ async function executePostVisitThankYou(
   }
 
   return { success: false, error: `Unsupported recipient for postVisitThankYou: ${recipient}` };
+}
+
+// ─── Check-In Notification ─────────────────────────────────────────
+
+async function executeCheckinNotification(
+  recipient: string,
+  context: AutomationContext,
+  booking: any
+): Promise<AutomationResult> {
+  const orgId = context.orgId || booking.orgId || "default";
+  const shouldSend = await shouldSendToRecipient("checkinNotification", recipient as any, orgId);
+  if (!shouldSend) return { success: true, message: "Skipped — disabled for this recipient" };
+
+  const sitterName = booking.sitter?.name || booking.sitter?.firstName || "your sitter";
+  const clientName = `${booking.firstName || ""} ${booking.lastName || ""}`.trim() || "Client";
+
+  if (recipient === "client") {
+    const defaultMsg = `Hi {{firstName}}, your sitter {{sitterName}} has started your {{service}} visit. We'll update you when it's complete!`;
+    const template = await getMessageTemplate("checkinNotification", "client", orgId) || defaultMsg;
+    const message = replaceTemplateVariables(template, { firstName: booking.firstName, sitterName, service: booking.service });
+    const phone = booking.phone || booking.client?.phone;
+    if (phone) await sendMessage(phone, message, booking.id);
+    await notifyOwnerPersonalPhone({ bookingId: booking.id, message: `Sitter ${sitterName} checked in for ${booking.service} — ${clientName}`, automationType: "checkinNotification" });
+    return { success: true, message: "Check-in notification sent to client" };
+  }
+
+  if (recipient === "owner") {
+    const message = `Sitter ${sitterName} checked in for ${booking.service} — ${clientName}`;
+    await notifyOwnerPersonalPhone({ bookingId: booking.id, message, automationType: "checkinNotification" });
+    return { success: true, message: "Check-in notification sent to owner" };
+  }
+
+  return { success: true, message: "Skipped" };
+}
+
+// ─── Check-Out Notification ────────────────────────────────────────
+
+async function executeCheckoutNotification(
+  recipient: string,
+  context: AutomationContext,
+  booking: any
+): Promise<AutomationResult> {
+  const orgId = context.orgId || booking.orgId || "default";
+  const shouldSend = await shouldSendToRecipient("checkoutNotification", recipient as any, orgId);
+  if (!shouldSend) return { success: true, message: "Skipped — disabled for this recipient" };
+
+  const sitterName = booking.sitter?.name || booking.sitter?.firstName || "your sitter";
+  const clientName = `${booking.firstName || ""} ${booking.lastName || ""}`.trim() || "Client";
+
+  if (recipient === "client") {
+    const defaultMsg = `Hi {{firstName}}, your {{service}} visit is complete! Your sitter {{sitterName}} has checked out. A visit report will follow shortly.`;
+    const template = await getMessageTemplate("checkoutNotification", "client", orgId) || defaultMsg;
+    const message = replaceTemplateVariables(template, { firstName: booking.firstName, sitterName, service: booking.service });
+    const phone = booking.phone || booking.client?.phone;
+    if (phone) await sendMessage(phone, message, booking.id);
+    await notifyOwnerPersonalPhone({ bookingId: booking.id, message: `Visit complete: ${sitterName} checked out — ${booking.service} for ${clientName}`, automationType: "checkoutNotification" });
+    return { success: true, message: "Check-out notification sent to client" };
+  }
+
+  if (recipient === "owner") {
+    const message = `Visit complete: ${sitterName} checked out — ${booking.service} for ${clientName}`;
+    await notifyOwnerPersonalPhone({ bookingId: booking.id, message, automationType: "checkoutNotification" });
+    return { success: true, message: "Check-out notification sent to owner" };
+  }
+
+  return { success: true, message: "Skipped" };
+}
+
+// ─── Booking Cancellation ──────────────────────────────────────────
+
+async function executeBookingCancellation(
+  recipient: string,
+  context: AutomationContext,
+  booking: any
+): Promise<AutomationResult> {
+  const orgId = context.orgId || booking.orgId || "default";
+  const shouldSend = await shouldSendToRecipient("bookingCancellation", recipient as any, orgId);
+  if (!shouldSend) return { success: true, message: "Skipped — disabled for this recipient" };
+
+  const clientName = `${booking.firstName || ""} ${booking.lastName || ""}`.trim() || "Client";
+  const dateStr = booking.startAt ? new Date(booking.startAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "";
+
+  if (recipient === "client") {
+    const defaultMsg = `Hi {{firstName}}, your {{service}} booking on {{datesTimes}} has been cancelled. Please contact us if you have questions.`;
+    const template = await getMessageTemplate("bookingCancellation", "client", orgId) || defaultMsg;
+    const message = replaceTemplateVariables(template, { firstName: booking.firstName, service: booking.service, datesTimes: dateStr });
+    const phone = booking.phone || booking.client?.phone;
+    if (phone) await sendMessage(phone, message, booking.id);
+    await notifyOwnerPersonalPhone({ bookingId: booking.id, message: `Booking cancelled: ${booking.service} for ${clientName} on ${dateStr}`, automationType: "bookingCancellation" });
+    return { success: true, message: "Cancellation notification sent to client" };
+  }
+
+  if (recipient === "sitter") {
+    const sitterPhone = await getSitterPhone(booking.sitterId, orgId);
+    if (sitterPhone) {
+      const message = `A booking has been cancelled: ${booking.service} for ${clientName} on ${dateStr}`;
+      await sendMessage(sitterPhone, message, booking.id);
+    }
+    return { success: true, message: "Cancellation notification sent to sitter" };
+  }
+
+  if (recipient === "owner") {
+    const message = `Booking cancelled: ${booking.service} for ${clientName} on ${dateStr}`;
+    await notifyOwnerPersonalPhone({ bookingId: booking.id, message, automationType: "bookingCancellation" });
+    return { success: true, message: "Cancellation notification sent to owner" };
+  }
+
+  return { success: true, message: "Skipped" };
+}
+
+// ─── Visit Report Notification ─────────────────────────────────────
+
+async function executeVisitReportNotification(
+  recipient: string,
+  context: AutomationContext,
+  booking: any
+): Promise<AutomationResult> {
+  const orgId = context.orgId || booking.orgId || "default";
+  const shouldSend = await shouldSendToRecipient("visitReportNotification", recipient as any, orgId);
+  if (!shouldSend) return { success: true, message: "Skipped — disabled for this recipient" };
+
+  if (recipient === "client") {
+    const defaultMsg = `Hi {{firstName}}, your sitter has submitted a visit report for {{service}}. View it in your client portal!`;
+    const template = await getMessageTemplate("visitReportNotification", "client", orgId) || defaultMsg;
+    const message = replaceTemplateVariables(template, { firstName: booking.firstName, service: booking.service });
+    const phone = booking.phone || booking.client?.phone;
+    if (phone) await sendMessage(phone, message, booking.id);
+    await notifyOwnerPersonalPhone({ bookingId: booking.id, message: `Visit report submitted for ${booking.service} — ${booking.firstName}`, automationType: "visitReportNotification" });
+    return { success: true, message: "Visit report notification sent to client" };
+  }
+
+  return { success: true, message: "Skipped" };
 }
