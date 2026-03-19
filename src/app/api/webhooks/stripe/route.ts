@@ -273,6 +273,50 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // transfer.failed — Stripe Connect transfer to sitter failed
+    if ((event.type as string) === 'transfer.failed') {
+      const transfer = event.data.object as any;
+      const transferId = transfer.id;
+      const { prisma } = await import('@/lib/db');
+      const pt = await (prisma as any).payoutTransfer.findFirst({
+        where: { stripeTransferId: transferId },
+      });
+      if (pt) {
+        await (prisma as any).payoutTransfer.update({
+          where: { id: pt.id },
+          data: { status: 'failed', lastError: 'Stripe transfer failed' },
+        });
+        await logEvent({
+          orgId: pt.orgId,
+          action: 'payout.transfer_failed',
+          status: 'failed',
+          metadata: { transferId, sitterId: pt.sitterId, bookingId: pt.bookingId },
+        }).catch(() => {});
+      }
+    }
+
+    // transfer.reversed — Stripe reversed a Connect transfer (compliance, dispute, etc.)
+    if ((event.type as string) === 'transfer.reversed') {
+      const transfer = event.data.object as any;
+      const transferId = transfer.id;
+      const { prisma } = await import('@/lib/db');
+      const pt = await (prisma as any).payoutTransfer.findFirst({
+        where: { stripeTransferId: transferId },
+      });
+      if (pt) {
+        await (prisma as any).payoutTransfer.update({
+          where: { id: pt.id },
+          data: { status: 'failed', lastError: 'Transfer reversed by Stripe' },
+        });
+        await logEvent({
+          orgId: pt.orgId,
+          action: 'payout.transfer_reversed',
+          status: 'failed',
+          metadata: { transferId, sitterId: pt.sitterId, bookingId: pt.bookingId, reversalAmount: transfer.amount_reversed },
+        }).catch(() => {});
+      }
+    }
+
     return NextResponse.json({ received: true }, { status: 200 });
   } catch (error: any) {
     console.error('[Stripe Webhook] Error:', error);

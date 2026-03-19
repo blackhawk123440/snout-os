@@ -97,16 +97,40 @@ export async function POST(
       data: { paymentStatus: isFullRefund ? 'refunded' : 'partial_refund' },
     });
 
+    // Check if sitter was already paid — flag for manual resolution
+    let sitterPayoutWarning: string | null = null;
+    const existingPayout = await db.payoutTransfer.findFirst({
+      where: { orgId: ctx.orgId, bookingId, status: 'paid' },
+      select: { id: true, sitterId: true, amount: true, stripeTransferId: true },
+    });
+    if (existingPayout) {
+      sitterPayoutWarning = `Sitter was already paid $${(existingPayout.amount / 100).toFixed(2)} (transfer ${existingPayout.stripeTransferId}). Manual reversal or deduction from next payout required.`;
+      await logEvent({
+        orgId: ctx.orgId,
+        action: 'payout.reversal_needed',
+        bookingId,
+        status: 'pending',
+        metadata: {
+          refundId: refund.id,
+          payoutTransferId: existingPayout.id,
+          sitterId: existingPayout.sitterId,
+          payoutAmount: existingPayout.amount,
+          refundAmount: refundCents,
+        },
+      }).catch(() => {});
+    }
+
     await logEvent({
       orgId: ctx.orgId,
       action: 'payment.refunded',
       bookingId,
       status: 'success',
-      metadata: { refundId: refund.id, amount: refundDollars, full: isFullRefund },
+      metadata: { refundId: refund.id, amount: refundDollars, full: isFullRefund, sitterPayoutWarning },
     });
 
     return NextResponse.json({
       success: true,
+      sitterPayoutWarning,
       refundId: refund.id,
       amount: refundDollars,
       full: isFullRefund,

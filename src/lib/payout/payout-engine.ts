@@ -97,30 +97,64 @@ export async function executePayout(params: {
         reason: "no_connected_account",
       },
     }).catch(() => {});
+    // Notify sitter to complete Stripe Connect onboarding
+    try {
+      const sitter = await db.sitter.findUnique({
+        where: { id: sitterId },
+        select: { phone: true, firstName: true },
+      });
+      if (sitter?.phone) {
+        const { sendMessage } = await import("@/lib/message-utils");
+        void sendMessage(
+          sitter.phone,
+          `Hi ${sitter.firstName || "there"}, you have a pending payout of $${(amountCents / 100).toFixed(2)} but your Stripe account isn't set up yet. Go to your profile to connect Stripe and receive your earnings.`,
+          bookingId,
+        );
+      }
+    } catch { /* notification is best-effort */ }
     return { success: false, error: "Sitter has no connected Stripe account" };
   }
 
   try {
     const metadata: Record<string, string> = { orgId, sitterId, bookingId };
     if (correlationId) metadata.correlationId = correlationId;
-    const { transferId } = await createTransferToConnectedAccount({
-      amountCents,
-      currency,
-      destinationAccountId: account.accountId,
-      description: `Payout for booking ${bookingId}`,
-      metadata,
-    });
 
+    // Create PayoutTransfer record FIRST with status "pending" to prevent data loss
+    // if the Stripe transfer succeeds but DB write fails later
     const pt = await db.payoutTransfer.create({
       data: {
         orgId,
         sitterId,
         bookingId,
-        stripeTransferId: transferId,
         amount: amountCents,
         currency,
-        status: "paid",
+        status: "pending",
       },
+    });
+
+    let transferId: string;
+    try {
+      const result = await createTransferToConnectedAccount({
+        amountCents,
+        currency,
+        destinationAccountId: account.accountId,
+        description: `Payout for booking ${bookingId}`,
+        metadata: { ...metadata, payoutTransferId: pt.id },
+      });
+      transferId = result.transferId;
+    } catch (transferErr) {
+      // Transfer failed — update the pending record to failed
+      await db.payoutTransfer.update({
+        where: { id: pt.id },
+        data: { status: "failed", lastError: transferErr instanceof Error ? transferErr.message : String(transferErr) },
+      });
+      throw transferErr; // Re-throw to trigger outer catch
+    }
+
+    // Transfer succeeded — update record with Stripe transfer ID
+    await db.payoutTransfer.update({
+      where: { id: pt.id },
+      data: { stripeTransferId: transferId, status: "paid" },
     });
     await upsertLedgerEntry(db, {
       orgId,
@@ -172,17 +206,8 @@ export async function executePayout(params: {
     return { success: true, transferId, payoutTransferId: pt.id };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    const pt = await db.payoutTransfer.create({
-      data: {
-        orgId,
-        sitterId,
-        bookingId,
-        amount: amountCents,
-        currency,
-        status: "failed",
-        lastError: msg,
-      },
-    });
+    // PayoutTransfer already exists (created as "pending" above, updated to "failed" in inner catch)
+    // Just log the ledger entry and event
     await upsertLedgerEntry(db, {
       orgId,
       entryType: "payout",
@@ -192,7 +217,7 @@ export async function executePayout(params: {
       amountCents,
       currency,
       status: "failed",
-      occurredAt: pt.createdAt,
+      occurredAt: new Date(),
     });
     await logEvent({
       action: "payout.failed",
