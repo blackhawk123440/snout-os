@@ -164,6 +164,33 @@ export async function generateRecurringBookings(params: {
       }
     }
 
+    // Auto-send payment link for recurring bookings with a price
+    if (booking.totalPrice > 0 && client.phone) {
+      try {
+        const { sendMessage } = await import('@/lib/message-utils');
+        const { createPaymentLink } = await import('@/lib/stripe');
+        const link = await createPaymentLink(
+          booking.totalPrice,
+          `${schedule.service} on ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+          client.email || undefined,
+          { bookingId: booking.id, orgId },
+        );
+        if (link) {
+          await (prisma as any).booking.update({
+            where: { id: booking.id },
+            data: { stripePaymentLinkUrl: link },
+          });
+          void sendMessage(
+            client.phone,
+            `Hi ${client.firstName || 'there'}, your recurring ${schedule.service} is scheduled. Pay here: ${link}`,
+            booking.id,
+          );
+        }
+      } catch (payErr) {
+        console.error(`[recurring] Auto-charge for booking ${booking.id} failed:`, payErr);
+      }
+    }
+
     created++;
   }
 

@@ -539,6 +539,37 @@ export function useRateReport(reportId: string) {
   });
 }
 
+export function useClientPaymentMethods() {
+  return useQuery({
+    queryKey: ['client', 'payment-methods'],
+    queryFn: () => clientFetch<{ methods: any[]; hasCustomer: boolean }>('/api/client/payment-methods'),
+  });
+}
+
+export function useAddPaymentMethod() {
+  return useMutation({
+    mutationFn: () =>
+      clientFetch<{ clientSecret: string; customerId: string }>('/api/client/payment-methods', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}',
+      }),
+  });
+}
+
+export function useRemovePaymentMethod() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      clientFetch<{ success: boolean }>(`/api/client/payment-methods?id=${id}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client', 'payment-methods'] });
+    },
+  });
+}
+
 export function useSubmitMeetGreet() {
   return useMutation({
     mutationFn: (data: { preferredDateTime: string; notes?: string }) =>

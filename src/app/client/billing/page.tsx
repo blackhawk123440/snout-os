@@ -13,7 +13,8 @@ import {
 } from '@/components/app';
 import { EmptyState, PageSkeleton } from '@/components/ui';
 import { toastSuccess } from '@/lib/toast';
-import { useClientBilling } from '@/lib/api/client-hooks';
+import { useClientBilling, useClientPaymentMethods, useRemovePaymentMethod } from '@/lib/api/client-hooks';
+import { toastError } from '@/lib/toast';
 
 export default function ClientBillingPage() {
   const router = useRouter();
@@ -209,6 +210,9 @@ export default function ClientBillingPage() {
                 </AppCard>
               )}
 
+              {/* Saved payment methods */}
+              <SavedPaymentMethods />
+
               {/* Empty state */}
               {unpaidInvoices.length === 0 && (!data.paidCompletions || data.paidCompletions.length === 0) && data.payments.length === 0 && (
                 <EmptyState
@@ -223,5 +227,70 @@ export default function ClientBillingPage() {
         <ClientAtAGlanceSidebarLazy />
       </div>
     </LayoutWrapper>
+  );
+}
+
+/* ─── Saved Payment Methods ──────────────────────────────────────── */
+
+function SavedPaymentMethods() {
+  const { data, isLoading } = useClientPaymentMethods();
+  const removeMutation = useRemovePaymentMethod();
+
+  if (isLoading) return null;
+
+  const methods = data?.methods || [];
+
+  const brandIcon = (brand: string) => {
+    switch (brand) {
+      case 'visa': return 'Visa';
+      case 'mastercard': return 'MC';
+      case 'amex': return 'Amex';
+      default: return brand;
+    }
+  };
+
+  return (
+    <AppCard>
+      <AppCardBody>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-text-primary">Payment Methods</p>
+        </div>
+        {methods.length === 0 ? (
+          <p className="text-sm text-text-tertiary">No saved cards. Payment links will be sent for each booking.</p>
+        ) : (
+          <div className="space-y-2">
+            {methods.map((m: any) => (
+              <div key={m.id} className="flex items-center justify-between rounded-lg border border-border-default px-3 py-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-semibold text-text-secondary bg-surface-tertiary rounded px-2 py-1">
+                    {brandIcon(m.brand)}
+                  </span>
+                  <span className="text-sm text-text-primary font-mono">
+                    {'•••• '}{m.last4}
+                  </span>
+                  <span className="text-xs text-text-tertiary">
+                    {m.expMonth}/{m.expYear}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Remove this card?')) {
+                      removeMutation.mutate(m.id, {
+                        onError: () => toastError('Failed to remove card'),
+                      });
+                    }
+                  }}
+                  disabled={removeMutation.isPending}
+                  className="min-h-[44px] text-xs text-status-danger-text-secondary hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </AppCardBody>
+    </AppCard>
   );
 }

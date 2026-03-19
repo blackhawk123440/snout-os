@@ -923,6 +923,9 @@ model Client {
   entryInstructions String?  @db.Text
   parkingNotes      String?
 
+  // Stripe
+  stripeCustomerId  String?    // Stripe Customer ID (cus_xxx) for saved payment methods
+
   // Referral
   referredBy        String?
   referralCode      String?    @unique
