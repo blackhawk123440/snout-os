@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
 import {
@@ -10,6 +10,7 @@ import {
   SitterPageHeader,
 } from '@/components/sitter';
 import { toastSuccess, toastError } from '@/lib/toast';
+import { useSitterPetDetail, useAddSitterPetHealthLog } from '@/lib/api/sitter-portal-hooks';
 
 interface HealthLog {
   id: string;
@@ -73,34 +74,12 @@ export default function SitterPetDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
-  const [pet, setPet] = useState<PetDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/sitter/pets/${id}`);
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Pet not found');
-        setPet(null);
-        return;
-      }
-      setPet(json);
-    } catch {
-      setError('Unable to load pet');
-      setPet(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data: pet, isLoading: loading, error, refetch } = useSitterPetDetail(id) as {
+    data: PetDetail | undefined;
+    isLoading: boolean;
+    error: Error | null;
+    refetch: () => void;
+  };
 
   if (loading) {
     return (
@@ -128,8 +107,8 @@ export default function SitterPetDetailPage() {
         />
         <SitterCard>
           <SitterCardBody>
-            <p className="text-sm text-text-secondary">{error || 'Pet not found'}</p>
-            <Button variant="secondary" size="sm" onClick={() => void load()} className="mt-2">Retry</Button>
+            <p className="text-sm text-text-secondary">{error?.message || 'Pet not found'}</p>
+            <Button variant="secondary" size="sm" onClick={() => void refetch()} className="mt-2">Retry</Button>
           </SitterCardBody>
         </SitterCard>
       </div>
@@ -291,7 +270,7 @@ export default function SitterPetDetailPage() {
         </SitterCard>
 
         {/* Health Timeline + Add note */}
-        <SitterHealthTimeline petId={id} healthLogs={pet.healthLogs} onAdded={load} />
+        <SitterHealthTimeline petId={id} healthLogs={pet.healthLogs} onAdded={refetch} />
 
         {/* General notes */}
         <CareSection
@@ -344,29 +323,18 @@ function SitterHealthTimeline({
   const [adding, setAdding] = useState(false);
   const [type, setType] = useState('daily');
   const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
+  const addHealthLog = useAddSitterPetHealthLog(petId);
 
   const handleSubmit = async () => {
     if (!note.trim()) return;
-    setSaving(true);
     try {
-      const res = await fetch(`/api/sitter/pets/${petId}/health-log`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type, note: note.trim() }),
-      });
-      if (!res.ok) {
-        toastError('Failed to add health note');
-        return;
-      }
+      await addHealthLog.mutateAsync({ type, note: note.trim() });
       toastSuccess('Health note added');
       setNote('');
       setAdding(false);
       onAdded();
     } catch {
       toastError('Failed to add health note');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -413,7 +381,7 @@ function SitterHealthTimeline({
             />
             <div className="flex gap-2 justify-end">
               <button type="button" onClick={() => { setAdding(false); setNote(''); }} className="min-h-[44px] px-4 text-sm font-medium text-text-secondary hover:text-text-primary">Cancel</button>
-              <button type="button" onClick={handleSubmit} disabled={saving || !note.trim()} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50">{saving ? 'Adding...' : 'Add'}</button>
+              <button type="button" onClick={handleSubmit} disabled={addHealthLog.isPending || !note.trim()} className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50">{addHealthLog.isPending ? 'Adding...' : 'Add'}</button>
             </div>
           </div>
         )}

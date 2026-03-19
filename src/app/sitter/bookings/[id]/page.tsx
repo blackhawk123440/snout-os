@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { LayoutWrapper, PageHeader } from '@/components/layout';
 import { Button, Modal, StatusChip } from '@/components/ui';
@@ -13,6 +13,7 @@ import {
   shouldRenderMail,
   shouldRenderTel,
 } from './booking-detail-helpers';
+import { useSitterBookingDetail, useSitterCheckIn, useSitterCheckOut, useUpdateSitterChecklist } from '@/lib/api/sitter-portal-hooks';
 
 type ChecklistType = 'arrived' | 'leash' | 'fed' | 'water' | 'meds' | 'locked_door';
 
@@ -77,38 +78,14 @@ export default function SitterBookingDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;
-  const [booking, setBooking] = useState<BookingDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: booking, isLoading: loading, error, refetch } = useSitterBookingDetail(id);
+  const checkInMutation = useSitterCheckIn();
+  const checkOutMutation = useSitterCheckOut();
+  const checklistMutation = useUpdateSitterChecklist(id);
   const [busyPrimary, setBusyPrimary] = useState(false);
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
-
-  const loadBooking = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/sitter/bookings/${id}`);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error || 'Booking not found');
-        setBooking(null);
-        return;
-      }
-      setBooking(data);
-    } catch {
-      setError('Failed to load booking');
-      setBooking(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void loadBooking();
-  }, [loadBooking]);
 
   useEffect(() => {
     const id = setInterval(() => setNowMs(Date.now()), 1000);
@@ -140,39 +117,13 @@ export default function SitterBookingDetailPage() {
   const runCheckAction = async (kind: 'start' | 'end') => {
     if (!booking) return;
     setBusyPrimary(true);
-    const before = booking;
-    const nowIso = new Date().toISOString();
-    setBooking((prev) =>
-      prev
-        ? {
-            ...prev,
-            status: getOptimisticStatus(prev.status, kind),
-            timeline: {
-              ...prev.timeline,
-              checkedInAt: kind === 'start' ? nowIso : prev.timeline.checkedInAt,
-              checkedOutAt: kind === 'end' ? nowIso : prev.timeline.checkedOutAt,
-            },
-          }
-        : prev
-    );
     try {
       const geo = await getGeo();
-      const body = geo ? JSON.stringify({ lat: geo.lat, lng: geo.lng }) : undefined;
-      const res = await fetch(`/api/bookings/${booking.id}/${kind === 'start' ? 'check-in' : 'check-out'}`, {
-        method: 'POST',
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
-        body,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setBooking(before);
-        toastError(data.error || `${kind === 'start' ? 'Start visit' : 'End visit'} failed`);
-        return;
-      }
+      const mutation = kind === 'start' ? checkInMutation : checkOutMutation;
+      await mutation.mutateAsync({ bookingId: id, lat: geo?.lat, lng: geo?.lng });
       toastSuccess(kind === 'start' ? 'Visit started' : 'Visit ended');
-      await loadBooking();
+      await refetch();
     } catch {
-      setBooking(before);
       toastError(`${kind === 'start' ? 'Start visit' : 'End visit'} failed`);
     } finally {
       setBusyPrimary(false);
@@ -181,26 +132,10 @@ export default function SitterBookingDetailPage() {
 
   const toggleChecklistItem = async (type: ChecklistType, checked: boolean) => {
     if (!booking) return;
-    const prev = booking.checklist;
-    setBooking((curr) =>
-      curr
-        ? {
-            ...curr,
-            checklist: curr.checklist.map((item) =>
-              item.type === type ? { ...item, checkedAt: checked ? new Date().toISOString() : null } : item
-            ),
-          }
-        : curr
-    );
-    const res = await fetch(`/api/sitter/bookings/${booking.id}/checklist`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, checked }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setBooking((curr) => (curr ? { ...curr, checklist: prev } : curr));
-      toastError(data.error || 'Could not update checklist');
+    try {
+      await checklistMutation.mutateAsync({ type, checked });
+    } catch (err: any) {
+      toastError(err?.message || 'Could not update checklist');
     }
   };
 
@@ -250,7 +185,7 @@ export default function SitterBookingDetailPage() {
         </div>
       ) : error || !booking ? (
         <div className="rounded-xl border border-dashed border-border-strong bg-surface-primary p-8 text-center">
-          <p className="text-sm text-text-secondary">{error || 'Booking not found'}</p>
+          <p className="text-sm text-text-secondary">{error?.message || 'Booking not found'}</p>
           <Button variant="secondary" size="md" className="mt-4" onClick={() => router.push('/sitter/bookings')}>Back</Button>
         </div>
       ) : (
@@ -272,7 +207,7 @@ export default function SitterBookingDetailPage() {
               className="mt-1"
             />
             <p className="mt-1 text-sm text-text-secondary">{booking.service}</p>
-            <p className="mt-1 text-sm text-text-secondary">{booking.pets.map((p) => p.name || p.species || 'Pet').join(', ')}</p>
+            <p className="mt-1 text-sm text-text-secondary">{booking.pets.map((p: any) => p.name || p.species || 'Pet').join(', ')}</p>
             <div className="mt-2"><StatusChip variant={statusChipVariant(booking.status)}>{statusLabel(booking.status)}</StatusChip></div>
           </section>
 
@@ -300,7 +235,7 @@ export default function SitterBookingDetailPage() {
           <section className="rounded-xl border border-border-default bg-surface-primary p-4">
             <p className="text-sm font-semibold text-text-primary">Pets</p>
             <div className="mt-2 space-y-2">
-              {booking.pets.map((pet) => {
+              {booking.pets.map((pet: any) => {
                 return (
                   // ui-primitive-ok
                   <button key={pet.id} type="button" onClick={() => router.push(`/sitter/pets/${pet.id}`)} className="flex min-h-[44px] w-full items-start justify-between rounded-lg border border-border-default px-3 py-2 text-left hover:bg-surface-secondary">
@@ -322,14 +257,14 @@ export default function SitterBookingDetailPage() {
             <section className="rounded-xl border border-border-default bg-surface-primary p-4">
               <p className="text-sm font-semibold text-text-primary">Visit checklist</p>
               <div className="mt-2 space-y-2">
-                {booking.checklist.map((item) => {
+                {booking.checklist.map((item: any) => {
                   const checked = !!item.checkedAt;
                   const checkedAtMs = item.checkedAt ? new Date(item.checkedAt).getTime() : 0;
                   const canUncheck = checked && nowMs - checkedAtMs <= CHECKLIST_UNLOCK_WINDOW_MS;
                   const locked = checked && !canUncheck;
                   const subtitle = checked
-                    ? `${checklistLabel[item.type]} · ${new Date(item.checkedAt!).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-                    : checklistLabel[item.type];
+                    ? `${checklistLabel[item.type as ChecklistType]} · ${new Date(item.checkedAt!).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+                    : checklistLabel[item.type as ChecklistType];
                   return (
                     <button
                       key={item.type}

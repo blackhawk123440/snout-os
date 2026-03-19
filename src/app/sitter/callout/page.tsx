@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SitterPageHeader, SitterCard, SitterCardBody } from '@/components/sitter';
 import { Button } from '@/components/ui';
 import { toastSuccess, toastError } from '@/lib/toast';
+import { useSitterCallout } from '@/lib/api/sitter-portal-hooks';
 
 const REASONS = [
   { value: 'sick', label: 'Sick' },
@@ -19,25 +20,17 @@ export default function SitterCalloutPage() {
   const [date, setDate] = useState(today);
   const [reason, setReason] = useState('sick');
   const [notes, setNotes] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const calloutMutation = useSitterCallout();
   const [result, setResult] = useState<{ affectedBookings: Array<{ id: string; service: string; clientName: string; startAt: string }> } | null>(null);
 
   const inputClass = 'w-full min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-border-focus focus:outline-none';
 
   const handleSubmit = async () => {
-    setSubmitting(true);
     try {
-      const res = await fetch('/api/sitter/callout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, reason, notes: notes.trim() || undefined }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) { toastError(json.error || 'Failed'); return; }
+      const json = await calloutMutation.mutateAsync({ date, reason, notes: notes.trim() || undefined });
       toastSuccess('Callout submitted \u2014 your manager has been notified');
       setResult(json);
     } catch { toastError('Failed to submit callout'); }
-    finally { setSubmitting(false); }
   };
 
   return (
@@ -90,8 +83,8 @@ export default function SitterCalloutPage() {
                 <label className="block text-xs font-medium text-text-secondary mb-1">Notes (optional)</label>
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={500} placeholder="Any additional details\u2026" className={`${inputClass} resize-y`} />
               </div>
-              <Button variant="primary" size="md" onClick={handleSubmit} disabled={submitting} className="w-full min-h-[44px]">
-                {submitting ? 'Submitting\u2026' : 'Submit callout'}
+              <Button variant="primary" size="md" onClick={handleSubmit} disabled={calloutMutation.isPending} className="w-full min-h-[44px]">
+                {calloutMutation.isPending ? 'Submitting\u2026' : 'Submit callout'}
               </Button>
             </div>
           </SitterCardBody>

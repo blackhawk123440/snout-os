@@ -14,6 +14,7 @@ import { useAuth } from '@/lib/auth-client';
 import { SITTER_TABS } from '@/lib/sitter-nav';
 import { SitterOfflineBanner } from '@/components/sitter/SitterOfflineBanner';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { useSitterMe, useSitterBadges } from '@/lib/api/sitter-portal-hooks';
 
 const NAV_ITEMS = SITTER_TABS;
 
@@ -26,66 +27,21 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
   const router = useRouter();
   const mainRef = useRef<HTMLElement>(null);
   const { user, isSitter, loading: authLoading } = useAuth();
-  const [sitterName, setSitterName] = useState<string | null>(null);
-  const [availabilityEnabled, setAvailabilityEnabled] = useState<boolean>(true);
   const [headerShadow, setHeaderShadow] = useState(false);
-  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
-  const [hasReportTodo, setHasReportTodo] = useState(false);
+
+  const { data: meData } = useSitterMe();
+  const sitterName = meData?.name || meData?.firstName || null;
+  const availabilityEnabled = meData?.availabilityEnabled ?? false;
+
+  const { data: badges } = useSitterBadges();
+  const hasUnreadMessages = badges?.hasUnreadMessages ?? false;
+  const hasReportTodo = badges?.hasReportTodo ?? false;
 
   useEffect(() => {
     if (!authLoading && !isSitter) {
       router.replace('/login');
     }
   }, [authLoading, isSitter, router]);
-
-  useEffect(() => {
-    if (!isSitter) return;
-    void Promise.all([
-      fetch('/api/sitter/me').then((r) => r.json().catch(() => ({}))),
-      fetch('/api/sitter/availability').then((r) => r.json().catch(() => ({}))),
-    ]).then(([me, avail]) => {
-      setSitterName(me?.name ?? me?.firstName ? `${me.firstName} ${me.lastName}`.trim() : null);
-      setAvailabilityEnabled(avail?.availabilityEnabled ?? me?.availabilityEnabled ?? true);
-    });
-  }, [isSitter]);
-
-  useEffect(() => {
-    if (!isSitter) return;
-    let cancelled = false;
-    const loadBadges = async () => {
-      try {
-        const [threadsRes, todayRes] = await Promise.all([
-          fetch('/api/sitter/threads'),
-          fetch('/api/sitter/today'),
-        ]);
-        const threadsJson = await threadsRes.json().catch(() => ({}));
-        const todayJson = await todayRes.json().catch(() => ({}));
-
-        const unread = Array.isArray(threadsJson?.threads)
-          ? threadsJson.threads.some((t: any) => (t.ownerUnreadCount ?? 0) > 0)
-          : false;
-        const reportTodo = Array.isArray(todayJson?.bookings)
-          ? todayJson.bookings.some((b: any) => b.status === 'completed' && !b.hasReport)
-          : false;
-        if (!cancelled) {
-          setHasUnreadMessages(unread);
-          setHasReportTodo(reportTodo);
-        }
-      } catch {
-        if (!cancelled) {
-          setHasUnreadMessages(false);
-          setHasReportTodo(false);
-        }
-      }
-    };
-
-    void loadBadges();
-    const id = setInterval(() => void loadBadges(), 60_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [isSitter]);
 
   useEffect(() => {
     const el = mainRef.current;

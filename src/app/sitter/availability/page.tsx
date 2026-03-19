@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui';
 import { LayoutWrapper } from '@/components/layout';
 import { toastError } from '@/lib/toast';
@@ -12,6 +12,7 @@ import {
   SitterSkeletonList,
   SitterErrorState,
 } from '@/components/sitter';
+import { useSitterAvailabilityFull, useToggleSitterAvailability, useAddSitterBlockOff, useRemoveSitterBlockOff } from '@/lib/api/sitter-portal-hooks';
 
 interface BlockOffDay {
   id: string;
@@ -40,98 +41,37 @@ interface PreviewWindow {
 }
 
 export default function SitterAvailabilityPage() {
-  const [availabilityEnabled, setAvailabilityEnabled] = useState(true);
-  const [blockOffs, setBlockOffs] = useState<BlockOffDay[]>([]);
-  const [rules, setRules] = useState<AvailabilityRule[]>([]);
-  const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
-  const [preview, setPreview] = useState<PreviewWindow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [toggling, setToggling] = useState(false);
-  const [adding, setAdding] = useState(false);
+  const { data, isLoading: loading, error, refetch } = useSitterAvailabilityFull();
   const [newBlockDate, setNewBlockDate] = useState('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/sitter/availability?preview=7');
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Unable to load availability');
-        setAvailabilityEnabled(true);
-        setBlockOffs([]);
-        setRules([]);
-        setOverrides([]);
-        setPreview([]);
-        return;
-      }
-      setAvailabilityEnabled(json.availabilityEnabled ?? true);
-      setBlockOffs(Array.isArray(json.blockOffDays) ? json.blockOffDays : []);
-      setRules(Array.isArray(json.rules) ? json.rules : []);
-      setOverrides(Array.isArray(json.overrides) ? json.overrides : []);
-      setPreview(Array.isArray(json.preview) ? json.preview : []);
-    } catch {
-      setError('Unable to load availability');
-      setBlockOffs([]);
-      setRules([]);
-      setOverrides([]);
-      setPreview([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const availabilityEnabled = data?.availabilityEnabled ?? true;
+  const blockOffs: BlockOffDay[] = Array.isArray(data?.blockOffDays) ? data.blockOffDays : [];
+  const rules: AvailabilityRule[] = Array.isArray(data?.rules) ? data.rules : [];
+  const overrides: AvailabilityOverride[] = Array.isArray(data?.overrides) ? data.overrides : [];
+  const preview: PreviewWindow[] = Array.isArray(data?.preview) ? data.preview : [];
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const toggleMutation = useToggleSitterAvailability();
+  const addBlockMutation = useAddSitterBlockOff();
+  const removeBlockMutation = useRemoveSitterBlockOff();
 
-  const toggleAvailability = async () => {
-    setToggling(true);
-    try {
-      const enabled = !availabilityEnabled;
-      const res = await fetch('/api/sitter/availability', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ availabilityEnabled: enabled }),
-      });
-      if (!res.ok) throw new Error('Failed');
-      setAvailabilityEnabled(enabled);
-    } catch {
-      toastError('Failed to update');
-    } finally {
-      setToggling(false);
-    }
+  const toggleAvailability = () => {
+    toggleMutation.mutate(!availabilityEnabled, {
+      onError: () => toastError('Failed to update'),
+    });
   };
 
-  const addBlockOff = async () => {
+  const addBlockOff = () => {
     if (!newBlockDate.trim()) return;
-    setAdding(true);
-    try {
-      const res = await fetch('/api/sitter/block-off', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: newBlockDate }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error || 'Failed');
-      setBlockOffs((prev) => [...prev, { id: json.id, date: json.date }]);
-      setNewBlockDate('');
-    } catch (e) {
-      toastError(e instanceof Error ? e.message : 'Failed');
-    } finally {
-      setAdding(false);
-    }
+    addBlockMutation.mutate(newBlockDate, {
+      onSuccess: () => setNewBlockDate(''),
+      onError: (e) => toastError(e instanceof Error ? e.message : 'Failed'),
+    });
   };
 
-  const removeBlockOff = async (id: string) => {
-    try {
-      const res = await fetch(`/api/sitter/block-off/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed');
-      setBlockOffs((prev) => prev.filter((b) => b.id !== id));
-    } catch {
-      toastError('Failed to remove');
-    }
+  const removeBlockOff = (id: string) => {
+    removeBlockMutation.mutate(id, {
+      onError: () => toastError('Failed to remove'),
+    });
   };
 
   return (
@@ -140,7 +80,7 @@ export default function SitterAvailabilityPage() {
         title="Availability"
         subtitle="When you're available for bookings"
         action={
-          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+          <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={loading}>
             Refresh
           </Button>
         }
@@ -150,8 +90,8 @@ export default function SitterAvailabilityPage() {
       ) : error ? (
         <SitterErrorState
           title="Couldn't load availability"
-          subtitle={error}
-          onRetry={() => void load()}
+          subtitle={error instanceof Error ? error.message : String(error)}
+          onRetry={() => void refetch()}
         />
       ) : (
         <div className="space-y-4">
@@ -167,7 +107,7 @@ export default function SitterAvailabilityPage() {
                   role="switch"
                   aria-checked={availabilityEnabled}
                   onClick={() => void toggleAvailability()}
-                  disabled={toggling}
+                  disabled={toggleMutation.isPending}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 disabled:opacity-50 ${
                     availabilityEnabled ? 'bg-accent-primary' : 'bg-surface-tertiary'
                   }`}
@@ -195,8 +135,8 @@ export default function SitterAvailabilityPage() {
                   onChange={(e) => setNewBlockDate(e.target.value)}
                   className="rounded-xl border border-border-strong px-3 py-2 text-sm outline-none focus:border-border-focus focus:ring-2 focus:ring-border-focus"
                 />
-                <Button variant="secondary" size="md" onClick={() => void addBlockOff()} disabled={!newBlockDate || adding}>
-                  {adding ? 'Adding...' : 'Add'}
+                <Button variant="secondary" size="md" onClick={() => void addBlockOff()} disabled={!newBlockDate || addBlockMutation.isPending}>
+                  {addBlockMutation.isPending ? 'Adding...' : 'Add'}
                 </Button>
               </div>
               {blockOffs.length > 0 && (

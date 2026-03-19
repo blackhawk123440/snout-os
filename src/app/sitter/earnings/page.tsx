@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button, Drawer, DataTableShell, Table } from '@/components/ui';
 import { LayoutWrapper } from '@/components/layout';
 import { StatusChip } from '@/components/ui/status-chip';
@@ -15,6 +15,7 @@ import {
   FeatureStatusPill,
 } from '@/components/sitter';
 import { calculateTransferSummary } from './earnings-helpers';
+import { useSitterEarnings, useSitterCompletedJobs, useSitterTransfers } from '@/lib/api/sitter-portal-hooks';
 
 type PeriodTab = 'today' | 'week' | 'month';
 
@@ -63,75 +64,21 @@ const formatDate = (d: string) =>
 
 export default function SitterEarningsPage() {
   const [periodTab, setPeriodTab] = useState<PeriodTab>('month');
-  const [data, setData] = useState<EarningsData | null>(null);
-  const [jobs, setJobs] = useState<CompletedJob[]>([]);
-  const [transfers, setTransfers] = useState<PayoutTransfer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [jobsLoading, setJobsLoading] = useState(true);
-  const [transfersLoading, setTransfersLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<CompletedJob | null>(null);
+
+  const earningsQuery = useSitterEarnings();
+  const jobsQuery = useSitterCompletedJobs();
+  const transfersQuery = useSitterTransfers();
+
+  const loading = earningsQuery.isLoading || jobsQuery.isLoading || transfersQuery.isLoading;
+  const data = earningsQuery.data;
+  const error = earningsQuery.error;
+  const completedJobs = jobsQuery.data?.jobs || [];
+  const transfers = transfersQuery.data?.transfers || [];
+  const jobsLoading = jobsQuery.isLoading;
+  const transfersLoading = transfersQuery.isLoading;
+
   const transferSummary = useMemo(() => calculateTransferSummary(transfers), [transfers]);
-
-  const loadEarnings = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/sitter/earnings');
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Unable to load earnings');
-        setData(null);
-        return;
-      }
-      setData(json);
-    } catch {
-      setError('Unable to load earnings');
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const loadJobs = useCallback(async () => {
-    setJobsLoading(true);
-    try {
-      const res = await fetch('/api/sitter/completed-jobs');
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setJobs([]);
-        return;
-      }
-      setJobs(Array.isArray(json.jobs) ? json.jobs : []);
-    } catch {
-      setJobs([]);
-    } finally {
-      setJobsLoading(false);
-    }
-  }, []);
-
-  const loadTransfers = useCallback(async () => {
-    setTransfersLoading(true);
-    try {
-      const res = await fetch('/api/sitter/transfers');
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setTransfers([]);
-        return;
-      }
-      setTransfers(Array.isArray(json.transfers) ? json.transfers : []);
-    } catch {
-      setTransfers([]);
-    } finally {
-      setTransfersLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadEarnings();
-    void loadJobs();
-    void loadTransfers();
-  }, [loadEarnings, loadJobs, loadTransfers]);
 
   return (
     <LayoutWrapper variant="narrow">
@@ -139,7 +86,7 @@ export default function SitterEarningsPage() {
         title="Earnings"
         subtitle="Your commission summary"
         action={
-          <Button variant="secondary" size="sm" onClick={() => void loadEarnings()} disabled={loading}>
+          <Button variant="secondary" size="sm" onClick={() => { earningsQuery.refetch(); jobsQuery.refetch(); transfersQuery.refetch(); }} disabled={loading}>
             Refresh
           </Button>
         }
@@ -149,8 +96,8 @@ export default function SitterEarningsPage() {
       ) : error ? (
         <SitterErrorState
           title="Couldn't load earnings"
-          subtitle={error}
-          onRetry={() => void loadEarnings()}
+          subtitle={error?.message}
+          onRetry={() => { earningsQuery.refetch(); jobsQuery.refetch(); transfersQuery.refetch(); }}
         />
       ) : data ? (
         <div className="space-y-4">
@@ -299,7 +246,7 @@ export default function SitterEarningsPage() {
           <h3 className="text-base font-semibold text-text-primary">Completed jobs</h3>
           {jobsLoading ? (
             <SitterSkeletonList count={2} />
-          ) : jobs.length === 0 ? (
+          ) : completedJobs.length === 0 ? (
             <SitterEmptyState
               title="No completed jobs yet"
               subtitle="Your earnings will appear here after visits are completed."
@@ -315,10 +262,10 @@ export default function SitterEarningsPage() {
                     <span className="tabular-nums font-semibold">${job.afterSplit.toFixed(2)}</span>
                   )},
                 ]}
-                data={jobs}
+                data={completedJobs}
                 keyExtractor={(job) => job.id}
                 emptyMessage="No completed jobs yet"
-                onRowClick={(job) => setSelectedJob(job)}
+                onRowClick={(job) => setSelectedJob(job as CompletedJob)}
                 forceTableLayout
               />
             </DataTableShell>

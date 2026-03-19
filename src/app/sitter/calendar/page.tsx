@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
 import {
@@ -12,6 +12,7 @@ import {
   SitterEmptyState,
 } from '@/components/sitter';
 import { statusBlockClass, statusDotClass } from '@/lib/status-colors';
+import { useSitterCalendar, useSitterGoogleEvents } from '@/lib/api/sitter-portal-hooks';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
@@ -77,42 +78,27 @@ export default function SitterCalendarPage() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [bookings, setBookings] = useState<CalendarBooking[]>([]);
-  const [googleEvents, setGoogleEvents] = useState<GoogleEvent[]>([]);
-  const [googleConnected, setGoogleConnected] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadBookings = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/sitter/calendar');
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(data.error || 'Unable to load'); setBookings([]); return; }
-      setBookings(Array.isArray(data.bookings) ? data.bookings : []);
-      if (data.calendarConnected !== undefined) setGoogleConnected(data.calendarConnected);
-      else if (data.connected !== undefined) setGoogleConnected(data.connected);
-    } catch { setError('Unable to load'); setBookings([]); }
-    finally { setLoading(false); }
-  }, []);
+  const { data: calData, isLoading: loading, error, refetch } = useSitterCalendar();
+  const bookings: CalendarBooking[] = calData?.bookings || [];
+  const googleConnected = calData?.calendarConnected ?? calData?.connected ?? false;
 
-  const loadGoogleEvents = useCallback(async () => {
-    const weekStart = new Date(currentDate);
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    weekStart.setHours(0, 0, 0, 0);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 7);
-    try {
-      const res = await fetch(`/api/sitter/calendar/google-events?start=${weekStart.toISOString()}&end=${weekEnd.toISOString()}`);
-      const data = await res.json().catch(() => ({}));
-      if (data.connected !== undefined) setGoogleConnected(data.connected);
-      setGoogleEvents(Array.isArray(data.events) ? data.events : []);
-    } catch { /* silent */ }
+  const weekStartDate = useMemo(() => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() - d.getDay());
+    d.setHours(0, 0, 0, 0);
+    return d;
   }, [currentDate]);
+  const weekEndDate = useMemo(() => {
+    const d = new Date(weekStartDate);
+    d.setDate(d.getDate() + 7);
+    return d;
+  }, [weekStartDate]);
+  const weekStart = weekStartDate.toISOString();
+  const weekEnd = weekEndDate.toISOString();
 
-  useEffect(() => { void loadBookings(); }, [loadBookings]);
-  useEffect(() => { void loadGoogleEvents(); }, [loadGoogleEvents]);
+  const { data: googleData } = useSitterGoogleEvents(weekStart, weekEnd);
+  const googleEvents: GoogleEvent[] = googleData?.events || [];
 
   const conflictIds = useMemo(() => {
     const ids = new Set<string>();
@@ -145,7 +131,7 @@ export default function SitterCalendarPage() {
 
   return (
     <div className="mx-auto max-w-4xl pb-8">
-      <SitterPageHeader title="Calendar" subtitle={formatDateLabel(currentDate)} action={<Button variant="secondary" size="sm" onClick={() => void loadBookings()} disabled={loading}>Refresh</Button>} />
+      <SitterPageHeader title="Calendar" subtitle={formatDateLabel(currentDate)} action={<Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={loading}>Refresh</Button>} />
 
       {/* Google Calendar connection */}
       {!googleConnected && (
@@ -181,7 +167,7 @@ export default function SitterCalendarPage() {
         </div>
       </div>
 
-      {loading ? (<SitterSkeletonList count={3} />) : error ? (<SitterErrorState title="Couldn't load calendar" subtitle={error} onRetry={() => void loadBookings()} />) : viewMode === 'list' ? (
+      {loading ? (<SitterSkeletonList count={3} />) : error ? (<SitterErrorState title="Couldn't load calendar" subtitle={error instanceof Error ? error.message : String(error)} onRetry={() => void refetch()} />) : viewMode === 'list' ? (
         <ListView bookings={bookings} googleEvents={googleEvents} conflictIds={conflictIds} onView={(id) => router.push(`/sitter/bookings/${id}`)} />
       ) : viewMode === 'day' ? (
         <DayView date={currentDate} bookings={bookingsForDay(currentDate)} googleEvents={googleForDay(currentDate)} conflictIds={conflictIds} onView={(id) => router.push(`/sitter/bookings/${id}`)} />

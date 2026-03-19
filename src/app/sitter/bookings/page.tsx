@@ -1,6 +1,5 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui';
 import {
@@ -11,6 +10,7 @@ import {
 } from '@/components/sitter';
 import { InteractiveRow } from '@/components/ui/interactive-row';
 import { statusBadgeClass } from '@/lib/status-colors';
+import { useSitterBookings } from '@/lib/api/sitter-portal-hooks';
 
 interface Booking {
   id: string;
@@ -25,37 +25,8 @@ interface Booking {
 
 export default function SitterBookingsPage() {
   const router = useRouter();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [errorDetail, setErrorDetail] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setErrorDetail(null);
-    try {
-      const res = await fetch('/api/sitter/bookings');
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Unable to load bookings');
-        setErrorDetail(json.message || null);
-        setBookings([]);
-        return;
-      }
-      setBookings(Array.isArray(json.bookings) ? json.bookings : []);
-    } catch {
-      setError('Unable to load bookings');
-      setErrorDetail('Network error');
-      setBookings([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const { data, isLoading: loading, error, refetch } = useSitterBookings();
+  const bookings: Booking[] = data?.bookings || [];
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
@@ -68,7 +39,7 @@ export default function SitterBookingsPage() {
         title="Bookings"
         subtitle="Your visits"
         action={
-          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+          <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={loading}>
             Refresh
           </Button>
         }
@@ -78,8 +49,8 @@ export default function SitterBookingsPage() {
       ) : error ? (
         <SitterErrorState
           title="Couldn't load bookings"
-          subtitle={errorDetail ? `${error} · ${errorDetail}` : error}
-          onRetry={() => void load()}
+          subtitle={error?.message}
+          onRetry={() => void refetch()}
         />
       ) : bookings.length === 0 ? (
         <SitterEmptyState

@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui';
 import { toastSuccess, toastError } from '@/lib/toast';
+import { useSitterReportDetail, useUpdateSitterReport } from '@/lib/api/sitter-portal-hooks';
 
 interface ReportData {
   id: string;
@@ -18,68 +19,29 @@ export default function SitterReportEditPage() {
   const params = useParams();
   const reportId = params?.id as string | undefined;
 
-  const [report, setReport] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: report, isLoading: loading, error } = useSitterReportDetail(reportId ?? null) as {
+    data: ReportData | undefined;
+    isLoading: boolean;
+    error: Error | null;
+  };
+  const updateReport = useUpdateSitterReport(reportId ?? '');
   const [content, setContent] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [contentInit, setContentInit] = useState(false);
 
-  const loadReport = useCallback(async () => {
-    if (!reportId) {
-      toastError('Missing report id');
-      router.replace('/sitter/reports');
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/sitter/reports/${reportId}`);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
-          toastError('You do not have access to this report');
-          router.replace('/sitter/reports');
-          return;
-        }
-        if (res.status === 404) {
-          toastError('Report not found');
-          router.replace('/sitter/reports');
-          return;
-        }
-        toastError(data.error || 'Failed to load report');
-        return;
-      }
-      setReport(data);
-      setContent(data.content ?? '');
-    } catch {
-      toastError('Failed to load report');
-    } finally {
-      setLoading(false);
-    }
-  }, [reportId, router]);
-
-  useEffect(() => {
-    void loadReport();
-  }, [loadReport]);
+  // Sync content from fetched report once
+  if (report && !contentInit) {
+    setContent(report.content ?? '');
+    setContentInit(true);
+  }
 
   const handleSave = async () => {
     if (!reportId || !report?.canEdit) return;
-    setSaving(true);
     try {
-      const res = await fetch(`/api/sitter/reports/${reportId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toastError(data.error || data.message || 'Failed to update report');
-        return;
-      }
+      await updateReport.mutateAsync({ content });
       toastSuccess('Report updated');
       router.push('/sitter/reports');
     } catch {
       toastError('Failed to update report');
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -154,10 +116,10 @@ export default function SitterReportEditPage() {
             variant="primary"
             size="md"
             onClick={() => void handleSave()}
-            disabled={saving || !report.canEdit}
+            disabled={updateReport.isPending || !report.canEdit}
             className="min-h-[44px] flex-1"
           >
-            {saving ? 'Saving…' : 'Save changes'}
+            {updateReport.isPending ? 'Saving…' : 'Save changes'}
           </Button>
           <Button variant="secondary" size="md" onClick={() => router.back()} className="min-h-[44px]">
             Cancel

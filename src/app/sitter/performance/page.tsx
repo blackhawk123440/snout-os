@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { SitterCard, SitterCardHeader, SitterCardBody, SitterPageHeader } from '@/components/sitter';
+import { useSitterPerformance } from '@/lib/api/sitter-portal-hooks';
 
 interface SrsPayload {
   tier: string;
@@ -51,20 +51,7 @@ const tierColor = (tier: string) => {
 };
 
 export default function SitterPerformancePage() {
-  const [data, setData] = useState<SrsPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const res = await fetch('/api/sitter/me/srs');
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(body.error || 'Failed'); setLoading(false); return; }
-      setData(body);
-      setLoading(false);
-    })();
-  }, []);
+  const { data, isLoading: loading, error } = useSitterPerformance();
 
   const tierLabel = data ? data.tier.charAt(0).toUpperCase() + data.tier.slice(1) : 'Foundation';
 
@@ -81,7 +68,7 @@ export default function SitterPerformancePage() {
     return (
       <div className="mx-auto max-w-3xl pb-8">
         <SitterPageHeader title="Performance" subtitle="Your metrics" />
-        <SitterCard><SitterCardBody><p className="text-sm text-status-danger-text-secondary">{error || 'No data available'}</p></SitterCardBody></SitterCard>
+        <SitterCard><SitterCardBody><p className="text-sm text-status-danger-text-secondary">{error?.message || 'No data available'}</p></SitterCardBody></SitterCard>
       </div>
     );
   }
@@ -138,7 +125,7 @@ export default function SitterPerformancePage() {
               <div className="mt-3">
                 <p className="text-xs text-text-tertiary mb-1">Last 5 responses:</p>
                 <div className="flex gap-2">
-                  {data.last5ResponseTimes.map((t, i) => (
+                  {data.last5ResponseTimes.map((t: number, i: number) => (
                     <span key={i} className={`rounded-full px-2 py-0.5 text-xs font-medium ${t <= 15 ? 'bg-status-success-bg text-status-success-text' : t <= 30 ? 'bg-status-warning-bg text-status-warning-text' : 'bg-status-danger-bg text-status-danger-text'}`}>
                       {t}m {t <= 15 ? '\u2705' : '\u26a0\ufe0f'}
                     </span>
@@ -210,7 +197,7 @@ export default function SitterPerformancePage() {
             <SitterCardHeader><h3 className="font-semibold text-text-primary">How to Level Up</h3></SitterCardHeader>
             <SitterCardBody>
               <div className="space-y-2">
-                {data.nextActions.map((action, i) => (
+                {data.nextActions.map((action: string, i: number) => (
                   <div key={i} className="flex items-start gap-2">
                     <span className="text-accent-primary text-sm shrink-0 mt-0.5">{'\u2192'}</span>
                     <p className="text-sm text-text-secondary">{action}</p>

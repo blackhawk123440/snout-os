@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Modal } from '@/components/ui';
@@ -17,6 +17,14 @@ import {
   SitterErrorState,
   FeatureStatusPill,
 } from '@/components/sitter';
+import {
+  useSitterProfile,
+  useToggleSitterAvailability,
+  useAddSitterBlockOff,
+  useRemoveSitterBlockOff,
+  useConnectSitterStripe,
+  useSitterDeleteAccount,
+} from '@/lib/api/sitter-portal-hooks';
 
 interface SitterProfile {
   id: string;
@@ -43,138 +51,76 @@ interface StripeStatus {
 }
 
 export default function SitterProfilePage() {
-  const [profile, setProfile] = useState<SitterProfile | null>(null);
-  const [blockOffs, setBlockOffs] = useState<BlockOffDay[]>([]);
-  const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [togglingAvailability, setTogglingAvailability] = useState(false);
-  const [addingBlock, setAddingBlock] = useState(false);
-  const [connectingStripe, setConnectingStripe] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [newBlockDate, setNewBlockDate] = useState('');
 
-  const loadProfile = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [meRes, availRes, stripeRes] = await Promise.all([
-        fetch('/api/sitter/me'),
-        fetch('/api/sitter/availability'),
-        fetch('/api/sitter/stripe/status'),
-      ]);
-      const meJson = await meRes.json().catch(() => ({}));
-      const availJson = await availRes.json().catch(() => ({}));
-      const stripeJson = await stripeRes.json().catch(() => ({}));
-      if (!meRes.ok) {
-        setError(meJson.error || 'Unable to load profile');
-        setProfile(null);
-        return;
-      }
-      setProfile({ ...meJson, availabilityEnabled: availJson.availabilityEnabled ?? meJson.availabilityEnabled ?? true });
-      setBlockOffs(Array.isArray(availJson.blockOffDays) ? availJson.blockOffDays : []);
-      setStripeStatus(stripeRes.ok ? stripeJson : { connected: false });
-    } catch {
-      setError('Unable to load profile');
-      setProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data: profileData, isLoading: loading, error, refetch } = useSitterProfile();
+  const profile = profileData?.profile as SitterProfile | undefined;
+  const availability = profileData?.availability;
+  const stripe = profileData?.stripe as StripeStatus | null | undefined;
+
+  const toggleAvail = useToggleSitterAvailability();
+  const addBlockOff = useAddSitterBlockOff();
+  const removeBlock = useRemoveSitterBlockOff();
+  const connectStripe = useConnectSitterStripe();
+  const deleteAccount = useSitterDeleteAccount();
 
   const searchParams = useSearchParams();
   useEffect(() => {
-    void loadProfile();
-  }, [loadProfile]);
-  useEffect(() => {
     if (searchParams?.get('stripe') === 'return' || searchParams?.get('stripe') === 'refresh') {
-      void loadProfile();
+      void refetch();
     }
-  }, [searchParams, loadProfile]);
+  }, [searchParams, refetch]);
+
+  const availabilityEnabled = availability?.availabilityEnabled ?? profile?.availabilityEnabled ?? true;
+  const blockOffs: BlockOffDay[] = Array.isArray(availability?.blockOffDays) ? availability.blockOffDays : [];
+  const stripeStatus: StripeStatus = stripe ?? { connected: false };
+
+  const handleToggleAvailability = async () => {
+    if (!profile) return;
+    try {
+      await toggleAvail.mutateAsync(!availabilityEnabled);
+    } catch (e) {
+      toastError(e instanceof Error ? e.message : 'Failed to update');
+    }
+  };
+
+  const handleAddBlockOff = async () => {
+    if (!newBlockDate.trim()) return;
+    try {
+      await addBlockOff.mutateAsync(newBlockDate);
+      setNewBlockDate('');
+    } catch (e) {
+      toastError(e instanceof Error ? e.message : 'Failed to add');
+    }
+  };
+
+  const handleRemoveBlockOff = async (id: string) => {
+    try {
+      await removeBlock.mutateAsync(id);
+    } catch {
+      toastError('Failed to remove');
+    }
+  };
+
+  const handleConnectStripe = async () => {
+    try {
+      const result = await connectStripe.mutateAsync();
+      if (result.onboardingUrl) window.location.href = result.onboardingUrl;
+    } catch (e) {
+      toastError(e instanceof Error ? e.message : 'Failed to connect Stripe');
+    }
+  };
 
   const handleDeleteAccount = async () => {
-    setDeleting(true);
     try {
-      const res = await fetch('/api/sitter/delete-account', { method: 'POST' });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error || 'Failed');
+      await deleteAccount.mutateAsync();
       setDeleteModalOpen(false);
       const { signOut } = await import('next-auth/react');
       await signOut({ callbackUrl: '/login' });
       window.location.href = '/login';
     } catch (e) {
       toastError(e instanceof Error ? e.message : 'Failed to delete account');
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const connectStripe = async () => {
-    setConnectingStripe(true);
-    try {
-      const res = await fetch('/api/sitter/stripe/connect', { method: 'POST' });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error || 'Failed');
-      if (json.onboardingUrl) {
-        window.location.href = json.onboardingUrl;
-      } else {
-        void loadProfile();
-      }
-    } catch (e) {
-      toastError(e instanceof Error ? e.message : 'Failed to connect Stripe');
-    } finally {
-      setConnectingStripe(false);
-    }
-  };
-
-  const toggleAvailability = async () => {
-    if (!profile) return;
-    setTogglingAvailability(true);
-    try {
-      const enabled = !profile.availabilityEnabled;
-      const res = await fetch('/api/sitter/availability', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ availabilityEnabled: enabled }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error || 'Failed');
-      setProfile((p) => (p ? { ...p, availabilityEnabled: enabled } : null));
-    } catch (e) {
-      toastError(e instanceof Error ? e.message : 'Failed to update');
-    } finally {
-      setTogglingAvailability(false);
-    }
-  };
-
-  const addBlockOff = async () => {
-    if (!newBlockDate.trim()) return;
-    setAddingBlock(true);
-    try {
-      const res = await fetch('/api/sitter/block-off', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: newBlockDate }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error || 'Failed');
-      setBlockOffs((prev) => [...prev, { id: json.id, date: json.date }]);
-      setNewBlockDate('');
-    } catch (e) {
-      toastError(e instanceof Error ? e.message : 'Failed to add');
-    } finally {
-      setAddingBlock(false);
-    }
-  };
-
-  const removeBlockOff = async (id: string) => {
-    try {
-      const res = await fetch(`/api/sitter/block-off/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed');
-      setBlockOffs((prev) => prev.filter((b) => b.id !== id));
-    } catch {
-      toastError('Failed to remove');
     }
   };
 
@@ -186,8 +132,8 @@ export default function SitterProfilePage() {
       ) : error ? (
         <SitterErrorState
           title="Couldn't load profile"
-          subtitle={error}
-          onRetry={() => void loadProfile()}
+          subtitle={error instanceof Error ? error.message : 'Unable to load profile'}
+          onRetry={() => void refetch()}
         />
       ) : profile ? (
         <div className="space-y-4">
@@ -242,8 +188,8 @@ export default function SitterProfilePage() {
               ) : (
                 <>
                   <p className="mb-3 text-sm text-text-secondary">Connect your Stripe account to receive payouts from completed bookings.</p>
-                  <Button variant="primary" size="md" onClick={() => void connectStripe()} disabled={connectingStripe}>
-                    {connectingStripe ? 'Connecting...' : 'Connect Stripe account'}
+                  <Button variant="primary" size="md" onClick={() => void handleConnectStripe()} disabled={connectStripe.isPending}>
+                    {connectStripe.isPending ? 'Connecting...' : 'Connect Stripe account'}
                   </Button>
                 </>
               )}
@@ -309,16 +255,16 @@ export default function SitterProfilePage() {
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={profile.availabilityEnabled}
-                  onClick={() => void toggleAvailability()}
-                  disabled={togglingAvailability}
+                  aria-checked={availabilityEnabled}
+                  onClick={() => void handleToggleAvailability()}
+                  disabled={toggleAvail.isPending}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 disabled:opacity-50 ${
-                    profile.availabilityEnabled ? 'bg-accent-primary' : 'bg-surface-tertiary'
+                    availabilityEnabled ? 'bg-accent-primary' : 'bg-surface-tertiary'
                   }`}
                 >
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-surface-primary shadow ring-0 transition ${
-                      profile.availabilityEnabled ? 'translate-x-5' : 'translate-x-1'
+                      availabilityEnabled ? 'translate-x-5' : 'translate-x-1'
                     }`}
                   />
                 </button>
@@ -337,10 +283,10 @@ export default function SitterProfilePage() {
                   <Button
                     variant="secondary"
                     size="md"
-                    onClick={() => void addBlockOff()}
-                    disabled={!newBlockDate || addingBlock}
+                    onClick={() => void handleAddBlockOff()}
+                    disabled={!newBlockDate || addBlockOff.isPending}
                   >
-                    {addingBlock ? 'Adding...' : 'Add'}
+                    {addBlockOff.isPending ? 'Adding...' : 'Add'}
                   </Button>
                 </div>
                 {blockOffs.length > 0 && (
@@ -350,7 +296,7 @@ export default function SitterProfilePage() {
                         <span>{new Date(b.date + 'T12:00:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         <button
                           type="button"
-                          onClick={() => void removeBlockOff(b.id)}
+                          onClick={() => void handleRemoveBlockOff(b.id)}
                           className="text-status-danger-text-secondary hover:text-status-danger-text"
                         >
                           Remove
@@ -386,21 +332,21 @@ export default function SitterProfilePage() {
 
       <Modal
         isOpen={deleteModalOpen}
-        onClose={() => !deleting && setDeleteModalOpen(false)}
+        onClose={() => !deleteAccount.isPending && setDeleteModalOpen(false)}
         title="Delete account"
         size="sm"
         footer={
           <div className="flex gap-2 justify-end">
-            <Button variant="secondary" onClick={() => setDeleteModalOpen(false)} disabled={deleting}>
+            <Button variant="secondary" onClick={() => setDeleteModalOpen(false)} disabled={deleteAccount.isPending}>
               Cancel
             </Button>
             <Button
               variant="secondary"
               onClick={() => void handleDeleteAccount()}
-              disabled={deleting}
+              disabled={deleteAccount.isPending}
               className="bg-status-danger-fill text-status-danger-text-on-fill hover:bg-status-danger-fill-hover"
             >
-              {deleting ? 'Deleting...' : 'Delete account'}
+              {deleteAccount.isPending ? 'Deleting...' : 'Delete account'}
             </Button>
           </div>
         }
