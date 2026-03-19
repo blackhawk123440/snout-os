@@ -7,8 +7,9 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import {
   PageHeader,
   Card,
@@ -44,17 +45,12 @@ interface AutomationRun {
 
 export default function AutomationLedgerPage() {
   const isMobile = useMobile();
-  const [runs, setRuns] = useState<AutomationRun[]>([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [automationTypeFilter, setAutomationTypeFilter] = useState<string>("all");
-  const [total, setTotal] = useState(0);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchRuns = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: ledgerData, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'automation-ledger', statusFilter, automationTypeFilter],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (statusFilter !== "all") {
         params.append("status", statusFilter);
@@ -64,24 +60,15 @@ export default function AutomationLedgerPage() {
       }
       params.append("limit", "100");
 
-      const response = await fetch(`/api/automations/ledger?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch automation runs');
-      }
-      const data = await response.json();
-      setRuns(data.runs || []);
-      setTotal(data.total || 0);
-    } catch (err) {
-      setError('Failed to load automation runs');
-      setRuns([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter, automationTypeFilter]);
-
-  useEffect(() => {
-    fetchRuns();
-  }, [fetchRuns]);
+      const res = await fetch(`/api/automations/ledger?${params.toString()}`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      return { runs: json.runs || [], total: json.total || 0 };
+    },
+  });
+  const runs = ledgerData?.runs || [];
+  const total = ledgerData?.total || 0;
+  const error = queryError ? (queryError as Error).message || 'Failed to load automation runs' : null;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -164,7 +151,7 @@ export default function AutomationLedgerPage() {
               <Button
                 variant="tertiary"
                 size="sm"
-                onClick={fetchRuns}
+                onClick={() => refetch()}
                 style={{ marginLeft: tokens.spacing[3] }}
               >
                 Retry
@@ -245,7 +232,7 @@ export default function AutomationLedgerPage() {
             </div>
           ) : (
             <div>
-              {runs.map((run) => (
+              {runs.map((run: AutomationRun) => (
                 <div
                   key={run.id}
                   style={{

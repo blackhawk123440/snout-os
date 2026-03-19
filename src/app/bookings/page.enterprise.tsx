@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, AppFilterBar, getStatusPill } from '@/components/app';
 import { DataTableShell, EmptyState, Table, TableSkeleton, Button } from '@/components/ui';
@@ -23,9 +24,6 @@ type BookingRow = {
 };
 
 export default function BookingsEnterprisePage() {
-  const [rows, setRows] = useState<BookingRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Record<string, string>>({
     search: '',
     status: 'all',
@@ -37,12 +35,10 @@ export default function BookingsEnterprisePage() {
   });
   const [page, setPage] = useState(1);
   const pageSize = 50;
-  const [total, setTotal] = useState(0);
 
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'bookings', page, pageSize, filters],
+    queryFn: async () => {
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('pageSize', String(pageSize));
@@ -56,20 +52,12 @@ export default function BookingsEnterprisePage() {
       const res = await fetch(`/api/bookings?${params.toString()}`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Failed to load bookings');
-      setRows(Array.isArray(json.items) ? json.items : []);
-      setTotal(typeof json.total === 'number' ? json.total : 0);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load bookings');
-      setRows([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void load();
-  }, [page, pageSize, filters.search, filters.status, filters.payment, filters.from, filters.to, filters.sitterId, filters.clientId]);
+      return { items: json.items || [], total: json.total || 0 };
+    },
+  });
+  const rows = data?.items || [];
+  const total = data?.total || 0;
+  const error = queryError?.message || null;
 
   const filtered = useMemo(() => rows, [rows]);
 
@@ -154,7 +142,7 @@ export default function BookingsEnterprisePage() {
           {loading ? (
             <TableSkeleton rows={8} cols={6} />
           ) : error ? (
-            <AppErrorState title="Couldn't load bookings" subtitle={error} onRetry={() => void load()} />
+            <AppErrorState title="Couldn't load bookings" subtitle={error} onRetry={() => void refetch()} />
           ) : filtered.length === 0 ? (
             <EmptyState
               title="No bookings found"

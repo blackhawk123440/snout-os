@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, getStatusPill } from '@/components/app';
 import {
@@ -81,21 +82,15 @@ type EventItem = {
 export default function BookingDetailEnterprisePage() {
   const params = useParams<{ id: string }>();
   const bookingId = params.id;
+  const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  const [booking, setBooking] = useState<Booking | null>(null);
-  const [events, setEvents] = useState<EventItem[]>([]);
-  const [sitters, setSitters] = useState<Array<{ id: string; firstName: string; lastName: string }>>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const [eventTypeFilter, setEventTypeFilter] = useState('all');
   const [sitterId, setSitterId] = useState('');
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: pageData, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'bookings', bookingId],
+    queryFn: async () => {
       const [bookingRes, eventsRes, sittersRes] = await Promise.all([
         fetch(`/api/bookings/${bookingId}`),
         fetch(`/api/bookings/${bookingId}/events`),
@@ -106,20 +101,27 @@ export default function BookingDetailEnterprisePage() {
       const sittersJson = await sittersRes.json().catch(() => ({}));
       if (!bookingRes.ok) throw new Error(bookingJson.error || 'Failed to load booking');
       if (!eventsRes.ok) throw new Error(eventsJson.error || 'Failed to load events');
-      setBooking(bookingJson.booking || null);
-      setSitterId(bookingJson.booking?.sitter?.id || '');
-      setEvents(Array.isArray(eventsJson.items) ? eventsJson.items : []);
-      setSitters(Array.isArray(sittersJson.items) ? sittersJson.items : []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load booking');
-    } finally {
-      setLoading(false);
-    }
-  }, [bookingId]);
+      return {
+        booking: (bookingJson.booking || null) as Booking | null,
+        events: (Array.isArray(eventsJson.items) ? eventsJson.items : []) as EventItem[],
+        sitters: (Array.isArray(sittersJson.items) ? sittersJson.items : []) as Array<{ id: string; firstName: string; lastName: string }>,
+      };
+    },
+    enabled: !!bookingId,
+  });
 
+  const booking = pageData?.booking ?? null;
+  const events = pageData?.events ?? [];
+  const sitters = pageData?.sitters ?? [];
+  const error = queryError ? queryError.message : null;
+
+  // Sync sitterId when booking data loads
+  const currentSitterId = booking?.sitter?.id || '';
   useEffect(() => {
-    if (bookingId) void load();
-  }, [bookingId, load]);
+    if (currentSitterId) {
+      setSitterId(currentSitterId);
+    }
+  }, [currentSitterId]);
 
   const filteredEvents = useMemo(() => {
     if (eventTypeFilter === 'all') return events;
@@ -128,9 +130,8 @@ export default function BookingDetailEnterprisePage() {
   const paymentProof = booking?.paymentProof ?? null;
   const calendarProof = booking?.calendarSyncProof ?? null;
 
-  async function patchBooking(payload: Record<string, unknown>, successMessage: string) {
-    setBusy(true);
-    try {
+  const patchBookingMutation = useMutation({
+    mutationFn: async ({ payload, successMessage }: { payload: Record<string, unknown>; successMessage: string }) => {
       const res = await fetch(`/api/bookings/${bookingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -138,23 +139,25 @@ export default function BookingDetailEnterprisePage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Update failed');
+      return { successMessage };
+    },
+    onSuccess: ({ successMessage }) => {
       showToast({ variant: 'success', message: successMessage });
-      await load();
-    } catch (e) {
-      showToast({ variant: 'error', message: e instanceof Error ? e.message : 'Update failed' });
-    } finally {
-      setBusy(false);
-    }
-  }
+      void queryClient.invalidateQueries({ queryKey: ['owner', 'bookings', bookingId] });
+    },
+    onError: (err: Error) => {
+      showToast({ variant: 'error', message: err.message });
+    },
+  });
 
-  async function runFix(type: 'automation_failure' | 'calendar_repair') {
-    const target = events.find((e) => e.type.includes(type === 'automation_failure' ? 'automation' : 'calendar'));
-    if (!target) {
-      showToast({ variant: 'error', message: `No ${type} event found` });
-      return;
-    }
-    setBusy(true);
-    try {
+  const patchBooking = (payload: Record<string, unknown>, successMessage: string) => {
+    patchBookingMutation.mutate({ payload, successMessage });
+  };
+
+  const runFixMutation = useMutation({
+    mutationFn: async (type: 'automation_failure' | 'calendar_repair') => {
+      const target = events.find((e) => e.type.includes(type === 'automation_failure' ? 'automation' : 'calendar'));
+      if (!target) throw new Error(`No ${type} event found`);
       const res = await fetch('/api/ops/command-center/attention/fix', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -162,18 +165,23 @@ export default function BookingDetailEnterprisePage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Fix failed');
+      return json;
+    },
+    onSuccess: () => {
       showToast({ variant: 'success', message: 'Fix queued' });
-      await load();
-    } catch (e) {
-      showToast({ variant: 'error', message: e instanceof Error ? e.message : 'Fix failed' });
-    } finally {
-      setBusy(false);
-    }
-  }
+      void queryClient.invalidateQueries({ queryKey: ['owner', 'bookings', bookingId] });
+    },
+    onError: (err: Error) => {
+      showToast({ variant: 'error', message: err.message });
+    },
+  });
 
-  async function sendBookingLink(kind: 'payment' | 'tip', forceResend = false) {
-    setBusy(true);
-    try {
+  const runFix = (type: 'automation_failure' | 'calendar_repair') => {
+    runFixMutation.mutate(type);
+  };
+
+  const sendBookingLinkMutation = useMutation({
+    mutationFn: async ({ kind, forceResend = false }: { kind: 'payment' | 'tip'; forceResend?: boolean }) => {
       const endpoint = kind === 'payment' ? '/api/messages/send-payment-link' : '/api/messages/send-tip-link';
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -182,17 +190,25 @@ export default function BookingDetailEnterprisePage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || `Failed to send ${kind} link`);
+      return { kind, deduped: json.deduped };
+    },
+    onSuccess: ({ kind, deduped }) => {
       showToast({
         variant: 'success',
-        message: json.deduped ? `${kind} link already sent recently` : `${kind} link sent`,
+        message: deduped ? `${kind} link already sent recently` : `${kind} link sent`,
       });
-      await load();
-    } catch (e) {
-      showToast({ variant: 'error', message: e instanceof Error ? e.message : `Failed to send ${kind} link` });
-    } finally {
-      setBusy(false);
-    }
-  }
+      void queryClient.invalidateQueries({ queryKey: ['owner', 'bookings', bookingId] });
+    },
+    onError: (err: Error) => {
+      showToast({ variant: 'error', message: err.message });
+    },
+  });
+
+  const sendBookingLink = (kind: 'payment' | 'tip', forceResend = false) => {
+    sendBookingLinkMutation.mutate({ kind, forceResend });
+  };
+
+  const busy = patchBookingMutation.isPending || runFixMutation.isPending || sendBookingLinkMutation.isPending;
 
   if (loading) {
     return (
@@ -210,7 +226,7 @@ export default function BookingDetailEnterprisePage() {
       <OwnerAppShell>
         <LayoutWrapper variant="wide">
           <PageHeader title="Booking Ops Cockpit" subtitle="Unable to load booking" />
-          <AppErrorState title="Couldn't load booking" subtitle={error || 'Unknown error'} onRetry={() => void load()} />
+          <AppErrorState title="Couldn't load booking" subtitle={error || 'Unknown error'} onRetry={() => void refetch()} />
         </LayoutWrapper>
       </OwnerAppShell>
     );
@@ -320,7 +336,7 @@ export default function BookingDetailEnterprisePage() {
                 ]}
                 onChange={(e) => setSitterId(e.target.value)}
               />
-              <Button className="mt-2 w-full" disabled={busy} onClick={() => void patchBooking({ sitterId: sitterId || null }, 'Sitter assignment updated')}>Save assignment</Button>
+              <Button className="mt-2 w-full" disabled={busy} onClick={() => patchBooking({ sitterId: sitterId || null }, 'Sitter assignment updated')}>Save assignment</Button>
             </div>
             <div className="rounded-lg border p-3">
               <div className="mb-2 text-sm font-medium">Comms</div>
@@ -331,10 +347,10 @@ export default function BookingDetailEnterprisePage() {
                   ? <Link href={`/messages?thread=${booking.threadId}`}><Button variant="secondary">Open Thread</Button></Link>
                   : <Button variant="secondary" disabled title="No messaging thread yet — check Twilio setup">No Thread ⚠️</Button>
                 }
-                <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('payment')}>Send payment link</Button>
-                <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('payment', true)}>Resend payment</Button>
-                <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('tip')}>Send tip link</Button>
-                <Button variant="secondary" disabled={busy} onClick={() => void sendBookingLink('tip', true)}>Resend tip</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => sendBookingLink('payment')}>Send payment link</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => sendBookingLink('payment', true)}>Resend payment</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => sendBookingLink('tip')}>Send tip link</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => sendBookingLink('tip', true)}>Resend tip</Button>
               </div>
               <div className="mt-2 text-xs text-text-secondary">Direct calling is an owner/admin operational exception; normal service communication stays in masked inbox threads.</div>
               <div className="mt-2 text-xs text-text-secondary">
@@ -345,10 +361,10 @@ export default function BookingDetailEnterprisePage() {
             <div className="rounded-lg border p-3">
               <div className="mb-2 text-sm font-medium">Ops</div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" disabled={busy} onClick={() => void patchBooking({ status: 'cancelled' }, 'Booking cancelled')}>Cancel</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => patchBooking({ status: 'cancelled' }, 'Booking cancelled')}>Cancel</Button>
                 <Link href={`/payments?bookingId=${booking.id}`}><Button variant="secondary">Refund</Button></Link>
-                <Button variant="secondary" disabled={busy} onClick={() => void runFix('calendar_repair')}>Repair calendar</Button>
-                <Button variant="secondary" disabled={busy} onClick={() => void runFix('automation_failure')}>Retry automation</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => runFix('calendar_repair')}>Repair calendar</Button>
+                <Button variant="secondary" disabled={busy} onClick={() => runFix('automation_failure')}>Retry automation</Button>
               </div>
             </div>
           </div>

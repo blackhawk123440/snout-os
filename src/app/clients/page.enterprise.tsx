@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, AppFilterBar } from '@/components/app';
 import { DataTableShell, EmptyState, Table, TableSkeleton, Button } from '@/components/ui';
@@ -19,9 +20,6 @@ type ClientRow = {
 };
 
 export default function ClientsEnterprisePage() {
-  const [rows, setRows] = useState<ClientRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<Record<string, string>>({
     search: '',
     sort: 'recent',
@@ -29,12 +27,10 @@ export default function ClientsEnterprisePage() {
   });
   const [page, setPage] = useState(1);
   const pageSize = 50;
-  const [total, setTotal] = useState(0);
 
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'clients', page, pageSize, filters],
+    queryFn: async () => {
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('pageSize', String(pageSize));
@@ -43,20 +39,12 @@ export default function ClientsEnterprisePage() {
       const res = await fetch(`/api/clients?${params.toString()}`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Failed to load clients');
-      setRows(Array.isArray(json.items) ? json.items : []);
-      setTotal(typeof json.total === 'number' ? json.total : 0);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load clients');
-      setRows([]);
-      setTotal(0);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    void load();
-  }, [page, pageSize, filters.search, filters.status]);
+      return { items: json.items || [], total: json.total || 0 };
+    },
+  });
+  const rows = data?.items || [];
+  const total = data?.total || 0;
+  const error = queryError?.message || null;
 
   const filtered = useMemo(() => {
     if (filters.sort === 'name') {
@@ -121,7 +109,7 @@ export default function ClientsEnterprisePage() {
           {loading ? (
             <TableSkeleton rows={8} cols={5} />
           ) : error ? (
-            <AppErrorState title="Couldn't load clients" subtitle={error} onRetry={() => void load()} />
+            <AppErrorState title="Couldn't load clients" subtitle={error} onRetry={() => void refetch()} />
           ) : filtered.length === 0 ? (
             <EmptyState
               title="No clients found"

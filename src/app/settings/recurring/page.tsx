@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
 import { Button, EmptyState } from '@/components/ui';
@@ -56,26 +57,23 @@ const fmtDays = (json: string | null) => {
 
 export default function RecurringSchedulesPage() {
   const { user, loading: authLoading } = useAuth();
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [sitters, setSitters] = useState<SitterOption[]>([]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: schedulesData, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'recurring-schedules'],
+    queryFn: async () => {
       const res = await fetch('/api/ops/recurring-schedules');
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(json.error || 'Failed to load'); return; }
-      setSchedules(json.schedules || []);
-    } catch { setError('Failed to load'); }
-    finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { if (!authLoading && user) void load(); }, [authLoading, user, load]);
+      if (!res.ok) throw new Error(json.error || 'Failed to load');
+      return json.schedules || [];
+    },
+    enabled: !authLoading && !!user,
+  });
+  const schedules: Schedule[] = schedulesData || [];
+  const error = queryError ? (queryError as Error).message || 'Failed to load' : null;
 
   // Load clients + sitters for the form
   useEffect(() => {
@@ -89,30 +87,43 @@ export default function RecurringSchedulesPage() {
     }).catch(() => {});
   }, [showForm]);
 
+  const cancelMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const res = await fetch(`/api/ops/recurring-schedules/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      return status;
+    },
+    onSuccess: (status) => {
+      toastSuccess(`Schedule ${status}`);
+      queryClient.invalidateQueries({ queryKey: ['owner', 'recurring-schedules'] });
+    },
+    onError: () => {
+      toastError('Failed');
+    },
+  });
+
   const handleAction = async (id: string, action: 'generate' | 'pause' | 'resume' | 'cancel' | 'invoice') => {
     try {
-      let res;
       if (action === 'generate') {
-        res = await fetch(`/api/ops/recurring-schedules/${id}/generate`, { method: 'POST' });
+        const res = await fetch(`/api/ops/recurring-schedules/${id}/generate`, { method: 'POST' });
         const json = await res.json().catch(() => ({}));
         if (res.ok) toastSuccess(`Created ${json.created} booking${json.created !== 1 ? 's' : ''}, ${json.skipped} skipped`);
         else toastError(json.error || 'Failed');
+        queryClient.invalidateQueries({ queryKey: ['owner', 'recurring-schedules'] });
       } else if (action === 'invoice') {
-        res = await fetch(`/api/ops/recurring-schedules/${id}/generate-invoice`, { method: 'POST' });
+        const res = await fetch(`/api/ops/recurring-schedules/${id}/generate-invoice`, { method: 'POST' });
         const json = await res.json().catch(() => ({}));
         if (res.ok) toastSuccess(`Invoice for $${json.total?.toFixed(2) || 0} (${json.count} visits)`);
         else toastError(json.error || 'Failed');
+        queryClient.invalidateQueries({ queryKey: ['owner', 'recurring-schedules'] });
       } else {
         const status = action === 'pause' ? 'paused' : action === 'resume' ? 'active' : 'cancelled';
-        res = await fetch(`/api/ops/recurring-schedules/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status }),
-        });
-        if (res.ok) toastSuccess(`Schedule ${status}`);
-        else toastError('Failed');
+        cancelMutation.mutate({ id, status });
       }
-      void load();
     } catch { toastError('Action failed'); }
   };
 
@@ -143,14 +154,14 @@ export default function RecurringSchedulesPage() {
         />
         <Section>
           {loading ? <PageSkeleton /> : error ? (
-            <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void load()} />
+            <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void refetch()} />
           ) : (
             <>
               {showForm && (
                 <NewScheduleForm
                   clients={clients}
                   sitters={sitters}
-                  onCreated={() => { setShowForm(false); void load(); }}
+                  onCreated={() => { setShowForm(false); queryClient.invalidateQueries({ queryKey: ['owner', 'recurring-schedules'] }); }}
                   onCancel={() => setShowForm(false)}
                 />
               )}

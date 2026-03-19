@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
 import { Button, EmptyState } from '@/components/ui';
 import { PageSkeleton } from '@/components/ui/loading-state';
 import { toastSuccess, toastError } from '@/lib/toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface RankedSitter {
   id: string;
@@ -24,37 +24,36 @@ const metricColor = (value: number, threshold: number) =>
   value >= threshold ? 'text-status-success-text' : value >= threshold * 0.8 ? 'text-status-warning-text' : 'text-status-danger-text';
 
 export default function SitterRankingsPage() {
-  const [rankings, setRankings] = useState<RankedSitter[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [evaluating, setEvaluating] = useState(false);
+  const queryClient = useQueryClient();
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: rankings = [], isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'sitter-rankings'],
+    queryFn: async () => {
       const res = await fetch('/api/ops/sitters/rankings');
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(json.error || 'Failed'); return; }
-      setRankings(json.rankings || []);
-    } catch { setError('Failed to load'); }
-    finally { setLoading(false); }
-  }, []);
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      return json.rankings || [];
+    },
+  });
 
-  useEffect(() => { void load(); }, [load]);
+  const error = queryError?.message ?? null;
 
-  const evaluateTiers = async () => {
-    setEvaluating(true);
-    try {
+  const evaluateTiersMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch('/api/ops/sitters/evaluate-tiers', { method: 'POST' });
       const json = await res.json().catch(() => ({}));
-      if (res.ok) {
-        toastSuccess(`Evaluated ${json.evaluated} sitters: ${json.promoted} promoted, ${json.demoted} demoted`);
-        void load();
-      } else toastError(json.error || 'Failed');
-    } catch { toastError('Failed'); }
-    finally { setEvaluating(false); }
-  };
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      return json;
+    },
+    onSuccess: (json) => {
+      toastSuccess(`Evaluated ${json.evaluated} sitters: ${json.promoted} promoted, ${json.demoted} demoted`);
+      queryClient.invalidateQueries({ queryKey: ['owner', 'sitter-rankings'] });
+    },
+    onError: (err) => toastError(err instanceof Error ? err.message : 'Failed'),
+  });
+
+  const evaluateTiers = () => evaluateTiersMutation.mutate();
+  const evaluating = evaluateTiersMutation.isPending;
 
   return (
     <OwnerAppShell>
@@ -70,12 +69,12 @@ export default function SitterRankingsPage() {
         />
         <Section>
           {loading ? <PageSkeleton /> : error ? (
-            <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void load()} />
+            <AppErrorState title="Couldn't load" subtitle={error} onRetry={() => void refetch()} />
           ) : rankings.length === 0 ? (
             <EmptyState title="No active sitters" description="Add sitters to see performance rankings." />
           ) : (
             <div className="space-y-2">
-              {rankings.map((s, i) => (
+              {rankings.map((s: any, i: number) => (
                 <div key={s.id} className="flex items-center gap-4 rounded-xl border border-border-default bg-surface-primary px-4 py-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-tertiary text-sm font-bold text-text-secondary">
                     {i === 0 ? '\ud83c\udfc6' : `#${i + 1}`}

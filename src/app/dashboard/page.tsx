@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
 import { Button } from '@/components/ui';
+import { useQuickAssign } from '@/lib/api/owner-hooks';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { statusDotClass } from '@/lib/status-colors';
 
@@ -156,68 +158,32 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const dateParam = searchParams.get('date');
 
-  const [board, setBoard] = useState<BoardData | null>(null);
-  const [sitters, setSitters] = useState<SitterOption[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   // Current date for the board
   const currentDate = dateParam || (() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   })();
 
-  const load = useCallback(async (showLoading = true) => {
-    if (showLoading) setLoading(true);
-    setError(null);
-    try {
+  const { data: boardData, isLoading: boardLoading, error: boardError, refetch: refetchBoard } = useQuery({
+    queryKey: ['owner', 'daily-board', currentDate],
+    queryFn: async () => {
       const [boardRes, sittersRes] = await Promise.all([
         fetch(`/api/ops/daily-board?date=${currentDate}`),
         fetch('/api/sitters?page=1&pageSize=200'),
       ]);
+      const board = await boardRes.json().catch(() => ({}));
+      const sittersData = await sittersRes.json().catch(() => ({}));
+      if (!boardRes.ok) throw new Error(board.error || 'Failed to load');
+      return { ...board, sitters: Array.isArray(sittersData.items) ? sittersData.items : [] };
+    },
+    refetchInterval: 30000,
+  });
 
-      const boardJson = await boardRes.json().catch(() => ({}));
-      if (!boardRes.ok) {
-        setError(boardJson.error || 'Failed to load board');
-        setBoard(null);
-        return;
-      }
-      setBoard(boardJson);
-
-      const sittersJson = await sittersRes.json().catch(() => ({}));
-      if (sittersRes.ok && Array.isArray(sittersJson.items)) {
-        setSitters(
-          sittersJson.items
-            .filter((s: any) => s.active !== false)
-            .map((s: any) => ({
-              id: s.id,
-              firstName: s.firstName || '',
-              lastName: s.lastName || '',
-            }))
-        );
-      }
-    } catch {
-      setError('Failed to load daily board');
-      setBoard(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentDate]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  // Poll every 30s for live updates
-  useEffect(() => {
-    pollRef.current = setInterval(() => {
-      void load(false);
-    }, 30000);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [load]);
+  const stats = boardData?.stats;
+  const sitterSchedules = boardData?.sitterSchedules || [];
+  const unassigned = boardData?.unassigned || [];
+  const attention = boardData?.attention;
+  const sitters = boardData?.sitters || [];
 
   const navigateDate = (offset: number) => {
     const d = new Date(currentDate + 'T12:00:00');
@@ -230,29 +196,25 @@ function DashboardContent() {
     router.push('/dashboard');
   };
 
-  const quickAssign = async (bookingId: string, sitterId: string) => {
-    try {
-      const res = await fetch('/api/ops/daily-board/quick-assign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId, sitterId }),
-      });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        toastError(json.error || 'Failed to assign');
-        return;
-      }
-      toastSuccess('Sitter assigned');
-      void load(false);
-    } catch {
-      toastError('Failed to assign sitter');
-    }
+  const quickAssignMutation = useQuickAssign();
+  const quickAssign = (bookingId: string, sitterId: string) => {
+    quickAssignMutation.mutate(
+      { bookingId, sitterId },
+      {
+        onSuccess: () => {
+          toastSuccess('Sitter assigned');
+          void refetchBoard();
+        },
+        onError: (err: Error) => {
+          toastError(err.message || 'Failed to assign sitter');
+        },
+      },
+    );
   };
 
-  const stats = board?.stats;
   const attentionCount =
-    (board?.attention.alerts.length ?? 0) + (board?.attention.staffing.length ?? 0);
-  const subtitle = board
+    (attention?.alerts.length ?? 0) + (attention?.staffing.length ?? 0);
+  const subtitle = boardData
     ? `${stats?.totalVisits ?? 0} visits today \u00b7 ${stats?.activeSittersCount ?? 0} sitters active${attentionCount > 0 ? ` \u00b7 ${attentionCount} need attention` : ''}`
     : '';
 
@@ -261,7 +223,7 @@ function DashboardContent() {
       <LayoutWrapper variant="wide">
         {/* Header */}
         <PageHeader
-          title={`Daily Operations \u2014 ${board ? formatDateLabel(board.date) : ''}`}
+          title={`Daily Operations \u2014 ${boardData ? formatDateLabel(boardData.date) : ''}`}
           subtitle={subtitle}
           actions={
             <div className="flex items-center gap-2">
@@ -292,11 +254,11 @@ function DashboardContent() {
               </button>
               <button
                 type="button"
-                onClick={() => void load()}
+                onClick={() => void refetchBoard()}
                 className="flex h-11 w-11 items-center justify-center rounded-lg border border-border-default bg-surface-primary text-text-secondary hover:bg-surface-secondary transition"
                 aria-label="Refresh"
               >
-                <i className={`fas fa-sync-alt text-xs ${loading ? 'animate-spin' : ''}`} />
+                <i className={`fas fa-sync-alt text-xs ${boardLoading ? 'animate-spin' : ''}`} />
               </button>
               <Link href="/bookings/new">
                 <Button size="sm">New booking</Button>
@@ -305,33 +267,33 @@ function DashboardContent() {
           }
         />
 
-        {loading && !board ? (
+        {boardLoading && !boardData ? (
           <BoardSkeleton />
-        ) : error ? (
+        ) : boardError ? (
           <div className="rounded-xl border border-border-default bg-surface-primary p-8 text-center">
-            <p className="text-sm text-text-secondary">{error}</p>
+            <p className="text-sm text-text-secondary">{boardError.message}</p>
             <button
               type="button"
-              onClick={() => void load()}
+              onClick={() => void refetchBoard()}
               className="mt-3 min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition"
             >
               Retry
             </button>
           </div>
-        ) : board ? (
+        ) : boardData ? (
           <div className="space-y-6">
             {/* Quick Stats */}
-            <QuickStatsStrip stats={board.stats} />
+            <QuickStatsStrip stats={boardData.stats} />
 
             {/* Main content: schedule + attention */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr,380px]">
               {/* Left: Schedule Timeline */}
               <div className="space-y-4 min-w-0">
-                {board.sitterSchedules.length === 0 && board.unassigned.length === 0 ? (
+                {sitterSchedules.length === 0 && unassigned.length === 0 ? (
                   <div className="rounded-xl border border-border-default bg-surface-primary p-8 text-center">
                     <p className="text-lg font-semibold text-text-primary">No visits scheduled</p>
                     <p className="mt-1 text-sm text-text-secondary">
-                      No visits scheduled for {formatDateLabel(board.date)}. Book a visit or check another day.
+                      No visits scheduled for {formatDateLabel(boardData.date)}. Book a visit or check another day.
                     </p>
                     <Link href="/bookings/new" className="mt-4 inline-block">
                       <Button size="sm">New booking</Button>
@@ -339,17 +301,17 @@ function DashboardContent() {
                   </div>
                 ) : (
                   <>
-                    {board.sitterSchedules.map((schedule) => (
+                    {sitterSchedules.map((schedule: SitterSchedule) => (
                       <SitterScheduleCard
                         key={schedule.sitter.id}
                         schedule={schedule}
-                        boardDate={board.date}
+                        boardDate={boardData.date}
                       />
                     ))}
 
-                    {board.unassigned.length > 0 && (
+                    {unassigned.length > 0 && (
                       <UnassignedCard
-                        visits={board.unassigned}
+                        visits={unassigned}
                         sitters={sitters}
                         onAssign={quickAssign}
                       />
@@ -360,7 +322,7 @@ function DashboardContent() {
 
               {/* Right: Attention Queue */}
               <div className="min-w-0">
-                <AttentionQueue attention={board.attention} />
+                <AttentionQueue attention={boardData.attention} />
               </div>
             </div>
 

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
 import {
   AppErrorState,
@@ -54,16 +55,9 @@ interface AttentionPayload {
 
 export function CommandCenterContent() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
   const [scheduleConflictCount, setScheduleConflictCount] = useState(0);
-  const [attention, setAttention] = useState<AttentionPayload>({
-    alerts: [],
-    staffing: [],
-    lastUpdatedAt: null,
-  });
   const [range, setRange] = useState<'7d' | '30d'>('7d');
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [rollbackByItemId, setRollbackByItemId] = useState<Record<string, string | null>>({});
@@ -88,63 +82,33 @@ export function CommandCenterContent() {
     }
   }, [user, authLoading, router]);
 
-  const load = useCallback(async (opts?: { preserveScroll?: boolean }) => {
-    const preserveScroll = !!opts?.preserveScroll;
-    const prevScrollY = preserveScroll && typeof window !== 'undefined' ? window.scrollY : null;
-    if (!user) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [statsData, attentionData] = await Promise.all([
-        fetch(`/api/ops/stats?range=${range}`).then((r) => r.json()),
-        fetch(`/api/ops/command-center/attention?view=${view}`).then((r) => r.json()),
+  const { data: ccData, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'command-center', range, view],
+    queryFn: async () => {
+      const [statsRes, attentionRes] = await Promise.all([
+        fetch(`/api/ops/stats?range=${range}`),
+        fetch(`/api/ops/command-center/attention?view=${view}`),
       ]);
-      setStats(statsData ?? null);
-      setAttention({
-        alerts: Array.isArray(attentionData?.alerts) ? attentionData.alerts : [],
-        staffing: Array.isArray(attentionData?.staffing) ? attentionData.staffing : [],
-        lastUpdatedAt: typeof attentionData?.lastUpdatedAt === 'string' ? attentionData.lastUpdatedAt : null,
-        view: typeof attentionData?.view === 'string' ? attentionData.view : 'active',
-      });
-    } catch {
-      setStats(null);
-      setAttention({ alerts: [], staffing: [], lastUpdatedAt: null, view: 'active' });
-      setError('Failed to load command center queues');
-    } finally {
-      setLoading(false);
-      if (prevScrollY != null && typeof window !== 'undefined') {
-        requestAnimationFrame(() => window.scrollTo(0, prevScrollY));
-      }
-    }
-  }, [range, user, view]);
+      const stats = await statsRes.json().catch(() => ({}));
+      const attention = await attentionRes.json().catch(() => ({}));
+      if (!statsRes.ok) throw new Error(stats.error || 'Failed');
+      return { stats, attention };
+    },
+    refetchInterval: 30000,
+    enabled: !!user,
+  });
 
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-    void (async () => {
-      if (cancelled) return;
-      await load();
-    })();
-    return () => { cancelled = true; };
-  }, [user, load]);
-
-  const optimisticRemove = (itemId: string, category: 'alerts' | 'staffing') => {
-    setAttention((curr) => ({
-      ...curr,
-      alerts: category === 'alerts' ? curr.alerts.filter((a) => a.id !== itemId) : curr.alerts,
-      staffing: category === 'staffing' ? curr.staffing.filter((a) => a.id !== itemId) : curr.staffing,
-    }));
+  const stats: Stats | null = ccData?.stats ?? null;
+  const attention: AttentionPayload = {
+    alerts: Array.isArray(ccData?.attention?.alerts) ? ccData.attention.alerts : [],
+    staffing: Array.isArray(ccData?.attention?.staffing) ? ccData.attention.staffing : [],
+    lastUpdatedAt: typeof ccData?.attention?.lastUpdatedAt === 'string' ? ccData.attention.lastUpdatedAt : null,
+    view: typeof ccData?.attention?.view === 'string' ? ccData.attention.view : 'active',
   };
+  const error = queryError ? queryError.message : null;
 
-  const handleAttentionAction = async (
-    id: string,
-    action: 'mark_handled' | 'snooze_1h' | 'snooze_4h' | 'snooze_tomorrow',
-    category: 'alerts' | 'staffing'
-  ) => {
-    const previous = attention;
-    optimisticRemove(id, category);
-    setActionLoadingId(id);
-    try {
+  const attentionActionMutation = useMutation({
+    mutationFn: async ({ id, action }: { id: string; action: 'mark_handled' | 'snooze_1h' | 'snooze_4h' | 'snooze_tomorrow'; category: 'alerts' | 'staffing' }) => {
       const res = await fetch('/api/ops/command-center/attention/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -152,28 +116,35 @@ export function CommandCenterContent() {
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        setAttention(previous);
-        setError(json.error || 'Failed to update item');
-        return;
+        throw new Error(json.error || 'Failed to update item');
       }
+      return { action };
+    },
+    onMutate: ({ id }) => {
+      setActionLoadingId(id);
+    },
+    onSuccess: ({ action }) => {
       showToast({ variant: 'success', message: action === 'mark_handled' ? 'Marked handled' : 'Snoozed' });
-      await load({ preserveScroll: true });
-    } catch {
-      setAttention(previous);
-      setError('Failed to update item');
-    } finally {
+      void queryClient.invalidateQueries({ queryKey: ['owner', 'command-center'] });
+    },
+    onError: (err: Error) => {
+      showToast({ variant: 'error', message: err.message });
+    },
+    onSettled: () => {
       setActionLoadingId(null);
-    }
+    },
+  });
+
+  const handleAttentionAction = (
+    id: string,
+    action: 'mark_handled' | 'snooze_1h' | 'snooze_4h' | 'snooze_tomorrow',
+    category: 'alerts' | 'staffing'
+  ) => {
+    attentionActionMutation.mutate({ id, action, category });
   };
 
-  const handleStaffingResolve = async (
-    item: AttentionItem,
-    action: 'assign_notify' | 'rollback'
-  ) => {
-    const previous = attention;
-    optimisticRemove(item.id, 'staffing');
-    setActionLoadingId(item.id);
-    try {
+  const staffingResolveMutation = useMutation({
+    mutationFn: async ({ item, action }: { item: AttentionItem; action: 'assign_notify' | 'rollback' }) => {
       const res = await fetch('/api/ops/command-center/staffing/resolve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -184,34 +155,41 @@ export function CommandCenterContent() {
         }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Failed staffing action');
-        setAttention(previous);
-        return;
-      }
+      if (!res.ok) throw new Error(json.error || 'Failed staffing action');
+      return { action, itemId: item.id, json };
+    },
+    onMutate: ({ item }) => {
+      setActionLoadingId(item.id);
+    },
+    onSuccess: ({ action, itemId, json }) => {
       if (action === 'assign_notify') {
         showToast({ variant: 'success', message: 'Assignment sent' });
         setRollbackByItemId((prev) => ({
           ...prev,
-          [item.id]: typeof json?.rollbackToken === 'string' ? json.rollbackToken : null,
+          [itemId]: typeof json?.rollbackToken === 'string' ? json.rollbackToken : null,
         }));
       } else {
         showToast({ variant: 'success', message: 'Rollback complete' });
       }
-      await load({ preserveScroll: true });
-    } catch {
-      setAttention(previous);
-      setError('Failed staffing action');
-    } finally {
+      void queryClient.invalidateQueries({ queryKey: ['owner', 'command-center'] });
+    },
+    onError: (err: Error) => {
+      showToast({ variant: 'error', message: err.message });
+    },
+    onSettled: () => {
       setActionLoadingId(null);
-    }
+    },
+  });
+
+  const handleStaffingResolve = (
+    item: AttentionItem,
+    action: 'assign_notify' | 'rollback'
+  ) => {
+    staffingResolveMutation.mutate({ item, action });
   };
 
-  const handleQuickFix = async (item: AttentionItem) => {
-    const previous = attention;
-    setActionLoadingId(item.id);
-    optimisticRemove(item.id, 'alerts');
-    try {
+  const quickFixMutation = useMutation({
+    mutationFn: async (item: AttentionItem) => {
       let res: Response;
       if (item.type === 'automation_failure' && item.actionEntityId) {
         res = await fetch(`/api/ops/automation-failures/${encodeURIComponent(item.actionEntityId)}/retry`, {
@@ -227,11 +205,9 @@ export function CommandCenterContent() {
       }
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        setAttention(previous);
-        setError(json.error || 'Failed to queue fix');
-        return;
+        throw new Error(json.error || 'Failed to queue fix');
       }
-      const json = await res.json().catch(() => ({}));
+      await res.json().catch(() => ({}));
       if (item.type === 'automation_failure') {
         await fetch('/api/ops/command-center/attention/actions', {
           method: 'POST',
@@ -239,6 +215,12 @@ export function CommandCenterContent() {
           body: JSON.stringify({ id: item.id, action: 'mark_handled' }),
         });
       }
+      return item;
+    },
+    onMutate: (item) => {
+      setActionLoadingId(item.id);
+    },
+    onSuccess: (item) => {
       if (item.type === 'automation_failure') {
         showToast({ variant: 'success', message: 'Retry queued' });
       } else if (item.type === 'calendar_repair') {
@@ -246,21 +228,23 @@ export function CommandCenterContent() {
       } else if (item.type === 'payout_failure') {
         showToast({ variant: 'success', message: 'Payout retry requested' });
       }
-      if (!json?.ok && !json?.queued) {
-        setAttention(previous);
-      }
-      await load({ preserveScroll: true });
-    } catch {
-      setAttention(previous);
-      setError('Failed to queue fix');
-    } finally {
+      void queryClient.invalidateQueries({ queryKey: ['owner', 'command-center'] });
+    },
+    onError: (err: Error) => {
+      showToast({ variant: 'error', message: err.message });
+    },
+    onSettled: () => {
       setActionLoadingId(null);
-    }
+    },
+  });
+
+  const handleQuickFix = (item: AttentionItem) => {
+    quickFixMutation.mutate(item);
   };
 
-  const handlePrimaryAction = async (item: AttentionItem) => {
+  const handlePrimaryAction = (item: AttentionItem) => {
     if (item.type === 'automation_failure' || item.type === 'calendar_repair') {
-      await handleQuickFix(item);
+      handleQuickFix(item);
       return;
     }
     if (item.type === 'payout_failure') {
@@ -268,7 +252,7 @@ export function CommandCenterContent() {
       return;
     }
     if (item.type === 'coverage_gap' || item.type === 'unassigned' || item.type === 'overlap') {
-      await handleStaffingResolve(item, 'assign_notify');
+      handleStaffingResolve(item, 'assign_notify');
       return;
     }
     router.push(item.primaryActionHref);
@@ -329,7 +313,7 @@ export function CommandCenterContent() {
                   </button>
                 ))}
               </div>
-              <Button variant="secondary" size="sm" onClick={() => void load({ preserveScroll: true })} disabled={loading}>
+              <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={loading}>
                 Refresh
               </Button>
               <Link
@@ -342,7 +326,7 @@ export function CommandCenterContent() {
           }
         />
 
-        {error && <AppErrorState message={error} onRetry={() => setError(null)} />}
+        {error && <AppErrorState message={error} onRetry={() => void refetch()} />}
 
         <div className="mb-6">
           <OnboardingChecklist />
@@ -440,7 +424,7 @@ export function CommandCenterContent() {
                         </div>
                       </div>
                       <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => void handlePrimaryAction(item)} disabled={actionLoadingId === item.id}>
+                        <Button variant="secondary" size="sm" onClick={() => handlePrimaryAction(item)} disabled={actionLoadingId === item.id}>
                           {item.primaryActionLabel}
                         </Button>
                         {(item.type === 'automation_failure' || item.type === 'calendar_repair' || item.type === 'payout_failure') && (
@@ -450,23 +434,23 @@ export function CommandCenterContent() {
                             onClick={() =>
                               item.type === 'payout_failure' && item.actionMeta?.safeToRetry !== true
                                 ? router.push(item.primaryActionHref)
-                                : void handleQuickFix(item)
+                                : handleQuickFix(item)
                             }
                             disabled={actionLoadingId === item.id}
                           >
                             {item.type === 'payout_failure' && item.actionMeta?.safeToRetry !== true ? 'View failure' : 'Fix now'}
                           </Button>
                         )}
-                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_1h', 'alerts')} disabled={actionLoadingId === item.id}>
+                        <Button variant="secondary" size="sm" onClick={() => handleAttentionAction(item.id, 'snooze_1h', 'alerts')} disabled={actionLoadingId === item.id}>
                           Snooze 1h
                         </Button>
-                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_4h', 'alerts')} disabled={actionLoadingId === item.id}>
+                        <Button variant="secondary" size="sm" onClick={() => handleAttentionAction(item.id, 'snooze_4h', 'alerts')} disabled={actionLoadingId === item.id}>
                           Snooze 4h
                         </Button>
-                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_tomorrow', 'alerts')} disabled={actionLoadingId === item.id}>
+                        <Button variant="secondary" size="sm" onClick={() => handleAttentionAction(item.id, 'snooze_tomorrow', 'alerts')} disabled={actionLoadingId === item.id}>
                           Snooze tomorrow
                         </Button>
-                        <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'mark_handled', 'alerts')} disabled={actionLoadingId === item.id}>
+                        <Button variant="secondary" size="sm" onClick={() => handleAttentionAction(item.id, 'mark_handled', 'alerts')} disabled={actionLoadingId === item.id}>
                           Mark handled
                         </Button>
                       </div>
@@ -514,14 +498,14 @@ export function CommandCenterContent() {
                           </div>
                         </div>
                         <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                          <Button variant="secondary" size="sm" onClick={() => void handlePrimaryAction(item)} disabled={actionLoadingId === item.id}>
+                          <Button variant="secondary" size="sm" onClick={() => handlePrimaryAction(item)} disabled={actionLoadingId === item.id}>
                             {item.primaryActionLabel}
                           </Button>
                           {(item.type === 'coverage_gap' || item.type === 'unassigned' || item.type === 'overlap') && (
                             <Button
                               variant="secondary"
                               size="sm"
-                              onClick={() => void handleStaffingResolve(item, 'assign_notify')}
+                              onClick={() => handleStaffingResolve(item, 'assign_notify')}
                               disabled={actionLoadingId === item.id}
                             >
                               Assign + notify
@@ -532,22 +516,22 @@ export function CommandCenterContent() {
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                onClick={() => void handleStaffingResolve(item, 'rollback')}
+                                onClick={() => handleStaffingResolve(item, 'rollback')}
                                 disabled={actionLoadingId === item.id}
                               >
                                 Rollback
                               </Button>
                             )}
-                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_1h', 'staffing')} disabled={actionLoadingId === item.id}>
+                          <Button variant="secondary" size="sm" onClick={() => handleAttentionAction(item.id, 'snooze_1h', 'staffing')} disabled={actionLoadingId === item.id}>
                             Snooze 1h
                           </Button>
-                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_4h', 'staffing')} disabled={actionLoadingId === item.id}>
+                          <Button variant="secondary" size="sm" onClick={() => handleAttentionAction(item.id, 'snooze_4h', 'staffing')} disabled={actionLoadingId === item.id}>
                             Snooze 4h
                           </Button>
-                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'snooze_tomorrow', 'staffing')} disabled={actionLoadingId === item.id}>
+                          <Button variant="secondary" size="sm" onClick={() => handleAttentionAction(item.id, 'snooze_tomorrow', 'staffing')} disabled={actionLoadingId === item.id}>
                             Snooze tomorrow
                           </Button>
-                          <Button variant="secondary" size="sm" onClick={() => void handleAttentionAction(item.id, 'mark_handled', 'staffing')} disabled={actionLoadingId === item.id}>
+                          <Button variant="secondary" size="sm" onClick={() => handleAttentionAction(item.id, 'mark_handled', 'staffing')} disabled={actionLoadingId === item.id}>
                             Mark handled
                           </Button>
                         </div>

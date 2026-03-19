@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, AppStatCard } from '@/components/app';
 import { Button, EmptyState } from '@/components/ui';
@@ -40,94 +41,89 @@ interface FinanceSummary {
 export default function FinancePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [data, setData] = useState<FinanceSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [sendingReminders, setSendingReminders] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login?redirect=/finance');
   }, [user, authLoading, router]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'finance-summary'],
+    queryFn: async () => {
       const res = await fetch('/api/ops/finance/summary');
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.error || 'Failed to load');
-        setData(null);
-        return;
-      }
-      setData(json);
-    } catch {
-      setError('Failed to load finance data');
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      return json;
+    },
+    enabled: !authLoading && !!user,
+  });
 
-  useEffect(() => {
-    if (!authLoading && user) void load();
-  }, [authLoading, user, load]);
+  const error = queryError?.message ?? null;
 
-  const sendPaymentLink = async (bookingId: string) => {
-    try {
+  const sendPaymentLinkMutation = useMutation({
+    mutationFn: async (bookingId: string) => {
       const res = await fetch('/api/messages/send-payment-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bookingId }),
       });
-      if (res.ok) toastSuccess('Payment link sent');
-      else toastError('Failed to send link');
-    } catch {
-      toastError('Failed to send link');
-    }
-  };
+      if (!res.ok) throw new Error('Failed to send link');
+    },
+    onSuccess: () => {
+      toastSuccess('Payment link sent');
+      queryClient.invalidateQueries({ queryKey: ['owner', 'finance-summary'] });
+    },
+    onError: () => toastError('Failed to send link'),
+  });
 
-  const markPaid = async (bookingId: string) => {
-    try {
+  const markPaidMutation = useMutation({
+    mutationFn: async (bookingId: string) => {
       const res = await fetch(`/api/ops/bookings/${bookingId}/mark-paid`, { method: 'POST' });
-      if (res.ok) {
-        toastSuccess('Marked as paid');
-        void load();
-      } else {
-        toastError('Failed to mark as paid');
-      }
-    } catch {
-      toastError('Failed to mark as paid');
-    }
-  };
+      if (!res.ok) throw new Error('Failed to mark as paid');
+    },
+    onSuccess: () => {
+      toastSuccess('Marked as paid');
+      queryClient.invalidateQueries({ queryKey: ['owner', 'finance-summary'] });
+    },
+    onError: () => toastError('Failed to mark as paid'),
+  });
 
-  const issueRefund = async (bookingId: string, amount: number) => {
-    if (!confirm(`Refund $${amount.toFixed(2)}? This will be processed via Stripe.`)) return;
-    try {
+  const refundMutation = useMutation({
+    mutationFn: async ({ bookingId }: { bookingId: string; amount: number }) => {
       const res = await fetch(`/api/ops/bookings/${bookingId}/refund`, { method: 'POST' });
       const json = await res.json().catch(() => ({}));
-      if (res.ok) { toastSuccess(`Refund of $${json.amount?.toFixed(2) || amount.toFixed(2)} processed`); void load(); }
-      else toastError(json.error || 'Refund failed');
-    } catch { toastError('Refund failed'); }
-  };
+      if (!res.ok) throw new Error(json.error || 'Refund failed');
+      return json;
+    },
+    onSuccess: (json, { amount }) => {
+      toastSuccess(`Refund of $${json.amount?.toFixed(2) || amount.toFixed(2)} processed`);
+      queryClient.invalidateQueries({ queryKey: ['owner', 'finance-summary'] });
+    },
+    onError: (err) => toastError(err instanceof Error ? err.message : 'Refund failed'),
+  });
 
-  const sendReminders = async () => {
-    setSendingReminders(true);
-    try {
+  const sendRemindersMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch('/api/ops/invoicing/send-reminders', { method: 'POST' });
       const json = await res.json().catch(() => ({}));
-      if (res.ok) {
-        toastSuccess(`Sent ${json.sent} reminder${json.sent !== 1 ? 's' : ''}${json.skipped ? `, ${json.skipped} skipped` : ''}`);
-        void load();
-      } else {
-        toastError(json.error || 'Failed to send reminders');
-      }
-    } catch {
-      toastError('Failed to send reminders');
-    } finally {
-      setSendingReminders(false);
-    }
+      if (!res.ok) throw new Error(json.error || 'Failed to send reminders');
+      return json;
+    },
+    onSuccess: (json) => {
+      toastSuccess(`Sent ${json.sent} reminder${json.sent !== 1 ? 's' : ''}${json.skipped ? `, ${json.skipped} skipped` : ''}`);
+      queryClient.invalidateQueries({ queryKey: ['owner', 'finance-summary'] });
+    },
+    onError: (err) => toastError(err instanceof Error ? err.message : 'Failed to send reminders'),
+  });
+
+  const sendPaymentLink = (bookingId: string) => sendPaymentLinkMutation.mutate(bookingId);
+  const markPaid = (bookingId: string) => markPaidMutation.mutate(bookingId);
+  const issueRefund = (bookingId: string, amount: number) => {
+    if (!confirm(`Refund $${amount.toFixed(2)}? This will be processed via Stripe.`)) return;
+    refundMutation.mutate({ bookingId, amount });
   };
+  const sendReminders = () => sendRemindersMutation.mutate();
+  const sendingReminders = sendRemindersMutation.isPending;
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -166,7 +162,7 @@ export default function FinancePage() {
           {loading ? (
             <PageSkeleton />
           ) : error ? (
-            <AppErrorState title="Couldn't load finance" subtitle={error} onRetry={() => void load()} />
+            <AppErrorState title="Couldn't load finance" subtitle={error} onRetry={() => void refetch()} />
           ) : data ? (
             <div className="space-y-6">
               {/* Stats strip */}
@@ -217,7 +213,7 @@ export default function FinancePage() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {data.unpaidInvoices.map((inv) => (
+                    {data.unpaidInvoices.map((inv: any) => (
                       <div
                         key={inv.bookingId}
                         className="flex items-center justify-between gap-3 rounded-xl border border-border-default bg-surface-primary px-4 py-3"
@@ -265,7 +261,7 @@ export default function FinancePage() {
                   />
                 ) : (
                   <div className="space-y-2">
-                    {data.recentPayments.map((p) => (
+                    {data.recentPayments.map((p: any) => (
                       <div
                         key={p.chargeId}
                         className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary px-4 py-3"
@@ -300,7 +296,7 @@ export default function FinancePage() {
               <AnnualSummarySection />
 
               {/* Bulk Cancel */}
-              <BulkCancelSection onDone={load} />
+              <BulkCancelSection onDone={() => void refetch()} />
             </div>
           ) : null}
         </Section>
@@ -386,25 +382,33 @@ function BulkCancelSection({ onDone }: { onDone: () => void }) {
   const [showForm, setShowForm] = useState(false);
   const [date, setDate] = useState('');
   const [reason, setReason] = useState('weather');
-  const [processing, setProcessing] = useState(false);
+  const queryClient = useQueryClient();
 
-  const handleBulkCancel = async () => {
-    if (!date) { toastError('Select a date'); return; }
-    setProcessing(true);
-    try {
+  const bulkCancelMutation = useMutation({
+    mutationFn: async ({ date, reason }: { date: string; reason: string }) => {
       const res = await fetch('/api/ops/bookings/bulk-cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date, reason, notifyClients: true, notifySitters: true }),
       });
       const json = await res.json().catch(() => ({}));
-      if (res.ok) {
-        toastSuccess(`Cancelled ${json.cancelled} bookings for ${date}`);
-        setShowForm(false);
-        onDone();
-      } else toastError(json.error || 'Failed');
-    } catch { toastError('Failed'); }
-    finally { setProcessing(false); }
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      return { ...json, date };
+    },
+    onSuccess: (json) => {
+      toastSuccess(`Cancelled ${json.cancelled} bookings for ${json.date}`);
+      setShowForm(false);
+      queryClient.invalidateQueries({ queryKey: ['owner', 'finance-summary'] });
+      onDone();
+    },
+    onError: (err) => toastError(err instanceof Error ? err.message : 'Failed'),
+  });
+
+  const processing = bulkCancelMutation.isPending;
+
+  const handleBulkCancel = () => {
+    if (!date) { toastError('Select a date'); return; }
+    bulkCancelMutation.mutate({ date, reason });
   };
 
   const inputClass = 'w-full min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-border-focus focus:outline-none';

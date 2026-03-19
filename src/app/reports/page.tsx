@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { KpiGrid, type KpiItem } from '@/components/app/KpiGrid';
 import { Card, Skeleton, Button } from '@/components/ui';
@@ -46,34 +47,16 @@ const RANGE_OPTIONS = [
 
 export default function ReportsPage() {
   const [range, setRange] = useState('30d');
-  const [kpis, setKpis] = useState<KpisPayload | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/analytics/kpis?range=${range}`);
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        setError(j.message || res.statusText || 'Failed to load');
-        setKpis(null);
-        return;
-      }
-      const data = await res.json();
-      setKpis(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
-      setKpis(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [range]);
+  const { data: kpis, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'report-kpis', range],
+    queryFn: async () => {
+      const res = await fetch(`/api/ops/reports/kpis?range=${range}`);
+      return res.json().catch(() => ({}));
+    },
+  });
 
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const error = queryError?.message ?? null;
 
   const kpiItems: KpiItem[] = kpis
     ? [
@@ -183,7 +166,7 @@ export default function ReportsPage() {
           <Section>
             <Card className="border-status-warning-border bg-status-warning-bg p-4">
               <p className="text-sm text-status-warning-text">{error}</p>
-              <Button size="sm" className="mt-2" onClick={() => void load()}>
+              <Button size="sm" className="mt-2" onClick={() => void refetch()}>
                 Retry
               </Button>
             </Card>

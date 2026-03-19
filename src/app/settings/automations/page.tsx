@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PageHeader,
   Card,
@@ -41,52 +42,39 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 export default function AutomationSettingsPage() {
-  const [automations, setAutomations] = useState<AutomationItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAutomations = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: automationsData, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'automations'],
+    queryFn: async () => {
       const res = await fetch('/api/automations');
-      if (!res.ok) throw new Error('Failed to fetch automations');
-      const data = await res.json();
-      setAutomations(data.items || []);
-    } catch {
-      setError('Failed to load automations');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      return json.items || [];
+    },
+  });
+  const automations = automationsData || [];
 
-  useEffect(() => {
-    fetchAutomations();
-  }, [fetchAutomations]);
-
-  const toggleAutomation = async (id: string, enabled: boolean) => {
-    setSaving(id);
-    try {
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
       const res = await fetch('/api/automations/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [id]: { enabled } }),
       });
       if (!res.ok) throw new Error('Failed to update');
-      setAutomations((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, enabled } : a))
-      );
-    } catch {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['owner', 'automations'] });
+    },
+    onError: () => {
       setError('Failed to save. Please try again.');
-    } finally {
-      setSaving(null);
-    }
-  };
+    },
+  });
 
-  const resetToDefaults = async () => {
-    setSaving('reset');
-    try {
+  const resetMutation = useMutation({
+    mutationFn: async () => {
       const res = await fetch('/api/automations/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -100,13 +88,16 @@ export default function AutomationSettingsPage() {
         }),
       });
       if (!res.ok) throw new Error('Failed to reset');
-      await fetchAutomations();
-    } catch {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['owner', 'automations'] });
+    },
+    onError: () => {
       setError('Failed to reset. Please try again.');
-    } finally {
-      setSaving(null);
-    }
-  };
+    },
+  });
+
+  const saving = toggleMutation.isPending ? (toggleMutation.variables?.id ?? null) : resetMutation.isPending ? 'reset' : null;
 
   return (
     <AppShell>
@@ -116,10 +107,10 @@ export default function AutomationSettingsPage() {
           description="Configure automatic messages and actions"
         />
 
-        {error && (
+        {(error || queryError) && (
           <Card style={{ backgroundColor: tokens.colors.error[50], padding: tokens.spacing[3], marginBottom: tokens.spacing[4] }}>
             <div style={{ color: tokens.colors.error.DEFAULT, fontSize: tokens.typography.fontSize.sm[0] }}>
-              {error}
+              {error || (queryError as Error)?.message || 'Failed to load automations'}
               <Button variant="ghost" size="sm" onClick={() => setError(null)} style={{ marginLeft: tokens.spacing[2] }}>
                 Dismiss
               </Button>
@@ -135,7 +126,7 @@ export default function AutomationSettingsPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
-            {automations.map((automation) => (
+            {automations.map((automation: AutomationItem) => (
               <Card key={automation.id} style={{ padding: tokens.spacing[4] }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
                   <div style={{ flex: 1 }}>
@@ -166,7 +157,7 @@ export default function AutomationSettingsPage() {
                   <div style={{ flexShrink: 0 }}>
                     <Switch
                       checked={automation.enabled}
-                      onChange={(checked) => toggleAutomation(automation.id, checked)}
+                      onChange={(checked) => toggleMutation.mutate({ id: automation.id, enabled: checked })}
                       disabled={saving === automation.id}
                       aria-label={`Toggle ${automation.name}`}
                     />
@@ -180,7 +171,7 @@ export default function AutomationSettingsPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: tokens.spacing[6], gap: tokens.spacing[3], flexWrap: 'wrap' }}>
           <Button
             variant="secondary"
-            onClick={resetToDefaults}
+            onClick={() => resetMutation.mutate()}
             disabled={saving === 'reset'}
           >
             {saving === 'reset' ? 'Resetting...' : 'Reset to defaults'}

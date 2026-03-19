@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PageHeader,
   Card,
@@ -49,37 +50,26 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function AutomationHistoryPage() {
-  const [runs, setRuns] = useState<AutomationRun[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('all');
-  const [retrying, setRetrying] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRuns = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: runsData, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'automation-history', statusFilter],
+    queryFn: async () => {
       const params = new URLSearchParams({ limit: '50' });
       if (statusFilter !== 'all') params.append('status', statusFilter);
       const res = await fetch(`/api/automations/ledger?${params}`);
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
-      setRuns(data.runs || []);
-    } catch {
-      setError('Failed to load automation history');
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter]);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      return json.runs || [];
+    },
+  });
+  const runs = runsData || [];
 
-  useEffect(() => {
-    fetchRuns();
-  }, [fetchRuns]);
-
-  const retryRun = async (run: AutomationRun) => {
-    if (!run.automationType || !run.bookingId) return;
-    setRetrying(run.id);
-    try {
+  const retryMutation = useMutation({
+    mutationFn: async (run: AutomationRun) => {
+      if (!run.automationType || !run.bookingId) throw new Error('Missing data');
       const res = await fetch('/api/automations/test-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -89,13 +79,16 @@ export default function AutomationHistoryPage() {
         }),
       });
       if (!res.ok) throw new Error('Retry failed');
-      await fetchRuns();
-    } catch {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['owner', 'automation-history'] });
+    },
+    onError: () => {
       setError('Retry failed. Please try again.');
-    } finally {
-      setRetrying(null);
-    }
-  };
+    },
+  });
+
+  const retrying = retryMutation.isPending ? (retryMutation.variables?.id ?? null) : null;
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -135,10 +128,10 @@ export default function AutomationHistoryPage() {
           </Link>
         </div>
 
-        {error && (
+        {(error || queryError) && (
           <Card style={{ backgroundColor: tokens.colors.error[50], padding: tokens.spacing[3], marginBottom: tokens.spacing[4] }}>
             <div style={{ color: tokens.colors.error.DEFAULT, fontSize: tokens.typography.fontSize.sm[0] }}>
-              {error}
+              {error || (queryError as Error)?.message || 'Failed to load automation history'}
             </div>
           </Card>
         )}
@@ -157,7 +150,7 @@ export default function AutomationHistoryPage() {
           />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
-            {runs.map((run) => (
+            {runs.map((run: AutomationRun) => (
               <Card key={run.id} style={{
                 padding: tokens.spacing[3],
                 borderLeft: `3px solid ${run.status === 'failed' ? tokens.colors.error.DEFAULT : run.status === 'success' ? tokens.colors.success.DEFAULT : tokens.colors.border.default}`,
@@ -191,7 +184,7 @@ export default function AutomationHistoryPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => retryRun(run)}
+                        onClick={() => retryMutation.mutate(run)}
                         disabled={retrying === run.id}
                       >
                         {retrying === run.id ? 'Retrying...' : 'Retry'}
