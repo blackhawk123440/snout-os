@@ -8,9 +8,10 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Tabs,
   TabPanel,
@@ -166,6 +167,7 @@ function SectionContent({ section }: { section: SettingsSection }) {
 }
 
 function BusinessSection() {
+  const queryClient = useQueryClient();
   const [data, setData] = useState({
     businessName: '',
     businessPhone: '',
@@ -173,61 +175,48 @@ function BusinessSection() {
     businessAddress: '',
     timeZone: 'America/New_York',
   });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { isLoading, error: queryError } = useQuery({
+    queryKey: ['owner', 'settings', 'business'],
+    queryFn: async () => {
       const res = await fetch('/api/settings/business');
       if (!res.ok) throw new Error('Failed to load');
       const json = await res.json();
       const s = json.settings ?? {};
-      setData({
+      const parsed = {
         businessName: s.businessName ?? '',
         businessPhone: s.businessPhone ?? '',
         businessEmail: s.businessEmail ?? '',
         businessAddress: s.businessAddress ?? '',
         timeZone: s.timeZone ?? 'America/New_York',
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      };
+      setData(parsed);
+      return parsed;
+    },
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    setSuccess(false);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (payload: typeof data) => {
       const res = await fetch('/api/settings/business', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to save');
       }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['owner', 'settings', 'business'] });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save');
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+  });
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <Skeleton height={320} />
@@ -240,9 +229,9 @@ function BusinessSection() {
       <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
         Business Information
       </h3>
-      {error && (
+      {(queryError?.message || saveMutation.error?.message) && (
         <Alert variant="error" style={{ marginBottom: tokens.spacing[4] }}>
-          {error}
+          {queryError?.message || saveMutation.error?.message}
         </Alert>
       )}
       {success && (
@@ -289,7 +278,7 @@ function BusinessSection() {
         />
       </FormRow>
       <div style={{ marginTop: tokens.spacing[6] }}>
-        <Button variant="primary" onClick={save} isLoading={saving}>
+        <Button variant="primary" onClick={() => saveMutation.mutate(data)} isLoading={saveMutation.isPending}>
           Save business settings
         </Button>
       </div>
@@ -299,42 +288,34 @@ function BusinessSection() {
 
 function ServicesSection() {
   const router = useRouter();
-  const [list, setList] = useState<{ id: string; serviceName: string; enabled: boolean }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchList = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: list = [], isLoading, error: queryError } = useQuery({
+    queryKey: ['owner', 'settings', 'services'],
+    queryFn: async () => {
       const res = await fetch('/api/settings/services');
       if (!res.ok) throw new Error('Failed to load');
       const json = await res.json();
-      setList(json.configs ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
-      setList([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (json.configs ?? []) as { id: string; serviceName: string; enabled: boolean }[];
+    },
+  });
 
-  useEffect(() => {
-    fetchList();
-  }, [fetchList]);
-
-  const deleteOne = async (id: string) => {
-    if (!confirm('Delete this service?')) return;
-    try {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
       const res = await fetch(`/api/settings/services/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchList();
-      else setError('Failed to delete');
-    } catch {
-      setError('Failed to delete');
-    }
+      if (!res.ok) throw new Error('Failed to delete');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['owner', 'settings', 'services'] });
+    },
+  });
+
+  const deleteOne = (id: string) => {
+    if (!confirm('Delete this service?')) return;
+    deleteMutation.mutate(id);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <Skeleton height={200} />
@@ -347,9 +328,9 @@ function ServicesSection() {
       <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
         Service catalog
       </h3>
-      {error && (
+      {(queryError?.message || deleteMutation.error?.message) && (
         <Alert variant="error" style={{ marginBottom: tokens.spacing[4] }}>
-          {error}
+          {queryError?.message || deleteMutation.error?.message}
         </Alert>
       )}
       {list.length === 0 ? (
@@ -390,15 +371,11 @@ function ServicesSection() {
 }
 
 function PricingSection() {
-  const [rules, setRules] = useState<{ id: string; name: string; type: string; enabled: boolean }[]>([]);
-  const [discounts, setDiscounts] = useState<{ id: string; name: string; code: string | null; type: string; value: number; valueType: string; enabled: boolean }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchList = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: pricingData, isLoading, error: queryError } = useQuery({
+    queryKey: ['owner', 'settings', 'pricing'],
+    queryFn: async () => {
       const [rulesRes, discountsRes] = await Promise.all([
         fetch('/api/settings/pricing'),
         fetch('/api/settings/discounts'),
@@ -407,44 +384,49 @@ function PricingSection() {
       if (!discountsRes.ok) throw new Error('Failed to load discounts');
       const rulesJson = await rulesRes.json();
       const discountsJson = await discountsRes.json();
-      setRules(rulesJson.rules ?? []);
-      setDiscounts(discountsJson.discounts ?? []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
-      setRules([]);
-      setDiscounts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return {
+        rules: (rulesJson.rules ?? []) as { id: string; name: string; type: string; enabled: boolean }[],
+        discounts: (discountsJson.discounts ?? []) as { id: string; name: string; code: string | null; type: string; value: number; valueType: string; enabled: boolean }[],
+      };
+    },
+  });
 
-  useEffect(() => {
-    fetchList();
-  }, [fetchList]);
+  const rules = pricingData?.rules ?? [];
+  const discounts = pricingData?.discounts ?? [];
 
-  const deleteRule = async (id: string) => {
-    if (!confirm('Delete this pricing rule?')) return;
-    try {
+  const deleteRuleMutation = useMutation({
+    mutationFn: async (id: string) => {
       const res = await fetch(`/api/settings/pricing/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchList();
-      else setError('Failed to delete');
-    } catch {
-      setError('Failed to delete');
-    }
-  };
+      if (!res.ok) throw new Error('Failed to delete');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['owner', 'settings', 'pricing'] });
+    },
+  });
 
-  const deleteDiscount = async (id: string) => {
-    if (!confirm('Delete this discount?')) return;
-    try {
+  const deleteDiscountMutation = useMutation({
+    mutationFn: async (id: string) => {
       const res = await fetch(`/api/settings/discounts/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchList();
-      else setError('Failed to delete');
-    } catch {
-      setError('Failed to delete');
-    }
+      if (!res.ok) throw new Error('Failed to delete');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['owner', 'settings', 'pricing'] });
+    },
+  });
+
+  const deleteRule = (id: string) => {
+    if (!confirm('Delete this pricing rule?')) return;
+    deleteRuleMutation.mutate(id);
   };
 
-  if (loading) {
+  const deleteDiscount = (id: string) => {
+    if (!confirm('Delete this discount?')) return;
+    deleteDiscountMutation.mutate(id);
+  };
+
+  const mutationError = deleteRuleMutation.error?.message || deleteDiscountMutation.error?.message;
+
+  if (isLoading) {
     return (
       <Card>
         <Skeleton height={200} />
@@ -457,9 +439,9 @@ function PricingSection() {
       <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
         Pricing rules
       </h3>
-      {error && (
+      {(queryError?.message || mutationError) && (
         <Alert variant="error" style={{ marginBottom: tokens.spacing[4] }}>
-          {error}
+          {queryError?.message || mutationError}
         </Alert>
       )}
       {rules.length === 0 ? (
@@ -542,6 +524,7 @@ function PricingSection() {
 }
 
 function NotificationsSection() {
+  const queryClient = useQueryClient();
   const [data, setData] = useState({
     smsEnabled: true,
     emailEnabled: false,
@@ -552,20 +535,16 @@ function NotificationsSection() {
     conflictNoticeEnabled: true,
     reminderTiming: '24h',
   });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { isLoading, error: queryError } = useQuery({
+    queryKey: ['owner', 'settings', 'notifications'],
+    queryFn: async () => {
       const res = await fetch('/api/settings/notifications');
       if (!res.ok) throw new Error('Failed to load');
       const json = await res.json();
       const s = json.settings ?? {};
-      setData({
+      const parsed = {
         smsEnabled: s.smsEnabled !== false,
         emailEnabled: s.emailEnabled === true,
         ownerAlerts: s.ownerAlerts !== false,
@@ -574,42 +553,33 @@ function NotificationsSection() {
         paymentReminders: s.paymentReminders !== false,
         conflictNoticeEnabled: s.conflictNoticeEnabled !== false,
         reminderTiming: s.reminderTiming ?? '24h',
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      };
+      setData(parsed);
+      return parsed;
+    },
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    setSuccess(false);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (payload: typeof data) => {
       const res = await fetch('/api/settings/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to save');
       }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['owner', 'settings', 'notifications'] });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save');
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+  });
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <Skeleton height={320} />
@@ -622,9 +592,9 @@ function NotificationsSection() {
       <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
         Notification preferences
       </h3>
-      {error && (
+      {(queryError?.message || saveMutation.error?.message) && (
         <Alert variant="error" style={{ marginBottom: tokens.spacing[4] }}>
-          {error}
+          {queryError?.message || saveMutation.error?.message}
         </Alert>
       )}
       {success && (
@@ -705,7 +675,7 @@ function NotificationsSection() {
         />
       </FormRow>
       <div style={{ marginTop: tokens.spacing[6] }}>
-        <Button variant="primary" onClick={save} isLoading={saving}>
+        <Button variant="primary" onClick={() => saveMutation.mutate(data)} isLoading={saveMutation.isPending}>
           Save notification settings
         </Button>
       </div>
@@ -771,65 +741,48 @@ function IntegrationsSection() {
 }
 
 function AdvancedSection() {
+  const queryClient = useQueryClient();
   const [rotation, setRotation] = useState<Record<string, string | number>>({});
-  const [rotationLoading, setRotationLoading] = useState(true);
-  const [rotationSaving, setRotationSaving] = useState(false);
-  const [rotationError, setRotationError] = useState<string | null>(null);
-  const [areas, setAreas] = useState<{ id: string; name: string; type: string }[]>([]);
-  const [areasLoading, setAreasLoading] = useState(true);
 
-  const fetchRotation = useCallback(async () => {
-    setRotationLoading(true);
-    setRotationError(null);
-    try {
+  const { isLoading: rotationLoading, error: rotationQueryError } = useQuery({
+    queryKey: ['owner', 'settings', 'rotation'],
+    queryFn: async () => {
       const res = await fetch('/api/settings/rotation');
       if (!res.ok) throw new Error('Failed to load rotation');
       const json = await res.json();
       setRotation(json);
-    } catch (e) {
-      setRotationError(e instanceof Error ? e.message : 'Failed to load');
-    } finally {
-      setRotationLoading(false);
-    }
-  }, []);
+      return json as Record<string, string | number>;
+    },
+  });
 
-  const fetchAreas = useCallback(async () => {
-    setAreasLoading(true);
-    try {
+  const { data: areas = [], isLoading: areasLoading } = useQuery({
+    queryKey: ['owner', 'settings', 'areas'],
+    queryFn: async () => {
       const res = await fetch('/api/settings/service-areas');
       if (!res.ok) throw new Error('Failed to load');
       const json = await res.json();
-      setAreas(json.areas ?? []);
-    } catch {
-      setAreas([]);
-    } finally {
-      setAreasLoading(false);
-    }
-  }, []);
+      return (json.areas ?? []) as { id: string; name: string; type: string }[];
+    },
+  });
 
-  useEffect(() => {
-    fetchRotation();
-    fetchAreas();
-  }, [fetchRotation, fetchAreas]);
-
-  const saveRotation = async () => {
-    setRotationSaving(true);
-    setRotationError(null);
-    try {
+  const saveRotationMutation = useMutation({
+    mutationFn: async (payload: Record<string, string | number>) => {
       const res = await fetch('/api/settings/rotation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(rotation),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Failed to save');
       const json = await res.json();
       setRotation(json);
-    } catch (e) {
-      setRotationError(e instanceof Error ? e.message : 'Failed to save');
-    } finally {
-      setRotationSaving(false);
-    }
-  };
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['owner', 'settings', 'rotation'] });
+    },
+  });
+
+  const rotationError = rotationQueryError?.message || saveRotationMutation.error?.message;
 
   return (
     <>
@@ -873,7 +826,7 @@ function AdvancedSection() {
               />
             </FormRow>
             <div style={{ marginTop: tokens.spacing[4] }}>
-              <Button variant="primary" onClick={saveRotation} isLoading={rotationSaving}>
+              <Button variant="primary" onClick={() => saveRotationMutation.mutate(rotation)} isLoading={saveRotationMutation.isPending}>
                 Save rotation settings
               </Button>
             </div>

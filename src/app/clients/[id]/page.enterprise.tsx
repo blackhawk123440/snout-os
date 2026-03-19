@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, getStatusPill } from '@/components/app';
 import { Button, DataTableShell, EmptyState, StatusChip, Table, TableSkeleton } from '@/components/ui';
@@ -38,29 +39,18 @@ type ClientData = {
 
 export default function ClientDetailEnterprisePage() {
   const params = useParams<{ id: string }>();
-  const [data, setData] = useState<ClientData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const clientId = params.id;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/clients/${params.id}`);
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'clients', clientId],
+    queryFn: async () => {
+      const res = await fetch(`/api/clients/${clientId}`);
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || 'Failed to load client');
-      setData(json);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load client');
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [params.id]);
-
-  useEffect(() => {
-    if (params.id) void load();
-  }, [params.id, load]);
+      return json as ClientData;
+    },
+    enabled: !!clientId,
+  });
 
   const nextBooking = useMemo(
     () =>
@@ -80,12 +70,12 @@ export default function ClientDetailEnterprisePage() {
       </OwnerAppShell>
     );
   }
-  if (error || !data) {
+  if (queryError || !data) {
     return (
       <OwnerAppShell>
         <LayoutWrapper variant="wide">
           <PageHeader title="Client" subtitle="Unable to load client" />
-          <AppErrorState title="Couldn't load client" subtitle={error || 'Unknown error'} onRetry={() => void load()} />
+          <AppErrorState title="Couldn't load client" subtitle={queryError?.message || 'Unknown error'} onRetry={() => void refetch()} />
         </LayoutWrapper>
       </OwnerAppShell>
     );

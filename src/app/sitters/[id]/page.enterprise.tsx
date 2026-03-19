@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, getStatusPill } from '@/components/app';
 import { Button, DataTableShell, EmptyState, StatusChip, Table, TableSkeleton } from '@/components/ui';
@@ -37,37 +38,26 @@ type Sitter = {
 
 export default function SitterDetailEnterprisePage() {
   const params = useParams<{ id: string }>();
-  const [sitter, setSitter] = useState<Sitter | null>(null);
-  const [dashboard, setDashboard] = useState<Dashboard | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const sitterId = params.id;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'sitters', sitterId],
+    queryFn: async () => {
       const [sitterRes, dashRes] = await Promise.all([
-        fetch(`/api/sitters/${params.id}`),
-        fetch(`/api/sitters/${params.id}/dashboard`),
+        fetch(`/api/sitters/${sitterId}`),
+        fetch(`/api/sitters/${sitterId}/dashboard`),
       ]);
       const sitterJson = await sitterRes.json().catch(() => ({}));
       const dashJson = await dashRes.json().catch(() => ({}));
       if (!sitterRes.ok) throw new Error(sitterJson.error || 'Failed to load sitter');
       if (!dashRes.ok) throw new Error(dashJson.error || 'Failed to load sitter dashboard');
-      setSitter(sitterJson.sitter || null);
-      setDashboard(dashJson || null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load sitter');
-      setSitter(null);
-      setDashboard(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [params.id]);
+      return { sitter: (sitterJson.sitter || null) as Sitter | null, dashboard: (dashJson || null) as Dashboard | null };
+    },
+    enabled: !!sitterId,
+  });
 
-  useEffect(() => {
-    if (params.id) void load();
-  }, [params.id, load]);
+  const sitter = data?.sitter ?? null;
+  const dashboard = data?.dashboard ?? null;
 
   const nextBooking = useMemo(
     () =>
@@ -87,12 +77,12 @@ export default function SitterDetailEnterprisePage() {
       </OwnerAppShell>
     );
   }
-  if (error || !sitter) {
+  if (queryError || !sitter) {
     return (
       <OwnerAppShell>
         <LayoutWrapper variant="wide">
           <PageHeader title="Sitter" subtitle="Unable to load sitter" />
-          <AppErrorState title="Couldn't load sitter" subtitle={error || 'Unknown error'} onRetry={() => void load()} />
+          <AppErrorState title="Couldn't load sitter" subtitle={queryError?.message || 'Unknown error'} onRetry={() => void refetch()} />
         </LayoutWrapper>
       </OwnerAppShell>
     );

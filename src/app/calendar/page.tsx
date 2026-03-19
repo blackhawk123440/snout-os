@@ -8,6 +8,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Grid,
@@ -74,11 +75,6 @@ function CalendarPageContent() {
   const { open: openCommandPalette } = useCommandPalette();
 
   // State
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [sitters, setSitters] = useState<Array<{ id: string; firstName: string; lastName: string }>>([]);
-  const [conflictBookingIds, setConflictBookingIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -164,53 +160,60 @@ function CalendarPageContent() {
     }
   }, [viewMode]);
 
-  // Fetch data
-  const fetchData = useCallback(async () => {
-    if (!ENABLE_CALENDAR_V1) {
-      // Use mock data when feature flag is off
-      setBookings([]);
-      setSitters([]);
-      setLoading(false);
-      return;
-    }
+  // Compute week start for query key
+  const weekStart = useMemo(() => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() - d.getDay());
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().split('T')[0];
+  }, [currentDate]);
 
-    setLoading(true);
-    setError(null);
-    try {
+  // Fetch data via TanStack Query
+  const { data: calData, isLoading, error: queryError, refetch } = useQuery({
+    queryKey: ['owner', 'calendar', weekStart],
+    queryFn: async () => {
+      if (!ENABLE_CALENDAR_V1) {
+        // Use mock data when feature flag is off
+        return {
+          bookings: [] as Booking[],
+          sitters: [] as Array<{ id: string; firstName: string; lastName: string }>,
+          conflictBookingIds: new Set<string>(),
+        };
+      }
+
       const [bookingsRes, sittersRes, conflictsRes] = await Promise.all([
         fetch('/api/bookings?page=1&pageSize=200').catch(() => null),
         fetch('/api/sitters?page=1&pageSize=200').catch(() => null),
         fetch('/api/bookings/conflicts').catch(() => null),
       ]);
 
+      let bookings: Booking[] = [];
       if (bookingsRes?.ok) {
         const data = await bookingsRes.json();
-        setBookings(data.items || []);
+        bookings = data.items || [];
       } else if (bookingsRes && !bookingsRes.ok && bookingsRes.status !== 404) {
         throw new Error('Failed to fetch bookings');
       }
 
+      let sitters: Array<{ id: string; firstName: string; lastName: string }> = [];
       if (sittersRes?.ok) {
         const data = await sittersRes.json();
-        setSitters(Array.isArray(data?.items) ? data.items : []);
+        sitters = Array.isArray(data?.items) ? data.items : [];
       }
 
+      let conflictBookingIds = new Set<string>();
       if (conflictsRes?.ok) {
         const data = await conflictsRes.json();
-        setConflictBookingIds(new Set(data.conflictBookingIds || []));
-      } else {
-        setConflictBookingIds(new Set());
+        conflictBookingIds = new Set(data.conflictBookingIds || []);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load calendar data');
-    } finally {
-      setLoading(false);
-    }
-  }, [ENABLE_CALENDAR_V1]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+      return { bookings, sitters, conflictBookingIds };
+    },
+  });
+
+  const bookings = calData?.bookings ?? [];
+  const sitters = calData?.sitters ?? [];
+  const conflictBookingIds = calData?.conflictBookingIds ?? new Set<string>();
 
   const filteredBookings = useMemo(() => {
     const svc = filterValues.service ?? 'all';
@@ -422,15 +425,15 @@ function CalendarPageContent() {
 
   // Day view: single day timeline list
   const renderDayView = () => {
-    if (loading) {
+    if (isLoading) {
       return (
         <div style={{ padding: tokens.spacing[6] }}>
           <Skeleton height="400px" />
         </div>
       );
     }
-    if (error) {
-      return <AppErrorState message={error} onRetry={fetchData} />;
+    if (queryError) {
+      return <AppErrorState message={queryError.message} onRetry={refetch} />;
     }
     return (
       <div style={{ padding: tokens.spacing[4] }}>
@@ -524,15 +527,15 @@ function CalendarPageContent() {
 
   // Week view: 7 columns, each day with its bookings
   const renderWeekView = () => {
-    if (loading) {
+    if (isLoading) {
       return (
         <div style={{ padding: tokens.spacing[6] }}>
           <Skeleton height="400px" />
         </div>
       );
     }
-    if (error) {
-      return <AppErrorState message={error} onRetry={fetchData} />;
+    if (queryError) {
+      return <AppErrorState message={queryError.message} onRetry={refetch} />;
     }
     const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return (
@@ -620,7 +623,7 @@ function CalendarPageContent() {
 
   // Render calendar grid
   const renderCalendarGrid = () => {
-    if (loading) {
+    if (isLoading) {
       return (
         <div style={{ padding: tokens.spacing[6] }}>
           <Skeleton height="400px" />
@@ -628,9 +631,9 @@ function CalendarPageContent() {
       );
     }
 
-    if (error) {
+    if (queryError) {
       return (
-        <AppErrorState message={error} onRetry={fetchData} />
+        <AppErrorState message={queryError.message} onRetry={refetch} />
       );
     }
 
@@ -761,15 +764,15 @@ function CalendarPageContent() {
           }
         />
 
-      {loading && bookings.length === 0 ? (
+      {isLoading && bookings.length === 0 ? (
         <Section>
           <div className="py-4">
             <Skeleton height="600px" />
           </div>
         </Section>
-      ) : error && bookings.length === 0 ? (
+      ) : queryError && bookings.length === 0 ? (
         <Section>
-          <AppErrorState message={error} onRetry={fetchData} />
+          <AppErrorState message={queryError.message} onRetry={refetch} />
         </Section>
       ) : (
         <Section title="Schedule">
@@ -950,7 +953,7 @@ function CalendarPageContent() {
                           </div>
                         </div>
                       )}
-                      loading={loading}
+                      loading={isLoading}
                       emptyMessage="No bookings for this date"
                     />
                   ) : (
@@ -966,7 +969,7 @@ function CalendarPageContent() {
                         setSelectedBooking(booking);
                         setShowBookingDrawer(true);
                       }}
-                      loading={loading}
+                      loading={isLoading}
                       emptyMessage="No bookings for this date"
                     />
                   )}
