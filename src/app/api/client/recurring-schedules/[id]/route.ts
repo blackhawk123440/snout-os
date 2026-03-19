@@ -66,7 +66,7 @@ export async function PATCH(
 
   const schedule = await db.recurringSchedule.findFirst({
     where: { id, orgId: ctx.orgId, clientId: ctx.clientId },
-    select: { id: true, status: true },
+    select: { id: true, status: true, startTime: true, endTime: true },
   });
   if (!schedule) return NextResponse.json({ error: 'Schedule not found' }, { status: 404 });
 
@@ -119,6 +119,48 @@ export async function PATCH(
 
   if (Object.keys(updateData).length > 0) {
     await db.recurringSchedule.update({ where: { id }, data: updateData });
+
+    // Propagate time changes to existing future bookings
+    if (updateData.startTime || updateData.endTime) {
+      const futureBookings = await db.booking.findMany({
+        where: {
+          orgId: ctx.orgId,
+          recurringScheduleId: id,
+          startAt: { gte: new Date() },
+          status: { notIn: ['completed', 'cancelled'] },
+        },
+        select: { id: true, startAt: true, endAt: true },
+      });
+
+      const [newStartH, newStartM] = (updateData.startTime || schedule.startTime || '09:00').split(':').map(Number);
+      const [newEndH, newEndM] = (updateData.endTime || schedule.endTime || '10:00').split(':').map(Number);
+
+      let updatedCount = 0;
+      for (const booking of futureBookings) {
+        const bookingDate = new Date(booking.startAt);
+        const newStart = new Date(bookingDate);
+        newStart.setHours(newStartH, newStartM, 0, 0);
+        const newEnd = new Date(bookingDate);
+        newEnd.setHours(newEndH, newEndM, 0, 0);
+
+        await db.booking.update({
+          where: { id: booking.id },
+          data: { startAt: newStart, endAt: newEnd },
+        });
+        updatedCount++;
+      }
+
+      await logEvent({
+        orgId: ctx.orgId,
+        action: 'recurring.bookings_updated',
+        entityId: id,
+        status: 'success',
+        metadata: { ...updateData, futureBookingsUpdated: updatedCount },
+      }).catch(() => {});
+
+      return NextResponse.json({ success: true, futureBookingsUpdated: updatedCount });
+    }
+
     await logEvent({ orgId: ctx.orgId, action: 'recurring.updated', entityId: id, status: 'success', metadata: updateData }).catch(() => {});
   }
 
