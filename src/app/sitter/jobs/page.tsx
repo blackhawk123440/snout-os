@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Button, Tabs } from '@/components/ui';
 import {
   SitterCard,
@@ -45,14 +46,10 @@ const formatTime = (d: string) => new Date(d).toLocaleTimeString([], { hour: 'nu
 export default function SitterJobsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('active');
-  const [bookings, setBookings] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadBookings = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: bookings = [], isLoading: loading, error: queryError, refetch } = useQuery<Job[]>({
+    queryKey: ['sitter', 'jobs'],
+    queryFn: async () => {
       const [todayRes, calRes] = await Promise.all([
         fetch('/api/sitter/today'),
         fetch('/api/sitter/calendar'),
@@ -61,19 +58,10 @@ export default function SitterJobsPage() {
       const calData = await calRes.json().catch(() => ({}));
       const today = Array.isArray(todayData.bookings) ? todayData.bookings : [];
       const upcoming = Array.isArray(calData.bookings) ? calData.bookings : [];
-      const all = [...today, ...upcoming.filter((b: Job) => !today.some((t: Job) => t.id === b.id))];
-      setBookings(all);
-    } catch {
-      setError('Unable to load jobs');
-      setBookings([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadBookings();
-  }, [loadBookings]);
+      return [...today, ...upcoming.filter((b: Job) => !today.some((t: Job) => t.id === b.id))];
+    },
+  });
+  const error = queryError?.message || null;
 
   const now = new Date().toISOString();
   const active = bookings
@@ -129,7 +117,7 @@ export default function SitterJobsPage() {
         title="Jobs"
         subtitle="Active, upcoming, and completed"
         action={
-          <Button variant="secondary" size="sm" onClick={() => void loadBookings()} disabled={loading}>
+          <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={loading}>
             Refresh
           </Button>
         }
@@ -149,7 +137,7 @@ export default function SitterJobsPage() {
         </div>
       ) : error ? (
         <div className="mt-4">
-          <SitterErrorState title="Couldn't load jobs" subtitle={error} onRetry={() => void loadBookings()} />
+          <SitterErrorState title="Couldn't load jobs" subtitle={error} onRetry={() => void refetch()} />
         </div>
       ) : currentList.length === 0 ? (
         <div className="mt-4">

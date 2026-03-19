@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui';
 import {
   SitterCard,
@@ -23,25 +23,16 @@ interface Pet {
 
 export default function SitterPetsPage() {
   const router = useRouter();
-  const [pets, setPets] = useState<Pet[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadPets = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: pets = [], isLoading: loading, error: queryError, refetch } = useQuery<Pet[]>({
+    queryKey: ['sitter', 'assigned-pets'],
+    queryFn: async () => {
       const [todayRes, calRes] = await Promise.all([
         fetch('/api/sitter/today'),
         fetch('/api/sitter/calendar'),
       ]);
       const todayData = await todayRes.json().catch(() => ({}));
       const calData = await calRes.json().catch(() => ({}));
-      if (!todayRes.ok && !calRes.ok) {
-        setError('Unable to load pets');
-        setPets([]);
-        return;
-      }
+      if (!todayRes.ok && !calRes.ok) throw new Error('Unable to load pets');
       const allBookings = [
         ...(Array.isArray(todayData.bookings) ? todayData.bookings : []),
         ...(Array.isArray(calData.bookings) ? calData.bookings : []),
@@ -49,7 +40,7 @@ export default function SitterPetsPage() {
       const seen = new Set<string>();
       const petList: Pet[] = [];
       for (const b of allBookings) {
-        for (const p of b.pets || []) {
+        for (const p of (b as any).pets || []) {
           if (p.id && !seen.has(p.id)) {
             seen.add(p.id);
             petList.push({
@@ -57,24 +48,16 @@ export default function SitterPetsPage() {
               name: p.name || p.species || 'Pet',
               species: p.species || 'Pet',
               breed: p.breed,
-              bookingId: b.id,
-              clientName: b.clientName,
+              bookingId: (b as any).id,
+              clientName: (b as any).clientName,
             });
           }
         }
       }
-      setPets(petList);
-    } catch {
-      setError('Unable to load pets');
-      setPets([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadPets();
-  }, [loadPets]);
+      return petList;
+    },
+  });
+  const error = queryError?.message || null;
 
   return (
     <div className="mx-auto max-w-3xl pb-8">
@@ -82,7 +65,7 @@ export default function SitterPetsPage() {
         title="Pets"
         subtitle="Pets you care for"
         action={
-          <Button variant="secondary" size="sm" onClick={() => void loadPets()} disabled={loading}>
+          <Button variant="secondary" size="sm" onClick={() => void refetch()} disabled={loading}>
             Refresh
           </Button>
         }
@@ -100,7 +83,7 @@ export default function SitterPetsPage() {
         <SitterErrorState
           title="Couldn't load pets"
           subtitle={error}
-          onRetry={() => void loadPets()}
+          onRetry={() => void refetch()}
         />
       ) : pets.length === 0 ? (
         <SitterEmptyState
