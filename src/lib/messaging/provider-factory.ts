@@ -31,6 +31,15 @@ class MockProvider implements MessagingProvider {
  * Checks: DB MessageAccount → DB Twilio credentials → env OpenPhone → MockProvider.
  */
 export async function getMessagingProvider(orgId: string): Promise<MessagingProvider> {
+  // 0. Explicit provider override via env
+  if (process.env.MESSAGING_PROVIDER === 'openphone') {
+    const apiKey = process.env.OPENPHONE_API_KEY;
+    const numberId = process.env.OPENPHONE_NUMBER_ID;
+    if (apiKey && numberId) {
+      return new OpenPhoneProvider(apiKey, numberId, process.env.OPENPHONE_WEBHOOK_SECRET);
+    }
+  }
+
   // 1. Check for DB-configured provider (MessageAccount)
   try {
     const { prisma } = await import('@/lib/db');
