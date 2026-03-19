@@ -35,6 +35,28 @@ services:
           property: connectionString
       - key: STRIPE_MOCK_TRANSFER
         value: "false"
+      - key: NEXT_PUBLIC_PERSONAL_MODE
+        value: "true"
+      - key: MESSAGING_PROVIDER
+        value: "openphone"
+      - key: OPENPHONE_API_KEY
+        sync: false
+      - key: OPENPHONE_NUMBER_ID
+        sync: false
+      - key: OPENPHONE_PHONE_NUMBER
+        sync: false
+      - key: OWNER_PHONE
+        sync: false
+      - key: OWNER_PERSONAL_PHONE
+        sync: false
+      - key: OWNER_OPENPHONE_PHONE
+        sync: false
+      - key: ENABLE_AUTH_PROTECTION
+        value: "true"
+      - key: ENABLE_SITTER_AUTH
+        value: "true"
+      - key: ENABLE_PERMISSION_CHECKS
+        value: "true"
     healthCheckPath: /api/health
 
   # Background worker (calendar sync, payouts, automations, etc.)
