@@ -164,6 +164,16 @@ function DashboardContent() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   })();
 
+  // Messaging status for banner
+  const { data: msgStatus } = useQuery({
+    queryKey: ['owner', 'messaging-status'],
+    queryFn: async () => {
+      const res = await fetch('/api/ops/messaging-status');
+      return res.ok ? res.json() : null;
+    },
+    staleTime: 300000, // 5 min
+  });
+
   const { data: boardData, isLoading: boardLoading, error: boardError, refetch: refetchBoard } = useQuery({
     queryKey: ['owner', 'daily-board', currentDate],
     queryFn: async () => {
@@ -266,6 +276,19 @@ function DashboardContent() {
             </div>
           }
         />
+
+        {/* Messaging status banner */}
+        {msgStatus && !msgStatus.active && (
+          <div className="mb-4 flex items-center justify-between rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-status-warning-text">Messaging not configured</p>
+              <p className="text-xs text-status-warning-text-secondary">SMS notifications won't send until you connect a provider.</p>
+            </div>
+            <Link href="/messaging/twilio-setup" className="min-h-[44px] inline-flex items-center rounded-lg border border-status-warning-border px-3 text-sm font-medium text-status-warning-text hover:opacity-90 transition">
+              Set up now
+            </Link>
+          </div>
+        )}
 
         {boardLoading && !boardData ? (
           <BoardSkeleton />

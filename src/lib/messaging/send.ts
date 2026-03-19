@@ -257,7 +257,20 @@ export async function dispatchMessageEventDelivery(params: {
     getClientE164ForClient(params.orgId, event.thread.clientId),
     getMessagingProvider(params.orgId),
   ]);
-  if (!toE164) throw new Error("Client contact not found");
+  if (!toE164) {
+    console.warn(`[SMS] No phone number for client ${event.thread?.clientId} — marking message failed`);
+    await db.messageEvent.update({
+      where: { id: event.id },
+      data: { deliveryStatus: 'failed', failureCode: 'no_phone', failureDetail: 'Client has no phone number on file' },
+    });
+    return {
+      deliveryStatus: 'failed' as DeliveryStatus,
+      providerMessageSid: null,
+      providerErrorCode: 'no_phone',
+      providerErrorMessage: 'Client has no phone number on file',
+      retryable: false,
+    };
+  }
 
   // TCPA compliance: check opt-out before sending
   const optOut = await db.optOutState.findFirst({

@@ -7,6 +7,7 @@ import { sendSMSFromOpenPhone, sendSMS } from "@/lib/openphone";
 import { getOwnerOpenPhoneNumberId } from "@/lib/phone-utils";
 import { formatPhoneForAPI } from "@/lib/phone-format";
 import { prisma } from "@/lib/db";
+import { isMessagingReady } from "@/lib/messaging-guard";
 
 /**
  * Send SMS message using the appropriate method (OpenPhone or fallback)
@@ -23,6 +24,13 @@ export async function sendMessage(
   try {
     if (!to || !message) {
       console.error("[sendMessage] Missing required parameters: to or message");
+      return false;
+    }
+
+    // Check if messaging is provisioned before attempting send
+    const ready = await isMessagingReady('default');
+    if (!ready) {
+      console.warn(`[sendMessage] SMS not provisioned — message to ${to?.slice(0, 6)}... queued but not sent`);
       return false;
     }
 

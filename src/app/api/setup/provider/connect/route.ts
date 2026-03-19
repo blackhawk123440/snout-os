@@ -11,6 +11,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { encrypt } from '@/lib/messaging/encryption';
 import { getProviderCredentials, getTwilioClientFromCredentials } from '@/lib/messaging/provider-credentials';
+import { logEvent } from '@/lib/log-event';
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -131,6 +132,13 @@ export async function POST(request: NextRequest) {
       }, { status: 200 });
     }
 
+    await logEvent({
+      orgId,
+      action: 'provisioning.twilio.credentials_connected',
+      status: 'success',
+      metadata: { accountSidPrefix: accountSid.substring(0, 4) },
+    }).catch(() => {});
+
     return NextResponse.json({
       success: true,
       message: 'Provider credentials saved and verified with Twilio',
@@ -142,6 +150,12 @@ export async function POST(request: NextRequest) {
     }, { status: 200 });
   } catch (error: any) {
     console.error('[Direct Prisma] Error saving credentials:', error);
+    await logEvent({
+      orgId: 'default',
+      action: 'provisioning.twilio.credentials_failed',
+      status: 'failed',
+      metadata: { error: error?.message?.slice(0, 200) },
+    }).catch(() => {});
     return NextResponse.json({
       success: false,
       message: error.message || 'Failed to save credentials',

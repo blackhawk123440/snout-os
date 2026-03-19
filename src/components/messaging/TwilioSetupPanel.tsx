@@ -685,6 +685,57 @@ export function TwilioSetupPanel() {
           </div>
         </Modal>
       )}
+
+      {/* Test to Owner Button */}
+      {providerStatus?.connected && (
+        <Card style={{ padding: tokens.spacing[4], marginTop: tokens.spacing[4] }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ fontWeight: 600 }}>Send Test to Owner</p>
+              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                Verify SMS delivery to the owner's personal phone
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={async () => {
+                try {
+                  const res = await fetch('/api/setup/test-owner-sms', { method: 'POST' });
+                  const json = await res.json();
+                  if (json.success) alert(`Test sent to ${json.phone} via ${json.provider}`);
+                  else alert(`Failed: ${json.error}`);
+                } catch { alert('Failed to send test'); }
+              }}
+            >
+              Send test
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* A2P 10DLC Status */}
+      {providerStatus?.connected && (
+        <Card style={{ padding: tokens.spacing[4], marginTop: tokens.spacing[4] }}>
+          <p style={{ fontWeight: 600, marginBottom: tokens.spacing[2] }}>A2P 10DLC Compliance</p>
+          <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+            US carriers require A2P 10DLC registration for business SMS. Without it, messages may be filtered or blocked.
+          </p>
+          <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+            <Badge variant="warning">Check Twilio Console</Badge>
+            <a
+              href="https://console.twilio.com/us1/develop/sms/regulatory-compliance/a2p-10dlc"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}
+            >
+              Open A2P registration →
+            </a>
+          </div>
+          <p style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginTop: tokens.spacing[2] }}>
+            If you're using OpenPhone, A2P registration is handled by OpenPhone automatically.
+          </p>
+        </Card>
+      )}
     </div>
   );
 }

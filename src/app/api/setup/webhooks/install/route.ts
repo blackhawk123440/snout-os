@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { logEvent } from '@/lib/log-event';
 import { getProviderCredentials, getTwilioClientFromCredentials } from '@/lib/messaging/provider-credentials';
 import { getTwilioWebhookUrl, webhookUrlMatches } from '@/lib/setup/webhook-url';
 import { upsertCanonicalMessageNumbersFromTwilio } from '@/lib/messaging/sync-inventory';
@@ -115,9 +116,12 @@ export async function POST(request: NextRequest) {
     let numbersUpdatedCount = 0;
     for (const number of incomingNumbers) {
       try {
+        const statusCallbackUrl = newSmsUrl; // Same endpoint handles status callbacks
         await client.incomingPhoneNumbers(number.sid).update({
           smsUrl: newSmsUrl,
           smsMethod: 'POST',
+          statusCallback: statusCallbackUrl,
+          statusCallbackMethod: 'POST',
         });
         numbersUpdatedCount++;
       } catch (error: any) {
@@ -162,6 +166,13 @@ export async function POST(request: NextRequest) {
       console.error('[Webhook Install] Sync numbers to MessageNumber failed:', syncErr?.message);
       // Don't fail the request - webhooks are installed; user can retry or sync later
     }
+
+    await logEvent({
+      orgId,
+      action: errors.length === 0 ? 'provisioning.twilio.webhooks_installed' : 'provisioning.twilio.webhooks_partial',
+      status: errors.length === 0 ? 'success' : 'failed',
+      metadata: { numbersUpdated: numbersUpdatedCount, errors: errors.slice(0, 3), url: newSmsUrl },
+    }).catch(() => {});
 
     return NextResponse.json({
       success: errors.length === 0,
