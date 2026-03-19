@@ -13,7 +13,7 @@ services:
     plan: starter
     region: oregon
     rootDir: .
-    buildCommand: pnpm install --frozen-lockfile && pnpm prisma generate && pnpm run build
+    buildCommand: pnpm install --frozen-lockfile && pnpm prisma generate && NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
     startCommand: npx prisma migrate deploy && pnpm run start
     envVars:
       - key: NODE_ENV
@@ -67,7 +67,7 @@ services:
     plan: starter
     region: oregon
     rootDir: .
-    buildCommand: pnpm install --frozen-lockfile && pnpm prisma generate && pnpm run build
+    buildCommand: pnpm install --frozen-lockfile && pnpm prisma generate && NODE_OPTIONS="--max-old-space-size=4096" pnpm run build
     startCommand: pnpm run worker
     envVars:
       - key: NODE_ENV
