@@ -9,8 +9,8 @@ describe('Automation defaults', () => {
     }
   });
 
-  it('has exactly 6 automation types', () => {
-    expect(AUTOMATION_TYPE_IDS).toHaveLength(6);
+  it('has exactly 10 automation types', () => {
+    expect(AUTOMATION_TYPE_IDS).toHaveLength(10);
   });
 
   it('booking confirmation sends to client by default', () => {
@@ -28,5 +28,34 @@ describe('Automation defaults', () => {
     const settings = getDefaultAutomationSettings();
     expect(settings.sitterAssignment.sendToSitter).toBe(true);
     expect(settings.sitterAssignment.sendToOwner).toBe(true);
+  });
+
+  it('checkin notification sends to client and owner', () => {
+    const settings = getDefaultAutomationSettings();
+    expect(settings.checkinNotification.sendToClient).toBe(true);
+    expect(settings.checkinNotification.sendToOwner).toBe(true);
+  });
+
+  it('checkout notification sends to client and owner', () => {
+    const settings = getDefaultAutomationSettings();
+    expect(settings.checkoutNotification.sendToClient).toBe(true);
+    expect(settings.checkoutNotification.sendToOwner).toBe(true);
+  });
+
+  it('booking cancellation sends to all parties', () => {
+    const settings = getDefaultAutomationSettings();
+    expect(settings.bookingCancellation.sendToClient).toBe(true);
+    expect(settings.bookingCancellation.sendToSitter).toBe(true);
+    expect(settings.bookingCancellation.sendToOwner).toBe(true);
+  });
+
+  it('visit report notification sends to client', () => {
+    const settings = getDefaultAutomationSettings();
+    expect(settings.visitReportNotification.sendToClient).toBe(true);
+  });
+
+  it('owner new booking alert uses personal phone type', () => {
+    const settings = getDefaultAutomationSettings();
+    expect(settings.ownerNewBookingAlert.ownerPhoneType).toBe('personal');
   });
 });
