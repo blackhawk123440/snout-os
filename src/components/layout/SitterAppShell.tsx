@@ -17,7 +17,6 @@ import { SitterOfflineBanner } from '@/components/sitter/SitterOfflineBanner';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useSitterMe, useSitterBadges } from '@/lib/api/sitter-portal-hooks';
 import { Icon } from '@/components/ui/Icon';
-import { Bell } from 'lucide-react';
 
 const NAV_ITEMS = SITTER_TABS;
 
