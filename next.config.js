@@ -102,18 +102,23 @@ const nextConfig = {
     config.module.exprContextCritical = false;
     return config;
   },
-  // Exclude enterprise-messaging-dashboard from TypeScript checking
   typescript: {
-    ignoreBuildErrors: false,
+    // Type checking runs locally and in CI — skip during Render build to stay within memory limits
+    ignoreBuildErrors: !!process.env.RENDER,
   },
 };
 
 const configWithSerwist = withSerwist(nextConfig);
 
-module.exports = withSentryConfig(configWithSerwist, {
-  org: process.env.SENTRY_ORG || "snout",
-  project: process.env.SENTRY_PROJECT || "snout-os",
-  silent: !process.env.CI,
-});
+// Skip Sentry webpack plugin on Render to save memory (no auth token = no uploads anyway)
+if (process.env.RENDER || !process.env.SENTRY_AUTH_TOKEN) {
+  module.exports = configWithSerwist;
+} else {
+  module.exports = withSentryConfig(configWithSerwist, {
+    org: process.env.SENTRY_ORG || "snout",
+    project: process.env.SENTRY_PROJECT || "snout-os",
+    silent: !process.env.CI,
+  });
+}
 
 
