@@ -4,15 +4,23 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Circle, Repeat } from 'lucide-react';
+import { CheckCircle2, Circle } from 'lucide-react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
-import {
-  AppErrorState,
-  AppStatusPill,
-} from '@/components/app';
+import { AppErrorState } from '@/components/app';
 import { PageSkeleton } from '@/components/ui';
 import { renderClientPreview } from '@/lib/strip-emojis';
 import { useClientHome, useClientOnboardingStatus } from '@/lib/api/client-hooks';
+
+function statusBadge(status: string) {
+  const s = status.toLowerCase();
+  let cls = 'bg-stone-100 text-stone-500';
+  let label = status;
+  if (s === 'pending' || s === 'requested') { cls = 'bg-amber-50 text-amber-700 border border-amber-200'; label = 'Pending'; }
+  else if (s === 'confirmed' || s === 'scheduled') { cls = 'bg-emerald-50 text-emerald-700 border border-emerald-200'; label = 'Confirmed'; }
+  else if (s === 'completed') { cls = 'bg-stone-100 text-stone-500'; label = 'Completed'; }
+  else if (s === 'cancelled' || s === 'canceled') { cls = 'bg-red-50 text-red-600 border border-red-200'; label = 'Cancelled'; }
+  return <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${cls}`}>{label}</span>;
+}
 
 export default function ClientHomePage() {
   const router = useRouter();
@@ -44,8 +52,8 @@ export default function ClientHomePage() {
 
   return (
     <LayoutWrapper variant="narrow">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex justify-end mb-2">
+      <div className="max-w-xl mx-auto pt-2">
+        <div className="flex justify-end mb-1">
           <ClientRefreshButton onRefresh={refetch} loading={loading} />
         </div>
 
@@ -54,29 +62,29 @@ export default function ClientHomePage() {
         ) : error ? (
           <AppErrorState title="Couldn't load" subtitle={error.message || 'Unable to load'} onRetry={() => void refetch()} />
         ) : data ? (
-          <div className="flex flex-col">
-            {/* SECTION 1: Greeting */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-text-primary font-heading">
+          <div className="space-y-6">
+            {/* Greeting */}
+            <div className="mb-2">
+              <h1 className="text-[28px] font-bold tracking-tight text-text-primary font-heading leading-tight">
                 Welcome back, {firstName}
               </h1>
-              <p className="text-sm text-text-secondary mt-1">
+              <p className="text-[15px] text-text-secondary mt-1 font-normal">
                 Here&apos;s what&apos;s happening with your pets
               </p>
             </div>
 
             {/* Onboarding checklist */}
             {onboarding && onboarding.completionPercent < 100 && !onboardingDismissed && (
-              <div className="rounded-2xl border border-border-default bg-white p-5 shadow-[var(--shadow-card)] mb-8">
+              <div className="rounded-2xl border border-border-default bg-white p-5 shadow-[0_1px_3px_rgba(28,25,23,0.03)]">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="font-heading text-sm font-semibold text-text-primary">Complete your profile</p>
+                  <p className="text-[14px] font-semibold text-text-primary font-heading">Complete your profile</p>
                   <button
                     type="button"
                     onClick={() => {
                       setOnboardingDismissed(true);
                       try { localStorage.setItem('snout-onboarding-dismissed', String(Date.now())); } catch {}
                     }}
-                    className="min-h-[44px] text-xs text-text-tertiary hover:text-text-secondary transition-colors"
+                    className="min-h-[44px] text-[12px] text-text-tertiary hover:text-text-secondary transition-colors"
                   >
                     Skip for now
                   </button>
@@ -92,7 +100,7 @@ export default function ClientHomePage() {
                     <Link
                       key={item.label}
                       href={item.href}
-                      className={`flex items-center gap-3 rounded-lg px-2 py-2 min-h-[44px] text-sm transition-all duration-fast ${
+                      className={`flex items-center gap-3 rounded-lg px-2 py-2 min-h-[44px] text-[14px] transition-all duration-fast ${
                         item.done
                           ? 'text-text-tertiary'
                           : 'text-text-primary hover:bg-surface-secondary font-medium'
@@ -112,55 +120,51 @@ export default function ClientHomePage() {
               </div>
             )}
 
-            {/* SECTION 2: Next Visit Hero Card */}
+            {/* Next Visit Hero Card */}
             {nextVisit ? (
-              <div className="rounded-2xl border border-border-default bg-white p-6 shadow-[var(--shadow-md)] mb-8">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wider text-text-tertiary mb-1">Next visit</p>
-                    <h2 className="text-xl font-bold text-text-primary font-heading">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-50 via-white to-orange-50/30 border border-orange-100/60 p-6 shadow-[0_2px_12px_rgba(194,65,12,0.06),0_0_0_1px_rgba(194,65,12,0.04)]">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-orange-400 mb-2">Next visit</p>
+                    <h2 className="text-[22px] font-bold text-text-primary font-heading leading-snug">
                       {nextVisit.service}
                     </h2>
-                    <p className="text-sm text-text-secondary mt-1 tabular-nums">
+                    <p className="text-[14px] text-text-secondary mt-1">
                       {formatDate(nextVisit.startAt)} at {formatTime(nextVisit.startAt)}
                     </p>
                   </div>
-                  <div className="shrink-0 ml-4">
-                    <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
-                      <span className="text-lg font-semibold text-orange-700">{nextVisit.service?.[0] || 'V'}</span>
-                    </div>
+                  <div className="w-[56px] h-[56px] rounded-2xl bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center shadow-sm ring-2 ring-white">
+                    <span className="text-[22px] font-bold text-orange-600">{nextVisit.service?.[0] || 'V'}</span>
                   </div>
                 </div>
-                <Link href={`/client/bookings/${nextVisit.id}`}>
-                  <button className="w-full rounded-xl bg-[#c2410c] text-white font-semibold py-3.5 text-base hover:bg-[#9a3412] active:scale-[0.98] transition-all duration-150">
-                    View details
-                  </button>
-                </Link>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-border-default bg-white p-8 shadow-[var(--shadow-md)] mb-8 text-center">
-                <h2 className="text-xl font-bold text-text-primary font-heading mb-2">
-                  No upcoming visits
-                </h2>
-                <p className="text-sm text-text-secondary mb-6 max-w-sm mx-auto">
-                  Book a visit and we&apos;ll take great care of them.
-                </p>
-                <div className="flex flex-col gap-3 max-w-sm mx-auto">
-                  <Link href="/client/bookings/new">
-                    <button className="w-full rounded-xl bg-[#c2410c] text-white font-semibold py-3.5 text-base hover:bg-[#9a3412] active:scale-[0.98] transition-all duration-150">
-                      Book a visit
+                <div className="mt-5">
+                  <Link href={`/client/bookings/${nextVisit.id}`}>
+                    <button className="rounded-xl bg-[#c2410c] text-white text-[14px] font-semibold px-6 py-2.5 shadow-[0_1px_3px_rgba(194,65,12,0.3)] hover:shadow-[0_2px_8px_rgba(194,65,12,0.25)] hover:bg-[#b93a0a] active:scale-[0.97] transition-all duration-200">
+                      View details
                     </button>
                   </Link>
-                  <Link href="/client/meet-greet">
-                    <button className="w-full rounded-xl bg-white text-text-primary border border-border-default font-medium py-3 text-sm hover:bg-surface-secondary transition-all duration-150">
-                      Schedule a meet &amp; greet
-                    </button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-gradient-to-br from-stone-50 to-white border border-stone-100 p-8 text-center shadow-[0_1px_4px_rgba(28,25,23,0.04)]">
+                <h2 className="text-[20px] font-bold text-text-primary font-heading mb-1.5">No upcoming visits</h2>
+                <p className="text-[14px] text-text-secondary mb-5 max-w-[280px] mx-auto leading-relaxed">
+                  Book a visit and we&apos;ll take great care of them.
+                </p>
+                <Link href="/client/bookings/new">
+                  <button className="rounded-xl bg-[#c2410c] text-white text-[14px] font-semibold px-6 py-2.5 shadow-[0_1px_3px_rgba(194,65,12,0.3)] hover:shadow-[0_2px_8px_rgba(194,65,12,0.25)] hover:bg-[#b93a0a] active:scale-[0.97] transition-all duration-200">
+                    Book a visit
+                  </button>
+                </Link>
+                <div className="mt-3">
+                  <Link href="/client/meet-greet" className="text-[13px] font-medium text-text-tertiary hover:text-text-secondary transition-colors">
+                    or schedule a meet &amp; greet
                   </Link>
                 </div>
               </div>
             )}
 
-            {/* SECTION 3: Latest Report Card */}
+            {/* Latest Report Card */}
             {data.latestReport && (() => {
               const reportPhotoUrl = (() => {
                 if (!data.latestReport!.mediaUrls) return null;
@@ -169,66 +173,84 @@ export default function ClientHomePage() {
                   return Array.isArray(parsed) && typeof parsed[0] === 'string' ? parsed[0] : null;
                 } catch { return null; }
               })();
-              return (
-              <div
-                className="rounded-2xl border border-border-default bg-white overflow-hidden shadow-[var(--shadow-card)] mb-8 cursor-pointer"
-                onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}
-              >
-                {reportPhotoUrl && (
-                  <img src={reportPhotoUrl} alt="Visit photo" className="w-full h-48 object-cover" />
-                )}
-                <div className="p-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-medium uppercase tracking-wider text-text-tertiary">Latest report</p>
-                    <Link href="/client/reports" onClick={(e) => e.stopPropagation()} className="text-xs font-medium text-[#c2410c] hover:underline">
-                      All reports →
+              return reportPhotoUrl ? (
+                <div
+                  className="rounded-2xl border border-border-default bg-white overflow-hidden shadow-[0_1px_3px_rgba(28,25,23,0.03)] cursor-pointer"
+                  onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}
+                >
+                  <img src={reportPhotoUrl} alt="Visit photo" className="w-full h-[180px] object-cover" />
+                  <div className="p-5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">Latest report</p>
+                      <Link href="/client/reports" onClick={(e) => e.stopPropagation()} className="text-[12px] font-medium text-[#c2410c] hover:underline">
+                        All reports
+                      </Link>
+                    </div>
+                    <h3 className="text-[16px] font-semibold text-text-primary">{data.latestReport.service || 'Update'}</h3>
+                    <p className="text-[14px] text-text-secondary mt-1 leading-relaxed line-clamp-2">
+                      {renderClientPreview(data.latestReport.content)}
+                    </p>
+                    <p className="text-[12px] text-text-tertiary mt-2 tabular-nums">
+                      {new Date(data.latestReport.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="rounded-2xl border border-border-default bg-white p-5 shadow-[0_1px_3px_rgba(28,25,23,0.03)] cursor-pointer"
+                  onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">Latest report</p>
+                    <Link href="/client/reports" onClick={(e) => e.stopPropagation()} className="text-[12px] font-medium text-[#c2410c] hover:underline">
+                      All reports
                     </Link>
                   </div>
-                  <h3 className="text-base font-semibold text-text-primary">{data.latestReport.service || 'Update'}</h3>
-                  <p className="text-sm text-text-secondary mt-1 line-clamp-2">
+                  <h3 className="text-[16px] font-semibold text-text-primary">{data.latestReport.service || 'Update'}</h3>
+                  <p className="text-[14px] text-text-secondary mt-1 leading-relaxed line-clamp-2">
                     {renderClientPreview(data.latestReport.content)}
                   </p>
-                  <p className="text-xs text-text-tertiary mt-2 tabular-nums">
+                  <p className="text-[12px] text-text-tertiary mt-2 tabular-nums">
                     {new Date(data.latestReport.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-              </div>
               );
             })()}
 
-            {/* SECTION 4: Quick Rebook */}
+            {/* Quick Rebook */}
             <QuickRebookCard />
 
-            {/* SECTION 5: Upcoming & Recent */}
+            {/* Upcoming & Recent */}
             {data.recentBookings?.length > 0 && (
               <section aria-label="Upcoming and recent visits">
-                <h2 className="mb-3 font-heading text-sm font-semibold tracking-tight text-text-primary">Upcoming &amp; recent</h2>
-                <div className="rounded-2xl border border-border-default bg-white overflow-hidden shadow-[var(--shadow-card)]">
+                <h3 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-text-tertiary mb-3">Upcoming &amp; recent</h3>
+                <div className="rounded-2xl border border-border-default bg-white divide-y divide-border-muted shadow-[0_1px_3px_rgba(28,25,23,0.03)]">
                   {data.recentBookings.map((b) => (
                     <div
                       key={b.id}
                       onClick={() => router.push(`/client/bookings/${b.id}`)}
-                      className="flex items-center justify-between py-3.5 px-4 border-b border-border-muted last:border-0 cursor-pointer hover:bg-surface-secondary transition-colors"
+                      className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-surface-secondary transition-colors first:rounded-t-2xl last:rounded-b-2xl"
                     >
                       <div>
-                        <p className="text-sm font-medium text-text-primary">{b.service}</p>
-                        <p className="text-xs text-text-tertiary tabular-nums">{formatDate(b.startAt)}</p>
+                        <p className="text-[14px] font-medium text-text-primary">{b.service}</p>
+                        <p className="text-[12px] text-text-tertiary tabular-nums mt-0.5">{formatDate(b.startAt)}</p>
                       </div>
-                      <AppStatusPill status={b.status} />
+                      {statusBadge(b.status)}
                     </div>
                   ))}
                 </div>
               </section>
             )}
 
+            {/* Fallback empty state */}
             {!data.latestReport && (!data.recentBookings || data.recentBookings.length === 0) && (
-              <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
-                <h2 className="text-lg font-semibold text-text-primary mb-2">No activity yet</h2>
-                <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
+              <div className="rounded-2xl bg-gradient-to-br from-stone-50 to-white border border-stone-100 p-8 text-center shadow-[0_1px_4px_rgba(28,25,23,0.04)]">
+                <h2 className="text-[20px] font-bold text-text-primary font-heading mb-1.5">No activity yet</h2>
+                <p className="text-[14px] text-text-secondary mb-5 max-w-[280px] mx-auto leading-relaxed">
                   Book your first visit and your sitter will share updates here.
                 </p>
                 <Link href="/client/bookings/new">
-                  <button className="rounded-xl bg-[#c2410c] text-white font-semibold px-6 py-3 text-sm hover:bg-[#9a3412] active:scale-[0.98] transition-all">
+                  <button className="rounded-xl bg-[#c2410c] text-white text-[14px] font-semibold px-6 py-2.5 shadow-[0_1px_3px_rgba(194,65,12,0.3)] hover:shadow-[0_2px_8px_rgba(194,65,12,0.25)] hover:bg-[#b93a0a] active:scale-[0.97] transition-all duration-200">
                     Book a visit
                   </button>
                 </Link>
@@ -255,31 +277,22 @@ function QuickRebookCard() {
   if (!data?.canQuickRebook || !data.lastBooking) return null;
 
   return (
-    <div className="rounded-2xl border border-border-default bg-white p-5 shadow-[var(--shadow-card)] mb-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-1.5 mb-1">
-            <Repeat className="w-3.5 h-3.5 text-text-tertiary" />
-            <p className="text-[11px] font-medium uppercase tracking-wide text-text-tertiary">Quick rebook</p>
-          </div>
-          <p className="font-heading font-semibold text-text-primary">
-            {data.suggestedService || data.lastBooking.service}
-          </p>
-          {data.suggestedSitter && (
-            <p className="text-sm text-text-secondary">with {data.suggestedSitter.name}</p>
-          )}
-          {data.suggestedDay && data.suggestedTime && (
-            <p className="text-xs text-text-tertiary mt-1">
-              You usually book on {data.suggestedDay}s at {data.suggestedTime}
-            </p>
-          )}
-        </div>
+    <div className="rounded-2xl border border-border-default bg-white p-5 shadow-[0_1px_3px_rgba(28,25,23,0.03)]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary mb-2">Quick rebook</p>
+      <h3 className="text-[16px] font-semibold text-text-primary">
+        {data.suggestedService || data.lastBooking.service}
+      </h3>
+      {data.suggestedSitter && (
+        <p className="text-[13px] text-text-secondary mt-0.5">with {data.suggestedSitter.name}</p>
+      )}
+      <p className="text-[13px] text-text-tertiary mt-0.5">Based on your booking history</p>
+      <div className="mt-4">
         <button
           type="button"
           onClick={() => router.push(`/client/bookings/new?rebookFrom=${data.lastBooking.id}`)}
-          className="min-h-[44px] rounded-xl bg-[#c2410c] px-4 text-sm font-semibold text-white hover:bg-[#9a3412] transition-all duration-150"
+          className="rounded-xl bg-[#c2410c] text-white text-[14px] font-semibold px-5 py-2.5 shadow-[0_1px_3px_rgba(194,65,12,0.3)] hover:shadow-[0_2px_8px_rgba(194,65,12,0.25)] hover:bg-[#b93a0a] active:scale-[0.97] transition-all duration-200"
         >
-          Book Again
+          Book again
         </button>
       </div>
     </div>
