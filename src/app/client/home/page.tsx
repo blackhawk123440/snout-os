@@ -58,7 +58,7 @@ export default function ClientHomePage() {
             {/* SECTION 1: Greeting */}
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-text-primary font-heading">
-                Hi {firstName}! 👋
+                Welcome back, {firstName}
               </h1>
               <p className="text-sm text-text-secondary mt-1">
                 Here&apos;s what&apos;s happening with your pets
@@ -126,8 +126,8 @@ export default function ClientHomePage() {
                     </p>
                   </div>
                   <div className="shrink-0 ml-4">
-                    <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center text-2xl">
-                      🐾
+                    <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
+                      <span className="text-lg font-semibold text-orange-700">{nextVisit.service?.[0] || 'V'}</span>
                     </div>
                   </div>
                 </div>
@@ -139,12 +139,11 @@ export default function ClientHomePage() {
               </div>
             ) : (
               <div className="rounded-2xl border border-border-default bg-white p-8 shadow-[var(--shadow-md)] mb-8 text-center">
-                <div className="text-5xl mb-4">🐕</div>
                 <h2 className="text-xl font-bold text-text-primary font-heading mb-2">
                   No upcoming visits
                 </h2>
                 <p className="text-sm text-text-secondary mb-6 max-w-sm mx-auto">
-                  Your pet would love a walk or drop-in. Book a visit and we&apos;ll take great care of them.
+                  Book a visit and we&apos;ll take great care of them.
                 </p>
                 <div className="flex flex-col gap-3 max-w-sm mx-auto">
                   <Link href="/client/bookings/new">
@@ -162,11 +161,22 @@ export default function ClientHomePage() {
             )}
 
             {/* SECTION 3: Latest Report Card */}
-            {data.latestReport && (
+            {data.latestReport && (() => {
+              const reportPhotoUrl = (() => {
+                if (!data.latestReport!.mediaUrls) return null;
+                try {
+                  const parsed = typeof data.latestReport!.mediaUrls === 'string' ? JSON.parse(data.latestReport!.mediaUrls) : data.latestReport!.mediaUrls;
+                  return Array.isArray(parsed) && typeof parsed[0] === 'string' ? parsed[0] : null;
+                } catch { return null; }
+              })();
+              return (
               <div
                 className="rounded-2xl border border-border-default bg-white overflow-hidden shadow-[var(--shadow-card)] mb-8 cursor-pointer"
                 onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}
               >
+                {reportPhotoUrl && (
+                  <img src={reportPhotoUrl} alt="Visit photo" className="w-full h-48 object-cover" />
+                )}
                 <div className="p-5">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-xs font-medium uppercase tracking-wider text-text-tertiary">Latest report</p>
@@ -183,7 +193,8 @@ export default function ClientHomePage() {
                   </p>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* SECTION 4: Quick Rebook */}
             <QuickRebookCard />
@@ -212,11 +223,15 @@ export default function ClientHomePage() {
 
             {!data.latestReport && (!data.recentBookings || data.recentBookings.length === 0) && (
               <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
-                <div className="text-5xl mb-4">📋</div>
                 <h2 className="text-lg font-semibold text-text-primary mb-2">No activity yet</h2>
-                <p className="text-sm text-text-secondary max-w-xs mx-auto">
+                <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
                   Book your first visit and your sitter will share updates here.
                 </p>
+                <Link href="/client/bookings/new">
+                  <button className="rounded-xl bg-[#c2410c] text-white font-semibold px-6 py-3 text-sm hover:bg-[#9a3412] active:scale-[0.98] transition-all">
+                    Book a visit
+                  </button>
+                </Link>
               </div>
             )}
           </div>

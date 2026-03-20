@@ -42,10 +42,9 @@ export default function ClientReportsPage() {
           <AppErrorState title="Couldn't load reports" subtitle={error.message || 'Unable to load reports'} onRetry={() => void refetch()} />
         ) : reports.length === 0 ? (
           <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
-            <div className="text-5xl mb-4">📝</div>
             <h2 className="text-lg font-semibold text-text-primary mb-2">No reports yet</h2>
             <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
-              After each visit, your sitter will share an update here. Book a visit to get started.
+              Reports appear here after each visit.
             </p>
             <button
               onClick={() => router.push('/client/bookings')}

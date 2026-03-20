@@ -67,15 +67,21 @@ export default function ClientBillingPage() {
               <p className="text-sm text-text-secondary mt-1">
                 {unpaidInvoices.length} unpaid invoice{unpaidInvoices.length !== 1 ? 's' : ''}
               </p>
-              {outstandingTotal > 0 && firstPaymentLink && (
-                <a
-                  href={firstPaymentLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c2410c] px-6 text-sm font-semibold text-white hover:bg-[#9a3412] transition-all"
-                >
-                  Pay {unpaidInvoices.length === 1 ? `$${unpaidInvoices[0].totalPrice.toFixed(2)}` : 'now'}
-                </a>
+              {outstandingTotal > 0 && (
+                firstPaymentLink ? (
+                  <a
+                    href={firstPaymentLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-xl bg-[#c2410c] px-6 text-sm font-semibold text-white hover:bg-[#9a3412] active:scale-[0.98] transition-all"
+                  >
+                    Pay {unpaidInvoices.length === 1 ? `$${unpaidInvoices[0].totalPrice.toFixed(2)}` : 'now'}
+                  </a>
+                ) : (
+                  <button className="mt-4 rounded-xl bg-[#c2410c] text-white font-semibold px-6 py-3 hover:bg-[#9a3412] active:scale-[0.98] transition-all">
+                    Pay now
+                  </button>
+                )
               )}
             </div>
 
@@ -207,10 +213,9 @@ export default function ClientBillingPage() {
             {/* Empty state */}
             {unpaidInvoices.length === 0 && (!data.paidCompletions || data.paidCompletions.length === 0) && data.payments.length === 0 && (
               <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
-                <div className="text-5xl mb-4">💳</div>
-                <h2 className="text-lg font-semibold text-text-primary mb-2">No invoices yet</h2>
+                <h2 className="text-lg font-semibold text-text-primary mb-2">No invoices</h2>
                 <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
-                  Invoices will appear here after your visits are booked.
+                  Invoices appear here after completed visits.
                 </p>
                 <button
                   onClick={() => router.push('/client/bookings')}

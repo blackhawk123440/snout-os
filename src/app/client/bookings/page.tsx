@@ -72,10 +72,9 @@ export default function ClientBookingsPage() {
           <AppErrorState title="Couldn't load bookings" subtitle={error.message || 'Unable to load bookings'} onRetry={handleRefresh} />
         ) : displayed.length === 0 ? (
           <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
-            <div className="text-5xl mb-4">📅</div>
             <h2 className="text-lg font-semibold text-text-primary mb-2">No visits yet</h2>
             <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
-              Book your first visit and your pet will thank you!
+              Book your first visit and we&apos;ll handle the rest.
             </p>
             <Link href="/client/bookings/new">
               <button className="rounded-xl bg-[#c2410c] text-white font-semibold px-6 py-3 hover:bg-[#9a3412] transition-all">
@@ -110,8 +109,8 @@ export default function ClientBookingsPage() {
                   <div className="rounded-xl border border-border-default bg-white p-4 hover:shadow-[var(--shadow-md)] hover:border-border-strong transition-all duration-200 cursor-pointer">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-lg shrink-0">
-                          🐾
+                        <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                          <span className="text-sm font-semibold text-orange-700">{booking.service?.[0] || 'V'}</span>
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-text-primary">{booking.service}</p>

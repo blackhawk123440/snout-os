@@ -15,13 +15,6 @@ export default function ClientPetsPage() {
   const { data, isLoading: loading, error, refetch } = useClientPets();
   const pets = data?.pets ?? [];
 
-  const petEmoji = (species: string | null) => {
-    if (!species) return '🐾';
-    const s = species.toLowerCase();
-    if (s.includes('cat')) return '🐱';
-    return '🐶';
-  };
-
   return (
     <LayoutWrapper variant="narrow">
       <div className="max-w-2xl mx-auto">
@@ -50,10 +43,9 @@ export default function ClientPetsPage() {
           <AppErrorState title="Couldn't load pets" subtitle={error.message || 'Unable to load pets'} onRetry={() => void refetch()} />
         ) : pets.length === 0 ? (
           <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
-            <div className="text-5xl mb-4">🐾</div>
             <h2 className="text-lg font-semibold text-text-primary mb-2">Add your first pet</h2>
             <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
-              Tell us about your furry family so we can give them the best care.
+              Tell us about your pet so we can provide the best care.
             </p>
             <Link href="/client/pets/new">
               <button className="rounded-xl bg-[#c2410c] text-white font-semibold px-6 py-3 hover:bg-[#9a3412] transition-all">
@@ -68,10 +60,10 @@ export default function ClientPetsPage() {
                 <div className="rounded-xl border border-border-default bg-white p-5 hover:shadow-[var(--shadow-md)] hover:border-border-strong transition-all duration-200 cursor-pointer">
                   <div className="flex items-center gap-4">
                     {pet.photoUrl ? (
-                      <img src={pet.photoUrl} alt={pet.name || 'Pet'} className="w-16 h-16 rounded-2xl object-cover" />
+                      <img src={pet.photoUrl} alt={pet.name || 'Pet'} className="w-14 h-14 rounded-2xl object-cover" />
                     ) : (
-                      <div className="w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center text-3xl">
-                        {petEmoji(pet.species)}
+                      <div className="w-14 h-14 rounded-2xl bg-orange-50 flex items-center justify-center shrink-0">
+                        <span className="text-xl font-bold text-orange-600">{(pet.name || 'P')[0]}</span>
                       </div>
                     )}
                     <div>

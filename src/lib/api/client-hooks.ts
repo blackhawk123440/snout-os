@@ -37,6 +37,7 @@ export interface ClientHomeData {
     content: string;
     createdAt: string;
     service?: string;
+    mediaUrls?: string | null;
   } | null;
 }
 

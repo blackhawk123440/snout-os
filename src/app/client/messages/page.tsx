@@ -33,10 +33,9 @@ export default function ClientMessagesPage() {
           <AppErrorState title="Couldn't load messages" subtitle={error.message || 'Unable to load messages'} onRetry={() => void refetch()} />
         ) : threads.length === 0 ? (
           <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
-            <div className="text-5xl mb-4">💬</div>
-            <h2 className="text-lg font-semibold text-text-primary mb-2">No messages yet</h2>
+            <h2 className="text-lg font-semibold text-text-primary mb-2">No messages</h2>
             <p className="text-sm text-text-secondary max-w-xs mx-auto">
-              When you have a booking, you can message your sitter here.
+              Conversations with your sitter will appear here.
             </p>
           </div>
         ) : (

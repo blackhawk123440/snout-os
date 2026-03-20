@@ -48,7 +48,7 @@ export async function GET() {
           ...whereOrg(ctx.orgId, {}),
           booking: { clientId: ctx.clientId },
         },
-        select: { id: true, content: true, createdAt: true, booking: { select: { service: true } } },
+        select: { id: true, content: true, createdAt: true, mediaUrls: true, booking: { select: { service: true } } },
         orderBy: { createdAt: 'desc' },
       }),
     ]);
@@ -71,6 +71,7 @@ export async function GET() {
           content: latestReport.content?.slice(0, 200) + (latestReport.content?.length > 200 ? '…' : ''),
           createdAt: toIso(latestReport.createdAt),
           service: latestReport.booking?.service,
+          mediaUrls: latestReport.mediaUrls ?? null,
         }
       : null;
 
