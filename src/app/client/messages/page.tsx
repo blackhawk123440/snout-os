@@ -1,12 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { LayoutWrapper, PageHeader, Section, ClientRefreshButton } from '@/components/layout';
-import { ClientAtAGlanceSidebarLazy } from '@/components/client/ClientAtAGlanceSidebarLazy';
+import Link from 'next/link';
+import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { AppErrorState } from '@/components/app';
-import { EmptyState, PageSkeleton } from '@/components/ui';
-import { InteractiveRow } from '@/components/ui/interactive-row';
-import { ClientListSecondaryModule } from '@/components/client/ClientListSecondaryModule';
+import { PageSkeleton } from '@/components/ui';
 import { renderClientPreview } from '@/lib/strip-emojis';
 import { useClientMessages } from '@/lib/api/client-hooks';
 
@@ -20,53 +18,62 @@ export default function ClientMessagesPage() {
 
   return (
     <LayoutWrapper variant="narrow">
-      <PageHeader
-        title="Messages"
-        subtitle="Chat with your sitter"
-        actions={<ClientRefreshButton onRefresh={refetch} loading={loading} />}
-      />
-      <div className="lg:grid lg:grid-cols-[1fr,auto] lg:gap-6">
-        <div className="min-w-0">
-          <Section>
-            {loading ? (
-              <PageSkeleton />
-            ) : error ? (
-              <AppErrorState title="Couldn't load messages" subtitle={error.message || 'Unable to load messages'} onRetry={() => void refetch()} />
-            ) : threads.length === 0 ? (
-              <EmptyState
-                title="No messages yet"
-                description="When you have a booking, you can message your sitter here."
-              />
-            ) : (
-              <div className="w-full space-y-3 lg:max-w-3xl">
-                <div className="overflow-hidden rounded-xl border border-border-default bg-surface-primary lg:rounded-lg">
-                  {threads.map((t) => (
-                    <InteractiveRow
-                      key={t.id}
-                      onClick={() => router.push(`/client/messages/${t.id}`)}
-                      className="last:border-b-0"
-                      aria-label={`Open conversation with ${t.sitter?.name || t.booking?.service || 'sitter'}`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-text-primary">
-                          {t.sitter?.name || t.booking?.service || 'Conversation'}
-                        </p>
-                        <p className="truncate text-sm text-text-secondary">
-                          {(t.preview ? renderClientPreview(t.preview).trim() : '') || (t.booking?.service && t.booking.startAt ? `${t.booking.service} · ${formatDate(t.booking.startAt)}` : '') || '—'}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 text-xs text-text-tertiary tabular-nums">
-                        {t.lastActivityAt ? formatDate(t.lastActivityAt) : '—'}
-                      </div>
-                    </InteractiveRow>
-                  ))}
-                </div>
-                <ClientListSecondaryModule variant="messages" />
-              </div>
-            )}
-          </Section>
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-text-primary font-heading">Messages</h1>
+            <p className="text-sm text-text-secondary mt-1">Chat with your sitter</p>
+          </div>
+          <ClientRefreshButton onRefresh={refetch} loading={loading} />
         </div>
-        <ClientAtAGlanceSidebarLazy />
+
+        {loading ? (
+          <PageSkeleton />
+        ) : error ? (
+          <AppErrorState title="Couldn't load messages" subtitle={error.message || 'Unable to load messages'} onRetry={() => void refetch()} />
+        ) : threads.length === 0 ? (
+          <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
+            <div className="text-5xl mb-4">💬</div>
+            <h2 className="text-lg font-semibold text-text-primary mb-2">No messages yet</h2>
+            <p className="text-sm text-text-secondary max-w-xs mx-auto">
+              When you have a booking, you can message your sitter here.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {threads.map((thread) => {
+              const sitterName = thread.sitter?.name || thread.booking?.service || 'Conversation';
+              const sitterInitial = sitterName.charAt(0).toUpperCase();
+              const previewText = thread.preview
+                ? renderClientPreview(thread.preview).trim()
+                : thread.booking?.service && thread.booking.startAt
+                  ? `${thread.booking.service} · ${formatDate(thread.booking.startAt)}`
+                  : '—';
+
+              return (
+                <Link key={thread.id} href={`/client/messages/${thread.id}`}>
+                  <div className="rounded-xl border border-border-default bg-white p-4 hover:shadow-[var(--shadow-md)] transition-all cursor-pointer flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-surface-secondary flex items-center justify-center text-sm font-semibold text-text-primary shrink-0">
+                      {sitterInitial}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-text-primary truncate">{sitterName}</p>
+                        <p className="text-xs text-text-tertiary tabular-nums shrink-0 ml-2">
+                          {thread.lastActivityAt ? formatDate(thread.lastActivityAt) : '—'}
+                        </p>
+                      </div>
+                      <p className="text-sm text-text-secondary truncate">{previewText}</p>
+                    </div>
+                    {thread.status === 'unread' && (
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#c2410c] shrink-0" />
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </LayoutWrapper>
   );

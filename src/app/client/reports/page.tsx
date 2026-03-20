@@ -1,11 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
-import { AppPageHeader, AppErrorState } from '@/components/app';
-import { EmptyState, PageSkeleton } from '@/components/ui';
-import { InteractiveRow } from '@/components/ui/interactive-row';
-import { ClientListSecondaryModule } from '@/components/client/ClientListSecondaryModule';
+import { AppErrorState } from '@/components/app';
+import { PageSkeleton } from '@/components/ui';
 import { useClientReports } from '@/lib/api/client-hooks';
 
 function parseFirstPhoto(raw: string | null): string | null {
@@ -28,77 +27,72 @@ export default function ClientReportsPage() {
 
   return (
     <LayoutWrapper variant="narrow">
-      <AppPageHeader
-        title="Visit reports"
-        subtitle="Updates from your sitter"
-        action={<ClientRefreshButton onRefresh={refetch} loading={loading} />}
-      />
-      {loading ? (
-        <PageSkeleton />
-      ) : error ? (
-        <AppErrorState title="Couldn't load reports" subtitle={error.message || 'Unable to load reports'} onRetry={() => void refetch()} />
-      ) : reports.length === 0 ? (
-        <EmptyState
-          title="No reports yet"
-          description="After each visit, your sitter will share an update here. Book a visit to get started."
-          primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
-        />
-      ) : (
-        <div className="w-full space-y-3 lg:max-w-3xl">
-          <div className="overflow-hidden rounded-xl border border-border-default bg-surface-primary lg:rounded-lg">
-            {reports.map((r) => {
-              const photo = parseFirstPhoto(r.mediaUrls);
-              const preview = r.personalNote?.slice(0, 80) || r.content?.slice(0, 80) || '';
+      <div className="max-w-2xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-text-primary font-heading">Visit reports</h1>
+            <p className="text-sm text-text-secondary mt-1">Updates from your sitter</p>
+          </div>
+          <ClientRefreshButton onRefresh={refetch} loading={loading} />
+        </div>
+
+        {loading ? (
+          <PageSkeleton />
+        ) : error ? (
+          <AppErrorState title="Couldn't load reports" subtitle={error.message || 'Unable to load reports'} onRetry={() => void refetch()} />
+        ) : reports.length === 0 ? (
+          <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
+            <div className="text-5xl mb-4">📝</div>
+            <h2 className="text-lg font-semibold text-text-primary mb-2">No reports yet</h2>
+            <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
+              After each visit, your sitter will share an update here. Book a visit to get started.
+            </p>
+            <button
+              onClick={() => router.push('/client/bookings')}
+              className="rounded-xl bg-[#c2410c] text-white font-semibold px-6 py-3 hover:bg-[#9a3412] transition-all"
+            >
+              View bookings
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {reports.map((report) => {
+              const photo = parseFirstPhoto(report.mediaUrls);
+              const preview = report.personalNote?.slice(0, 120) || report.content?.slice(0, 120) || '';
               return (
-                <InteractiveRow
-                  key={r.id}
-                  onClick={() => router.push(`/client/reports/${r.id}`)}
-                  className="last:border-b-0"
-                  aria-label={`View report ${r.booking?.service || 'Visit report'}`}
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    {photo ? (
-                      <img
-                        src={photo}
-                        alt=""
-                        className="h-12 w-12 shrink-0 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-tertiary text-xl">
-                        {'\ud83d\udc3e'}
-                      </div>
+                <Link key={report.id} href={`/client/reports/${report.id}`}>
+                  <div className="rounded-xl border border-border-default bg-white overflow-hidden hover:shadow-[var(--shadow-md)] transition-all duration-200 cursor-pointer">
+                    {photo && (
+                      <img src={photo} alt="Visit photo" className="w-full h-40 object-cover" />
                     )}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-medium text-text-primary">
-                          {r.booking?.service || 'Visit report'}
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="text-sm font-semibold text-text-primary">
+                          {report.booking?.service || 'Visit report'}
+                        </h3>
+                        <p className="text-xs text-text-tertiary tabular-nums">
+                          {report.createdAt ? formatDate(report.createdAt) : '—'}
                         </p>
-                        {r.clientRating ? (
-                          <span className="shrink-0 text-xs text-amber-500">
-                            {'\u2605'.repeat(r.clientRating)}
-                          </span>
-                        ) : (
-                          <span className="shrink-0 rounded-full bg-accent-tertiary px-2 py-0.5 text-[10px] font-medium text-accent-primary">
-                            Rate
-                          </span>
-                        )}
                       </div>
-                      {r.sitterName && (
-                        <p className="text-xs text-text-tertiary">with {r.sitterName}</p>
+                      <p className="text-sm text-text-secondary line-clamp-2">{preview}</p>
+                      {report.sitterName && (
+                        <p className="text-xs text-text-tertiary mt-2">with {report.sitterName}</p>
                       )}
-                      <p className="line-clamp-1 text-sm text-text-secondary">{preview}</p>
+                      {report.clientRating && (
+                        <div className="flex items-center gap-0.5 mt-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span key={star} className={star <= report.clientRating! ? 'text-amber-400' : 'text-stone-200'}>★</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex shrink-0 text-xs text-text-tertiary tabular-nums">
-                    {r.createdAt ? formatDate(r.createdAt) : '\u2014'}
-                  </div>
-                </InteractiveRow>
+                </Link>
               );
             })}
           </div>
-          <ClientListSecondaryModule variant="reports" />
-        </div>
-      )}
+        )}
+      </div>
     </LayoutWrapper>
   );
 }

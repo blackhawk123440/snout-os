@@ -186,7 +186,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
   const displayName = clientName || user?.name || 'there';
   const firstName = displayName.split(' ')[0] || displayName;
   const { title: pageTitle, subtitle: pageSubtitle } = getClientHeaderInfo(pathname, firstName);
-  const showNewBookingCta = pathname === '/client/home' || pathname === '/client' || pathname.startsWith('/client/bookings');
+  // "New booking" CTA removed from header per client portal redesign — CTAs live on individual pages
 
   return (
     <div className="fixed inset-0 flex flex-col bg-surface-secondary" style={{ maxHeight: '100dvh' }}>
@@ -215,14 +215,6 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
                 </div>
               </div>
               <div className="relative flex shrink-0 items-center gap-2">
-                {showNewBookingCta && (
-                  <Link
-                    href="/client/bookings/new"
-                    className="hidden min-h-[44px] items-center rounded-md border border-border-strong bg-surface-primary px-3 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary hover:border-border-strong focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-1 min-[1024px]:inline-flex"
-                  >
-                    New booking
-                  </Link>
-                )}
                 <button
                   type="button"
                   aria-label="Notifications"
@@ -280,17 +272,6 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
           </main>
         </div>
       </div>
-
-      {showNewBookingCta && (
-        <Link
-          href="/client/bookings/new"
-          className="fixed bottom-[calc(56px+env(safe-area-inset-bottom)+12px)] right-4 z-10 flex h-12 items-center gap-2 rounded-full bg-surface-inverse px-4 text-sm font-medium text-text-inverse shadow-lg transition active:scale-95 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2 lg:hidden min-[1024px]:hidden"
-          aria-label="Book a visit"
-        >
-          <span aria-hidden>+</span>
-          <span>Book</span>
-        </Link>
-      )}
 
       <ClientBottomNav />
       <ClientDeployDebugOverlay />

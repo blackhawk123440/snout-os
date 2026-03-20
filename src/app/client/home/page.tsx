@@ -4,19 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import { CheckCircle2, Circle, Repeat } from 'lucide-react';
+import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import {
-  CheckCircle2, Circle, Calendar, FileText, Repeat, ChevronRight,
-  CalendarPlus, Users, PawPrint,
-} from 'lucide-react';
-import { LayoutWrapper, PageHeader, ClientRefreshButton } from '@/components/layout';
-import {
-  AppCard,
-  AppCardBody,
   AppErrorState,
   AppStatusPill,
 } from '@/components/app';
-import { EmptyState, PageSkeleton } from '@/components/ui';
-import { InteractiveRow } from '@/components/ui/interactive-row';
+import { PageSkeleton } from '@/components/ui';
 import { renderClientPreview } from '@/lib/strip-emojis';
 import { useClientHome, useClientOnboardingStatus } from '@/lib/api/client-hooks';
 
@@ -24,7 +18,6 @@ export default function ClientHomePage() {
   const router = useRouter();
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
-  // Check localStorage for dismiss state
   useEffect(() => {
     try {
       const dismissed = localStorage.getItem('snout-onboarding-dismissed');
@@ -40,24 +33,41 @@ export default function ClientHomePage() {
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  const formatTime = (d: string) =>
+    new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  const firstName = data?.clientName?.split(' ')[0] || 'there';
+  const upcomingBookings = data?.recentBookings?.filter(b =>
+    ['pending', 'confirmed', 'scheduled'].includes(b.status.toLowerCase())
+  ) || [];
+  const nextVisit = upcomingBookings[0];
 
   return (
     <LayoutWrapper variant="narrow">
-      <PageHeader
-        title="Home"
-        subtitle="Your pet care hub"
-        actions={<ClientRefreshButton onRefresh={refetch} loading={loading} />}
-      />
-      {loading ? (
-        <PageSkeleton />
-      ) : error ? (
-        <AppErrorState title="Couldn't load" subtitle={error.message || 'Unable to load'} onRetry={() => void refetch()} />
-      ) : data ? (
-        <div className="flex w-full flex-col gap-4">
-          {/* Onboarding checklist */}
-          {onboarding && onboarding.completionPercent < 100 && !onboardingDismissed && (
-            <AppCard className="border-accent-primary/20 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
-              <AppCardBody>
+      <div className="max-w-2xl mx-auto">
+        <div className="flex justify-end mb-2">
+          <ClientRefreshButton onRefresh={refetch} loading={loading} />
+        </div>
+
+        {loading ? (
+          <PageSkeleton />
+        ) : error ? (
+          <AppErrorState title="Couldn't load" subtitle={error.message || 'Unable to load'} onRetry={() => void refetch()} />
+        ) : data ? (
+          <div className="flex flex-col">
+            {/* SECTION 1: Greeting */}
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-text-primary font-heading">
+                Hi {firstName}! 👋
+              </h1>
+              <p className="text-sm text-text-secondary mt-1">
+                Here&apos;s what&apos;s happening with your pets
+              </p>
+            </div>
+
+            {/* Onboarding checklist */}
+            {onboarding && onboarding.completionPercent < 100 && !onboardingDismissed && (
+              <div className="rounded-2xl border border-border-default bg-white p-5 shadow-[var(--shadow-card)] mb-8">
                 <div className="flex items-center justify-between mb-3">
                   <p className="font-heading text-sm font-semibold text-text-primary">Complete your profile</p>
                   <button
@@ -97,123 +107,121 @@ export default function ClientHomePage() {
                   ))}
                 </div>
                 <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-tertiary">
-                  <div className="h-full rounded-full bg-accent-primary transition-[width]" style={{ width: `${onboarding.completionPercent}%` }} />
+                  <div className="h-full rounded-full bg-[#c2410c] transition-[width]" style={{ width: `${onboarding.completionPercent}%` }} />
                 </div>
-              </AppCardBody>
-            </AppCard>
-          )}
+              </div>
+            )}
 
-          {/* App-style feed: Next visit → Latest report → Upcoming & recent */}
-          <AppCard className="w-full shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
-              <AppCardBody className="flex flex-col gap-3 pb-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-text-tertiary" />
-                  <p className="font-heading text-sm font-semibold text-text-primary">Next visit</p>
-                </div>
-                {data.upcomingCount > 0 ? (
-                  <>
-                    <p className="font-heading text-xl font-bold text-text-primary tabular-nums">
-                      {data.upcomingCount} upcoming visit{data.upcomingCount !== 1 ? 's' : ''}
-                    </p>
-                    <p className="text-sm text-text-secondary">Hi, {data.clientName?.split(' ')[0] || 'there'}</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-heading text-base font-semibold text-text-primary">No upcoming visits</p>
-                    <p className="text-sm text-text-secondary">Book your next visit anytime.</p>
-                  </>
-                )}
-                <Link
-                  href="/client/bookings/new"
-                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse transition-all duration-fast hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
-                >
-                  <CalendarPlus className="w-4 h-4" />
-                  Book a visit
-                </Link>
-                <Link
-                  href="/client/meet-greet"
-                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-border-default px-4 text-sm font-medium text-text-secondary transition-all duration-fast hover:bg-surface-secondary"
-                >
-                  <Users className="w-4 h-4" />
-                  Schedule a meet & greet
-                </Link>
-              </AppCardBody>
-            </AppCard>
-
-          {/* Quick Rebook card */}
-          <QuickRebookCard />
-
-          {data.latestReport ? (
-            <AppCard className="w-full shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)] cursor-pointer" onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}>
-              <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-2 lg:px-0 lg:pt-0">
-                <div className="min-w-0 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-text-tertiary shrink-0" />
+            {/* SECTION 2: Next Visit Hero Card */}
+            {nextVisit ? (
+              <div className="rounded-2xl border border-border-default bg-white p-6 shadow-[var(--shadow-md)] mb-8">
+                <div className="flex items-start justify-between mb-4">
                   <div>
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-text-tertiary">Latest report</p>
-                    <p className="mt-0.5 font-heading font-semibold text-text-primary">{data.latestReport.service || 'Update'}</p>
+                    <p className="text-xs font-medium uppercase tracking-wider text-text-tertiary mb-1">Next visit</p>
+                    <h2 className="text-xl font-bold text-text-primary font-heading">
+                      {nextVisit.service}
+                    </h2>
+                    <p className="text-sm text-text-secondary mt-1 tabular-nums">
+                      {formatDate(nextVisit.startAt)} at {formatTime(nextVisit.startAt)}
+                    </p>
+                  </div>
+                  <div className="shrink-0 ml-4">
+                    <div className="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center text-2xl">
+                      🐾
+                    </div>
                   </div>
                 </div>
-                <Link
-                  href="/client/reports"
-                  onClick={(e) => e.stopPropagation()}
-                  className="shrink-0 flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
-                >
-                  All reports
-                  <ChevronRight className="w-3.5 h-3.5" />
+                <Link href={`/client/bookings/${nextVisit.id}`}>
+                  <button className="w-full rounded-xl bg-[#c2410c] text-white font-semibold py-3.5 text-base hover:bg-[#9a3412] active:scale-[0.98] transition-all duration-150">
+                    View details
+                  </button>
                 </Link>
               </div>
-              <AppCardBody className="relative">
-                <p className="line-clamp-2 text-sm text-text-secondary">
-                  {renderClientPreview(data.latestReport.content)}
+            ) : (
+              <div className="rounded-2xl border border-border-default bg-white p-8 shadow-[var(--shadow-md)] mb-8 text-center">
+                <div className="text-5xl mb-4">🐕</div>
+                <h2 className="text-xl font-bold text-text-primary font-heading mb-2">
+                  No upcoming visits
+                </h2>
+                <p className="text-sm text-text-secondary mb-6 max-w-sm mx-auto">
+                  Your pet would love a walk or drop-in. Book a visit and we&apos;ll take great care of them.
                 </p>
-                <p className="mt-2 text-right text-xs text-text-tertiary tabular-nums">
-                  {new Date(data.latestReport.createdAt).toLocaleDateString()}
-                </p>
-              </AppCardBody>
-            </AppCard>
-          ) : (
-            <div className="w-full">
-              <EmptyState
-                title="No visit reports yet"
-                description="After each visit, your sitter will share an update here."
-                primaryAction={{ label: 'View bookings', onClick: () => router.push('/client/bookings') }}
-              />
-            </div>
-          )}
+                <div className="flex flex-col gap-3 max-w-sm mx-auto">
+                  <Link href="/client/bookings/new">
+                    <button className="w-full rounded-xl bg-[#c2410c] text-white font-semibold py-3.5 text-base hover:bg-[#9a3412] active:scale-[0.98] transition-all duration-150">
+                      Book a visit
+                    </button>
+                  </Link>
+                  <Link href="/client/meet-greet">
+                    <button className="w-full rounded-xl bg-white text-text-primary border border-border-default font-medium py-3 text-sm hover:bg-surface-secondary transition-all duration-150">
+                      Schedule a meet &amp; greet
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            )}
 
-          {data.recentBookings?.length > 0 ? (
-            <section className="w-full" aria-label="Upcoming and recent visits">
-              <h2 className="mb-2 font-heading text-sm font-semibold tracking-tight text-text-primary">Upcoming & recent</h2>
-              <div className="w-full overflow-hidden rounded-xl border border-border-default bg-surface-primary lg:rounded-lg">
-                {data.recentBookings.map((b) => (
-                  <InteractiveRow
-                    key={b.id}
-                    aria-label={`View booking ${b.service}`}
-                    onClick={() => router.push(`/client/bookings/${b.id}`)}
-                    className="last:border-b-0"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-text-primary">{b.service}</p>
-                      <p className="truncate text-xs text-text-tertiary tabular-nums">{formatDate(b.startAt)}</p>
-                    </div>
-                    <div className="flex shrink-0">
+            {/* SECTION 3: Latest Report Card */}
+            {data.latestReport && (
+              <div
+                className="rounded-2xl border border-border-default bg-white overflow-hidden shadow-[var(--shadow-card)] mb-8 cursor-pointer"
+                onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}
+              >
+                <div className="p-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium uppercase tracking-wider text-text-tertiary">Latest report</p>
+                    <Link href="/client/reports" onClick={(e) => e.stopPropagation()} className="text-xs font-medium text-[#c2410c] hover:underline">
+                      All reports →
+                    </Link>
+                  </div>
+                  <h3 className="text-base font-semibold text-text-primary">{data.latestReport.service || 'Update'}</h3>
+                  <p className="text-sm text-text-secondary mt-1 line-clamp-2">
+                    {renderClientPreview(data.latestReport.content)}
+                  </p>
+                  <p className="text-xs text-text-tertiary mt-2 tabular-nums">
+                    {new Date(data.latestReport.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* SECTION 4: Quick Rebook */}
+            <QuickRebookCard />
+
+            {/* SECTION 5: Upcoming & Recent */}
+            {data.recentBookings?.length > 0 && (
+              <section aria-label="Upcoming and recent visits">
+                <h2 className="mb-3 font-heading text-sm font-semibold tracking-tight text-text-primary">Upcoming &amp; recent</h2>
+                <div className="rounded-2xl border border-border-default bg-white overflow-hidden shadow-[var(--shadow-card)]">
+                  {data.recentBookings.map((b) => (
+                    <div
+                      key={b.id}
+                      onClick={() => router.push(`/client/bookings/${b.id}`)}
+                      className="flex items-center justify-between py-3.5 px-4 border-b border-border-muted last:border-0 cursor-pointer hover:bg-surface-secondary transition-colors"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-text-primary">{b.service}</p>
+                        <p className="text-xs text-text-tertiary tabular-nums">{formatDate(b.startAt)}</p>
+                      </div>
                       <AppStatusPill status={b.status} />
                     </div>
-                  </InteractiveRow>
-                ))}
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {!data.latestReport && (!data.recentBookings || data.recentBookings.length === 0) && (
+              <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
+                <div className="text-5xl mb-4">📋</div>
+                <h2 className="text-lg font-semibold text-text-primary mb-2">No activity yet</h2>
+                <p className="text-sm text-text-secondary max-w-xs mx-auto">
+                  Book your first visit and your sitter will share updates here.
+                </p>
               </div>
-            </section>
-          ) : (
-            <div className="w-full">
-              <EmptyState
-                title="No upcoming visits"
-                description="Book your next visit anytime."
-                primaryAction={{ label: 'Book a visit', onClick: () => router.push('/client/bookings/new') }}
-              />
-            </div>
-          )}
-        </div>
-      ) : null}
+            )}
+          </div>
+        ) : null}
+      </div>
     </LayoutWrapper>
   );
 }
@@ -232,33 +240,33 @@ function QuickRebookCard() {
   if (!data?.canQuickRebook || !data.lastBooking) return null;
 
   return (
-    <AppCard className="w-full border-accent-primary/20 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
-      <AppCardBody>
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-1.5 mb-1">
-              <Repeat className="w-3.5 h-3.5 text-text-tertiary" />
-              <p className="text-[11px] font-medium uppercase tracking-wide text-text-tertiary">Quick rebook</p>
-            </div>
-            <p className="font-heading font-semibold text-text-primary">{data.suggestedService || data.lastBooking.service}</p>
-            {data.suggestedSitter && (
-              <p className="text-sm text-text-secondary">with {data.suggestedSitter.name}</p>
-            )}
-            {data.suggestedDay && data.suggestedTime && (
-              <p className="text-xs text-text-tertiary mt-1">
-                You usually book on {data.suggestedDay}s at {data.suggestedTime}
-              </p>
-            )}
+    <div className="rounded-2xl border border-border-default bg-white p-5 shadow-[var(--shadow-card)] mb-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Repeat className="w-3.5 h-3.5 text-text-tertiary" />
+            <p className="text-[11px] font-medium uppercase tracking-wide text-text-tertiary">Quick rebook</p>
           </div>
-          <button
-            type="button"
-            onClick={() => router.push(`/client/bookings/new?rebookFrom=${data.lastBooking.id}`)}
-            className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:brightness-90 transition-all duration-fast"
-          >
-            Book Again
-          </button>
+          <p className="font-heading font-semibold text-text-primary">
+            {data.suggestedService || data.lastBooking.service}
+          </p>
+          {data.suggestedSitter && (
+            <p className="text-sm text-text-secondary">with {data.suggestedSitter.name}</p>
+          )}
+          {data.suggestedDay && data.suggestedTime && (
+            <p className="text-xs text-text-tertiary mt-1">
+              You usually book on {data.suggestedDay}s at {data.suggestedTime}
+            </p>
+          )}
         </div>
-      </AppCardBody>
-    </AppCard>
+        <button
+          type="button"
+          onClick={() => router.push(`/client/bookings/new?rebookFrom=${data.lastBooking.id}`)}
+          className="min-h-[44px] rounded-xl bg-[#c2410c] px-4 text-sm font-semibold text-white hover:bg-[#9a3412] transition-all duration-150"
+        >
+          Book Again
+        </button>
+      </div>
+    </div>
   );
 }

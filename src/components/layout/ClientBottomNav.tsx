@@ -27,11 +27,11 @@ export function ClientBottomNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 border-t-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset',
+              'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg mx-0.5 my-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset',
               'min-h-[44px] touch-manipulation',
               active
-                ? 'border-text-primary text-text-primary'
-                : 'border-transparent text-text-tertiary hover:text-text-secondary'
+                ? 'bg-[#c2410c]/10 text-[#c2410c]'
+                : 'text-text-tertiary hover:text-text-secondary'
             )}
           >
             <Icon name={item.icon} className="w-5 h-5" />

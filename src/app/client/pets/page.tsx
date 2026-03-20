@@ -1,16 +1,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
-import { ClientAtAGlanceSidebarLazy } from '@/components/client/ClientAtAGlanceSidebarLazy';
-import { ClientListSecondaryModule } from '@/components/client/ClientListSecondaryModule';
 import {
-  AppPageHeader,
   AppSkeletonList,
-  AppEmptyState,
   AppErrorState,
 } from '@/components/app';
-import { InteractiveRow } from '@/components/ui/interactive-row';
 import { useClientPets } from '@/lib/api/client-hooks';
 
 export default function ClientPetsPage() {
@@ -19,82 +16,77 @@ export default function ClientPetsPage() {
   const pets = data?.pets ?? [];
 
   const petEmoji = (species: string | null) => {
-    if (!species) return '\ud83d\udc3e';
+    if (!species) return '🐾';
     const s = species.toLowerCase();
-    if (s.includes('dog')) return '\ud83d\udc15';
-    if (s.includes('cat')) return '\ud83d\udc08';
-    if (s.includes('bird')) return '\ud83d\udc26';
-    if (s.includes('fish')) return '\ud83d\udc20';
-    return '\ud83d\udc3e';
+    if (s.includes('cat')) return '🐱';
+    return '🐶';
   };
 
   return (
     <LayoutWrapper variant="narrow">
-      <AppPageHeader
-        title="Pets"
-        subtitle="Your furry family"
-        action={
+      <div className="max-w-2xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-text-primary font-heading">Your pets</h1>
+            <p className="text-sm text-text-secondary mt-1">
+              {pets.length > 0
+                ? `${pets.length} furry family ${pets.length === 1 ? 'member' : 'members'}`
+                : 'Your furry family'}
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <ClientRefreshButton onRefresh={refetch} loading={loading} />
-            <button
-              type="button"
-              onClick={() => router.push('/client/pets/new')}
-              className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition"
-            >
-              Add pet
-            </button>
+            <Link href="/client/pets/new">
+              <button className="rounded-xl bg-[#c2410c] text-white font-semibold px-4 py-2.5 text-sm hover:bg-[#9a3412] transition-all flex items-center gap-2">
+                <Plus size={16} /> Add pet
+              </button>
+            </Link>
           </div>
-        }
-      />
-      <div className="lg:grid lg:grid-cols-[1fr,auto] lg:gap-6">
-        <div className="min-w-0">
-          {loading ? (
-            <AppSkeletonList count={3} />
-          ) : error ? (
-            <AppErrorState title="Couldn't load pets" subtitle={error.message || 'Unable to load pets'} onRetry={() => void refetch()} />
-          ) : pets.length === 0 ? (
-            <AppEmptyState
-              title="No pets yet"
-              subtitle="Add your pets to get started."
-            />
-          ) : (
-            <div className="w-full space-y-3 lg:max-w-3xl">
-              <div className="overflow-hidden rounded-xl border border-border-default bg-surface-primary lg:rounded-lg">
-                {pets.map((p) => (
-                  <InteractiveRow
-                    key={p.id}
-                    onClick={() => router.push(`/client/pets/${p.id}`)}
-                    className="last:border-b-0"
-                    aria-label={`View pet ${p.name || 'Unnamed pet'}`}
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                      {p.photoUrl ? (
-                        <img
-                          src={p.photoUrl}
-                          alt={p.name || 'Pet'}
-                          className="h-10 w-10 shrink-0 rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-tertiary text-lg" aria-hidden>
-                          {petEmoji(p.species)}
-                        </span>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-text-primary">{p.name || 'Unnamed pet'}</p>
-                        <p className="truncate text-sm text-text-secondary">
-                          {[p.species, p.breed, p.weight ? `${p.weight} lbs` : null].filter(Boolean).join(' \u00b7 ') || 'No details'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex shrink-0" aria-hidden />
-                  </InteractiveRow>
-                ))}
-              </div>
-              <ClientListSecondaryModule variant="pets" />
-            </div>
-          )}
         </div>
-        <ClientAtAGlanceSidebarLazy />
+
+        {loading ? (
+          <AppSkeletonList count={3} />
+        ) : error ? (
+          <AppErrorState title="Couldn't load pets" subtitle={error.message || 'Unable to load pets'} onRetry={() => void refetch()} />
+        ) : pets.length === 0 ? (
+          <div className="rounded-2xl border border-border-default bg-white p-12 text-center">
+            <div className="text-5xl mb-4">🐾</div>
+            <h2 className="text-lg font-semibold text-text-primary mb-2">Add your first pet</h2>
+            <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
+              Tell us about your furry family so we can give them the best care.
+            </p>
+            <Link href="/client/pets/new">
+              <button className="rounded-xl bg-[#c2410c] text-white font-semibold px-6 py-3 hover:bg-[#9a3412] transition-all">
+                Add a pet
+              </button>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {pets.map((pet) => (
+              <Link key={pet.id} href={`/client/pets/${pet.id}`}>
+                <div className="rounded-xl border border-border-default bg-white p-5 hover:shadow-[var(--shadow-md)] hover:border-border-strong transition-all duration-200 cursor-pointer">
+                  <div className="flex items-center gap-4">
+                    {pet.photoUrl ? (
+                      <img src={pet.photoUrl} alt={pet.name || 'Pet'} className="w-16 h-16 rounded-2xl object-cover" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center text-3xl">
+                        {petEmoji(pet.species)}
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="text-base font-semibold text-text-primary">{pet.name || 'Unnamed pet'}</h3>
+                      <p className="text-sm text-text-secondary">
+                        {[pet.species, pet.breed].filter(Boolean).join(' · ') || 'No details'}
+                      </p>
+                      {pet.weight && <p className="text-xs text-text-tertiary">{pet.weight} lbs</p>}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </LayoutWrapper>
   );

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CLIENT_NAV_GROUPS } from '@/lib/client-nav';
@@ -30,6 +31,15 @@ export function ClientSidebarNav() {
   const pathname = usePathname();
   const { data: deployInfo } = useDeployInfo();
 
+  // Fetch org branding for whitelabel header
+  const [branding, setBranding] = useState<{ businessName?: string; logoUrl?: string; primaryColor?: string } | null>(null);
+  useEffect(() => {
+    fetch('/api/settings/branding')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setBranding(data); })
+      .catch(() => {});
+  }, []);
+
   const isActive = (href: string) => {
     if (href === '/client/home') return pathname === '/client/home' || pathname === '/client';
     return pathname.startsWith(href);
@@ -41,13 +51,32 @@ export function ClientSidebarNav() {
       aria-label="Client portal navigation"
     >
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="px-4 pt-4 pb-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-text-tertiary">Client</p>
+        {/* Org header */}
+        <div className="px-4 pt-4 pb-2 flex items-center gap-2.5">
+          {branding?.logoUrl && (
+            <img
+              src={branding.logoUrl}
+              alt=""
+              className="shrink-0 object-contain"
+              style={{ height: 28 }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          )}
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-text-primary truncate">
+              {branding?.businessName || 'Client'}
+            </p>
+            <p className="text-xs text-text-tertiary truncate">Client portal</p>
+          </div>
         </div>
+
         <nav className="flex flex-1 flex-col gap-1 px-2 py-2">
           {CLIENT_NAV_GROUPS.map((group, groupIndex) => (
             <div key={group.label} className="flex flex-col gap-0.5">
-              <p className={cn('px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-text-disabled', groupIndex === 0 ? 'pt-0' : 'pt-2')}>
+              <p className={cn(
+                'px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-text-disabled',
+                groupIndex === 0 ? 'mt-0' : 'mt-6'
+              )}>
                 {group.label}
               </p>
               {group.items.map((item) => {
@@ -57,13 +86,13 @@ export function ClientSidebarNav() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'flex h-11 min-h-[44px] items-center gap-2 rounded-md px-2 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset',
+                      'flex h-11 min-h-[44px] items-center gap-3 rounded-lg px-3 text-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset',
                       active
-                        ? 'border-l-2 border-text-primary bg-surface-secondary font-medium text-text-primary'
-                        : 'border-l-2 border-transparent text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
+                        ? 'bg-orange-50 text-[#c2410c] font-semibold'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-secondary'
                     )}
                   >
-                    <Icon name={item.icon} className="w-4 h-4 shrink-0" />
+                    <Icon name={item.icon} className="w-[18px] h-[18px] shrink-0" />
                     <span>{item.label}</span>
                   </Link>
                 );
