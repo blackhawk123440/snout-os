@@ -287,6 +287,9 @@ function DashboardContent() {
           }
         />
 
+        {/* Owner onboarding wizard */}
+        <OnboardingWizard />
+
         {/* Messaging status banner */}
         {msgStatus && !msgStatus.active && (
           <div className="mb-4 flex items-center justify-between rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3">
@@ -386,6 +389,9 @@ function DashboardContent() {
                 <AttentionQueue attention={boardData.attention} />
               </div>
             </div>
+
+            {/* Predictions card */}
+            <PredictionsCard />
 
             {/* Footer links */}
             <div className="flex flex-wrap gap-3 border-t border-border-default pt-4">
@@ -790,6 +796,137 @@ function BoardSkeleton() {
             <div key={i} className="mb-3 h-16 rounded bg-surface-tertiary" />
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Predictions Card ─────────────────────────────────────────────── */
+
+function PredictionsCard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['owner', 'predictions'],
+    queryFn: async () => {
+      const res = await fetch('/api/ops/predictions');
+      return res.ok ? res.json() : null;
+    },
+    staleTime: 300000,
+  });
+
+  if (isLoading || !data) return null;
+
+  const alerts = data.missingBookingAlerts || [];
+  const forecast = data.demandForecast || [];
+  const revenue = data.revenueProjection;
+
+  if (alerts.length === 0 && forecast.length === 0 && !revenue) return null;
+
+  return (
+    <div className="rounded-xl border border-border-default bg-surface-primary p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-text-primary">Predictions & Insights</h3>
+        <span className="text-xs text-text-tertiary">Powered by booking history</span>
+      </div>
+
+      {/* Missing booking alerts */}
+      {alerts.length > 0 && (
+        <div className="mb-3">
+          <div className="text-xs font-medium text-status-warning-text mb-1">Missing bookings</div>
+          {alerts.slice(0, 3).map((a: any) => (
+            <div key={a.clientId} className="flex items-center justify-between rounded-lg border border-status-warning-border bg-status-warning-bg p-2 mb-1 text-sm">
+              <span>{a.clientName} usually books on {a.usualDay}s</span>
+              <span className="text-xs text-text-tertiary">{a.service}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Revenue projection */}
+      {revenue && (
+        <div className="mb-3 flex gap-3">
+          <div className="flex-1 rounded-lg border p-3 text-center">
+            <div className="text-xs text-text-tertiary">This month</div>
+            <div className="text-lg font-bold tabular-nums">${(revenue.currentMonthTotal || 0).toLocaleString()}</div>
+          </div>
+          <div className="flex-1 rounded-lg border p-3 text-center">
+            <div className="text-xs text-text-tertiary">Projected</div>
+            <div className="text-lg font-bold tabular-nums">${(revenue.projectedMonthEnd || 0).toLocaleString()}</div>
+          </div>
+          <div className="flex-1 rounded-lg border p-3 text-center">
+            <div className="text-xs text-text-tertiary">Last month</div>
+            <div className="text-lg font-bold tabular-nums">${(revenue.lastMonthTotal || 0).toLocaleString()}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Demand forecast */}
+      {forecast.length > 0 && (
+        <div>
+          <div className="text-xs font-medium text-text-secondary mb-1">Next week forecast</div>
+          <div className="flex gap-1">
+            {forecast.slice(0, 7).map((d: any) => (
+              <div key={d.date} className="flex-1 rounded-lg border p-2 text-center">
+                <div className="text-[10px] text-text-tertiary">{d.dayOfWeek?.slice(0, 3)}</div>
+                <div className="text-sm font-semibold tabular-nums">{d.predicted}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Owner Onboarding Wizard ────────────────────────────────────── */
+
+const STEP_LINKS: Record<string, string> = {
+  business_profile: '/settings?section=business',
+  services_created: '/settings?section=services',
+  team_setup: '/sitters',
+  messaging_setup: '/messaging/twilio-setup',
+  payments_setup: '/settings?section=integrations',
+  branding_done: '/settings?section=branding',
+  first_client: '/clients',
+  first_booking: '/bookings/new',
+};
+
+function OnboardingWizard() {
+  const { data } = useQuery({
+    queryKey: ['owner', 'onboarding'],
+    queryFn: async () => {
+      const res = await fetch('/api/ops/onboarding');
+      return res.ok ? res.json() : null;
+    },
+    staleTime: 120000,
+  });
+
+  if (!data || data.isComplete) return null;
+
+  const steps = data.steps || [];
+  const completed = data.completedCount || 0;
+  const total = data.totalSteps || steps.length;
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return (
+    <div className="mb-4 rounded-xl border border-border-default bg-surface-primary p-4">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold text-text-primary">Complete Your Setup</h3>
+        <span className="text-xs text-text-tertiary">{completed}/{total} steps</span>
+      </div>
+      <div className="h-2 rounded-full bg-surface-tertiary mb-3 overflow-hidden">
+        <div className="h-full rounded-full bg-accent-primary transition-all" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {steps.filter((s: any) => !s.completed).slice(0, 4).map((step: any) => (
+          <Link
+            key={step.key}
+            href={STEP_LINKS[step.key] || '/settings'}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border-default bg-surface-secondary px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-tertiary transition"
+          >
+            <i className="fas fa-circle text-[6px] text-status-warning-fill" />
+            {step.label}
+          </Link>
+        ))}
       </div>
     </div>
   );

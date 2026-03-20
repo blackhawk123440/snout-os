@@ -46,20 +46,24 @@ export async function GET(
 
     const events = await (prisma as any).messageEvent.findMany({
       where: { threadId: id, orgId: ctx.orgId },
-      select: { id: true, body: true, direction: true, actorType: true, createdAt: true },
+      select: { id: true, body: true, direction: true, actorType: true, createdAt: true, metadataJson: true },
       orderBy: { createdAt: 'asc' },
       take: 100,
     });
 
     const toIso = (d: Date) => (d instanceof Date ? d.toISOString() : String(d));
-    const messages = events.map((e: any) => ({
-      id: e.id,
-      body: e.body,
-      direction: e.direction,
-      actorType: e.actorType,
-      createdAt: toIso(e.createdAt),
-      isFromClient: e.actorType === 'client' || e.direction === 'inbound',
-    }));
+    const messages = events.map((e: any) => {
+      const meta = e.metadataJson ? (() => { try { return JSON.parse(e.metadataJson); } catch { return null; } })() : null;
+      return {
+        id: e.id,
+        body: e.body,
+        direction: e.direction,
+        actorType: e.actorType,
+        createdAt: toIso(e.createdAt),
+        isFromClient: e.actorType === 'client' || e.direction === 'inbound',
+        channel: meta?.channel || 'sms',
+      };
+    });
 
     return NextResponse.json({
       id: thread.id,
@@ -120,6 +124,7 @@ export async function POST(
       return NextResponse.json({ error: 'Thread not found' }, { status: 404 });
     }
 
+    // Send via SMS (existing flow)
     const result = await sendThreadMessage({
       orgId: ctx.orgId,
       threadId: id,
@@ -131,6 +136,25 @@ export async function POST(
       body: messageBody,
       correlationId: ctx.correlationId,
     });
+
+    // Also create an in-app message event for real-time delivery
+    try {
+      await (prisma as any).messageEvent.create({
+        data: {
+          threadId: id,
+          orgId: ctx.orgId,
+          direction: 'outbound',
+          actorType: 'client',
+          actorUserId: ctx.userId,
+          actorClientId: ctx.clientId,
+          body: messageBody,
+          deliveryStatus: 'delivered',
+          metadataJson: JSON.stringify({ channel: 'in_app' }),
+        },
+      });
+    } catch {
+      // In-app message creation is non-blocking
+    }
 
     const toIso = (d: Date) => (d instanceof Date ? d.toISOString() : String(d));
     return NextResponse.json({

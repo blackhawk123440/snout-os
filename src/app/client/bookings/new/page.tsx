@@ -8,14 +8,51 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LayoutWrapper, PageHeader } from '@/components/layout';
 import { BookingForm } from '@/components/bookings/BookingForm';
 import { BookingFormValues } from '@/lib/bookings/booking-form-mapper';
+import { Button } from '@/components/ui';
 
 export default function ClientNewBookingPage() {
   const router = useRouter();
+  const [waitlistOffer, setWaitlistOffer] = useState<{
+    service: string;
+    date: string;
+    timeStart: string;
+    timeEnd: string;
+  } | null>(null);
+  const [joiningWaitlist, setJoiningWaitlist] = useState(false);
+
+  const handleJoinWaitlist = async () => {
+    if (!waitlistOffer) return;
+    setJoiningWaitlist(true);
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service: waitlistOffer.service,
+          preferredDate: waitlistOffer.date,
+          preferredTimeStart: waitlistOffer.timeStart,
+          preferredTimeEnd: waitlistOffer.timeEnd,
+          notes: '',
+        }),
+      });
+      if (res.ok) {
+        setWaitlistOffer(null);
+        alert('You\'ve been added to the waitlist! We\'ll notify you when a spot opens up.');
+        router.push('/client/bookings');
+      } else {
+        alert('Could not join waitlist. Please try again.');
+      }
+    } catch {
+      alert('Could not join waitlist. Please try again.');
+    } finally {
+      setJoiningWaitlist(false);
+    }
+  };
 
   const handleSubmit = async (values: BookingFormValues) => {
     // Use selectedDates and dateTimes from form (matching booking-form.html structure)
@@ -180,8 +217,22 @@ export default function ClientNewBookingPage() {
         throw new Error(`Validation failed:\n${errorMessages}`);
       }
 
-      // Otherwise use the general error message
-      throw new Error(errorData.error || errorData.message || 'Failed to create booking');
+      // If the error is about no sitters available, offer waitlist
+      const errorMsg = errorData.error || errorData.message || '';
+      if (/no.*sitter|unavailable|no.*available|fully.*booked/i.test(errorMsg)) {
+        const selectedDates = values.selectedDates || [];
+        const firstDate = selectedDates[0] || new Date().toISOString().slice(0, 10);
+        const dateTimes = values.dateTimes || {};
+        const firstSlot = dateTimes[firstDate]?.[0];
+        setWaitlistOffer({
+          service: values.service,
+          date: firstDate,
+          timeStart: firstSlot?.time || '9:00 AM',
+          timeEnd: firstSlot?.time || '5:00 PM',
+        });
+      }
+
+      throw new Error(errorMsg || 'Failed to create booking');
     }
 
     const data = await response.json();
@@ -197,6 +248,24 @@ export default function ClientNewBookingPage() {
   return (
     <LayoutWrapper variant="narrow">
       <PageHeader title="Book a visit" subtitle="Request a new pet care visit" />
+      {waitlistOffer && (
+        <div className="mx-4 mb-4 rounded-xl border border-yellow-300 bg-yellow-50 p-4">
+          <p className="text-sm font-medium text-yellow-900">No sitters available for this time</p>
+          <p className="mt-1 text-sm text-yellow-700">
+            Join the waitlist for {waitlistOffer.service} on{' '}
+            {new Date(waitlistOffer.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+            {' '}and we'll notify you when a spot opens up.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Button size="sm" onClick={handleJoinWaitlist} disabled={joiningWaitlist}>
+              {joiningWaitlist ? 'Joining...' : 'Join Waitlist'}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setWaitlistOffer(null)}>
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="p-4 pb-8">
         <BookingForm mode="create" onSubmit={handleSubmit} onCancel={handleCancel} />
       </div>

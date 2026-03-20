@@ -39,6 +39,8 @@ export const OWNER_SIDEBAR_SECTIONS: SidebarSection[] = [
       { label: 'Calendar', href: '/calendar', icon: 'fas fa-calendar-alt' },
       { label: 'Clients', href: '/clients', icon: 'fas fa-address-book' },
       { label: 'Sitters', href: '/sitters', icon: 'fas fa-user-friends' },
+      { label: 'Schedule Grid', href: '/schedule-grid', icon: 'fas fa-table-cells' },
+      { label: 'Waitlist', href: '/waitlist', icon: 'fas fa-clock' },
     ],
   },
   {
@@ -70,6 +72,7 @@ export const OWNER_SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { label: 'Reports', href: '/reports', icon: 'fas fa-chart-pie' },
       { label: 'Payments', href: '/payments', icon: 'fas fa-credit-card' },
+      { label: 'Bundles', href: '/bundles', icon: 'fas fa-box-open' },
       { label: 'Finance', href: '/finance', icon: 'fas fa-building-columns' },
     ],
   },
@@ -78,6 +81,8 @@ export const OWNER_SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { label: 'Integrations', href: '/integrations', icon: 'fas fa-plug' },
       { label: 'Settings', href: '/settings', icon: 'fas fa-cog' },
+      { label: 'Review Automation', href: '/review-settings', icon: 'fas fa-star' },
+      { label: 'Weekly Digest', href: '/digest-settings', icon: 'fas fa-envelope-open-text' },
     ],
   },
   {
@@ -159,6 +164,16 @@ const HEADER_MAP: Array<{ match: (p: string) => boolean; title: string; subtitle
     match: (p) => p.startsWith('/sitters'),
     title: 'Sitters',
     subtitle: 'Workforce management and assignment readiness',
+  },
+  {
+    match: (p) => p.startsWith('/schedule-grid'),
+    title: 'Schedule Grid',
+    subtitle: 'Staff coverage by day — bookings, hours, and availability',
+  },
+  {
+    match: (p) => p.startsWith('/waitlist'),
+    title: 'Waitlist',
+    subtitle: 'Clients waiting for availability — manage and notify',
   },
   {
     match: (p) => p.startsWith('/messaging'),

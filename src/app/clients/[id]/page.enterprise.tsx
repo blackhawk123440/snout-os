@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, getStatusPill } from '@/components/app';
-import { Button, DataTableShell, EmptyState, StatusChip, Table, TableSkeleton } from '@/components/ui';
+import { Button, Badge, DataTableShell, EmptyState, Input, Select, StatusChip, Table, TableSkeleton } from '@/components/ui';
 
 type Booking = {
   id: string;
@@ -109,6 +109,10 @@ export default function ClientDetailEnterprisePage() {
         </Section>
 
         <ClientPetsSection clientId={c.id} />
+
+        <ClientKeysSection clientId={c.id} clientName={`${c.firstName} ${c.lastName}`} />
+
+        <ClientHouseholdSection clientId={c.id} clientName={`${c.firstName} ${c.lastName}`} />
 
         <Section title="Booking History">
           {data.bookings.length === 0 ? (
@@ -228,3 +232,139 @@ function ClientPetsSection({ clientId }: { clientId: string }) {
   );
 }
 
+/* ─── Access & Keys section ───────────────────────────────────── */
+
+function ClientKeysSection({ clientId, clientName }: { clientId: string; clientName: string }) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ keyStatus: 'none', keyHolder: '', keyLocation: '', lockboxCode: '', doorAlarmCode: '', keyNotes: '' });
+
+  const { data, isLoading } = useQuery<{ keys: any[] }>({
+    queryKey: ['keys', clientId],
+    queryFn: async () => {
+      const res = await fetch('/api/ops/keys');
+      if (!res.ok) return { keys: [] };
+      return res.json();
+    },
+  });
+
+  const keyInfo = (data?.keys || []).find((k: any) => k.clientId === clientId);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/ops/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, ...form }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['keys', clientId] });
+      setEditing(false);
+    },
+  });
+
+  useEffect(() => {
+    if (keyInfo) {
+      setForm({
+        keyStatus: keyInfo.keyStatus || 'none',
+        keyHolder: keyInfo.keyHolder || '',
+        keyLocation: keyInfo.keyLocation || '',
+        lockboxCode: keyInfo.lockboxCode || '',
+        doorAlarmCode: keyInfo.doorAlarmCode || '',
+        keyNotes: keyInfo.keyNotes || '',
+      });
+    }
+  }, [keyInfo]);
+
+  if (isLoading) return <Section title="Access & Keys"><div className="h-16 animate-pulse rounded-lg bg-surface-tertiary" /></Section>;
+
+  return (
+    <Section title="Access & Keys">
+      {!editing ? (
+        <div>
+          {keyInfo && keyInfo.keyStatus !== 'none' ? (
+            <div className="grid gap-2 md:grid-cols-3">
+              <div className="rounded-lg border p-3">
+                <div className="text-xs text-text-secondary">Status</div>
+                <Badge variant={keyInfo.keyStatus === 'with_client' ? 'success' : 'info'}>
+                  {(keyInfo.keyStatus || 'none').replace(/_/g, ' ')}
+                </Badge>
+              </div>
+              {keyInfo.keyHolder && <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Holder</div><div>{keyInfo.keyHolder}</div></div>}
+              {keyInfo.keyLocation && <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Location</div><div>{keyInfo.keyLocation}</div></div>}
+              {keyInfo.lockboxCode && <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Lockbox Code</div><div className="font-mono">{keyInfo.lockboxCode}</div></div>}
+              {keyInfo.keyNotes && <div className="rounded-lg border p-3 md:col-span-3"><div className="text-xs text-text-secondary">Notes</div><div className="text-sm">{keyInfo.keyNotes}</div></div>}
+            </div>
+          ) : (
+            <p className="text-sm text-text-tertiary">No key information on file.</p>
+          )}
+          <div className="mt-3">
+            <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+              {keyInfo?.keyStatus !== 'none' ? 'Edit Key Info' : 'Add Key Info'}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <label className="text-xs font-medium text-text-secondary block mb-1">Key Status</label>
+            <Select value={form.keyStatus} onChange={(e) => setForm({ ...form, keyStatus: e.target.value })}
+              options={[
+                { value: 'none', label: 'None' }, { value: 'with_client', label: 'With Client' },
+                { value: 'with_sitter', label: 'With Sitter' }, { value: 'with_owner', label: 'With Owner' },
+                { value: 'lockbox', label: 'Lockbox' },
+              ]} />
+          </div>
+          <div><label className="text-xs font-medium text-text-secondary block mb-1">Key Holder</label><Input value={form.keyHolder} onChange={(e) => setForm({ ...form, keyHolder: e.target.value })} placeholder="Name of person holding key" /></div>
+          <div><label className="text-xs font-medium text-text-secondary block mb-1">Key Location</label><Input value={form.keyLocation} onChange={(e) => setForm({ ...form, keyLocation: e.target.value })} placeholder="Office lockbox, under mat, etc." /></div>
+          <div><label className="text-xs font-medium text-text-secondary block mb-1">Lockbox Code</label><Input value={form.lockboxCode} onChange={(e) => setForm({ ...form, lockboxCode: e.target.value })} placeholder="1234" /></div>
+          <div><label className="text-xs font-medium text-text-secondary block mb-1">Door Alarm Code</label><Input value={form.doorAlarmCode} onChange={(e) => setForm({ ...form, doorAlarmCode: e.target.value })} placeholder="5678" /></div>
+          <div className="md:col-span-2"><label className="text-xs font-medium text-text-secondary block mb-1">Notes</label><Input value={form.keyNotes} onChange={(e) => setForm({ ...form, keyNotes: e.target.value })} placeholder="Special instructions" /></div>
+          <div className="md:col-span-2 flex gap-2">
+            <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving…' : 'Save'}</Button>
+            <Button variant="secondary" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+}
+
+/* ─── Household section ───────────────────────────────────── */
+
+function ClientHouseholdSection({ clientId, clientName }: { clientId: string; clientName: string }) {
+  const { data } = useQuery<{ households: any[] }>({
+    queryKey: ['households'],
+    queryFn: async () => {
+      const res = await fetch('/api/ops/households');
+      if (!res.ok) return { households: [] };
+      return res.json();
+    },
+  });
+
+  const household = (data?.households || []).find((h: any) =>
+    h.memberClientIds?.includes(clientId) || h.primaryBillingClientId === clientId
+  );
+
+  return (
+    <Section title="Household">
+      {household ? (
+        <div className="rounded-lg border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-text-primary">{household.name}</p>
+              <p className="text-sm text-text-secondary">{(household.memberClientIds?.length || 0)} members</p>
+              {household.primaryBillingClientId === clientId && (
+                <Badge variant="info">Primary billing</Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-text-tertiary">Not part of a household. Households can be managed from the Households page.</p>
+      )}
+    </Section>
+  );
+}

@@ -26,7 +26,6 @@ import { getTwilioClientFromCredentials } from '../provider-credentials';
 
 // Twilio SDK is optional - type only imported when available
 let twilioClient: any = null;
-let twilioLib: any = null;
 
 // Lazy load Twilio SDK
 /**
@@ -107,8 +106,12 @@ export class TwilioProvider implements MessagingProvider {
 
   verifyWebhook(rawBody: string, signature: string, webhookUrl: string): boolean {
     if (!this.webhookAuthToken) {
-      console.warn('[TwilioProvider] TWILIO_WEBHOOK_AUTH_TOKEN not configured, skipping webhook verification');
-      return true; // Allow if not configured (for development)
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[TwilioProvider] TWILIO_WEBHOOK_AUTH_TOKEN not configured in production — rejecting webhook');
+        return false;
+      }
+      console.warn('[TwilioProvider] TWILIO_WEBHOOK_AUTH_TOKEN not configured, skipping webhook verification (dev only)');
+      return true;
     }
 
     if (!signature) {
@@ -117,30 +120,24 @@ export class TwilioProvider implements MessagingProvider {
     }
 
     try {
-      // Webhook verification doesn't need credentials, just the library
       // eslint-disable-next-line no-restricted-syntax -- dynamic require for optional twilio
       const twilio = require('twilio');
-      // Twilio webhook signature verification uses crypto
-      // Use Twilio's validateRequest method from twilio library
-      if (twilioLib && twilioLib.validateRequest) {
-        try {
-          return twilioLib.validateRequest(
-            this.webhookAuthToken,
-            signature,
-            webhookUrl,
-            rawBody
-          );
-        } catch (validationError) {
-          console.error('[TwilioProvider] validateRequest error:', validationError);
-          return false;
-        }
+
+      // Parse rawBody into params object for validateRequest
+      const params: Record<string, string> = {};
+      if (rawBody) {
+        const searchParams = new URLSearchParams(rawBody);
+        searchParams.forEach((value, key) => {
+          params[key] = value;
+        });
       }
 
-      // Fallback: If Twilio SDK validateRequest not available, log warning
-      // This should not happen if twilio package is installed
-      console.warn('[TwilioProvider] Twilio validateRequest not available, using fallback');
-      // Note: Simple token comparison is NOT secure - this is a fallback only
-      return signature === this.webhookAuthToken;
+      return twilio.validateRequest(
+        this.webhookAuthToken,
+        signature,
+        webhookUrl,
+        params
+      );
     } catch (error) {
       console.error('[TwilioProvider] Webhook verification error:', error);
       return false;

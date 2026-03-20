@@ -85,6 +85,15 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
   // Lazy import to avoid circular dependency
   const { useClientMe } = require('@/lib/api/client-hooks');
   const { data: meData } = useClientMe(isClient);
+
+  // Fetch org branding for whitelabel
+  const [branding, setBranding] = useState<{ businessName?: string; logoUrl?: string; primaryColor?: string } | null>(null);
+  useEffect(() => {
+    fetch('/api/settings/branding')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setBranding(data); })
+      .catch(() => {});
+  }, []);
   const clientName = meData?.name ?? (meData?.firstName && meData?.lastName ? `${meData.firstName} ${meData.lastName}`.trim() : null) ?? null;
 
   useEffect(() => {
@@ -191,9 +200,18 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
           >
             <div className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${CONTENT_CONTAINER}`}>
               <div className={`flex min-w-0 flex-1 items-center justify-between gap-3 ${CONTENT_INNER}`}>
-              <div className="min-w-0 flex-1 flex flex-col leading-tight">
-                <p className="truncate text-xl font-semibold text-text-primary lg:text-sm lg:font-semibold">{pageTitle}</p>
-                <p className="hidden truncate text-xs text-text-tertiary lg:block">{pageSubtitle}</p>
+              <div className="min-w-0 flex-1 flex items-center gap-2 leading-tight">
+                {branding?.logoUrl && (
+                  <img src={branding.logoUrl} alt="" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'contain', flexShrink: 0 }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                )}
+                <div className="min-w-0 flex-1 flex flex-col">
+                  <p className="truncate text-xl font-semibold text-text-primary lg:text-sm lg:font-semibold"
+                    style={branding?.primaryColor ? { color: branding.primaryColor } : undefined}>
+                    {branding?.businessName || pageTitle}
+                  </p>
+                  <p className="hidden truncate text-xs text-text-tertiary lg:block">{pageSubtitle}</p>
+                </div>
               </div>
               <div className="relative flex shrink-0 items-center gap-2">
                 {showNewBookingCta && (

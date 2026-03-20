@@ -471,6 +471,57 @@ function CalendarPageContent() {
     }
   }, [viewMode, currentDate]);
 
+  // Drag-drop reschedule handler
+  const handleReschedule = useCallback(async (bookingId: string, newDate: Date) => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    const originalStart = new Date(booking.startAt);
+    const originalEnd = new Date(booking.endAt);
+    const durationMs = originalEnd.getTime() - originalStart.getTime();
+
+    // Preserve the original time, just change the date
+    const newStart = new Date(newDate);
+    newStart.setHours(originalStart.getHours(), originalStart.getMinutes(), 0, 0);
+    const newEnd = new Date(newStart.getTime() + durationMs);
+
+    const dateLabel = newStart.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}/reschedule`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startAt: newStart.toISOString(),
+          endAt: newEnd.toISOString(),
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 409 && data.conflict) {
+          showToast({
+            title: 'Conflict',
+            description: `${data.conflict.clientName} (${data.conflict.service}) already booked at that time`,
+            variant: 'error',
+          });
+        } else {
+          showToast({ title: 'Error', description: data.error || 'Reschedule failed', variant: 'error' });
+        }
+        return;
+      }
+
+      showToast({
+        title: 'Rescheduled',
+        description: `${booking.firstName} ${booking.lastName} moved to ${dateLabel}`,
+        variant: 'success',
+      });
+      refetch();
+    } catch (err) {
+      showToast({ title: 'Error', description: 'Network error', variant: 'error' });
+    }
+  }, [bookings, showToast, refetch]);
+
   // Day view: single day timeline list
   const renderDayView = () => {
     if (isLoading) {
@@ -736,6 +787,7 @@ function CalendarPageContent() {
         }}
         formatTime={formatTime}
         getEventSignals={getEventSignals}
+        onReschedule={handleReschedule}
       />
     );
   };

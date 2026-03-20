@@ -87,6 +87,8 @@ export default function BookingDetailEnterprisePage() {
 
   const [eventTypeFilter, setEventTypeFilter] = useState('all');
   const [sitterId, setSitterId] = useState('');
+  const [smartMatches, setSmartMatches] = useState<Array<{ sitterId: string; sitterName: string; score: number; breakdown: Record<string, number> }> | null>(null);
+  const [loadingMatches, setLoadingMatches] = useState(false);
 
   const { data: pageData, isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: ['owner', 'bookings', bookingId],
@@ -334,9 +336,43 @@ export default function BookingDetailEnterprisePage() {
                   { value: '', label: 'Unassigned' },
                   ...sitters.map((s) => ({ value: s.id, label: `${s.firstName} ${s.lastName}` })),
                 ]}
-                onChange={(e) => setSitterId(e.target.value)}
+                onChange={(e) => { setSitterId(e.target.value); setSmartMatches(null); }}
               />
-              <Button className="mt-2 w-full" disabled={busy} onClick={() => patchBooking({ sitterId: sitterId || null }, 'Sitter assignment updated')}>Save assignment</Button>
+              <div className="mt-2 flex gap-2">
+                <Button className="flex-1" disabled={busy} onClick={() => patchBooking({ sitterId: sitterId || null }, 'Sitter assignment updated')}>Save</Button>
+                <Button variant="secondary" className="flex-1" disabled={loadingMatches} onClick={async () => {
+                  setLoadingMatches(true);
+                  try {
+                    const res = await fetch(`/api/ops/bookings/${bookingId}/smart-assign`);
+                    if (res.ok) {
+                      const data = await res.json();
+                      setSmartMatches(data.matches || []);
+                    } else { showToast({ title: 'Error', description: 'Smart assign failed', variant: 'error' }); }
+                  } catch { showToast({ title: 'Error', description: 'Network error', variant: 'error' }); }
+                  setLoadingMatches(false);
+                }}>
+                  {loadingMatches ? '...' : '✨ Smart Assign'}
+                </Button>
+              </div>
+              {smartMatches && smartMatches.length > 0 && (
+                <div className="mt-3 flex flex-col gap-2">
+                  <div className="text-xs font-medium text-text-secondary">Top recommendations:</div>
+                  {smartMatches.slice(0, 3).map((m) => (
+                    <button
+                      key={m.sitterId}
+                      type="button"
+                      className="flex items-center justify-between rounded-md border p-2 text-left text-sm hover:bg-surface-secondary transition"
+                      onClick={() => { setSitterId(m.sitterId); setSmartMatches(null); }}
+                    >
+                      <span className="font-medium">{m.sitterName}</span>
+                      <span className="text-xs text-text-tertiary">Score: {m.score}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {smartMatches && smartMatches.length === 0 && (
+                <div className="mt-2 text-xs text-text-tertiary">No available sitters found for this time.</div>
+              )}
             </div>
             <div className="rounded-lg border p-3">
               <div className="mb-2 text-sm font-medium">Comms</div>

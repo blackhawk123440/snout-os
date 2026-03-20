@@ -371,6 +371,52 @@ export async function PATCH(
       });
     }
 
+    // Auto-charge on confirmation: when owner confirms a booking, attempt payment
+    if (requestedStatus === 'confirmed' && existing.status !== 'confirmed') {
+      void import('@/lib/payments/auto-charge').then(async ({ chargeOnConfirmation, getPaymentTiming }) => {
+        try {
+          const timing = await getPaymentTiming(ctx.orgId);
+          if (timing === 'at_booking') {
+            const fullBooking = await db.booking.findUnique({
+              where: { id: existing.id },
+              select: { totalPrice: true, service: true, firstName: true, lastName: true, email: true, phone: true, clientId: true },
+            });
+            if (fullBooking && Number(fullBooking.totalPrice) > 0 && fullBooking.clientId) {
+              await chargeOnConfirmation({
+                bookingId: existing.id,
+                orgId: ctx.orgId,
+                clientId: fullBooking.clientId,
+                amount: Number(fullBooking.totalPrice),
+                service: fullBooking.service || 'Pet Care',
+                clientName: `${fullBooking.firstName || ''} ${fullBooking.lastName || ''}`.trim(),
+                clientEmail: fullBooking.email,
+                clientPhone: fullBooking.phone,
+              });
+            }
+          }
+        } catch (err) {
+          console.error('[Booking PATCH] Auto-charge on confirmation failed:', err);
+        }
+      }).catch(() => {});
+
+      // Set up messaging thread on confirmation (same as Stripe webhook does)
+      void import('@/lib/bookings/booking-confirmed-handler').then(async ({ onBookingConfirmed }) => {
+        try {
+          await onBookingConfirmed({
+            bookingId: existing.id,
+            orgId: ctx.orgId,
+            clientId: existing.clientId || '',
+            sitterId: (data.sitterId as string) || existing.sitterId,
+            startAt: new Date(existing.startAt),
+            endAt: new Date(existing.endAt),
+            actorUserId: ctx.userId || 'system',
+          });
+        } catch (err) {
+          console.error('[Booking PATCH] onBookingConfirmed failed:', err);
+        }
+      }).catch(() => {});
+    }
+
     // Fire-and-forget notifications for status/sitter changes
     void import('@/lib/notifications/triggers').then(async (triggers) => {
       const clientName = `${existing.firstName} ${existing.lastName}`.trim();

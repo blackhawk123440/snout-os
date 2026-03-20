@@ -13,13 +13,31 @@ export async function upsertCanonicalMessageNumbersFromTwilio(
   orgId: string,
   numbers: Array<{ sid: string; phoneNumber?: string }>
 ): Promise<number> {
-  let index = 0;
+  // Check if a front_desk number already exists for this org
+  const existingFrontDesk = await db.messageNumber.findFirst({
+    where: { orgId, numberClass: 'front_desk', status: 'active' },
+  });
+  const hasFrontDesk = !!existingFrontDesk;
+  let assignedFrontDesk = hasFrontDesk;
+
   for (const n of numbers) {
     const e164 = normalizeE164((n.phoneNumber || '').toString());
-    const numberClass = index === 0 ? 'front_desk' : 'pool';
     const existing = await db.messageNumber.findFirst({
       where: { orgId, OR: [{ e164 }, { providerNumberSid: n.sid }] },
     });
+
+    // Preserve existing numberClass if the record already exists;
+    // only assign front_desk to the first number if none exists yet
+    let numberClass: string;
+    if (existing) {
+      numberClass = existing.numberClass;
+    } else if (!assignedFrontDesk) {
+      numberClass = 'front_desk';
+      assignedFrontDesk = true;
+    } else {
+      numberClass = 'pool';
+    }
+
     if (existing) {
       await db.messageNumber.update({
         where: { id: existing.id },
@@ -43,7 +61,6 @@ export async function upsertCanonicalMessageNumbersFromTwilio(
         },
       });
     }
-    index++;
   }
   return numbers.length;
 }

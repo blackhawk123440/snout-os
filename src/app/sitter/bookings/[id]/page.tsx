@@ -29,6 +29,7 @@ interface BookingDetail {
   mapLink: { apple: string | null; google: string | null };
   entryInstructions: string | null;
   doorCode: string | null;
+  lockboxCode: string | null;
   notes: string | null;
   totalPrice: number;
   clientName: string;
@@ -224,9 +225,10 @@ export default function SitterBookingDetailPage() {
               {booking.mapLink.google && <a href={booking.mapLink.google} target="_blank" rel="noreferrer" className="inline-flex min-h-[44px] items-center rounded-lg border border-border-strong px-4 text-sm font-medium text-text-primary">Open in Maps</a>}
               {shouldRenderCopyAddress(booking.addressParts.full) && <Button variant="secondary" size="md" onClick={() => void copyAddress()}>Copy address</Button>}
             </div>
-            {(booking.doorCode || booking.entryInstructions) && (
+            {(booking.doorCode || booking.entryInstructions || booking.lockboxCode) && (
               <div className="mt-3 rounded-lg border border-status-warning-border bg-status-warning-bg p-3 text-sm text-status-warning-text">
                 {booking.doorCode && <p><span className="font-semibold">Door code:</span> {booking.doorCode}</p>}
+                {booking.lockboxCode && <p className="mt-1"><span className="font-semibold">Lockbox code:</span> {booking.lockboxCode}</p>}
                 {booking.entryInstructions && <p className="mt-1 break-words">{booking.entryInstructions}</p>}
               </div>
             )}

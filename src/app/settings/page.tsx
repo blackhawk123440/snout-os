@@ -34,6 +34,7 @@ import { useMobile } from '@/lib/use-mobile';
 
 type SettingsSection =
   | 'business'
+  | 'branding'
   | 'services'
   | 'pricing'
   | 'notifications'
@@ -44,6 +45,7 @@ type SettingsSection =
 
 const SECTION_IDS: SettingsSection[] = [
   'business',
+  'branding',
   'services',
   'pricing',
   'notifications',
@@ -118,6 +120,7 @@ export default function SettingsPage() {
 function sectionLabel(id: SettingsSection): string {
   const labels: Record<SettingsSection, string> = {
     business: 'Business',
+    branding: 'Branding',
     services: 'Services',
     pricing: 'Pricing',
     notifications: 'Notifications',
@@ -132,6 +135,7 @@ function sectionLabel(id: SettingsSection): string {
 function sectionIcon(id: SettingsSection): React.ReactNode {
   const icons: Record<SettingsSection, string> = {
     business: 'fa-building',
+    branding: 'fa-palette',
     services: 'fa-concierge-bell',
     pricing: 'fa-tag',
     notifications: 'fa-bell',
@@ -147,6 +151,8 @@ function SectionContent({ section }: { section: SettingsSection }) {
   switch (section) {
     case 'business':
       return <BusinessSection />;
+    case 'branding':
+      return <BrandingSection />;
     case 'services':
       return <ServicesSection />;
     case 'pricing':
@@ -869,6 +875,175 @@ function AdvancedSection() {
         <p style={{ color: tokens.colors.text.secondary }}>
           Org metadata and feature flags are managed in the database. No editable controls here yet.
         </p>
+      </Card>
+    </>
+  );
+}
+
+function BrandingSection() {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    businessName: '',
+    logoUrl: '',
+    primaryColor: '#432f21',
+    secondaryColor: '#fce1ef',
+  });
+  const [saved, setSaved] = useState(false);
+
+  const { isLoading } = useQuery({
+    queryKey: ['owner', 'settings', 'branding'],
+    queryFn: async () => {
+      const res = await fetch('/api/settings/branding');
+      if (!res.ok) throw new Error('Failed to load');
+      const data = await res.json();
+      setForm({
+        businessName: data.businessName || '',
+        logoUrl: data.logoUrl || '',
+        primaryColor: data.primaryColor || '#432f21',
+        secondaryColor: data.secondaryColor || '#fce1ef',
+      });
+      return data;
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/settings/branding', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      return res.json();
+    },
+    onSuccess: () => {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+      queryClient.invalidateQueries({ queryKey: ['owner', 'settings', 'branding'] });
+    },
+  });
+
+  if (isLoading) return <Card><Skeleton height={200} /></Card>;
+
+  return (
+    <>
+      <Card>
+        <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+          Client-Facing Branding
+        </h3>
+        <p style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0] }}>
+          Customize how your business appears to clients in the portal, emails, and native apps.
+        </p>
+
+        <FormRow label="Business Name" description="Replaces 'Snout OS' in all client-facing surfaces">
+          <Input
+            value={form.businessName}
+            onChange={(e) => setForm({ ...form, businessName: e.target.value })}
+            placeholder="Your Business Name"
+          />
+        </FormRow>
+
+        <FormRow label="Logo URL" description="Square image recommended (at least 200×200px)">
+          <Input
+            value={form.logoUrl}
+            onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
+            placeholder="https://example.com/logo.png"
+          />
+          {form.logoUrl && (
+            <div style={{ marginTop: tokens.spacing[2] }}>
+              <img
+                src={form.logoUrl}
+                alt="Logo preview"
+                style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'contain', border: `1px solid ${tokens.colors.border.default}` }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            </div>
+          )}
+        </FormRow>
+
+        <FormRow label="Primary Color" description="Used for buttons, links, and accents">
+          <Flex align="center" gap={2}>
+            <input
+              type="color"
+              value={form.primaryColor}
+              onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
+              style={{ width: 44, height: 44, border: 'none', cursor: 'pointer', borderRadius: 8 }}
+            />
+            <Input
+              value={form.primaryColor}
+              onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
+              style={{ width: 120 }}
+              placeholder="#432f21"
+            />
+          </Flex>
+        </FormRow>
+
+        <FormRow label="Secondary Color" description="Used for backgrounds and highlights">
+          <Flex align="center" gap={2}>
+            <input
+              type="color"
+              value={form.secondaryColor}
+              onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })}
+              style={{ width: 44, height: 44, border: 'none', cursor: 'pointer', borderRadius: 8 }}
+            />
+            <Input
+              value={form.secondaryColor}
+              onChange={(e) => setForm({ ...form, secondaryColor: e.target.value })}
+              style={{ width: 120 }}
+              placeholder="#fce1ef"
+            />
+          </Flex>
+        </FormRow>
+
+        <div style={{ marginTop: tokens.spacing[4] }}>
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            {saveMutation.isPending ? 'Saving…' : 'Save Branding'}
+          </Button>
+          {saved && <Badge variant="success" style={{ marginLeft: tokens.spacing[2] }}>Saved</Badge>}
+        </div>
+      </Card>
+
+      {/* Live preview */}
+      <Card>
+        <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+          Preview
+        </h3>
+        <div style={{
+          border: `1px solid ${tokens.colors.border.default}`,
+          borderRadius: 12,
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            backgroundColor: form.primaryColor || '#432f21',
+            padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: tokens.spacing[3],
+          }}>
+            {form.logoUrl && (
+              <img src={form.logoUrl} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'contain' }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            )}
+            <span style={{ color: '#fff', fontWeight: 600, fontSize: 16 }}>
+              {form.businessName || 'Your Business'}
+            </span>
+          </div>
+          <div style={{ padding: tokens.spacing[4], backgroundColor: form.secondaryColor || '#fef7fb' }}>
+            <p style={{ color: '#333', fontSize: 14 }}>This is how clients will see your portal header.</p>
+            <button style={{
+              marginTop: tokens.spacing[3],
+              backgroundColor: form.primaryColor || '#432f21',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '8px 16px',
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}>
+              Book a Visit
+            </button>
+          </div>
+        </div>
       </Card>
     </>
   );

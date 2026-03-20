@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { LayoutWrapper, PageHeader, ClientRefreshButton } from '@/components/layout';
 import {
   AppCard,
@@ -127,6 +128,9 @@ export default function ClientHomePage() {
               </AppCardBody>
             </AppCard>
 
+          {/* Quick Rebook card */}
+          <QuickRebookCard />
+
           {data.latestReport ? (
             <AppCard className="w-full" onClick={() => router.push(`/client/reports/${data.latestReport!.id}`)}>
               <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-2 lg:px-0 lg:pt-0">
@@ -195,5 +199,47 @@ export default function ClientHomePage() {
         </div>
       ) : null}
     </LayoutWrapper>
+  );
+}
+
+function QuickRebookCard() {
+  const router = useRouter();
+  const { data } = useQuery({
+    queryKey: ['client', 'quick-rebook'],
+    queryFn: async () => {
+      const res = await fetch('/api/client/quick-rebook');
+      return res.ok ? res.json() : null;
+    },
+    staleTime: 300000,
+  });
+
+  if (!data?.canQuickRebook || !data.lastBooking) return null;
+
+  return (
+    <AppCard className="w-full border-accent-primary/20">
+      <AppCardBody>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-text-tertiary">Quick rebook</p>
+            <p className="mt-1 font-semibold text-text-primary">{data.suggestedService || data.lastBooking.service}</p>
+            {data.suggestedSitter && (
+              <p className="text-sm text-text-secondary">with {data.suggestedSitter.name}</p>
+            )}
+            {data.suggestedDay && data.suggestedTime && (
+              <p className="text-xs text-text-tertiary mt-1">
+                You usually book on {data.suggestedDay}s at {data.suggestedTime}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push(`/client/bookings/new?rebookFrom=${data.lastBooking.id}`)}
+            className="min-h-[44px] rounded-lg bg-surface-inverse px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition"
+          >
+            Book Again
+          </button>
+        </div>
+      </AppCardBody>
+    </AppCard>
   );
 }

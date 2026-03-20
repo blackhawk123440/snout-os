@@ -22,6 +22,7 @@ import {
   VisitTimerDisplay,
 } from '@/components/sitter';
 import { OnboardingChecklist } from '@/components/app/OnboardingChecklist';
+import { RouteMap } from '@/components/sitter/RouteMap';
 import {
   getShowCancelledFromQuery,
   groupTodayVisits,
@@ -706,6 +707,13 @@ export default function SitterTodayPage() {
               totalVisits={bookings.length}
             />
           </>
+        )}
+
+        {/* Route map visualization */}
+        {!loading && bookings.length > 1 && (
+          <div className="mb-4">
+            <RouteMap showShare />
+          </div>
         )}
 
         {loading ? (

@@ -292,6 +292,9 @@ export default function FinancePage() {
                   </div>
                 )}
               </div>
+              {/* Revenue Optimization */}
+              <RevenueOptimizationSection />
+
               {/* Annual Summary */}
               <AnnualSummarySection />
 
@@ -377,6 +380,63 @@ function AnnualSummarySection() {
 }
 
 /* ─── Bulk Cancel ───────────────────────────────────────────────────── */
+
+function RevenueOptimizationSection() {
+  const { data } = useQuery({
+    queryKey: ['revenue-optimization'],
+    queryFn: async () => {
+      const res = await fetch('/api/ops/revenue-optimization');
+      return res.ok ? res.json() : null;
+    },
+    staleTime: 300000,
+  });
+
+  if (!data) return null;
+
+  return (
+    <div className="rounded-xl border border-border-default bg-surface-primary p-4 mt-4">
+      <h2 className="text-sm font-semibold text-text-primary mb-3">Revenue Optimization</h2>
+
+      {/* Capacity alert */}
+      {data.capacityAlert && data.capacityAlert.utilizationPercent < 60 && (
+        <div className="rounded-lg border border-status-warning-border bg-status-warning-bg p-3 mb-3">
+          <div className="text-sm font-medium text-status-warning-text">Low capacity tomorrow</div>
+          <div className="text-xs text-status-warning-text-secondary">
+            {data.capacityAlert.bookings} bookings / {data.capacityAlert.estimatedCapacity} capacity ({data.capacityAlert.utilizationPercent}%)
+          </div>
+        </div>
+      )}
+
+      {/* Upsell opportunities */}
+      {data.upsellOpportunities?.length > 0 && (
+        <div className="mb-3">
+          <div className="text-xs font-medium text-text-secondary mb-1">Bundle upsell opportunities</div>
+          {data.upsellOpportunities.slice(0, 3).map((opp: any) => (
+            <div key={opp.clientId} className="flex items-center justify-between rounded border p-2 mb-1 text-sm">
+              <span>{opp.clientName}</span>
+              <span className="text-xs text-text-tertiary">{opp.bookingsThisMonth} {opp.service} bookings this month</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Revenue by service */}
+      {data.revenueByService?.length > 0 && (
+        <div>
+          <div className="text-xs font-medium text-text-secondary mb-1">Revenue by service (this month)</div>
+          <div className="flex flex-col gap-1">
+            {data.revenueByService.map((s: any) => (
+              <div key={s.service} className="flex items-center justify-between text-sm">
+                <span>{s.service}</span>
+                <span className="font-medium tabular-nums">${(s.totalCents / 100).toLocaleString()} ({s.count})</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function BulkCancelSection({ onDone }: { onDone: () => void }) {
   const [showForm, setShowForm] = useState(false);
