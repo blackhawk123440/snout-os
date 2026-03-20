@@ -1,6 +1,6 @@
 /**
  * Sitter Growth Tab (Owner View)
- * 
+ *
  * Shows all sitters with SRS scores, tiers, and breakdowns
  * Located in /messages → internal tab "Sitters → Growth"
  */
@@ -93,8 +93,8 @@ export function SitterGrowthTab() {
 
   if (isLoading) {
     return (
-      <Card style={{ padding: tokens.spacing[4] }}>
-        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+      <Card className="p-4">
+        <div className="text-sm text-text-secondary">
           Loading sitter growth data...
         </div>
       </Card>
@@ -109,10 +109,10 @@ export function SitterGrowthTab() {
       header: 'Sitter',
       render: (row) => (
         <div>
-          <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+          <div className="font-semibold">
             {row.sitter.firstName} {row.sitter.lastName}
           </div>
-          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+          <div className="text-sm text-text-secondary">
             {row.sitter.active ? 'Active' : 'Inactive'}
           </div>
         </div>
@@ -138,12 +138,12 @@ export function SitterGrowthTab() {
       header: 'SRS 30d',
       render: (row) => (
         <div>
-          <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+          <div className="font-semibold">
             {row.score.toFixed(1)}
-            {row.provisional && <span style={{ marginLeft: tokens.spacing[1], fontSize: tokens.typography.fontSize.xs[0] }}>*</span>}
+            {row.provisional && <span className="ml-1 text-xs">*</span>}
           </div>
           {row.provisional && (
-            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+            <div className="text-xs text-text-secondary">
               Provisional
             </div>
           )}
@@ -161,7 +161,7 @@ export function SitterGrowthTab() {
             <Badge variant="success">On Track</Badge>
           )}
           {row.atRiskReason && (
-            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+            <div className="text-xs text-text-secondary mt-1">
               {row.atRiskReason}
             </div>
           )}
@@ -172,7 +172,7 @@ export function SitterGrowthTab() {
       key: 'breakdown',
       header: 'Breakdown',
       render: (row) => (
-        <div style={{ display: 'flex', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.xs[0] }}>
+        <div className="flex gap-1 text-xs">
           <div style={{ width: '20px', height: '4px', backgroundColor: row.breakdown.responsiveness >= 15 ? tokens.colors.success.DEFAULT : tokens.colors.error.DEFAULT }} />
           <div style={{ width: '20px', height: '4px', backgroundColor: (row.breakdown.acceptance + row.breakdown.completion) >= 15 ? tokens.colors.success.DEFAULT : tokens.colors.error.DEFAULT }} />
           <div style={{ width: '20px', height: '4px', backgroundColor: row.breakdown.timeliness >= 15 ? tokens.colors.success.DEFAULT : tokens.colors.error.DEFAULT }} />
@@ -186,7 +186,7 @@ export function SitterGrowthTab() {
       key: 'lastUpdated',
       header: 'Last Updated',
       render: (row) => (
-        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+        <div className="text-sm text-text-secondary">
           {new Date(row.lastUpdated).toLocaleDateString()}
         </div>
       ),
@@ -207,19 +207,15 @@ export function SitterGrowthTab() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+    <div className="flex flex-col gap-4">
       <Card>
-        <SectionHeader 
-          title="Sitter Growth Levels" 
+        <SectionHeader
+          title="Sitter Growth Levels"
           description="Service Reliability Scores and tier status for all sitters"
         />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div className="p-4">
           {sitters.length === 0 ? (
-            <div style={{ 
-              padding: tokens.spacing[6],
-              textAlign: 'center',
-              color: tokens.colors.text.secondary,
-            }}>
+            <div className="p-6 text-center text-text-secondary">
               No sitter data available. Run snapshot to generate scores.
             </div>
           ) : (
@@ -234,13 +230,8 @@ export function SitterGrowthTab() {
       {/* Drilldown Drawer */}
       {selectedSitterId && detailData && (
         <Card>
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center',
-            marginBottom: tokens.spacing[4],
-          }}>
-            <SectionHeader 
+          <div className="flex justify-between items-center mb-4">
+            <SectionHeader
               title={`${sitters.find(s => s.sitterId === selectedSitterId)?.sitter.firstName} ${sitters.find(s => s.sitterId === selectedSitterId)?.sitter.lastName} - SRS Details`}
             />
             <Button
@@ -251,33 +242,33 @@ export function SitterGrowthTab() {
               Close
             </Button>
           </div>
-          <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div className="p-4 flex flex-col gap-4">
             {detailData.snapshot ? (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: tokens.spacing[4] }}>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    <div className="text-sm text-text-secondary mb-1">
                       Rolling 30-Day Score
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+                    <div className="text-xl font-bold">
                       {detailData.snapshot.rolling30dScore.toFixed(1)}/100
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    <div className="text-sm text-text-secondary mb-1">
                       Rolling 26-Week Score
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+                    <div className="text-xl font-bold">
                       {detailData.snapshot.rolling26wScore ? detailData.snapshot.rolling26wScore.toFixed(1) : 'N/A'}/100
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+                  <div className="font-semibold mb-2">
                     Category Breakdown
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0] }}>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>Responsiveness: {detailData.snapshot.breakdown.responsiveness.toFixed(1)}/20</div>
                     <div>Acceptance: {detailData.snapshot.breakdown.acceptance.toFixed(1)}/12</div>
                     <div>Completion: {detailData.snapshot.breakdown.completion.toFixed(1)}/8</div>
@@ -289,36 +280,32 @@ export function SitterGrowthTab() {
                 </div>
 
                 <div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+                  <div className="font-semibold mb-2">
                     Sample Sizes
                   </div>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+                  <div className="text-sm">
                     <div>Visits (30d): {detailData.snapshot.visits30d}</div>
                     <div>Offers (30d): {detailData.snapshot.offers30d}</div>
                   </div>
                 </div>
 
                 {detailData.snapshot.atRisk && (
-                  <div style={{
-                    padding: tokens.spacing[3],
-                    backgroundColor: tokens.colors.error[50],
-                    borderRadius: tokens.borderRadius.md,
-                  }}>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                  <div className="p-3 bg-status-danger-bg rounded-md">
+                    <div className="font-semibold mb-1">
                       At Risk
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+                    <div className="text-sm">
                       {detailData.snapshot.atRiskReason || 'Score below tier minimum'}
                     </div>
                   </div>
                 )}
 
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                <div className="text-sm text-text-secondary">
                   Last snapshot: {new Date(detailData.snapshot.asOfDate).toLocaleString()}
                 </div>
               </>
             ) : (
-              <div style={{ color: tokens.colors.text.secondary }}>
+              <div className="text-text-secondary">
                 No snapshot data available. Run snapshot to generate.
               </div>
             )}

@@ -1,6 +1,6 @@
 /**
  * Inbox View Component
- * 
+ *
  * Owner inbox with thread list, message view, routing drawer, retries, policy handling
  */
 
@@ -26,7 +26,6 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { Card, Button, Badge, EmptyState, Skeleton, Input, Textarea } from '@/components/ui';
 import { Plus, MessageSquare, Users, ChevronRight, HelpCircle, RefreshCw } from 'lucide-react';
-import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { isMessagingEnabled } from '@/lib/flags';
 import { DiagnosticsPanel } from './DiagnosticsPanel';
@@ -44,7 +43,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   const searchParams = useSearchParams();
   const threadParam = searchParams.get('thread');
   const sitterParam = searchParams.get('sitterId');
-  
+
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(
     initialThreadId || threadParam || null
   );
@@ -236,7 +235,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
       const response = await fetch('/api/messages/seed-proof', { method: 'POST' });
       const data = await response.json();
       if (data.success) {
-        alert('✅ Demo data created! Refreshing to show proof scenarios...');
+        alert('Demo data created! Refreshing to show proof scenarios...');
         window.location.reload();
       } else {
         alert(data.error || 'Failed to create demo data');
@@ -251,20 +250,20 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
   // Update lastFetch when window.__lastThreadsFetch changes (lastFetch already declared above at line 70)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const checkFetchData = () => {
       const fetchData = (window as any).__lastThreadsFetch;
       if (fetchData) {
         setLastFetch(fetchData);
       }
     };
-    
+
     // Check immediately
     checkFetchData();
-    
+
     // Also check periodically (in case fetch completes outside React cycle)
     const interval = setInterval(checkFetchData, 1000);
-    
+
     return () => clearInterval(interval);
   }, [threadsLoading, threadsError, threads.length]); // Update when fetch state or data changes
 
@@ -441,13 +440,13 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
         {/* Thread List */}
         <div className="flex-1 min-h-0 overflow-y-auto">
           {threadsLoading ? (
-            <div style={{ padding: tokens.spacing[4], textAlign: 'center', color: tokens.colors.text.secondary }}>
+            <div className="p-4 text-center text-text-secondary">
               <Skeleton height={60} />
               <Skeleton height={60} />
               <Skeleton height={60} />
             </div>
           ) : filteredThreads.length === 0 ? (
-            <div style={{ padding: tokens.spacing[4], textAlign: 'center', color: tokens.colors.text.secondary }}>
+            <div className="p-4 text-center text-text-secondary">
               {threads.length === 0 ? (
                 <EmptyState
                   title="No threads yet"
@@ -484,12 +483,11 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => e.key === 'Enter' && setSelectedThreadId(thread.id)}
-                  className={`group cursor-pointer border-b border-[var(--color-border-default)] transition hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-inset ${
+                  className={`group cursor-pointer border-b border-[var(--color-border-default)] transition hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-inset px-4 py-3 ${
                     selectedThreadId === thread.id
                       ? 'bg-[var(--color-teal-50)] dark:bg-teal-900/20 border-l-4 border-l-[var(--color-teal-500)]'
                       : 'bg-[var(--color-surface-primary)]'
                   }`}
-                  style={{ padding: `${tokens.spacing[3]} ${tokens.spacing[4]}` }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -561,7 +559,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                     onClick={() => threadsQuery.fetchNextPage()}
                     disabled={threadsQuery.isFetchingNextPage}
                   >
-                    {threadsQuery.isFetchingNextPage ? 'Loading…' : 'Load more'}
+                    {threadsQuery.isFetchingNextPage ? 'Loading...' : 'Load more'}
                   </Button>
                 </div>
               )}
@@ -582,7 +580,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                     {selectedThread?.client.name || 'Unknown'}
                   </h3>
                   <div className="text-sm text-[var(--color-text-secondary)] flex flex-col gap-1">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant={selectedThread?.laneType === 'service' ? 'success' : 'default'}>
                         {selectedThread?.laneType === 'service' ? 'Visit line' : 'Office line'}
                       </Badge>
@@ -596,53 +594,53 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                     ) : (
                       <div className="text-xs text-[var(--color-text-secondary)]">{OWNER_LIFECYCLE_HELPERS.companyLane}</div>
                     )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                    <div className="flex items-center gap-2">
                       <span>Business Number:</span>
-                      <span style={{ fontFamily: 'monospace' }}>{selectedThread?.messageNumber.e164}</span>
-                      <Badge 
+                      <span className="font-mono">{selectedThread?.messageNumber.e164}</span>
+                      <Badge
                         variant={
                           selectedThread?.messageNumber.class === 'front_desk' ? 'default' :
                           selectedThread?.messageNumber.class === 'pool' ? 'info' :
                           selectedThread?.messageNumber.class === 'sitter' ? 'success' : 'default'
                         }
-                        style={{ fontSize: tokens.typography.fontSize.xs[0] }}
+                        className="text-xs"
                       >
                         {selectedThread?.messageNumber.class}
                       </Badge>
                     </div>
                     {selectedThread?.sitter && (
                       <div>
-                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Assigned Sitter:</span> {selectedThread.sitter.name}
+                        <span className="font-medium">Assigned Sitter:</span> {selectedThread.sitter.name}
                       </div>
                     )}
                     <div>
-                      <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Approvals:</span>{' '}
+                      <span className="font-medium">Approvals:</span>{' '}
                       Client {selectedThread?.clientApprovedAt ? 'approved' : 'pending'} / Sitter {selectedThread?.sitterApprovedAt ? 'approved' : 'pending'}
                     </div>
                     <div className="text-xs text-[var(--color-text-secondary)]">{OWNER_LIFECYCLE_HELPERS.approvals}</div>
                     {selectedThread?.serviceWindow && (
                       <div>
-                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Service Window:</span>{' '}
+                        <span className="font-medium">Service Window:</span>{' '}
                         {selectedThread.serviceWindow.startAt.toLocaleString()} - {selectedThread.serviceWindow.endAt.toLocaleString()}
                       </div>
                     )}
                     {selectedThread?.graceEndsAt && (
                       <div>
-                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Grace Ends:</span>{' '}
+                        <span className="font-medium">Grace Ends:</span>{' '}
                         {new Date(selectedThread.graceEndsAt).toLocaleString()}
                       </div>
                     )}
                     {(selectedThread?.availabilityResponses?.length || 0) > 0 && (
                       <div>
-                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Availability:</span>{' '}
+                        <span className="font-medium">Availability:</span>{' '}
                         {selectedThread?.availabilityResponses
                           ?.map((r) => `${r.status.toUpperCase()}${r.responseLatencySec != null ? ` (${r.responseLatencySec}s)` : ''}`)
                           .join(' | ')}
                       </div>
                     )}
                     {(selectedThread?.flags?.length || 0) > 0 && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Flags:</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">Flags:</span>
                         {selectedThread?.flags?.map((flag) => (
                           <Badge key={flag.id} variant={flag.severity === 'high' || flag.severity === 'critical' ? 'error' : 'warning'}>
                             {flag.type}:{flag.severity}
@@ -651,17 +649,12 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                       </div>
                     )}
                     {role === 'owner' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                      <div className="flex items-center gap-2 flex-wrap">
                         <input
                           type="datetime-local"
                           value={meetAndGreetAt}
                           onChange={(e) => setMeetAndGreetAt(e.target.value)}
-                          style={{
-                            border: `1px solid ${tokens.colors.border.default}`,
-                            borderRadius: tokens.radius.sm,
-                            padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                            fontSize: tokens.typography.fontSize.xs[0],
-                          }}
+                          className="border border-border-default rounded-sm px-2 py-1 text-xs"
                         />
                         <Button
                           size="sm"
@@ -686,12 +679,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                         <select
                           value={manualStage}
                           onChange={(e) => setManualStage(e.target.value as typeof manualStage)}
-                          style={{
-                            border: `1px solid ${tokens.colors.border.default}`,
-                            borderRadius: tokens.radius.sm,
-                            padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                            fontSize: tokens.typography.fontSize.xs[0],
-                          }}
+                          className="border border-border-default rounded-sm px-2 py-1 text-xs"
                         >
                           <option value="intake">intake</option>
                           <option value="staffing">staffing</option>
@@ -760,10 +748,10 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                       </details>
                     )}
                     {selectedThread?.assignmentWindows?.[0] && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>Window Status:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Window Status:</span>
                         <Badge variant="success">Active</Badge>
-                        <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>
+                        <span className="text-xs text-text-tertiary">
                           (ends {formatDistanceToNow(selectedThread.assignmentWindows[0].endsAt, { addSuffix: true })})
                         </span>
                       </div>
@@ -789,14 +777,14 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
             {/* Messages */}
             <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: 'var(--density-padding)' }}>
               {messagesLoading ? (
-                <div style={{ textAlign: 'center', color: tokens.colors.text.secondary }}>
+                <div className="text-center text-text-secondary">
                   <Skeleton height={100} />
                   <Skeleton height={100} />
                 </div>
               ) : messages.length === 0 && pendingMessages.length === 0 ? (
-                <div style={{ textAlign: 'center', color: tokens.colors.text.secondary }}>No messages yet</div>
+                <div className="text-center text-text-secondary">No messages yet</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                <div className="flex flex-col gap-4">
                   {messagesQuery.hasNextPage && (
                     <div className="flex justify-center">
                       <Button
@@ -805,7 +793,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                         onClick={() => messagesQuery.fetchNextPage()}
                         disabled={messagesQuery.isFetchingNextPage}
                       >
-                        {messagesQuery.isFetchingNextPage ? 'Loading…' : 'Load earlier messages'}
+                        {messagesQuery.isFetchingNextPage ? 'Loading...' : 'Load earlier messages'}
                       </Button>
                     </div>
                   )}
@@ -819,16 +807,16 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                         style={{
                           maxWidth: message.direction === 'outbound' ? '80%' : '100%',
                           marginLeft: message.direction === 'outbound' ? 'auto' : 0,
-                          backgroundColor: message.direction === 'inbound' ? tokens.colors.neutral[100] : tokens.colors.primary[50],
-                          padding: tokens.spacing[3],
+                          backgroundColor: message.direction === 'inbound' ? '#f5f5f5' : '#fef7fb',
                         }}
+                        className="p-3"
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[2] }}>
+                        <div className="flex justify-between items-start mb-2">
                           <div>
-                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[0.5] }}>
+                            <div className="text-sm font-medium mb-0.5">
                               {senderLabel}
                             </div>
-                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                            <div className="text-xs text-text-secondary">
                               {formatDistanceToNow(message.createdAt, { addSuffix: true })}
                             </div>
                           </div>
@@ -842,17 +830,17 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                                     ? 'info'
                                     : 'default'
                             }
-                            style={{ fontSize: tokens.typography.fontSize.xs[0] }}
+                            className="text-xs"
                           >
                             {delivery.label}
                           </Badge>
                         </div>
 
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[2], lineHeight: 1.5 }}>
+                        <div className="text-sm mb-2 leading-relaxed">
                           {message.redactedBody || message.body}
                         </div>
                         {message.routingDisposition && message.routingDisposition !== 'normal' && (
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], marginBottom: tokens.spacing[2] }}>
+                          <div className="text-xs mb-2">
                             <Badge variant={message.routingDisposition === 'rerouted' ? 'warning' : 'error'}>
                               Routing: {message.routingDisposition}
                             </Badge>
@@ -860,24 +848,17 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                         )}
 
                         {message.hasPolicyViolation && (
-                          <div style={{ 
-                            fontSize: tokens.typography.fontSize.xs[0], 
-                            color: tokens.colors.error.DEFAULT, 
-                            backgroundColor: tokens.colors.error[50],
-                            padding: tokens.spacing[2],
-                            borderRadius: tokens.radius.sm,
-                            marginBottom: tokens.spacing[2]
-                          }}>
+                          <div className="text-xs text-status-danger-text bg-status-danger-bg p-2 rounded-sm mb-2">
                             ⚠️ Policy violation detected
                             {message.policyViolations?.[0] && (
-                              <div style={{ marginTop: tokens.spacing[1], fontSize: tokens.typography.fontSize.xs[0] }}>
+                              <div className="mt-1 text-xs">
                                 {message.policyViolations[0].detectedSummary}
                               </div>
                             )}
                           </div>
                         )}
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                        <div className="flex items-center gap-2 flex-wrap">
                           {delivery.status === 'failed' && message.direction === 'outbound' && (
                             <Button
                               variant="tertiary"
@@ -891,15 +872,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                           )}
 
                           {delivery.error && (
-                            <div style={{ 
-                              fontSize: tokens.typography.fontSize.xs[0], 
-                              color: tokens.colors.error.DEFAULT,
-                              backgroundColor: tokens.colors.error[50],
-                              padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                              borderRadius: tokens.radius.sm,
-                              maxWidth: '100%',
-                              wordBreak: 'break-word'
-                            }} title={delivery.error}>
+                            <div className="text-xs text-status-danger-text bg-status-danger-bg px-2 py-1 rounded-sm max-w-full break-words" title={delivery.error}>
                               Error: {delivery.error}
                             </div>
                           )}
@@ -914,31 +887,31 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                         style={{
                           maxWidth: '80%',
                           marginLeft: 'auto',
-                          backgroundColor: tokens.colors.primary[50],
-                          padding: tokens.spacing[3],
+                          backgroundColor: '#fef7fb',
                         }}
+                        className="p-3"
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[2] }}>
+                        <div className="flex justify-between items-start mb-2">
                           <div>
-                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[0.5] }}>
+                            <div className="text-sm font-medium mb-0.5">
                               You
                             </div>
-                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                            <div className="text-xs text-text-secondary">
                               Just now
                             </div>
                           </div>
                           <Badge
                             variant={p.status === 'failed' ? 'error' : 'default'}
-                            style={{ fontSize: tokens.typography.fontSize.xs[0] }}
+                            className="text-xs"
                           >
                             {p.status === 'sending' ? 'Sending' : 'Failed'}
                           </Badge>
                         </div>
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[2], lineHeight: 1.5 }}>
+                        <div className="text-sm mb-2 leading-relaxed">
                           {p.body}
                         </div>
                         {p.status === 'failed' && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Button
                               variant="tertiary"
                               size="sm"
@@ -950,15 +923,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                             </Button>
                             {p.error && (
                               <div
-                                style={{
-                                  fontSize: tokens.typography.fontSize.xs[0],
-                                  color: tokens.colors.error.DEFAULT,
-                                  backgroundColor: tokens.colors.error[50],
-                                  padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                                  borderRadius: tokens.radius.sm,
-                                  maxWidth: '100%',
-                                  wordBreak: 'break-word',
-                                }}
+                                className="text-xs text-status-danger-text bg-status-danger-bg px-2 py-1 rounded-sm max-w-full break-words"
                                 title={p.error}
                               >
                                 {p.error}
@@ -1014,75 +979,57 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
       {/* Routing Explanation Drawer */}
       {showRoutingDrawer && selectedThreadId && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 50,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: tokens.spacing[4],
-          }}
+          className="fixed inset-0 bg-black/50 z-layer-overlay flex items-center justify-center p-4"
           onClick={() => setShowRoutingDrawer(false)}
         >
           <Card
-            style={{
-              maxWidth: '42rem',
-              maxHeight: '80vh',
-              overflowY: 'auto',
-              backgroundColor: 'white',
-            }}
+            style={{ maxWidth: '42rem', maxHeight: '80vh', overflowY: 'auto' }}
+            className="bg-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ padding: tokens.spacing[6] }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[4] }}>
-                <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>Routing Explanation</h3>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Routing Explanation</h3>
                 <Button variant="tertiary" size="sm" onClick={() => setShowRoutingDrawer(false)}>
                   ✕
                 </Button>
               </div>
 
               {routingHistory?.events?.[0] ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-                  <div style={{ backgroundColor: tokens.colors.primary[50], padding: tokens.spacing[3], borderRadius: tokens.radius.sm }}>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[1] }}>Final Decision</div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+                <div className="flex flex-col gap-4">
+                  <div className="bg-[#fef7fb] p-3 rounded-sm">
+                    <div className="font-medium text-sm mb-1">Final Decision</div>
+                    <div className="text-sm">
                       <strong>Target:</strong> {routingHistory.events[0].decision.target}
                       {routingHistory.events[0].decision.targetId && (
                         <span> ({routingHistory.events[0].decision.targetId})</span>
                       )}
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], marginTop: tokens.spacing[1] }}>
+                    <div className="text-sm mt-1">
                       <strong>Reason:</strong> {routingHistory.events[0].decision.reason}
                     </div>
                   </div>
 
                   <div>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[2] }}>Evaluation Steps</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                    <div className="font-medium text-sm mb-2">Evaluation Steps</div>
+                    <div className="flex flex-col gap-2">
                       {routingHistory.events[0].decision.evaluationTrace.map((step, idx) => (
                         <div
                           key={idx}
-                          style={{
-                            padding: tokens.spacing[2],
-                            borderRadius: tokens.radius.sm,
-                            fontSize: tokens.typography.fontSize.sm[0],
-                            backgroundColor: step.result ? tokens.colors.success[50] : tokens.colors.neutral[50],
-                          }}
+                          className={`p-2 rounded-sm text-sm ${step.result ? 'bg-status-success-bg' : 'bg-surface-secondary'}`}
                         >
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{step.rule}</div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                          <div className="font-medium">{step.rule}</div>
+                          <div className="text-xs text-text-secondary mt-1">
                             {step.condition} → {step.result ? '✓' : '✗'}
                           </div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginTop: tokens.spacing[1] }}>{step.explanation}</div>
+                          <div className="text-xs text-text-tertiary mt-1">{step.explanation}</div>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
               ) : (
-                <div style={{ color: tokens.colors.text.secondary }}>No routing history available</div>
+                <div className="text-text-secondary">No routing history available</div>
               )}
             </div>
           </Card>
@@ -1092,35 +1039,24 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
       {/* Pool Exhausted Confirmation Dialog */}
       {showPoolExhaustedConfirm && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 50,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: tokens.spacing[4],
-          }}
+          className="fixed inset-0 bg-black/50 z-layer-overlay flex items-center justify-center p-4"
           onClick={() => {
             setShowPoolExhaustedConfirm(false);
           }}
         >
           <Card
-            style={{
-              maxWidth: '28rem',
-              backgroundColor: 'white',
-            }}
+            style={{ maxWidth: '28rem' }}
+            className="bg-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ padding: tokens.spacing[6] }}>
-              <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[4] }}>
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">
                 Pool Exhausted
               </h3>
-              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[4] }}>
+              <p className="text-sm text-text-secondary mb-4">
                 All pool numbers are at capacity. Your reply will send from the Front Desk number instead of a pool number.
               </p>
-              <div style={{ display: 'flex', gap: tokens.spacing[2], justifyContent: 'flex-end' }}>
+              <div className="flex gap-2 justify-end">
                 <Button
                   variant="secondary"
                   onClick={() => {
@@ -1145,31 +1081,20 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
       {/* Policy Override Dialog */}
       {showPolicyOverride && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 50,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: tokens.spacing[4],
-          }}
+          className="fixed inset-0 bg-black/50 z-layer-overlay flex items-center justify-center p-4"
           onClick={() => {
             setShowPolicyOverride(null);
             setOverrideReason('');
           }}
         >
           <Card
-            style={{
-              maxWidth: '28rem',
-              backgroundColor: 'white',
-            }}
+            style={{ maxWidth: '28rem' }}
+            className="bg-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ padding: tokens.spacing[6] }}>
-              <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[4] }}>Policy Violation Detected</h3>
-              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[4] }}>
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Policy Violation Detected</h3>
+              <p className="text-sm text-text-secondary mb-4">
                 Your message contains content that violates our policy (phone numbers, emails, or external links).
                 You can override and send anyway, but please provide a reason.
               </p>
@@ -1177,19 +1102,10 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                 value={overrideReason}
                 onChange={(e) => setOverrideReason(e.target.value)}
                 placeholder="Reason for override..."
-                style={{
-                  width: '100%',
-                  border: `1px solid ${tokens.colors.border.default}`,
-                  borderRadius: tokens.radius.sm,
-                  padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-                  marginBottom: tokens.spacing[4],
-                  resize: 'none',
-                  fontSize: tokens.typography.fontSize.sm[0],
-                  fontFamily: 'inherit',
-                }}
+                className="w-full border border-border-default rounded-sm px-3 py-2 mb-4 resize-none text-sm font-[inherit]"
                 rows={3}
               />
-              <div style={{ display: 'flex', gap: tokens.spacing[2], justifyContent: 'flex-end' }}>
+              <div className="flex gap-2 justify-end">
                 <Button
                   variant="secondary"
                   onClick={() => {
@@ -1229,7 +1145,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
 
 export default function InboxView(props: InboxViewProps) {
   return (
-    <Suspense fallback={<div style={{ padding: tokens.spacing[4] }}><Skeleton height={400} /></div>}>
+    <Suspense fallback={<div className="p-4"><Skeleton height={400} /></div>}>
       <InboxViewContent {...props} />
     </Suspense>
   );

@@ -1,6 +1,6 @@
 /**
  * Owner SRS Card Component
- * 
+ *
  * Shows sitter's Service Reliability Score, tier, breakdown, and next actions
  * For owners viewing a sitter profile at /sitters/[id]
  */
@@ -80,9 +80,9 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
 
   if (isLoading) {
     return (
-      <Card style={{ padding: tokens.spacing[4] }}>
+      <Card className="p-4">
         <SectionHeader title="Service Reliability Score" />
-        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+        <div className="text-sm text-text-secondary">
           Loading performance data...
         </div>
       </Card>
@@ -91,7 +91,7 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
 
   if (error || (!data?.snapshot && !data?.current)) {
     return (
-      <Card style={{ padding: tokens.spacing[4] }}>
+      <Card className="p-4">
         <SectionHeader title="Service Reliability Score" />
         <EmptyState
           title="No score yet"
@@ -105,7 +105,7 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
   const srsData = data.snapshot || data.current;
   if (!srsData) {
     return (
-      <Card style={{ padding: tokens.spacing[4] }}>
+      <Card className="p-4">
         <SectionHeader title="Service Reliability Score" />
         <EmptyState
           title="No score yet"
@@ -155,23 +155,23 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
   }
 
   return (
-    <Card style={{ padding: tokens.spacing[4] }}>
-      <SectionHeader 
-        title="Service Reliability Score" 
+    <Card className="p-4">
+      <SectionHeader
+        title="Service Reliability Score"
         description="Performance metrics and tier status"
       />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <div className="flex flex-col gap-4">
         {/* Tier Badge and Score */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], flexWrap: 'wrap' }}>
-            <Badge 
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Badge
               variant="default"
-              style={{ 
+              style={{
                 backgroundColor: tierColors[tier] || tokens.colors.neutral[500],
                 color: 'white',
-                fontSize: tokens.typography.fontSize.base[0],
                 padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
               }}
+              className="text-base"
             >
               {tierLabels[tier] || tier}
             </Badge>
@@ -182,18 +182,12 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
               <Badge variant="error">At Risk</Badge>
             )}
           </div>
-            <div style={{ textAlign: 'right' }}>
-            <div style={{ 
-              fontSize: tokens.typography.fontSize.xl[0],
-              fontWeight: tokens.typography.fontWeight.bold,
-            }}>
+            <div className="text-right">
+            <div className="text-xl font-bold">
               {score ? score.toFixed(1) : 'N/A'}/100
             </div>
             {data.snapshot && typeof data.snapshot.visits30d === 'number' && (
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-              }}>
+              <div className="text-sm text-text-secondary">
                 {data.snapshot.visits30d} visits (30d)
               </div>
             )}
@@ -202,12 +196,7 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
 
         {/* 26-week average if available */}
         {data.snapshot?.rolling26wScore && (
-          <div style={{
-            padding: tokens.spacing[2],
-            backgroundColor: 'var(--color-surface-secondary)',
-            borderRadius: tokens.borderRadius.md,
-            fontSize: tokens.typography.fontSize.sm[0],
-          }}>
+          <div className="p-2 bg-surface-secondary rounded-md text-sm">
             <strong>26-week average:</strong> {data.snapshot.rolling26wScore.toFixed(1)}/100
           </div>
         )}
@@ -215,19 +204,10 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
         {/* Category Breakdown */}
         {breakdown && (
           <div>
-            <div style={{ 
-              fontWeight: tokens.typography.fontWeight.semibold,
-              marginBottom: tokens.spacing[2],
-              fontSize: tokens.typography.fontSize.sm[0],
-            }}>
+            <div className="font-semibold mb-2 text-sm">
               Category Breakdown (30-day):
             </div>
-            <div style={{ 
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: tokens.spacing[2],
-              fontSize: tokens.typography.fontSize.sm[0],
-            }}>
+            <div className="grid grid-cols-2 gap-2 text-sm">
               <div>Responsiveness: {breakdown.responsiveness.toFixed(1)}/20</div>
               <div>Acceptance: {breakdown.acceptance.toFixed(1)}/12</div>
               <div>Completion: {breakdown.completion.toFixed(1)}/8</div>
@@ -241,13 +221,7 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
 
         {/* At Risk Reason */}
         {data.snapshot?.atRisk && data.snapshot?.atRiskReason && (
-          <div style={{
-            padding: tokens.spacing[3],
-            backgroundColor: tokens.colors.error[50],
-            borderRadius: tokens.borderRadius.md,
-            fontSize: tokens.typography.fontSize.sm[0],
-            color: tokens.colors.error[700],
-          }}>
+          <div className="p-3 bg-status-danger-bg rounded-md text-sm text-status-danger-text">
             <strong>At Risk:</strong> {data.snapshot.atRiskReason}
           </div>
         )}
@@ -255,20 +229,12 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
         {/* Next Actions */}
         {nextActions.length > 0 && (
           <div>
-            <div style={{ 
-              fontWeight: tokens.typography.fontWeight.semibold,
-              marginBottom: tokens.spacing[2],
-              fontSize: tokens.typography.fontSize.sm[0],
-            }}>
+            <div className="font-semibold mb-2 text-sm">
               Next Actions:
             </div>
-            <ul style={{ 
-              margin: 0,
-              paddingLeft: tokens.spacing[4],
-              fontSize: tokens.typography.fontSize.sm[0],
-            }}>
+            <ul className="m-0 pl-4 text-sm">
               {nextActions.map((action, i) => (
-                <li key={i} style={{ marginBottom: tokens.spacing[1] }}>
+                <li key={i} className="mb-1">
                   {action}
                 </li>
               ))}
@@ -278,20 +244,12 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
 
         {/* Compensation */}
         {data.compensation && (
-          <div style={{
-            padding: tokens.spacing[3],
-            backgroundColor: 'var(--color-surface-secondary)',
-            borderRadius: tokens.borderRadius.md,
-          }}>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+          <div className="p-3 bg-surface-secondary rounded-md">
+            <div className="text-sm">
               <strong>Current Pay:</strong> ${data.compensation.basePay.toFixed(2)}/hour
             </div>
             {data.compensation.nextReviewDate && (
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-                marginTop: tokens.spacing[1],
-              }}>
+              <div className="text-sm text-text-secondary mt-1">
                 Next review: {new Date(data.compensation.nextReviewDate).toLocaleDateString()}
               </div>
             )}
@@ -300,13 +258,7 @@ export function OwnerSRSCard({ sitterId }: OwnerSRSCardProps) {
 
         {/* Raise Eligibility */}
         {score !== undefined && score >= 80 && tier !== 'preferred' && (
-          <div style={{
-            padding: tokens.spacing[3],
-            backgroundColor: tokens.colors.success[50],
-            borderRadius: tokens.borderRadius.md,
-            fontSize: tokens.typography.fontSize.sm[0],
-            color: tokens.colors.success[700],
-          }}>
+          <div className="p-3 bg-status-success-bg rounded-md text-sm text-status-success-text">
             <strong>Eligible for tier promotion</strong> - Score meets requirements for next tier
           </div>
         )}

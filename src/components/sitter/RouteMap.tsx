@@ -8,7 +8,6 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { tokens } from '@/lib/design-tokens';
 
 interface RouteStop {
   stopNumber: number;
@@ -56,9 +55,9 @@ export function RouteMap({ date, apiUrl, showShare = false }: { date?: string; a
 
   if (isLoading) {
     return (
-      <div style={{ padding: tokens.spacing[4] }}>
-        <div style={{ height: 200, backgroundColor: 'var(--color-surface-tertiary)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ color: 'var(--color-text-tertiary)' }}>Loading route...</span>
+      <div className="p-4">
+        <div className="h-[200px] bg-surface-tertiary rounded-xl flex items-center justify-center">
+          <span className="text-text-tertiary">Loading route...</span>
         </div>
       </div>
     );
@@ -66,7 +65,7 @@ export function RouteMap({ date, apiUrl, showShare = false }: { date?: string; a
 
   if (error || !data) {
     return (
-      <div style={{ padding: tokens.spacing[4], textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+      <div className="p-4 text-center text-text-secondary">
         Unable to load route
       </div>
     );
@@ -76,10 +75,10 @@ export function RouteMap({ date, apiUrl, showShare = false }: { date?: string; a
 
   if (stops.length === 0) {
     return (
-      <div style={{ padding: tokens.spacing[4], textAlign: 'center' }}>
-        <p style={{ fontSize: 32, marginBottom: 8 }}>🗺️</p>
-        <p style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>No stops today</p>
-        <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: 'var(--color-text-secondary)' }}>
+      <div className="p-4 text-center">
+        <p className="text-[32px] mb-2">🗺️</p>
+        <p className="font-semibold text-text-primary">No stops today</p>
+        <p className="text-sm text-text-secondary">
           Your route will appear here when you have bookings
         </p>
       </div>
@@ -89,20 +88,16 @@ export function RouteMap({ date, apiUrl, showShare = false }: { date?: string; a
   return (
     <div>
       {/* Route summary */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
-        borderBottom: `1px solid var(--color-border-default)`,
-      }}>
+      <div className="flex justify-between items-center px-4 py-3 border-b border-border-default">
         <div>
-          <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+          <span className="font-semibold text-text-primary">
             {stops.length} stop{stops.length !== 1 ? 's' : ''} today
           </span>
-          <span style={{ marginLeft: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: 'var(--color-text-tertiary)' }}>
+          <span className="ml-2 text-sm text-text-tertiary">
             {stops.filter(s => s.status === 'completed').length} completed
           </span>
         </div>
-        <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+        <div className="flex gap-2 items-center">
           {showShare && (
             <button
               type="button"
@@ -126,14 +121,7 @@ export function RouteMap({ date, apiUrl, showShare = false }: { date?: string; a
                 } catch {} finally { setSharing(false); }
               }}
               disabled={sharing}
-              style={{
-                minHeight: 44, display: 'inline-flex', alignItems: 'center',
-                padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-                borderRadius: 8, fontSize: tokens.typography.fontSize.sm[0],
-                fontWeight: 500, color: 'var(--color-text-secondary)',
-                border: '1px solid var(--color-border-default)',
-                backgroundColor: 'transparent', cursor: 'pointer',
-              }}
+              className="min-h-[44px] inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium text-text-secondary border border-border-default bg-transparent cursor-pointer"
             >
               {sharing ? 'Sharing...' : '📤 Share'}
             </button>
@@ -143,14 +131,7 @@ export function RouteMap({ date, apiUrl, showShare = false }: { date?: string; a
               href={data.navigation.googleMapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                minHeight: 44, display: 'inline-flex', alignItems: 'center',
-                padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-                borderRadius: 8, fontSize: tokens.typography.fontSize.sm[0],
-                fontWeight: 600, color: 'var(--color-text-inverse)',
-                backgroundColor: 'var(--color-accent-primary)',
-                textDecoration: 'none',
-              }}
+              className="min-h-[44px] inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold text-text-inverse bg-accent-primary no-underline"
             >
               Start Route →
             </a>
@@ -159,30 +140,26 @@ export function RouteMap({ date, apiUrl, showShare = false }: { date?: string; a
       </div>
 
       {/* Stop list with route line */}
-      <div style={{ padding: `${tokens.spacing[2]} ${tokens.spacing[4]}` }}>
+      <div className="py-2 px-4">
         {stops.map((stop, i) => {
           const status = STATUS_STYLES[stop.status] || STATUS_STYLES.pending;
           const isExpanded = expandedStop === stop.bookingId;
           const isLast = i === stops.length - 1;
 
           return (
-            <div key={stop.bookingId} style={{ display: 'flex', gap: tokens.spacing[3] }}>
+            <div key={stop.bookingId} className="flex gap-3">
               {/* Route line + stop number */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 32, flexShrink: 0 }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 14,
-                  backgroundColor: stop.status === 'completed' ? 'var(--color-status-success-fill)' : 'var(--color-accent-primary)',
-                  color: 'var(--color-text-inverse)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 700,
-                }}>
+              <div className="flex flex-col items-center w-8 shrink-0">
+                <div
+                  className="w-7 h-7 rounded-full text-text-inverse flex items-center justify-center text-xs font-bold"
+                  style={{
+                    backgroundColor: stop.status === 'completed' ? 'var(--color-status-success-fill)' : 'var(--color-accent-primary)',
+                  }}
+                >
                   {stop.status === 'completed' ? '✓' : stop.stopNumber}
                 </div>
                 {!isLast && (
-                  <div style={{
-                    width: 2, flex: 1, minHeight: 40,
-                    backgroundColor: 'var(--color-border-default)',
-                  }} />
+                  <div className="w-0.5 flex-1 min-h-[40px] bg-border-default" />
                 )}
               </div>
 
@@ -190,66 +167,59 @@ export function RouteMap({ date, apiUrl, showShare = false }: { date?: string; a
               <button
                 type="button"
                 onClick={() => setExpandedStop(isExpanded ? null : stop.bookingId)}
+                className="flex-1 text-left border border-border-default rounded-xl p-3 mb-2 cursor-pointer transition-colors"
                 style={{
-                  flex: 1, textAlign: 'left', border: `1px solid var(--color-border-default)`,
-                  borderRadius: 12, padding: tokens.spacing[3],
-                  marginBottom: tokens.spacing[2], cursor: 'pointer',
                   backgroundColor: stop.status === 'completed' ? 'var(--color-status-success-bg)' : 'var(--color-surface-primary)',
-                  transition: 'background-color 0.15s',
                 }}
                 onMouseEnter={(e) => { if (stop.status !== 'completed') (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-surface-secondary)'; }}
                 onMouseLeave={(e) => { if (stop.status !== 'completed') (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-surface-primary)'; }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="flex justify-between items-start">
                   <div>
-                    <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                    <div className="font-semibold text-text-primary">
                       {formatTime(stop.startAt)} – {formatTime(stop.endAt)}
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: 'var(--color-text-secondary)', marginTop: 2 }}>
+                    <div className="text-sm text-text-secondary mt-0.5">
                       {stop.clientName} · {stop.service}
                     </div>
                     {stop.pets && (
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: 'var(--color-text-tertiary)', marginTop: 2 }}>
+                      <div className="text-xs text-text-tertiary mt-0.5">
                         🐾 {stop.pets}
                       </div>
                     )}
                   </div>
-                  <span style={{
-                    backgroundColor: status.bg, color: status.text,
-                    borderRadius: 12, padding: `2px ${tokens.spacing[2]}`,
-                    fontSize: tokens.typography.fontSize.xs[0], fontWeight: 600,
-                  }}>
+                  <span
+                    className="rounded-xl text-xs font-semibold"
+                    style={{
+                      backgroundColor: status.bg, color: status.text,
+                      padding: '2px var(--spacing-2)',
+                    }}
+                  >
                     {status.label}
                   </span>
                 </div>
 
                 {/* Expanded details */}
                 {isExpanded && (
-                  <div style={{ marginTop: tokens.spacing[3], borderTop: '1px solid var(--color-border-default)', paddingTop: tokens.spacing[3] }}>
+                  <div className="mt-3 border-t border-border-default pt-3">
                     {stop.address && (
-                      <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: 'var(--color-text-secondary)', marginBottom: tokens.spacing[2] }}>
+                      <p className="text-sm text-text-secondary mb-2">
                         📍 {stop.address}
                       </p>
                     )}
                     {stop.notes && (
-                      <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: 'var(--color-text-tertiary)', fontStyle: 'italic', marginBottom: tokens.spacing[2] }}>
+                      <p className="text-sm text-text-tertiary italic mb-2">
                         {stop.notes}
                       </p>
                     )}
-                    <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                    <div className="flex gap-2 flex-wrap">
                       {stop.googleMapsUrl && (
                         <a
                           href={stop.googleMapsUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          style={{
-                            minHeight: 44, display: 'inline-flex', alignItems: 'center',
-                            padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-                            borderRadius: 8, border: '1px solid var(--color-border-default)',
-                            fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500,
-                            color: 'var(--color-text-primary)', textDecoration: 'none',
-                          }}
+                          className="min-h-[44px] inline-flex items-center px-3 py-2 rounded-lg border border-border-default text-sm font-medium text-text-primary no-underline"
                         >
                           Navigate →
                         </a>
@@ -257,13 +227,7 @@ export function RouteMap({ date, apiUrl, showShare = false }: { date?: string; a
                       <a
                         href={`/sitter/bookings/${stop.bookingId}`}
                         onClick={(e) => e.stopPropagation()}
-                        style={{
-                          minHeight: 44, display: 'inline-flex', alignItems: 'center',
-                          padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-                          borderRadius: 8, border: '1px solid var(--color-border-default)',
-                          fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500,
-                          color: 'var(--color-text-primary)', textDecoration: 'none',
-                        }}
+                        className="min-h-[44px] inline-flex items-center px-3 py-2 rounded-lg border border-border-default text-sm font-medium text-text-primary no-underline"
                       >
                         View Booking
                       </a>

@@ -1,11 +1,11 @@
 /**
  * BookingScheduleDisplay Component
- * 
+ *
  * Shared primitive for rendering booking schedules consistently across the app.
  * Handles two schedule models:
  * - Overnight range services (Housesitting, 24/7 Care): start/end date/time + nights count
  * - Multi-visit services (Drop-ins, Dog walking, Pet taxi): per-date entries with duration labels
- * 
+ *
  * Universal Law: ONE SCHEDULE RENDERING ENGINE
  */
 
@@ -13,7 +13,6 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/Badge';
-import { tokens } from '@/lib/design-tokens';
 
 export interface TimeSlot {
   id?: string;
@@ -96,14 +95,14 @@ export const BookingScheduleDisplay: React.FC<BookingScheduleDisplayProps> = ({
     if (compact) {
       // Compact version for lists/cards - Made bigger per requirements
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
-          <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+        <div className="flex flex-col gap-1">
+          <div className="text-base font-semibold">
             Scheduled
           </div>
-          <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.medium }}>
+          <div className="text-base font-medium">
             {formatDate(startAt)} - {formatDate(endAt)}
           </div>
-          <div style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.secondary, fontWeight: tokens.typography.fontWeight.medium }}>
+          <div className="text-base text-text-secondary font-medium">
             {formatTime(startAt)} - {formatTime(endAt)} • {nights} {nights === 1 ? 'Night' : 'Nights'}
           </div>
         </div>
@@ -113,28 +112,28 @@ export const BookingScheduleDisplay: React.FC<BookingScheduleDisplayProps> = ({
     // Full version for detail pages
     return (
       <div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[3] }}>
+        <div className="grid grid-cols-2 gap-3 text-sm mb-3">
           <div>
-            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Start</div>
-            <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(startAt)}</div>
-            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{formatTime(startAt)}</div>
+            <div className="text-xs text-text-secondary mb-1">Start</div>
+            <div className="font-medium">{formatDate(startAt)}</div>
+            <div className="text-xs text-text-secondary mt-1">{formatTime(startAt)}</div>
           </div>
           <div>
-            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>End</div>
-            <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatDate(endAt)}</div>
-            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>{formatTime(endAt)}</div>
+            <div className="text-xs text-text-secondary mb-1">End</div>
+            <div className="font-medium">{formatDate(endAt)}</div>
+            <div className="text-xs text-text-secondary mt-1">{formatTime(endAt)}</div>
           </div>
         </div>
-        <div style={{ padding: tokens.spacing[2], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm, marginBottom: tokens.spacing[3] }}>
-          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Duration</div>
-          <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+        <div className="p-2 bg-surface-secondary rounded-sm mb-3">
+          <div className="text-xs text-text-secondary mb-1">Duration</div>
+          <div className="font-semibold text-base">
             {nights} {nights === 1 ? 'Night' : 'Nights'}
           </div>
         </div>
         {address && (
-          <div style={{ marginTop: tokens.spacing[3], paddingTop: tokens.spacing[3], borderTop: `1px solid ${tokens.colors.border.default}` }}>
-            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Address</div>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>{address}</div>
+          <div className="mt-3 pt-3 border-t border-border-default">
+            <div className="text-xs text-text-secondary mb-1">Address</div>
+            <div className="text-sm">{address}</div>
           </div>
         )}
       </div>
@@ -158,12 +157,12 @@ export const BookingScheduleDisplay: React.FC<BookingScheduleDisplayProps> = ({
       const firstDate = Object.keys(visitsByDate)[0];
       const totalVisits = timeSlots.length;
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
-          <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium }}>
+        <div className="flex flex-col gap-1">
+          <div className="text-sm font-medium">
             {firstDate}
             {Object.keys(visitsByDate).length > 1 && ` +${Object.keys(visitsByDate).length - 1} more`}
           </div>
-          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+          <div className="text-xs text-text-secondary">
             {totalVisits} {totalVisits === 1 ? 'visit' : 'visits'}
           </div>
         </div>
@@ -173,19 +172,19 @@ export const BookingScheduleDisplay: React.FC<BookingScheduleDisplayProps> = ({
     // Full version: show all visits grouped by date
     return (
       <div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+        <div className="flex flex-col gap-3">
           {Object.entries(visitsByDate).map(([date, visits]) => (
-            <div key={date} style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.sm }}>
-              <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div key={date} className="p-3 bg-surface-secondary rounded-sm">
+              <div className="text-xs font-semibold text-text-secondary mb-2 uppercase tracking-wide">
                 {date}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+              <div className="flex flex-col gap-2">
                 {visits.map((slot, index) => {
                   const duration = slot.duration || calculateDurationMinutes(slot.startAt, slot.endAt);
                   return (
-                    <div key={slot.id || index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: tokens.spacing[2] }}>
+                    <div key={slot.id || index} className="flex items-center justify-between gap-2">
                       <div>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.medium, fontSize: tokens.typography.fontSize.sm[0] }}>
+                        <div className="font-medium text-sm">
                           {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
                         </div>
                       </div>
@@ -200,9 +199,9 @@ export const BookingScheduleDisplay: React.FC<BookingScheduleDisplayProps> = ({
           ))}
         </div>
         {address && (
-          <div style={{ marginTop: tokens.spacing[3], paddingTop: tokens.spacing[3], borderTop: `1px solid ${tokens.colors.border.default}` }}>
-            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>Address</div>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>{address}</div>
+          <div className="mt-3 pt-3 border-t border-border-default">
+            <div className="text-xs text-text-secondary mb-1">Address</div>
+            <div className="text-sm">{address}</div>
           </div>
         )}
       </div>
@@ -211,9 +210,8 @@ export const BookingScheduleDisplay: React.FC<BookingScheduleDisplayProps> = ({
 
   // No time slots scheduled
   return (
-    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+    <div className="text-sm text-text-secondary">
       No time slots scheduled
     </div>
   );
 };
-

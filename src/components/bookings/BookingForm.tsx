@@ -1,6 +1,6 @@
 /**
  * BookingForm Component
- * 
+ *
  * EXACT MATCH to booking-form.html structure:
  * - Service cards (visual selection matching HTML)
  * - Pet counters (dogs, cats, farm, reptiles, birds, other)
@@ -32,23 +32,23 @@ export interface BookingFormProps {
 
 // Service cards matching booking-form.html exactly
 const SERVICE_CARDS = [
-  { 
-    dataService: 'dog-walking', 
-    name: 'Dog Walking', 
+  {
+    dataService: 'dog-walking',
+    name: 'Dog Walking',
     description: '30 or 60 minute walk',
     icon: '🐕',
     apiName: 'Dog Walking'
   },
-  { 
-    dataService: 'pet-sitting', 
-    name: 'House Sitting', 
+  {
+    dataService: 'pet-sitting',
+    name: 'House Sitting',
     description: 'Daytime and overnight care',
     icon: '🏠',
     apiName: 'Housesitting'
   },
-  { 
-    dataService: 'drop-in', 
-    name: 'Drop-in Visits', 
+  {
+    dataService: 'drop-in',
+    name: 'Drop-in Visits',
     description: '30 or 60 minute visit',
     icon: '🦴',
     apiName: 'Drop-ins'
@@ -97,7 +97,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
   // Service selection (matching HTML form data-service values)
   const [selectedService, setSelectedService] = useState<string | null>(null);
-  
+
   // Pet counters matching booking-form.html
   const [petCounts, setPetCounts] = useState({
     dogs: 0,
@@ -172,7 +172,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       if (serviceCard) {
         setSelectedService(serviceCard.dataService);
       }
-      
+
       // Set selected dates and dateTimes
       if (initialValues.selectedDates) {
         setSelectedDates(initialValues.selectedDates);
@@ -180,7 +180,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       if (initialValues.dateTimes) {
         setDateTimes(initialValues.dateTimes);
       }
-      
+
       // Convert pets to pet counts
       if (initialValues.pets) {
         const counts = { dogs: 0, cats: 0, farm: 0, reptiles: 0, birds: 0, other: 0 };
@@ -195,7 +195,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         });
         setPetCounts(counts);
       }
-      
+
       // Set 24/7 Care
       if (initialValues.service === '24/7 Care') {
         setIs247Care(true);
@@ -212,9 +212,9 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
-    
+
     const days: Array<{ date: Date; isCurrentMonth: boolean; dateStr: string }> = [];
-    
+
     // Previous month days
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
       const date = new Date(year, month, -i);
@@ -224,7 +224,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         dateStr: date.toISOString().split('T')[0],
       });
     }
-    
+
     // Current month days
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
@@ -234,7 +234,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         dateStr: date.toISOString().split('T')[0],
       });
     }
-    
+
     // Next month days to fill grid
     const remaining = 42 - days.length;
     for (let day = 1; day <= remaining; day++) {
@@ -245,7 +245,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         dateStr: date.toISOString().split('T')[0],
       });
     }
-    
+
     return days;
   }, [currentMonth]);
 
@@ -270,10 +270,10 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
   const selectTimeSlot = (time: string, duration: 30 | 60) => {
     if (!timeModalDate) return;
-    
+
     const existing = dateTimes[timeModalDate] || [];
     const existingIndex = existing.findIndex(e => e.time === time);
-    
+
     if (existingIndex > -1) {
       // Toggle off if same duration, or replace if different
       if (existing[existingIndex].duration === duration) {
@@ -293,7 +293,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   // Convert pet counts to pets array - matching booking-form.html exactly
   const buildPetsArray = (): Array<{ name: string; species: string }> => {
     const pets: Array<{ name: string; species: string }> = [];
-    
+
     PET_TYPES.forEach(({ key, species }) => {
       const count = petCounts[key];
       for (let i = 0; i < count; i++) {
@@ -310,7 +310,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         }
       }
     });
-    
+
     // Include selected saved pets
     const selectedSaved = savedPets.filter((p) => p.selected);
     if (selectedSaved.length > 0) {
@@ -324,11 +324,11 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     if (pets.length === 0 && formValues.pets.length > 0) {
       return formValues.pets;
     }
-    
+
     if (pets.length === 0) {
       return [{ name: 'Pet', species: 'Dog' }];
     }
-    
+
     return pets;
   };
 
@@ -343,22 +343,22 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     if (!formValues.email.trim()) newErrors.email = 'Email is required';
     if (!formValues.phone.trim()) newErrors.phone = 'Phone is required';
     if (!selectedService) newErrors.service = 'Service is required';
-    
+
     const pets = buildPetsArray();
     if (pets.length === 0) {
       newErrors.pets = 'At least one pet is required';
     }
-    
+
     const isPetTaxi = selectedService === 'pet-taxi';
     const isHouseSitting = selectedService === 'pet-sitting';
-    
+
     if (isPetTaxi) {
       if (!formValues.pickupAddress?.trim()) newErrors.pickupAddress = 'Pickup address is required for Pet Taxi';
       if (!formValues.dropoffAddress?.trim()) newErrors.dropoffAddress = 'Dropoff address is required for Pet Taxi';
     } else if (!isHouseSitting) {
       if (!formValues.address?.trim()) newErrors.address = 'Service address is required';
     }
-    
+
     if (selectedDates.length === 0) {
       newErrors.dates = 'At least one date is required';
     }
@@ -392,11 +392,11 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       const sortedDates = [...selectedDates].sort();
       const firstDate = sortedDates[0];
       const lastDate = sortedDates[sortedDates.length - 1];
-      
+
       // Get first time from first date
       const firstDateTimes = dateTimes[firstDate] || [];
       const firstTime = firstDateTimes.length > 0 ? firstDateTimes[0].time : '9:00 AM';
-      
+
       // Convert 12-hour to 24-hour
       const convertTo24Hour = (time12h: string): string => {
         const [time, modifier] = time12h.split(' ');
@@ -405,25 +405,25 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         if (modifier === 'PM') hours = String(parseInt(hours, 10) + 12).padStart(2, '0');
         return `${String(hours).padStart(2, '0')}:${minutes}:00`;
       };
-      
+
       const createDateInTimezone = (dateStr: string, time24h: string): Date => {
         const [year, month, day] = dateStr.split('-').map(Number);
         const [hours, mins] = time24h.split(':').map(Number);
         const isoString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00.000Z`;
         return new Date(isoString);
       };
-      
+
       const firstTime24h = convertTo24Hour(firstTime);
       const startAt = createDateInTimezone(firstDate, firstTime24h);
-      
+
       // Get last time from last date
       const lastDateTimes = dateTimes[lastDate] || [];
-      const lastTime = lastDateTimes.length > 0 
-        ? lastDateTimes[lastDateTimes.length - 1].time 
+      const lastTime = lastDateTimes.length > 0
+        ? lastDateTimes[lastDateTimes.length - 1].time
         : '11:30 PM';
       const lastTime24h = convertTo24Hour(lastTime);
       const endAt = createDateInTimezone(lastDate, lastTime24h);
-      
+
       const finalValues: BookingFormValues = {
         ...formValues,
         service: serviceName,
@@ -434,7 +434,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
         dateTimes: dateTimes,
         smsConsent,
       };
-      
+
       await onSubmit(finalValues);
     } catch (error: any) {
       setErrors({ submit: error.message || 'Failed to save booking' });
@@ -473,19 +473,15 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   const totalPets = Object.values(petCounts).reduce((sum, count) => sum + count, 0);
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       {/* Step 1: Service Selection - Matching booking-form.html exactly */}
       <Card>
         <SectionHeader title="Choose Your Service" />
-        <div style={{ padding: tokens.spacing[4] }}>
-          <p style={{ marginBottom: tokens.spacing[4], color: tokens.colors.text.secondary }}>
+        <div className="p-4">
+          <p className="mb-4 text-text-secondary">
             Select the type of care your pet needs
           </p>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(2, 1fr)', 
-            gap: tokens.spacing[3] 
-          }}>
+          <div className="grid grid-cols-2 gap-3">
             {SERVICE_CARDS.map((service) => (
               <div
                 key={service.dataService}
@@ -505,35 +501,25 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                   }
                 }}
                 style={{
-                  padding: tokens.spacing[4],
                   border: `2px solid ${selectedService === service.dataService ? tokens.colors.primary.DEFAULT : tokens.colors.border.default}`,
-                  borderRadius: tokens.borderRadius.lg,
-                  cursor: 'pointer',
-                  textAlign: 'center',
                   backgroundColor: selectedService === service.dataService ? tokens.colors.primary[50] : 'transparent',
-                  transition: 'all 0.2s',
                 }}
+                className="p-4 rounded-lg cursor-pointer text-center transition-all duration-fast"
               >
-                <div style={{ fontSize: '32px', marginBottom: tokens.spacing[2] }}>
+                <div className="text-[32px] mb-2">
                   {service.icon}
                 </div>
-                <div style={{ 
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginBottom: tokens.spacing[1],
-                }}>
+                <div className="font-semibold mb-1">
                   {service.name}
                 </div>
-                <div style={{ 
-                  fontSize: tokens.typography.fontSize.sm[0],
-                  color: tokens.colors.text.secondary,
-                }}>
+                <div className="text-sm text-text-secondary">
                   {service.description}
                 </div>
               </div>
             ))}
           </div>
           {errors.service && (
-            <div style={{ color: tokens.colors.error.DEFAULT, marginTop: tokens.spacing[2] }}>
+            <div className="text-status-danger-text mt-2">
               {errors.service}
             </div>
           )}
@@ -544,26 +530,24 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       {savedPets.length > 0 && (
         <Card>
           <SectionHeader title="Your Pets" />
-          <div style={{ padding: tokens.spacing[4] }}>
-            <p style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0] }}>
+          <div className="p-4">
+            <p className="text-text-secondary mb-3 text-sm">
               Select which pets are included in this booking:
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+            <div className="flex flex-col gap-2">
               {savedPets.map((pet) => (
                 <button
                   key={pet.id}
                   type="button"
                   onClick={() => setSavedPets((prev) => prev.map((p) => p.id === pet.id ? { ...p, selected: !p.selected } : p))}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: tokens.spacing[3],
-                    padding: tokens.spacing[3], borderRadius: tokens.borderRadius.lg,
                     border: `1px solid ${pet.selected ? tokens.colors.accent?.primary || '#432f21' : tokens.colors.border.default}`,
                     backgroundColor: pet.selected ? (tokens.colors.accent?.tertiary || '#fef7fb') : tokens.colors.background?.primary || '#fff',
-                    cursor: 'pointer', textAlign: 'left', minHeight: '44px',
                   }}
+                  className="flex items-center gap-3 p-3 rounded-lg cursor-pointer text-left min-h-[44px]"
                 >
-                  <span style={{ fontSize: '1.2rem' }}>{pet.selected ? '\u2611' : '\u2610'}</span>
-                  <span style={{ fontWeight: 500, fontSize: tokens.typography.fontSize.sm[0] }}>
+                  <span className="text-[1.2rem]">{pet.selected ? '\u2611' : '\u2610'}</span>
+                  <span className="font-medium text-sm">
                     {pet.name} ({pet.species})
                   </span>
                 </button>
@@ -576,14 +560,14 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       {/* Step 2: Pet Selection - Matching booking-form.html exactly */}
       <Card>
         <SectionHeader title="Tell Us About Your Pet" />
-        <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-          <p style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+        <div className="p-4 flex flex-col gap-4">
+          <p className="text-text-secondary mb-2">
             Help us provide the best care
           </p>
           {PET_TYPES.map(({ key, label }) => (
-            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], justifyContent: 'space-between' }}>
-              <label style={{ flex: 1, fontSize: tokens.typography.fontSize.base[0] }}>{label}</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+            <div key={key} className="flex items-center gap-3 justify-between">
+              <label className="flex-1 text-base">{label}</label>
+              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="secondary"
@@ -610,7 +594,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
               </div>
             </div>
           ))}
-          
+
           {petCounts.other > 0 && (
             <FormRow label="Specify other pet type">
               <Input
@@ -620,20 +604,15 @@ export const BookingForm: React.FC<BookingFormProps> = ({
               />
             </FormRow>
           )}
-          
+
           {errors.pets && (
-            <div style={{ color: tokens.colors.error.DEFAULT, fontSize: tokens.typography.fontSize.sm[0] }}>
+            <div className="text-status-danger-text text-sm">
               {errors.pets}
             </div>
           )}
-          
+
           {totalPets > 0 && (
-            <div style={{ 
-              padding: tokens.spacing[3], 
-              backgroundColor: tokens.colors.primary[50], 
-              borderRadius: tokens.borderRadius.md,
-              fontSize: tokens.typography.fontSize.sm[0],
-            }}>
+            <div className="p-3 bg-accent-tertiary rounded-md text-sm">
               Total pets: {totalPets}
             </div>
           )}
@@ -643,7 +622,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       {/* Booking Type - Matching booking-form.html */}
       <Card>
         <SectionHeader title="Booking Type" />
-        <div style={{ padding: tokens.spacing[4], display: 'flex', gap: tokens.spacing[3] }}>
+        <div className="p-4 flex gap-3">
           <Button
             type="button"
             variant={bookingType === 'one-time' ? 'primary' : 'secondary'}
@@ -667,8 +646,8 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       {isHouseSitting && (
         <Card>
           <SectionHeader title="Care Option" />
-          <div style={{ padding: tokens.spacing[4] }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
+          <div className="p-4">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={is247Care}
@@ -691,18 +670,13 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       {/* Step 3: Date Selection - Calendar matching booking-form.html */}
       <Card>
         <SectionHeader title="Choose Your Dates" />
-        <div style={{ padding: tokens.spacing[4] }}>
-          <p style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[4] }}>
+        <div className="p-4">
+          <p className="text-text-secondary mb-4">
             Select the dates you need care
           </p>
-          
+
           {/* Calendar Header */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            marginBottom: tokens.spacing[4],
-          }}>
+          <div className="flex items-center justify-between mb-4">
             <Button
               type="button"
               variant="secondary"
@@ -711,7 +685,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
             >
               ←
             </Button>
-            <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+            <div className="font-semibold">
               {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </div>
             <Button
@@ -723,20 +697,11 @@ export const BookingForm: React.FC<BookingFormProps> = ({
               →
             </Button>
           </div>
-          
+
           {/* Calendar Grid */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(7, 1fr)', 
-            gap: tokens.spacing[1],
-          }}>
+          <div className="grid grid-cols-7 gap-1">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} style={{ 
-                textAlign: 'center', 
-                fontWeight: tokens.typography.fontWeight.semibold,
-                padding: tokens.spacing[2],
-                fontSize: tokens.typography.fontSize.sm[0],
-              }}>
+              <div key={day} className="text-center font-semibold p-2 text-sm">
                 {day}
               </div>
             ))}
@@ -746,33 +711,30 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                 onClick={() => day.isCurrentMonth && handleDateClick(day.dateStr)}
                 style={{
                   aspectRatio: '1',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: day.isCurrentMonth ? 'pointer' : 'default',
-                  backgroundColor: selectedDates.includes(day.dateStr) 
-                    ? tokens.colors.primary.DEFAULT 
-                    : day.isCurrentMonth 
-                      ? 'transparent' 
+                  backgroundColor: selectedDates.includes(day.dateStr)
+                    ? tokens.colors.primary.DEFAULT
+                    : day.isCurrentMonth
+                      ? 'transparent'
                       : tokens.colors.neutral[50],
                   color: selectedDates.includes(day.dateStr)
                     ? 'white'
                     : day.isCurrentMonth
                       ? tokens.colors.text.primary
                       : tokens.colors.text.secondary,
-                  borderRadius: tokens.borderRadius.md,
-                  fontWeight: selectedDates.includes(day.dateStr) 
-                    ? tokens.typography.fontWeight.semibold 
-                    : tokens.typography.fontWeight.normal,
                 }}
+                className={`flex items-center justify-center rounded-md ${
+                  day.isCurrentMonth ? 'cursor-pointer' : 'cursor-default'
+                } ${
+                  selectedDates.includes(day.dateStr) ? 'font-semibold' : 'font-normal'
+                }`}
               >
                 {day.date.getDate()}
               </div>
             ))}
           </div>
-          
+
           {errors.dates && (
-            <div style={{ color: tokens.colors.error.DEFAULT, marginTop: tokens.spacing[2] }}>
+            <div className="text-status-danger-text mt-2">
               {errors.dates}
             </div>
           )}
@@ -783,33 +745,24 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       {selectedDates.length > 0 && (
         <Card>
           <SectionHeader title="Select Times" />
-          <div style={{ padding: tokens.spacing[4] }}>
-            <p style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[4] }}>
+          <div className="p-4">
+            <p className="text-text-secondary mb-4">
               Choose the best times for your pet's care
             </p>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+
+            <div className="flex flex-col gap-3">
               {selectedDates.map(dateStr => {
                 const times = dateTimes[dateStr] || [];
                 const date = new Date(dateStr + 'T00:00:00');
                 return (
-                  <div key={dateStr} style={{
-                    padding: tokens.spacing[3],
-                    border: `1px solid ${tokens.colors.border.default}`,
-                    borderRadius: tokens.borderRadius.md,
-                  }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: tokens.spacing[2],
-                    }}>
+                  <div key={dateStr} className="p-3 border border-border-default rounded-md">
+                    <div className="flex justify-between items-center mb-2">
                       <div>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                        <div className="font-semibold">
                           {date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                         </div>
                         {times.length > 0 && (
-                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          <div className="text-sm text-text-secondary">
                             {times.map(t => `${t.time} (${t.duration} min)`).join(', ')}
                           </div>
                         )}
@@ -833,30 +786,14 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
       {/* Time Selection Modal */}
       {timeModalOpen && timeModalDate && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <Card style={{ 
-            maxWidth: '500px', 
+        <div className="fixed inset-0 flex items-center justify-center z-layer-modal" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+          <Card style={{
+            maxWidth: '500px',
             width: '90%',
             maxHeight: '80vh',
             overflow: 'auto',
           }}>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: tokens.spacing[4],
-            }}>
+            <div className="flex justify-between items-center mb-4">
               <h3>Select Times</h3>
               <Button
                 type="button"
@@ -870,8 +807,8 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                 ×
               </Button>
             </div>
-            
-            <div style={{ marginBottom: tokens.spacing[4] }}>
+
+            <div className="mb-4">
               {timeModalDate && new Date(timeModalDate + 'T00:00:00').toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
@@ -879,13 +816,8 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                 day: 'numeric'
               })}
             </div>
-            
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(3, 1fr)', 
-              gap: tokens.spacing[2],
-              marginBottom: tokens.spacing[4],
-            }}>
+
+            <div className="grid grid-cols-3 gap-2 mb-4">
               {TIME_SLOTS.map(time => {
                 const existing = dateTimes[timeModalDate]?.find(t => t.time === time);
                 return (
@@ -893,27 +825,20 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                     <div
                       onClick={() => selectTimeSlot(time, 30)}
                       style={{
-                        padding: tokens.spacing[2],
                         border: `1px solid ${existing?.duration === 30 ? tokens.colors.primary.DEFAULT : tokens.colors.border.default}`,
-                        borderRadius: tokens.borderRadius.md,
-                        cursor: 'pointer',
                         backgroundColor: existing?.duration === 30 ? tokens.colors.primary[50] : 'transparent',
-                        textAlign: 'center',
-                        marginBottom: tokens.spacing[1],
                       }}
+                      className="p-2 rounded-md cursor-pointer text-center mb-1"
                     >
                       {time} (30 min)
                     </div>
                     <div
                       onClick={() => selectTimeSlot(time, 60)}
                       style={{
-                        padding: tokens.spacing[2],
                         border: `1px solid ${existing?.duration === 60 ? tokens.colors.primary.DEFAULT : tokens.colors.border.default}`,
-                        borderRadius: tokens.borderRadius.md,
-                        cursor: 'pointer',
                         backgroundColor: existing?.duration === 60 ? tokens.colors.primary[50] : 'transparent',
-                        textAlign: 'center',
                       }}
+                      className="p-2 rounded-md cursor-pointer text-center"
                     >
                       {time} (60 min)
                     </div>
@@ -921,7 +846,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                 );
               })}
             </div>
-            
+
             <Button
               type="button"
               variant="primary"
@@ -940,11 +865,11 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       {isPetTaxi && (
         <Card>
           <SectionHeader title="Transportation Details" />
-          <div style={{ padding: tokens.spacing[4] }}>
-            <p style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[4] }}>
+          <div className="p-4">
+            <p className="text-text-secondary mb-4">
               Tell us where to pick up and drop off your pet
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div className="flex flex-col gap-4">
               <FormRow label="Pickup Address" error={errors.pickupAddress}>
                 <Input
                   value={formValues.pickupAddress || ''}
@@ -969,12 +894,12 @@ export const BookingForm: React.FC<BookingFormProps> = ({
       {/* Step 6: Contact Information - Matching booking-form.html exactly */}
       <Card>
         <SectionHeader title="Contact Information" />
-        <div style={{ padding: tokens.spacing[4] }}>
-          <p style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[4] }}>
+        <div className="p-4">
+          <p className="text-text-secondary mb-4">
             We'll use this to confirm your booking
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: tokens.spacing[4] }}>
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <FormRow label="First Name" error={errors.firstName}>
                 <Input
                   value={formValues.firstName}
@@ -992,7 +917,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                 />
               </FormRow>
             </div>
-            
+
             <FormRow label="Email Address" error={errors.email}>
               <Input
                 type="email"
@@ -1002,7 +927,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                 required
               />
             </FormRow>
-            
+
             <FormRow label="Phone Number" error={errors.phone}>
               <Input
                 type="tel"
@@ -1012,7 +937,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                 required
               />
             </FormRow>
-            
+
             {!isPetTaxi && (
               <FormRow label="Service Address" error={errors.address}>
                 <Input
@@ -1023,22 +948,14 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                 />
               </FormRow>
             )}
-            
+
             <FormRow label="Additional Notes (Optional)" error={errors.notes}>
               <textarea
                 value={formValues.notes || ''}
                 onChange={(e) => updateField('notes', e.target.value)}
                 placeholder="Any additional notes, questions or preferred sitter"
-                style={{
-                  width: '100%',
-                  minHeight: '100px',
-                  padding: tokens.spacing[3],
-                  border: `1px solid ${tokens.colors.border.default}`,
-                  borderRadius: tokens.borderRadius.md,
-                  fontSize: tokens.typography.fontSize.base[0],
-                  fontFamily: tokens.typography.fontFamily.sans.join(', '),
-                  resize: 'vertical',
-                }}
+                className="w-full min-h-[100px] p-3 border border-border-default rounded-md text-base font-sans"
+                style={{ resize: 'vertical' }}
               />
             </FormRow>
           </div>
@@ -1047,21 +964,22 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
       {/* Policy Agreement & SMS Consent */}
       <Card>
-        <div style={{ padding: tokens.spacing[4] }}>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[2], cursor: 'pointer' }}>
+        <div className="p-4">
+          <label className="flex items-start gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={smsConsent}
               onChange={(e) => setSmsConsent(e.target.checked)}
               required
-              style={{ width: '18px', height: '18px', marginTop: '2px', flexShrink: 0 }}
+              className="shrink-0"
+              style={{ width: '18px', height: '18px', marginTop: '2px' }}
             />
-            <span style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
-              I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}>Privacy Policy</a>, and I consent to receive SMS text messages from Snout Pet Care regarding my booking, including confirmations, reminders, and updates. Message and data rates may apply. Reply STOP to opt out at any time.
+            <span className="text-sm">
+              I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-accent-primary underline">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-accent-primary underline">Privacy Policy</a>, and I consent to receive SMS text messages from Snout Pet Care regarding my booking, including confirmations, reminders, and updates. Message and data rates may apply. Reply STOP to opt out at any time.
             </span>
           </label>
           {errors.consent && (
-            <div style={{ color: tokens.colors.error.DEFAULT, fontSize: tokens.typography.fontSize.xs[0], marginTop: tokens.spacing[1] }}>
+            <div className="text-status-danger-text text-xs mt-1">
               {errors.consent}
             </div>
           )}
@@ -1070,13 +988,13 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
       {/* Submit Errors */}
       {errors.submit && (
-        <Card style={{ backgroundColor: tokens.colors.error[50], padding: tokens.spacing[4] }}>
-          <div style={{ color: tokens.colors.error.DEFAULT }}>{errors.submit}</div>
+        <Card className="bg-status-danger-bg p-4">
+          <div className="text-status-danger-text">{errors.submit}</div>
         </Card>
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+      <div className="flex gap-3 justify-end">
         <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>
           Cancel
         </Button>

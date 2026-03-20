@@ -1,6 +1,6 @@
 /**
  * Sitter SRS Card Component
- * 
+ *
  * Shows sitter's Service Reliability Score, tier, and next actions
  */
 
@@ -60,12 +60,12 @@ export function SitterSRSCard() {
   // Always render the card, even on error or no data
   if (isLoading) {
     return (
-      <Card style={{ padding: tokens.spacing[4] }}>
-        <SectionHeader 
-          title="Your Level" 
+      <Card className="p-4">
+        <SectionHeader
+          title="Your Level"
           description="Service Reliability Score and tier status"
         />
-        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+        <div className="text-sm text-text-secondary">
           Loading your performance score...
         </div>
       </Card>
@@ -75,23 +75,18 @@ export function SitterSRSCard() {
   // Show empty state if no data or error
   if (error || !data) {
     return (
-      <Card style={{ padding: tokens.spacing[4] }}>
-        <SectionHeader 
-          title="Your Level" 
+      <Card className="p-4">
+        <SectionHeader
+          title="Your Level"
           description="Service Reliability Score and tier status"
         />
-        <div style={{ 
-          padding: tokens.spacing[4],
-          textAlign: 'center',
-          color: tokens.colors.text.secondary,
-          fontSize: tokens.typography.fontSize.sm[0],
-        }}>
+        <div className="p-4 text-center text-text-secondary text-sm">
           {error ? (
             <div>
-              <div style={{ marginBottom: tokens.spacing[2] }}>
+              <div className="mb-2">
                 Unable to load performance score.
               </div>
-              <div style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
+              <div className="text-xs">
                 Complete your first visits to generate a performance score.
               </div>
             </div>
@@ -118,22 +113,22 @@ export function SitterSRSCard() {
   };
 
   return (
-    <Card style={{ padding: tokens.spacing[4] }}>
-      <SectionHeader 
-        title="Your Level" 
+    <Card className="p-4">
+      <SectionHeader
+        title="Your Level"
         description="Service Reliability Score and tier status"
       />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <div className="flex flex-col gap-4">
         {/* Tier Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3] }}>
-          <Badge 
+        <div className="flex items-center gap-3">
+          <Badge
             variant="default"
-            style={{ 
+            style={{
               backgroundColor: tierColors[data.tier] || tokens.colors.neutral[500],
               color: 'white',
-              fontSize: tokens.typography.fontSize.base[0],
               padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
             }}
+            className="text-base"
           >
             {tierLabels[data.tier] || data.tier}
           </Badge>
@@ -147,30 +142,18 @@ export function SitterSRSCard() {
 
         {/* Score */}
         <div>
-          <div style={{ 
-            fontSize: tokens.typography.fontSize.xl[0],
-            fontWeight: tokens.typography.fontWeight.bold,
-            marginBottom: tokens.spacing[1],
-          }}>
+          <div className="text-xl font-bold mb-1">
             Service Reliability Score: {data.score.toFixed(1)}/100
           </div>
           {data.rolling26w && (
-            <div style={{ 
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-            }}>
+            <div className="text-sm text-text-secondary">
               26-week average: {data.rolling26w.toFixed(1)}
             </div>
           )}
         </div>
 
         {/* Breakdown */}
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: tokens.spacing[2],
-          fontSize: tokens.typography.fontSize.sm[0],
-        }}>
+        <div className="grid grid-cols-2 gap-2 text-sm">
           <div>Responsiveness: {data.breakdown.responsiveness.toFixed(1)}/20</div>
           <div>Acceptance: {data.breakdown.acceptance.toFixed(1)}/12</div>
           <div>Completion: {data.breakdown.completion.toFixed(1)}/8</div>
@@ -182,13 +165,7 @@ export function SitterSRSCard() {
 
         {/* At Risk Reason */}
         {data.atRisk && data.atRiskReason && (
-          <div style={{
-            padding: tokens.spacing[3],
-            backgroundColor: tokens.colors.error[50],
-            borderRadius: tokens.borderRadius.md,
-            fontSize: tokens.typography.fontSize.sm[0],
-            color: tokens.colors.error[700],
-          }}>
+          <div className="p-3 bg-status-danger-bg rounded-md text-sm text-status-danger-text">
             <strong>At Risk:</strong> {data.atRiskReason}
           </div>
         )}
@@ -196,19 +173,12 @@ export function SitterSRSCard() {
         {/* Next Actions */}
         {data.nextActions.length > 0 && (
           <div>
-            <div style={{ 
-              fontWeight: tokens.typography.fontWeight.semibold,
-              marginBottom: tokens.spacing[2],
-            }}>
+            <div className="font-semibold mb-2">
               Next Actions:
             </div>
-            <ul style={{ 
-              margin: 0,
-              paddingLeft: tokens.spacing[4],
-              fontSize: tokens.typography.fontSize.sm[0],
-            }}>
+            <ul className="m-0 pl-4 text-sm">
               {data.nextActions.map((action, i) => (
-                <li key={i} style={{ marginBottom: tokens.spacing[1] }}>
+                <li key={i} className="mb-1">
                   {action}
                 </li>
               ))}
@@ -219,13 +189,10 @@ export function SitterSRSCard() {
         {/* Perks */}
         {(data.perks.priority || data.perks.mentorship || data.perks.reducedOversight) && (
           <div>
-            <div style={{ 
-              fontWeight: tokens.typography.fontWeight.semibold,
-              marginBottom: tokens.spacing[2],
-            }}>
+            <div className="font-semibold mb-2">
               Perks Unlocked:
             </div>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+            <div className="text-sm">
               {data.perks.priority && '✓ Priority booking access\n'}
               {data.perks.mentorship && '✓ Mentorship opportunities\n'}
               {data.perks.reducedOversight && '✓ Reduced oversight\n'}
@@ -236,20 +203,12 @@ export function SitterSRSCard() {
 
         {/* Compensation */}
         {data.compensation && (
-          <div style={{
-            padding: tokens.spacing[3],
-            backgroundColor: 'var(--color-surface-secondary)',
-            borderRadius: tokens.borderRadius.md,
-          }}>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+          <div className="p-3 bg-surface-secondary rounded-md">
+            <div className="text-sm">
               <strong>Current Pay:</strong> ${data.compensation.basePay.toFixed(2)}/hour
             </div>
             {data.compensation.nextReviewDate && (
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-                marginTop: tokens.spacing[1],
-              }}>
+              <div className="text-sm text-text-secondary mt-1">
                 Next review: {new Date(data.compensation.nextReviewDate).toLocaleDateString()}
               </div>
             )}

@@ -1,6 +1,6 @@
 /**
  * Conversation View Component
- * 
+ *
  * Displays messages in a conversation thread
  */
 
@@ -9,7 +9,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, Button, Input, Badge, EmptyState, Skeleton, Select, Modal, Textarea } from '@/components/ui';
 import { ArrowLeft, UserPlus, Send } from 'lucide-react';
-import { tokens } from '@/lib/design-tokens';
 
 interface Message {
   id: string;
@@ -57,7 +56,7 @@ export default function ConversationView({
   const [messageText, setMessageText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   // Gate 2: Assignment state
   const [assignedSitterId, setAssignedSitterId] = useState<string | null>(null);
   const [assignedSitterName, setAssignedSitterName] = useState<string | null>(null);
@@ -268,15 +267,7 @@ export default function ConversationView({
   return (
     <Card style={{ display: 'flex', flexDirection: 'column', height: '600px' }}>
       {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: tokens.spacing[3],
-          padding: tokens.spacing[4],
-          borderBottom: `1px solid ${tokens.colors.border.default}`,
-        }}
-      >
+      <div className="flex items-center gap-3 p-4 border-b border-border-default">
         {onBack && (
           <Button
             variant="ghost"
@@ -287,30 +278,15 @@ export default function ConversationView({
             Back
           </Button>
         )}
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontWeight: tokens.typography.fontWeight.semibold,
-              fontSize: tokens.typography.fontSize.lg[0],
-              color: tokens.colors.text.primary,
-            }}
-          >
+        <div className="flex-1">
+          <div className="font-semibold text-lg text-text-primary">
             {participantName}
           </div>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-              display: 'flex',
-              alignItems: 'center',
-              gap: tokens.spacing[2],
-              flexWrap: 'wrap',
-            }}
-          >
+          <div className="text-sm text-text-secondary flex items-center gap-2 flex-wrap">
             <span>{participantPhone}</span>
             {/* Phase 4.1: Number class badge */}
             {numberClass && (
-              <Badge 
+              <Badge
                 variant={
                   numberClass === 'front_desk' ? 'default' :
                   numberClass === 'sitter' ? 'info' :
@@ -364,16 +340,7 @@ export default function ConversationView({
       </div>
 
       {/* Messages */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: tokens.spacing[4],
-          display: 'flex',
-          flexDirection: 'column',
-          gap: tokens.spacing[3],
-        }}
-      >
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
         {messages.length === 0 ? (
           <EmptyState
             icon="💬"
@@ -385,50 +352,39 @@ export default function ConversationView({
             const isOutbound = message.direction === 'outbound';
             const isBlocked = message.wasBlocked === true;
             const hasAntiPoaching = message.antiPoachingFlagged === true;
-            
+
             return (
               <div
                 key={message.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: isOutbound ? 'flex-end' : 'flex-start',
-                  marginBottom: tokens.spacing[2],
-                }}
+                className={`flex mb-2 ${isOutbound ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   style={{
                     maxWidth: '70%',
-                    padding: tokens.spacing[3],
-                    borderRadius: tokens.borderRadius.md,
                     backgroundColor: isBlocked
-                      ? tokens.colors.error[50]
+                      ? '#fef2f2'
                       : isOutbound
-                      ? tokens.colors.primary.DEFAULT
-                      : tokens.colors.background.tertiary,
-                    color: isOutbound && !isBlocked ? 'white' : tokens.colors.text.primary,
-                    border: isBlocked ? `2px solid ${tokens.colors.error[300]}` : 'none',
+                      ? '#432f21'
+                      : '#fcfbfa',
+                    color: isOutbound && !isBlocked ? 'white' : '#432f21',
+                    border: isBlocked ? '2px solid #fca5a5' : 'none',
                   }}
+                  className="p-3 rounded-md"
                 >
                   {/* Phase 4.1: Blocked message indicator */}
                   {isBlocked && (
-                    <div style={{ 
-                      marginBottom: tokens.spacing[2],
-                      padding: tokens.spacing[2],
-                      backgroundColor: tokens.colors.error[100],
-                      borderRadius: tokens.borderRadius.sm,
-                      fontSize: tokens.typography.fontSize.sm[0],
-                    }}>
+                    <div className="mb-2 p-2 bg-status-danger-bg rounded-sm text-sm">
                       {role === 'sitter' ? (
-                        <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                        <div className="font-semibold">
                           Your message could not be sent. Please avoid sharing phone numbers, emails, external links, or social handles. Use the app for all client communication.
                         </div>
                       ) : (
                         <>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                          <div className="font-semibold mb-1">
                             ⚠️ Message Blocked - Anti-Poaching Violation
                           </div>
                           {message.antiPoachingAttempt && (
-                            <div style={{ fontSize: tokens.typography.fontSize.xs[0], marginBottom: tokens.spacing[1] }}>
+                            <div className="text-xs mb-1">
                               Violation: {message.antiPoachingAttempt.violationType}
                             </div>
                           )}
@@ -440,7 +396,7 @@ export default function ConversationView({
                                 setSelectedBlockedEvent(message);
                                 setShowForceSendModal(true);
                               }}
-                              style={{ marginTop: tokens.spacing[2] }}
+                              className="mt-2"
                             >
                               Force Send
                             </Button>
@@ -449,26 +405,17 @@ export default function ConversationView({
                       )}
                     </div>
                   )}
-                  <div style={{ marginBottom: tokens.spacing[1] }}>
+                  <div className="mb-1">
                     {isBlocked && role === 'sitter'
                       ? 'Message blocked'
                       : isBlocked && message.redactedBody
                         ? message.redactedBody
                         : message.body}
                   </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.xs[0],
-                      opacity: 0.7,
-                      textAlign: 'right',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
+                  <div className="text-xs opacity-70 text-right flex justify-between items-center">
                     <span>{formatTime(message.createdAt)}</span>
                     {hasAntiPoaching && !isBlocked && (
-                      <Badge variant="warning" style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
+                      <Badge variant="warning" className="text-xs">
                         ⚠️
                       </Badge>
                     )}
@@ -482,25 +429,10 @@ export default function ConversationView({
       </div>
 
       {/* Input */}
-      <div
-        style={{
-          padding: tokens.spacing[4],
-          borderTop: `1px solid ${tokens.colors.border.default}`,
-        }}
-      >
+      <div className="p-4 border-t border-border-default">
         {/* Phase 4.2: Sitter send gating - friendly UX when outside window */}
         {role === 'sitter' && !sitterHasActiveWindow && (
-          <div
-            style={{
-              marginBottom: tokens.spacing[2],
-              padding: tokens.spacing[3],
-              backgroundColor: tokens.colors.warning[50],
-              border: `1px solid ${tokens.colors.warning[200]}`,
-              borderRadius: tokens.borderRadius.md,
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.warning[800],
-            }}
-          >
+          <div className="mb-2 p-3 bg-status-warning-bg border border-status-warning-border rounded-md text-sm text-status-warning-text">
             Messages can only be sent during your active booking windows.
             {nextUpcomingWindow && (
               <span> Your next window for this client is {new Date(nextUpcomingWindow.startAt).toLocaleString()} – {new Date(nextUpcomingWindow.endAt).toLocaleTimeString()}.</span>
@@ -508,20 +440,11 @@ export default function ConversationView({
           </div>
         )}
         {error && (
-          <div
-            style={{
-              marginBottom: tokens.spacing[2],
-              padding: tokens.spacing[2],
-              backgroundColor: tokens.colors.error[50],
-              color: tokens.colors.error[700],
-              borderRadius: tokens.borderRadius.md,
-              fontSize: tokens.typography.fontSize.sm[0],
-            }}
-          >
+          <div className="mb-2 p-2 bg-status-danger-bg text-status-danger-text rounded-md text-sm">
             {error}
           </div>
         )}
-        <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
+        <div className="flex gap-2">
           <Input
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
@@ -532,7 +455,7 @@ export default function ConversationView({
               }
             }}
             placeholder={role === 'sitter' && !sitterHasActiveWindow ? 'Messaging disabled outside booking window' : 'Type a message...'}
-            style={{ flex: 1 }}
+            className="flex-1"
             disabled={role === 'sitter' && !sitterHasActiveWindow}
           />
           <Button
@@ -557,7 +480,7 @@ export default function ConversationView({
           title={assignedSitterId ? "Reassign Sitter" : "Assign Sitter"}
           size="sm"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div className="flex flex-col gap-4">
             <Select
               label="Select Sitter"
               value={selectedSitterId}
@@ -572,15 +495,15 @@ export default function ConversationView({
             />
             {assignmentHistory.length > 0 && (
               <div>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+                <div className="text-sm font-semibold mb-2">
                   Assignment History
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], maxHeight: '200px', overflowY: 'auto' }}>
+                <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto">
                   {assignmentHistory.slice(0, 5).map((audit) => (
-                    <div key={audit.id} style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                    <div key={audit.id} className="text-xs text-text-secondary">
                       {new Date(audit.createdAt).toLocaleDateString()}: {audit.fromSitterName || 'Unassigned'} → {audit.toSitterName || 'Unassigned'}
                       {audit.reason && (
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontStyle: 'italic', marginTop: tokens.spacing[1] }}>
+                        <div className="text-xs italic mt-1">
                           Reason: {audit.reason}
                         </div>
                       )}
@@ -589,7 +512,7 @@ export default function ConversationView({
                 </div>
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[3] }}>
+            <div className="flex justify-end gap-3">
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -624,26 +547,14 @@ export default function ConversationView({
           title="Force Send Blocked Message"
           size="md"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div className="flex flex-col gap-4">
             {/* Blocked content preview (redacted) */}
             <div>
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.sm[0], 
-                fontWeight: tokens.typography.fontWeight.semibold,
-                marginBottom: tokens.spacing[2],
-              }}>
+              <div className="text-sm font-semibold mb-2">
                 Blocked Content Preview (Redacted):
               </div>
-              <Card style={{ 
-                padding: tokens.spacing[3],
-                backgroundColor: tokens.colors.error[50],
-                borderColor: tokens.colors.error[200],
-              }}>
-                <div style={{ 
-                  fontSize: tokens.typography.fontSize.sm[0],
-                  color: tokens.colors.text.secondary,
-                  fontStyle: 'italic',
-                }}>
+              <Card className="p-3 bg-status-danger-bg border-status-danger-border">
+                <div className="text-sm text-text-secondary italic">
                   {selectedBlockedEvent.redactedBody || selectedBlockedEvent.body}
                 </div>
               </Card>
@@ -652,22 +563,14 @@ export default function ConversationView({
             {/* Violation reasons list */}
             {selectedBlockedEvent.antiPoachingAttempt && (
               <div>
-                <div style={{ 
-                  fontSize: tokens.typography.fontSize.sm[0], 
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginBottom: tokens.spacing[2],
-                }}>
+                <div className="text-sm font-semibold mb-2">
                   Violation Reasons:
                 </div>
-                <div style={{ 
-                  padding: tokens.spacing[3],
-                  backgroundColor: tokens.colors.background.tertiary,
-                  borderRadius: tokens.borderRadius.md,
-                }}>
-                  <div style={{ marginBottom: tokens.spacing[2] }}>
+                <div className="p-3 bg-surface-tertiary rounded-md">
+                  <div className="mb-2">
                     <strong>Type:</strong> {selectedBlockedEvent.antiPoachingAttempt.violationType}
                   </div>
-                  <div style={{ marginBottom: tokens.spacing[2] }}>
+                  <div className="mb-2">
                     <strong>Detected Content:</strong> {selectedBlockedEvent.antiPoachingAttempt.detectedContent}
                   </div>
                   <div>
@@ -679,13 +582,8 @@ export default function ConversationView({
 
             {/* Explicit reason input (required) */}
             <div>
-              <label style={{ 
-                display: 'block',
-                fontSize: tokens.typography.fontSize.sm[0],
-                fontWeight: tokens.typography.fontWeight.semibold,
-                marginBottom: tokens.spacing[2],
-              }}>
-                Reason for Force Send <span style={{ color: tokens.colors.error.DEFAULT }}>*</span>
+              <label className="block text-sm font-semibold mb-2">
+                Reason for Force Send <span className="text-status-danger-text">*</span>
               </label>
               <Textarea
                 value={forceSendReason}
@@ -694,37 +592,24 @@ export default function ConversationView({
                 rows={4}
                 required
               />
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.xs[0],
-                color: tokens.colors.text.secondary,
-                marginTop: tokens.spacing[1],
-              }}>
+              <div className="text-xs text-text-secondary mt-1">
                 This action will be logged and audited.
               </div>
             </div>
 
             {/* Confirmation message */}
-            <div style={{ 
-              padding: tokens.spacing[3],
-              backgroundColor: tokens.colors.warning[50],
-              borderRadius: tokens.borderRadius.md,
-              border: `1px solid ${tokens.colors.warning[200]}`,
-            }}>
-              <div style={{ 
-                fontSize: tokens.typography.fontSize.sm[0],
-                fontWeight: tokens.typography.fontWeight.semibold,
-                marginBottom: tokens.spacing[1],
-              }}>
+            <div className="p-3 bg-status-warning-bg rounded-md border border-status-warning-border">
+              <div className="text-sm font-semibold mb-1">
                 ⚠️ Confirmation Required
               </div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
-                This action will override the anti-poaching block and send the message. 
+              <div className="text-sm">
+                This action will override the anti-poaching block and send the message.
                 Your reason will be logged for audit purposes.
               </div>
             </div>
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+            <div className="flex gap-3 justify-end">
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -740,7 +625,7 @@ export default function ConversationView({
                 variant="primary"
                 onClick={async () => {
                   if (!forceSendReason.trim() || !selectedBlockedEvent.id) return;
-                  
+
                   setForceSending(true);
                   try {
                     const response = await fetch(`/api/messages/events/${selectedBlockedEvent.id}/force-send`, {
@@ -775,5 +660,3 @@ export default function ConversationView({
     </Card>
   );
 }
-
-

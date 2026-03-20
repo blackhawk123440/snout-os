@@ -1,6 +1,6 @@
 /**
  * Booking Drawer Component
- * 
+ *
  * Desktop right-side drawer for booking details
  * Reuses booking detail components and logic
  */
@@ -93,27 +93,19 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
         backgroundColor: tokens.colors.background.primary,
         boxShadow: tokens.shadows.lg,
         zIndex: tokens.zIndex.modal,
-        display: 'flex',
-        flexDirection: 'column',
-        overflowY: 'auto',
       }}
+      className="flex flex-col overflow-y-auto"
     >
       {/* Header */}
       <div
+        className="p-4 flex items-center justify-between sticky top-0 z-layer-elevated"
         style={{
-          padding: tokens.spacing[4],
           borderBottom: `1px solid ${tokens.colors.border.default}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
           backgroundColor: tokens.colors.background.primary,
-          position: 'sticky',
-          top: 0,
-          zIndex: tokens.zIndex.sticky,
         }}
       >
         <div>
-          <h2 style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold, margin: 0, marginBottom: tokens.spacing[1] }}>
+          <h2 className="text-xl font-bold m-0 mb-1">
             {booking.firstName} {booking.lastName}
           </h2>
           <Badge variant={getStatusBadgeVariant(booking.status)}>
@@ -126,12 +118,12 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: tokens.spacing[4] }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex flex-col gap-4">
           {/* Schedule */}
           <Card>
             <SectionHeader title="Schedule & Service" />
-            <div style={{ padding: tokens.spacing[4] }}>
+            <div className="p-4">
               <BookingScheduleDisplay
                 service={booking.service}
                 startAt={booking.startAt}
@@ -145,29 +137,29 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           {/* Client Info */}
           <Card>
             <SectionHeader title="Client" />
-            <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+            <div className="p-4 flex flex-col gap-3">
               <div>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                <div className="text-sm text-text-secondary mb-1">
                   Name
                 </div>
-                <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                <div className="font-medium">
                   {booking.firstName} {booking.lastName}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                <div className="text-sm text-text-secondary mb-1">
                   Phone
                 </div>
-                <a href={`tel:${booking.phone}`} title="Owner/admin operational call exception" style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none' }}>
+                <a href={`tel:${booking.phone}`} title="Owner/admin operational call exception" className="text-accent-primary no-underline">
                   {booking.phone}
                 </a>
               </div>
               {booking.email && (
                 <div>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                  <div className="text-sm text-text-secondary mb-1">
                     Email
                   </div>
-                  <a href={`mailto:${booking.email}`} style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none' }}>
+                  <a href={`mailto:${booking.email}`} className="text-accent-primary no-underline">
                     {booking.email}
                   </a>
                 </div>
@@ -178,11 +170,11 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           {/* Assignment */}
           <Card>
             <SectionHeader title="Assignment" />
-            <div style={{ padding: tokens.spacing[4] }}>
+            <div className="p-4">
               {booking.sitter ? (
                 <SitterAssignmentDisplay sitter={booking.sitter} showTierBadge />
               ) : (
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                <div className="text-sm text-text-secondary">
                   No sitter assigned
                 </div>
               )}
@@ -192,16 +184,16 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           {/* Pricing */}
           <Card>
             <SectionHeader title="Pricing" />
-            <div style={{ padding: tokens.spacing[4] }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+            <div className="p-4">
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-text-secondary">
                   Total
                 </div>
-                <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+                <div className="text-xl font-bold">
                   {formatCurrency(booking.totalPrice)}
                 </div>
               </div>
-              <div style={{ marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+              <div className="mt-2 text-sm text-text-secondary">
                 Payment Status: {booking.paymentStatus}
               </div>
             </div>
@@ -211,10 +203,10 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           {booking.pets.length > 0 && (
             <Card>
               <SectionHeader title="Pets" />
-              <div style={{ padding: tokens.spacing[4] }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+              <div className="p-4">
+                <div className="flex flex-col gap-2">
                   {booking.pets.map((pet, idx) => (
-                    <div key={idx} style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+                    <div key={idx} className="text-sm">
                       {pet.name || 'Unnamed'} ({pet.species})
                     </div>
                   ))}
@@ -227,8 +219,8 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           {booking.notes && (
             <Card>
               <SectionHeader title="Notes" />
-              <div style={{ padding: tokens.spacing[4] }}>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], whiteSpace: 'pre-wrap' }}>
+              <div className="p-4">
+                <div className="text-sm whitespace-pre-wrap">
                   {booking.notes}
                 </div>
               </div>
@@ -239,12 +231,8 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
 
       {/* Actions */}
       <div
-        style={{
-          padding: tokens.spacing[4],
-          borderTop: `1px solid ${tokens.colors.border.default}`,
-          display: 'flex',
-          gap: tokens.spacing[2],
-        }}
+        className="p-4 flex gap-2"
+        style={{ borderTop: `1px solid ${tokens.colors.border.default}` }}
       >
         {onViewFull && (
           <Button variant="primary" style={{ flex: 1 }} onClick={onViewFull}>
@@ -260,4 +248,3 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
     </div>
   );
 };
-

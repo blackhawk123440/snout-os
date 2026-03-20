@@ -1,6 +1,6 @@
 /**
  * Sitter Messages Tab
- * 
+ *
  * Sitter-scoped inbox view for sitter messages
  * Shows ONLY threads where assignedSitterId === sitterId
  * NO tier content, NO tier metrics, NO tier badges
@@ -11,7 +11,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Card, Button, EmptyState, Skeleton, Badge } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 import { formatDistanceToNow } from 'date-fns';
 import { SITTER_BOUNDARY_HELPER } from '@/lib/messaging/policy-copy';
 
@@ -71,8 +70,8 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
 
   if (loading) {
     return (
-      <div style={{ padding: tokens.spacing[4] }}>
-        <Card style={{ padding: tokens.spacing[4] }}>
+      <div className="p-4">
+        <Card className="p-4">
           <Skeleton height={200} />
         </Card>
       </div>
@@ -81,8 +80,8 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
 
   if (error) {
     return (
-      <div style={{ padding: tokens.spacing[4] }}>
-        <Card style={{ padding: tokens.spacing[4] }}>
+      <div className="p-4">
+        <Card className="p-4">
           <EmptyState
             title="Error Loading Messages"
             description={error}
@@ -95,20 +94,13 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
 
   if (threads.length === 0) {
     return (
-      <div style={{ padding: tokens.spacing[4] }}>
-        <Card style={{ padding: tokens.spacing[4] }}>
-          <div style={{ marginBottom: tokens.spacing[4] }}>
-            <h2 style={{
-              fontSize: tokens.typography.fontSize.xl[0],
-              fontWeight: tokens.typography.fontWeight.bold,
-              marginBottom: tokens.spacing[2],
-            }}>
+      <div className="p-4">
+        <Card className="p-4">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold mb-2">
               Messages
             </h2>
-            <p style={{
-              color: tokens.colors.text.secondary,
-              fontSize: tokens.typography.fontSize.sm[0],
-            }}>
+            <p className="text-text-secondary text-sm">
               Conversations tied to this sitter's active work windows
             </p>
           </div>
@@ -124,33 +116,22 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
   }
 
   return (
-    <div style={{ padding: tokens.spacing[4] }}>
-      <Card style={{ padding: tokens.spacing[4] }}>
-        <div style={{ marginBottom: tokens.spacing[4] }}>
-          <h2 style={{
-            fontSize: tokens.typography.fontSize.xl[0],
-            fontWeight: tokens.typography.fontWeight.bold,
-            marginBottom: tokens.spacing[2],
-          }}>
+    <div className="p-4">
+      <Card className="p-4">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold mb-2">
             Messages ({threads.length})
           </h2>
-          <p style={{
-            color: tokens.colors.text.secondary,
-            fontSize: tokens.typography.fontSize.sm[0],
-          }}>
+          <p className="text-text-secondary text-sm">
             {SITTER_BOUNDARY_HELPER}
           </p>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+        <div className="flex flex-col gap-2">
           {threads.map((thread) => (
             <Card
               key={thread.id}
-              style={{
-                padding: tokens.spacing[3],
-                cursor: 'pointer',
-                border: `1px solid ${tokens.colors.border.default}`,
-              }}
+              className="p-3 cursor-pointer border border-border-default"
               role="button"
               tabIndex={0}
               onClick={() => window.location.href = `/messages?thread=${thread.id}&sitterId=${sitterId}`}
@@ -161,35 +142,28 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
                 }
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[2] }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex-1">
+                  <div className="font-semibold mb-1">
                     {thread.clientName}
                   </div>
                   {thread.booking && (
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    <div className="text-sm text-text-secondary mb-1">
                       {thread.booking.service} • {new Date(thread.booking.startAt).toLocaleDateString()}
                     </div>
                   )}
                   {thread.lastMessage && (
-                    <div style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      maxWidth: '100%',
-                    }}>
+                    <div className="text-sm text-text-secondary overflow-hidden text-ellipsis whitespace-nowrap max-w-full">
                       {thread.lastMessage.body.substring(0, 100)}
                       {thread.lastMessage.body.length > 100 ? '...' : ''}
                     </div>
                   )}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: tokens.spacing[1] }}>
+                <div className="flex flex-col items-end gap-1">
                   {thread.hasActiveWindow && (
                     <Badge variant="success">Active</Badge>
                   )}
-                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                  <div className="text-xs text-text-secondary">
                     {formatDistanceToNow(new Date(thread.lastMessageAt), { addSuffix: true })}
                   </div>
                 </div>
@@ -202,7 +176,7 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
           variant="secondary"
           size="md"
           onClick={() => window.location.href = `/messages?tab=inbox&sitterId=${sitterId}`}
-          style={{ marginTop: tokens.spacing[4], width: '100%' }}
+          className="mt-4 w-full"
           leftIcon={<ExternalLink className="w-4 h-4" />}
         >
           Open Full Inbox

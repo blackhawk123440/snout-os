@@ -1,6 +1,6 @@
 /**
  * Sitters Panel - Embedded in Messages tab
- * 
+ *
  * Owner can view sitter list, status, and filter threads by sitter
  */
 
@@ -10,7 +10,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, Button, Badge, Table, TableColumn, EmptyState, Skeleton } from '@/components/ui';
 import { Users } from 'lucide-react';
-import { tokens } from '@/lib/design-tokens';
 import { useSitters } from '@/lib/api/numbers-hooks';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '@/lib/api/client';
@@ -45,24 +44,24 @@ export function SittersPanel() {
   const { data: sitters = [], isLoading } = useSitters();
   const [selectedSitterId, setSelectedSitterId] = useState<string | null>(null);
   const { data: windows = [] } = useSitterWindows(selectedSitterId);
-  
+
   const activeWindows = windows.filter((w: any) => w.status === 'active');
   const futureWindows = windows.filter((w: any) => w.status === 'future');
   const pastWindows = windows.filter((w: any) => w.status === 'past');
 
   const sitterColumns: TableColumn<any>[] = [
-    { 
-      key: 'name', 
-      header: 'Sitter Name', 
-      render: (s) => s.name || s.id 
+    {
+      key: 'name',
+      header: 'Sitter Name',
+      render: (s) => s.name || s.id
     },
-    { 
-      key: 'status', 
-      header: 'Status', 
+    {
+      key: 'status',
+      header: 'Status',
       render: (s) => {
         const activeCount = activeWindows.filter((w: any) => w.sitterId === s.id).length;
         return (
-          <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+          <div className="flex gap-2 items-center">
             <Badge variant={activeCount > 0 ? 'success' : 'default'}>
               {activeCount > 0 ? `${activeCount} active` : 'Inactive'}
             </Badge>
@@ -74,7 +73,7 @@ export function SittersPanel() {
       key: 'actions',
       header: 'Actions',
       render: (s) => (
-        <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
+        <div className="flex gap-2">
           <Button
             variant="secondary"
             size="sm"
@@ -116,62 +115,57 @@ export function SittersPanel() {
 
   return (
     <div>
-      <div style={{ marginBottom: tokens.spacing[4] }}>
-        <h2 style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>
+      <div className="mb-4">
+        <h2 className="text-xl font-bold mb-2">
           Sitters
         </h2>
-        <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+        <p className="text-text-secondary text-sm">
           View sitter list, status, and threads. Click "View Threads" to see a sitter's active assignments.
         </p>
       </div>
 
-      <Card style={{ marginBottom: tokens.spacing[4] }}>
+      <Card className="mb-4">
         <Table data={sitters} columns={sitterColumns} />
       </Card>
 
       {selectedSitterId && (
         <Card>
-          <div style={{ marginBottom: tokens.spacing[3] }}>
-            <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+          <div className="mb-3">
+            <h3 className="text-lg font-semibold">
               {sitters.find((s: any) => s.id === selectedSitterId)?.name || 'Sitter'} - Assignment Windows
             </h3>
             <Button
               variant="tertiary"
               size="sm"
               onClick={() => setSelectedSitterId(null)}
-              style={{ marginTop: tokens.spacing[2] }}
+              className="mt-2"
             >
               Close
             </Button>
           </div>
 
           {activeWindows.length > 0 && (
-            <div style={{ marginBottom: tokens.spacing[4] }}>
-              <h4 style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[2] }}>
+            <div className="mb-4">
+              <h4 className="text-base font-medium mb-2">
                 Active Windows ({activeWindows.length})
               </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+              <div className="flex flex-col gap-2">
                 {activeWindows.map((w: any) => (
                   <div
                     key={w.id}
-                    style={{
-                      padding: tokens.spacing[3],
-                      border: `1px solid ${tokens.colors.border.default}`,
-                      borderRadius: tokens.radius.sm,
-                      backgroundColor: tokens.colors.success[50],
-                    }}
+                    className="p-3 border border-border-default rounded-sm bg-status-success-bg"
                   >
-                    <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                    <div className="font-medium">
                       {w.thread.client.name}
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    <div className="text-sm text-text-secondary">
                       {new Date(w.startsAt).toLocaleString()} - {new Date(w.endsAt).toLocaleString()}
                     </div>
                     <Button
                       variant="tertiary"
                       size="sm"
                       onClick={() => router.push(`/messages?tab=inbox&thread=${w.threadId}`)}
-                      style={{ marginTop: tokens.spacing[2] }}
+                      className="mt-2"
                     >
                       Open Thread
                     </Button>
@@ -182,24 +176,20 @@ export function SittersPanel() {
           )}
 
           {futureWindows.length > 0 && (
-            <div style={{ marginBottom: tokens.spacing[4] }}>
-              <h4 style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[2] }}>
+            <div className="mb-4">
+              <h4 className="text-base font-medium mb-2">
                 Future Windows ({futureWindows.length})
               </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+              <div className="flex flex-col gap-2">
                 {futureWindows.map((w: any) => (
                   <div
                     key={w.id}
-                    style={{
-                      padding: tokens.spacing[3],
-                      border: `1px solid ${tokens.colors.border.default}`,
-                      borderRadius: tokens.radius.sm,
-                    }}
+                    className="p-3 border border-border-default rounded-sm"
                   >
-                    <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                    <div className="font-medium">
                       {w.thread.client.name}
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    <div className="text-sm text-text-secondary">
                       {new Date(w.startsAt).toLocaleString()} - {new Date(w.endsAt).toLocaleString()}
                     </div>
                   </div>
@@ -210,30 +200,25 @@ export function SittersPanel() {
 
           {pastWindows.length > 0 && (
             <div>
-              <h4 style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.medium, marginBottom: tokens.spacing[2] }}>
+              <h4 className="text-base font-medium mb-2">
                 Past Windows ({pastWindows.length})
               </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+              <div className="flex flex-col gap-2">
                 {pastWindows.slice(0, 5).map((w: any) => (
                   <div
                     key={w.id}
-                    style={{
-                      padding: tokens.spacing[3],
-                      border: `1px solid ${tokens.colors.border.default}`,
-                      borderRadius: tokens.radius.sm,
-                      opacity: 0.7,
-                    }}
+                    className="p-3 border border-border-default rounded-sm opacity-70"
                   >
-                    <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                    <div className="font-medium">
                       {w.thread.client.name}
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    <div className="text-sm text-text-secondary">
                       {new Date(w.startsAt).toLocaleString()} - {new Date(w.endsAt).toLocaleString()}
                     </div>
                   </div>
                 ))}
                 {pastWindows.length > 5 && (
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                  <div className="text-sm text-text-secondary">
                     ... and {pastWindows.length - 5} more
                   </div>
                 )}

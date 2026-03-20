@@ -1,6 +1,6 @@
 /**
  * Sitter Profile Tab
- * 
+ *
  * Static identity information only - no operational content
  * Scope: Identity, contact, status, commission
  */
@@ -9,7 +9,6 @@
 
 import { Card, Button, Badge, SectionHeader } from '@/components/ui';
 import { Mail } from 'lucide-react';
-import { tokens } from '@/lib/design-tokens';
 import { SitterTierBadge } from './SitterTierBadge';
 
 interface Sitter {
@@ -38,29 +37,29 @@ export function SitterProfileTab({ sitter, isMobile }: SitterProfileTabProps) {
 
   if (isMobile) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <div className="flex flex-col gap-4">
         {/* Identity Information */}
         <Card>
           <SectionHeader title="Identity" />
-          <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div className="p-4 flex flex-col gap-4">
             <div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+              <div className="text-sm text-text-secondary mb-1">
                 Name
               </div>
-              <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+              <div className="font-semibold text-base">
                 {sitter.firstName} {sitter.lastName}
               </div>
             </div>
             {sitter.currentTier && (
               <div>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                <div className="text-sm text-text-secondary mb-1">
                   Tier
                 </div>
                 <SitterTierBadge tier={sitter.currentTier} />
               </div>
             )}
             <div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+              <div className="text-sm text-text-secondary mb-1">
                 Status
               </div>
               <Badge variant={sitter.isActive ? "success" : "error"}>
@@ -73,20 +72,20 @@ export function SitterProfileTab({ sitter, isMobile }: SitterProfileTabProps) {
         {/* Contact Information */}
         <Card>
           <SectionHeader title="Contact" />
-          <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div className="p-4 flex flex-col gap-4">
             <div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+              <div className="text-sm text-text-secondary mb-1">
                 Email
               </div>
-              <a href={`mailto:${sitter.email}`} style={{ color: tokens.colors.primary.DEFAULT, textDecoration: 'none' }}>
+              <a href={`mailto:${sitter.email}`} className="text-accent-primary no-underline">
                 {sitter.email}
               </a>
             </div>
             <div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+              <div className="text-sm text-text-secondary mb-1">
                 Phone
               </div>
-              <div style={{ color: tokens.colors.text.primary }}>
+              <div className="text-text-primary">
                 {safePhone}
               </div>
             </div>
@@ -96,12 +95,12 @@ export function SitterProfileTab({ sitter, isMobile }: SitterProfileTabProps) {
         {/* Commission */}
         <Card>
           <SectionHeader title="Commission" />
-          <div style={{ padding: tokens.spacing[4] }}>
+          <div className="p-4">
             <div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+              <div className="text-sm text-text-secondary mb-1">
                 Commission Rate
               </div>
-              <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+              <div className="font-semibold text-base">
                 {sitter.commissionPercentage || 80}%
               </div>
             </div>
@@ -113,34 +112,29 @@ export function SitterProfileTab({ sitter, isMobile }: SitterProfileTabProps) {
 
   // Desktop layout - single column, consistent card widths, aligned to baseline grid
   return (
-    <div style={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      gap: tokens.spacing[4],
-      maxWidth: '800px',
-    }}>
+    <div className="flex flex-col gap-4 max-w-[800px]">
       {/* Identity Information */}
       <Card>
         <SectionHeader title="Identity" />
-        <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+        <div className="p-4 flex flex-col gap-4">
           <div>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+            <div className="text-sm text-text-secondary mb-1">
               Name
             </div>
-            <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+            <div className="font-semibold text-base">
               {sitter.firstName} {sitter.lastName}
             </div>
           </div>
           {sitter.currentTier && (
             <div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+              <div className="text-sm text-text-secondary mb-1">
                 Tier
               </div>
               <SitterTierBadge tier={sitter.currentTier} />
             </div>
           )}
           <div>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+            <div className="text-sm text-text-secondary mb-1">
               Status
             </div>
             <Badge variant={sitter.isActive ? "success" : "error"}>
@@ -153,15 +147,15 @@ export function SitterProfileTab({ sitter, isMobile }: SitterProfileTabProps) {
       {/* Contact Information */}
       <Card>
         <SectionHeader title="Contact" />
-        <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+        <div className="p-4 flex flex-col gap-4">
           <div>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+            <div className="text-sm text-text-secondary mb-1">
               Email
             </div>
             <Button
               variant="secondary"
               size="sm"
-              style={{ width: '100%', justifyContent: 'flex-start' }}
+              className="w-full justify-start"
               onClick={() => window.location.href = `mailto:${sitter.email}`}
               leftIcon={<Mail className="w-4 h-4" />}
             >
@@ -169,10 +163,10 @@ export function SitterProfileTab({ sitter, isMobile }: SitterProfileTabProps) {
             </Button>
           </div>
           <div>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+            <div className="text-sm text-text-secondary mb-1">
               Phone
             </div>
-            <div style={{ color: tokens.colors.text.primary }}>
+            <div className="text-text-primary">
               {safePhone}
             </div>
           </div>
@@ -182,12 +176,12 @@ export function SitterProfileTab({ sitter, isMobile }: SitterProfileTabProps) {
       {/* Commission */}
       <Card>
         <SectionHeader title="Commission" />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div className="p-4">
           <div>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+            <div className="text-sm text-text-secondary mb-1">
               Commission Rate
             </div>
-            <div style={{ fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.base[0] }}>
+            <div className="font-semibold text-base">
               {sitter.commissionPercentage || 80}%
             </div>
           </div>

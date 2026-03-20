@@ -1,6 +1,6 @@
 /**
  * Pending Requests Component
- * 
+ *
  * Shows booking requests that require sitter action (accept/decline)
  * Highest priority section - appears at top if any exist
  */
@@ -41,27 +41,14 @@ function CountdownTimer({ expiresAt }: { expiresAt: Date }) {
 
   if (timeRemaining <= 0) {
     return (
-      <div style={{
-        padding: tokens.spacing[2],
-        backgroundColor: tokens.colors.error[50],
-        borderRadius: tokens.borderRadius.md,
-        fontSize: tokens.typography.fontSize.sm[0],
-        color: tokens.colors.error[700],
-      }}>
+      <div className="p-2 bg-status-danger-bg rounded-md text-sm text-status-danger-text">
         This request has expired
       </div>
     );
   }
 
   return (
-    <div style={{
-      padding: tokens.spacing[2],
-      backgroundColor: tokens.colors.warning[50],
-      borderRadius: tokens.borderRadius.md,
-      fontSize: tokens.typography.fontSize.sm[0],
-      fontWeight: tokens.typography.fontWeight.medium,
-      color: tokens.colors.warning[700],
-    }}>
+    <div className="p-2 bg-status-warning-bg rounded-md text-sm font-medium text-status-warning-text">
       ⏰ Response deadline: {formatDistanceToNow(expiresAt, { addSuffix: true })}
     </div>
   );
@@ -106,42 +93,20 @@ export function PendingRequests({ bookings, sitterId, showHeader = true }: Pendi
     return (
       <>
         {showHeader && (
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            marginBottom: tokens.spacing[4] 
-          }}>
-            <h2 style={{ 
-              fontSize: tokens.typography.fontSize.xl[0], 
-              fontWeight: tokens.typography.fontWeight.bold 
-            }}>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">
               Pending Requests
             </h2>
           </div>
         )}
-        <Card style={{ padding: tokens.spacing[6], textAlign: 'center' }}>
-          <div style={{ 
-            fontSize: tokens.typography.fontSize.xl[0],
-            marginBottom: tokens.spacing[2],
-          }}>
+        <Card className="p-6 text-center">
+          <div className="text-xl mb-2">
             📋
           </div>
-          <div style={{ 
-            fontSize: tokens.typography.fontSize.base[0],
-            fontWeight: tokens.typography.fontWeight.semibold,
-            marginBottom: tokens.spacing[2],
-            color: tokens.colors.text.primary,
-          }}>
+          <div className="text-base font-semibold mb-2 text-text-primary">
             No pending requests
           </div>
-          <div style={{ 
-            fontSize: tokens.typography.fontSize.sm[0],
-            color: tokens.colors.text.secondary,
-            maxWidth: '500px',
-            margin: '0 auto',
-            lineHeight: '1.5',
-          }}>
+          <div className="text-sm text-text-secondary max-w-[500px] mx-auto leading-relaxed">
             New booking requests will appear here. You can accept, decline, or message the client directly from each request.
           </div>
         </Card>
@@ -152,25 +117,17 @@ export function PendingRequests({ bookings, sitterId, showHeader = true }: Pendi
   return (
     <>
       {showHeader && (
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: tokens.spacing[4] 
-        }}>
-          <h2 style={{ 
-            fontSize: tokens.typography.fontSize.xl[0], 
-            fontWeight: tokens.typography.fontWeight.bold 
-          }}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">
             Pending Requests
           </h2>
-          <Badge variant="warning" style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+          <Badge variant="warning" className="text-sm">
             {bookings.length} {bookings.length === 1 ? 'request' : 'requests'}
           </Badge>
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+      <div className="flex flex-col gap-3">
         {bookings.map((booking) => {
           // Support both legacy sitterPoolOffer and new offerEvent
           const offer = (booking as any).offerEvent || booking.sitterPoolOffer;
@@ -180,7 +137,7 @@ export function PendingRequests({ bookings, sitterId, showHeader = true }: Pendi
           const isExpired = timeRemaining !== null && timeRemaining <= 0;
           const isProcessing = processingId === booking.id;
 
-          const clientName = booking.client 
+          const clientName = booking.client
             ? `${booking.client.firstName} ${booking.client.lastName}`
             : `${booking.firstName} ${booking.lastName}`;
 
@@ -192,28 +149,20 @@ export function PendingRequests({ bookings, sitterId, showHeader = true }: Pendi
           return (
             <div
               key={booking.id}
+              className="p-4 rounded-md"
               style={{
-                padding: tokens.spacing[4],
                 border: `2px solid ${isExpired ? tokens.colors.error[300] : tokens.colors.warning[300]}`,
-                borderRadius: tokens.borderRadius.md,
                 backgroundColor: isExpired ? tokens.colors.error[50] : tokens.colors.background.primary,
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+              <div className="flex flex-col gap-3">
                 {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="flex justify-between items-start">
                   <div>
-                    <h3 style={{ 
-                      fontSize: tokens.typography.fontSize.lg[0], 
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      marginBottom: tokens.spacing[1],
-                    }}>
+                    <h3 className="text-lg font-semibold mb-1">
                       {clientName}
                     </h3>
-                    <div style={{ 
-                      fontSize: tokens.typography.fontSize.sm[0], 
-                      color: tokens.colors.text.secondary,
-                    }}>
+                    <div className="text-sm text-text-secondary">
                       {petNames}
                     </div>
                   </div>
@@ -223,12 +172,7 @@ export function PendingRequests({ bookings, sitterId, showHeader = true }: Pendi
                 </div>
 
                 {/* Details */}
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: tokens.spacing[2],
-                  fontSize: tokens.typography.fontSize.sm[0],
-                }}>
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-2 text-sm">
                   <div>
                     <strong>Date & Time:</strong><br />
                     {format(new Date(booking.startAt), 'MMM d, yyyy')}<br />
@@ -244,11 +188,7 @@ export function PendingRequests({ bookings, sitterId, showHeader = true }: Pendi
                   </div>
                   <div>
                     <strong>Payout:</strong><br />
-                    <span style={{ 
-                      fontSize: tokens.typography.fontSize.lg[0],
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      color: tokens.colors.success.DEFAULT,
-                    }}>
+                    <span className="text-lg font-semibold text-success">
                       ${payout.toFixed(2)}
                     </span>
                   </div>
@@ -260,23 +200,13 @@ export function PendingRequests({ bookings, sitterId, showHeader = true }: Pendi
                 )}
 
                 {isExpired && (
-                  <div style={{
-                    padding: tokens.spacing[2],
-                    backgroundColor: tokens.colors.error[50],
-                    borderRadius: tokens.borderRadius.md,
-                    fontSize: tokens.typography.fontSize.sm[0],
-                    color: tokens.colors.error[700],
-                  }}>
+                  <div className="p-2 bg-status-danger-bg rounded-md text-sm text-status-danger-text">
                     This request has expired and will be re-assigned.
                   </div>
                 )}
 
                 {/* Actions */}
-                <div style={{ 
-                  display: 'flex', 
-                  gap: tokens.spacing[2],
-                  flexWrap: 'wrap',
-                }}>
+                <div className="flex gap-2 flex-wrap">
                   <Button
                     variant="secondary"
                     size="md"
