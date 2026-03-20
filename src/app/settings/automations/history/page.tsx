@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Clock } from 'lucide-react';
 import {
   PageHeader,
   Card,
@@ -122,7 +123,7 @@ export default function AutomationHistoryPage() {
           />
           <Link href="/settings/automations">
             <Button variant="ghost" size="sm">
-              <i className="fas fa-arrow-left" style={{ marginRight: tokens.spacing[1] }} />
+              <ArrowLeft className="w-3.5 h-3.5 mr-1 inline-block" />
               Back to settings
             </Button>
           </Link>
@@ -144,7 +145,7 @@ export default function AutomationHistoryPage() {
           </div>
         ) : runs.length === 0 ? (
           <EmptyState
-            icon="fa-history"
+            icon={<Clock className="w-12 h-12 text-neutral-300" />}
             title="No automation runs yet"
             description="Automation runs will appear here as they fire."
           />

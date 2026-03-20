@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Inbox, List, Calendar, CheckCircle2, Archive, Clock } from 'lucide-react';
 import {
   PageHeader,
   Card,
@@ -339,7 +340,7 @@ function SitterDashboardContent() {
                   <EmptyState
                     title="No Pending Requests"
                     description="You don't have any pending job requests"
-                    icon={<i className="fas fa-inbox" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                    icon={<Inbox className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
                   />
                 )}
               </div>
@@ -352,7 +353,7 @@ function SitterDashboardContent() {
               <Button
                 variant={viewMode === "calendar" ? "primary" : "secondary"}
                 onClick={() => setViewMode(viewMode === "calendar" ? "list" : "calendar")}
-                leftIcon={<i className={viewMode === "calendar" ? "fas fa-list" : "fas fa-calendar"} />}
+                leftIcon={viewMode === "calendar" ? <List className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
               >
                 {viewMode === "calendar" ? "List View" : "Calendar View"}
               </Button>
@@ -517,7 +518,7 @@ function SitterDashboardContent() {
                     <EmptyState
                       title="No Accepted Jobs"
                       description="You don't have any accepted jobs yet"
-                      icon={<i className="fas fa-check-circle" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                      icon={<CheckCircle2 className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
                     />
                   )}
                 </div>
@@ -569,7 +570,7 @@ function SitterDashboardContent() {
                   <EmptyState
                     title="No Archived Jobs"
                     description="You don't have any completed or cancelled jobs"
-                    icon={<i className="fas fa-archive" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                    icon={<Archive className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
                   />
                 )}
               </div>
@@ -618,7 +619,7 @@ function SitterDashboardContent() {
                   <EmptyState
                     title="No Missed Jobs"
                     description="You haven't missed any job opportunities"
-                    icon={<i className="fas fa-clock" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                    icon={<Clock className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
                   />
                 )}
               </div>

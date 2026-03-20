@@ -6,6 +6,7 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
+import { ArrowLeft, Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui';
 import {
   SitterPageHeader,
@@ -190,7 +191,7 @@ function SitterInboxContent() {
               className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-text-secondary hover:bg-surface-tertiary"
               aria-label="Back to threads"
             >
-              <i className="fas fa-arrow-left" />
+              <ArrowLeft className="h-5 w-5" />
             </button>
             <SitterPageHeader
               title={selectedThread?.client?.name || 'Message'}
@@ -521,7 +522,7 @@ function SitterInboxContent() {
                       aria-label="Add attachment"
                       className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-border-strong text-text-tertiary hover:bg-surface-secondary"
                     >
-                      <i className="fas fa-paperclip" />
+                      <Paperclip className="h-5 w-5" />
                     </button>
                     <textarea
                       value={composeMessage}

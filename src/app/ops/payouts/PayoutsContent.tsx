@@ -108,8 +108,8 @@ export function PayoutsContent() {
                     onClick={() => setStatusFilter(s)}
                     className={`rounded-lg px-4 py-2 text-sm font-medium capitalize ${
                       statusFilter === s
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        ? 'bg-surface-inverse text-white'
+                        : 'bg-surface-tertiary text-text-secondary hover:bg-surface-secondary'
                     }`}
                   >
                     {s}

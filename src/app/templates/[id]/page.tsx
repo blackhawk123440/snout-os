@@ -22,6 +22,7 @@ import {
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { ArrowLeft, Loader2, Check } from 'lucide-react';
 
 export default function EditTemplatePage() {
   const router = useRouter();
@@ -129,7 +130,7 @@ export default function EditTemplatePage() {
         description="Update your message template"
         actions={
           <Link href="/templates">
-            <Button variant="tertiary" leftIcon={<i className="fas fa-arrow-left" />}>
+            <Button variant="tertiary" leftIcon={<ArrowLeft className="w-4 h-4" />}>
               Back to Templates
             </Button>
           </Link>
@@ -253,7 +254,7 @@ export default function EditTemplatePage() {
                 variant="primary"
                 onClick={handleSave}
                 disabled={saving || !name || !type || !category || !templateKey || !body}
-                leftIcon={saving ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-save" />}
+                leftIcon={saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               >
                 {saving ? "Saving..." : "Save Changes"}
               </Button>

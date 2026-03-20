@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Check } from 'lucide-react';
 import {
   SitterCard,
   SitterCardHeader,
@@ -109,7 +110,7 @@ export default function SitterTrainingPage() {
                   <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${
                     completed[m.id] ? 'border-status-success-fill bg-status-success-fill text-text-inverse' : 'border-border-strong'
                   }`}>
-                    {completed[m.id] && <i className="fas fa-check text-xs" />}
+                    {completed[m.id] && <Check className="h-3 w-3" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className={`text-sm font-medium ${completed[m.id] ? 'text-text-tertiary line-through' : 'text-text-primary'}`}>

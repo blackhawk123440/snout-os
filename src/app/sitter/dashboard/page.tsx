@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { ChevronRight, Calendar, DollarSign, PhoneOff, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/lib/auth-client';
 import { useSitterDashboard } from '@/lib/api/sitter-dashboard-hooks';
 import { statusDotClass, statusLabel } from '@/lib/status-colors';
@@ -135,19 +136,19 @@ function SitterDashboardContent() {
                 {pendingRequests.length > 0 && (
                   <Link href="/sitter/bookings" className="flex items-center justify-between min-h-[44px] rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 hover:opacity-90 transition">
                     <span className="text-sm font-medium text-status-warning-text">{pendingRequests.length} pending request{pendingRequests.length !== 1 ? 's' : ''}</span>
-                    <i className="fas fa-chevron-right text-xs text-status-warning-text-secondary" />
+                    <ChevronRight className="h-3 w-3 text-status-warning-text-secondary" />
                   </Link>
                 )}
                 {dash.unreadMessageCount > 0 && (
                   <Link href="/sitter/inbox" className="flex items-center justify-between min-h-[44px] rounded-lg border border-border-default px-3 py-2 hover:bg-surface-secondary transition">
                     <span className="text-sm font-medium text-text-primary">{dash.unreadMessageCount} unread message{dash.unreadMessageCount !== 1 ? 's' : ''}</span>
-                    <i className="fas fa-chevron-right text-xs text-text-tertiary" />
+                    <ChevronRight className="h-3 w-3 text-text-tertiary" />
                   </Link>
                 )}
                 {reportsNeeded > 0 && (
                   <Link href="/sitter/reports/new" className="flex items-center justify-between min-h-[44px] rounded-lg border border-border-default px-3 py-2 hover:bg-surface-secondary transition">
                     <span className="text-sm font-medium text-text-primary">{reportsNeeded} report{reportsNeeded !== 1 ? 's' : ''} due</span>
-                    <i className="fas fa-chevron-right text-xs text-text-tertiary" />
+                    <ChevronRight className="h-3 w-3 text-text-tertiary" />
                   </Link>
                 )}
               </div>
@@ -234,19 +235,19 @@ function SitterDashboardContent() {
         {/* Quick Links */}
         <div className="grid grid-cols-2 gap-2">
           <Link href="/sitter/calendar" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
-            <i className="fas fa-calendar-alt text-text-tertiary text-sm" />
+            <Calendar className="h-4 w-4 text-text-tertiary" />
             <span className="text-sm font-medium text-text-primary">Calendar</span>
           </Link>
           <Link href="/sitter/earnings" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
-            <i className="fas fa-dollar-sign text-text-tertiary text-sm" />
+            <DollarSign className="h-4 w-4 text-text-tertiary" />
             <span className="text-sm font-medium text-text-primary">Earnings</span>
           </Link>
           <Link href="/sitter/callout" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
-            <i className="fas fa-phone-slash text-text-tertiary text-sm" />
+            <PhoneOff className="h-4 w-4 text-text-tertiary" />
             <span className="text-sm font-medium text-text-primary">Call out</span>
           </Link>
           <Link href="/sitter/training" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
-            <i className="fas fa-graduation-cap text-text-tertiary text-sm" />
+            <GraduationCap className="h-4 w-4 text-text-tertiary" />
             <span className="text-sm font-medium text-text-primary">Training</span>
           </Link>
         </div>

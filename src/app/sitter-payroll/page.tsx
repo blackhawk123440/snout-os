@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { RefreshCw, DollarSign, Percent, Banknote, CalendarCheck } from 'lucide-react';
 import {
   PageHeader,
   Card,
@@ -158,7 +159,7 @@ export default function SitterPayrollPage() {
           <Button
             variant="tertiary"
             onClick={() => fetchPayrollData(sitterId)}
-            leftIcon={<i className="fas fa-sync-alt" />}
+            leftIcon={<RefreshCw className="h-4 w-4" />}
           >
             Refresh
           </Button>
@@ -173,28 +174,28 @@ export default function SitterPayrollPage() {
               <StatCard
                 label="Current Period Earnings"
                 value={formatCurrency(payrollData.currentPeriod.totalEarnings)}
-                icon={<i className="fas fa-dollar-sign" />}
+                icon={<DollarSign className="h-4 w-4" />}
               />
             </GridCol>
             <GridCol span={12} md={4}>
               <StatCard
                 label="Commission"
                 value={formatCurrency(payrollData.currentPeriod.commissionAmount)}
-                icon={<i className="fas fa-percent" />}
+                icon={<Percent className="h-4 w-4" />}
               />
             </GridCol>
             <GridCol span={12} md={4}>
               <StatCard
                 label="Net Payout"
                 value={formatCurrency(payrollData.currentPeriod.netPayout)}
-                icon={<i className="fas fa-money-bill-wave" />}
+                icon={<Banknote className="h-4 w-4" />}
               />
             </GridCol>
             <GridCol span={12} md={4}>
               <StatCard
                 label="Bookings"
                 value={payrollData.currentPeriod.bookingCount}
-                icon={<i className="fas fa-calendar-check" />}
+                icon={<CalendarCheck className="h-4 w-4" />}
               />
             </GridCol>
             </Grid>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { DollarSign, Clock, TrendingUp, FileText } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -170,22 +171,22 @@ export default function FinancePage() {
                 <AppStatCard
                   label="This month"
                   value={`$${data.totalCollectedThisMonth.toLocaleString()}`}
-                  icon={<i className="fas fa-dollar-sign" />}
+                  icon={<DollarSign size={16} />}
                 />
                 <AppStatCard
                   label="Outstanding"
                   value={`$${data.totalOutstanding.toLocaleString()}`}
-                  icon={<i className="fas fa-clock" />}
+                  icon={<Clock size={16} />}
                 />
                 <AppStatCard
                   label="Collection rate"
                   value={`${data.collectionRate}%`}
-                  icon={<i className="fas fa-chart-line" />}
+                  icon={<TrendingUp size={16} />}
                 />
                 <AppStatCard
                   label="Unpaid invoices"
                   value={String(data.outstandingCount)}
-                  icon={<i className="fas fa-file-invoice" />}
+                  icon={<FileText size={16} />}
                 />
               </div>
 

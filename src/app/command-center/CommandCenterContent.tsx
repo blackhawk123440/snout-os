@@ -17,6 +17,7 @@ import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { KpiGrid } from '@/components/app/KpiGrid';
 import { motion } from 'framer-motion';
+import { CalendarPlus, CheckCircle2, DollarSign, MessageCircle } from 'lucide-react';
 
 interface Stats {
   bookingsCreated: number;
@@ -368,28 +369,28 @@ export function CommandCenterContent() {
                   value: stats?.bookingsCreated ?? '—',
                   delta: stats?.trends?.bookingsCreated,
                   href: '/bookings',
-                  icon: <i className="fas fa-calendar-plus" />,
+                  icon: <CalendarPlus className="w-4 h-4" />,
                 },
                 {
                   label: `Visits completed (${range})`,
                   value: stats?.visitsCompleted ?? '—',
                   delta: stats?.trends?.visitsCompleted,
                   href: '/bookings?status=completed',
-                  icon: <i className="fas fa-check-circle" />,
+                  icon: <CheckCircle2 className="w-4 h-4" />,
                 },
                 {
                   label: `Revenue (${range})`,
                   value: stats?.revenue != null ? `$${stats.revenue.toFixed(0)}` : '—',
                   delta: stats?.trends?.revenue,
                   href: '/ops/payments',
-                  icon: <i className="fas fa-dollar-sign" />,
+                  icon: <DollarSign className="w-4 h-4" />,
                 },
                 {
                   label: `Messages sent (${range})`,
                   value: stats?.messagesSent ?? '—',
                   delta: stats?.trends?.messagesSent,
                   href: '/messages',
-                  icon: <i className="fas fa-comment" />,
+                  icon: <MessageCircle className="w-4 h-4" />,
                 },
               ]}
             />

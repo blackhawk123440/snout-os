@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Clock, Calendar, AlertCircle, Info } from 'lucide-react';
 import {
   PageHeader,
   Card,
@@ -130,7 +131,7 @@ export default function AutomationLedgerPage() {
         description="View automation execution history and failures"
         actions={
           <Link href="/settings">
-            <Button variant="tertiary" leftIcon={<i className="fas fa-arrow-left" />}>
+            <Button variant="tertiary" leftIcon={<ArrowLeft className="w-4 h-4" />}>
               Back to Settings
             </Button>
           </Link>
@@ -227,7 +228,7 @@ export default function AutomationLedgerPage() {
                     ? "Try adjusting your filters"
                     : "Automation runs will appear here once automations start executing"
                 }
-                icon={<i className="fas fa-history" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                icon={<Clock className="w-12 h-12 text-neutral-300" />}
               />
             </div>
           ) : (
@@ -251,7 +252,7 @@ export default function AutomationLedgerPage() {
                     
                     {run.booking && (
                       <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                        <i className="fas fa-calendar" style={{ marginRight: tokens.spacing[1] }} />
+                        <Calendar className="w-3.5 h-3.5 mr-1 inline-block" />
                         Booking: {run.booking.firstName} {run.booking.lastName} - {run.booking.service}
                         {run.bookingId && (
                           <Link
@@ -280,7 +281,7 @@ export default function AutomationLedgerPage() {
                               marginBottom: tokens.spacing[1],
                             }}
                           >
-                            <i className="fas fa-exclamation-circle" style={{ marginRight: tokens.spacing[1] }} />
+                            <AlertCircle className="w-3.5 h-3.5 mr-1 inline-block" />
                             Error:
                           </div>
                           <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.error[700], whiteSpace: 'pre-wrap' }}>
@@ -300,7 +301,7 @@ export default function AutomationLedgerPage() {
                             fontWeight: tokens.typography.fontWeight.medium,
                           }}
                         >
-                          <i className="fas fa-info-circle" style={{ marginRight: tokens.spacing[1] }} />
+                          <Info className="w-3.5 h-3.5 mr-1 inline-block" />
                           View Details
                         </summary>
                         <div

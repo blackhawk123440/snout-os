@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { useSitterReportDetail, useUpdateSitterReport } from '@/lib/api/sitter-portal-hooks';
@@ -50,7 +51,7 @@ export default function SitterReportEditPage() {
       <div className="min-h-screen bg-surface-secondary">
         <div className="flex items-center gap-2 border-b border-border-default bg-surface-primary px-4 py-3">
           <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/sitter/reports')} className="rounded-lg p-2 text-text-secondary hover:bg-surface-tertiary" aria-label="Back">
-            <i className="fas fa-arrow-left" />
+            <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-lg font-semibold text-text-primary">Edit report</h1>
         </div>
@@ -65,7 +66,7 @@ export default function SitterReportEditPage() {
     <div className="min-h-screen bg-surface-secondary">
       <div className="flex items-center gap-2 border-b border-border-default bg-surface-primary px-4 py-3">
         <Button type="button" variant="secondary" size="sm" onClick={() => router.push('/sitter/reports')} className="rounded-lg p-2 text-text-secondary hover:bg-surface-tertiary" aria-label="Back">
-          <i className="fas fa-arrow-left" />
+          <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-lg font-semibold text-text-primary">Edit report</h1>
       </div>

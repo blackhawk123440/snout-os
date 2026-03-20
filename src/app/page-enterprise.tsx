@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader, StatCard, Card, EmptyState } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { CalendarCheck, Users, DollarSign, Heart } from 'lucide-react';
 
 interface DashboardStats {
   totalBookings: number;
@@ -82,22 +83,22 @@ export default function DashboardHomePage() {
         <StatCard
           label="Active Bookings"
           value={loading ? '...' : stats.totalBookings}
-          icon={<i className="fas fa-calendar-check" />}
+          icon={<CalendarCheck className="w-4 h-4" />}
         />
         <StatCard
           label="Active Sitters"
           value={loading ? '...' : stats.activeSitters}
-          icon={<i className="fas fa-user-friends" />}
+          icon={<Users className="w-4 h-4" />}
         />
         <StatCard
           label="Total Revenue"
           value={loading ? '...' : `$${stats.totalRevenue.toFixed(2)}`}
-          icon={<i className="fas fa-dollar-sign" />}
+          icon={<DollarSign className="w-4 h-4" />}
         />
         <StatCard
           label="Happy Clients"
           value={loading ? '...' : stats.happyClients}
-          icon={<i className="fas fa-smile" />}
+          icon={<Heart className="w-4 h-4" />}
         />
       </div>
 

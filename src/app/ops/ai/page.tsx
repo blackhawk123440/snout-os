@@ -210,8 +210,8 @@ export default function OpsAIPage() {
                     role="switch"
                     aria-checked={settings.enabled}
                     onClick={toggleEnabled}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 ${
-                      settings.enabled ? 'bg-slate-700' : 'bg-gray-200'
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-text-tertiary focus:ring-offset-2 ${
+                      settings.enabled ? 'bg-text-secondary' : 'bg-gray-200'
                     }`}
                   >
                     <span
@@ -242,8 +242,8 @@ export default function OpsAIPage() {
                     role="switch"
                     aria-checked={settings.hardStop}
                     onClick={toggleHardStop}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 ${
-                      settings.hardStop ? 'bg-slate-700' : 'bg-gray-200'
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-text-tertiary focus:ring-offset-2 ${
+                      settings.hardStop ? 'bg-text-secondary' : 'bg-gray-200'
                     }`}
                   >
                     <span
@@ -315,11 +315,11 @@ export default function OpsAIPage() {
                       <div className="min-w-0 flex-1">
                         <span className="font-medium">{t.key}</span>
                         <span className="ml-2 text-neutral-500">v{t.version}</span>
-                        <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${t.scope === 'org' ? 'bg-slate-200 text-slate-700' : 'bg-neutral-100 text-neutral-600'}`}>
+                        <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${t.scope === 'org' ? 'bg-surface-tertiary text-text-secondary' : 'bg-neutral-100 text-neutral-600'}`}>
                           {t.scope}
                         </span>
                         {t.active && (
-                          <span className="ml-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs text-slate-700">Active</span>
+                          <span className="ml-2 rounded bg-surface-tertiary px-1.5 py-0.5 text-xs text-text-secondary">Active</span>
                         )}
                         <p className="mt-1 truncate text-neutral-500">{t.template.slice(0, 80)}{t.template.length > 80 ? '…' : ''}</p>
                       </div>

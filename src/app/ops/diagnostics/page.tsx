@@ -27,7 +27,7 @@ export default function OpsDiagnosticsPage() {
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {DIAGNOSTICS_LINKS.map((item) => (
               <Card key={item.href}>
-                <p className="text-sm font-semibold text-slate-900">{item.label}</p>
+                <p className="text-sm font-semibold text-text-primary">{item.label}</p>
                 <div className="mt-3">
                   <Link href={item.href}>
                     <Button variant="secondary" size="sm">

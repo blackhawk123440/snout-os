@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Wifi } from 'lucide-react';
 
 /**
  * Offline fallback page shown when user navigates while offline.
@@ -9,7 +10,7 @@ export default function OfflinePage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-4">
       <div className="text-center">
-        <i className="fas fa-wifi text-4xl text-amber-500" />
+        <Wifi className="w-10 h-10 text-amber-500" />
         <h1 className="mt-4 text-xl font-semibold text-neutral-900">You&apos;re offline</h1>
         <p className="mt-2 text-sm text-neutral-600">
           Check your connection and try again. If you were viewing Today, your cached data may still be available.

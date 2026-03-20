@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Download, RefreshCw } from 'lucide-react';
 import {
   Card,
   Button,
@@ -237,7 +238,7 @@ export default function PayrollPage() {
             variant="tertiary"
             size="sm"
             onClick={() => handleExportCSV(r.id)}
-            leftIcon={<i className="fas fa-download" />}
+            leftIcon={<Download size={14} />}
           >
             Export
           </Button>
@@ -257,7 +258,7 @@ export default function PayrollPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                leftIcon={<i className="fas fa-download" />}
+                leftIcon={<Download size={14} />}
                 onClick={() => handleExportCSV()}
               >
                 Export
@@ -267,7 +268,7 @@ export default function PayrollPage() {
                 size="sm"
                 onClick={fetchPayroll}
                 disabled={loading}
-                leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
+                leftIcon={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}
               >
                 Refresh
               </Button>
@@ -277,7 +278,7 @@ export default function PayrollPage() {
 
       <Section title="Pay period summary">
         <div className="mb-4">
-          <Card className="border-2 border-slate-200 bg-slate-50/50" style={{ padding: tokens.spacing[4] }}>
+          <Card className="border-2 border-border-default bg-surface-secondary/50" style={{ padding: tokens.spacing[4] }}>
             <Grid gap={4}>
               <GridCol span={12} md={5}>
                 <div style={{ marginBottom: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
@@ -323,7 +324,7 @@ export default function PayrollPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+            className="rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-text-primary"
             aria-label="Filter by status"
           >
             <option value="all">All statuses</option>
@@ -352,7 +353,7 @@ export default function PayrollPage() {
               columns={runColumns}
               data={filteredRuns}
               emptyMessage="No payroll runs found"
-              className="[&_tbody_tr]:border-b [&_tbody_tr:hover]:bg-slate-50 [&_tbody_td]:py-3"
+              className="[&_tbody_tr]:border-b [&_tbody_tr:hover]:bg-surface-secondary [&_tbody_td]:py-3"
             />
           </Card>
         )}
@@ -400,7 +401,7 @@ export default function PayrollPage() {
             </Grid>
 
             <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>Sitter payout rows</div>
-            <div className="rounded-lg border border-slate-200 overflow-hidden">
+            <div className="rounded-lg border border-border-default overflow-hidden">
               <Table
                 columns={[
                   { key: 'sitter', header: 'Sitter', render: (s) => <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>{s.sitterName}</span> },
@@ -443,7 +444,7 @@ export default function PayrollPage() {
               </>
             )}
 
-            <Button variant="primary" size="sm" onClick={() => selectedRunId && handleExportCSV(selectedRunId)} leftIcon={<i className="fas fa-download" />}>
+            <Button variant="primary" size="sm" onClick={() => selectedRunId && handleExportCSV(selectedRunId)} leftIcon={<Download size={14} />}>
               Export this period
             </Button>
           </Flex>

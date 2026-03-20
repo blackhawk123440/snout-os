@@ -14,6 +14,7 @@
 
 import { useState } from 'react';
 import React from 'react';
+import { MoreVertical, Eye, ArrowLeftRight, UserPlus, Undo2, Ban, CheckCircle2, Trash2, UserX } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader, Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Textarea, Tooltip, Drawer, DropdownMenu, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, IconButton } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
@@ -385,7 +386,7 @@ export default function NumbersPage() {
           <DropdownMenu
             trigger={
               <IconButton
-                icon={<i className="fas fa-ellipsis-v" />}
+                icon={<MoreVertical size={16} />}
                 variant="ghost"
                 size="sm"
                 aria-label="Actions menu"
@@ -397,46 +398,46 @@ export default function NumbersPage() {
               {renderActionMenuItem('view-details', 'View Details', n, () => {
                 setSelectedNumber(n);
                 setShowDetailsDrawer(n.id);
-              }, <i className="fas fa-eye" />)}
+              }, <Eye size={14} />)}
               {renderActionMenuItem('change-class', 'Change Class', n, () => {
                 setSelectedNumber(n);
                 setChangeClassForm({ class: n.class });
                 setShowChangeClassModal(n.id);
-              }, <i className="fas fa-exchange-alt" />)}
+              }, <ArrowLeftRight size={14} />)}
               {renderActionMenuItem('assign-sitter', 'Assign/Reassign Sitter', n, () => {
                 setSelectedNumber(n);
                 setAssignForm({ sitterId: n.assignedSitterId || '' });
                 setShowAssignModal(n.id);
-              }, <i className="fas fa-user-plus" />)}
+              }, <UserPlus size={14} />)}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup label="Lifecycle">
               {renderActionMenuItem('release-to-pool', 'Release to Pool', n, () => {
                 setSelectedNumber(n);
                 setShowReleaseToPoolModal(n.id);
-              }, <i className="fas fa-undo" />)}
+              }, <Undo2 size={14} />)}
               {renderActionMenuItem('quarantine', 'Quarantine', n, () => {
                 setSelectedNumber(n);
                 setShowQuarantineModal(n.id);
-              }, <i className="fas fa-ban" />)}
+              }, <Ban size={14} />)}
               {renderActionMenuItem('restore', 'Restore', n, () => {
                 setSelectedNumber(n);
                 setShowReleaseModal(n.id);
-              }, <i className="fas fa-check-circle" />)}
+              }, <CheckCircle2 size={14} />)}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup label="Danger Zone">
               {renderActionMenuItem('release-from-twilio', 'Release from Twilio', n, () => {
                 setSelectedNumber(n);
                 setShowReleaseFromTwilioModal(n.id);
-              }, <i className="fas fa-trash-alt" />)}
+              }, <Trash2 size={14} />)}
               {n.class === 'sitter' && n.assignedSitterId && (
                 <DropdownMenuItem
                   onClick={() => {
                     setShowDeactivateSitterModal(n.assignedSitterId!);
                   }}
                   variant="danger"
-                  icon={<i className="fas fa-user-slash" />}
+                  icon={<UserX size={14} />}
                 >
                   Deactivate Sitter
                 </DropdownMenuItem>

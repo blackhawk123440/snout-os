@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { CalendarCheck, Clock, CreditCard, Bell, Star, Zap, History } from 'lucide-react';
 import {
   PageHeader,
   Card,
@@ -25,12 +26,12 @@ interface AutomationItem {
   sendToOwner: boolean;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  booking: 'fa-calendar-check',
-  reminder: 'fa-clock',
-  payment: 'fa-credit-card',
-  notification: 'fa-bell',
-  review: 'fa-star',
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  booking: <CalendarCheck className="w-3.5 h-3.5" />,
+  reminder: <Clock className="w-3.5 h-3.5" />,
+  payment: <CreditCard className="w-3.5 h-3.5" />,
+  notification: <Bell className="w-3.5 h-3.5" />,
+  review: <Star className="w-3.5 h-3.5" />,
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -131,7 +132,7 @@ export default function AutomationSettingsPage() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[1] }}>
-                      <i className={`fas ${CATEGORY_ICONS[automation.category] || 'fa-bolt'}`} style={{ color: tokens.colors.primary.DEFAULT, fontSize: 14 }} />
+                      <span style={{ color: tokens.colors.primary.DEFAULT }}>{CATEGORY_ICONS[automation.category] || <Zap className="w-3.5 h-3.5" />}</span>
                       <span style={{ fontWeight: 600, fontSize: tokens.typography.fontSize.base[0] }}>
                         {automation.name}
                       </span>
@@ -178,7 +179,7 @@ export default function AutomationSettingsPage() {
           </Button>
           <Link href="/settings/automations/history">
             <Button variant="ghost">
-              <i className="fas fa-history" style={{ marginRight: tokens.spacing[2] }} />
+              <History className="w-4 h-4 mr-2 inline-block" />
               View run history
             </Button>
           </Link>

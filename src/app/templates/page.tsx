@@ -23,6 +23,7 @@ import {
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { tokens } from '@/lib/design-tokens';
+import { Plus, ClipboardList } from 'lucide-react';
 
 interface Template {
   id: string;
@@ -107,7 +108,7 @@ export default function TemplatesPage() {
         description="Manage all message templates"
         actions={
           <Link href="/templates/new">
-            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+            <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />}>
               Create Template
             </Button>
           </Link>
@@ -167,7 +168,7 @@ export default function TemplatesPage() {
           <EmptyState
             title="No Templates Yet"
             description="Create your first message template"
-            icon={<i className="fas fa-file-alt" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            icon={<ClipboardList className="w-12 h-12 text-neutral-300" />}
             action={{
               label: "Create Template",
               onClick: () => {

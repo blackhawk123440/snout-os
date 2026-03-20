@@ -8,6 +8,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
+import { Filter, Search, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -595,7 +596,7 @@ function CalendarPageContent() {
                       </span>
                       {inConflict && (
                         <span style={{ color: tokens.colors.error.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }}>
-                          <i className="fas fa-exclamation-circle" /> Conflict
+                          <AlertCircle className="inline h-3 w-3" /> Conflict
                         </span>
                       )}
                     </div>
@@ -720,7 +721,7 @@ function CalendarPageContent() {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        {inConflict && <i className="fas fa-exclamation-circle" style={{ color: tokens.colors.error.DEFAULT, flexShrink: 0 }} />}
+                        {inConflict && <AlertCircle className="shrink-0" style={{ color: tokens.colors.error.DEFAULT }} size={14} />}
                         <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatTime(booking.startAt)}</span>
                       </div>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -871,13 +872,13 @@ function CalendarPageContent() {
             <Flex align="center" gap={1.5}>
               {isMobile && (
                 <IconButton
-                  icon={<i className="fas fa-filter" />}
+                  icon={<Filter size={16} />}
                   onClick={() => setShowFiltersDrawer(true)}
                   aria-label="Open filters"
                 />
               )}
               <IconButton
-                icon={<i className="fas fa-search" />}
+                icon={<Search size={16} />}
                 onClick={openCommandPalette}
                 aria-label="Open command palette"
               />
@@ -913,7 +914,7 @@ function CalendarPageContent() {
                 <Flex align="center" justify="space-between" wrap gap={3}>
                   <Flex align="center" gap={2}>
                     <IconButton
-                      icon={<i className="fas fa-chevron-left" />}
+                      icon={<ChevronLeft size={16} />}
                       onClick={() => {
                         const prev = new Date(currentDate);
                         if (viewMode === 'month') prev.setMonth(prev.getMonth() - 1);
@@ -934,7 +935,7 @@ function CalendarPageContent() {
                       {periodLabel}
                     </span>
                     <IconButton
-                      icon={<i className="fas fa-chevron-right" />}
+                      icon={<ChevronRight size={16} />}
                       onClick={() => {
                         const next = new Date(currentDate);
                         if (viewMode === 'month') next.setMonth(next.getMonth() + 1);
@@ -993,7 +994,7 @@ function CalendarPageContent() {
                 {isMobile ? (
                   <Flex align="center" gap={2}>
                     <Button variant="tertiary" size="sm" onClick={() => setShowFiltersDrawer(true)}>
-                      <i className="fas fa-filter" style={{ marginRight: tokens.spacing[1] }} />
+                      <Filter size={14} className="mr-1 inline" />
                       Filters
                     </Button>
                   </Flex>

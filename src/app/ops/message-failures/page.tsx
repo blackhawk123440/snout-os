@@ -130,8 +130,8 @@ export default function MessageFailuresPage() {
                 mobileOrder: 1,
                 render: (row) => (
                   <div>
-                    <p className="font-medium text-slate-900">{row.client?.name ?? 'Unknown client'}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-medium text-text-primary">{row.client?.name ?? 'Unknown client'}</p>
+                    <p className="text-xs text-text-tertiary">
                       {row.sitter ? `Sitter: ${row.sitter.name}` : 'No sitter'}
                     </p>
                   </div>
@@ -145,8 +145,8 @@ export default function MessageFailuresPage() {
                 hideBelow: 'md',
                 render: (row) => (
                   <div className="max-w-[520px]">
-                    <p className="line-clamp-2 text-sm text-slate-700">{row.body}</p>
-                    <p className="line-clamp-2 text-xs text-slate-500">{row.error}</p>
+                    <p className="line-clamp-2 text-sm text-text-secondary">{row.body}</p>
+                    <p className="line-clamp-2 text-xs text-text-tertiary">{row.error}</p>
                   </div>
                 ),
               },
@@ -157,7 +157,7 @@ export default function MessageFailuresPage() {
                 mobileOrder: 3,
                 hideBelow: 'lg',
                 render: (row) => (
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-text-tertiary">
                     {new Date(row.createdAt).toLocaleString()} · Attempt {row.attemptCount}
                   </span>
                 ),

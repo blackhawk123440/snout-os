@@ -22,6 +22,7 @@ import {
   useToast,
 } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
+import { CalendarCheck, Users, DollarSign, AlertTriangle } from 'lucide-react';
 
 interface Booking {
   id: string;
@@ -289,22 +290,22 @@ export default function TodayBoard({
         <StatCard
           label="Today's Bookings"
           value={todayBoardData.stats.todayCount}
-          icon={<i className="fas fa-calendar-check" />}
+          icon={<CalendarCheck className="w-4 h-4" />}
         />
         <StatCard
           label="Unassigned"
           value={todayBoardData.stats.unassignedCount}
-          icon={<i className="fas fa-user-times" />}
+          icon={<Users className="w-4 h-4" />}
         />
         <StatCard
           label="Unpaid"
           value={todayBoardData.stats.unpaidCount}
-          icon={<i className="fas fa-dollar-sign" />}
+          icon={<DollarSign className="w-4 h-4" />}
         />
         <StatCard
           label="At Risk"
           value={todayBoardData.stats.atRiskCount}
-          icon={<i className="fas fa-exclamation-triangle" />}
+          icon={<AlertTriangle className="w-4 h-4" />}
         />
       </div>
 
@@ -383,7 +384,7 @@ export default function TodayBoard({
        todayBoardData.atRisk.length === 0 && (
         <Card>
           <div style={{ textAlign: 'center', padding: tokens.spacing[8] }}>
-            <i className="fas fa-calendar-check" style={{ fontSize: '3rem', color: tokens.colors.neutral[300], marginBottom: tokens.spacing[4] }} />
+            <CalendarCheck className="w-12 h-12 text-neutral-300 mb-4" />
             <div style={{ color: tokens.colors.text.secondary }}>
               No bookings for today. Great job!
             </div>

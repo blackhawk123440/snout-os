@@ -11,6 +11,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Building2, Palette, ConciergeBell, Tag, Bell, Layers, Bot, Plug, SlidersHorizontal } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Tabs,
@@ -133,18 +134,18 @@ function sectionLabel(id: SettingsSection): string {
 }
 
 function sectionIcon(id: SettingsSection): React.ReactNode {
-  const icons: Record<SettingsSection, string> = {
-    business: 'fa-building',
-    branding: 'fa-palette',
-    services: 'fa-concierge-bell',
-    pricing: 'fa-tag',
-    notifications: 'fa-bell',
-    tiers: 'fa-layer-group',
-    ai: 'fa-robot',
-    integrations: 'fa-plug',
-    advanced: 'fa-sliders-h',
+  const icons: Record<SettingsSection, React.ReactNode> = {
+    business: <Building2 className="w-4 h-4" />,
+    branding: <Palette className="w-4 h-4" />,
+    services: <ConciergeBell className="w-4 h-4" />,
+    pricing: <Tag className="w-4 h-4" />,
+    notifications: <Bell className="w-4 h-4" />,
+    tiers: <Layers className="w-4 h-4" />,
+    ai: <Bot className="w-4 h-4" />,
+    integrations: <Plug className="w-4 h-4" />,
+    advanced: <SlidersHorizontal className="w-4 h-4" />,
   };
-  return <i className={`fas ${icons[id]}`} />;
+  return icons[id];
 }
 
 function SectionContent({ section }: { section: SettingsSection }) {
@@ -699,7 +700,7 @@ function TiersSection() {
         Manage sitter tiers, point targets, and tier benefits. Tiers are org-scoped and fully persisted.
       </p>
       <Link href="/settings/tiers">
-        <Button variant="primary" leftIcon={<i className="fas fa-layer-group" />}>
+        <Button variant="primary" leftIcon={<Layers className="w-4 h-4" />}>
           Open tier settings
         </Button>
       </Link>
@@ -720,7 +721,7 @@ function AISection() {
         Enable/disable AI, set budgets, and manage prompt templates. AI settings are org-scoped.
       </p>
       <Link href="/ops/ai">
-        <Button variant="primary" leftIcon={<i className="fas fa-robot" />}>
+        <Button variant="primary" leftIcon={<Bot className="w-4 h-4" />}>
           Open AI settings
         </Button>
       </Link>
@@ -738,7 +739,7 @@ function IntegrationsSection() {
         Stripe, messaging (Twilio), calendar, and other integrations are configured in the integrations hub.
       </p>
       <Link href="/integrations">
-        <Button variant="primary" leftIcon={<i className="fas fa-plug" />}>
+        <Button variant="primary" leftIcon={<Plug className="w-4 h-4" />}>
           Open integrations
         </Button>
       </Link>

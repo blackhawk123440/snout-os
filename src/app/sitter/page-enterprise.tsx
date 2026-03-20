@@ -11,6 +11,18 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
+  Inbox,
+  Calendar,
+  RefreshCw,
+  Star,
+  CheckCircle2,
+  DollarSign,
+  Clock,
+  PawPrint,
+  MapPin,
+  Route,
+} from 'lucide-react';
+import {
   PageHeader,
   Card,
   StatCard,
@@ -270,12 +282,12 @@ function SitterPageContent() {
         actions={
           <>
             <Link href="/sitter/inbox">
-              <Button variant="primary" leftIcon={<i className="fas fa-inbox" />}>
+              <Button variant="primary" leftIcon={<Inbox className="h-4 w-4" />}>
                 Messages
               </Button>
             </Link>
             <Link href={`/sitter-dashboard?id=${sitterId}`}>
-              <Button variant="secondary" leftIcon={<i className="fas fa-calendar-alt" />}>
+              <Button variant="secondary" leftIcon={<Calendar className="h-4 w-4" />}>
                 Full Dashboard
               </Button>
             </Link>
@@ -283,7 +295,7 @@ function SitterPageContent() {
               variant="tertiary"
               onClick={() => fetchSitterBookings(sitterId)}
               disabled={loading}
-              leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
+              leftIcon={<RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />}
             >
               Refresh
             </Button>
@@ -314,7 +326,7 @@ function SitterPageContent() {
                   fontSize: tokens.typography.fontSize.xl[0],
                 }}
               >
-                <i className="fas fa-star" />
+                <Star className="h-6 w-6" />
               </div>
               <div>
                 <div style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
@@ -340,17 +352,17 @@ function SitterPageContent() {
           <StatCard
             label="Upcoming"
             value={upcomingBookings.length}
-            icon={<i className="fas fa-calendar" />}
+            icon={<Calendar className="h-4 w-4" />}
           />
           <StatCard
             label="Completed"
             value={completedBookings.length}
-            icon={<i className="fas fa-check-circle" />}
+            icon={<CheckCircle2 className="h-4 w-4" />}
           />
           <StatCard
             label={`Total Earnings (${commissionPercentage}%)`}
             value={`$${totalEarnings.toFixed(2)}`}
-            icon={<i className="fas fa-dollar-sign" />}
+            icon={<DollarSign className="h-4 w-4" />}
           />
         </div>
 
@@ -369,7 +381,7 @@ function SitterPageContent() {
                   <EmptyState
                     title="No visits scheduled for today"
                     description="You have no bookings scheduled for today"
-                    icon={<i className="fas fa-calendar" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                    icon={<Calendar className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
                   />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
@@ -407,16 +419,16 @@ function SitterPageContent() {
                               
                               <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
-                                  <span><i className="fas fa-clock" style={{ marginRight: tokens.spacing[1] }} /></span>
+                                  <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5 mr-1" /></span>
                                   {formatTime(booking.startAt)}
-                                  <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                  <span className="inline-flex items-center gap-1" style={{ marginLeft: tokens.spacing[4] }}><PawPrint className="h-3.5 w-3.5 mr-1" /></span>
                                   {formatPetsByQuantity(booking.pets)}
-                                  <span><i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                  <span className="inline-flex items-center gap-1" style={{ marginLeft: tokens.spacing[4] }}><MapPin className="h-3.5 w-3.5 mr-1" /></span>
                                   {booking.address}
                                 </div>
                                 {previousBooking && (
-                                  <div style={{ color: tokens.colors.info.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }}>
-                                    <i className="fas fa-route" style={{ marginRight: tokens.spacing[1] }} />
+                                  <div style={{ color: tokens.colors.info.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }} className="inline-flex items-center">
+                                    <Route className="h-3 w-3 mr-1" />
                                     ~{travelTime} min travel from previous visit
                                   </div>
                                 )}
@@ -464,7 +476,7 @@ function SitterPageContent() {
                   <EmptyState
                     title="No upcoming bookings"
                     description="You have no upcoming bookings scheduled"
-                    icon={<i className="fas fa-calendar" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                    icon={<Calendar className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
                   />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
@@ -478,20 +490,20 @@ function SitterPageContent() {
                               </div>
                               {getStatusBadge(booking.status)}
                             </div>
-                            
+
                             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
-                                <span><i className="fas fa-calendar" style={{ marginRight: tokens.spacing[1] }} /></span>
+                                <span className="inline-flex items-center"><Calendar className="h-3.5 w-3.5 mr-1" /></span>
                                 {formatDate(booking.startAt)}
-                                <span><i className="fas fa-clock" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                <span className="inline-flex items-center" style={{ marginLeft: tokens.spacing[4] }}><Clock className="h-3.5 w-3.5 mr-1" /></span>
                                 {formatTime(booking.startAt)}
-                                <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                <span className="inline-flex items-center" style={{ marginLeft: tokens.spacing[4] }}><PawPrint className="h-3.5 w-3.5 mr-1" /></span>
                                 {formatPetsByQuantity(booking.pets)}
-                                <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                                <span className="inline-flex items-center" style={{ marginLeft: tokens.spacing[4] }}><DollarSign className="h-3.5 w-3.5 mr-1" /></span>
                                 ${booking.totalPrice.toFixed(2)}
                               </div>
                               <div>
-                                <span><i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[1] }} /></span>
+                                <span className="inline-flex items-center"><MapPin className="h-3.5 w-3.5 mr-1" /></span>
                                 {booking.address}
                               </div>
                             </div>
@@ -514,7 +526,7 @@ function SitterPageContent() {
                   <EmptyState
                     title="No completed bookings"
                     description="You haven't completed any bookings yet"
-                    icon={<i className="fas fa-check-circle" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                    icon={<CheckCircle2 className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
                   />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
@@ -528,13 +540,13 @@ function SitterPageContent() {
                               </div>
                               {getStatusBadge(booking.status)}
                             </div>
-                            
+
                             <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              <span><i className="fas fa-calendar" style={{ marginRight: tokens.spacing[1] }} /></span>
+                              <span className="inline-flex items-center"><Calendar className="h-3.5 w-3.5 mr-1" /></span>
                               {formatDate(booking.startAt)}
-                              <span><i className="fas fa-paw" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                              <span className="inline-flex items-center" style={{ marginLeft: tokens.spacing[4] }}><PawPrint className="h-3.5 w-3.5 mr-1" /></span>
                               {formatPetsByQuantity(booking.pets)}
-                              <span><i className="fas fa-dollar-sign" style={{ marginRight: tokens.spacing[1], marginLeft: tokens.spacing[4] }} /></span>
+                              <span className="inline-flex items-center" style={{ marginLeft: tokens.spacing[4] }}><DollarSign className="h-3.5 w-3.5 mr-1" /></span>
                               ${booking.totalPrice.toFixed(2)}
                             </div>
                           </div>
@@ -688,7 +700,7 @@ function SitterPageContent() {
                               fontSize: tokens.typography.fontSize.xl[0],
                             }}
                           >
-                            <i className="fas fa-star" />
+                            <Star className="h-6 w-6" />
                           </div>
                           <div>
                             <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.primary.DEFAULT }}>

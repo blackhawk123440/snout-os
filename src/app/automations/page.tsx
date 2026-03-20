@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AlertTriangle, Search, Send } from 'lucide-react';
 import Link from 'next/link';
 import {
   Card,
@@ -135,7 +136,7 @@ export default function AutomationsPage() {
           subtitle="Manage automation types, templates, and run history"
           actions={
             <Link href="/ops/automation-failures">
-              <Button variant="secondary" size="sm" leftIcon={<i className="fas fa-exclamation-triangle" />}>
+              <Button variant="secondary" size="sm" leftIcon={<AlertTriangle size={14} />}>
                 View failures
               </Button>
             </Link>
@@ -145,7 +146,7 @@ export default function AutomationsPage() {
         <Section title="Overview" description="Runs and failures are org-wide. Filter by status below.">
           <Grid gap={4}>
             <GridCol span={12} md={4}>
-              <Card className="border border-slate-200">
+              <Card className="border border-border-default">
                 <div style={{ padding: tokens.spacing[4] }}>
                   <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
                     Enabled
@@ -157,7 +158,7 @@ export default function AutomationsPage() {
               </Card>
             </GridCol>
             <GridCol span={12} md={4}>
-              <Card className="border border-slate-200">
+              <Card className="border border-border-default">
                 <div style={{ padding: tokens.spacing[4] }}>
                   <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
                     Runs today
@@ -169,7 +170,7 @@ export default function AutomationsPage() {
               </Card>
             </GridCol>
             <GridCol span={12} md={4}>
-              <Card className="border border-slate-200">
+              <Card className="border border-border-default">
                 <div style={{ padding: tokens.spacing[4] }}>
                   <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
                     Failures today
@@ -194,13 +195,13 @@ export default function AutomationsPage() {
               placeholder="Search automations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              leftIcon={<i className="fas fa-search" />}
+              leftIcon={<Search size={14} />}
               style={{ flex: 1, minWidth: 200 }}
             />
             <select
               value={filterEnabled}
               onChange={(e) => setFilterEnabled(e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+              className="rounded-lg border border-border-strong bg-white px-3 py-2 text-sm text-text-primary"
               aria-label="Filter by status"
             >
               <option value="all">All</option>
@@ -220,29 +221,29 @@ export default function AutomationsPage() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
               {filteredAutomations.map((automation) => (
-                <Card key={automation.id} className="border border-slate-200 overflow-hidden">
+                <Card key={automation.id} className="border border-border-default overflow-hidden">
                   <div style={{ padding: tokens.spacing[4] }}>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <h3 className="text-base font-semibold text-slate-900 m-0">
+                          <h3 className="text-base font-semibold text-text-primary m-0">
                             {automation.name}
                           </h3>
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                               automation.enabled
                                 ? 'bg-green-100 text-green-800'
-                                : 'bg-slate-100 text-slate-600'
+                                : 'bg-surface-tertiary text-text-secondary'
                             }`}
                           >
                             {automation.enabled ? 'Enabled' : 'Disabled'}
                           </span>
                           <Badge variant="info">{automation.category}</Badge>
                         </div>
-                        <p className="text-sm text-slate-600 m-0">
+                        <p className="text-sm text-text-secondary m-0">
                           {automation.description}
                         </p>
-                        <div className="mt-2 text-xs text-slate-500">
+                        <div className="mt-2 text-xs text-text-tertiary">
                           Last run / failures: see <Link href="/ops/automation-failures" className="text-teal-600 hover:underline">failure log</Link>
                         </div>
                       </div>
@@ -252,12 +253,12 @@ export default function AutomationsPage() {
                             type="checkbox"
                             checked={automation.enabled}
                             onChange={(e) => toggleEnabled(automation.id, e.target.checked)}
-                            className="h-4 w-4 rounded border-slate-300"
+                            className="h-4 w-4 rounded border-border-strong"
                           />
                           <span className="text-sm">On / Off</span>
                         </label>
                         <Link href={`/automations/${automation.id}`}>
-                          <Button variant="primary" size="sm" leftIcon={<i className="fas fa-paper-plane" />}>
+                          <Button variant="primary" size="sm" leftIcon={<Send size={14} />}>
                             Edit & test message
                           </Button>
                         </Link>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui';
 import {
   SitterCard,
@@ -161,9 +162,9 @@ export default function SitterCalendarPage() {
           ))}
         </div>
         <div className="flex items-center gap-1.5">
-          <button type="button" onClick={() => navigateDate(viewMode === 'week' ? -7 : -1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default text-text-secondary hover:bg-surface-secondary transition" aria-label="Previous"><i className="fas fa-chevron-left text-xs" /></button>
+          <button type="button" onClick={() => navigateDate(viewMode === 'week' ? -7 : -1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default text-text-secondary hover:bg-surface-secondary transition" aria-label="Previous"><ChevronLeft className="h-3 w-3" /></button>
           {!isToday(currentDate) && (<button type="button" onClick={goToday} className="min-h-[36px] rounded-lg border border-border-default px-3 text-xs font-medium text-text-secondary hover:bg-surface-secondary transition">Today</button>)}
-          <button type="button" onClick={() => navigateDate(viewMode === 'week' ? 7 : 1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default text-text-secondary hover:bg-surface-secondary transition" aria-label="Next"><i className="fas fa-chevron-right text-xs" /></button>
+          <button type="button" onClick={() => navigateDate(viewMode === 'week' ? 7 : 1)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default text-text-secondary hover:bg-surface-secondary transition" aria-label="Next"><ChevronRight className="h-3 w-3" /></button>
         </div>
       </div>
 

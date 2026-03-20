@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { COLORS } from "@/lib/booking-utils";
+import { Heart } from 'lucide-react';
 
 /**
  * Tip page component
@@ -62,7 +63,7 @@ export default function TipPage() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8">
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: COLORS.primary }}>
-            <i className="fas fa-heart text-2xl" style={{ color: COLORS.primaryLight }}></i>
+            <Heart className="w-7 h-7" style={{ color: COLORS.primaryLight }} />
           </div>
           <h1 className="text-2xl font-bold mb-2" style={{ color: COLORS.primary }}>
             Thank Your Sitter!

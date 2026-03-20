@@ -169,7 +169,7 @@ export default function QueueFailuresPage() {
         <Section>
           <div className="mb-4 grid gap-3 md:grid-cols-6">
             <div className="md:col-span-1">
-              <label className="block text-xs font-medium text-slate-600">Status</label>
+              <label className="block text-xs font-medium text-text-secondary">Status</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
@@ -182,7 +182,7 @@ export default function QueueFailuresPage() {
               </select>
             </div>
             <div className="md:col-span-1">
-              <label className="block text-xs font-medium text-slate-600">Subsystem</label>
+              <label className="block text-xs font-medium text-text-secondary">Subsystem</label>
               <select
                 value={subsystem}
                 onChange={(e) => setSubsystem(e.target.value)}
@@ -196,7 +196,7 @@ export default function QueueFailuresPage() {
               </select>
             </div>
             <div className="md:col-span-1">
-              <label className="block text-xs font-medium text-slate-600">Resource Type</label>
+              <label className="block text-xs font-medium text-text-secondary">Resource Type</label>
               <input
                 value={resourceType}
                 onChange={(e) => setResourceType(e.target.value)}
@@ -205,7 +205,7 @@ export default function QueueFailuresPage() {
               />
             </div>
             <div className="md:col-span-1">
-              <label className="block text-xs font-medium text-slate-600">Resource ID</label>
+              <label className="block text-xs font-medium text-text-secondary">Resource ID</label>
               <input
                 value={resourceId}
                 onChange={(e) => setResourceId(e.target.value)}
@@ -214,7 +214,7 @@ export default function QueueFailuresPage() {
               />
             </div>
             <div className="md:col-span-1">
-              <label className="block text-xs font-medium text-slate-600">Correlation ID</label>
+              <label className="block text-xs font-medium text-text-secondary">Correlation ID</label>
               <input
                 value={correlationId}
                 onChange={(e) => setCorrelationId(e.target.value)}
@@ -230,7 +230,7 @@ export default function QueueFailuresPage() {
           </div>
           <div className="mb-4 grid gap-3 md:grid-cols-6">
             <div className="md:col-span-1">
-              <label className="block text-xs font-medium text-slate-600">From</label>
+              <label className="block text-xs font-medium text-text-secondary">From</label>
               <input
                 type="date"
                 value={fromDate}
@@ -239,7 +239,7 @@ export default function QueueFailuresPage() {
               />
             </div>
             <div className="md:col-span-1">
-              <label className="block text-xs font-medium text-slate-600">To</label>
+              <label className="block text-xs font-medium text-text-secondary">To</label>
               <input
                 type="date"
                 value={toDate}
@@ -269,10 +269,10 @@ export default function QueueFailuresPage() {
                     mobileOrder: 1,
                     render: (row) => (
                       <div>
-                        <p className="font-medium text-slate-900">{row.jobName}</p>
-                        <p className="text-xs text-slate-500">{row.queueName} · {row.jobId}</p>
+                        <p className="font-medium text-text-primary">{row.jobName}</p>
+                        <p className="text-xs text-text-tertiary">{row.queueName} · {row.jobId}</p>
                         {row.correlationId && (
-                          <p className="text-[11px] text-slate-400">corr: {row.correlationId}</p>
+                          <p className="text-[11px] text-text-tertiary">corr: {row.correlationId}</p>
                         )}
                       </div>
                     ),
@@ -299,7 +299,7 @@ export default function QueueFailuresPage() {
                           <StatusChip variant={variant} ariaLabel={`Job status ${pill.label}`}>
                             {pill.label}
                           </StatusChip>
-                          <p className="text-xs text-slate-500">Retry {row.retryCount}</p>
+                          <p className="text-xs text-text-tertiary">Retry {row.retryCount}</p>
                         </div>
                       );
                     },
@@ -313,20 +313,20 @@ export default function QueueFailuresPage() {
                       <div>
                         {row.booking ? (
                           <div>
-                            <Link href={`/bookings?booking=${row.booking.id}`} className="text-sm text-slate-900 hover:underline">
+                            <Link href={`/bookings?booking=${row.booking.id}`} className="text-sm text-text-primary hover:underline">
                               {row.booking.clientName || 'Booking'} · {row.booking.service}
                             </Link>
-                            <p className="text-xs text-slate-500">Booking {row.booking.id}</p>
+                            <p className="text-xs text-text-tertiary">Booking {row.booking.id}</p>
                           </div>
                         ) : row.sitter ? (
                           <div>
-                            <p className="text-sm text-slate-900">{row.sitter.name || 'Sitter'}</p>
-                            <p className="text-xs text-slate-500">Sitter {row.sitter.id}</p>
+                            <p className="text-sm text-text-primary">{row.sitter.name || 'Sitter'}</p>
+                            <p className="text-xs text-text-tertiary">Sitter {row.sitter.id}</p>
                           </div>
                         ) : (
                           <div>
-                            <p className="text-sm text-slate-900">{row.resourceType || '—'}</p>
-                            <p className="text-xs text-slate-500">{row.resourceId || '—'}</p>
+                            <p className="text-sm text-text-primary">{row.resourceType || '—'}</p>
+                            <p className="text-xs text-text-tertiary">{row.resourceId || '—'}</p>
                           </div>
                         )}
                       </div>
@@ -340,8 +340,8 @@ export default function QueueFailuresPage() {
                     hideBelow: 'md',
                     render: (row) => (
                       <div className="max-w-[520px]">
-                        <p className="line-clamp-2 text-sm text-slate-700">{row.lastError || 'No error detail'}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="line-clamp-2 text-sm text-text-secondary">{row.lastError || 'No error detail'}</p>
+                        <p className="text-xs text-text-tertiary">
                           {row.providerErrorCode ? `Provider: ${row.providerErrorCode}` : 'No provider code'}
                         </p>
                       </div>
@@ -356,7 +356,7 @@ export default function QueueFailuresPage() {
                     render: (row) => {
                       const canRetry = row.status === 'FAILED' || row.status === 'DEAD_LETTERED';
                       if (!canRetry) {
-                        return <span className="text-xs text-slate-500">—</span>;
+                        return <span className="text-xs text-text-tertiary">—</span>;
                       }
                       return (
                         <Button

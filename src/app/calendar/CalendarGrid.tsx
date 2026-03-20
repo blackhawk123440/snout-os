@@ -8,6 +8,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AlertCircle, ChevronRight } from 'lucide-react';
 import {
   DndContext,
   DragOverlay,
@@ -117,13 +118,13 @@ function DraggableBookingPill({
     >
       <Flex align="center" gap={1}>
         {criticalSignal && (
-          <i className="fas fa-exclamation-circle" style={{ flexShrink: 0 }} aria-hidden />
+          <AlertCircle className="shrink-0" size={12} aria-hidden />
         )}
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {formatTime(booking.startAt)} {booking.firstName}
         </span>
       </Flex>
-      <i className="fas fa-chevron-right" style={{ fontSize: '0.6rem', opacity: 0.9, flexShrink: 0 }} aria-hidden />
+      <ChevronRight className="shrink-0 opacity-90" size={10} aria-hidden />
     </div>
   );
 }

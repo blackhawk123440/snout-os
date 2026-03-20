@@ -40,11 +40,11 @@ export function OwnerModulePlaceholderPage({
         </Section>
         <Section title="Coming next" description="Planned hardening for this module.">
           <Card>
-            <div className="flex flex-col gap-2 text-sm text-slate-700">
+            <div className="flex flex-col gap-2 text-sm text-text-secondary">
               {checklist.map((item) => (
                 <div key={item.label} className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-400" aria-hidden>
+                    <span className="text-text-disabled" aria-hidden>
                       □
                     </span>
                     <span>{item.label}</span>

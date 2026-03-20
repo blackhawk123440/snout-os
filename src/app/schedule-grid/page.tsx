@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
@@ -104,13 +105,13 @@ export default function ScheduleGridPage() {
           actions={
             <Flex align="center" gap={2}>
               <IconButton
-                icon={<i className="fas fa-chevron-left" />}
+                icon={<ChevronLeft size={16} />}
                 onClick={() => navigate(-1)}
                 aria-label="Previous week"
               />
               <Button size="sm" variant="secondary" onClick={goToday}>Today</Button>
               <IconButton
-                icon={<i className="fas fa-chevron-right" />}
+                icon={<ChevronRight size={16} />}
                 onClick={() => navigate(1)}
                 aria-label="Next week"
               />

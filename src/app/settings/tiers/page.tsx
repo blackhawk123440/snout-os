@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Plus, Star } from 'lucide-react';
 import {
   PageHeader,
   Card,
@@ -80,7 +81,7 @@ export default function TiersPage() {
         description="Configure policy and entitlement tiers separately from SRS reliability tiers."
         actions={
           <Link href="/settings/tiers/new">
-            <Button variant="primary" leftIcon={<i className="fas fa-plus" />}>
+            <Button variant="primary" leftIcon={<Plus className="w-4 h-4" />}>
               Create Policy Tier
             </Button>
           </Link>
@@ -119,7 +120,7 @@ export default function TiersPage() {
           <EmptyState
             title="No Policy Tiers Configured"
             description="Create your first policy tier for sitter entitlements"
-            icon={<i className="fas fa-star" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            icon={<Star className="w-12 h-12 text-neutral-300" />}
             action={{
               label: "Create Policy Tier",
               onClick: () => window.location.href = "/settings/tiers/new",

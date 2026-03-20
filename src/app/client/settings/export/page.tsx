@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Download } from 'lucide-react';
 import { LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppCard, AppCardBody, AppErrorState } from '@/components/app';
 import { Button } from '@/components/ui';
@@ -58,7 +59,7 @@ export default function ClientExportPage() {
               variant="primary"
               onClick={() => void handleDownload()}
               disabled={loading}
-              leftIcon={<i className="fas fa-download" />}
+              leftIcon={<Download className="h-4 w-4" />}
             >
               {loading ? 'Preparing...' : 'Download export'}
             </Button>

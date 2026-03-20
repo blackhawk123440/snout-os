@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { LayoutWrapper } from '@/components/layout';
 import {
   AppCard,
@@ -405,7 +406,7 @@ function PhotoLightbox({
           className="absolute left-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition"
           aria-label="Previous photo"
         >
-          <i className="fas fa-chevron-left" />
+          <ChevronLeft className="h-5 w-5" />
         </button>
       )}
 
@@ -423,7 +424,7 @@ function PhotoLightbox({
           className="absolute right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition"
           aria-label="Next photo"
         >
-          <i className="fas fa-chevron-right" />
+          <ChevronRight className="h-5 w-5" />
         </button>
       )}
 

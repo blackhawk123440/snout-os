@@ -10,6 +10,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, AlertTriangle, AlertCircle, Info, CheckCircle2, DollarSign, UserX } from 'lucide-react';
 import Link from 'next/link';
 import {
   PageHeader,
@@ -121,15 +122,15 @@ export default function ExceptionsPage() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "unpaid":
-        return "fas fa-dollar-sign";
+        return <DollarSign size={18} />;
       case "unassigned":
-        return "fas fa-user-times";
+        return <UserX size={18} />;
       case "automation_failure":
-        return "fas fa-exclamation-triangle";
+        return <AlertTriangle size={18} />;
       case "at_risk":
-        return "fas fa-exclamation-circle";
+        return <AlertCircle size={18} />;
       default:
-        return "fas fa-info-circle";
+        return <Info size={18} />;
     }
   };
 
@@ -151,7 +152,7 @@ export default function ExceptionsPage() {
             variant="tertiary"
             onClick={fetchExceptions}
             disabled={loading}
-            leftIcon={<i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} />}
+            leftIcon={<RefreshCw size={14} className={loading ? 'animate-spin' : ''} />}
           >
             Refresh
           </Button>
@@ -189,28 +190,28 @@ export default function ExceptionsPage() {
                 <StatCard
                   label="Total Exceptions"
                   value={summary.total}
-                  icon={<i className="fas fa-exclamation-triangle" />}
+                  icon={<AlertTriangle size={16} />}
                 />
               </GridCol>
               <GridCol span={12} md={6} lg={3}>
                 <StatCard
                   label="High Severity"
                   value={summary.bySeverity?.high || 0}
-                  icon={<i className="fas fa-exclamation-circle" />}
+                  icon={<AlertCircle size={16} />}
                 />
               </GridCol>
               <GridCol span={12} md={6} lg={3}>
                 <StatCard
                   label="Medium Severity"
                   value={summary.bySeverity?.medium || 0}
-                  icon={<i className="fas fa-exclamation-triangle" />}
+                  icon={<AlertTriangle size={16} />}
                 />
               </GridCol>
               <GridCol span={12} md={6} lg={3}>
                 <StatCard
                   label="Low Severity"
                   value={summary.bySeverity?.low || 0}
-                  icon={<i className="fas fa-info-circle" />}
+                  icon={<Info size={16} />}
                 />
               </GridCol>
             </Grid>
@@ -269,7 +270,7 @@ export default function ExceptionsPage() {
               <EmptyState
                 title="No exceptions found"
                 description="All bookings are in good standing!"
-                icon={<i className="fas fa-check-circle" style={{ fontSize: '3rem', color: tokens.colors.success.DEFAULT }} />}
+                icon={<CheckCircle2 size={48} style={{ color: tokens.colors.success.DEFAULT }} />}
               />
             </div>
           ) : (
@@ -302,7 +303,7 @@ export default function ExceptionsPage() {
                           }}
                         >
                           <Flex align="center" justify="center">
-                            <i className={`${getTypeIcon(exception.type)} ${tokens.typography.fontSize.lg[0]}`} />
+                            {getTypeIcon(exception.type)}
                           </Flex>
                         </div>
                         <div style={{ flex: 1 }}>

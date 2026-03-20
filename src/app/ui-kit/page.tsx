@@ -42,6 +42,7 @@ import {
   Flex,
 } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
+import { Home, Calendar, Table, Menu, DollarSign, TrendingUp, Plus, MoreVertical } from 'lucide-react';
 
 function UIKitDemoContent() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -52,9 +53,9 @@ function UIKitDemoContent() {
   const { showToast } = useToast();
 
   const navItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: <i className="fas fa-home" /> },
-    { label: 'Bookings', href: '/bookings', icon: <i className="fas fa-calendar" /> },
-    { label: 'Calendar', href: '/calendar', icon: <i className="fas fa-table" /> },
+    { label: 'Dashboard', href: '/dashboard', icon: <Home className="w-4 h-4" /> },
+    { label: 'Bookings', href: '/bookings', icon: <Calendar className="w-4 h-4" /> },
+    { label: 'Calendar', href: '/calendar', icon: <Table className="w-4 h-4" /> },
   ];
 
   const tableData = [
@@ -94,7 +95,7 @@ function UIKitDemoContent() {
         rightActions={
           <>
             <Button variant="ghost" onClick={() => setDrawerOpen(true)}>
-              <i className="fas fa-bars" />
+              <Menu className="w-4 h-4" />
             </Button>
           </>
         }
@@ -145,7 +146,7 @@ function UIKitDemoContent() {
                 label="Total Revenue"
                 value="$12,345"
                 delta={{ value: 12, trend: 'up' }}
-                icon={<i className="fas fa-dollar-sign" />}
+                icon={<DollarSign className="w-4 h-4" />}
               />
             </Grid.Col>
             <Grid.Col span={12} md={4}>
@@ -161,7 +162,7 @@ function UIKitDemoContent() {
                 label="Conversion"
                 value="24%"
                 delta={{ value: 0, trend: 'neutral' }}
-                icon={<i className="fas fa-chart-line" />}
+                icon={<TrendingUp className="w-4 h-4" />}
               />
             </Grid.Col>
           </Grid>
@@ -178,7 +179,7 @@ function UIKitDemoContent() {
                 <Button variant="ghost">Ghost</Button>
                 <Button variant="danger">Danger</Button>
                 <Button isLoading>Loading</Button>
-                <IconButton icon={<i className="fas fa-plus" />} aria-label="Add" />
+                <IconButton icon={<Plus className="w-4 h-4" />} aria-label="Add" />
                 <Tooltip content="This is a tooltip">
                   <Button>Hover me</Button>
                 </Tooltip>
@@ -301,7 +302,7 @@ function UIKitDemoContent() {
                 onSort={(col, dir) => console.log('Sort:', col, dir)}
                 rowActions={(row) => (
                   <IconButton
-                    icon={<i className="fas fa-ellipsis-v" />}
+                    icon={<MoreVertical className="w-4 h-4" />}
                     aria-label="Actions"
                     variant="ghost"
                   />

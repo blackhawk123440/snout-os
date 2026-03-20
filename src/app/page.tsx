@@ -16,6 +16,7 @@ import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { MapPin, CalendarCheck, DollarSign, Users, CreditCard } from 'lucide-react';
 
 const RevenueChart = dynamic(
   () => import('@/components/charts/RevenueChart').then((m) => m.RevenueChart),
@@ -170,23 +171,23 @@ export default function DashboardHomePage() {
               <StatCard
                 label="Active Visits (GPS)"
                 value={metrics.activeVisitsCount}
-                icon={<i className="fas fa-map-marker-alt" />}
+                icon={<MapPin className="w-4 h-4" />}
               />
             </div>
             <StatCard
               label="Open Bookings"
               value={metrics.openBookingsCount}
-              icon={<i className="fas fa-calendar-check" />}
+              icon={<CalendarCheck className="w-4 h-4" />}
             />
             <StatCard
               label="Revenue YTD"
               value={`$${metrics.revenueYTD.toFixed(2)}`}
-              icon={<i className="fas fa-dollar-sign" />}
+              icon={<DollarSign className="w-4 h-4" />}
             />
             <StatCard
               label="Retention %"
               value={`${metrics.retentionRate}%`}
-              icon={<i className="fas fa-users" />}
+              icon={<Users className="w-4 h-4" />}
             />
           </>
         ) : (
@@ -233,22 +234,22 @@ export default function DashboardHomePage() {
           }}
         >
           <Link href="/bookings">
-            <Button variant="secondary" leftIcon={<i className="fas fa-calendar-check" />}>
+            <Button variant="secondary" leftIcon={<CalendarCheck className="w-4 h-4" />}>
               View Bookings
             </Button>
           </Link>
           <Link href="/clients">
-            <Button variant="secondary" leftIcon={<i className="fas fa-users" />}>
+            <Button variant="secondary" leftIcon={<Users className="w-4 h-4" />}>
               Manage Clients
             </Button>
           </Link>
           <Link href="/bookings/sitters">
-            <Button variant="secondary" leftIcon={<i className="fas fa-user-friends" />}>
+            <Button variant="secondary" leftIcon={<Users className="w-4 h-4" />}>
               Manage Sitters
             </Button>
           </Link>
           <Link href="/payments">
-            <Button variant="secondary" leftIcon={<i className="fas fa-credit-card" />}>
+            <Button variant="secondary" leftIcon={<CreditCard className="w-4 h-4" />}>
               View Payments
             </Button>
           </Link>

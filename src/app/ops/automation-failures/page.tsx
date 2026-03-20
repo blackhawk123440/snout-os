@@ -122,8 +122,8 @@ export default function AutomationFailuresPage() {
                 onClick={() => setTab(t)}
                 className={`rounded-lg px-4 py-2 text-sm font-medium ${
                   tab === t
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-surface-inverse text-white'
+                    : 'bg-surface-tertiary text-text-secondary hover:bg-surface-secondary'
                 }`}
               >
                 {t === 'fail' ? 'Failures' : t === 'dead' ? 'Dead' : 'Recent Successes'}
@@ -150,8 +150,8 @@ export default function AutomationFailuresPage() {
                 mobileOrder: 1,
                 render: (row) => (
                   <div>
-                    <p className="font-medium text-slate-900">{row.automationType}</p>
-                    <p className="text-xs text-slate-500">{new Date(row.createdAt).toLocaleString()}</p>
+                    <p className="font-medium text-text-primary">{row.automationType}</p>
+                    <p className="text-xs text-text-tertiary">{new Date(row.createdAt).toLocaleString()}</p>
                   </div>
                 ),
               },
@@ -187,8 +187,8 @@ export default function AutomationFailuresPage() {
                 hideBelow: 'md',
                 render: (row) => (
                   <div className="max-w-[520px]">
-                    <p className="line-clamp-2 text-sm text-slate-700">{row.error || 'No error detail'}</p>
-                    {row.bookingId && <p className="text-xs text-slate-500">Booking: {row.bookingId}</p>}
+                    <p className="line-clamp-2 text-sm text-text-secondary">{row.error || 'No error detail'}</p>
+                    {row.bookingId && <p className="text-xs text-text-tertiary">Booking: {row.bookingId}</p>}
                   </div>
                 ),
               },
@@ -209,7 +209,7 @@ export default function AutomationFailuresPage() {
                       {retryingId === row.id ? 'Retrying' : 'Re-run'}
                     </Button>
                   ) : (
-                    <span className="text-xs text-slate-500">—</span>
+                    <span className="text-xs text-text-tertiary">—</span>
                   ),
               },
             ]}
