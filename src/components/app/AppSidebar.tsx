@@ -29,7 +29,7 @@ export function AppSidebar({
 
   return (
     <aside
-      className="flex flex-col border-r border-[var(--color-border-default)] bg-[var(--color-surface-primary)]"
+      className="flex flex-col border-r border-border-default bg-surface-primary"
             style={{
               width: collapsed ? tokens.layout.appShell.sidebarWidthCollapsed : tokens.layout.appShell.sidebarWidth,
               transition: `width ${tokens.transitions.duration.slow} ease-in-out`,
@@ -37,19 +37,19 @@ export function AppSidebar({
     >
       {brand ?? (
         <div
-          className="flex items-center gap-3 border-b border-[var(--color-border-default)] px-6"
+          className="flex items-center gap-3 border-b border-border-default px-6"
           style={{ height: tokens.layout.appShell.topBarHeight }}
         >
           <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-teal-600)] text-text-inverse"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-text-inverse"
             style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}
           >
             S
           </div>
           {!collapsed && (
             <div>
-              <div className="text-sm font-bold text-[var(--color-text-primary)]">Snout OS</div>
-              <div className="text-xs text-[var(--color-text-secondary)]">Enterprise</div>
+              <div className="text-sm font-bold text-text-primary">Snout OS</div>
+              <div className="text-xs text-text-secondary">Enterprise</div>
             </div>
           )}
         </div>
@@ -64,8 +64,8 @@ export function AppSidebar({
               onClick={onNavigate}
               className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm no-underline transition ${
                 active
-                  ? 'bg-[var(--color-teal-50)] font-semibold text-[var(--color-teal-700)] dark:bg-teal-900/30 dark:text-teal-300'
-                  : 'text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]'
+                  ? 'bg-teal-50 font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300'
+                  : 'text-text-primary hover:bg-surface-secondary'
               }`}
             >
               {item.icon && (

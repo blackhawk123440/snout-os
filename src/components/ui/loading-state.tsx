@@ -12,7 +12,7 @@ export function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
   return (
     <div className="w-full space-y-2">
       {/* Header */}
-      <div className="flex gap-4 border-b border-[var(--color-border-default)] pb-2">
+      <div className="flex gap-4 border-b border-border-default pb-2">
         {Array.from({ length: cols }).map((_, i) => (
           <div key={i} className="flex-1">
             <Skeleton variant="text" height={16} animation={false} />
@@ -35,7 +35,7 @@ export function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
 
 export function CardSkeleton({ lines = 3 }: { lines?: number }) {
   return (
-    <div className="rounded-lg border border-[var(--color-border-muted)] bg-[var(--color-surface-primary)] p-4">
+    <div className="rounded-lg border border-border-muted bg-surface-primary p-4">
       <div className="space-y-3">
         <div className="w-1/3">
           <Skeleton variant="text" height={20} animation={false} />
@@ -62,7 +62,7 @@ export function PageSkeleton() {
           <CardSkeleton key={i} lines={2} />
         ))}
       </div>
-      <div className="rounded-lg border border-[var(--color-border-muted)] bg-[var(--color-surface-primary)] p-4">
+      <div className="rounded-lg border border-border-muted bg-surface-primary p-4">
         <TableSkeleton rows={8} cols={4} />
       </div>
     </div>

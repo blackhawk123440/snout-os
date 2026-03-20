@@ -8,6 +8,11 @@
 import { Command, CommandCategory, CommandContext, CommandResult } from './types';
 import { alwaysAllowed, defaultPermission } from './permissions';
 import { tokens } from '@/lib/design-tokens';
+import {
+  CalendarDays, CalendarRange, Calendar, CalendarCheck,
+  ChevronRight, ChevronLeft, ExternalLink, MessageCircle,
+  UserCheck, DollarSign,
+} from 'lucide-react';
 
 /**
  * Calendar view commands
@@ -18,7 +23,7 @@ export const calendarViewCommands: Command[] = [
     label: 'Set View: Day',
     description: 'Switch calendar to day view',
     category: CommandCategory.System,
-    icon: <i className="fas fa-calendar-day" />,
+    icon: <CalendarDays className="w-4 h-4" />,
     availability: (ctx) => ctx.currentRoute === '/calendar',
     permission: alwaysAllowed,
     preview: () => (
@@ -43,7 +48,7 @@ export const calendarViewCommands: Command[] = [
     label: 'Set View: Week',
     description: 'Switch calendar to week view',
     category: CommandCategory.System,
-    icon: <i className="fas fa-calendar-week" />,
+    icon: <CalendarRange className="w-4 h-4" />,
     availability: (ctx) => ctx.currentRoute === '/calendar',
     permission: alwaysAllowed,
     preview: () => (
@@ -67,7 +72,7 @@ export const calendarViewCommands: Command[] = [
     label: 'Set View: Month',
     description: 'Switch calendar to month view',
     category: CommandCategory.System,
-    icon: <i className="fas fa-calendar-alt" />,
+    icon: <Calendar className="w-4 h-4" />,
     availability: (ctx) => ctx.currentRoute === '/calendar',
     permission: alwaysAllowed,
     preview: () => (
@@ -91,7 +96,7 @@ export const calendarViewCommands: Command[] = [
     label: 'Jump to Today',
     description: 'Navigate calendar to today',
     category: CommandCategory.Navigation,
-    icon: <i className="fas fa-calendar-check" />,
+    icon: <CalendarCheck className="w-4 h-4" />,
     shortcut: 'cmd+t',
     availability: (ctx) => ctx.currentRoute === '/calendar',
     permission: alwaysAllowed,
@@ -117,7 +122,7 @@ export const calendarViewCommands: Command[] = [
     label: 'Next Period',
     description: 'Navigate to next period in calendar',
     category: CommandCategory.Navigation,
-    icon: <i className="fas fa-chevron-right" />,
+    icon: <ChevronRight className="w-4 h-4" />,
     shortcut: 'cmd+]',
     availability: (ctx) => ctx.currentRoute === '/calendar',
     permission: alwaysAllowed,
@@ -142,7 +147,7 @@ export const calendarViewCommands: Command[] = [
     label: 'Previous Period',
     description: 'Navigate to previous period in calendar',
     category: CommandCategory.Navigation,
-    icon: <i className="fas fa-chevron-left" />,
+    icon: <ChevronLeft className="w-4 h-4" />,
     shortcut: 'cmd+[',
     availability: (ctx) => ctx.currentRoute === '/calendar',
     permission: alwaysAllowed,
@@ -190,7 +195,7 @@ export function createCalendarEventCommands(eventData?: {
       label: 'Open Booking Details',
       description: 'Open the selected booking in detail view',
       category: CommandCategory.Booking,
-      icon: <i className="fas fa-external-link-alt" />,
+      icon: <ExternalLink className="w-4 h-4" />,
       availability: (ctx) => !!ctx.selectedEntity?.id,
       permission: defaultPermission,
       preview: () => (
@@ -218,7 +223,7 @@ export function createCalendarEventCommands(eventData?: {
       label: 'Message Client',
       description: 'Send a message to the client for this booking',
       category: CommandCategory.Booking,
-      icon: <i className="fas fa-comment" />,
+      icon: <MessageCircle className="w-4 h-4" />,
       availability: (ctx) => !!ctx.selectedEntity?.id && !!eventData.clientId,
       permission: defaultPermission,
       preview: () => (
@@ -243,7 +248,7 @@ export function createCalendarEventCommands(eventData?: {
       label: 'Assign Sitter',
       description: 'Assign a sitter to this booking',
       category: CommandCategory.Booking,
-      icon: <i className="fas fa-user-check" />,
+      icon: <UserCheck className="w-4 h-4" />,
       availability: (ctx) => !!ctx.selectedEntity?.id && !eventData?.hasSitter,
       permission: defaultPermission,
       preview: () => (
@@ -267,7 +272,7 @@ export function createCalendarEventCommands(eventData?: {
       label: 'Collect Payment',
       description: 'Generate payment link for this booking',
       category: CommandCategory.Booking,
-      icon: <i className="fas fa-dollar-sign" />,
+      icon: <DollarSign className="w-4 h-4" />,
       availability: (ctx) => !!ctx.selectedEntity?.id && !eventData?.isPaid,
       permission: defaultPermission,
       preview: () => (

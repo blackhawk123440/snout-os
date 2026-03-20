@@ -16,7 +16,7 @@ export function AppTopbar({ left, right, children }: AppTopbarProps) {
 
   return (
     <header
-      className="flex items-center justify-between border-b border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-6"
+      className="flex items-center justify-between border-b border-border-default bg-surface-primary px-6"
       style={{
         height: tokens.layout.appShell.topBarHeight,
         position: 'sticky',
@@ -31,7 +31,7 @@ export function AppTopbar({ left, right, children }: AppTopbarProps) {
         <select
           value={density}
           onChange={(e) => setDensity(e.target.value as 'compact' | 'comfortable' | 'spacious')}
-          className="rounded-lg border border-[var(--color-border-default)] bg-transparent px-2 py-1 text-sm text-[var(--color-text-secondary)]"
+          className="rounded-lg border border-border-default bg-transparent px-2 py-1 text-sm text-text-secondary"
           aria-label="UI density"
         >
           <option value="compact">Compact</option>

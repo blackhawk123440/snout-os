@@ -92,15 +92,15 @@ export function AppTable<T extends Record<string, unknown>>({
   if (loading) {
     return (
       <div
-        className={`animate-pulse overflow-hidden rounded-xl border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] shadow-sm ${className}`}
+        className={`animate-pulse overflow-hidden rounded-xl border border-border-default bg-surface-primary shadow-sm ${className}`}
       >
-        <div className="divide-y divide-[var(--color-border-muted)]">
+        <div className="divide-y divide-border-muted">
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="flex gap-4" style={{ padding: rowPadding }}>
               {columns.map((_, j) => (
                 <div
                   key={j}
-                  className="h-4 flex-1 rounded bg-[var(--color-border-muted)]"
+                  className="h-4 flex-1 rounded bg-border-muted"
                 />
               ))}
             </div>
@@ -113,7 +113,7 @@ export function AppTable<T extends Record<string, unknown>>({
   if (data.length === 0) {
     return (
       <div
-        className={`flex items-center justify-center rounded-xl border border-dashed border-[var(--color-border-default)] bg-[var(--color-surface-secondary)] py-12 text-center text-sm text-[var(--color-text-tertiary)] ${className}`}
+        className={`flex items-center justify-center rounded-xl border border-dashed border-border-default bg-surface-secondary py-12 text-center text-sm text-text-tertiary ${className}`}
       >
         {emptyMessage}
       </div>
@@ -122,15 +122,15 @@ export function AppTable<T extends Record<string, unknown>>({
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] shadow-sm ${className}`}
+      className={`overflow-hidden rounded-xl border border-border-default bg-surface-primary shadow-sm ${className}`}
     >
       {/* Bulk actions row */}
       {selectable && selectedIds.length > 0 && (
         <div
-          className="flex items-center gap-4 border-b border-[var(--color-border-default)] bg-[var(--color-teal-50)] px-4 py-2 dark:bg-teal-900/20"
+          className="flex items-center gap-4 border-b border-border-default bg-teal-50 px-4 py-2 dark:bg-teal-900/20"
           style={{ padding: rowPadding }}
         >
-          <span className="text-sm font-medium text-[var(--color-text-primary)]">
+          <span className="text-sm font-medium text-text-primary">
             {selectedIds.length} selected
           </span>
           <div className="flex gap-2">
@@ -139,7 +139,7 @@ export function AppTable<T extends Record<string, unknown>>({
                 key={a.id}
                 type="button"
                 onClick={() => onBulkAction?.(a.id, selectedIds)}
-                className="flex items-center gap-2 rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-offset-2"
+                className="flex items-center gap-2 rounded-lg border border-border-default bg-surface-primary px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-surface-secondary focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
               >
                 {BULK_ACTION_ICONS[a.id]}
                 {a.label}
@@ -149,7 +149,7 @@ export function AppTable<T extends Record<string, unknown>>({
           <button
             type="button"
             onClick={() => onSelectionChange?.([])}
-            className="ml-auto text-sm text-[var(--color-text-secondary)] hover:underline"
+            className="ml-auto text-sm text-text-secondary hover:underline"
           >
             Clear
           </button>
@@ -157,7 +157,7 @@ export function AppTable<T extends Record<string, unknown>>({
       )}
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-[var(--color-border-default)]">
+        <table className="min-w-full divide-y divide-border-default">
           <thead>
             <tr>
               {selectable && (
@@ -176,7 +176,7 @@ export function AppTable<T extends Record<string, unknown>>({
               {displayColumns.map((col) => (
                 <th
                   key={col.key}
-                  className="text-left text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]"
+                  className="text-left text-xs font-semibold uppercase tracking-wider text-text-secondary"
                   style={{ padding: rowPadding }}
                 >
                   {col.header}
@@ -188,7 +188,7 @@ export function AppTable<T extends Record<string, unknown>>({
                     <button
                       type="button"
                       onClick={() => setColumnPickerOpen(!columnPickerOpen)}
-                      className="rounded p-1 text-[var(--color-text-tertiary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)]"
+                      className="rounded p-1 text-text-tertiary hover:bg-surface-secondary hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-teal-500"
                       aria-label="Column picker"
                       aria-expanded={columnPickerOpen}
                     >
@@ -201,11 +201,11 @@ export function AppTable<T extends Record<string, unknown>>({
                           onClick={() => setColumnPickerOpen(false)}
                           aria-hidden="true"
                         />
-                        <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] py-2 shadow-lg">
+                        <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-border-default bg-surface-primary py-2 shadow-lg">
                           {columns.map((col) => (
                             <label
                               key={col.key}
-                              className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-[var(--color-surface-secondary)]"
+                              className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-surface-secondary"
                             >
                               <input
                                 type="checkbox"
@@ -232,7 +232,7 @@ export function AppTable<T extends Record<string, unknown>>({
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--color-border-muted)]">
+          <tbody className="divide-y divide-border-muted">
             {data.map((row) => {
               const id = keyExtractor(row);
               return (
@@ -241,7 +241,7 @@ export function AppTable<T extends Record<string, unknown>>({
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   className={
                     onRowClick
-                      ? 'cursor-pointer transition hover:bg-[var(--color-surface-secondary)]'
+                      ? 'cursor-pointer transition hover:bg-surface-secondary'
                       : ''
                   }
                 >
@@ -258,7 +258,7 @@ export function AppTable<T extends Record<string, unknown>>({
                   {displayColumns.map((col) => (
                     <td
                       key={col.key}
-                      className="text-sm text-[var(--color-text-primary)]"
+                      className="text-sm text-text-primary"
                       style={{ padding: rowPadding }}
                     >
                       {col.statusKey && row[col.statusKey] != null ? (

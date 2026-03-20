@@ -18,10 +18,10 @@ export function DataTableShell({ children, className, stickyHeader }: DataTableS
   return (
     <div
       className={cn(
-        'overflow-x-auto rounded-lg border border-[var(--color-border-default)]',
+        'overflow-x-auto rounded-lg border border-border-default',
         'shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.06)]',
         'relative',
-        stickyHeader && '[&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-[var(--color-surface-primary)] [&_thead_th]:shadow-[0_1px_0_0_var(--color-border-default)]',
+        stickyHeader && '[&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-surface-primary [&_thead_th]:shadow-[0_1px_0_0_var(--color-border-default)]',
         className
       )}
     >

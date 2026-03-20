@@ -9,6 +9,7 @@ import { Command, CommandCategory, CommandContext, CommandResult } from './types
 import { hasBookingEntity, hasBookingStatus } from './availability';
 import { defaultPermission } from './permissions';
 import { tokens } from '@/lib/design-tokens';
+import { CheckCircle2, CheckCheck, XCircle, Info } from 'lucide-react';
 
 /**
  * Booking status change commands
@@ -19,7 +20,7 @@ export const bookingStatusCommands: Command[] = [
     label: 'Confirm Booking',
     description: 'Change booking status to confirmed',
     category: CommandCategory.Booking,
-    icon: <i className="fas fa-check-circle" />,
+    icon: <CheckCircle2 className="w-4 h-4" />,
     availability: (ctx) => hasBookingEntity(ctx) && hasBookingStatus(ctx, 'pending'),
     permission: defaultPermission,
     preview: (ctx) => {
@@ -56,7 +57,7 @@ export const bookingStatusCommands: Command[] = [
     label: 'Mark Complete',
     description: 'Mark booking as completed',
     category: CommandCategory.Booking,
-    icon: <i className="fas fa-check-double" />,
+    icon: <CheckCheck className="w-4 h-4" />,
     availability: (ctx) => hasBookingEntity(ctx) && (hasBookingStatus(ctx, 'confirmed') || hasBookingStatus(ctx, 'in-progress')),
     permission: defaultPermission,
     preview: (ctx) => {
@@ -92,7 +93,7 @@ export const bookingStatusCommands: Command[] = [
     label: 'Cancel Booking',
     description: 'Cancel this booking',
     category: CommandCategory.Booking,
-    icon: <i className="fas fa-times-circle" />,
+    icon: <XCircle className="w-4 h-4" />,
     danger: true,
     availability: (ctx) => hasBookingEntity(ctx) && (hasBookingStatus(ctx, 'pending') || hasBookingStatus(ctx, 'confirmed')),
     permission: defaultPermission,
@@ -132,7 +133,7 @@ export const bookingStatusCommands: Command[] = [
     label: 'Open Booking Details',
     description: 'Open booking details drawer',
     category: CommandCategory.Booking,
-    icon: <i className="fas fa-info-circle" />,
+    icon: <Info className="w-4 h-4" />,
     availability: hasBookingEntity,
     permission: defaultPermission,
     preview: (ctx) => {

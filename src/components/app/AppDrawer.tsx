@@ -104,7 +104,7 @@ export function AppDrawer({
             animate={{ x: 0 }}
             exit={{ x: side === 'right' ? '100%' : '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed top-0 bottom-0 z-50 flex flex-col bg-[var(--color-surface-overlay)] shadow-xl outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-offset-2 focus:ring-offset-[var(--color-surface-overlay)]"
+            className="fixed top-0 bottom-0 z-50 flex flex-col bg-surface-overlay shadow-xl outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-surface-overlay"
             style={{
               width: typeof width === 'number' ? `${width}px` : width,
               [side]: 0,
@@ -113,26 +113,26 @@ export function AppDrawer({
           >
             {(title || subtitle) && (
               <div
-                className="flex items-center justify-between border-b border-[var(--color-border-default)]"
+                className="flex items-center justify-between border-b border-border-default"
                 style={{ padding: 'var(--density-padding)' }}
               >
                 <div>
                   {title && (
                     <h2
                       id="app-drawer-title"
-                      className="text-lg font-semibold text-[var(--color-text-primary)]"
+                      className="text-lg font-semibold text-text-primary"
                     >
                       {title}
                     </h2>
                   )}
                   {subtitle && (
-                    <p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">{subtitle}</p>
+                    <p className="mt-0.5 text-xs text-text-secondary">{subtitle}</p>
                   )}
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-lg p-2 text-[var(--color-text-tertiary)] transition hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-offset-2"
+                  className="rounded-lg p-2 text-text-tertiary transition hover:bg-surface-secondary hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
                   aria-label="Close drawer"
                 >
                   <X className="w-4 h-4" />
@@ -144,7 +144,7 @@ export function AppDrawer({
             </div>
             {footer && (
               <div
-                className="flex justify-end gap-2 border-t border-[var(--color-border-default)] bg-[var(--color-surface-secondary)]"
+                className="flex justify-end gap-2 border-t border-border-default bg-surface-secondary"
                 style={{ padding: 'var(--density-padding)' }}
               >
                 {footer}

@@ -363,11 +363,11 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
       />
 
       {/* Left: Thread List - App design system */}
-      <div className="w-1/3 flex flex-col min-h-0 border-r border-[var(--color-border-default)] bg-[var(--color-surface-secondary)]">
+      <div className="w-1/3 flex flex-col min-h-0 border-r border-border-default bg-surface-secondary">
         {/* Filters */}
-        <div className="border-b border-[var(--color-border-default)] bg-[var(--color-surface-primary)]" style={{ padding: 'var(--density-padding)' }}>
+        <div className="border-b border-border-default bg-surface-primary" style={{ padding: 'var(--density-padding)' }}>
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Threads</h2>
+            <h2 className="text-lg font-semibold text-text-primary">Threads</h2>
             {role === 'owner' && (
               <Button variant="primary" size="sm" onClick={() => setShowNewMessageModal(true)} leftIcon={<Plus className="w-4 h-4" />}>
                 New message
@@ -375,13 +375,13 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
             )}
           </div>
           {role === 'owner' && poolHealth && (
-            <details className="mb-3 rounded border border-[var(--color-border-default)] bg-[var(--color-surface-secondary)] p-2 text-xs">
-              <summary className="cursor-pointer font-semibold text-[var(--color-text-primary)]">System health</summary>
-              <div className="mt-1 text-[var(--color-text-secondary)]">
+            <details className="mb-3 rounded border border-border-default bg-surface-secondary p-2 text-xs">
+              <summary className="cursor-pointer font-semibold text-text-primary">System health</summary>
+              <div className="mt-1 text-text-secondary">
                 Office numbers: {poolHealth.availableCompany} available | Service numbers: {poolHealth.availableService} available | Assigned: {poolHealth.assigned}
               </div>
               {poolHealth.shouldProvision && (
-                <div className="mt-1 text-[var(--color-warning-700)]">Add numbers soon to avoid fallback routing.</div>
+                <div className="mt-1 text-status-warning-text">Add numbers soon to avoid fallback routing.</div>
               )}
             </details>
           )}
@@ -483,27 +483,27 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => e.key === 'Enter' && setSelectedThreadId(thread.id)}
-                  className={`group cursor-pointer border-b border-[var(--color-border-default)] transition hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-inset px-4 py-3 ${
+                  className={`group cursor-pointer border-b border-border-default transition hover:bg-surface-secondary focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-inset px-4 py-3 ${
                     selectedThreadId === thread.id
-                      ? 'bg-[var(--color-teal-50)] dark:bg-teal-900/20 border-l-4 border-l-[var(--color-teal-500)]'
-                      : 'bg-[var(--color-surface-primary)]'
+                      ? 'bg-teal-50 dark:bg-teal-900/20 border-l-4 border-l-teal-500'
+                      : 'bg-surface-primary'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm text-[var(--color-text-primary)] truncate">
+                        <span className="font-semibold text-sm text-text-primary truncate">
                           {thread.client.name || 'Unknown'}
                         </span>
                         {thread.ownerUnreadCount > 0 && (
                           <Badge variant="info" className="shrink-0">{thread.ownerUnreadCount}</Badge>
                         )}
                       </div>
-                      <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                      <div className="mt-1 text-xs text-text-secondary">
                         {thread.sitter ? (
                           <span><span className="font-medium">Sitter:</span> {thread.sitter.name}</span>
                         ) : (
-                          <span className="text-[var(--color-text-tertiary)]">Unassigned</span>
+                          <span className="text-text-tertiary">Unassigned</span>
                         )}
                       </div>
                       <div className="mt-0.5 flex items-center gap-2 flex-wrap">
@@ -526,10 +526,10 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                         >
                           {thread.messageNumber.class}
                         </Badge>
-                        <span className="text-xs text-[var(--color-text-tertiary)] font-mono">
+                        <span className="text-xs text-text-tertiary font-mono">
                           {thread.messageNumber.e164}
                         </span>
-                        <span className="text-xs text-[var(--color-text-tertiary)]">
+                        <span className="text-xs text-text-tertiary">
                           {formatDistanceToNow(thread.lastActivityAt, { addSuffix: true })}
                         </span>
                         {(thread.flags?.length || 0) > 0 && (
@@ -545,7 +545,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-                      <span className="text-xs text-[var(--color-text-tertiary)]">Open</span>
+                      <span className="text-xs text-text-tertiary">Open</span>
                       <ChevronRight className="w-2.5 h-2.5 text-text-tertiary" />
                     </div>
                   </div>
@@ -573,13 +573,13 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
         {selectedThreadId ? (
           <>
             {/* Thread Header - App design system */}
-            <div className="border-b border-[var(--color-border-default)] bg-[var(--color-surface-primary)]" style={{ padding: 'var(--density-padding)' }}>
+            <div className="border-b border-border-default bg-surface-primary" style={{ padding: 'var(--density-padding)' }}>
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
+                  <h3 className="text-lg font-semibold text-text-primary mb-2">
                     {selectedThread?.client.name || 'Unknown'}
                   </h3>
-                  <div className="text-sm text-[var(--color-text-secondary)] flex flex-col gap-1">
+                  <div className="text-sm text-text-secondary flex flex-col gap-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant={selectedThread?.laneType === 'service' ? 'success' : 'default'}>
                         {selectedThread?.laneType === 'service' ? 'Visit line' : 'Office line'}
@@ -590,9 +590,9 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                       </Badge>
                     </div>
                     {selectedThread?.laneType === 'service' ? (
-                      <div className="text-xs text-[var(--color-text-secondary)]">{OWNER_LIFECYCLE_HELPERS.serviceLane}</div>
+                      <div className="text-xs text-text-secondary">{OWNER_LIFECYCLE_HELPERS.serviceLane}</div>
                     ) : (
-                      <div className="text-xs text-[var(--color-text-secondary)]">{OWNER_LIFECYCLE_HELPERS.companyLane}</div>
+                      <div className="text-xs text-text-secondary">{OWNER_LIFECYCLE_HELPERS.companyLane}</div>
                     )}
                     <div className="flex items-center gap-2">
                       <span>Business Number:</span>
@@ -617,7 +617,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                       <span className="font-medium">Approvals:</span>{' '}
                       Client {selectedThread?.clientApprovedAt ? 'approved' : 'pending'} / Sitter {selectedThread?.sitterApprovedAt ? 'approved' : 'pending'}
                     </div>
-                    <div className="text-xs text-[var(--color-text-secondary)]">{OWNER_LIFECYCLE_HELPERS.approvals}</div>
+                    <div className="text-xs text-text-secondary">{OWNER_LIFECYCLE_HELPERS.approvals}</div>
                     {selectedThread?.serviceWindow && (
                       <div>
                         <span className="font-medium">Service Window:</span>{' '}
@@ -713,13 +713,13 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                         <Button size="sm" variant="secondary" onClick={() => runLifecycleAction({ action: 'expire_if_needed' })}>
                           Check reroute state
                         </Button>
-                        <span className="text-xs text-[var(--color-text-secondary)]">{OWNER_LIFECYCLE_HELPERS.reroute}</span>
+                        <span className="text-xs text-text-secondary">{OWNER_LIFECYCLE_HELPERS.reroute}</span>
                       </div>
                     )}
                     {role === 'owner' && (
-                      <details className="rounded border border-[var(--color-border-default)] p-2 text-xs">
-                        <summary className="cursor-pointer font-medium text-[var(--color-text-primary)]">Policy behavior</summary>
-                        <div className="mt-2 flex flex-col gap-1 text-[var(--color-text-secondary)]">
+                      <details className="rounded border border-border-default p-2 text-xs">
+                        <summary className="cursor-pointer font-medium text-text-primary">Policy behavior</summary>
+                        <div className="mt-2 flex flex-col gap-1 text-text-secondary">
                           {MESSAGING_POLICY_RULES.map((rule) => (
                             <div key={rule.key}>
                               <strong>{rule.scenario}:</strong> {rule.userFacingBehavior}
@@ -729,16 +729,16 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                       </details>
                     )}
                     {role === 'owner' && (
-                      <details className="rounded border border-[var(--color-border-default)] p-2 text-xs">
-                        <summary className="cursor-pointer font-medium text-[var(--color-text-primary)]">Audit timeline</summary>
+                      <details className="rounded border border-border-default p-2 text-xs">
+                        <summary className="cursor-pointer font-medium text-text-primary">Audit timeline</summary>
                         <div className="mt-2 max-h-40 overflow-y-auto">
                           {(timelineData?.items ?? []).length === 0 ? (
-                            <div className="text-[var(--color-text-secondary)]">No timeline events yet.</div>
+                            <div className="text-text-secondary">No timeline events yet.</div>
                           ) : (
-                            <div className="flex flex-col gap-2 text-[var(--color-text-secondary)]">
+                            <div className="flex flex-col gap-2 text-text-secondary">
                               {(timelineData?.items ?? []).map((item) => (
-                                <div key={`${item.kind}-${item.id}`} className="rounded border border-[var(--color-border-default)] p-2">
-                                  <div className="font-medium text-[var(--color-text-primary)]">{item.label}</div>
+                                <div key={`${item.kind}-${item.id}`} className="rounded border border-border-default p-2">
+                                  <div className="font-medium text-text-primary">{item.label}</div>
                                   <div>{new Date(item.createdAt).toLocaleString()} • {item.status}</div>
                                 </div>
                               ))}
@@ -938,7 +938,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
             </div>
 
             {/* Compose Box - App design system */}
-            <div className="flex-shrink-0 border-t border-[var(--color-border-default)] bg-[var(--color-surface-primary)]" style={{ padding: 'var(--density-padding)' }}>
+            <div className="flex-shrink-0 border-t border-border-default bg-surface-primary" style={{ padding: 'var(--density-padding)' }}>
               <Textarea
                 value={composeMessage}
                 onChange={(e) => setComposeMessage(e.target.value)}
@@ -955,14 +955,14 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                 }}
               />
               <div className="flex justify-between items-center">
-                <div className="text-xs text-[var(--color-text-secondary)]">
+                <div className="text-xs text-text-secondary">
                   Press {typeof navigator !== 'undefined' && navigator.platform?.includes('Mac') ? 'Cmd' : 'Ctrl'}+Enter to send
                 </div>
                 <Button
                   variant="primary"
                   onClick={() => handleSendMessage()}
                   disabled={!composeMessage.trim() || sendMessage.isPending}
-                  className="focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-offset-2"
+                  className="focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
                 >
                   {sendMessage.isPending ? 'Sending...' : 'Send'}
                 </Button>
@@ -970,7 +970,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-[var(--color-text-secondary)]">
+          <div className="flex-1 flex items-center justify-center text-text-secondary">
             Select a thread to view messages
           </div>
         )}

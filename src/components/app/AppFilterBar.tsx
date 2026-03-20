@@ -35,11 +35,11 @@ export function AppFilterBar({
 
   return (
     <div
-      className={`flex flex-wrap items-center gap-3 rounded-xl border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] ${className}`}
+      className={`flex flex-wrap items-center gap-3 rounded-xl border border-border-default bg-surface-primary ${className}`}
       style={{ padding: 'var(--density-padding)' }}
     >
       {savedViews && savedViews.length > 0 && (
-        <div className="flex items-center gap-1 border-r border-[var(--color-border-muted)] pr-3">
+        <div className="flex items-center gap-1 border-r border-border-muted pr-3">
           {savedViews.map((view) => (
             <button
               key={view.id}
@@ -47,8 +47,8 @@ export function AppFilterBar({
               onClick={() => onViewChange?.(view.id)}
               className={
                 activeView === view.id
-                  ? 'rounded-md bg-[var(--color-teal-600)] px-2.5 py-1 text-xs font-medium text-text-inverse'
-                  : 'rounded-md px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]'
+                  ? 'rounded-md bg-teal-600 px-2.5 py-1 text-xs font-medium text-text-inverse'
+                  : 'rounded-md px-2.5 py-1 text-xs font-medium text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
               }
             >
               {view.label}
@@ -59,12 +59,12 @@ export function AppFilterBar({
 
       {filters.map((f) => (
         <div key={f.key} className="flex items-center gap-2">
-          <label className="text-sm font-medium text-[var(--color-text-secondary)]">{f.label}</label>
+          <label className="text-sm font-medium text-text-secondary">{f.label}</label>
           {f.type === 'select' ? (
             <select
               value={values[f.key] ?? ''}
               onChange={(e) => onChange(f.key, e.target.value)}
-              className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-teal-500)] focus:outline-none focus:ring-1 focus:ring-[var(--color-teal-500)]"
+              className="rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
             >
               <option value="">All</option>
               {f.options?.map((o) => (
@@ -79,14 +79,14 @@ export function AppFilterBar({
               value={values[f.key] ?? ''}
               onChange={(e) => onChange(f.key, e.target.value)}
               placeholder={f.placeholder}
-              className="w-48 rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-teal-500)] focus:outline-none focus:ring-1 focus:ring-[var(--color-teal-500)]"
+              className="w-48 rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
             />
           ) : (
             <input
               type="date"
               value={values[f.key] ?? ''}
               onChange={(e) => onChange(f.key, e.target.value)}
-              className="rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-teal-500)] focus:outline-none focus:ring-1 focus:ring-[var(--color-teal-500)]"
+              className="rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
             />
           )}
         </div>
@@ -95,7 +95,7 @@ export function AppFilterBar({
         <button
           type="button"
           onClick={onClear}
-          className="ml-auto text-sm font-medium text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
+          className="ml-auto text-sm font-medium text-text-tertiary hover:text-text-primary"
         >
           Clear
         </button>

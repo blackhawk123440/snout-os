@@ -69,7 +69,7 @@ export function SavedViewsDropdown({
     <select
       value={value}
       onChange={(e) => handleChange(e.target.value)}
-      className={`rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-[var(--color-teal-500)] focus:outline-none focus:ring-1 focus:ring-[var(--color-teal-500)] ${className}`}
+      className={`rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 ${className}`}
       style={{ padding: 'var(--density-row) var(--density-gap)' }}
       aria-label="Saved view"
     >

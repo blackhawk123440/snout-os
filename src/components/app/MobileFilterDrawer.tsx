@@ -42,7 +42,7 @@ export function MobileFilterDrawer({
           <Filter className="w-4 h-4 mr-2" />
           {triggerLabel}
           {activeCount != null && activeCount > 0 && (
-            <span className="ml-2 rounded-full bg-[var(--color-accent-primary)] px-2 py-0.5 text-xs text-text-inverse">
+            <span className="ml-2 rounded-full bg-accent-primary px-2 py-0.5 text-xs text-text-inverse">
               {activeCount}
             </span>
           )}

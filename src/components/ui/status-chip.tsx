@@ -11,7 +11,7 @@ export type StatusChipVariant = 'neutral' | 'success' | 'warning' | 'danger' | '
 
 const VARIANT_STYLES: Record<StatusChipVariant, string> = {
   neutral:
-    'border-[var(--color-border-default)] bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]',
+    'border-border-default bg-surface-secondary text-text-secondary',
   success:
     'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200',
   warning:
