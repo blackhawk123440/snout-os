@@ -35,14 +35,12 @@ export async function GET() {
         address: true,
         startAt: true,
         endAt: true,
-        checkedInAt: true,
-        checkedInLat: true,
-        checkedInLng: true,
+        updatedAt: true,
         sitter: {
           select: { id: true, firstName: true, lastName: true },
         },
       },
-      orderBy: { checkedInAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
     });
 
     const visits = activeVisits.map((v: any) => ({
@@ -51,12 +49,8 @@ export async function GET() {
       clientName: `${v.firstName} ${v.lastName}`.trim(),
       address: v.address,
       startAt: v.startAt,
-      checkedInAt: v.checkedInAt,
-      elapsedMinutes: v.checkedInAt
-        ? Math.floor((Date.now() - new Date(v.checkedInAt).getTime()) / 60000)
-        : 0,
-      lat: v.checkedInLat ? Number(v.checkedInLat) : null,
-      lng: v.checkedInLng ? Number(v.checkedInLng) : null,
+      checkedInAt: v.updatedAt,
+      elapsedMinutes: Math.floor((Date.now() - new Date(v.updatedAt).getTime()) / 60000),
       sitter: v.sitter
         ? { id: v.sitter.id, name: `${v.sitter.firstName} ${v.sitter.lastName}`.trim() }
         : null,

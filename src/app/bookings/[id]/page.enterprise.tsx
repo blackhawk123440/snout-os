@@ -347,8 +347,8 @@ export default function BookingDetailEnterprisePage() {
                     if (res.ok) {
                       const data = await res.json();
                       setSmartMatches(data.matches || []);
-                    } else { showToast({ title: 'Error', description: 'Smart assign failed', variant: 'error' }); }
-                  } catch { showToast({ title: 'Error', description: 'Network error', variant: 'error' }); }
+                    } else { showToast({ message: 'Smart assign failed', variant: 'error' }); }
+                  } catch { showToast({ message: 'Network error', variant: 'error' }); }
                   setLoadingMatches(false);
                 }}>
                   {loadingMatches ? '...' : '✨ Smart Assign'}

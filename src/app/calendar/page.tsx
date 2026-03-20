@@ -501,24 +501,22 @@ function CalendarPageContent() {
       if (!res.ok) {
         if (res.status === 409 && data.conflict) {
           showToast({
-            title: 'Conflict',
-            description: `${data.conflict.clientName} (${data.conflict.service}) already booked at that time`,
+            message: `Conflict: ${data.conflict.clientName} (${data.conflict.service}) already booked at that time`,
             variant: 'error',
           });
         } else {
-          showToast({ title: 'Error', description: data.error || 'Reschedule failed', variant: 'error' });
+          showToast({ message: data.error || 'Reschedule failed', variant: 'error' });
         }
         return;
       }
 
       showToast({
-        title: 'Rescheduled',
-        description: `${booking.firstName} ${booking.lastName} moved to ${dateLabel}`,
+        message: `${booking.firstName} ${booking.lastName} moved to ${dateLabel}`,
         variant: 'success',
       });
       refetch();
     } catch (err) {
-      showToast({ title: 'Error', description: 'Network error', variant: 'error' });
+      showToast({ message: 'Network error', variant: 'error' });
     }
   }, [bookings, showToast, refetch]);
 

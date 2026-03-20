@@ -935,7 +935,7 @@ function BrandingSection() {
           Customize how your business appears to clients in the portal, emails, and native apps.
         </p>
 
-        <FormRow label="Business Name" description="Replaces 'Snout OS' in all client-facing surfaces">
+        <FormRow label="Business Name" helperText="Replaces 'Snout OS' in all client-facing surfaces">
           <Input
             value={form.businessName}
             onChange={(e) => setForm({ ...form, businessName: e.target.value })}
@@ -943,7 +943,7 @@ function BrandingSection() {
           />
         </FormRow>
 
-        <FormRow label="Logo URL" description="Square image recommended (at least 200×200px)">
+        <FormRow label="Logo URL" helperText="Square image recommended (at least 200×200px)">
           <Input
             value={form.logoUrl}
             onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
@@ -961,7 +961,7 @@ function BrandingSection() {
           )}
         </FormRow>
 
-        <FormRow label="Primary Color" description="Used for buttons, links, and accents">
+        <FormRow label="Primary Color" helperText="Used for buttons, links, and accents">
           <Flex align="center" gap={2}>
             <input
               type="color"
@@ -978,7 +978,7 @@ function BrandingSection() {
           </Flex>
         </FormRow>
 
-        <FormRow label="Secondary Color" description="Used for backgrounds and highlights">
+        <FormRow label="Secondary Color" helperText="Used for backgrounds and highlights">
           <Flex align="center" gap={2}>
             <input
               type="color"
