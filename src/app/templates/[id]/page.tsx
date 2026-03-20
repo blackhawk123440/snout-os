@@ -21,7 +21,6 @@ import {
   FormRow,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
-import { tokens } from '@/lib/design-tokens';
 import { ArrowLeft, Loader2, Check } from 'lucide-react';
 
 export default function EditTemplatePage() {
@@ -137,40 +136,27 @@ export default function EditTemplatePage() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div className="p-6">
         {error && (
-          <Card
-            style={{
-              marginBottom: tokens.spacing[6],
-              backgroundColor: tokens.colors.error[50],
-              borderColor: tokens.colors.error[200],
-            }}
-          >
-            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+          <Card className="mb-6 bg-status-danger-bg border-status-danger-border">
+            <div className="p-4 text-status-danger-text">
               {error}
             </div>
           </Card>
         )}
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div className="flex flex-col gap-4">
             <Skeleton height={400} />
           </div>
         ) : (
           <>
-            <Card style={{ marginBottom: tokens.spacing[6] }}>
-              <div
-                style={{
-                  fontWeight: tokens.typography.fontWeight.bold,
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  color: tokens.colors.text.primary,
-                  marginBottom: tokens.spacing[4],
-                }}
-              >
+            <Card className="mb-6">
+              <div className="font-bold text-lg text-text-primary mb-4">
                 Template Information
               </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+
+              <div className="flex flex-col gap-4">
                 <FormRow label="Name *">
                   <Input
                     type="text"
@@ -180,7 +166,7 @@ export default function EditTemplatePage() {
                   />
                 </FormRow>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4] }}>
+                <div className="grid grid-cols-2 gap-4">
                   <FormRow label="Type *">
                     <Select
                       value={type}
@@ -228,22 +214,22 @@ export default function EditTemplatePage() {
                   />
                 </FormRow>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="isActive"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
-                    style={{ accentColor: tokens.colors.primary.DEFAULT }}
+                    className="accent-accent-primary"
                   />
-                  <label htmlFor="isActive" style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary, cursor: 'pointer' }}>
+                  <label htmlFor="isActive" className="text-sm text-text-primary cursor-pointer">
                     Active
                   </label>
                 </div>
               </div>
             </Card>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[4] }}>
+            <div className="flex justify-end gap-4">
               <Button
                 variant="tertiary"
                 onClick={() => router.back()}

@@ -1,6 +1,6 @@
 /**
  * Templates Page - Enterprise Rebuild
- * 
+ *
  * Complete rebuild using design system and components.
  * Zero legacy styling - all through components and tokens.
  */
@@ -115,22 +115,22 @@ export default function TemplatesPage() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div className="p-6">
         {error && (
           <Card
+            className="mb-6"
             style={{
-              marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
               borderColor: tokens.colors.error[200],
             }}
           >
-            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+            <div className="p-4" style={{ color: tokens.colors.error[700] }}>
               {error}
               <Button
                 variant="tertiary"
                 size="sm"
                 onClick={fetchTemplates}
-                style={{ marginLeft: tokens.spacing[3] }}
+                className="ml-3"
               >
                 Retry
               </Button>
@@ -139,7 +139,7 @@ export default function TemplatesPage() {
         )}
 
         {/* Filters */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
+        <Card className="mb-6">
           <Flex gap={4} align="center" wrap> {/* Batch 6: UI Constitution compliance */}
             <Select
               label="Category"
@@ -181,16 +181,10 @@ export default function TemplatesPage() {
             {templates.map((template) => (
               <Card key={template.id}>
                 <Flex align="flex-start" justify="space-between" gap={4}> {/* Batch 6: UI Constitution compliance */}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ marginBottom: tokens.spacing[3] }}>
+                  <div className="flex-1">
+                    <div className="mb-3">
                       <Flex align="center" gap={3} wrap> {/* Batch 6: UI Constitution compliance */}
-                      <div
-                        style={{
-                          fontWeight: tokens.typography.fontWeight.bold,
-                          fontSize: tokens.typography.fontSize.lg[0],
-                          color: tokens.colors.text.primary,
-                        }}
-                      >
+                      <div className="font-bold text-lg text-text-primary">
                         {template.name}
                       </div>
                       <Badge variant={template.type === 'email' ? 'info' : 'default'}>
@@ -204,25 +198,16 @@ export default function TemplatesPage() {
                         )}
                       </Flex>
                     </div>
-                    <div style={{ marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    <div className="mb-2 text-sm text-text-secondary">
                       Key: {template.templateKey}
                     </div>
-                    <div style={{ marginBottom: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    <div className="mb-2 text-sm text-text-secondary">
                       Version: {template.version}
                     </div>
-                    <div
-                      style={{
-                        marginTop: tokens.spacing[3],
-                        padding: tokens.spacing[3],
-                        backgroundColor: tokens.colors.neutral[50],
-                        borderRadius: tokens.borderRadius.md,
-                      }}
-                    >
+                    <div className="mt-3 p-3 bg-neutral-50 rounded-md">
                       <div
+                        className="text-sm text-text-secondary whitespace-pre-wrap"
                         style={{
-                          fontSize: tokens.typography.fontSize.sm[0],
-                          color: tokens.colors.text.secondary,
-                          whiteSpace: 'pre-wrap',
                           WebkitLineClamp: 3,
                           WebkitBoxOrient: 'vertical',
                         }}

@@ -1,6 +1,6 @@
 /**
  * Setup Wizard Page
- * 
+ *
  * Full operational control for Twilio setup
  */
 
@@ -42,7 +42,7 @@ export default function SetupPage() {
     return (
       <AppShell>
         <PageHeader title="Setup" />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div className="p-4">
           <Skeleton height={400} />
         </div>
       </AppShell>
@@ -53,7 +53,7 @@ export default function SetupPage() {
     return (
       <AppShell>
         <PageHeader title="Setup" />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div className="p-4">
           <Card>
             <p>Access denied. Owner access required.</p>
           </Card>
@@ -112,7 +112,7 @@ export default function SetupPage() {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    
+
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins} minute(s) ago`;
     const diffHours = Math.floor(diffMins / 60);
@@ -126,18 +126,18 @@ export default function SetupPage() {
         title="Messaging Setup"
         description="Configure your Twilio connection and verify system readiness"
       />
-      <div style={{ padding: tokens.spacing[6], maxWidth: '800px', margin: '0 auto' }}>
+      <div className="p-6 max-w-[800px] mx-auto">
         {/* Provider Connection */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
-          <h2 style={{ fontSize: tokens.typography.fontSize.xl[0], marginBottom: tokens.spacing[4] }}>
+        <Card className="mb-6">
+          <h2 className="text-xl mb-4">
             Step 1: Connect Provider
           </h2>
-          <p style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[4] }}>
+          <p className="text-text-secondary mb-4">
             Enter your Twilio credentials to connect your messaging account.
           </p>
 
-          <div style={{ marginBottom: tokens.spacing[4] }}>
-            <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+          <div className="mb-4">
+            <label className="block mb-2 font-medium">
               Account SID
             </label>
             <Input
@@ -148,8 +148,8 @@ export default function SetupPage() {
             />
           </div>
 
-          <div style={{ marginBottom: tokens.spacing[4] }}>
-            <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+          <div className="mb-4">
+            <label className="block mb-2 font-medium">
               Auth Token
             </label>
             <Input
@@ -161,34 +161,22 @@ export default function SetupPage() {
           </div>
 
           {connectionError && (
-            <div style={{ 
-              padding: tokens.spacing[3], 
-              backgroundColor: tokens.colors.error[50], 
-              border: `1px solid ${tokens.colors.error[200]}`,
-              borderRadius: tokens.borderRadius.md,
-              marginBottom: tokens.spacing[4],
-            }}>
-              <p style={{ color: tokens.colors.error[700], fontSize: tokens.typography.fontSize.sm[0] }}>
+            <div className="p-3 bg-status-danger-bg border border-status-danger-border rounded-md mb-4">
+              <p className="text-status-danger-text text-sm">
                 {connectionError}
               </p>
             </div>
           )}
 
           {connectionTested && !connectionError && (
-            <div style={{ 
-              padding: tokens.spacing[3], 
-              backgroundColor: tokens.colors.success[50], 
-              border: `1px solid ${tokens.colors.success[200]}`,
-              borderRadius: tokens.borderRadius.md,
-              marginBottom: tokens.spacing[4],
-            }}>
-              <p style={{ color: tokens.colors.success[700], fontSize: tokens.typography.fontSize.sm[0] }}>
+            <div className="p-3 bg-status-success-bg border border-status-success-border rounded-md mb-4">
+              <p className="text-status-success-text text-sm">
                 ✓ Connection successful
               </p>
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: tokens.spacing[3] }}>
+          <div className="flex gap-3">
             <Button
               onClick={handleTestConnection}
               disabled={testConnection.isPending}
@@ -207,8 +195,8 @@ export default function SetupPage() {
         </Card>
 
         {/* Provider Status */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
-          <h2 style={{ fontSize: tokens.typography.fontSize.xl[0], marginBottom: tokens.spacing[4] }}>
+        <Card className="mb-6">
+          <h2 className="text-xl mb-4">
             Provider Status
           </h2>
           {providerStatus.isLoading ? (
@@ -221,7 +209,7 @@ export default function SetupPage() {
                 </Badge>
               </p>
               {providerStatus.data?.accountSid && (
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+                <p className="text-text-secondary text-sm">
                   Account: {providerStatus.data.accountSid}
                 </p>
               )}
@@ -230,8 +218,8 @@ export default function SetupPage() {
         </Card>
 
         {/* Numbers Status */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
-          <h2 style={{ fontSize: tokens.typography.fontSize.xl[0], marginBottom: tokens.spacing[4] }}>
+        <Card className="mb-6">
+          <h2 className="text-xl mb-4">
             Numbers Status
           </h2>
           {numbersStatus.isLoading ? (
@@ -254,15 +242,15 @@ export default function SetupPage() {
         </Card>
 
         {/* Webhook Status */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
-          <h2 style={{ fontSize: tokens.typography.fontSize.xl[0], marginBottom: tokens.spacing[4] }}>
+        <Card className="mb-6">
+          <h2 className="text-xl mb-4">
             Webhook Status
           </h2>
           {webhookStatus.isLoading ? (
             <Skeleton height={100} />
           ) : (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
+              <div className="flex items-center gap-3 mb-3">
                 <p>
                   Status: <Badge variant={webhookStatus.data?.verified ? 'success' : 'error'}>
                     {webhookStatus.data?.verified ? 'Verified' : 'Not Verified'}
@@ -280,16 +268,16 @@ export default function SetupPage() {
                 )}
               </div>
               {webhookStatus.data?.webhookUrl && (
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0], wordBreak: 'break-all', marginBottom: tokens.spacing[2] }}>
+                <p className="text-text-secondary text-sm break-all mb-2">
                   URL: {webhookStatus.data.webhookUrl}
                 </p>
               )}
               {lastWebhook.data && (
-                <div style={{ marginTop: tokens.spacing[3] }}>
-                  <p style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+                <div className="mt-3">
+                  <p className="text-sm">
                     <strong>Last webhook received:</strong> {formatLastReceived(lastWebhook.data.lastReceivedAt)}
                   </p>
-                  <p style={{ fontSize: tokens.typography.fontSize.sm[0], marginTop: tokens.spacing[1] }}>
+                  <p className="text-sm mt-1">
                     <strong>Receiving:</strong>{' '}
                     <Badge variant={lastWebhook.data.receiving ? 'success' : 'error'}>
                       {lastWebhook.data.receiving ? '✓ Active' : '✗ Not receiving'}
@@ -303,31 +291,28 @@ export default function SetupPage() {
 
         {/* System Readiness */}
         <Card>
-          <h2 style={{ fontSize: tokens.typography.fontSize.xl[0], marginBottom: tokens.spacing[4] }}>
+          <h2 className="text-xl mb-4">
             System Readiness
           </h2>
           {readiness.isLoading ? (
             <Skeleton height={200} />
           ) : (
             <div>
-              <p style={{ marginBottom: tokens.spacing[4] }}>
+              <p className="mb-4">
                 Overall Status: <Badge variant={readiness.data?.ready ? 'success' : 'error'}>
                   {readiness.data?.ready ? 'Ready' : 'Not Ready'}
                 </Badge>
               </p>
               {readiness.data?.checks.map((check, idx) => (
-                <div key={idx} style={{ 
-                  padding: tokens.spacing[3], 
+                <div key={idx} style={{
                   backgroundColor: check.passed ? tokens.colors.success[50] : tokens.colors.error[50],
-                  borderRadius: tokens.borderRadius.md,
-                  marginBottom: tokens.spacing[2],
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                }} className="p-3 rounded-md mb-2">
+                  <div className="flex items-center gap-2">
                     <span>{check.passed ? '✓' : '✗'}</span>
-                    <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>{check.name}</span>
+                    <span className="font-medium">{check.name}</span>
                   </div>
                   {check.error && (
-                    <p style={{ color: tokens.colors.error[700], fontSize: tokens.typography.fontSize.sm[0], marginTop: tokens.spacing[1] }}>
+                    <p className="text-status-danger-text text-sm mt-1">
                       {check.error}
                     </p>
                   )}

@@ -109,7 +109,7 @@ export default function AutomationHistoryPage() {
           description="Recent automation runs and their results"
         />
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[4], gap: tokens.spacing[3], flexWrap: 'wrap' }}>
+        <div className="flex justify-between items-center mb-4 gap-3 flex-wrap">
           <Select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -130,17 +130,17 @@ export default function AutomationHistoryPage() {
         </div>
 
         {(error || queryError) && (
-          <Card style={{ backgroundColor: tokens.colors.error[50], padding: tokens.spacing[3], marginBottom: tokens.spacing[4] }}>
-            <div style={{ color: tokens.colors.error.DEFAULT, fontSize: tokens.typography.fontSize.sm[0] }}>
+          <Card className="p-3 mb-4" style={{ backgroundColor: tokens.colors.error[50] }}>
+            <div className="text-sm" style={{ color: tokens.colors.error.DEFAULT }}>
               {error || (queryError as Error)?.message || 'Failed to load automation history'}
             </div>
           </Card>
         )}
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+          <div className="flex flex-col gap-2">
             {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} style={{ height: 64, borderRadius: tokens.borderRadius.lg }} />
+              <Skeleton key={i} className="h-16 rounded-lg" />
             ))}
           </div>
         ) : runs.length === 0 ? (
@@ -150,16 +150,15 @@ export default function AutomationHistoryPage() {
             description="Automation runs will appear here as they fire."
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+          <div className="flex flex-col gap-2">
             {runs.map((run: AutomationRun) => (
-              <Card key={run.id} style={{
-                padding: tokens.spacing[3],
+              <Card key={run.id} className="p-3" style={{
                 borderLeft: `3px solid ${run.status === 'failed' ? tokens.colors.error.DEFAULT : run.status === 'success' ? tokens.colors.success.DEFAULT : tokens.colors.border.default}`,
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: tokens.spacing[3] }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[1], flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 600, fontSize: tokens.typography.fontSize.sm[0] }}>
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className="font-semibold text-sm">
                         {TYPE_LABELS[run.automationType || ''] || run.automationType || run.eventType}
                       </span>
                       <Badge variant={STATUS_COLORS[run.status] as any}>
@@ -167,18 +166,18 @@ export default function AutomationHistoryPage() {
                       </Badge>
                     </div>
                     {run.booking && (
-                      <p style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, margin: 0 }}>
+                      <p className="text-xs text-text-secondary m-0">
                         {run.booking.firstName} {run.booking.lastName} - {run.booking.service}
                       </p>
                     )}
                     {run.status === 'failed' && run.error && (
-                      <p style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.error.DEFAULT, margin: `${tokens.spacing[1]} 0 0` }}>
+                      <p className="text-xs mt-1 m-0" style={{ color: tokens.colors.error.DEFAULT }}>
                         {run.error}
                       </p>
                     )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexShrink: 0 }}>
-                    <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, whiteSpace: 'nowrap' }}>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-text-secondary whitespace-nowrap">
                       {formatDate(run.createdAt)}
                     </span>
                     {run.status === 'failed' && run.automationType && run.bookingId && (

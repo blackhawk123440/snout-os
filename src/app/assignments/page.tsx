@@ -1,6 +1,6 @@
 /**
  * Assignments Page
- * 
+ *
  * Full operational control for assignment windows
  */
 
@@ -9,7 +9,6 @@
 import { useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader, Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Tabs, TabPanel } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -48,7 +47,7 @@ export default function AssignmentsPage() {
     return (
       <AppShell>
         <PageHeader title="Assignments" />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div className="p-4">
           <Skeleton height={400} />
         </div>
       </AppShell>
@@ -59,7 +58,7 @@ export default function AssignmentsPage() {
     return (
       <AppShell>
         <PageHeader title="Assignments" />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div className="p-4">
           <Card>
             <p>Access denied. Owner access required.</p>
           </Card>
@@ -142,7 +141,7 @@ export default function AssignmentsPage() {
       key: 'actions',
       header: 'Actions',
       render: (w) => (
-        <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
+        <div className="flex gap-2">
           <Button size="sm" variant="secondary" onClick={() => openEditModal(w)}>
             Edit
           </Button>
@@ -177,38 +176,38 @@ export default function AssignmentsPage() {
           </Button>
         }
       />
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div className="p-6">
         {/* Summary Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4], marginBottom: tokens.spacing[6] }}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 mb-6">
           <Card>
-            <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+            <div className="text-xl font-bold">
               {activeCount}
             </div>
-            <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+            <div className="text-text-secondary text-sm">
               Active
             </div>
           </Card>
           <Card>
-            <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+            <div className="text-xl font-bold">
               {futureCount}
             </div>
-            <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+            <div className="text-text-secondary text-sm">
               Future
             </div>
           </Card>
           <Card>
-            <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+            <div className="text-xl font-bold">
               {pastCount}
             </div>
-            <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+            <div className="text-text-secondary text-sm">
               Past
             </div>
           </Card>
           <Card>
-            <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+            <div className="text-xl font-bold">
               {conflicts.length}
             </div>
-            <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+            <div className="text-text-secondary text-sm">
               Conflicts
             </div>
           </Card>
@@ -262,9 +261,9 @@ export default function AssignmentsPage() {
         {/* Create Modal */}
         {showCreateModal && (
           <Modal isOpen={showCreateModal} title="Create Assignment Window" onClose={() => setShowCreateModal(false)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div className="flex flex-col gap-4">
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Thread ID
                 </label>
                 <Input
@@ -274,7 +273,7 @@ export default function AssignmentsPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Sitter ID
                 </label>
                 <Input
@@ -284,7 +283,7 @@ export default function AssignmentsPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Start Time
                 </label>
                 <Input
@@ -294,7 +293,7 @@ export default function AssignmentsPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   End Time
                 </label>
                 <Input
@@ -304,7 +303,7 @@ export default function AssignmentsPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Booking Reference (optional)
                 </label>
                 <Input
@@ -313,7 +312,7 @@ export default function AssignmentsPage() {
                   placeholder="Optional booking reference"
                 />
               </div>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowCreateModal(false)} variant="secondary">Cancel</Button>
                 <Button
                   onClick={handleCreate}
@@ -330,9 +329,9 @@ export default function AssignmentsPage() {
         {/* Edit Modal */}
         {showEditModal && selectedWindow && (
           <Modal isOpen={!!showEditModal} title="Edit Assignment Window" onClose={() => setShowEditModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div className="flex flex-col gap-4">
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Start Time
                 </label>
                 <Input
@@ -342,7 +341,7 @@ export default function AssignmentsPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   End Time
                 </label>
                 <Input
@@ -352,7 +351,7 @@ export default function AssignmentsPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Sitter ID (optional)
                 </label>
                 <Input
@@ -362,7 +361,7 @@ export default function AssignmentsPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Booking Reference (optional)
                 </label>
                 <Input
@@ -371,7 +370,7 @@ export default function AssignmentsPage() {
                   placeholder="Optional booking reference"
                 />
               </div>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowEditModal(null)} variant="secondary">Cancel</Button>
                 <Button
                   onClick={handleEdit}
@@ -388,17 +387,17 @@ export default function AssignmentsPage() {
         {/* Delete Modal */}
         {showDeleteModal && selectedWindow && (
           <Modal isOpen={!!showDeleteModal} title="Delete Assignment Window" onClose={() => setShowDeleteModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div className="flex flex-col gap-4">
               {selectedWindow.status === 'active' ? (
-                <div style={{ padding: tokens.spacing[3], backgroundColor: tokens.colors.warning[50], borderRadius: tokens.borderRadius.md }}>
-                  <p style={{ color: tokens.colors.warning[700], fontWeight: tokens.typography.fontWeight.medium }}>
+                <div className="p-3 bg-status-warning-bg rounded-md">
+                  <p className="text-status-warning-text font-medium">
                     ⚠️ This window is currently active. Deleting it will route messages to owner inbox.
                   </p>
                 </div>
               ) : (
                 <p>Delete this assignment window?</p>
               )}
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowDeleteModal(null)} variant="secondary">Cancel</Button>
                 <Button onClick={handleDelete} disabled={deleteWindow.isPending} variant="danger">
                   {deleteWindow.isPending ? 'Deleting...' : 'Delete'}

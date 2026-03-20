@@ -59,7 +59,7 @@ export default function TiersPage() {
 
   const deleteTier = async (id: string) => {
     if (!confirm("Are you sure you want to delete this tier?")) return;
-    
+
     try {
       const response = await fetch(`/api/sitter-tiers/${id}`, {
         method: "DELETE",
@@ -88,9 +88,9 @@ export default function TiersPage() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[6] }}>
-        <Card style={{ marginBottom: tokens.spacing[4] }}>
-          <div style={{ padding: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+      <div className="p-6">
+        <Card className="mb-4">
+          <div className="p-4 text-sm text-text-secondary">
             <strong>Separation of concerns:</strong> SRS reliability tiers (Foundation/Reliant/Trusted/Preferred)
             measure performance. Policy tiers here control permissions, routing priority, and commission.
           </div>
@@ -98,20 +98,20 @@ export default function TiersPage() {
 
         {error && (
           <Card
+            className="mb-6"
             style={{
-              marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
               borderColor: tokens.colors.error[200],
             }}
           >
-            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+            <div className="p-4" style={{ color: tokens.colors.error[700] }}>
               {error}
             </div>
           </Card>
         )}
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div className="flex flex-col gap-4">
             <Skeleton height={150} />
             <Skeleton height={150} />
             <Skeleton height={150} />
@@ -127,7 +127,7 @@ export default function TiersPage() {
             }}
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div className="flex flex-col gap-4">
             {tiers.map((tier) => {
               let benefits: Record<string, unknown> = {};
               if (tier.benefits) {
@@ -139,16 +139,10 @@ export default function TiersPage() {
               }
               return (
                 <Card key={tier.id}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[2], flexWrap: 'wrap' }}>
-                        <div
-                          style={{
-                            fontWeight: tokens.typography.fontWeight.bold,
-                            fontSize: tokens.typography.fontSize.lg[0],
-                            color: tokens.colors.text.primary,
-                          }}
-                        >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <div className="font-bold text-lg text-text-primary">
                           {tier.name}
                         </div>
                         {tier.isDefault && (
@@ -157,13 +151,9 @@ export default function TiersPage() {
                         <Badge variant="info">Priority: {tier.priorityLevel}</Badge>
                       </div>
                       <div
+                        className="grid gap-4 text-sm text-text-secondary mb-3"
                         style={{
-                          display: 'grid',
                           gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                          gap: tokens.spacing[4],
-                          fontSize: tokens.typography.fontSize.sm[0],
-                          color: tokens.colors.text.secondary,
-                          marginBottom: tokens.spacing[3],
                         }}
                       >
                         <div>
@@ -178,7 +168,7 @@ export default function TiersPage() {
                         <div>
                           <strong>Commission Split:</strong> {tier.commissionSplit}%
                         </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: tokens.spacing[2] }}>
+                        <div className="flex flex-wrap gap-2">
                           {tier.canTakeHouseSits && (
                             <Badge variant="success">House Sits</Badge>
                           )}
@@ -188,17 +178,17 @@ export default function TiersPage() {
                         </div>
                       </div>
                       {tier.description && (
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+                        <div className="text-sm text-text-secondary mb-2">
                           {tier.description}
                         </div>
                       )}
                       {Object.keys(benefits).length > 0 && (
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                        <div className="text-sm text-text-secondary">
                           <strong>Benefits:</strong> {JSON.stringify(benefits)}
                         </div>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+                    <div className="flex gap-2 items-center">
                       <Link href={`/settings/tiers/${tier.id}`}>
                         <Button variant="secondary" size="sm">
                           Edit

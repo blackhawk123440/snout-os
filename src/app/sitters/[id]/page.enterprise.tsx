@@ -111,11 +111,11 @@ export default function SitterDetailEnterprisePage() {
 
         <Section title="At a Glance">
           <div className="grid gap-3 md:grid-cols-5">
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Next booking</div><div>{nextBooking ? new Date(nextBooking.startAt).toLocaleString() : 'None'}</div></div>
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Last completed</div><div>{completed[0] ? new Date(completed[0].endAt).toLocaleDateString() : 'None'}</div></div>
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Total bookings</div><div>{stats.totalBookings || 0}</div></div>
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Earnings</div><div>${Number(stats.totalEarnings || 0).toFixed(2)}</div></div>
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Status</div><StatusChip variant={sitter.isActive ? 'success' : 'warning'}>{sitter.isActive ? 'Active' : 'Inactive'}</StatusChip></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Next booking</div><div>{nextBooking ? new Date(nextBooking.startAt).toLocaleString() : 'None'}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Last completed</div><div>{completed[0] ? new Date(completed[0].endAt).toLocaleDateString() : 'None'}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Total bookings</div><div>{stats.totalBookings || 0}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Earnings</div><div>${Number(stats.totalEarnings || 0).toFixed(2)}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Status</div><StatusChip variant={sitter.isActive ? 'success' : 'warning'}>{sitter.isActive ? 'Active' : 'Inactive'}</StatusChip></div>
           </div>
         </Section>
 

@@ -98,32 +98,32 @@ export default function GrowthPage() {
         }
       />
 
-      <div className="p-6" style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <div className="p-6 flex flex-col gap-4">
         <Card>
-          <div style={{ padding: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+          <div className="p-4 text-sm text-text-secondary">
             <strong>Reliability tiers (SRS)</strong> represent sitter performance. <strong>Policy tiers</strong> in settings
             control entitlements (routing priority, permissions, and commission). They are intentionally separate.
           </div>
         </Card>
 
         {loading ? (
-          <Card><div style={{ padding: tokens.spacing[4] }}>Loading growth data...</div></Card>
+          <Card><div className="p-4">Loading growth data...</div></Card>
         ) : error ? (
-          <Card><div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>{error}</div></Card>
+          <Card><div className="p-4 text-error">{error}</div></Card>
         ) : (
           <>
             <Card>
-              <div style={{ padding: tokens.spacing[4] }}>
-                <h3 style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[3] }}>
+              <div className="p-4">
+                <h3 className="font-semibold mb-3">
                   Reliability Tier Distribution (SRS)
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: tokens.spacing[3] }}>
+                <div className="grid grid-cols-4 gap-3">
                   {Object.entries(distribution).map(([tier, count]) => (
-                    <div key={tier} style={{ border: `1px solid ${tokens.colors.border.default}`, borderRadius: tokens.borderRadius.md, padding: tokens.spacing[3] }}>
-                      <p style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, textTransform: 'capitalize' }}>
+                    <div key={tier} className="border border-border-default rounded-md p-3">
+                      <p className="text-xs text-text-secondary capitalize">
                         {tier}
                       </p>
-                      <p style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>{count}</p>
+                      <p className="text-xl font-bold">{count}</p>
                     </div>
                   ))}
                 </div>
@@ -131,21 +131,21 @@ export default function GrowthPage() {
             </Card>
 
             <Card>
-              <div style={{ padding: tokens.spacing[4] }}>
-                <h3 style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[3] }}>
+              <div className="p-4">
+                <h3 className="font-semibold mb-3">
                   Top Performers (SRS)
                 </h3>
                 {topPerformers.length === 0 ? (
                   <EmptyState title="No reliability snapshots yet" description="Run SRS snapshots to populate growth metrics." />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                  <div className="flex flex-col gap-2">
                     {topPerformers.map((sitter) => (
-                      <div key={sitter.sitterId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${tokens.colors.border.muted}`, paddingBottom: tokens.spacing[2] }}>
+                      <div key={sitter.sitterId} className="flex justify-between items-center border-b border-border-muted pb-2">
                         <div>
-                          <Link href={`/sitters/${sitter.sitterId}`} style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                          <Link href={`/sitters/${sitter.sitterId}`} className="font-semibold">
                             {sitter.sitter.firstName} {sitter.sitter.lastName}
                           </Link>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                          <div className="text-xs text-text-secondary">
                             Score {sitter.score.toFixed(1)}
                           </div>
                         </div>
@@ -160,21 +160,21 @@ export default function GrowthPage() {
             </Card>
 
             <Card>
-              <div style={{ padding: tokens.spacing[4] }}>
-                <h3 style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[3] }}>
+              <div className="p-4">
+                <h3 className="font-semibold mb-3">
                   Bottom Performers (SRS)
                 </h3>
                 {bottomPerformers.length === 0 ? (
                   <EmptyState title="No reliability snapshots yet" description="Run SRS snapshots to populate growth metrics." />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                  <div className="flex flex-col gap-2">
                     {bottomPerformers.map((sitter) => (
-                      <div key={sitter.sitterId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${tokens.colors.border.muted}`, paddingBottom: tokens.spacing[2] }}>
+                      <div key={sitter.sitterId} className="flex justify-between items-center border-b border-border-muted pb-2">
                         <div>
-                          <Link href={`/sitters/${sitter.sitterId}`} style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                          <Link href={`/sitters/${sitter.sitterId}`} className="font-semibold">
                             {sitter.sitter.firstName} {sitter.sitter.lastName}
                           </Link>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                          <div className="text-xs text-text-secondary">
                             Score {sitter.score.toFixed(1)}
                           </div>
                         </div>
@@ -189,8 +189,8 @@ export default function GrowthPage() {
             </Card>
 
             <Card>
-              <div style={{ padding: tokens.spacing[4] }}>
-                <h3 style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[3] }}>
+              <div className="p-4">
+                <h3 className="font-semibold mb-3">
                   Policy Tier Coverage (Settings)
                 </h3>
                 {policyTiers.length === 0 ? (
@@ -200,11 +200,11 @@ export default function GrowthPage() {
                     action={{ label: 'Create Policy Tier', onClick: () => (window.location.href = '/settings/tiers/new') }}
                   />
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: tokens.spacing[3] }}>
+                  <div className="grid grid-cols-2 gap-3">
                     {policyTiers.map((tier) => (
-                      <div key={tier.id} style={{ border: `1px solid ${tokens.colors.border.default}`, borderRadius: tokens.borderRadius.md, padding: tokens.spacing[3] }}>
-                        <p style={{ fontWeight: tokens.typography.fontWeight.semibold }}>{tier.name}</p>
-                        <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                      <div key={tier.id} className="border border-border-default rounded-md p-3">
+                        <p className="font-semibold">{tier.name}</p>
+                        <p className="text-sm text-text-secondary">
                           Priority {tier.priorityLevel} • Commission {tier.commissionSplit}%
                         </p>
                       </div>

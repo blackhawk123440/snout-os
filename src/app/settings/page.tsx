@@ -30,7 +30,6 @@ import {
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
 import { AppPageHeader } from '@/components/app';
-import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 
 type SettingsSection =
@@ -233,16 +232,16 @@ function BusinessSection() {
 
   return (
     <Card>
-      <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+      <h3 className="mb-4 text-lg">
         Business Information
       </h3>
       {(queryError?.message || saveMutation.error?.message) && (
-        <Alert variant="error" style={{ marginBottom: tokens.spacing[4] }}>
+        <Alert variant="error" className="mb-4">
           {queryError?.message || saveMutation.error?.message}
         </Alert>
       )}
       {success && (
-        <Alert variant="success" style={{ marginBottom: tokens.spacing[4] }}>
+        <Alert variant="success" className="mb-4">
           Saved.
         </Alert>
       )}
@@ -284,7 +283,7 @@ function BusinessSection() {
           ]}
         />
       </FormRow>
-      <div style={{ marginTop: tokens.spacing[6] }}>
+      <div className="mt-6">
         <Button variant="primary" onClick={() => saveMutation.mutate(data)} isLoading={saveMutation.isPending}>
           Save business settings
         </Button>
@@ -332,11 +331,11 @@ function ServicesSection() {
 
   return (
     <Card>
-      <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+      <h3 className="mb-4 text-lg">
         Service catalog
       </h3>
       {(queryError?.message || deleteMutation.error?.message) && (
-        <Alert variant="error" style={{ marginBottom: tokens.spacing[4] }}>
+        <Alert variant="error" className="mb-4">
           {queryError?.message || deleteMutation.error?.message}
         </Alert>
       )}
@@ -347,17 +346,11 @@ function ServicesSection() {
           action={{ label: 'Add service', onClick: () => router.push('/settings?section=services') }}
         />
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        <ul className="list-none p-0 m-0">
           {list.map((s) => (
             <li
               key={s.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: tokens.spacing[3],
-                borderBottom: `1px solid ${tokens.colors.border.default}`,
-              }}
+              className="flex items-center justify-between p-3 border-b border-border-default"
             >
               <span>{s.serviceName}</span>
               <Flex align="center" gap={3}>
@@ -370,7 +363,7 @@ function ServicesSection() {
           ))}
         </ul>
       )}
-      <p style={{ marginTop: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+      <p className="mt-4 text-sm text-text-secondary">
         Create and edit services via the API or a future form. List loads from <code>/api/settings/services</code>.
       </p>
     </Card>
@@ -443,11 +436,11 @@ function PricingSection() {
 
   return (
     <Card>
-      <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+      <h3 className="mb-4 text-lg">
         Pricing rules
       </h3>
       {(queryError?.message || mutationError) && (
-        <Alert variant="error" style={{ marginBottom: tokens.spacing[4] }}>
+        <Alert variant="error" className="mb-4">
           {queryError?.message || mutationError}
         </Alert>
       )}
@@ -457,17 +450,11 @@ function PricingSection() {
           description="Pricing rules define fees, discounts, or multipliers. Add rules via API or future UI."
         />
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        <ul className="list-none p-0 m-0">
           {rules.map((r) => (
             <li
               key={r.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: tokens.spacing[3],
-                borderBottom: `1px solid ${tokens.colors.border.default}`,
-              }}
+              className="flex items-center justify-between p-3 border-b border-border-default"
             >
               <span>{r.name}</span>
               <Flex align="center" gap={3}>
@@ -482,7 +469,7 @@ function PricingSection() {
         </ul>
       )}
 
-      <h3 style={{ marginTop: tokens.spacing[8], marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+      <h3 className="mt-8 mb-4 text-lg">
         Discounts
       </h3>
       {discounts.length === 0 ? (
@@ -491,29 +478,23 @@ function PricingSection() {
           description="Discount codes and automatic discounts. Add via API or future UI."
         />
       ) : (
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        <ul className="list-none p-0 m-0">
           {discounts.map((d) => (
             <li
               key={d.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: tokens.spacing[3],
-                borderBottom: `1px solid ${tokens.colors.border.default}`,
-              }}
+              className="flex items-center justify-between p-3 border-b border-border-default"
             >
               <span>
                 {d.name}
                 {d.code && (
-                  <Badge variant="neutral" style={{ marginLeft: tokens.spacing[2] }}>
+                  <Badge variant="neutral" className="ml-2">
                     {d.code}
                   </Badge>
                 )}
               </span>
               <Flex align="center" gap={3}>
                 <Badge variant="neutral">{d.type}</Badge>
-                <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                <span className="text-sm text-text-secondary">
                   {d.value}
                   {d.valueType === 'percentage' ? '%' : ' fixed'}
                 </span>
@@ -596,16 +577,16 @@ function NotificationsSection() {
 
   return (
     <Card>
-      <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+      <h3 className="mb-4 text-lg">
         Notification preferences
       </h3>
       {(queryError?.message || saveMutation.error?.message) && (
-        <Alert variant="error" style={{ marginBottom: tokens.spacing[4] }}>
+        <Alert variant="error" className="mb-4">
           {queryError?.message || saveMutation.error?.message}
         </Alert>
       )}
       {success && (
-        <Alert variant="success" style={{ marginBottom: tokens.spacing[4] }}>
+        <Alert variant="success" className="mb-4">
           Saved.
         </Alert>
       )}
@@ -681,7 +662,7 @@ function NotificationsSection() {
           ]}
         />
       </FormRow>
-      <div style={{ marginTop: tokens.spacing[6] }}>
+      <div className="mt-6">
         <Button variant="primary" onClick={() => saveMutation.mutate(data)} isLoading={saveMutation.isPending}>
           Save notification settings
         </Button>
@@ -693,10 +674,10 @@ function NotificationsSection() {
 function TiersSection() {
   return (
     <Card>
-      <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+      <h3 className="mb-4 text-lg">
         Policy tiers
       </h3>
-      <p style={{ marginBottom: tokens.spacing[4], color: tokens.colors.text.secondary }}>
+      <p className="mb-4 text-text-secondary">
         Manage sitter tiers, point targets, and tier benefits. Tiers are org-scoped and fully persisted.
       </p>
       <Link href="/settings/tiers">
@@ -704,7 +685,7 @@ function TiersSection() {
           Open tier settings
         </Button>
       </Link>
-      <p style={{ marginTop: tokens.spacing[3], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+      <p className="mt-3 text-sm text-text-secondary">
         <Link href="/settings/tiers/new">Create new tier</Link>
       </p>
     </Card>
@@ -714,10 +695,10 @@ function TiersSection() {
 function AISection() {
   return (
     <Card>
-      <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+      <h3 className="mb-4 text-lg">
         AI governance
       </h3>
-      <p style={{ marginBottom: tokens.spacing[4], color: tokens.colors.text.secondary }}>
+      <p className="mb-4 text-text-secondary">
         Enable/disable AI, set budgets, and manage prompt templates. AI settings are org-scoped.
       </p>
       <Link href="/ops/ai">
@@ -732,10 +713,10 @@ function AISection() {
 function IntegrationsSection() {
   return (
     <Card>
-      <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+      <h3 className="mb-4 text-lg">
         Integrations
       </h3>
-      <p style={{ marginBottom: tokens.spacing[4], color: tokens.colors.text.secondary }}>
+      <p className="mb-4 text-text-secondary">
         Stripe, messaging (Twilio), calendar, and other integrations are configured in the integrations hub.
       </p>
       <Link href="/integrations">
@@ -793,12 +774,12 @@ function AdvancedSection() {
 
   return (
     <>
-      <Card style={{ marginBottom: tokens.spacing[6] }}>
-        <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+      <Card className="mb-6">
+        <h3 className="mb-4 text-lg">
           Rotation (pool number lifecycle)
         </h3>
         {rotationError && (
-          <Alert variant="error" style={{ marginBottom: tokens.spacing[4] }}>
+          <Alert variant="error" className="mb-4">
             {rotationError}
           </Alert>
         )}
@@ -832,7 +813,7 @@ function AdvancedSection() {
                 }
               />
             </FormRow>
-            <div style={{ marginTop: tokens.spacing[4] }}>
+            <div className="mt-4">
               <Button variant="primary" onClick={() => saveRotationMutation.mutate(rotation)} isLoading={saveRotationMutation.isPending}>
                 Save rotation settings
               </Button>
@@ -841,8 +822,8 @@ function AdvancedSection() {
         )}
       </Card>
 
-      <Card style={{ marginBottom: tokens.spacing[6] }}>
-        <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+      <Card className="mb-6">
+        <h3 className="mb-4 text-lg">
           Service areas
         </h3>
         {areasLoading ? (
@@ -853,14 +834,11 @@ function AdvancedSection() {
             description="Define coverage zones (ZIPs, radius, or polygon). Add via API or future UI."
           />
         ) : (
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+          <ul className="list-none p-0 m-0">
             {areas.map((a) => (
               <li
                 key={a.id}
-                style={{
-                  padding: tokens.spacing[3],
-                  borderBottom: `1px solid ${tokens.colors.border.default}`,
-                }}
+                className="p-3 border-b border-border-default"
               >
                 {a.name} <Badge variant="neutral">{a.type}</Badge>
               </li>
@@ -870,10 +848,10 @@ function AdvancedSection() {
       </Card>
 
       <Card>
-        <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+        <h3 className="mb-4 text-lg">
           Org config
         </h3>
-        <p style={{ color: tokens.colors.text.secondary }}>
+        <p className="text-text-secondary">
           Org metadata and feature flags are managed in the database. No editable controls here yet.
         </p>
       </Card>
@@ -929,10 +907,10 @@ function BrandingSection() {
   return (
     <>
       <Card>
-        <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+        <h3 className="mb-4 text-lg">
           Client-Facing Branding
         </h3>
-        <p style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0] }}>
+        <p className="text-text-secondary mb-4 text-sm">
           Customize how your business appears to clients in the portal, emails, and native apps.
         </p>
 
@@ -951,11 +929,11 @@ function BrandingSection() {
             placeholder="https://example.com/logo.png"
           />
           {form.logoUrl && (
-            <div style={{ marginTop: tokens.spacing[2] }}>
+            <div className="mt-2">
               <img
                 src={form.logoUrl}
                 alt="Logo preview"
-                style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'contain', border: `1px solid ${tokens.colors.border.default}` }}
+                className="w-16 h-16 rounded-lg object-contain border border-border-default"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             </div>
@@ -996,31 +974,21 @@ function BrandingSection() {
           </Flex>
         </FormRow>
 
-        <div style={{ marginTop: tokens.spacing[4] }}>
+        <div className="mt-4">
           <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
             {saveMutation.isPending ? 'Saving…' : 'Save Branding'}
           </Button>
-          {saved && <Badge variant="success" style={{ marginLeft: tokens.spacing[2] }}>Saved</Badge>}
+          {saved && <Badge variant="success" className="ml-2">Saved</Badge>}
         </div>
       </Card>
 
       {/* Live preview */}
       <Card>
-        <h3 style={{ marginBottom: tokens.spacing[4], fontSize: tokens.typography.fontSize.lg[0] }}>
+        <h3 className="mb-4 text-lg">
           Preview
         </h3>
-        <div style={{
-          border: `1px solid ${tokens.colors.border.default}`,
-          borderRadius: 12,
-          overflow: 'hidden',
-        }}>
-          <div style={{
-            backgroundColor: form.primaryColor || '#432f21',
-            padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: tokens.spacing[3],
-          }}>
+        <div className="border border-border-default rounded-xl overflow-hidden">
+          <div className="py-3 px-4 flex items-center gap-3" style={{ backgroundColor: form.primaryColor || '#432f21' }}>
             {form.logoUrl && (
               <img src={form.logoUrl} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'contain' }}
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -1029,17 +997,10 @@ function BrandingSection() {
               {form.businessName || 'Your Business'}
             </span>
           </div>
-          <div style={{ padding: tokens.spacing[4], backgroundColor: form.secondaryColor || '#fef7fb' }}>
+          <div className="p-4" style={{ backgroundColor: form.secondaryColor || '#fef7fb' }}>
             <p style={{ color: '#333', fontSize: 14 }}>This is how clients will see your portal header.</p>
-            <button style={{
-              marginTop: tokens.spacing[3],
+            <button className="mt-3 text-white border-none rounded-lg py-2 px-4 font-semibold cursor-pointer" style={{
               backgroundColor: form.primaryColor || '#432f21',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '8px 16px',
-              fontWeight: 600,
-              cursor: 'pointer',
             }}>
               Book a Visit
             </button>

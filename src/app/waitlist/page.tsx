@@ -11,8 +11,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
 import { Panel, Button, Badge, Skeleton, EmptyState, Flex } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
-
 interface WaitlistEntry {
   id: string;
   clientName: string;
@@ -80,7 +78,7 @@ export default function WaitlistPage() {
           subtitle={`${waitingCount} client${waitingCount !== 1 ? 's' : ''} waiting for availability`}
         />
 
-        <div style={{ padding: `0 ${tokens.spacing[4]}`, marginBottom: tokens.spacing[3] }}>
+        <div className="px-4 mb-3">
           <Flex gap={2}>
             {['all', 'waiting', 'notified', 'booked', 'expired'].map((s) => (
               <Button
@@ -95,7 +93,7 @@ export default function WaitlistPage() {
           </Flex>
         </div>
 
-        <div style={{ padding: `0 ${tokens.spacing[4]}` }}>
+        <div className="px-4">
           {isLoading ? (
             <Skeleton height="300px" />
           ) : error ? (
@@ -107,41 +105,34 @@ export default function WaitlistPage() {
             />
           ) : (
             <Panel>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="flex flex-col">
                 {entries.map((entry) => {
                   const cfg = STATUS_CONFIG[entry.status] || STATUS_CONFIG.waiting;
                   return (
                     <div
                       key={entry.id}
-                      style={{
-                        padding: tokens.spacing[4],
-                        borderBottom: `1px solid ${tokens.colors.border.default}`,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        gap: tokens.spacing[4],
-                      }}
+                      className="p-4 border-b border-border-default flex justify-between items-start gap-4"
                     >
-                      <div style={{ flex: 1 }}>
+                      <div className="flex-1">
                         <Flex align="center" gap={2}>
-                          <span style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.primary }}>
+                          <span className="font-semibold text-text-primary">
                             {entry.clientName}
                           </span>
                           <Badge variant={cfg.variant}>{cfg.label}</Badge>
-                          <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>
+                          <span className="text-xs text-text-tertiary">
                             #{entry.position}
                           </span>
                         </Flex>
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                        <div className="text-sm text-text-secondary mt-1">
                           {entry.service} · {entry.preferredDate ? new Date(entry.preferredDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'Flexible date'}
                           {entry.preferredTimeStart && ` · ${entry.preferredTimeStart}–${entry.preferredTimeEnd}`}
                         </div>
                         {entry.notes && (
-                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.tertiary, marginTop: tokens.spacing[1], fontStyle: 'italic' }}>
+                          <div className="text-sm text-text-tertiary mt-1 italic">
                             {entry.notes}
                           </div>
                         )}
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginTop: tokens.spacing[1] }}>
+                        <div className="text-xs text-text-tertiary mt-1">
                           Added {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </div>
                       </div>

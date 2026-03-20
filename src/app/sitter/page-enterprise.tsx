@@ -1,8 +1,8 @@
 /**
  * Sitter Dashboard Page - Enterprise Rebuild
- * 
+ *
  * Complete rebuild using design system and components.
- * Zero legacy styling - all through components and tokens.
+ * Zero legacy styling - all through components and Tailwind classes.
  */
 
 'use client';
@@ -37,7 +37,6 @@ import {
   useToast,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
-import { tokens } from '@/lib/design-tokens';
 
 interface Booking {
   id: string;
@@ -86,7 +85,7 @@ function SitterPageContent() {
     // Get sitter ID from URL params or localStorage
     const id = searchParams?.get('id') || (typeof window !== 'undefined' ? localStorage.getItem('sitterId') : null) || '';
     setSitterId(id);
-    
+
     if (id) {
       fetchSitterBookings(id);
     } else {
@@ -103,7 +102,7 @@ function SitterPageContent() {
       if (data.sitter?.commissionPercentage) {
         setCommissionPercentage(data.sitter.commissionPercentage);
       }
-      
+
       // Fetch sitter tier info
       const sitterResponse = await fetch(`/api/sitters/${id}`);
       const sitterData = await sitterResponse.json();
@@ -143,7 +142,7 @@ function SitterPageContent() {
       setLoading(false);
     }
   };
-  
+
   const calculateSitterEarnings = (totalPrice: number): number => {
     return (totalPrice * commissionPercentage) / 100;
   };
@@ -190,17 +189,17 @@ function SitterPageContent() {
     .filter(booking => {
       const bookingDate = new Date(booking.startAt);
       bookingDate.setHours(0, 0, 0, 0);
-      return bookingDate.getTime() === today.getTime() && 
+      return bookingDate.getTime() === today.getTime() &&
              booking.status !== "cancelled" &&
              (booking.status === "confirmed" || booking.status === "pending");
     })
     .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
 
-  const upcomingBookings = bookings.filter(booking => 
+  const upcomingBookings = bookings.filter(booking =>
     new Date(booking.startAt) > new Date() && booking.status !== "cancelled"
   );
 
-  const completedBookings = bookings.filter(booking => 
+  const completedBookings = bookings.filter(booking =>
     booking.status === "completed"
   );
 
@@ -253,7 +252,7 @@ function SitterPageContent() {
     return (
       <AppShell>
         <PageHeader title="Sitter Dashboard" />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <Skeleton height={200} />
         </div>
       </AppShell>
@@ -264,7 +263,7 @@ function SitterPageContent() {
     return (
       <AppShell>
         <PageHeader title="Sitter Dashboard" />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <EmptyState
             title="Sitter ID Required"
             description="Please provide a sitter ID in the URL or localStorage"
@@ -303,36 +302,19 @@ function SitterPageContent() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div className="p-6">
         {/* Tier Badge */}
         {sitterTier && (
-          <Card
-            style={{
-              marginBottom: tokens.spacing[6],
-              backgroundColor: tokens.colors.primary[50],
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
-              <div
-                style={{
-                  width: '3rem',
-                  height: '3rem',
-                  borderRadius: tokens.borderRadius.md,
-                  backgroundColor: tokens.colors.primary[500],
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: tokens.colors.neutral[0],
-                  fontSize: tokens.typography.fontSize.xl[0],
-                }}
-              >
+          <Card className="mb-6 bg-accent-secondary">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-md bg-accent-primary flex items-center justify-center text-white text-xl">
                 <Star className="h-6 w-6" />
               </div>
               <div>
-                <div style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
+                <div className="font-bold text-accent-primary">
                   Current Tier: {sitterTier.name}
                 </div>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                <div className="text-sm text-text-secondary">
                   Priority Level: {sitterTier.priorityLevel}
                 </div>
               </div>
@@ -341,14 +323,7 @@ function SitterPageContent() {
         )}
 
         {/* Stats Cards */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: tokens.spacing[6],
-            marginBottom: tokens.spacing[6],
-          }}
-        >
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6 mb-6">
           <StatCard
             label="Upcoming"
             value={upcomingBookings.length}
@@ -376,39 +351,29 @@ function SitterPageContent() {
           <TabPanel id="today">
             <Card>
               <SectionHeader title={`Today's Visits (${todayBookings.length})`} />
-              <div style={{ padding: tokens.spacing[6] }}>
+              <div className="p-6">
                 {todayBookings.length === 0 ? (
                   <EmptyState
                     title="No visits scheduled for today"
                     description="You have no bookings scheduled for today"
-                    icon={<Calendar className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
+                    icon={<Calendar className="h-12 w-12 text-neutral-300" />}
                   />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <div className="flex flex-col gap-4">
                     {todayBookings.map((booking, index) => {
                       const previousBooking = index > 0 ? todayBookings[index - 1] : null;
                       const travelTime = calculateTravelTime(previousBooking, booking);
                       const overdue = isOverdue(booking);
-                      
+
                       return (
                         <Card
                           key={booking.id}
-                          style={{
-                            borderColor: overdue ? tokens.colors.error.DEFAULT : tokens.colors.border.default,
-                            backgroundColor: overdue ? tokens.colors.error[50] : undefined,
-                          }}
+                          className={overdue ? 'border-status-danger-border bg-status-danger-bg' : ''}
                         >
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              justifyContent: 'space-between',
-                              gap: tokens.spacing[4],
-                            }}
-                          >
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="font-bold text-lg">
                                   {booking.firstName} {booking.lastName.charAt(0)}.
                                 </div>
                                 {overdue && (
@@ -416,26 +381,26 @@ function SitterPageContent() {
                                 )}
                                 {getStatusBadge(booking.status)}
                               </div>
-                              
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+
+                              <div className="flex flex-col gap-1 text-sm text-text-secondary">
+                                <div className="flex items-center gap-4">
                                   <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5 mr-1" /></span>
                                   {formatTime(booking.startAt)}
-                                  <span className="inline-flex items-center gap-1" style={{ marginLeft: tokens.spacing[4] }}><PawPrint className="h-3.5 w-3.5 mr-1" /></span>
+                                  <span className="inline-flex items-center gap-1 ml-4"><PawPrint className="h-3.5 w-3.5 mr-1" /></span>
                                   {formatPetsByQuantity(booking.pets)}
-                                  <span className="inline-flex items-center gap-1" style={{ marginLeft: tokens.spacing[4] }}><MapPin className="h-3.5 w-3.5 mr-1" /></span>
+                                  <span className="inline-flex items-center gap-1 ml-4"><MapPin className="h-3.5 w-3.5 mr-1" /></span>
                                   {booking.address}
                                 </div>
                                 {previousBooking && (
-                                  <div style={{ color: tokens.colors.info.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }} className="inline-flex items-center">
+                                  <div className="text-info text-xs inline-flex items-center">
                                     <Route className="h-3 w-3 mr-1" />
                                     ~{travelTime} min travel from previous visit
                                   </div>
                                 )}
                               </div>
                             </div>
-                            
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+
+                            <div className="flex items-center gap-2">
                               <Button
                                 variant="tertiary"
                                 size="sm"
@@ -465,9 +430,9 @@ function SitterPageContent() {
           <TabPanel id="upcoming">
             <Card>
               <SectionHeader title={`Upcoming Bookings (${upcomingBookings.length})`} />
-              <div style={{ padding: tokens.spacing[6] }}>
+              <div className="p-6">
                 {loading ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <div className="flex flex-col gap-4">
                     <Skeleton height={100} />
                     <Skeleton height={100} />
                     <Skeleton height={100} />
@@ -476,30 +441,30 @@ function SitterPageContent() {
                   <EmptyState
                     title="No upcoming bookings"
                     description="You have no upcoming bookings scheduled"
-                    icon={<Calendar className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
+                    icon={<Calendar className="h-12 w-12 text-neutral-300" />}
                   />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <div className="flex flex-col gap-4">
                     {upcomingBookings.map((booking) => (
-                      <Card key={booking.id} style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                      <Card key={booking.id} className="cursor-pointer" onClick={() => handleBookingClick(booking)}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="font-bold text-lg">
                                 {booking.firstName} {booking.lastName}
                               </div>
                               {getStatusBadge(booking.status)}
                             </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+                            <div className="flex flex-col gap-1 text-sm text-text-secondary">
+                              <div className="flex items-center gap-4">
                                 <span className="inline-flex items-center"><Calendar className="h-3.5 w-3.5 mr-1" /></span>
                                 {formatDate(booking.startAt)}
-                                <span className="inline-flex items-center" style={{ marginLeft: tokens.spacing[4] }}><Clock className="h-3.5 w-3.5 mr-1" /></span>
+                                <span className="inline-flex items-center ml-4"><Clock className="h-3.5 w-3.5 mr-1" /></span>
                                 {formatTime(booking.startAt)}
-                                <span className="inline-flex items-center" style={{ marginLeft: tokens.spacing[4] }}><PawPrint className="h-3.5 w-3.5 mr-1" /></span>
+                                <span className="inline-flex items-center ml-4"><PawPrint className="h-3.5 w-3.5 mr-1" /></span>
                                 {formatPetsByQuantity(booking.pets)}
-                                <span className="inline-flex items-center" style={{ marginLeft: tokens.spacing[4] }}><DollarSign className="h-3.5 w-3.5 mr-1" /></span>
+                                <span className="inline-flex items-center ml-4"><DollarSign className="h-3.5 w-3.5 mr-1" /></span>
                                 ${booking.totalPrice.toFixed(2)}
                               </div>
                               <div>
@@ -521,32 +486,32 @@ function SitterPageContent() {
           <TabPanel id="completed">
             <Card>
               <SectionHeader title={`Completed Bookings (${completedBookings.length})`} />
-              <div style={{ padding: tokens.spacing[6] }}>
+              <div className="p-6">
                 {completedBookings.length === 0 ? (
                   <EmptyState
                     title="No completed bookings"
                     description="You haven't completed any bookings yet"
-                    icon={<CheckCircle2 className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
+                    icon={<CheckCircle2 className="h-12 w-12 text-neutral-300" />}
                   />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <div className="flex flex-col gap-4">
                     {completedBookings.slice(0, 20).map((booking) => (
-                      <Card key={booking.id} style={{ cursor: 'pointer' }} onClick={() => handleBookingClick(booking)}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                      <Card key={booking.id} className="cursor-pointer" onClick={() => handleBookingClick(booking)}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="font-bold text-lg">
                                 {booking.firstName} {booking.lastName}
                               </div>
                               {getStatusBadge(booking.status)}
                             </div>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            <div className="flex items-center gap-4 text-sm text-text-secondary">
                               <span className="inline-flex items-center"><Calendar className="h-3.5 w-3.5 mr-1" /></span>
                               {formatDate(booking.startAt)}
-                              <span className="inline-flex items-center" style={{ marginLeft: tokens.spacing[4] }}><PawPrint className="h-3.5 w-3.5 mr-1" /></span>
+                              <span className="inline-flex items-center ml-4"><PawPrint className="h-3.5 w-3.5 mr-1" /></span>
                               {formatPetsByQuantity(booking.pets)}
-                              <span className="inline-flex items-center" style={{ marginLeft: tokens.spacing[4] }}><DollarSign className="h-3.5 w-3.5 mr-1" /></span>
+                              <span className="inline-flex items-center ml-4"><DollarSign className="h-3.5 w-3.5 mr-1" /></span>
                               ${booking.totalPrice.toFixed(2)}
                             </div>
                           </div>
@@ -554,7 +519,7 @@ function SitterPageContent() {
                       </Card>
                     ))}
                     {completedBookings.length > 20 && (
-                      <div style={{ textAlign: 'center', padding: tokens.spacing[4], color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+                      <div className="text-center p-4 text-text-secondary text-sm">
                         +{completedBookings.length - 20} more completed bookings
                       </div>
                     )}
@@ -568,26 +533,19 @@ function SitterPageContent() {
           <TabPanel id="earnings">
             <Card>
               <SectionHeader title="Earnings Breakdown" />
-              <div style={{ padding: tokens.spacing[6] }}>
+              <div className="p-6">
                 {earningsData ? (
                   <>
                     {/* Summary Cards */}
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                        gap: tokens.spacing[4],
-                        marginBottom: tokens.spacing[6],
-                      }}
-                    >
-                      <Card style={{ padding: tokens.spacing[6] }}>
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2], textTransform: 'uppercase' }}>
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 mb-6">
+                      <Card className="p-6">
+                        <div className="text-sm font-medium text-text-secondary mb-2 uppercase">
                           Total Earnings
                         </div>
-                        <div style={{ fontSize: tokens.typography.fontSize['3xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text.primary, marginBottom: tokens.spacing[1] }}>
+                        <div className="text-3xl font-bold text-text-primary mb-1">
                           ${earningsData.summary.totalEarnings.toFixed(2)}
                         </div>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                        <div className="text-xs text-text-secondary">
                           {earningsData.summary.totalBookings} bookings ({earningsData.summary.commissionPercentage}% commission)
                         </div>
                       </Card>
@@ -603,25 +561,25 @@ function SitterPageContent() {
 
                     {/* Earnings by Service Type */}
                     {earningsData.earningsByService && earningsData.earningsByService.length > 0 && (
-                      <div style={{ marginBottom: tokens.spacing[6] }}>
+                      <div className="mb-6">
                         <SectionHeader title="Earnings by Service Type" />
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4] }}>
+                        <div className="flex flex-col gap-2 mt-4">
                           {earningsData.earningsByService.map((service: any, idx: number) => (
                             <Card key={idx}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div className="flex items-center justify-between">
                                 <div>
-                                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                                  <div className="font-semibold">
                                     {service.service}
                                   </div>
-                                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                  <div className="text-sm text-text-secondary">
                                     {service.bookingCount} booking{service.bookingCount !== 1 ? 's' : ''}
                                   </div>
                                 </div>
-                                <div style={{ textAlign: 'right' }}>
-                                  <div style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
+                                <div className="text-right">
+                                  <div className="font-bold text-accent-primary">
                                     ${service.totalEarnings.toFixed(2)}
                                   </div>
-                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                                  <div className="text-xs text-text-secondary">
                                     from ${service.totalRevenue.toFixed(2)}
                                   </div>
                                 </div>
@@ -635,23 +593,23 @@ function SitterPageContent() {
                     {/* Earnings by Booking */}
                     <div>
                       <SectionHeader title="Earnings by Booking" />
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], marginTop: tokens.spacing[4], maxHeight: '24rem', overflowY: 'auto' }}>
+                      <div className="flex flex-col gap-2 mt-4 max-h-96 overflow-y-auto">
                         {earningsData.earningsByBooking.map((item: any) => (
                           <Card key={item.bookingId}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div className="flex items-center justify-between">
                               <div>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                                <div className="font-semibold">
                                   {item.clientName}
                                 </div>
-                                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                                <div className="text-sm text-text-secondary">
                                   {formatDate(item.date)} - {item.service}
                                 </div>
                               </div>
-                              <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
+                              <div className="text-right">
+                                <div className="font-bold text-accent-primary">
                                   ${item.earnings.toFixed(2)}
                                 </div>
-                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                                <div className="text-xs text-text-secondary">
                                   from ${item.totalPrice.toFixed(2)}
                                 </div>
                               </div>
@@ -675,42 +633,25 @@ function SitterPageContent() {
           <TabPanel id="tier">
             <Card>
               <SectionHeader title="Tier Progress" />
-              <div style={{ padding: tokens.spacing[6] }}>
+              <div className="p-6">
                 {tierProgress ? (
                   <>
                     {/* Current Tier */}
                     {tierProgress.tier && (
-                      <Card
-                        style={{
-                          marginBottom: tokens.spacing[6],
-                          backgroundColor: tokens.colors.primary[50],
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
-                          <div
-                            style={{
-                              width: '3rem',
-                              height: '3rem',
-                              borderRadius: tokens.borderRadius.md,
-                              backgroundColor: tokens.colors.primary[500],
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: tokens.colors.neutral[0],
-                              fontSize: tokens.typography.fontSize.xl[0],
-                            }}
-                          >
+                      <Card className="mb-6 bg-accent-secondary">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-md bg-accent-primary flex items-center justify-center text-white text-xl">
                             <Star className="h-6 w-6" />
                           </div>
                           <div>
-                            <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], color: tokens.colors.primary.DEFAULT }}>
+                            <div className="font-bold text-lg text-accent-primary">
                               Current Tier: {tierProgress.tier.name}
                             </div>
-                            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                            <div className="text-sm text-text-secondary">
                               Priority Level: {tierProgress.tier.priorityLevel}
                             </div>
                             {tierProgress.tier.benefits && (
-                              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
+                              <div className="text-sm text-text-secondary mt-2">
                                 Benefits: {typeof tierProgress.tier.benefits === 'string' ? tierProgress.tier.benefits : JSON.stringify(tierProgress.tier.benefits)}
                               </div>
                             )}
@@ -721,16 +662,9 @@ function SitterPageContent() {
 
                     {/* Performance Metrics */}
                     {tierProgress.performance && (
-                      <div style={{ marginBottom: tokens.spacing[6] }}>
+                      <div className="mb-6">
                         <SectionHeader title="Performance Metrics" />
-                        <div
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                            gap: tokens.spacing[4],
-                            marginTop: tokens.spacing[4],
-                          }}
-                        >
+                        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4 mt-4">
                           <StatCard
                             label="Points"
                             value={tierProgress.performance.points || 0}
@@ -749,17 +683,11 @@ function SitterPageContent() {
 
                     {/* Next Tier */}
                     {tierProgress.nextTier && (
-                      <Card
-                        style={{
-                          marginBottom: tokens.spacing[6],
-                          backgroundColor: tokens.colors.info[50],
-                          borderColor: tokens.colors.info[200],
-                        }}
-                      >
-                        <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0], marginBottom: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
+                      <Card className="mb-6 bg-blue-50 border-blue-200">
+                        <div className="font-bold text-lg mb-2 text-accent-primary">
                           Next Tier: {tierProgress.nextTier.name}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                        <div className="flex flex-col gap-1 text-sm text-text-secondary">
                           {tierProgress.nextTier.pointTarget && (
                             <div>Point Target: {tierProgress.nextTier.pointTarget}</div>
                           )}
@@ -777,34 +705,17 @@ function SitterPageContent() {
                     {tierProgress.improvementAreas && tierProgress.improvementAreas.length > 0 && (
                       <div>
                         <SectionHeader title="Areas to Improve" />
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], marginTop: tokens.spacing[4] }}>
+                        <div className="flex flex-col gap-3 mt-4">
                           {tierProgress.improvementAreas.map((area: string, idx: number) => (
                             <Card
                               key={idx}
-                              style={{
-                                backgroundColor: tokens.colors.warning[50],
-                                borderColor: tokens.colors.warning[200],
-                              }}
+                              className="bg-status-warning-bg border-yellow-200"
                             >
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[2] }}>
-                                <div
-                                  style={{
-                                    width: '1.5rem',
-                                    height: '1.5rem',
-                                    borderRadius: tokens.borderRadius.full,
-                                    backgroundColor: tokens.colors.warning[200],
-                                    color: tokens.colors.warning[700],
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0,
-                                    fontSize: tokens.typography.fontSize.xs[0],
-                                    fontWeight: tokens.typography.fontWeight.bold,
-                                  }}
-                                >
+                              <div className="flex items-start gap-2">
+                                <div className="w-6 h-6 rounded-full bg-yellow-200 text-yellow-700 flex items-center justify-center shrink-0 text-xs font-bold">
                                   {idx + 1}
                                 </div>
-                                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary }}>
+                                <div className="text-sm text-text-primary">
                                   {area}
                                 </div>
                               </div>
@@ -828,24 +739,24 @@ function SitterPageContent() {
           <TabPanel id="settings">
             <Card>
               <SectionHeader title="Personal Settings" />
-              <div style={{ padding: tokens.spacing[6] }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+              <div className="p-6">
+                <div className="flex flex-col gap-4">
                   <div>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+                    <div className="font-semibold mb-2">
                       Commission Percentage
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.lg[0] }}>{commissionPercentage}%</div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                    <div className="text-lg">{commissionPercentage}%</div>
+                    <div className="text-sm text-text-secondary mt-1">
                       Set by owner
                     </div>
                   </div>
                   {sitterTier && (
                     <div>
-                      <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+                      <div className="font-semibold mb-2">
                         Current Tier
                       </div>
-                      <div style={{ fontSize: tokens.typography.fontSize.lg[0] }}>{sitterTier.name}</div>
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                      <div className="text-lg">{sitterTier.name}</div>
+                      <div className="text-sm text-text-secondary mt-1">
                         Priority: {sitterTier.priorityLevel}
                       </div>
                     </div>
@@ -867,49 +778,49 @@ function SitterPageContent() {
         title="Visit Details"
       >
         {selectedBooking && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div className="flex flex-col gap-4">
             <div>
-              <div style={{ fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>Client</div>
+              <div className="font-bold mb-2">Client</div>
               <p>{selectedBooking.firstName} {selectedBooking.lastName.charAt(0)}.</p>
-              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+              <p className="text-sm text-text-secondary">
                 {selectedBooking.phone}
               </p>
             </div>
-            
+
             <div>
-              <div style={{ fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>Service</div>
+              <div className="font-bold mb-2">Service</div>
               <p>{selectedBooking.service}</p>
-              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+              <p className="text-sm text-text-secondary">
                 {formatDate(selectedBooking.startAt)} at {formatTime(selectedBooking.startAt)}
               </p>
             </div>
-            
+
             <div>
-              <div style={{ fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>Address</div>
+              <div className="font-bold mb-2">Address</div>
               <p>{selectedBooking.address}</p>
               <a
                 href={`https://maps.google.com/?q=${encodeURIComponent(selectedBooking.address)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: tokens.colors.info.DEFAULT, fontSize: tokens.typography.fontSize.sm[0] }}
+                className="text-info text-sm"
               >
                 Get Directions →
               </a>
             </div>
-            
+
             <div>
-              <div style={{ fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>Pets</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+              <div className="font-bold mb-2">Pets</div>
+              <div className="flex flex-col gap-2">
                 {selectedBooking.pets.map((pet, idx) => (
-                  <Card key={idx} style={{ backgroundColor: tokens.colors.neutral[50] }}>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                  <Card key={idx} className="bg-neutral-50">
+                    <div className="font-semibold">
                       {pet.name || `Pet ${idx + 1}`}
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    <div className="text-sm text-text-secondary">
                       {pet.species}
                     </div>
                     {pet.notes && (
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                      <div className="text-sm text-text-secondary mt-1">
                         {pet.notes}
                       </div>
                     )}
@@ -917,21 +828,21 @@ function SitterPageContent() {
                 ))}
               </div>
             </div>
-            
+
             {selectedBooking.notes && (
               <div>
-                <div style={{ fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>Notes</div>
-                <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary, whiteSpace: 'pre-wrap' }}>
+                <div className="font-bold mb-2">Notes</div>
+                <p className="text-sm text-text-primary whitespace-pre-wrap">
                   {selectedBooking.notes}
                 </p>
               </div>
             )}
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], paddingTop: tokens.spacing[4], borderTop: `1px solid ${tokens.colors.border.default}` }}>
+
+            <div className="flex items-center gap-2 pt-4 border-t border-border-default">
               <Button
                 variant="primary"
                 onClick={() => checkIn(selectedBooking.id)}
-                style={{ flex: 1 }}
+                className="flex-1"
               >
                 Check In
               </Button>
@@ -957,7 +868,7 @@ export default function SitterPage() {
     <Suspense fallback={
       <AppShell>
         <PageHeader title="Sitter Dashboard" />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <Skeleton height={200} />
         </div>
       </AppShell>
@@ -966,4 +877,3 @@ export default function SitterPage() {
     </Suspense>
   );
 }
-

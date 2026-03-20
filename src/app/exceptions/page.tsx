@@ -1,9 +1,9 @@
 /**
  * Exceptions Page - Enterprise Rebuild
- * 
+ *
  * Complete rebuild using design system and components.
  * Zero legacy styling - all through components and tokens.
- * 
+ *
  * Displays exception queue for unpaid, unassigned, drift, and automation failures.
  */
 
@@ -64,8 +64,8 @@ export default function ExceptionsPage() {
     setLoading(true);
     setError(null);
     try {
-      const url = typeFilter === "all" 
-        ? "/api/exceptions" 
+      const url = typeFilter === "all"
+        ? "/api/exceptions"
         : `/api/exceptions?type=${typeFilter}`;
       const response = await fetch(url);
       if (!response.ok) {
@@ -159,22 +159,16 @@ export default function ExceptionsPage() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div className="p-6">
         {error && (
-          <Card
-            style={{
-              marginBottom: tokens.spacing[6],
-              backgroundColor: tokens.colors.error[50],
-              borderColor: tokens.colors.error[200],
-            }}
-          >
-            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+          <Card className="mb-6 bg-status-danger-bg border-status-danger-border">
+            <div className="p-4 text-status-danger-text">
               {error}
               <Button
                 variant="tertiary"
                 size="sm"
                 onClick={fetchExceptions}
-                style={{ marginLeft: tokens.spacing[3] }}
+                className="ml-3"
               >
                 Retry
               </Button>
@@ -184,7 +178,7 @@ export default function ExceptionsPage() {
 
         {/* Summary Cards */}
         {summary && (
-          <div style={{ marginBottom: tokens.spacing[6] }}>
+          <div className="mb-6">
             <Grid gap={4}> {/* Batch 5: UI Constitution compliance */}
               <GridCol span={12} md={6} lg={3}>
                 <StatCard
@@ -219,15 +213,9 @@ export default function ExceptionsPage() {
         )}
 
         {/* Type Filter */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
+        <Card className="mb-6">
           <Flex align="center" gap={4}> {/* Batch 5: UI Constitution compliance */}
-            <label
-              style={{
-                fontSize: tokens.typography.fontSize.sm[0],
-                fontWeight: tokens.typography.fontWeight.medium,
-                color: tokens.colors.text.primary,
-              }}
-            >
+            <label className="text-sm font-medium text-text-primary">
               Filter by Type:
             </label>
             <Select
@@ -241,36 +229,24 @@ export default function ExceptionsPage() {
 
         {/* Exceptions List */}
         <Card>
-          <div
-            style={{
-              padding: tokens.spacing[4],
-              borderBottom: `1px solid ${tokens.colors.border.default}`,
-              marginBottom: 0,
-            }}
-          >
-            <div
-              style={{
-                fontWeight: tokens.typography.fontWeight.bold,
-                fontSize: tokens.typography.fontSize.lg[0],
-                color: tokens.colors.text.primary,
-              }}
-            >
+          <div className="p-4 border-b border-border-default mb-0">
+            <div className="font-bold text-lg text-text-primary">
               Exceptions ({exceptions.length})
             </div>
           </div>
 
           {loading ? (
-            <div style={{ padding: tokens.spacing[8], textAlign: 'center' }}>
+            <div className="p-8 text-center">
               <Skeleton height={100} />
               <Skeleton height={100} />
               <Skeleton height={100} />
             </div>
           ) : exceptions.length === 0 ? (
-            <div style={{ padding: tokens.spacing[8] }}>
+            <div className="p-8">
               <EmptyState
                 title="No exceptions found"
                 description="All bookings are in good standing!"
-                icon={<CheckCircle2 size={48} style={{ color: tokens.colors.success.DEFAULT }} />}
+                icon={<CheckCircle2 size={48} className="text-success" />}
               />
             </div>
           ) : (
@@ -284,61 +260,34 @@ export default function ExceptionsPage() {
                 return (
                   <div
                     key={exception.id}
+                    className="p-4 border-b border-border-default"
                     style={{
-                      padding: tokens.spacing[4],
                       borderLeft: `4px solid ${borderColor}`,
-                      borderBottom: `1px solid ${tokens.colors.border.default}`,
                     }}
                   >
                     <Flex align="flex-start" justify="space-between" gap={4}>
-                      <div style={{ flex: 1 }}>
+                      <div className="flex-1">
                         <Flex align="flex-start" gap={3}>
-                        <div
-                          style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: tokens.borderRadius.md,
-                            backgroundColor: tokens.colors.neutral[100],
-                            color: tokens.colors.text.primary,
-                          }}
-                        >
+                        <div className="w-10 h-10 rounded-md bg-neutral-100 text-text-primary">
                           <Flex align="center" justify="center">
                             {getTypeIcon(exception.type)}
                           </Flex>
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ marginBottom: tokens.spacing[1] }}>
+                        <div className="flex-1">
+                          <div className="mb-1">
                             <Flex align="center" gap={2} wrap>
-                              <div
-                                style={{
-                                  fontWeight: tokens.typography.fontWeight.bold,
-                                  fontSize: tokens.typography.fontSize.lg[0],
-                                  color: tokens.colors.text.primary,
-                                }}
-                              >
+                              <div className="font-bold text-lg text-text-primary">
                                 {exception.title}
                               </div>
                               {getSeverityBadge(exception.severity)}
                               <Badge variant="neutral">{getTypeLabel(exception.type)}</Badge>
                             </Flex>
                           </div>
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.sm[0],
-                              color: tokens.colors.text.secondary,
-                              marginBottom: tokens.spacing[2],
-                            }}
-                          >
+                          <div className="text-sm text-text-secondary mb-2">
                             {exception.description}
                           </div>
                           {exception.booking && (
-                            <div
-                              style={{
-                                fontSize: tokens.typography.fontSize.sm[0],
-                                color: tokens.colors.text.secondary,
-                                marginBottom: tokens.spacing[2],
-                              }}
-                            >
+                            <div className="text-sm text-text-secondary mb-2">
                               <Flex direction="column" gap={1}>
                               <div>
                                 <strong>Booking:</strong> {exception.booking.firstName} {exception.booking.lastName} - {exception.booking.service}
@@ -356,13 +305,7 @@ export default function ExceptionsPage() {
                               </Flex>
                             </div>
                           )}
-                          <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.xs[0],
-                              color: tokens.colors.text.tertiary,
-                              marginTop: tokens.spacing[2],
-                            }}
-                          >
+                          <div className="text-xs text-text-tertiary mt-2">
                             Created: {formatDate(exception.createdAt)}
                           </div>
                         </div>

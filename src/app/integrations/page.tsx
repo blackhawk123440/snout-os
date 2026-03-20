@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { OwnerAppShell, PageHeader } from '@/components/layout';
 import { Badge, Button, Card, Skeleton, Switch } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 
 type IntegrationsSnapshot = {
   stripe: {
@@ -125,27 +124,27 @@ export default function IntegrationsPage() {
         actions={<Button variant="secondary" onClick={loadSnapshot}>Refresh status</Button>}
       />
 
-      <div style={{ padding: tokens.spacing[6], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <div className="p-6 flex flex-col gap-4">
         <Card>
-          <div style={{ padding: tokens.spacing[4], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+          <div className="p-4 text-sm text-text-secondary">
             Canonical route: <strong>/integrations</strong>. Legacy setup pages redirect here where appropriate.
           </div>
         </Card>
 
         {error && (
-          <Card style={{ backgroundColor: tokens.colors.error[50], borderColor: tokens.colors.error[200] }}>
-            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>{error}</div>
+          <Card className="bg-status-danger-bg border-status-danger-border">
+            <div className="p-4 text-status-danger-text">{error}</div>
           </Card>
         )}
 
         {loading ? (
-          <Card><div style={{ padding: tokens.spacing[4] }}><Skeleton height={240} /></div></Card>
+          <Card><div className="p-4"><Skeleton height={240} /></div></Card>
         ) : !snapshot ? (
-          <Card><div style={{ padding: tokens.spacing[4] }}>No integrations snapshot available.</div></Card>
+          <Card><div className="p-4">No integrations snapshot available.</div></Card>
         ) : (
           <>
             <Card>
-              <div style={{ padding: tokens.spacing[4], display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+              <div className="p-4 flex gap-2 flex-wrap">
                 <Badge variant={snapshot.stripe.ready ? 'success' : 'warning'}>Stripe: {snapshot.stripe.ready ? 'Ready' : 'Needs setup'}</Badge>
                 <Badge variant={snapshot.twilio.ready ? 'success' : 'warning'}>Twilio: {snapshot.twilio.ready ? 'Ready' : 'Needs setup'}</Badge>
                 <Badge variant={snapshot.calendar.ready ? 'success' : 'warning'}>Calendar: {snapshot.calendar.ready ? 'Ready' : 'Needs setup'}</Badge>
@@ -154,23 +153,23 @@ export default function IntegrationsPage() {
             </Card>
 
             <Card>
-              <div style={{ padding: tokens.spacing[4] }}>
-                <h3 style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>Stripe</h3>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+              <div className="p-4">
+                <h3 className="font-semibold mb-2">Stripe</h3>
+                <p className="text-text-secondary text-sm">
                   <strong>Integration:</strong> Stripe
                 </p>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[3] }}>
+                <p className="text-text-secondary text-sm mb-3">
                   <strong>Status:</strong> {snapshot.stripe.ready ? 'Ready' : 'Needs setup'}
                 </p>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[3] }}>
+                <p className="text-text-secondary text-sm mb-3">
                   <strong>Key health indicator (transfers):</strong> {snapshot.stripe.connectEnabled ? 'Connect enabled' : 'Connect not enabled'} • {snapshot.stripe.reachable ? 'API reachable' : 'API unreachable'}
                 </p>
                 {stripeTestMessage && (
-                  <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[3] }}>
+                  <p className="text-text-secondary text-sm mb-3">
                     Latest test: {stripeTestMessage}
                   </p>
                 )}
-                <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                <div className="flex gap-2 flex-wrap">
                   <Button variant="secondary" onClick={runStripeTest} disabled={!!busy.stripeTest}>
                     {busy.stripeTest ? 'Testing...' : 'Test Stripe'}
                   </Button>
@@ -182,18 +181,18 @@ export default function IntegrationsPage() {
             </Card>
 
             <Card>
-              <div style={{ padding: tokens.spacing[4] }}>
-                <h3 style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>Twilio</h3>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+              <div className="p-4">
+                <h3 className="font-semibold mb-2">Twilio</h3>
+                <p className="text-text-secondary text-sm">
                   <strong>Integration:</strong> Twilio
                 </p>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+                <p className="text-text-secondary text-sm">
                   <strong>Status:</strong> {snapshot.twilio.ready ? 'Ready' : 'Needs setup'}
                 </p>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[3] }}>
+                <p className="text-text-secondary text-sm mb-3">
                   <strong>Key health indicator (numbers + webhooks):</strong> {snapshot.twilio.numbersConfigured ? 'Numbers configured' : 'Numbers missing'} • {snapshot.twilio.webhooksInstalled ? 'Webhooks installed' : 'Webhooks missing'}
                 </p>
-                <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                <div className="flex gap-2 flex-wrap">
                   <Button
                     variant="secondary"
                     onClick={() => runAction('twilio-test', () => fetch('/api/setup/provider/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }))}
@@ -223,18 +222,18 @@ export default function IntegrationsPage() {
             </Card>
 
             <Card>
-              <div style={{ padding: tokens.spacing[4] }}>
-                <h3 style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>Calendar</h3>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+              <div className="p-4">
+                <h3 className="font-semibold mb-2">Calendar</h3>
+                <p className="text-text-secondary text-sm">
                   <strong>Integration:</strong> Google Calendar
                 </p>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[3] }}>
+                <p className="text-text-secondary text-sm mb-3">
                   <strong>Status:</strong> {snapshot.calendar.ready ? 'Ready' : 'Needs setup'}
                 </p>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[3] }}>
+                <p className="text-text-secondary text-sm mb-3">
                   <strong>Key health indicator (connected sitters):</strong> {snapshot.calendar.connectedSitters} • Last sync: {snapshot.calendar.lastSyncAt ? new Date(snapshot.calendar.lastSyncAt).toLocaleString() : 'Never'}
                 </p>
-                <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                <div className="flex gap-2 flex-wrap">
                   <Button variant="secondary" onClick={loadSnapshot}>Check status</Button>
                   <Link href="/sitters"><Button variant="primary">Open Sitters</Button></Link>
                   <Link href="/ops/calendar-repair"><Button variant="secondary">Calendar Repair</Button></Link>
@@ -244,18 +243,18 @@ export default function IntegrationsPage() {
             </Card>
 
             <Card>
-              <div style={{ padding: tokens.spacing[4] }}>
-                <h3 style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>AI / OpenAI</h3>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+              <div className="p-4">
+                <h3 className="font-semibold mb-2">AI / OpenAI</h3>
+                <p className="text-text-secondary text-sm">
                   <strong>Integration:</strong> AI/OpenAI
                 </p>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+                <p className="text-text-secondary text-sm">
                   <strong>Status:</strong> {snapshot.ai.ready ? 'Ready' : 'Needs setup'}
                 </p>
-                <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0], marginBottom: tokens.spacing[3] }}>
+                <p className="text-text-secondary text-sm mb-3">
                   <strong>Key health indicator (enabled):</strong> {snapshot.ai.enabled ? 'Enabled' : 'Disabled'}
                 </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[3] }}>
+                <div className="flex items-center gap-3 mb-3">
                   <Switch
                     checked={snapshot.ai.enabled}
                     onChange={updateAiSettings}
@@ -263,7 +262,7 @@ export default function IntegrationsPage() {
                     disabled={!!busy.ai}
                   />
                 </div>
-                <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+                <div className="flex gap-2 flex-wrap">
                   <Button variant="secondary" onClick={loadSnapshot}>Check status</Button>
                   <Link href="/ops/ai"><Button variant="primary">Open AI Ops</Button></Link>
                 </div>

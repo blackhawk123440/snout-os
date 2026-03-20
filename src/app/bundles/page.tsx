@@ -11,7 +11,6 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
 import { Panel, Button, Badge, Skeleton, EmptyState, Flex, Input, Select, Modal } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 
 interface Bundle {
   id: string;
@@ -81,7 +80,7 @@ export default function BundlesPage() {
           }
         />
 
-        <div style={{ padding: `0 ${tokens.spacing[4]}` }}>
+        <div className="px-4">
           {isLoading ? (
             <Skeleton height="200px" />
           ) : bundles.length === 0 ? (
@@ -90,27 +89,27 @@ export default function BundlesPage() {
               description="Create a service bundle to offer package pricing to clients."
             />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+            <div className="flex flex-col gap-3">
               {bundles.map((b) => (
                 <Panel key={b.id}>
-                  <div style={{ padding: tokens.spacing[4], display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="p-4 flex justify-between items-start">
                     <div>
                       <Flex align="center" gap={2}>
-                        <span style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+                        <span className="text-lg font-semibold">
                           {b.name}
                         </span>
                         <Badge variant={b.enabled ? 'success' : 'warning'}>
                           {b.enabled ? 'Active' : 'Disabled'}
                         </Badge>
                       </Flex>
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+                      <div className="text-sm text-text-secondary mt-1">
                         {b.visitCount} {b.serviceType} visits · ${(b.priceInCents / 100).toFixed(2)} · {b.discountPercent}% off
                       </div>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginTop: tokens.spacing[1] }}>
+                      <div className="text-xs text-text-tertiary mt-1">
                         Expires after {b.expirationDays} days{b.autoRenew ? ' · Auto-renew' : ''}
                       </div>
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize['2xl']?.[0] || '24px', fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text.primary }}>
+                    <div className="text-2xl font-bold text-text-primary">
                       ${(b.priceInCents / 100).toFixed(0)}
                     </div>
                   </div>
@@ -122,13 +121,13 @@ export default function BundlesPage() {
 
         {showCreate && (
           <Modal isOpen title="Create Bundle" onClose={() => setShowCreate(false)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div className="flex flex-col gap-4">
               <div>
-                <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500, marginBottom: 4 }}>Bundle Name</label>
+                <label className="block text-sm font-medium mb-1">Bundle Name</label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="5-Pack Dog Walking" />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500, marginBottom: 4 }}>Service Type</label>
+                <label className="block text-sm font-medium mb-1">Service Type</label>
                 <Select
                   value={form.serviceType}
                   onChange={(e) => setForm({ ...form, serviceType: e.target.value })}
@@ -141,21 +140,21 @@ export default function BundlesPage() {
                 />
               </div>
               <Flex gap={3}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500, marginBottom: 4 }}>Visits</label>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1">Visits</label>
                   <Input type="number" value={form.visitCount} onChange={(e) => setForm({ ...form, visitCount: parseInt(e.target.value) || 1 })} />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500, marginBottom: 4 }}>Price ($)</label>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1">Price ($)</label>
                   <Input type="number" value={form.priceInCents / 100} onChange={(e) => setForm({ ...form, priceInCents: Math.round(parseFloat(e.target.value) * 100) || 0 })} />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500, marginBottom: 4 }}>Discount %</label>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium mb-1">Discount %</label>
                   <Input type="number" value={form.discountPercent} onChange={(e) => setForm({ ...form, discountPercent: parseInt(e.target.value) || 0 })} />
                 </div>
               </Flex>
               <div>
-                <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500, marginBottom: 4 }}>Expiration (days)</label>
+                <label className="block text-sm font-medium mb-1">Expiration (days)</label>
                 <Input type="number" value={form.expirationDays} onChange={(e) => setForm({ ...form, expirationDays: parseInt(e.target.value) || 30 })} />
               </div>
               <Flex gap={2} justify="flex-end">

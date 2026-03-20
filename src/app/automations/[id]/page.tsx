@@ -19,7 +19,6 @@ import {
   Flex,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
-import { tokens } from '@/lib/design-tokens';
 import { AUTOMATION_TYPE_IDS, type AutomationTypeId } from '@/lib/automations/types';
 
 const TYPE_META: Record<
@@ -190,7 +189,7 @@ export default function AutomationTypeEditorPage() {
     return (
       <AppShell>
         <PageHeader title="Edit automation" />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <Skeleton height={400} />
         </div>
       </AppShell>
@@ -214,10 +213,10 @@ export default function AutomationTypeEditorPage() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[6], maxWidth: 720 }}>
-        <Card style={{ marginBottom: tokens.spacing[4] }}>
-          <div style={{ padding: tokens.spacing[4] }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
+      <div className="p-6 max-w-[720px]">
+        <Card className="mb-4">
+          <div className="p-4">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={!!block.enabled}
@@ -232,9 +231,9 @@ export default function AutomationTypeEditorPage() {
           const sendKey = recipient === 'client' ? 'sendToClient' : recipient === 'sitter' ? 'sendToSitter' : 'sendToOwner';
           const templateKey = TEMPLATE_KEYS[recipient];
           return (
-            <Card key={recipient} style={{ marginBottom: tokens.spacing[4] }}>
-              <div style={{ padding: tokens.spacing[4] }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer', marginBottom: tokens.spacing[2] }}>
+            <Card key={recipient} className="mb-4">
+              <div className="p-4">
+                <label className="flex items-center gap-2 cursor-pointer mb-2">
                   <input
                     type="checkbox"
                     checked={!!block[sendKey]}
@@ -248,16 +247,16 @@ export default function AutomationTypeEditorPage() {
                   onChange={(e) => update({ [templateKey]: e.target.value })}
                   placeholder="Use {{firstName}}, {{service}}, {{datesTimes}}, etc."
                   rows={4}
-                  style={{ fontFamily: 'monospace', fontSize: tokens.typography.fontSize.sm[0] }}
+                  style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
                 />
               </div>
             </Card>
           );
         })}
 
-        <Card style={{ marginBottom: tokens.spacing[4] }}>
-          <div style={{ padding: tokens.spacing[4] }}>
-            <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: 600, marginBottom: tokens.spacing[3] }}>
+        <Card className="mb-4">
+          <div className="p-4">
+            <h3 className="text-lg font-semibold mb-3">
               Test message
             </h3>
             <Input
@@ -265,9 +264,9 @@ export default function AutomationTypeEditorPage() {
               value={testPhone}
               onChange={(e) => setTestPhone(e.target.value)}
               placeholder="+1..."
-              style={{ marginBottom: tokens.spacing[3] }}
+              style={{ marginBottom: '0.75rem' }}
             />
-            <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+            <p className="text-sm text-text-secondary mb-2">
               Sends the first non-empty template above to this number.
             </p>
             <Flex gap={2} align="center">
@@ -285,13 +284,13 @@ export default function AutomationTypeEditorPage() {
               >
                 {testing ? 'Sending…' : 'Send test'}
               </Button>
-              {testSuccess && <span style={{ color: tokens.colors.success.DEFAULT }}>Sent.</span>}
-              {testError && <span style={{ color: tokens.colors.error.DEFAULT }}>{testError}</span>}
+              {testSuccess && <span className="text-success">Sent.</span>}
+              {testError && <span className="text-error">{testError}</span>}
             </Flex>
           </div>
         </Card>
 
-        <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+        <p className="text-sm text-text-secondary">
           <Link href="/ops/automation-failures">View automation failures</Link> for debugging.
         </p>
       </div>

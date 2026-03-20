@@ -1,17 +1,17 @@
 /**
  * Today Board Component - Enterprise Rebuild
- * 
+ *
  * Complete rebuild using design system and components.
  * Zero legacy styling - all through components and tokens.
  */
 
 'use client';
 
-import { 
-  assignSitterToBooking, 
-  sendPaymentLinkToBooking, 
-  resendConfirmation, 
-  markBookingComplete 
+import {
+  assignSitterToBooking,
+  sendPaymentLinkToBooking,
+  resendConfirmation,
+  markBookingComplete
 } from '@/lib/today-board-helpers';
 import {
   Card,
@@ -63,11 +63,11 @@ interface TodayBoardProps {
   onBookingClick: (booking: Booking) => void;
 }
 
-export default function TodayBoard({ 
-  todayBoardData, 
-  sitters, 
+export default function TodayBoard({
+  todayBoardData,
+  sitters,
   onRefresh,
-  onBookingClick 
+  onBookingClick
 }: TodayBoardProps) {
   const { showToast } = useToast();
   const formatDate = (date: Date | string) => {
@@ -146,41 +146,35 @@ export default function TodayBoard({
     const isUnpaid = booking.paymentStatus === 'unpaid';
     const isAtRisk = section === 'atRisk';
 
-    const borderColor = isAtRisk 
+    const borderColor = isAtRisk
       ? tokens.colors.error[300]
-      : isUnpaid 
+      : isUnpaid
       ? tokens.colors.warning[300]
-      : isUnassigned 
+      : isUnassigned
       ? tokens.colors.warning[400]
       : tokens.colors.border.default;
 
-    const backgroundColor = isAtRisk 
+    const backgroundColor = isAtRisk
       ? tokens.colors.error[50]
-      : isUnpaid 
+      : isUnpaid
       ? tokens.colors.warning[50]
-      : isUnassigned 
+      : isUnassigned
       ? tokens.colors.warning[50]
       : tokens.colors.background.primary;
 
     return (
       <Card
         key={booking.id}
+        className="mb-3"
         style={{
           borderColor,
           backgroundColor,
-          marginBottom: tokens.spacing[3],
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: tokens.spacing[3] }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[2], flexWrap: 'wrap' }}>
-              <div
-                style={{
-                  fontWeight: tokens.typography.fontWeight.bold,
-                  fontSize: tokens.typography.fontSize.lg[0],
-                  color: tokens.colors.text.primary,
-                }}
-              >
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <div className="font-bold text-lg text-text-primary">
                 {booking.firstName} {booking.lastName}
               </div>
               {getStatusBadge(booking.status)}
@@ -191,15 +185,7 @@ export default function TodayBoard({
                 <Badge variant="warning">Unassigned</Badge>
               )}
             </div>
-            <div
-              style={{
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: tokens.spacing[1],
-              }}
-            >
+            <div className="text-sm text-text-secondary flex flex-col gap-1">
               <div><strong>Service:</strong> {booking.service}</div>
               <div><strong>Date:</strong> {formatDate(booking.startAt)} at {formatTime(booking.startAt)}</div>
               <div><strong>Pets:</strong> {formatPets(booking.pets)}</div>
@@ -213,7 +199,7 @@ export default function TodayBoard({
             variant="secondary"
             size="sm"
             onClick={() => onBookingClick(booking)}
-            style={{ marginLeft: tokens.spacing[4] }}
+            className="ml-4"
           >
             Details
           </Button>
@@ -221,11 +207,8 @@ export default function TodayBoard({
 
         {/* Quick Action Buttons */}
         <div
+          className="flex flex-wrap gap-2 pt-3"
           style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: tokens.spacing[2],
-            paddingTop: tokens.spacing[3],
             borderTop: `1px solid ${tokens.colors.border.default}`,
           }}
         >
@@ -278,13 +261,12 @@ export default function TodayBoard({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}>
+    <div className="flex flex-col gap-6">
       {/* Stats Summary */}
       <div
+        className="grid gap-4"
         style={{
-          display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: tokens.spacing[4],
         }}
       >
         <StatCard
@@ -312,15 +294,8 @@ export default function TodayBoard({
       {/* Today's Bookings */}
       {todayBoardData.today.length > 0 && (
         <Card>
-          <div
-            style={{
-              fontWeight: tokens.typography.fontWeight.bold,
-              fontSize: tokens.typography.fontSize.lg[0],
-              color: tokens.colors.text.primary,
-              marginBottom: tokens.spacing[4],
-            }}
-          >
-            Today's Bookings ({todayBoardData.today.length})
+          <div className="font-bold text-lg text-text-primary mb-4">
+            Today&apos;s Bookings ({todayBoardData.today.length})
           </div>
           {todayBoardData.today.map(booking => renderBookingCard(booking, 'today'))}
         </Card>
@@ -329,14 +304,7 @@ export default function TodayBoard({
       {/* Unassigned Bookings */}
       {todayBoardData.unassigned.length > 0 && (
         <Card style={{ borderColor: tokens.colors.warning[300] }}>
-          <div
-            style={{
-              fontWeight: tokens.typography.fontWeight.bold,
-              fontSize: tokens.typography.fontSize.lg[0],
-              color: tokens.colors.warning[700],
-              marginBottom: tokens.spacing[4],
-            }}
-          >
+          <div className="font-bold text-lg mb-4" style={{ color: tokens.colors.warning[700] }}>
             Unassigned Bookings ({todayBoardData.unassigned.length})
           </div>
           {todayBoardData.unassigned.map(booking => renderBookingCard(booking, 'unassigned'))}
@@ -346,14 +314,7 @@ export default function TodayBoard({
       {/* Unpaid Bookings */}
       {todayBoardData.unpaid.length > 0 && (
         <Card style={{ borderColor: tokens.colors.warning[300] }}>
-          <div
-            style={{
-              fontWeight: tokens.typography.fontWeight.bold,
-              fontSize: tokens.typography.fontSize.lg[0],
-              color: tokens.colors.warning[700],
-              marginBottom: tokens.spacing[4],
-            }}
-          >
+          <div className="font-bold text-lg mb-4" style={{ color: tokens.colors.warning[700] }}>
             Unpaid Bookings ({todayBoardData.unpaid.length})
           </div>
           {todayBoardData.unpaid.map(booking => renderBookingCard(booking, 'unpaid'))}
@@ -363,14 +324,7 @@ export default function TodayBoard({
       {/* At Risk Bookings */}
       {todayBoardData.atRisk.length > 0 && (
         <Card style={{ borderColor: tokens.colors.error[300] }}>
-          <div
-            style={{
-              fontWeight: tokens.typography.fontWeight.bold,
-              fontSize: tokens.typography.fontSize.lg[0],
-              color: tokens.colors.error[700],
-              marginBottom: tokens.spacing[4],
-            }}
-          >
+          <div className="font-bold text-lg mb-4" style={{ color: tokens.colors.error[700] }}>
             At Risk Bookings ({todayBoardData.atRisk.length})
           </div>
           {todayBoardData.atRisk.map(booking => renderBookingCard(booking, 'atRisk'))}
@@ -378,14 +332,14 @@ export default function TodayBoard({
       )}
 
       {/* Empty State */}
-      {todayBoardData.today.length === 0 && 
-       todayBoardData.unassigned.length === 0 && 
-       todayBoardData.unpaid.length === 0 && 
+      {todayBoardData.today.length === 0 &&
+       todayBoardData.unassigned.length === 0 &&
+       todayBoardData.unpaid.length === 0 &&
        todayBoardData.atRisk.length === 0 && (
         <Card>
-          <div style={{ textAlign: 'center', padding: tokens.spacing[8] }}>
+          <div className="text-center p-8">
             <CalendarCheck className="w-12 h-12 text-neutral-300 mb-4" />
-            <div style={{ color: tokens.colors.text.secondary }}>
+            <div className="text-text-secondary">
               No bookings for today. Great job!
             </div>
           </div>

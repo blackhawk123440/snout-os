@@ -119,51 +119,44 @@ export default function ScheduleGridPage() {
           }
         />
 
-        <div style={{ padding: `0 ${tokens.spacing[4]}` }}>
-          <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[3] }}>
+        <div className="px-4">
+          <p className="text-sm text-text-secondary mb-3">
             {weekLabel}
           </p>
         </div>
 
         {isLoading ? (
-          <div style={{ padding: tokens.spacing[4] }}><Skeleton height="400px" /></div>
+          <div className="p-4"><Skeleton height="400px" /></div>
         ) : error ? (
-          <div style={{ padding: tokens.spacing[4] }}>
+          <div className="p-4">
             <EmptyState title="Error" description={(error as Error).message} />
           </div>
         ) : !data || data.sitters.length === 0 ? (
-          <div style={{ padding: tokens.spacing[4] }}>
+          <div className="p-4">
             <EmptyState title="No sitters" description="Add sitters to see the schedule grid." />
           </div>
         ) : (
-          <div style={{ padding: tokens.spacing[4], overflowX: 'auto' }}>
+          <div className="p-4 overflow-x-auto">
             <Panel>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: tokens.typography.fontSize.sm[0] }}>
+              <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th style={{
-                      textAlign: 'left', padding: tokens.spacing[3],
-                      borderBottom: `2px solid ${tokens.colors.border.default}`,
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      color: tokens.colors.text.secondary,
-                      minWidth: 140,
-                    }}>
+                    <th
+                      className="text-left p-3 border-b-2 border-border-default font-semibold text-text-secondary"
+                      style={{ minWidth: 140 }}
+                    >
                       Sitter
                     </th>
                     {data.totals.days.map((day) => {
                       const d = new Date(day.date + 'T12:00:00');
                       const isToday = day.date === new Date().toISOString().slice(0, 10);
                       return (
-                        <th key={day.date} style={{
-                          textAlign: 'center', padding: tokens.spacing[3],
-                          borderBottom: `2px solid ${tokens.colors.border.default}`,
-                          fontWeight: tokens.typography.fontWeight.semibold,
-                          color: isToday ? tokens.colors.primary.DEFAULT : tokens.colors.text.secondary,
-                          backgroundColor: isToday ? tokens.colors.accent.primary : undefined,
-                          minWidth: 120,
-                        }}>
+                        <th key={day.date}
+                          className={`text-center p-3 border-b-2 border-border-default font-semibold ${isToday ? 'text-primary bg-accent-primary' : 'text-text-secondary'}`}
+                          style={{ minWidth: 120 }}
+                        >
                           <div>{DAY_LABELS[d.getDay()]}</div>
-                          <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.normal }}>
+                          <div className="text-xs font-normal">
                             {formatDateShort(day.date)}
                           </div>
                         </th>
@@ -174,12 +167,7 @@ export default function ScheduleGridPage() {
                 <tbody>
                   {data.sitters.map((sitter) => (
                     <tr key={sitter.id}>
-                      <td style={{
-                        padding: tokens.spacing[3],
-                        borderBottom: `1px solid ${tokens.colors.border.default}`,
-                        fontWeight: tokens.typography.fontWeight.medium,
-                        color: tokens.colors.text.primary,
-                      }}>
+                      <td className="p-3 border-b border-border-default font-medium text-text-primary">
                         {sitter.firstName} {sitter.lastName}
                       </td>
                       {sitter.days.map((day) => {
@@ -190,10 +178,8 @@ export default function ScheduleGridPage() {
                           <td
                             key={day.date}
                             onClick={() => setExpandedCell(isExpanded ? null : cellKey)}
+                            className="p-2 border-b border-border-default text-center align-top"
                             style={{
-                              padding: tokens.spacing[2],
-                              borderBottom: `1px solid ${tokens.colors.border.default}`,
-                              textAlign: 'center',
                               cursor: day.bookingCount > 0 ? 'pointer' : 'default',
                               backgroundColor: !day.available
                                 ? '#fef2f2'
@@ -202,41 +188,31 @@ export default function ScheduleGridPage() {
                                 : day.bookingCount > 6
                                 ? '#fef3c7'
                                 : undefined,
-                              verticalAlign: 'top',
                             }}
                           >
                             {!day.available ? (
                               <Badge variant="error">Off</Badge>
                             ) : day.bookingCount === 0 ? (
-                              <span style={{ color: tokens.colors.text.tertiary }}>—</span>
+                              <span className="text-text-tertiary">—</span>
                             ) : (
                               <div>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.primary }}>
+                                <div className="font-semibold text-text-primary">
                                   {day.bookingCount}
                                 </div>
-                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>
+                                <div className="text-xs text-text-tertiary">
                                   {day.totalHours.toFixed(1)}h
                                 </div>
                                 {isExpanded && (
-                                  <div style={{
-                                    marginTop: tokens.spacing[2], textAlign: 'left',
-                                    display: 'flex', flexDirection: 'column', gap: 4,
-                                  }}>
+                                  <div className="mt-2 text-left flex flex-col gap-1">
                                     {day.bookings.map((b) => (
                                       <div
                                         key={b.id}
                                         onClick={(e) => { e.stopPropagation(); router.push(`/bookings/${b.id}`); }}
-                                        style={{
-                                          fontSize: tokens.typography.fontSize.xs[0],
-                                          padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                                          backgroundColor: tokens.colors.surface.secondary,
-                                          borderRadius: tokens.radius.sm,
-                                          cursor: 'pointer',
-                                        }}
+                                        className="text-xs px-2 py-1 bg-surface-secondary rounded-sm cursor-pointer"
                                       >
-                                        <div style={{ fontWeight: 500 }}>{formatTime(b.startAt)}</div>
-                                        <div style={{ color: tokens.colors.text.secondary }}>{b.clientName}</div>
-                                        <div style={{ color: tokens.colors.text.tertiary }}>{b.service}</div>
+                                        <div className="font-medium">{formatTime(b.startAt)}</div>
+                                        <div className="text-text-secondary">{b.clientName}</div>
+                                        <div className="text-text-tertiary">{b.service}</div>
                                       </div>
                                     ))}
                                   </div>
@@ -251,22 +227,14 @@ export default function ScheduleGridPage() {
                 </tbody>
                 {/* Team totals row */}
                 <tfoot>
-                  <tr style={{ backgroundColor: tokens.colors.surface.secondary }}>
-                    <td style={{
-                      padding: tokens.spacing[3],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                      color: tokens.colors.text.primary,
-                    }}>
+                  <tr className="bg-surface-secondary">
+                    <td className="p-3 font-bold text-text-primary">
                       Team Total
                     </td>
                     {data.totals.days.map((day) => (
-                      <td key={day.date} style={{
-                        padding: tokens.spacing[3], textAlign: 'center',
-                        fontWeight: tokens.typography.fontWeight.semibold,
-                        color: tokens.colors.text.primary,
-                      }}>
+                      <td key={day.date} className="p-3 text-center font-semibold text-text-primary">
                         <div>{day.totalBookings} bookings</div>
-                        <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>
+                        <div className="text-xs text-text-tertiary">
                           {day.activeSitters} sitter{day.activeSitters !== 1 ? 's' : ''}
                         </div>
                       </td>

@@ -525,7 +525,7 @@ function CalendarPageContent() {
   const renderDayView = () => {
     if (isLoading) {
       return (
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <Skeleton height="400px" />
         </div>
       );
@@ -534,14 +534,8 @@ function CalendarPageContent() {
       return <AppErrorState message={queryError.message} onRetry={refetch} />;
     }
     return (
-      <div style={{ padding: tokens.spacing[4] }}>
-        <div
-          style={{
-            fontSize: tokens.typography.fontSize.sm[0],
-            color: tokens.colors.text.secondary,
-            marginBottom: tokens.spacing[3],
-          }}
-        >
+      <div className="p-4">
+        <div className="text-sm text-text-secondary mb-3">
           {dayViewBookings.length} {dayViewBookings.length === 1 ? 'booking' : 'bookings'}
         </div>
         {dayViewBookings.length === 0 ? (
@@ -550,7 +544,7 @@ function CalendarPageContent() {
             description="No bookings scheduled for this day."
           />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+          <div className="flex flex-col gap-2">
             {dayViewBookings.map((booking) => {
               const inConflict = conflictBookingIds.has(booking.id);
               const svcColor = getServiceColor(booking.service);
@@ -560,13 +554,10 @@ function CalendarPageContent() {
               return (
                 <div
                   key={booking.id}
+                  className="p-3 rounded-md bg-surface-primary relative"
                   style={{
-                    padding: tokens.spacing[3],
                     border: `1px solid ${inConflict ? tokens.colors.error[300] : svcColor.border}`,
                     borderLeft: `4px solid ${svcColor.border}`,
-                    borderRadius: tokens.radius.md,
-                    backgroundColor: tokens.colors.surface.primary,
-                    position: 'relative',
                   }}
                 >
                   <button
@@ -575,14 +566,7 @@ function CalendarPageContent() {
                       setSelectedBooking(booking);
                       setShowBookingDrawer(true);
                     }}
-                    style={{
-                      width: '100%',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      background: 'none',
-                      border: 'none',
-                      padding: 0,
-                    }}
+                    className="w-full text-left cursor-pointer bg-transparent border-none p-0"
                     onMouseEnter={(e) => {
                       e.currentTarget.closest('div')!.style.backgroundColor = tokens.colors.accent.secondary;
                     }}
@@ -590,32 +574,32 @@ function CalendarPageContent() {
                       e.currentTarget.closest('div')!.style.backgroundColor = tokens.colors.surface.primary;
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[1] }}>
-                      <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-semibold">
                         {formatTime(booking.startAt)} – {formatTime(booking.endAt)}
                       </span>
                       {inConflict && (
-                        <span style={{ color: tokens.colors.error.DEFAULT, fontSize: tokens.typography.fontSize.xs[0] }}>
+                        <span className="text-error text-xs">
                           <AlertCircle className="inline h-3 w-3" /> Conflict
                         </span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                    <div className="flex items-center gap-2">
                       {/* Sitter avatar initial */}
-                      <span style={{
-                        width: 28, height: 28, borderRadius: 14,
-                        backgroundColor: svcColor.bg, color: svcColor.text,
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.bold,
-                        flexShrink: 0,
-                      }}>
+                      <span
+                        className="inline-flex items-center justify-center text-xs font-bold shrink-0"
+                        style={{
+                          width: 28, height: 28, borderRadius: 14,
+                          backgroundColor: svcColor.bg, color: svcColor.text,
+                        }}
+                      >
                         {sitterInitial}
                       </span>
                       <div>
-                        <div style={{ color: tokens.colors.text.primary }}>
+                        <div className="text-text-primary">
                           {booking.firstName} {booking.lastName}
                         </div>
-                        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                        <div className="text-sm text-text-secondary">
                           {booking.service}
                           {booking.sitter ? ` · ${booking.sitter.firstName} ${booking.sitter.lastName}` : ' · Unassigned'}
                         </div>
@@ -625,7 +609,7 @@ function CalendarPageContent() {
                   <Button
                     variant="tertiary"
                     size="sm"
-                    style={{ marginTop: tokens.spacing[2] }}
+                    className="mt-2"
                     onClick={() => {
                       setSelectedBooking(booking);
                       setShowBookingDrawer(true);
@@ -646,7 +630,7 @@ function CalendarPageContent() {
   const renderWeekView = () => {
     if (isLoading) {
       return (
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <Skeleton height="400px" />
         </div>
       );
@@ -656,41 +640,23 @@ function CalendarPageContent() {
     }
     const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return (
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: tokens.spacing[2],
-          padding: tokens.spacing[4],
-          minHeight: 320,
-        }}
-      >
+      <div className="grid grid-cols-7 gap-2 p-4" style={{ minHeight: 320 }}>
         {weekViewDays.map((day, colIndex) => (
           <div
             key={day.date.getTime()}
-            style={{
-              border: `1px solid ${tokens.colors.border.default}`,
-              borderRadius: tokens.radius.sm,
-              padding: tokens.spacing[2],
-              backgroundColor: day.isToday ? tokens.colors.accent.secondary : tokens.colors.surface.primary,
-            }}
+            className={`border border-border-default rounded-sm p-2 ${day.isToday ? 'bg-accent-secondary' : 'bg-surface-primary'}`}
           >
             <div
-              style={{
-                fontSize: tokens.typography.fontSize.sm[0],
-                fontWeight: day.isToday ? tokens.typography.fontWeight.bold : tokens.typography.fontWeight.semibold,
-                color: day.isToday ? tokens.colors.primary.DEFAULT : tokens.colors.text.secondary,
-                marginBottom: tokens.spacing[2],
-              }}
+              className={`text-sm mb-2 ${day.isToday ? 'font-bold text-primary' : 'font-semibold text-text-secondary'}`}
             >
               {dayHeaders[colIndex]}
             </div>
-            <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginBottom: tokens.spacing[2] }}>
+            <div className="text-xs text-text-tertiary mb-2">
               {day.date.getDate()} {day.date.toLocaleDateString('en-US', { month: 'short' })}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
+            <div className="flex flex-col gap-1">
               {day.bookings.length === 0 ? (
-                <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>No bookings</span>
+                <span className="text-xs text-text-tertiary">No bookings</span>
               ) : (
                 day.bookings.map((booking) => {
                   const inConflict = conflictBookingIds.has(booking.id);
@@ -702,15 +668,9 @@ function CalendarPageContent() {
                         setSelectedBooking(booking);
                         setShowBookingDrawer(true);
                       }}
+                      className="p-2 rounded-sm bg-surface-primary text-left cursor-pointer text-xs w-full"
                       style={{
-                        padding: tokens.spacing[2],
                         border: `1px solid ${inConflict ? tokens.colors.error[300] : tokens.colors.border.default}`,
-                        borderRadius: tokens.radius.sm,
-                        backgroundColor: tokens.colors.surface.primary,
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        fontSize: tokens.typography.fontSize.xs[0],
-                        width: '100%',
                       }}
                       title={`${booking.firstName} ${booking.lastName} · ${booking.service}${inConflict ? ' · Conflict' : ''}`}
                       onMouseEnter={(e) => {
@@ -720,11 +680,11 @@ function CalendarPageContent() {
                         e.currentTarget.style.backgroundColor = tokens.colors.surface.primary;
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        {inConflict && <AlertCircle className="shrink-0" style={{ color: tokens.colors.error.DEFAULT }} size={14} />}
-                        <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>{formatTime(booking.startAt)}</span>
+                      <div className="flex items-center gap-1">
+                        {inConflict && <AlertCircle className="shrink-0 text-error" size={14} />}
+                        <span className="font-medium">{formatTime(booking.startAt)}</span>
                       </div>
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div className="overflow-hidden text-ellipsis whitespace-nowrap">
                         {booking.firstName} {booking.lastName}
                       </div>
                     </button>
@@ -742,7 +702,7 @@ function CalendarPageContent() {
   const renderCalendarGrid = () => {
     if (isLoading) {
       return (
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <Skeleton height="400px" />
         </div>
       );
@@ -905,12 +865,7 @@ function CalendarPageContent() {
           <GridCol span={12}>
             <Panel>
               {/* Top bar: period nav + view tabs + Today */}
-              <div
-                style={{
-                  padding: tokens.spacing[3],
-                  borderBottom: `1px solid ${tokens.colors.border.default}`,
-                }}
-              >
+              <div className="p-3 border-b border-border-default">
                 <Flex align="center" justify="space-between" wrap gap={3}>
                   <Flex align="center" gap={2}>
                     <IconButton
@@ -925,12 +880,8 @@ function CalendarPageContent() {
                       aria-label="Previous period"
                     />
                     <span
-                      style={{
-                        fontSize: tokens.typography.fontSize.lg[0],
-                        fontWeight: tokens.typography.fontWeight.bold,
-                        minWidth: '180px',
-                        textAlign: 'center',
-                      }}
+                      className="text-lg font-bold text-center"
+                      style={{ minWidth: '180px' }}
                     >
                       {periodLabel}
                     </span>
@@ -952,7 +903,7 @@ function CalendarPageContent() {
                         setCurrentDate(new Date());
                         setSelectedDate(new Date());
                       }}
-                      style={{ marginLeft: tokens.spacing[2] }}
+                      className="ml-2"
                     >
                       Today
                     </Button>
@@ -984,13 +935,7 @@ function CalendarPageContent() {
               </div>
 
               {/* Filters in top bar (compact row) */}
-              <div
-                style={{
-                  padding: tokens.spacing[2],
-                  borderBottom: `1px solid ${tokens.colors.border.default}`,
-                  backgroundColor: tokens.colors.surface.secondary,
-                }}
-              >
+              <div className="p-2 border-b border-border-default bg-surface-secondary">
                 {isMobile ? (
                   <Flex align="center" gap={2}>
                     <Button variant="tertiary" size="sm" onClick={() => setShowFiltersDrawer(true)}>
@@ -1004,17 +949,8 @@ function CalendarPageContent() {
               </div>
 
               {/* Today / Upcoming strip */}
-              <div
-                style={{
-                  padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-                  borderBottom: `1px solid ${tokens.colors.border.default}`,
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: tokens.spacing[3],
-                }}
-              >
-                <span style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium }}>
+              <div className="py-2 px-3 border-b border-border-default flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium">
                   Today: <strong>{todayBookings.length}</strong> {todayBookings.length === 1 ? 'booking' : 'bookings'}
                 </span>
                 {upcomingBookings.length > 0 && (
@@ -1027,14 +963,7 @@ function CalendarPageContent() {
                           setSelectedBooking(booking);
                           setShowBookingDrawer(true);
                         }}
-                        style={{
-                          padding: `${tokens.spacing[0]} ${tokens.spacing[2]}`,
-                          fontSize: tokens.typography.fontSize.xs[0],
-                          border: `1px solid ${tokens.colors.border.default}`,
-                          borderRadius: tokens.radius.sm,
-                          background: tokens.colors.surface.primary,
-                          cursor: 'pointer',
-                        }}
+                        className="py-0 px-2 text-xs border border-border-default rounded-sm bg-surface-primary cursor-pointer"
                       >
                         {formatTime(booking.startAt)} {booking.firstName}
                       </button>
@@ -1051,16 +980,10 @@ function CalendarPageContent() {
 
             {/* Event List */}
             {selectedDate && (
-              <div style={{ marginTop: tokens.spacing[4] }}>
+              <div className="mt-4">
               <Panel>
-                <div style={{ padding: tokens.spacing[4] }}>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.lg[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                      marginBottom: tokens.spacing[4],
-                    }}
-                  >
+                <div className="p-4">
+                  <div className="text-lg font-bold mb-4">
                     {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                   </div>
 
@@ -1073,18 +996,13 @@ function CalendarPageContent() {
                             setSelectedBooking(booking);
                             setShowBookingDrawer(true);
                           }}
-                          style={{
-                            padding: tokens.spacing[4],
-                            border: `1px solid ${tokens.colors.border.default}`,
-                            borderRadius: tokens.radius.md,
-                            cursor: 'pointer',
-                          }}
+                          className="p-4 border border-border-default rounded-md cursor-pointer"
                         >
-                          <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                          <div className="font-semibold">
                             {formatTime(booking.startAt)} - {formatTime(booking.endAt)}
                           </div>
                           <div>{booking.firstName} {booking.lastName}</div>
-                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          <div className="text-sm text-text-secondary">
                             {booking.service}
                           </div>
                         </div>
@@ -1125,7 +1043,7 @@ function CalendarPageContent() {
           title="Filters"
           side="left"
         >
-          <div style={{ padding: tokens.spacing[4] }} className="space-y-4">
+          <div className="p-4 space-y-4">
             <Tabs
               tabs={[
                 { id: 'day', label: 'Day' },
@@ -1151,47 +1069,47 @@ function CalendarPageContent() {
         title={selectedBooking ? `${selectedBooking.firstName} ${selectedBooking.lastName}` : 'Booking Details'}
       >
         {selectedBooking && (
-          <div style={{ padding: tokens.spacing[4] }}>
+          <div className="p-4">
             <Flex direction="column" gap={4}>
               <div>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                <div className="text-sm text-text-secondary mb-1">
                   Service
                 </div>
-                <div style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+                <div className="text-base font-semibold">
                   {selectedBooking.service}
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                <div className="text-sm text-text-secondary mb-1">
                   Time
                 </div>
-                <div style={{ fontSize: tokens.typography.fontSize.base[0] }}>
+                <div className="text-base">
                   {formatTime(selectedBooking.startAt)} - {formatTime(selectedBooking.endAt)}
                 </div>
               </div>
 
               <div>
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                <div className="text-sm text-text-secondary mb-1">
                   Status
                 </div>
-                <div style={{ fontSize: tokens.typography.fontSize.base[0] }}>
+                <div className="text-base">
                   {selectedBooking.status}
                 </div>
               </div>
 
               {selectedBooking.sitter && (
                 <div>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                  <div className="text-sm text-text-secondary mb-1">
                     Sitter
                   </div>
-                  <div style={{ fontSize: tokens.typography.fontSize.base[0] }}>
+                  <div className="text-base">
                     {selectedBooking.sitter.firstName} {selectedBooking.sitter.lastName}
                   </div>
                 </div>
               )}
 
-              <div style={{ marginTop: tokens.spacing[4] }}>
+              <div className="mt-4">
               <Flex direction="column" gap={2}>
                 <CommandLauncher
                   context={calendarCommandContext}
@@ -1222,7 +1140,7 @@ function CalendarPageContent() {
 
 export default function CalendarPage() {
   return (
-    <Suspense fallback={<div style={{ padding: tokens.spacing[6] }}><Skeleton height="400px" /></div>}>
+    <Suspense fallback={<div className="p-6"><Skeleton height="400px" /></div>}>
       <CalendarPageContent />
     </Suspense>
   );

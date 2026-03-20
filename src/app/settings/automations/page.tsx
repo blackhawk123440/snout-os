@@ -109,10 +109,10 @@ export default function AutomationSettingsPage() {
         />
 
         {(error || queryError) && (
-          <Card style={{ backgroundColor: tokens.colors.error[50], padding: tokens.spacing[3], marginBottom: tokens.spacing[4] }}>
-            <div style={{ color: tokens.colors.error.DEFAULT, fontSize: tokens.typography.fontSize.sm[0] }}>
+          <Card className="p-3 mb-4" style={{ backgroundColor: tokens.colors.error[50] }}>
+            <div className="text-sm" style={{ color: tokens.colors.error.DEFAULT }}>
               {error || (queryError as Error)?.message || 'Failed to load automations'}
-              <Button variant="ghost" size="sm" onClick={() => setError(null)} style={{ marginLeft: tokens.spacing[2] }}>
+              <Button variant="ghost" size="sm" onClick={() => setError(null)} className="ml-2">
                 Dismiss
               </Button>
             </div>
@@ -120,30 +120,30 @@ export default function AutomationSettingsPage() {
         )}
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+          <div className="flex flex-col gap-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} style={{ height: 80, borderRadius: tokens.borderRadius.lg }} />
+              <Skeleton key={i} className="h-20 rounded-lg" />
             ))}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+          <div className="flex flex-col gap-3">
             {automations.map((automation: AutomationItem) => (
-              <Card key={automation.id} style={{ padding: tokens.spacing[4] }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[1] }}>
-                      <span style={{ color: tokens.colors.primary.DEFAULT }}>{CATEGORY_ICONS[automation.category] || <Zap className="w-3.5 h-3.5" />}</span>
-                      <span style={{ fontWeight: 600, fontSize: tokens.typography.fontSize.base[0] }}>
+              <Card key={automation.id} className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-primary">{CATEGORY_ICONS[automation.category] || <Zap className="w-3.5 h-3.5" />}</span>
+                      <span className="font-semibold text-base">
                         {automation.name}
                       </span>
                       <Badge variant={automation.enabled ? 'success' : 'default'}>
                         {automation.enabled ? 'Active' : 'Off'}
                       </Badge>
                     </div>
-                    <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, margin: 0 }}>
+                    <p className="text-sm text-text-secondary m-0">
                       {automation.description}
                     </p>
-                    <div style={{ display: 'flex', gap: tokens.spacing[2], marginTop: tokens.spacing[2], flexWrap: 'wrap' }}>
+                    <div className="flex gap-2 mt-2 flex-wrap">
                       {automation.sendToClient && (
                         <Badge variant="default">Client</Badge>
                       )}
@@ -155,7 +155,7 @@ export default function AutomationSettingsPage() {
                       )}
                     </div>
                   </div>
-                  <div style={{ flexShrink: 0 }}>
+                  <div className="shrink-0">
                     <Switch
                       checked={automation.enabled}
                       onChange={(checked) => toggleMutation.mutate({ id: automation.id, enabled: checked })}
@@ -169,7 +169,7 @@ export default function AutomationSettingsPage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: tokens.spacing[6], gap: tokens.spacing[3], flexWrap: 'wrap' }}>
+        <div className="flex justify-between items-center mt-6 gap-3 flex-wrap">
           <Button
             variant="secondary"
             onClick={() => resetMutation.mutate()}

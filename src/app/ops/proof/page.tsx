@@ -2,7 +2,7 @@
 
 /**
  * Proof Page - Runtime Verification
- * 
+ *
  * Owner-only page that proves:
  * 1. Web→API wiring (shows resolved API base URL and makes direct calls)
  * 2. Worker execution (triggers job and shows audit event)
@@ -66,7 +66,7 @@ export default function ProofPage() {
   useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
     setApiBaseUrl(baseUrl);
-    
+
     // Load latest worker proof
     if (baseUrl && session) {
       loadLatestProof();
@@ -155,16 +155,16 @@ export default function ProofPage() {
     setTriggering(true);
     try {
       await apiPost('/api/ops/proof/trigger', {});
-      
+
       // Poll for the audit event (worker should process within seconds)
       let attempts = 0;
       const maxAttempts = 20; // 10 seconds max
       const triggerTime = Date.now();
-      
+
       while (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 500));
         await loadLatestProof();
-        
+
         if (workerProof?.found && workerProof.event) {
           const eventTime = new Date(workerProof.event.timestamp).getTime();
           // Check if event is recent (within last 30 seconds)
@@ -174,7 +174,7 @@ export default function ProofPage() {
         }
         attempts++;
       }
-      
+
       // Final refresh
       await loadLatestProof();
     } catch (error: any) {
@@ -186,7 +186,7 @@ export default function ProofPage() {
   };
 
   if (sessionStatus === 'loading') {
-    return <div style={{ padding: '2rem' }}>Loading...</div>;
+    return <div className="p-8">Loading...</div>;
   }
 
   if (!session) {
@@ -196,108 +196,83 @@ export default function ProofPage() {
   const allPassed = results.length > 0 && results.every(r => r.status === 'pass');
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Deployment Proof</h1>
-      
+    <div className="p-8 max-w-[1200px] mx-auto">
+      <h1 className="text-[2rem] mb-4">Deployment Proof</h1>
+
       {/* API Base URL */}
-      <div style={{ 
-        backgroundColor: '#f5f5f5', 
-        padding: '1rem', 
-        borderRadius: '8px',
-        marginBottom: '2rem',
-      }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Resolved API Base URL</h2>
-        <div style={{ fontFamily: 'monospace', fontSize: '1rem', fontWeight: 'bold', color: '#0070f3' }}>
+      <div className="bg-neutral-100 p-4 rounded-lg mb-8">
+        <h2 className="text-xl mb-2">Resolved API Base URL</h2>
+        <div className="font-mono text-base font-bold text-[#0070f3]">
           {apiBaseUrl || '(not set)'}
         </div>
         {apiBaseUrl && (
-          <div style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>
+          <div className="text-sm text-neutral-500 mt-2">
             All API calls will use this base URL
           </div>
         )}
       </div>
 
       {/* API Tests */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Web→API Proof</h2>
+      <div className="mb-8">
+        <h2 className="text-2xl mb-4">Web→API Proof</h2>
         <button
           onClick={runApiTests}
           disabled={loading || !apiBaseUrl}
           style={{
-            padding: '0.75rem 1.5rem',
-            fontSize: '1rem',
             backgroundColor: loading || !apiBaseUrl ? '#ccc' : '#0070f3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
             cursor: loading || !apiBaseUrl ? 'not-allowed' : 'pointer',
-            marginBottom: '1rem',
           }}
+          className="py-3 px-6 text-base text-white border-none rounded-md mb-4"
         >
           {loading ? 'Running Tests...' : 'Test API Calls'}
         </button>
 
         {results.length > 0 && (
-          <div style={{ display: 'grid', gap: '1rem' }}>
+          <div className="grid gap-4">
             {results.map((result, idx) => (
               <div
                 key={idx}
                 style={{
                   border: `2px solid ${result.status === 'pass' ? '#22c55e' : result.status === 'fail' ? '#ef4444' : '#e5e7eb'}`,
-                  borderRadius: '8px',
-                  padding: '1rem',
                   backgroundColor: result.status === 'pass' ? '#f0fdf4' : result.status === 'fail' ? '#fef2f2' : '#f9fafb',
                 }}
+                className="rounded-lg p-4"
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '1.5rem' }}>
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  <span className="text-2xl">
                     {result.status === 'pass' ? '✅' : result.status === 'fail' ? '❌' : '⏳'}
                   </span>
                   <strong>{result.endpoint}</strong>
                   {result.statusCode && (
-                    <span style={{ 
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      backgroundColor: result.statusCode === 200 ? '#22c55e' : result.statusCode === 401 ? '#f59e0b' : '#ef4444',
-                      color: 'white',
-                      fontSize: '0.875rem',
-                    }}>
+                    <span
+                      style={{
+                        backgroundColor: result.statusCode === 200 ? '#22c55e' : result.statusCode === 401 ? '#f59e0b' : '#ef4444',
+                      }}
+                      className="py-1 px-2 rounded text-white text-sm"
+                    >
                       {result.statusCode}
                     </span>
                   )}
                   {result.responseTime && (
-                    <span style={{ fontSize: '0.875rem', color: '#666' }}>
+                    <span className="text-sm text-neutral-500">
                       {result.responseTime}ms
                     </span>
                   )}
                 </div>
-                <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: '#666', marginTop: '0.5rem', wordBreak: 'break-all' }}>
+                <div className="font-mono text-sm text-neutral-500 mt-2 break-all">
                   <strong>Full URL:</strong> {result.fullUrl}
                 </div>
                 {result.error && (
-                  <div style={{ 
-                    color: '#ef4444',
-                    fontFamily: 'monospace',
-                    fontSize: '0.875rem',
-                    marginTop: '0.5rem',
-                  }}>
+                  <div className="text-error font-mono text-sm mt-2">
                     Error: {result.error}
                   </div>
                 )}
                 {result.data && result.status === 'pass' && (
-                  <details style={{ marginTop: '0.5rem' }}>
-                    <summary style={{ cursor: 'pointer', fontSize: '0.875rem', color: '#666' }}>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-sm text-neutral-500">
                       View Response
                     </summary>
-                    <pre style={{
-                      marginTop: '0.5rem',
-                      padding: '0.5rem',
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '4px',
-                      overflow: 'auto',
-                      fontSize: '0.75rem',
-                      maxHeight: '200px',
-                    }}>
+                    <pre className="mt-2 p-2 bg-neutral-50 rounded overflow-auto text-xs max-h-[200px]">
                       {JSON.stringify(result.data, null, 2)}
                     </pre>
                   </details>
@@ -309,65 +284,53 @@ export default function ProofPage() {
       </div>
 
       {/* Worker Proof */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Worker Execution Proof</h2>
+      <div className="mb-8">
+        <h2 className="text-2xl mb-4">Worker Execution Proof</h2>
         <button
           onClick={triggerWorkerProof}
           disabled={triggering || !apiBaseUrl}
           style={{
-            padding: '0.75rem 1.5rem',
-            fontSize: '1rem',
             backgroundColor: triggering || !apiBaseUrl ? '#ccc' : '#10b981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
             cursor: triggering || !apiBaseUrl ? 'not-allowed' : 'pointer',
-            marginBottom: '1rem',
           }}
+          className="py-3 px-6 text-base text-white border-none rounded-md mb-4"
         >
           {triggering ? 'Triggering...' : 'Trigger Worker Proof'}
         </button>
 
         {workerProof && (
-          <div style={{
-            border: `2px solid ${workerProof.found ? '#22c55e' : '#f59e0b'}`,
-            borderRadius: '8px',
-            padding: '1rem',
-            backgroundColor: workerProof.found ? '#f0fdf4' : '#fef3c7',
-          }}>
+          <div
+            style={{
+              border: `2px solid ${workerProof.found ? '#22c55e' : '#f59e0b'}`,
+              backgroundColor: workerProof.found ? '#f0fdf4' : '#fef3c7',
+            }}
+            className="rounded-lg p-4"
+          >
             {workerProof.found && workerProof.event ? (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '1.5rem' }}>✅</span>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl">✅</span>
                   <strong>Worker Proof Found</strong>
                 </div>
-                <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                <div className="font-mono text-sm mt-2">
                   <div><strong>Event ID:</strong> {workerProof.event.id}</div>
                   <div><strong>Event Type:</strong> {workerProof.event.eventType}</div>
                   <div><strong>Timestamp:</strong> {workerProof.event.timestamp}</div>
                   <div><strong>Job ID:</strong> {workerProof.event.jobId}</div>
                   <div><strong>BullMQ Job ID:</strong> {workerProof.event.bullmqJobId}</div>
                 </div>
-                <details style={{ marginTop: '0.5rem' }}>
-                  <summary style={{ cursor: 'pointer', fontSize: '0.875rem', color: '#666' }}>
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-sm text-neutral-500">
                     View Payload
                   </summary>
-                  <pre style={{
-                    marginTop: '0.5rem',
-                    padding: '0.5rem',
-                    backgroundColor: '#f9fafb',
-                    borderRadius: '4px',
-                    overflow: 'auto',
-                    fontSize: '0.75rem',
-                    maxHeight: '200px',
-                  }}>
+                  <pre className="mt-2 p-2 bg-neutral-50 rounded overflow-auto text-xs max-h-[200px]">
                     {JSON.stringify(workerProof.event.payload, null, 2)}
                   </pre>
                 </details>
               </>
             ) : (
               <div>
-                <span style={{ fontSize: '1.5rem' }}>⏳</span>
+                <span className="text-2xl">⏳</span>
                 <strong> {workerProof.message || 'No proof events found. Trigger a proof job first.'}</strong>
               </div>
             )}
@@ -377,16 +340,17 @@ export default function ProofPage() {
 
       {/* Summary */}
       {results.length > 0 && (
-        <div style={{ 
-          padding: '1rem', 
-          backgroundColor: allPassed ? '#f0fdf4' : '#fef2f2',
-          borderRadius: '8px',
-          border: `2px solid ${allPassed ? '#22c55e' : '#ef4444'}`,
-        }}>
-          <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>
+        <div
+          style={{
+            backgroundColor: allPassed ? '#f0fdf4' : '#fef2f2',
+            border: `2px solid ${allPassed ? '#22c55e' : '#ef4444'}`,
+          }}
+          className="p-4 rounded-lg"
+        >
+          <h3 className="text-xl mb-2">
             {allPassed ? '✅ All API Tests Passed' : '❌ Some Tests Failed'}
           </h3>
-          <div style={{ fontSize: '0.875rem', color: '#666' }}>
+          <div className="text-sm text-neutral-500">
             API Base URL: <code>{apiBaseUrl}</code>
             <br />
             All requests are made directly to the API service, not through Next.js API routes.

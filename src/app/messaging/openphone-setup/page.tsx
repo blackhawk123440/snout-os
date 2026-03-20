@@ -5,7 +5,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LayoutWrapper } from '@/components/layout';
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader, Card, Button, Input } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { ProviderMessageLog } from '@/components/messaging/ProviderMessageLog';
 
@@ -79,10 +78,10 @@ export default function OpenPhoneSetupPage() {
       <LayoutWrapper variant="wide">
         <PageHeader title="OpenPhone Setup" description="Configure OpenPhone messaging" />
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4], maxWidth: 720 }}>
+        <div className="flex flex-col gap-4 max-w-[720px]">
           {/* Connection status */}
-          <Card style={{ padding: tokens.spacing[4] }}>
-            <p style={{ fontWeight: 600, marginBottom: tokens.spacing[2] }}>Connection Status</p>
+          <Card className="p-4">
+            <p className="font-semibold mb-2">Connection Status</p>
             {isLoading ? (
               <p className="text-sm text-text-tertiary">Loading...</p>
             ) : connected ? (
@@ -99,9 +98,9 @@ export default function OpenPhoneSetupPage() {
 
           {/* Connect form */}
           {!connected && (
-            <Card style={{ padding: tokens.spacing[4] }}>
-              <p style={{ fontWeight: 600, marginBottom: tokens.spacing[3] }}>Connect OpenPhone</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+            <Card className="p-4">
+              <p className="font-semibold mb-3">Connect OpenPhone</p>
+              <div className="flex flex-col gap-3">
                 <Input label="API Key" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="op_..." type="password" />
                 <Input label="Phone Number ID" value={phoneNumberId} onChange={(e) => setPhoneNumberId(e.target.value)} placeholder="PN_xxx" />
                 <Input label="Phone Number (E.164)" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="+12345678901" />
@@ -114,8 +113,8 @@ export default function OpenPhoneSetupPage() {
 
           {/* Webhook URL */}
           {connected && (
-            <Card style={{ padding: tokens.spacing[4] }}>
-              <p style={{ fontWeight: 600, marginBottom: tokens.spacing[2] }}>Webhook URL</p>
+            <Card className="p-4">
+              <p className="font-semibold mb-2">Webhook URL</p>
               <p className="text-xs text-text-tertiary mb-2">Add this URL in your OpenPhone dashboard under Settings &gt; Webhooks.</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 rounded-lg border border-border-default bg-surface-secondary px-3 py-2 text-sm font-mono break-all">
@@ -130,10 +129,10 @@ export default function OpenPhoneSetupPage() {
 
           {/* Test send */}
           {connected && (
-            <Card style={{ padding: tokens.spacing[4] }}>
-              <p style={{ fontWeight: 600, marginBottom: tokens.spacing[2] }}>Send Test Message</p>
-              <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'flex-end' }}>
-                <div style={{ flex: 1 }}>
+            <Card className="p-4">
+              <p className="font-semibold mb-2">Send Test Message</p>
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
                   <Input label="Phone number" value={testPhone} onChange={(e) => setTestPhone(e.target.value)} placeholder="+12345678901" />
                 </div>
                 <Button variant="primary" onClick={() => testMutation.mutate()} disabled={testMutation.isPending || !testPhone}>
@@ -145,16 +144,16 @@ export default function OpenPhoneSetupPage() {
 
           {/* Recent activity */}
           {connected && (
-            <Card style={{ padding: tokens.spacing[4] }}>
-              <p style={{ fontWeight: 600, marginBottom: tokens.spacing[3] }}>Recent Activity</p>
+            <Card className="p-4">
+              <p className="font-semibold mb-3">Recent Activity</p>
               <ProviderMessageLog provider="openphone" />
             </Card>
           )}
 
           {/* Disconnect */}
           {connected && (
-            <Card style={{ padding: tokens.spacing[4] }}>
-              <p style={{ fontWeight: 600, marginBottom: tokens.spacing[2] }}>Disconnect</p>
+            <Card className="p-4">
+              <p className="font-semibold mb-2">Disconnect</p>
               <p className="text-sm text-text-tertiary mb-3">Remove OpenPhone configuration. Messages will stop sending.</p>
               <Button variant="secondary" onClick={() => disconnectMutation.mutate()} disabled={disconnectMutation.isPending}
                 className="border-status-danger-border text-status-danger-text hover:bg-status-danger-bg">

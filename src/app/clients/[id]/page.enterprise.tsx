@@ -100,11 +100,11 @@ export default function ClientDetailEnterprisePage() {
 
         <Section title="At a Glance">
           <div className="grid gap-3 md:grid-cols-5">
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Next booking</div><div>{nextBooking ? new Date(nextBooking.startAt).toLocaleString() : 'None'}</div></div>
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Last booking</div><div>{data.bookings[0] ? new Date(data.bookings[0].startAt).toLocaleDateString() : 'None'}</div></div>
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Total bookings</div><div>{data.stats.totalBookings}</div></div>
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Upcoming</div><div>{data.stats.upcomingBookings}</div></div>
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Revenue</div><div>${data.stats.totalRevenue.toFixed(2)}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Next booking</div><div>{nextBooking ? new Date(nextBooking.startAt).toLocaleString() : 'None'}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Last booking</div><div>{data.bookings[0] ? new Date(data.bookings[0].startAt).toLocaleDateString() : 'None'}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Total bookings</div><div>{data.stats.totalBookings}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Upcoming</div><div>{data.stats.upcomingBookings}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Revenue</div><div>${data.stats.totalRevenue.toFixed(2)}</div></div>
           </div>
         </Section>
 

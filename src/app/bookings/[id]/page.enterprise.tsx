@@ -251,10 +251,10 @@ export default function BookingDetailEnterprisePage() {
 
         <Section title="Timeline">
           <div className="grid gap-3 md:grid-cols-4">
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Created</div><div>{new Date(booking.startAt).toLocaleDateString()}</div></div>
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Status</div><StatusChip ariaLabel={`Status ${getStatusPill(booking.status).label}`}>{getStatusPill(booking.status).label}</StatusChip></div>
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Payment</div><StatusChip ariaLabel={`Payment ${getStatusPill(booking.paymentStatus).label}`}>{getStatusPill(booking.paymentStatus).label}</StatusChip></div>
-            <div className="rounded-lg border p-3"><div className="text-xs text-[var(--color-text-secondary)]">Report</div><div>{booking.hasReport ? 'Submitted' : 'Not submitted'}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Created</div><div>{new Date(booking.startAt).toLocaleDateString()}</div></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Status</div><StatusChip ariaLabel={`Status ${getStatusPill(booking.status).label}`}>{getStatusPill(booking.status).label}</StatusChip></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Payment</div><StatusChip ariaLabel={`Payment ${getStatusPill(booking.paymentStatus).label}`}>{getStatusPill(booking.paymentStatus).label}</StatusChip></div>
+            <div className="rounded-lg border p-3"><div className="text-xs text-text-secondary">Report</div><div>{booking.hasReport ? 'Submitted' : 'Not submitted'}</div></div>
           </div>
         </Section>
 

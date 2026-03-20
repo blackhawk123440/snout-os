@@ -1,7 +1,7 @@
 /**
  * Payroll Page - Owner view
  *
- * Single source of truth: Booking → PayoutTransfer → Ledger.
+ * Single source of truth: Booking -> PayoutTransfer -> Ledger.
  * Shows payroll runs (weekly from PayoutTransfer), summary, approve, export.
  */
 
@@ -24,7 +24,6 @@ import {
   GridCol,
 } from '@/components/ui';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
-import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 
 interface PayrollRunListItem {
@@ -191,7 +190,7 @@ export default function PayrollPage() {
       key: 'period',
       header: 'Pay Period',
       render: (r) => (
-        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+        <div className="font-medium">
           {formatDate(r.startDate)} – {formatDate(r.endDate)}
         </div>
       ),
@@ -201,7 +200,7 @@ export default function PayrollPage() {
       key: 'payout',
       header: 'Total Payout',
       render: (r) => (
-        <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+        <div className="font-semibold">
           {formatCurrency(r.totalPayout)}
         </div>
       ),
@@ -278,38 +277,38 @@ export default function PayrollPage() {
 
       <Section title="Pay period summary">
         <div className="mb-4">
-          <Card className="border-2 border-border-default bg-surface-secondary/50" style={{ padding: tokens.spacing[4] }}>
+          <Card className="border-2 border-border-default bg-surface-secondary/50 p-4">
             <Grid gap={4}>
               <GridCol span={12} md={5}>
-                <div style={{ marginBottom: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                <div className="mb-1 text-sm text-text-secondary">
                   Current pay period
                 </div>
-                <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+                <div className="text-xl font-bold">
                   {currentRun
                     ? `${formatDate(currentRun.startDate)} – ${formatDate(currentRun.endDate)}`
                     : '—'}
                 </div>
-                <div style={{ marginTop: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                <div className="mt-2 text-sm text-text-secondary">
                   {(currentRun?.sitterCount) ?? (runs.reduce((s, r) => s + r.sitterCount, 0) || 0)} sitters · {currentRun?.status ?? '—'}
                 </div>
               </GridCol>
               <GridCol span={12} md={4}>
-                <div style={{ marginBottom: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                <div className="mb-1 text-sm text-text-secondary">
                   Total payout (all runs)
                 </div>
-                <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success.DEFAULT }}>
+                <div className="text-2xl font-bold text-success">
                   {formatCurrency(runs.reduce((s, r) => s + r.totalPayout, 0))}
                 </div>
               </GridCol>
               <GridCol span={12} md={3}>
                 <Flex direction="column" gap={2}>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                  <div className="text-sm text-text-secondary">
                     Pending: <strong>{formatCurrency(totalPending)}</strong>
                   </div>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                  <div className="text-sm text-text-secondary">
                     Approved: <strong>{formatCurrency(totalApproved)}</strong>
                   </div>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                  <div className="text-sm text-text-secondary">
                     Paid: <strong>{formatCurrency(totalPaid)}</strong>
                   </div>
                 </Flex>
@@ -380,35 +379,35 @@ export default function PayrollPage() {
             <Grid gap={4}>
               <GridCol span={12} md={6}>
                 <Card>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                  <div className="text-sm text-text-secondary mb-1">
                     Total Payout
                   </div>
-                  <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success.DEFAULT }}>
+                  <div className="text-xl font-bold text-success">
                     {formatCurrency(detail.run.totalPayout)}
                   </div>
                 </Card>
               </GridCol>
               <GridCol span={12} md={6}>
                 <Card>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                  <div className="text-sm text-text-secondary mb-1">
                     Sitters
                   </div>
-                  <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+                  <div className="text-xl font-bold">
                     {detail.sitters.length}
                   </div>
                 </Card>
               </GridCol>
             </Grid>
 
-            <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>Sitter payout rows</div>
+            <div className="font-semibold mb-2">Sitter payout rows</div>
             <div className="rounded-lg border border-border-default overflow-hidden">
               <Table
                 columns={[
-                  { key: 'sitter', header: 'Sitter', render: (s) => <span style={{ fontWeight: tokens.typography.fontWeight.medium }}>{s.sitterName}</span> },
+                  { key: 'sitter', header: 'Sitter', render: (s) => <span className="font-medium">{s.sitterName}</span> },
                   { key: 'bookings', header: 'Bookings', render: (s) => s.bookingCount, align: 'center' as const },
                   { key: 'earnings', header: 'Earnings', render: (s) => formatCurrency(s.earnings), align: 'right' as const },
                   { key: 'commission', header: 'Commission', render: (s) => formatCurrency(s.commission), align: 'right' as const },
-                  { key: 'payout', header: 'Payout', render: (s) => <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>{formatCurrency(s.payoutAmount)}</span>, align: 'right' as const },
+                  { key: 'payout', header: 'Payout', render: (s) => <span className="font-semibold">{formatCurrency(s.payoutAmount)}</span>, align: 'right' as const },
                   { key: 'stripe', header: 'Stripe', render: (s) => (s.stripeAccount ? 'Connected' : '—'), align: 'center' as const },
                 ]}
                 data={detail.sitters}
@@ -418,22 +417,22 @@ export default function PayrollPage() {
 
             {detail.bookings.length > 0 && (
               <>
-                <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+                <div className="font-semibold">
                   Booking Breakdown ({detail.bookings.length})
                 </div>
-                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                <div className="max-h-[300px] overflow-y-auto">
                   {detail.bookings.map((b) => (
-                    <Card key={b.bookingId} style={{ marginBottom: tokens.spacing[2] }}>
+                    <Card key={b.bookingId} className="mb-2">
                       <Flex justify="space-between" align="center">
                         <div>
-                          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>{b.service}</div>
-                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          <div className="font-medium">{b.service}</div>
+                          <div className="text-sm text-text-secondary">
                             {formatDate(b.bookingDate)}
                           </div>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
+                        <div className="text-right">
                           <div>{formatCurrency(b.totalPrice)}</div>
-                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          <div className="text-sm text-text-secondary">
                             {formatCurrency(b.commissionAmount)} ({b.commissionPercentage}%)
                           </div>
                         </div>
@@ -461,16 +460,16 @@ export default function PayrollPage() {
         {runToApprove && (
           <Flex direction="column" gap={4}>
             <div>
-              <div style={{ marginBottom: tokens.spacing[2] }}>
+              <div className="mb-2">
                 Approve payroll run for period <strong>{formatDate(runToApprove.startDate)} – {formatDate(runToApprove.endDate)}</strong>?
                 Total payout: <strong>{formatCurrency(runToApprove.totalPayout)}</strong> ({runToApprove.sitterCount} sitter{runToApprove.sitterCount !== 1 ? 's' : ''}).
               </div>
             </div>
             <Flex gap={3}>
-              <Button variant="primary" onClick={handleApprove} disabled={approving} style={{ flex: 1 }}>
+              <Button variant="primary" onClick={handleApprove} disabled={approving} className="flex-1">
                 {approving ? 'Approving...' : 'Approve'}
               </Button>
-              <Button variant="tertiary" onClick={() => { setShowApprovalModal(false); setRunToApprove(null); }} style={{ flex: 1 }}>
+              <Button variant="tertiary" onClick={() => { setShowApprovalModal(false); setRunToApprove(null); }} className="flex-1">
                 Cancel
               </Button>
             </Flex>

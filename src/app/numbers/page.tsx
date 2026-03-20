@@ -17,7 +17,6 @@ import React from 'react';
 import { MoreVertical, Eye, ArrowLeftRight, UserPlus, Undo2, Ban, CheckCircle2, Trash2, UserX } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { PageHeader, Card, Button, Badge, Skeleton, Table, TableColumn, EmptyState, Modal, Input, Textarea, Tooltip, Drawer, DropdownMenu, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, IconButton } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import {
   useNumbers,
@@ -169,7 +168,7 @@ export default function NumbersPage() {
     return (
       <AppShell>
         <PageHeader title="Numbers" />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div className="p-4">
           <Skeleton height={400} />
         </div>
       </AppShell>
@@ -180,7 +179,7 @@ export default function NumbersPage() {
     return (
       <AppShell>
         <PageHeader title="Numbers" />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div className="p-4">
           <Card>
             <p>Access denied. Owner access required.</p>
           </Card>
@@ -466,7 +465,7 @@ export default function NumbersPage() {
         title="Number Inventory"
         description="Manage your messaging phone numbers"
         actions={
-          <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
+          <div className="flex gap-2">
             <Button onClick={() => setShowBuyModal(true)} variant="primary">
               Buy Number
             </Button>
@@ -476,18 +475,18 @@ export default function NumbersPage() {
           </div>
         }
       />
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div className="p-6">
         {/* Pool Exhausted Banner */}
         {(() => {
           const poolExhausted = numbers.some(n => n.class === 'pool' && (n as any).capacityStatus === 'At Capacity');
           if (poolExhausted) {
             return (
-              <Card style={{ marginBottom: tokens.spacing[4], backgroundColor: tokens.colors.error[50], border: `2px solid ${tokens.colors.error.DEFAULT}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                  <span style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.error.DEFAULT }}>
+              <Card className="mb-4 bg-status-danger-bg border-2 border-error">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-error">
                     ⚠️ Pool Exhausted
                   </span>
-                  <span style={{ color: tokens.colors.text.primary }}>
+                  <span className="text-text-primary">
                     One or more pool numbers are at capacity. Inbound messages will be routed to owner inbox. Consider adding more pool numbers or adjusting capacity settings.
                   </span>
                 </div>
@@ -498,52 +497,52 @@ export default function NumbersPage() {
         })()}
 
         {/* Summary Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4], marginBottom: tokens.spacing[6] }}>
+        <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
           <Card>
-            <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+            <div className="text-xl font-bold">
               {frontDeskCount}
             </div>
-            <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+            <div className="text-text-secondary text-sm">
               Front Desk
             </div>
           </Card>
           <Card>
-            <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+            <div className="text-xl font-bold">
               {poolCount}
             </div>
-            <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+            <div className="text-text-secondary text-sm">
               Pool
             </div>
           </Card>
           <Card>
-            <div style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold }}>
+            <div className="text-xl font-bold">
               {sitterCount}
             </div>
-            <div style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+            <div className="text-text-secondary text-sm">
               Sitter
             </div>
           </Card>
         </div>
 
         {/* Filters */}
-        <Card style={{ marginBottom: tokens.spacing[4] }}>
-          <div style={{ display: 'flex', gap: tokens.spacing[3], alignItems: 'center' }}>
-            <label style={{ fontWeight: tokens.typography.fontWeight.medium }}>Filter by Class:</label>
+        <Card className="mb-4">
+          <div className="flex gap-3 items-center">
+            <label className="font-medium">Filter by Class:</label>
             <select
               value={filters.class || ''}
               onChange={(e) => setFilters({ ...filters, class: e.target.value || undefined })}
-              style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}` }}
+              className="p-2 rounded-md border border-border-default"
             >
               <option value="">All</option>
               <option value="front_desk">Front Desk</option>
               <option value="pool">Pool</option>
               <option value="sitter">Sitter</option>
             </select>
-            <label style={{ fontWeight: tokens.typography.fontWeight.medium }}>Filter by Status:</label>
+            <label className="font-medium">Filter by Status:</label>
             <select
               value={filters.status || ''}
               onChange={(e) => setFilters({ ...filters, status: e.target.value || undefined })}
-              style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}` }}
+              className="p-2 rounded-md border border-border-default"
             >
               <option value="">All</option>
               <option value="active">Active</option>
@@ -573,15 +572,15 @@ export default function NumbersPage() {
         {/* Buy Modal */}
         {showBuyModal && (
           <Modal isOpen={showBuyModal} title="Buy Number" onClose={() => setShowBuyModal(false)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div className="flex flex-col gap-4">
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Number Class
                 </label>
                 <select
                   value={buyForm.class}
                   onChange={(e) => setBuyForm({ ...buyForm, class: e.target.value as any })}
-                  style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}`, width: '100%' }}
+                  className="p-2 rounded-md border border-border-default w-full"
                 >
                   <option value="front_desk">Front Desk</option>
                   <option value="pool">Pool</option>
@@ -589,7 +588,7 @@ export default function NumbersPage() {
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Area Code (optional)
                 </label>
                 <Input
@@ -599,7 +598,7 @@ export default function NumbersPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Quantity
                 </label>
                 <Input
@@ -610,7 +609,7 @@ export default function NumbersPage() {
                   onChange={(e) => setBuyForm({ ...buyForm, quantity: parseInt(e.target.value) || 1 })}
                 />
               </div>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowBuyModal(false)} variant="secondary">Cancel</Button>
                 <Button onClick={handleBuy} disabled={buyNumber.isPending} variant="primary">
                   {buyNumber.isPending ? 'Purchasing...' : 'Purchase'}
@@ -623,15 +622,15 @@ export default function NumbersPage() {
         {/* Import Modal */}
         {showImportModal && (
           <Modal isOpen={showImportModal} title="Import Number" onClose={() => setShowImportModal(false)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div className="flex flex-col gap-4">
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Number Class
                 </label>
                 <select
                   value={importForm.class}
                   onChange={(e) => setImportForm({ ...importForm, class: e.target.value as any })}
-                  style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}`, width: '100%' }}
+                  className="p-2 rounded-md border border-border-default w-full"
                 >
                   <option value="front_desk">Front Desk</option>
                   <option value="pool">Pool</option>
@@ -639,7 +638,7 @@ export default function NumbersPage() {
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   E.164 Number (e.g., +15551234567)
                 </label>
                 <Input
@@ -649,7 +648,7 @@ export default function NumbersPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   OR Twilio Number SID
                 </label>
                 <Input
@@ -658,7 +657,7 @@ export default function NumbersPage() {
                   placeholder="PNxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                 />
               </div>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowImportModal(false)} variant="secondary">Cancel</Button>
                 <Button onClick={handleImport} disabled={importNumber.isPending} variant="primary">
                   {importNumber.isPending ? 'Importing...' : 'Import'}
@@ -671,12 +670,12 @@ export default function NumbersPage() {
         {/* Quarantine Modal */}
         {showQuarantineModal && selectedNumber && (
           <Modal isOpen={!!showQuarantineModal} title="Quarantine Number" onClose={() => setShowQuarantineModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <p style={{ color: tokens.colors.text.secondary }}>
+            <div className="flex flex-col gap-4">
+              <p className="text-text-secondary">
                 Quarantining: <strong>{selectedNumber.e164}</strong>
               </p>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Reason (required)
                 </label>
                 <Input
@@ -686,7 +685,7 @@ export default function NumbersPage() {
                 />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Details (optional)
                 </label>
                 <Textarea
@@ -695,10 +694,10 @@ export default function NumbersPage() {
                   placeholder="Additional details..."
                 />
               </div>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowQuarantineModal(null)} variant="secondary">Cancel</Button>
-                <Button 
-                  onClick={handleQuarantine} 
+                <Button
+                  onClick={handleQuarantine}
                   disabled={quarantineNumber.isPending || !quarantineForm.reason}
                   variant="danger"
                 >
@@ -712,9 +711,9 @@ export default function NumbersPage() {
         {/* Release Modal */}
         {showReleaseModal && selectedNumber && (
           <Modal isOpen={!!showReleaseModal} title="Release from Quarantine" onClose={() => setShowReleaseModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div className="flex flex-col gap-4">
               <p>Release <strong>{selectedNumber.e164}</strong> from quarantine?</p>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowReleaseModal(null)} variant="secondary">Cancel</Button>
                 <Button onClick={() => handleRelease(false)} disabled={releaseNumber.isPending} variant="primary">
                   {releaseNumber.isPending ? 'Releasing...' : 'Release'}
@@ -727,18 +726,18 @@ export default function NumbersPage() {
         {/* Assign Modal */}
         {showAssignModal && selectedNumber && (
           <Modal isOpen={!!showAssignModal} title="Assign to Sitter" onClose={() => setShowAssignModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <p style={{ color: tokens.colors.text.secondary }}>
+            <div className="flex flex-col gap-4">
+              <p className="text-text-secondary">
                 Assigning: <strong>{selectedNumber.e164}</strong>
               </p>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   Sitter
                 </label>
                 <select
                   value={assignForm.sitterId}
                   onChange={(e) => setAssignForm({ sitterId: e.target.value })}
-                  style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}`, width: '100%' }}
+                  className="p-2 rounded-md border border-border-default w-full"
                 >
                   <option value="">Select sitter...</option>
                   {sitters.map(s => (
@@ -746,7 +745,7 @@ export default function NumbersPage() {
                   ))}
                 </select>
               </div>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowAssignModal(null)} variant="secondary">Cancel</Button>
                 <Button onClick={handleAssign} disabled={assignToSitter.isPending || !assignForm.sitterId} variant="primary">
                   {assignToSitter.isPending ? 'Assigning...' : 'Assign'}
@@ -759,9 +758,9 @@ export default function NumbersPage() {
         {/* Release to Pool Modal */}
         {showReleaseToPoolModal && selectedNumber && (
           <Modal isOpen={!!showReleaseToPoolModal} title="Release to Pool" onClose={() => setShowReleaseToPoolModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div className="flex flex-col gap-4">
               <p>Release <strong>{selectedNumber.e164}</strong> to pool?</p>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowReleaseToPoolModal(null)} variant="secondary">Cancel</Button>
                 <Button onClick={handleReleaseToPool} disabled={releaseToPool.isPending} variant="primary">
                   {releaseToPool.isPending ? 'Releasing...' : 'Release to Pool'}
@@ -774,28 +773,28 @@ export default function NumbersPage() {
         {/* Change Class Modal */}
         {showChangeClassModal && selectedNumber && (
           <Modal isOpen={!!showChangeClassModal} title="Change Number Class" onClose={() => setShowChangeClassModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <p style={{ color: tokens.colors.text.secondary }}>
+            <div className="flex flex-col gap-4">
+              <p className="text-text-secondary">
                 Changing class for: <strong>{selectedNumber.e164}</strong>
               </p>
-              <p style={{ color: tokens.colors.warning.DEFAULT, fontSize: tokens.typography.fontSize.sm[0] }}>
+              <p className="text-warning text-sm">
                 ⚠️ This will affect future routing only. Existing threads are not affected.
               </p>
               <div>
-                <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+                <label className="block mb-2 font-medium">
                   New Class
                 </label>
                 <select
                   value={changeClassForm.class}
                   onChange={(e) => setChangeClassForm({ class: e.target.value as any })}
-                  style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}`, width: '100%' }}
+                  className="p-2 rounded-md border border-border-default w-full"
                 >
                   <option value="front_desk">Front Desk</option>
                   <option value="pool">Pool</option>
                   <option value="sitter">Sitter</option>
                 </select>
               </div>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowChangeClassModal(null)} variant="secondary">Cancel</Button>
                 <Button onClick={handleChangeClass} disabled={changeNumberClass.isPending} variant="primary">
                   {changeNumberClass.isPending ? 'Changing...' : 'Change Class'}
@@ -808,15 +807,15 @@ export default function NumbersPage() {
         {/* Deactivate Sitter Modal */}
         {showDeactivateSitterModal && selectedSitter && (
           <Modal isOpen={!!showDeactivateSitterModal} title="Deactivate Sitter" onClose={() => setShowDeactivateSitterModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <p style={{ color: tokens.colors.text.secondary }}>
+            <div className="flex flex-col gap-4">
+              <p className="text-text-secondary">
                 Deactivating sitter: <strong>{selectedSitter.name}</strong>
               </p>
-              <div style={{ backgroundColor: tokens.colors.warning[50], padding: tokens.spacing[3], borderRadius: tokens.borderRadius.md }}>
-                <p style={{ fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2] }}>
+              <div className="bg-status-warning-bg p-3 rounded-md">
+                <p className="font-bold mb-2">
                   This will:
                 </p>
-                <ul style={{ margin: 0, paddingLeft: tokens.spacing[4] }}>
+                <ul className="m-0 pl-4">
                   <li>Set sitter status to inactive</li>
                   <li>End all active assignment windows ({activeAssignments} active)</li>
                   <li>Release {sitterNumbers.length} number(s) to pool</li>
@@ -824,7 +823,7 @@ export default function NumbersPage() {
                   <li>Route new inbound messages to owner</li>
                 </ul>
               </div>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowDeactivateSitterModal(null)} variant="secondary">Cancel</Button>
                 <Button onClick={handleDeactivateSitter} disabled={deactivateSitter.isPending} variant="danger">
                   {deactivateSitter.isPending ? 'Deactivating...' : 'Deactivate Sitter'}
@@ -843,20 +842,20 @@ export default function NumbersPage() {
             placement="right"
             width="480px"
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}>
+            <div className="flex flex-col gap-6">
               <Card>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                <div className="flex flex-col gap-4">
                   <div>
-                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    <div className="text-xs text-text-secondary mb-1">
                       E.164 Number
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+                    <div className="text-lg font-semibold">
                       {numberDetail.e164}
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing[4] }}>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                      <div className="text-xs text-text-secondary mb-1">
                         Class
                       </div>
                       <Badge variant={numberDetail.class === 'front_desk' ? 'default' : numberDetail.class === 'sitter' ? 'info' : 'neutral'}>
@@ -864,7 +863,7 @@ export default function NumbersPage() {
                       </Badge>
                     </div>
                     <div>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                      <div className="text-xs text-text-secondary mb-1">
                         Status
                       </div>
                       <Badge variant={numberDetail.status === 'active' ? 'success' : numberDetail.status === 'quarantined' ? 'warning' : 'error'}>
@@ -873,34 +872,34 @@ export default function NumbersPage() {
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                    <div className="text-xs text-text-secondary mb-1">
                       Active Threads
                     </div>
-                    <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+                    <div className="text-lg font-semibold">
                       {numberDetail.activeThreadCount || 0}
                     </div>
                   </div>
                   {numberDetail.assignedSitter && (
                     <div>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                      <div className="text-xs text-text-secondary mb-1">
                         Assigned To
                       </div>
-                      <div style={{ fontSize: tokens.typography.fontSize.base[0] }}>
+                      <div className="text-base">
                         {numberDetail.assignedSitter.name}
                       </div>
                     </div>
                   )}
                   {numberDetail.health && (
                     <div>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                      <div className="text-xs text-text-secondary mb-1">
                         Health Status
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                      <div className="flex items-center gap-2">
                         <Badge variant={numberDetail.health.status === 'healthy' ? 'success' : numberDetail.health.status === 'degraded' ? 'warning' : 'error'}>
                           {numberDetail.health.status}
                         </Badge>
                         {numberDetail.health.deliveryRate !== null && (
-                          <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          <span className="text-sm text-text-secondary">
                             {Math.round(numberDetail.health.deliveryRate * 100)}% delivery rate
                           </span>
                         )}
@@ -916,16 +915,16 @@ export default function NumbersPage() {
         {/* Release from Twilio Confirmation Modal */}
         {showReleaseFromTwilioModal && selectedNumber && (
           <Modal isOpen={!!showReleaseFromTwilioModal} title="Release from Twilio" onClose={() => setShowReleaseFromTwilioModal(null)}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <div style={{ backgroundColor: tokens.colors.error[50], padding: tokens.spacing[4], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.error.DEFAULT}` }}>
-                <p style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.error.DEFAULT, marginBottom: tokens.spacing[2] }}>
+            <div className="flex flex-col gap-4">
+              <div className="bg-status-danger-bg p-4 rounded-md border border-error">
+                <p className="font-bold text-error mb-2">
                   ⚠️ This action cannot be undone
                 </p>
-                <p style={{ color: tokens.colors.text.primary }}>
+                <p className="text-text-primary">
                   Releasing <strong>{selectedNumber.e164}</strong> from Twilio will permanently remove it from your account. This number will no longer be available for messaging.
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+              <div className="flex gap-3 justify-end">
                 <Button onClick={() => setShowReleaseFromTwilioModal(null)} variant="secondary">Cancel</Button>
                 <Button
                   onClick={() => {

@@ -34,11 +34,11 @@ export default function DigestSettingsPage() {
           subtitle="Intelligence email sent every Monday at 8am"
         />
 
-        <div style={{ padding: `0 ${tokens.spacing[4]}`, display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+        <div className="px-4 flex flex-col gap-4">
           <Panel>
-            <div style={{ padding: tokens.spacing[4] }}>
-              <h3 style={{ fontWeight: 600, marginBottom: tokens.spacing[2] }}>What's included</h3>
-              <ul style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="p-4">
+              <h3 className="font-semibold mb-2">What's included</h3>
+              <ul className="text-sm text-text-secondary pl-5 flex flex-col gap-1.5">
                 <li>Revenue this week vs last week (with trend arrow)</li>
                 <li>Total bookings, new clients, active sitters</li>
                 <li>Top SRS-scoring sitter</li>
@@ -46,7 +46,7 @@ export default function DigestSettingsPage() {
                 <li>Revenue forecast for the month</li>
               </ul>
 
-              <div style={{ marginTop: tokens.spacing[4] }}>
+              <div className="mt-4">
                 <Button onClick={() => setShowPreview(true)} disabled={showPreview && isLoading}>
                   {isLoading ? 'Loading preview…' : 'Preview Digest Email'}
                 </Button>
@@ -56,8 +56,8 @@ export default function DigestSettingsPage() {
 
           {showPreview && (
             <Panel>
-              <div style={{ padding: tokens.spacing[4] }}>
-                <h3 style={{ fontWeight: 600, marginBottom: tokens.spacing[3] }}>Email Preview</h3>
+              <div className="p-4">
+                <h3 className="font-semibold mb-3">Email Preview</h3>
                 {isLoading ? (
                   <Skeleton height="400px" />
                 ) : previewHtml ? (
@@ -72,7 +72,7 @@ export default function DigestSettingsPage() {
                     dangerouslySetInnerHTML={{ __html: previewHtml }}
                   />
                 ) : (
-                  <p style={{ color: tokens.colors.text.tertiary }}>Could not generate preview. Make sure you have booking data.</p>
+                  <p className="text-text-tertiary">Could not generate preview. Make sure you have booking data.</p>
                 )}
               </div>
             </Panel>

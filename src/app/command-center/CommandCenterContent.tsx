@@ -13,7 +13,6 @@ import {
 } from '@/components/app';
 import { OnboardingChecklist } from '@/components/app/OnboardingChecklist';
 import { Button, PageSkeleton, EmptyState, useToast } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { KpiGrid } from '@/components/app/KpiGrid';
 import { motion } from 'framer-motion';
@@ -282,7 +281,7 @@ export function CommandCenterContent() {
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <span style={{ color: tokens.colors.text.secondary }}>Loading...</span>
+        <span className="text-text-secondary">Loading...</span>
       </div>
     );
   }
@@ -319,7 +318,7 @@ export function CommandCenterContent() {
               </Button>
               <Link
                 href="/bookings"
-                className="inline-flex items-center gap-2 rounded-md border border-[var(--color-accent-primary)] bg-[var(--color-accent-primary)] px-4 py-2 text-sm font-medium text-text-inverse no-underline transition hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-md border border-accent-primary bg-accent-primary px-4 py-2 text-sm font-medium text-text-inverse no-underline transition hover:opacity-90"
               >
                 View Bookings
               </Link>
@@ -344,7 +343,7 @@ export function CommandCenterContent() {
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-[var(--color-text-primary)]">Overview</h2>
+              <h2 className="text-base font-semibold text-text-primary">Overview</h2>
               <div className="flex gap-2">
                 {(['7d', '30d'] as const).map((r) => (
                   <button
@@ -468,7 +467,7 @@ export function CommandCenterContent() {
               <AppCardBody>
                 {scheduleConflictCount > 0 && (
                   <p className="mb-3 text-sm text-text-secondary">
-                    <Link href="/calendar?conflicts=show_only" className="font-medium text-[var(--color-primary)] hover:underline">
+                    <Link href="/calendar?conflicts=show_only" className="font-medium text-accent-primary hover:underline">
                       {scheduleConflictCount} schedule conflict{scheduleConflictCount !== 1 ? 's' : ''} on Calendar
                     </Link>
                   </p>

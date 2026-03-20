@@ -1,8 +1,8 @@
 /**
  * Sitter Dashboard Page - Enterprise Rebuild
- * 
+ *
  * Complete rebuild using design system and components.
- * Zero legacy styling - all through components and tokens.
+ * Zero legacy styling - all through components and Tailwind classes.
  */
 
 'use client';
@@ -23,7 +23,6 @@ import {
   SectionHeader,
 } from '@/components/ui';
 import { AppShell } from '@/components/layout/AppShell';
-import { tokens } from '@/lib/design-tokens';
 
 interface DashboardJob {
   id: string;
@@ -112,7 +111,7 @@ function SitterDashboardContent() {
   const searchParams = useSearchParams();
   const sitterId = searchParams?.get("id") || "";
   const isAdminView = searchParams?.get("admin") === "true";
-  
+
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("pending");
@@ -218,7 +217,7 @@ function SitterDashboardContent() {
     return (
       <AppShell>
         <PageHeader title={isAdminView ? "Sitter Dashboard" : "My Dashboard"} />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <Skeleton height={200} />
         </div>
       </AppShell>
@@ -229,7 +228,7 @@ function SitterDashboardContent() {
     return (
       <AppShell>
         <PageHeader title={isAdminView ? "Sitter Dashboard" : "My Dashboard"} />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <EmptyState
             title="Failed to load dashboard data"
             description="Please try refreshing the page"
@@ -258,7 +257,7 @@ function SitterDashboardContent() {
         description={isAdminView ? "Read-only admin view" : undefined}
       />
 
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div className="p-6">
         <Tabs
           tabs={tabs}
           activeTab={activeTab}
@@ -268,30 +267,30 @@ function SitterDashboardContent() {
           <TabPanel id="pending">
             <Card>
               <SectionHeader title={`Pending Requests (${dashboardData.jobs.needsResponse.length})`} />
-              <div style={{ padding: tokens.spacing[6] }}>
+              <div className="p-6">
                 {dashboardData.jobs.needsResponse.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <div className="flex flex-col gap-4">
                     {dashboardData.jobs.needsResponse.map((job) => (
                       <Card key={job.id}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: tokens.spacing[4] }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="font-bold text-lg">
                                 {job.clientName}
                               </div>
                               <Badge variant="warning">Pool Request</Badge>
                               {job.expiresAt && new Date(job.expiresAt) > new Date() && (
-                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                                <div className="text-xs text-text-secondary">
                                   Expires: {formatDate(job.expiresAt)} {formatTime(job.expiresAt)}
                                 </div>
                               )}
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
-                              <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
+                            <div className="flex flex-col gap-1 text-sm text-text-secondary">
+                              <div><span className="font-semibold">Service:</span> {job.service}</div>
+                              <div><span className="font-semibold">Date:</span> {formatDate(job.startAt)}</div>
                               {job.timeSlots.length > 0 && (
                                 <div>
-                                  <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Times:</span>{" "}
+                                  <span className="font-semibold">Times:</span>{" "}
                                   {job.timeSlots.map((ts, idx) => (
                                     <span key={ts.id}>
                                       {formatTime(ts.startAt)} ({ts.duration} min)
@@ -300,9 +299,9 @@ function SitterDashboardContent() {
                                   ))}
                                 </div>
                               )}
-                              <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Address:</span> {job.address}</div>
+                              <div><span className="font-semibold">Address:</span> {job.address}</div>
                               <div>
-                                <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Pets:</span>{" "}
+                                <span className="font-semibold">Pets:</span>{" "}
                                 {job.pets.map((p, idx) => (
                                   <span key={idx}>
                                     {p.name || p.species} ({p.species})
@@ -310,16 +309,16 @@ function SitterDashboardContent() {
                                   </span>
                                 ))}
                               </div>
-                              <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                              <div><span className="font-semibold">Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
                               {job.message && (
-                                <Card style={{ marginTop: tokens.spacing[2], padding: tokens.spacing[2], backgroundColor: tokens.colors.neutral[50] }}>
-                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0] }}>{job.message}</div>
+                                <Card className="mt-2 p-2 bg-neutral-50">
+                                  <div className="text-xs">{job.message}</div>
                                 </Card>
                               )}
                             </div>
                           </div>
                           {!isAdminView && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                            <div className="flex flex-col gap-2">
                               <Button
                                 variant="primary"
                                 onClick={() => acceptJob(job)}
@@ -340,7 +339,7 @@ function SitterDashboardContent() {
                   <EmptyState
                     title="No Pending Requests"
                     description="You don't have any pending job requests"
-                    icon={<Inbox className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
+                    icon={<Inbox className="h-12 w-12 text-neutral-300" />}
                   />
                 )}
               </div>
@@ -349,7 +348,7 @@ function SitterDashboardContent() {
 
           {/* Accepted Tab */}
           <TabPanel id="accepted">
-            <div style={{ marginBottom: tokens.spacing[4], display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="mb-4 flex justify-end">
               <Button
                 variant={viewMode === "calendar" ? "primary" : "secondary"}
                 onClick={() => setViewMode(viewMode === "calendar" ? "list" : "calendar")}
@@ -362,9 +361,9 @@ function SitterDashboardContent() {
             {/* Calendar View */}
             {viewMode === "calendar" && (
               <Card>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[4] }}>
+                <div className="flex items-center justify-between mb-4">
                   <SectionHeader title="Calendar" />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                  <div className="flex items-center gap-2">
                     <Button
                       variant="tertiary"
                       size="sm"
@@ -379,7 +378,7 @@ function SitterDashboardContent() {
                     >
                       ←
                     </Button>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.semibold, minWidth: '200px', textAlign: 'center' }}>
+                    <div className="font-semibold min-w-[200px] text-center">
                       {new Date(selectedYear, selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                     </div>
                     <Button
@@ -398,58 +397,51 @@ function SitterDashboardContent() {
                     </Button>
                   </div>
                 </div>
-                <div style={{ padding: tokens.spacing[6] }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
+                <div className="p-6">
+                  <div className="grid grid-cols-7">
                     {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                      <div key={day} style={{ textAlign: 'center', fontWeight: tokens.typography.fontWeight.semibold, fontSize: tokens.typography.fontSize.sm[0], padding: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
+                      <div key={day} className="text-center font-semibold text-sm p-2 text-accent-primary">
                         {day}
                       </div>
                     ))}
-                    
+
                     {Array.from({ length: firstDay }).map((_, i) => (
-                      <div key={`empty-${i}`} style={{ padding: tokens.spacing[2] }}></div>
+                      <div key={`empty-${i}`} className="p-2"></div>
                     ))}
-                    
+
                     {days.map((day) => {
                       const jobsForDay = getJobsForDate(day, selectedMonth, selectedYear);
-                      const isToday = day === new Date().getDate() && 
-                                     selectedMonth === new Date().getMonth() && 
+                      const isToday = day === new Date().getDate() &&
+                                     selectedMonth === new Date().getMonth() &&
                                      selectedYear === new Date().getFullYear();
-                      
+
                       return (
                         <div
                           key={day}
-                          style={{
-                            minHeight: '100px',
-                            borderRight: `1px solid ${tokens.colors.border.default}`,
-                            borderBottom: `1px solid ${tokens.colors.border.default}`,
-                            padding: tokens.spacing[2],
-                            backgroundColor: isToday ? tokens.colors.primary[50] : tokens.colors.background.primary,
-                            borderColor: isToday ? tokens.colors.primary.DEFAULT : tokens.colors.border.default,
-                            borderWidth: isToday ? '2px' : '1px',
-                          }}
+                          style={{ minHeight: '100px' }}
+                          className={`border-r border-b p-2 ${
+                            isToday
+                              ? 'bg-accent-secondary border-accent-primary border-2'
+                              : 'bg-surface-primary border-border-default'
+                          }`}
                         >
-                          <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1], color: isToday ? tokens.colors.primary.DEFAULT : tokens.colors.text.primary }}>
+                          <div className={`font-semibold mb-1 ${isToday ? 'text-accent-primary' : 'text-text-primary'}`}>
                             {day}
                           </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
+                          <div className="flex flex-col gap-1">
                             {jobsForDay.map((job) => (
                               <Card
                                 key={job.id}
-                                style={{
-                                  padding: tokens.spacing[1],
-                                  backgroundColor: tokens.colors.primary[100],
-                                  borderColor: tokens.colors.primary[300],
-                                }}
+                                className="p-1 bg-accent-secondary border-primary-300"
                               >
-                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.primary[700] }}>
+                                <div className="text-xs font-semibold text-primary-700">
                                   {job.clientName}
                                 </div>
-                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.primary[600] }}>
+                                <div className="text-xs text-primary-600">
                                   {job.service}
                                 </div>
                                 {job.timeSlots.length > 0 && (
-                                  <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.primary[600] }}>
+                                  <div className="text-xs text-primary-600">
                                     {formatTime(job.timeSlots[0].startAt)}
                                   </div>
                                 )}
@@ -468,27 +460,27 @@ function SitterDashboardContent() {
             {viewMode === "list" && (
               <Card>
                 <SectionHeader title={`Accepted Jobs (${dashboardData.jobs.accepted.length})`} />
-                <div style={{ padding: tokens.spacing[6] }}>
+                <div className="p-6">
                   {dashboardData.jobs.accepted.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                    <div className="flex flex-col gap-4">
                       {dashboardData.jobs.accepted.map((job) => (
                         <Card key={job.id}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                                <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="font-bold text-lg">
                                   {job.clientName}
                                 </div>
                                 <Badge variant={job.type === "direct" ? "info" : "success"}>
                                   {job.type === "direct" ? "Direct Assignment" : "Pool Accepted"}
                                 </Badge>
                               </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
+                              <div className="flex flex-col gap-1 text-sm text-text-secondary">
+                                <div><span className="font-semibold">Service:</span> {job.service}</div>
+                                <div><span className="font-semibold">Date:</span> {formatDate(job.startAt)}</div>
                                 {job.timeSlots.length > 0 && (
                                   <div>
-                                    <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Times:</span>{" "}
+                                    <span className="font-semibold">Times:</span>{" "}
                                     {job.timeSlots.map((ts, idx) => (
                                       <span key={ts.id}>
                                         {formatTime(ts.startAt)} ({ts.duration} min)
@@ -497,9 +489,9 @@ function SitterDashboardContent() {
                                     ))}
                                   </div>
                                 )}
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Address:</span> {job.address}</div>
+                                <div><span className="font-semibold">Address:</span> {job.address}</div>
                                 <div>
-                                  <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Pets:</span>{" "}
+                                  <span className="font-semibold">Pets:</span>{" "}
                                   {job.pets.map((p, idx) => (
                                     <span key={idx}>
                                       {p.name || p.species} ({p.species})
@@ -507,7 +499,7 @@ function SitterDashboardContent() {
                                     </span>
                                   ))}
                                 </div>
-                                <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                                <div><span className="font-semibold">Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
                               </div>
                             </div>
                           </div>
@@ -518,7 +510,7 @@ function SitterDashboardContent() {
                     <EmptyState
                       title="No Accepted Jobs"
                       description="You don't have any accepted jobs yet"
-                      icon={<CheckCircle2 className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
+                      icon={<CheckCircle2 className="h-12 w-12 text-neutral-300" />}
                     />
                   )}
                 </div>
@@ -530,27 +522,27 @@ function SitterDashboardContent() {
           <TabPanel id="archived">
             <Card>
               <SectionHeader title={`Archived Jobs (${dashboardData.jobs.archived.length})`} />
-              <div style={{ padding: tokens.spacing[6] }}>
+              <div className="p-6">
                 {dashboardData.jobs.archived.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <div className="flex flex-col gap-4">
                     {dashboardData.jobs.archived.map((job) => (
-                      <Card key={job.id} style={{ opacity: 0.75 }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                      <Card key={job.id} className="opacity-75">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="font-bold text-lg">
                                 {job.clientName}
                               </div>
                               <Badge variant={job.status === "completed" ? "success" : "neutral"}>
                                 {job.status === "completed" ? "Completed" : "Cancelled"}
                               </Badge>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
-                              <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
+                            <div className="flex flex-col gap-1 text-sm text-text-secondary">
+                              <div><span className="font-semibold">Service:</span> {job.service}</div>
+                              <div><span className="font-semibold">Date:</span> {formatDate(job.startAt)}</div>
                               {job.timeSlots.length > 0 && (
                                 <div>
-                                  <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Times:</span>{" "}
+                                  <span className="font-semibold">Times:</span>{" "}
                                   {job.timeSlots.map((ts, idx) => (
                                     <span key={ts.id}>
                                       {formatTime(ts.startAt)} ({ts.duration} min)
@@ -559,7 +551,7 @@ function SitterDashboardContent() {
                                   ))}
                                 </div>
                               )}
-                              <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
+                              <div><span className="font-semibold">Earnings:</span> ${((job.totalPrice * dashboardData.sitter.commissionPercentage) / 100).toFixed(2)}</div>
                             </div>
                           </div>
                         </div>
@@ -570,7 +562,7 @@ function SitterDashboardContent() {
                   <EmptyState
                     title="No Archived Jobs"
                     description="You don't have any completed or cancelled jobs"
-                    icon={<Archive className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
+                    icon={<Archive className="h-12 w-12 text-neutral-300" />}
                   />
                 )}
               </div>
@@ -581,31 +573,31 @@ function SitterDashboardContent() {
           <TabPanel id="tooLate">
             <Card>
               <SectionHeader title={`Too Late / Expired (${dashboardData.jobs.tooLate.length})`} />
-              <div style={{ padding: tokens.spacing[6] }}>
+              <div className="p-6">
                 {dashboardData.jobs.tooLate.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                  <div className="flex flex-col gap-4">
                     {dashboardData.jobs.tooLate.map((job) => (
-                      <Card key={job.id} style={{ opacity: 0.6 }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3], marginBottom: tokens.spacing[2] }}>
-                              <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.lg[0] }}>
+                      <Card key={job.id} className="opacity-60">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="font-bold text-lg">
                                 {job.clientName}
                               </div>
                               <Badge variant="error">
                                 {job.status === "expired" ? "Expired" : "Too Late"}
                               </Badge>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                              <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Service:</span> {job.service}</div>
-                              <div><span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Date:</span> {formatDate(job.startAt)}</div>
+                            <div className="flex flex-col gap-1 text-sm text-text-secondary">
+                              <div><span className="font-semibold">Service:</span> {job.service}</div>
+                              <div><span className="font-semibold">Date:</span> {formatDate(job.startAt)}</div>
                               {job.status === "expired" && (
-                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.error.DEFAULT }}>
+                                <div className="text-xs text-status-danger-fill">
                                   This job expired before anyone accepted it
                                 </div>
                               )}
                               {job.status === "too_late" && (
-                                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.error.DEFAULT }}>
+                                <div className="text-xs text-status-danger-fill">
                                   This job was accepted by another sitter
                                 </div>
                               )}
@@ -619,7 +611,7 @@ function SitterDashboardContent() {
                   <EmptyState
                     title="No Missed Jobs"
                     description="You haven't missed any job opportunities"
-                    icon={<Clock className="h-12 w-12" style={{ color: tokens.colors.neutral[300] }} />}
+                    icon={<Clock className="h-12 w-12 text-neutral-300" />}
                   />
                 )}
               </div>
@@ -630,39 +622,26 @@ function SitterDashboardContent() {
           <TabPanel id="tier">
             {/* Current Tier */}
             {dashboardData.tier && (
-              <Card style={{ marginBottom: tokens.spacing[6] }}>
+              <Card className="mb-6">
                 <SectionHeader title="Current Tier & Badge" />
-                <div style={{ padding: tokens.spacing[6] }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[6] }}>
-                    <div
-                      style={{
-                        width: '6rem',
-                        height: '6rem',
-                        borderRadius: tokens.borderRadius.full,
-                        backgroundColor: tokens.colors.primary[100],
-                        color: tokens.colors.primary.DEFAULT,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: tokens.typography.fontSize['4xl'][0],
-                        fontWeight: tokens.typography.fontWeight.bold,
-                      }}
-                    >
+                <div className="p-6">
+                  <div className="flex items-center gap-6">
+                    <div className="w-24 h-24 rounded-full bg-accent-secondary text-accent-primary flex items-center justify-center text-4xl font-bold">
                       ⭐
                     </div>
                     <div>
-                      <div style={{ fontSize: tokens.typography.fontSize['3xl'][0], fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
+                      <div className="text-3xl font-bold mb-2 text-accent-primary">
                         {dashboardData.tier.name}
                       </div>
-                      <div style={{ fontSize: tokens.typography.fontSize.base[0], color: tokens.colors.text.secondary }}>
+                      <div className="text-base text-text-secondary">
                         Priority Level: {dashboardData.tier.priorityLevel}
                       </div>
                       {Object.keys(dashboardData.tier.benefits || {}).length > 0 && (
-                        <div style={{ marginTop: tokens.spacing[2] }}>
-                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+                        <div className="mt-2">
+                          <div className="text-sm font-semibold text-text-secondary mb-1">
                             Benefits:
                           </div>
-                          <ul style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, listStyle: 'disc', listStylePosition: 'inside' }}>
+                          <ul className="text-sm text-text-secondary list-disc list-inside">
                             {Object.entries(dashboardData.tier.benefits).map(([key, value]) => (
                               <li key={key}>{key}: {String(value)}</li>
                             ))}
@@ -676,17 +655,17 @@ function SitterDashboardContent() {
             )}
 
             {/* Performance Metrics */}
-            <Card style={{ marginBottom: tokens.spacing[6] }}>
+            <Card className="mb-6">
               <SectionHeader title="Performance Metrics (Last 30 Days)" />
-              <div style={{ padding: tokens.spacing[6] }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[6] }}>
+              <div className="p-6">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6">
                   <div>
                     <StatCard
                       label="Points Earned"
                       value={dashboardData.performance.points}
                     />
                     {dashboardData.nextTier && (
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1], textAlign: 'center' }}>
+                      <div className="text-xs text-text-secondary mt-1 text-center">
                         Need {dashboardData.nextTier.pointTarget} for next tier
                       </div>
                     )}
@@ -697,7 +676,7 @@ function SitterDashboardContent() {
                       value={`${dashboardData.performance.completionRate.toFixed(1)}%`}
                     />
                     {dashboardData.nextTier?.minCompletionRate && (
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1], textAlign: 'center' }}>
+                      <div className="text-xs text-text-secondary mt-1 text-center">
                         Need {dashboardData.nextTier.minCompletionRate}% for next tier
                       </div>
                     )}
@@ -708,7 +687,7 @@ function SitterDashboardContent() {
                       value={`${dashboardData.performance.responseRate.toFixed(1)}%`}
                     />
                     {dashboardData.nextTier?.minResponseRate && (
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1], textAlign: 'center' }}>
+                      <div className="text-xs text-text-secondary mt-1 text-center">
                         Need {dashboardData.nextTier.minResponseRate}% for next tier
                       </div>
                     )}
@@ -718,10 +697,10 @@ function SitterDashboardContent() {
             </Card>
 
             {/* Job Statistics */}
-            <Card style={{ marginBottom: tokens.spacing[6] }}>
+            <Card className="mb-6">
               <SectionHeader title="Job Statistics" />
-              <div style={{ padding: tokens.spacing[6] }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: tokens.spacing[4] }}>
+              <div className="p-6">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
                   <StatCard label="Jobs Received" value={dashboardData.performance.jobsReceived} />
                   <StatCard label="Jobs Accepted" value={dashboardData.performance.jobsAccepted} />
                   <StatCard label="Jobs Declined" value={dashboardData.performance.jobsDeclined} />
@@ -732,38 +711,24 @@ function SitterDashboardContent() {
 
             {/* Improvement Areas */}
             {dashboardData.improvementAreas.length > 0 && (
-              <Card style={{ marginBottom: tokens.spacing[6] }}>
+              <Card className="mb-6">
                 <SectionHeader title="How to Rank Higher" />
-                <div style={{ padding: tokens.spacing[6] }}>
+                <div className="p-6">
                   {dashboardData.nextTier && (
-                    <Card style={{ marginBottom: tokens.spacing[4], padding: tokens.spacing[4], backgroundColor: tokens.colors.primary[50] }}>
-                      <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2], color: tokens.colors.primary.DEFAULT }}>
+                    <Card className="mb-4 p-4 bg-accent-secondary">
+                      <div className="font-semibold mb-2 text-accent-primary">
                         Next Tier: {dashboardData.nextTier.name}
                       </div>
                     </Card>
                   )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                  <div className="flex flex-col gap-3">
                     {dashboardData.improvementAreas.map((area, idx) => (
                       <Card key={idx}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[3] }}>
-                          <div
-                            style={{
-                              width: '1.5rem',
-                              height: '1.5rem',
-                              borderRadius: tokens.borderRadius.full,
-                              backgroundColor: tokens.colors.primary[100],
-                              color: tokens.colors.primary.DEFAULT,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                              fontSize: tokens.typography.fontSize.xs[0],
-                              fontWeight: tokens.typography.fontWeight.bold,
-                            }}
-                          >
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 rounded-full bg-accent-secondary text-accent-primary flex items-center justify-center shrink-0 text-xs font-bold">
                             {idx + 1}
                           </div>
-                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.primary }}>
+                          <div className="text-sm text-text-primary">
                             {area}
                           </div>
                         </div>
@@ -778,19 +743,19 @@ function SitterDashboardContent() {
             {dashboardData.tierHistory.length > 0 && (
               <Card>
                 <SectionHeader title="Tier History" />
-                <div style={{ padding: tokens.spacing[6] }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                <div className="p-6">
+                  <div className="flex flex-col gap-3">
                     {dashboardData.tierHistory.map((history) => (
                       <Card key={history.id}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[2] }}>
-                          <span style={{ fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.primary.DEFAULT }}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-accent-primary">
                             {history.tierName}
                           </span>
-                          <span style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                          <span className="text-sm text-text-secondary">
                             {new Date(history.createdAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                        <div className="flex flex-col gap-1 text-sm text-text-secondary">
                           <div>Points: {history.points}</div>
                           {history.completionRate !== null && (
                             <div>Completion Rate: {history.completionRate.toFixed(1)}%</div>
@@ -817,7 +782,7 @@ export default function SitterDashboardPage() {
     <Suspense fallback={
       <AppShell>
         <PageHeader title="Sitter Dashboard" />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <Skeleton height={200} />
         </div>
       </AppShell>
@@ -826,4 +791,3 @@ export default function SitterDashboardPage() {
     </Suspense>
   );
 }
-

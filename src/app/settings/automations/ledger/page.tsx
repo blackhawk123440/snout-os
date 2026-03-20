@@ -1,6 +1,6 @@
 /**
  * Automation Ledger Page - Enterprise Rebuild
- * 
+ *
  * Complete rebuild using design system and components.
  * Zero legacy styling - all through components and tokens.
  */
@@ -138,22 +138,22 @@ export default function AutomationLedgerPage() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div className="p-6">
         {error && (
           <Card
+            className="mb-6"
             style={{
-              marginBottom: tokens.spacing[6],
               backgroundColor: tokens.colors.error[50],
               borderColor: tokens.colors.error[200],
             }}
           >
-            <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+            <div className="p-4" style={{ color: tokens.colors.error[700] }}>
               {error}
               <Button
                 variant="tertiary"
                 size="sm"
                 onClick={() => refetch()}
-                style={{ marginLeft: tokens.spacing[3] }}
+                className="ml-3"
               >
                 Retry
               </Button>
@@ -162,12 +162,12 @@ export default function AutomationLedgerPage() {
         )}
 
         {/* Filters */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+        <Card className="mb-6">
+          <div className="flex flex-col gap-4">
             {isMobile ? (
               <>
                 <div>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+                  <div className="text-sm font-semibold text-text-secondary mb-2">
                     Status
                   </div>
                   <MobileFilterBar
@@ -177,7 +177,7 @@ export default function AutomationLedgerPage() {
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+                  <div className="text-sm font-semibold text-text-secondary mb-2">
                     Automation Type
                   </div>
                   <MobileFilterBar
@@ -188,7 +188,10 @@ export default function AutomationLedgerPage() {
                 </div>
               </>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: tokens.spacing[4] }}>
+              <div
+                className="grid gap-4"
+                style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
+              >
                 <FormRow label="Filter by Status">
                   <Select
                     value={statusFilter}
@@ -205,7 +208,7 @@ export default function AutomationLedgerPage() {
                 </FormRow>
               </div>
             )}
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+            <div className="text-sm text-text-secondary">
               Showing {runs.length} of {total} automation runs
             </div>
           </div>
@@ -214,13 +217,13 @@ export default function AutomationLedgerPage() {
         {/* Runs List */}
         <Card>
           {loading ? (
-            <div style={{ padding: tokens.spacing[8], textAlign: 'center' }}>
+            <div className="p-8 text-center">
               <Skeleton height={100} />
               <Skeleton height={100} />
               <Skeleton height={100} />
             </div>
           ) : runs.length === 0 ? (
-            <div style={{ padding: tokens.spacing[8] }}>
+            <div className="p-8">
               <EmptyState
                 title="No automation runs found"
                 description={
@@ -236,28 +239,28 @@ export default function AutomationLedgerPage() {
               {runs.map((run: AutomationRun) => (
                 <div
                   key={run.id}
+                  className="p-4"
                   style={{
-                    padding: tokens.spacing[4],
                     borderBottom: `1px solid ${tokens.colors.border.default}`,
                   }}
                 >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: tokens.spacing[2] }}>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       {getStatusBadge(run.status)}
                       <Badge variant="neutral">{getAutomationTypeLabel(run.automationType)}</Badge>
-                      <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary }}>
+                      <div className="text-xs text-text-tertiary">
                         {formatDate(run.createdAt)}
                       </div>
                     </div>
-                    
+
                     {run.booking && (
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                      <div className="text-sm text-text-secondary">
                         <Calendar className="w-3.5 h-3.5 mr-1 inline-block" />
                         Booking: {run.booking.firstName} {run.booking.lastName} - {run.booking.service}
                         {run.bookingId && (
                           <Link
                             href={`/bookings/${run.bookingId}`}
-                            style={{ marginLeft: tokens.spacing[2], fontSize: tokens.typography.fontSize.xs[0], textDecoration: 'underline', color: tokens.colors.primary.DEFAULT }}
+                            className="ml-2 text-xs underline text-primary"
                           >
                             View Booking
                           </Link>
@@ -272,19 +275,15 @@ export default function AutomationLedgerPage() {
                           borderColor: tokens.colors.error[200],
                         }}
                       >
-                        <div style={{ padding: tokens.spacing[3] }}>
+                        <div className="p-3">
                           <div
-                            style={{
-                              fontSize: tokens.typography.fontSize.sm[0],
-                              fontWeight: tokens.typography.fontWeight.medium,
-                              color: tokens.colors.error[800],
-                              marginBottom: tokens.spacing[1],
-                            }}
+                            className="text-sm font-medium mb-1"
+                            style={{ color: tokens.colors.error[800] }}
                           >
                             <AlertCircle className="w-3.5 h-3.5 mr-1 inline-block" />
                             Error:
                           </div>
-                          <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.error[700], whiteSpace: 'pre-wrap' }}>
+                          <div className="text-sm whitespace-pre-wrap" style={{ color: tokens.colors.error[700] }}>
                             {run.error}
                           </div>
                         </div>
@@ -293,30 +292,17 @@ export default function AutomationLedgerPage() {
 
                     {run.metadata && Object.keys(run.metadata).length > 0 && (
                       <details>
-                        <summary
-                          style={{
-                            fontSize: tokens.typography.fontSize.sm[0],
-                            color: tokens.colors.text.primary,
-                            cursor: 'pointer',
-                            fontWeight: tokens.typography.fontWeight.medium,
-                          }}
-                        >
+                        <summary className="text-sm text-text-primary cursor-pointer font-medium">
                           <Info className="w-3.5 h-3.5 mr-1 inline-block" />
                           View Details
                         </summary>
                         <div
+                          className="mt-2 p-3 bg-neutral-50 rounded-md text-xs font-mono overflow-x-auto"
                           style={{
-                            marginTop: tokens.spacing[2],
-                            padding: tokens.spacing[3],
-                            backgroundColor: tokens.colors.neutral[50],
-                            borderRadius: tokens.borderRadius.md,
                             border: `1px solid ${tokens.colors.border.default}`,
-                            fontSize: tokens.typography.fontSize.xs[0],
-                            fontFamily: tokens.typography.fontFamily.mono.join(', '),
-                            overflowX: 'auto',
                           }}
                         >
-                          <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                          <pre className="m-0 whitespace-pre-wrap break-words">
                             {JSON.stringify(run.metadata, null, 2)}
                           </pre>
                         </div>

@@ -1,6 +1,6 @@
 /**
  * Sitter Payroll View
- * 
+ *
  * Dedicated view for sitters to see their own payroll information
  */
 
@@ -113,7 +113,7 @@ export default function SitterPayrollPage() {
     return (
       <AppShell>
         <PageHeader title="My Payroll" description="View your earnings and payouts" />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <Skeleton height={400} />
         </div>
       </AppShell>
@@ -124,7 +124,7 @@ export default function SitterPayrollPage() {
     return (
       <AppShell>
         <PageHeader title="My Payroll" description="View your earnings and payouts" />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <EmptyState
             icon="👤"
             title="Sitter ID Required"
@@ -139,7 +139,7 @@ export default function SitterPayrollPage() {
     return (
       <AppShell>
         <PageHeader title="My Payroll" description="View your earnings and payouts" />
-        <div style={{ padding: tokens.spacing[6] }}>
+        <div className="p-6">
           <EmptyState
             icon="💰"
             title="No Payroll Data"
@@ -166,9 +166,9 @@ export default function SitterPayrollPage() {
         }
       />
 
-      <div style={{ padding: tokens.spacing[6] }}>
+      <div className="p-6">
         {/* Current Period Stats */}
-        <div style={{ marginBottom: tokens.spacing[6] }}>
+        <div className="mb-6">
           <Grid gap={4}> {/* Batch 6: UI Constitution compliance */}
             <GridCol span={12} md={4}>
               <StatCard
@@ -202,110 +202,53 @@ export default function SitterPayrollPage() {
           </div>
 
         {/* Current Period Details */}
-        <Card style={{ marginBottom: tokens.spacing[6] }}>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.lg[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-              marginBottom: tokens.spacing[4],
-            }}
-          >
+        <Card className="mb-6">
+          <div className="text-lg font-semibold mb-4">
             Current Pay Period
           </div>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-              marginBottom: tokens.spacing[4],
-            }}
-          >
+          <div className="text-sm text-text-secondary mb-4">
             {formatDate(payrollData.currentPeriod.startDate)} -{' '}
             {formatDate(payrollData.currentPeriod.endDate)}
           </div>
 
-          <div style={{ marginBottom: tokens.spacing[4] }}>
+          <div className="mb-4">
             <Grid gap={4}> {/* Batch 6: UI Constitution compliance */}
               <GridCol span={12} md={4}>
                 <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
+                  <div className="text-sm text-text-secondary mb-1">
                     Total Earnings
                   </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.xl[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                    }}
-                  >
+                  <div className="text-xl font-bold">
                     {formatCurrency(payrollData.currentPeriod.totalEarnings)}
                   </div>
                 </div>
               </GridCol>
               <GridCol span={12} md={4}>
                 <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
+                  <div className="text-sm text-text-secondary mb-1">
                     Commission ({payrollData.sitter.commissionPercentage}%)
                   </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.xl[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                    }}
-                  >
+                  <div className="text-xl font-bold">
                     {formatCurrency(payrollData.currentPeriod.commissionAmount)}
                   </div>
                 </div>
               </GridCol>
               <GridCol span={12} md={4}>
                 <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
+                  <div className="text-sm text-text-secondary mb-1">
                     Fees
                   </div>
-                  <div
-                style={{
-                  fontSize: tokens.typography.fontSize.xl[0],
-                  fontWeight: tokens.typography.fontWeight.bold,
-                }}
-              >
+                  <div className="text-xl font-bold">
                     {formatCurrency(payrollData.currentPeriod.fees)}
                   </div>
                 </div>
               </GridCol>
               <GridCol span={12} md={4}>
                 <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
+                  <div className="text-sm text-text-secondary mb-1">
                     Net Payout
                   </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.xl[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                      color: tokens.colors.success.DEFAULT,
-                    }}
-                  >
+                  <div className="text-xl font-bold text-success">
                     {formatCurrency(payrollData.currentPeriod.netPayout)}
                   </div>
                 </div>
@@ -316,12 +259,7 @@ export default function SitterPayrollPage() {
           {/* Booking Breakdown */}
           {payrollData.currentPeriod.bookings.length > 0 && (
             <div>
-              <div
-                style={{
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  marginBottom: tokens.spacing[3],
-                }}
-              >
+              <div className="font-semibold mb-3">
                 Booking Breakdown ({payrollData.currentPeriod.bookings.length} bookings)
               </div>
               <Flex direction="column" gap={2}> {/* Batch 6: UI Constitution compliance */}
@@ -329,26 +267,16 @@ export default function SitterPayrollPage() {
                   <Card key={booking.bookingId}>
                     <Flex justify="space-between" align="center"> {/* Batch 6: UI Constitution compliance */}
                       <div>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                        <div className="font-medium">
                           {booking.service}
                         </div>
-                        <div
-                          style={{
-                            fontSize: tokens.typography.fontSize.sm[0],
-                            color: tokens.colors.text.secondary,
-                          }}
-                        >
+                        <div className="text-sm text-text-secondary">
                           {formatDate(booking.bookingDate)}
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
+                      <div className="text-right">
                         <div>{formatCurrency(booking.totalPrice)}</div>
-                        <div
-                          style={{
-                            fontSize: tokens.typography.fontSize.sm[0],
-                            color: tokens.colors.text.secondary,
-                          }}
-                        >
+                        <div className="text-sm text-text-secondary">
                           {formatCurrency(booking.commissionAmount)} (
                           {booking.commissionPercentage}%)
                         </div>
@@ -363,22 +291,10 @@ export default function SitterPayrollPage() {
 
         {/* Previous Period Comparison */}
         <Card>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.lg[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-              marginBottom: tokens.spacing[4],
-            }}
-          >
+          <div className="text-lg font-semibold mb-4">
             Previous Period Comparison
           </div>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-              marginBottom: tokens.spacing[4],
-            }}
-          >
+          <div className="text-sm text-text-secondary mb-4">
             {formatDate(payrollData.previousPeriod.startDate)} -{' '}
             {formatDate(payrollData.previousPeriod.endDate)}
           </div>
@@ -387,61 +303,32 @@ export default function SitterPayrollPage() {
             <Grid gap={4}> {/* Batch 6: UI Constitution compliance */}
               <GridCol span={12} md={4}>
                 <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
+                  <div className="text-sm text-text-secondary mb-1">
                     Previous Earnings
                   </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.lg[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                    }}
-                  >
+                  <div className="text-lg font-bold">
                     {formatCurrency(payrollData.previousPeriod.totalEarnings)}
                   </div>
                 </div>
               </GridCol>
               <GridCol span={12} md={6}>
                 <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
+                  <div className="text-sm text-text-secondary mb-1">
                     Previous Payout
                   </div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.lg[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
-                    }}
-                  >
+                  <div className="text-lg font-bold">
                     {formatCurrency(payrollData.previousPeriod.netPayout)}
                   </div>
                 </div>
               </GridCol>
               <GridCol span={12} md={6}>
                 <div>
-                  <div
-                    style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                      marginBottom: tokens.spacing[1],
-                    }}
-                  >
+                  <div className="text-sm text-text-secondary mb-1">
                     Change
                   </div>
                   <div
+                    className="text-lg font-bold"
                     style={{
-                      fontSize: tokens.typography.fontSize.lg[0],
-                      fontWeight: tokens.typography.fontWeight.bold,
                       color:
                         payrollData.currentPeriod.netPayout >=
                         payrollData.previousPeriod.netPayout
@@ -463,5 +350,3 @@ export default function SitterPayrollPage() {
     </AppShell>
   );
 }
-
-
