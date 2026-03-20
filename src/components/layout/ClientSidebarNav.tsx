@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CLIENT_NAV_GROUPS } from '@/lib/client-nav';
 import { cn } from '@/components/ui/utils';
+import { Icon } from '@/components/ui/Icon';
 import { useQuery } from '@tanstack/react-query';
 
 function useDeployInfo() {
@@ -62,7 +63,7 @@ export function ClientSidebarNav() {
                         : 'border-l-2 border-transparent text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
                     )}
                   >
-                    <i className={`${item.icon} w-4 shrink-0 text-center text-[16px]`} aria-hidden />
+                    <Icon name={item.icon} className="w-4 h-4 shrink-0" />
                     <span>{item.label}</span>
                   </Link>
                 );

@@ -21,6 +21,7 @@
 'use client';
 
 import { ReactNode, useEffect, useRef } from 'react';
+import { X } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 import { IconButton } from './IconButton';
 import { cn } from './utils';
@@ -150,7 +151,7 @@ export function Drawer({
               {title}
             </h2>
             <IconButton
-              icon={<i className="fas fa-times" />}
+              icon={<X className="w-4 h-4" />}
               variant="ghost"
               onClick={onClose}
               aria-label="Close drawer"

@@ -9,6 +9,7 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: ['var(--font-inter)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        heading: ['var(--font-jakarta)', 'var(--font-inter)', '-apple-system', 'sans-serif'],
       },
       // UI Constitution: color.surface.*
         colors: {

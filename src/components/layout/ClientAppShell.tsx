@@ -16,6 +16,7 @@ import { ClientSidebarNav } from './ClientSidebarNav';
 import { ClientDeployDebugOverlay } from '@/components/client/ClientDeployDebugOverlay';
 import { ClientSwUpdateToast } from '@/components/client/ClientSwUpdateToast';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Bell } from 'lucide-react';
 
 export interface ClientAppShellProps {
   children: React.ReactNode;
@@ -227,7 +228,7 @@ export function ClientAppShell({ children }: ClientAppShellProps) {
                   aria-label="Notifications"
                   className="hidden min-h-[44px] min-w-[44px] items-center justify-center rounded text-text-tertiary transition hover:bg-surface-tertiary hover:text-text-secondary focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-1 min-[1024px]:flex"
                 >
-                  <i className="fas fa-bell text-sm" />
+                  <Bell className="w-3.5 h-3.5" />
                 </button>
                 <button
                   ref={triggerRef}

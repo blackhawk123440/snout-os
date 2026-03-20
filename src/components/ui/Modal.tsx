@@ -1,6 +1,6 @@
 /**
  * Modal Component
- * 
+ *
  * Enterprise dialog/modal component with backdrop and close handling.
  * On mobile, renders as full-height bottom sheet.
  */
@@ -8,9 +8,9 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { tokens } from '@/lib/design-tokens';
+import { X } from 'lucide-react';
 import { useMobile } from '@/lib/use-mobile';
-import { Button } from './Button';
+import { cn } from './utils';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -23,7 +23,7 @@ export interface ModalProps {
   closeOnEscape?: boolean;
 }
 
-const sizeStyles = {
+const sizeClasses = {
   sm: 'max-w-md',
   md: 'max-w-lg',
   lg: 'max-w-2xl',
@@ -45,13 +45,9 @@ export const Modal: React.FC<ModalProps> = ({
 
   useEffect(() => {
     if (!isOpen || !closeOnEscape) return;
-
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
+      if (e.key === 'Escape') onClose();
     };
-
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, closeOnEscape, onClose]);
@@ -62,155 +58,77 @@ export const Modal: React.FC<ModalProps> = ({
     } else {
       document.body.style.overflow = '';
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
+    return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
+  const closeButton = closeOnBackdropClick && (
+    <button
+      onClick={onClose}
+      className={cn(
+        'flex items-center justify-center w-8 h-8 rounded-md',
+        'border-none bg-transparent text-text-secondary cursor-pointer',
+        'transition-all duration-fast',
+        'hover:bg-surface-secondary hover:text-text-primary',
+        'ml-auto'
+      )}
+      aria-label="Close modal"
+    >
+      <X className="w-4 h-4" />
+    </button>
+  );
+
   // Mobile: Full-height bottom sheet
   if (isMobile) {
     return (
-      <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: tokens.zIndex.modal,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-        }}
-      >
+      <div className="fixed inset-0 z-layer-modal flex flex-col justify-end">
         {/* Backdrop */}
         <div
           onClick={closeOnBackdropClick ? onClose : undefined}
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.35)', // Phase B2: Slightly lighter backdrop
-            cursor: closeOnBackdropClick ? 'pointer' : 'default',
-            transition: `opacity ${tokens.motion.duration.fast} ${tokens.motion.easing.decelerated}`, // Phase 8: Smooth fade
-          }}
+          className={cn(
+            'absolute inset-0 bg-black/35',
+            'transition-opacity duration-fast ease-decelerated',
+            closeOnBackdropClick ? 'cursor-pointer' : 'cursor-default'
+          )}
           aria-hidden="true"
         />
 
-        {/* Bottom Sheet Content */}
+        {/* Bottom Sheet */}
         <div
           onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'relative',
-            width: '100%',
-            maxHeight: '90vh',
-            height: '90vh',
-            backgroundColor: tokens.colors.background.primary,
-            borderTopLeftRadius: tokens.borderRadius.xl,
-            borderTopRightRadius: tokens.borderRadius.xl,
-            boxShadow: tokens.shadows.xl,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            marginTop: 'auto',
-          }}
+          className="relative w-full bg-surface-primary rounded-t-xl shadow-xl flex flex-col overflow-hidden mt-auto"
+          style={{ maxHeight: '90vh', height: '90vh' }}
           role="dialog"
           aria-modal="true"
           aria-labelledby={title ? 'modal-title' : undefined}
         >
-          {/* Handle bar for mobile */}
-          <div
-            style={{
-              width: '40px',
-              height: '4px',
-              backgroundColor: tokens.colors.neutral[300],
-              borderRadius: tokens.borderRadius.full,
-              margin: `${tokens.spacing[2]} auto ${tokens.spacing[2]}`,
-            }}
-          />
+          {/* Handle bar */}
+          <div className="w-10 h-1 bg-neutral-300 rounded-full mx-auto my-2" />
 
           {/* Header */}
           {(title || closeOnBackdropClick) && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
-                borderBottom: `1px solid ${tokens.colors.border.default}`,
-                flexShrink: 0,
-              }}
-            >
+            <div className="flex items-center justify-between p-4 border-b border-border-default shrink-0">
               {title && (
-                <h2
-                  id="modal-title"
-                  style={{
-                    fontSize: tokens.typography.fontSize.xl[0],
-                    fontWeight: tokens.typography.fontWeight.semibold,
-                    color: tokens.colors.text.primary,
-                    margin: 0,
-                  }}
-                >
+                <h2 id="modal-title" className="text-xl font-semibold text-text-primary m-0">
                   {title}
                 </h2>
               )}
-              {closeOnBackdropClick && (
-                <button
-                  onClick={onClose}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '2rem',
-                    height: '2rem',
-                    borderRadius: tokens.borderRadius.md,
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    color: tokens.colors.text.secondary,
-                    cursor: 'pointer',
-                    transition: `all ${tokens.transitions.duration.DEFAULT}`,
-                    marginLeft: 'auto',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                    e.currentTarget.style.color = tokens.colors.text.primary;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = tokens.colors.text.secondary;
-                  }}
-                  aria-label="Close modal"
-                >
-                  <i className="fas fa-times" />
-                </button>
-              )}
+              {closeButton}
             </div>
           )}
 
-          {/* Body - Scrollable */}
+          {/* Body */}
           <div
-            style={{
-              flex: 1,
-              padding: tokens.spacing[4],
-              overflowY: 'auto',
-              overflowX: 'hidden',
-              WebkitOverflowScrolling: 'touch',
-            }}
+            className="flex-1 p-4 overflow-y-auto overflow-x-hidden"
+            style={{ WebkitOverflowScrolling: 'touch' }}
           >
             {children}
           </div>
 
           {/* Footer */}
           {footer && (
-            <div
-              style={{
-                padding: tokens.spacing[4],
-                borderTop: `1px solid ${tokens.colors.border.default}`,
-                backgroundColor: tokens.colors.background.secondary,
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: tokens.spacing[3],
-                flexShrink: 0,
-              }}
-            >
+            <div className="p-4 border-t border-border-default bg-surface-secondary flex justify-end gap-3 shrink-0">
               {footer}
             </div>
           )}
@@ -221,127 +139,48 @@ export const Modal: React.FC<ModalProps> = ({
 
   // Desktop: Centered Modal
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: tokens.zIndex.modal,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: tokens.spacing[4],
-      }}
-    >
+    <div className="fixed inset-0 z-layer-modal flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
         onClick={closeOnBackdropClick ? onClose : undefined}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.35)', // Phase B2: Lighter backdrop
-          cursor: closeOnBackdropClick ? 'pointer' : 'default',
-        }}
+        className={cn(
+          'absolute inset-0 bg-black/35',
+          closeOnBackdropClick ? 'cursor-pointer' : 'cursor-default'
+        )}
         aria-hidden="true"
       />
 
       {/* Modal Content */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className={sizeStyles[size]}
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxHeight: '90vh',
-          backgroundColor: tokens.colors.surface.modal, // Phase B2: Pure white
-          boxShadow: tokens.shadow.xl, // Phase B2: Strongest shadow for modal
-          borderRadius: tokens.radius.lg, // Phase B2: Rounded modal
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
+        className={cn(
+          'relative w-full max-h-[90vh] bg-surface-modal shadow-xl rounded-lg flex flex-col overflow-hidden',
+          sizeClasses[size]
+        )}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'modal-title' : undefined}
       >
         {/* Header */}
         {(title || closeOnBackdropClick) && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: tokens.spacing[6],
-              borderBottom: `1px solid ${tokens.colors.border.default}`,
-            }}
-          >
+          <div className="flex items-center justify-between p-6 border-b border-border-default">
             {title && (
-              <h2
-                id="modal-title"
-                style={{
-                  fontSize: tokens.typography.fontSize.xl[0],
-                  fontWeight: tokens.typography.fontWeight.semibold,
-                  color: tokens.colors.text.primary,
-                  margin: 0,
-                }}
-              >
+              <h2 id="modal-title" className="text-xl font-semibold text-text-primary m-0">
                 {title}
               </h2>
             )}
-            {closeOnBackdropClick && (
-              <button
-                onClick={onClose}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '2rem',
-                  height: '2rem',
-                  borderRadius: tokens.borderRadius.md,
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  color: tokens.colors.text.secondary,
-                  cursor: 'pointer',
-                  transition: `all ${tokens.transitions.duration.DEFAULT}`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-                  e.currentTarget.style.color = tokens.colors.text.primary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.color = tokens.colors.text.secondary;
-                }}
-                aria-label="Close modal"
-              >
-                <i className="fas fa-times" />
-              </button>
-            )}
+            {closeButton}
           </div>
         )}
 
         {/* Body */}
-        <div
-          style={{
-            flex: 1,
-            padding: tokens.spacing[6],
-            overflowY: 'auto',
-          }}
-        >
+        <div className="flex-1 p-6 overflow-y-auto">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div
-            style={{
-              padding: tokens.spacing[6],
-              borderTop: `1px solid ${tokens.colors.border.default}`,
-              backgroundColor: tokens.colors.background.secondary,
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: tokens.spacing[3],
-            }}
-          >
+          <div className="p-6 border-t border-border-default bg-surface-secondary flex justify-end gap-3">
             {footer}
           </div>
         )}
@@ -349,4 +188,3 @@ export const Modal: React.FC<ModalProps> = ({
     </div>
   );
 };
-

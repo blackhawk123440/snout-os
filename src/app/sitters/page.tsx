@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { Plus } from 'lucide-react';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, AppFilterBar } from '@/components/app';
 import { DataTableShell, EmptyState, Table, TableSkeleton, Button, StatusChip } from '@/components/ui';
@@ -65,7 +66,7 @@ export default function SittersPage() {
           subtitle="Operator assignment and availability surface"
           actions={
             <Link href="/bookings/new">
-              <Button>New booking</Button>
+              <Button leftIcon={<Plus className="w-3.5 h-3.5" />}>New booking</Button>
             </Link>
           }
         />
@@ -118,7 +119,7 @@ export default function SittersPage() {
                       render: (r) => (
                         <div>
                           <div className="font-medium">{r.firstName} {r.lastName}</div>
-                          <div className="text-xs text-[var(--color-text-secondary)]">{r.email || 'No email'}</div>
+                          <div className="text-xs text-text-secondary">{r.email || 'No email'}</div>
                         </div>
                       ),
                     },
@@ -146,7 +147,7 @@ export default function SittersPage() {
                 />
               </DataTableShell>
               <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-[var(--color-text-secondary)]">
+                <div className="text-sm text-text-secondary">
                   Page {page} · {total} sitters
                 </div>
                 <div className="flex gap-2">

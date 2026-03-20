@@ -7,6 +7,7 @@ import { signOut } from 'next-auth/react';
 import { useAuth } from '@/lib/auth-client';
 import { cn } from '@/components/ui/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Icon } from '@/components/ui/Icon';
 
 type OwnerNavItem = {
   label: string;
@@ -424,7 +425,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                                 : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
                         )}
                       >
-                        <i className={cn(item.icon, 'w-4 shrink-0 text-center')} aria-hidden />
+                        <Icon name={item.icon} className="w-4 h-4 shrink-0" />
                         <span className="truncate">{item.label}</span>
                       </Link>
                     );
@@ -452,7 +453,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                           className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2"
                           aria-expanded={isExpanded}
                         >
-                          <i className={cn(item.icon, 'w-4 shrink-0 text-center')} aria-hidden />
+                          <Icon name={item.icon} className="w-4 h-4 shrink-0" />
                           <span className="truncate">{item.label}</span>
                         </Link>
                         <button
@@ -494,10 +495,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                                         : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
                                 )}
                               >
-                                <i
-                                  className={cn(c.icon, 'w-3.5 shrink-0 text-center text-text-disabled')}
-                                  aria-hidden
-                                />
+                                <Icon name={c.icon} className="w-3.5 h-3.5 shrink-0 text-text-disabled" />
                                 <span className="truncate">{c.label}</span>
                               </Link>
                             );
@@ -578,7 +576,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                 active ? 'border-text-primary text-text-primary' : 'border-transparent text-text-tertiary'
               )}
             >
-              <i className={cn(item.icon, 'text-base')} aria-hidden />
+              <Icon name={item.icon} className="w-4 h-4" />
               <span>{item.label}</span>
             </Link>
           );
@@ -625,7 +623,7 @@ export function OwnerAppShell({ children }: { children: React.ReactNode }) {
                               : 'text-text-secondary hover:bg-surface-secondary hover:text-text-primary'
                           )}
                         >
-                          <i className={cn(link.icon, 'w-4 shrink-0 text-center')} aria-hidden />
+                          <Icon name={link.icon} className="w-4 h-4 shrink-0" />
                           <span>{link.label}</span>
                         </Link>
                       );

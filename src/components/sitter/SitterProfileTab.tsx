@@ -8,6 +8,7 @@
 'use client';
 
 import { Card, Button, Badge, SectionHeader } from '@/components/ui';
+import { Mail } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 import { SitterTierBadge } from './SitterTierBadge';
 
@@ -162,7 +163,7 @@ export function SitterProfileTab({ sitter, isMobile }: SitterProfileTabProps) {
               size="sm"
               style={{ width: '100%', justifyContent: 'flex-start' }}
               onClick={() => window.location.href = `mailto:${sitter.email}`}
-              leftIcon={<i className="fas fa-envelope" />}
+              leftIcon={<Mail className="w-4 h-4" />}
             >
               {sitter.email}
             </Button>

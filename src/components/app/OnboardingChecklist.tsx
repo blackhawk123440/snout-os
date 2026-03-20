@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { ChevronDown, ChevronUp, CheckCircle2, Circle } from 'lucide-react';
 import Link from 'next/link';
 import type { OnboardingChecklist, OnboardingItem } from '@/lib/onboarding';
 
@@ -51,7 +52,7 @@ export function OnboardingChecklist() {
         <span className="text-sm font-semibold text-neutral-900">Setup</span>
         <span className="text-xs text-neutral-500">{data.completed} of {data.total} complete</span>
         <span className="shrink-0 text-neutral-400" aria-hidden>
-          <i className={`fas fa-chevron-${expanded ? 'up' : 'down'} text-xs`} />
+          {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
         </span>
       </button>
       {expanded && (
@@ -80,11 +81,11 @@ function OnboardingItemRow({ item }: { item: OnboardingItem }) {
     <li className="flex items-center gap-2 text-sm">
       {item.done ? (
         <span className="text-emerald-600" aria-hidden="true">
-          <i className="fas fa-check-circle" />
+          <CheckCircle2 className="w-4 h-4" />
         </span>
       ) : (
         <span className="text-neutral-400" aria-hidden="true">
-          <i className="fas fa-circle" style={{ fontSize: '0.4rem' }} />
+          <Circle className="w-1.5 h-1.5" />
         </span>
       )}
       <span className={item.done ? 'text-neutral-500' : 'text-neutral-900'}>

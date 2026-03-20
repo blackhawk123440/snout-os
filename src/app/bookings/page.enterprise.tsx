@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, AppFilterBar, getStatusPill } from '@/components/app';
 import { DataTableShell, EmptyState, Table, TableSkeleton, Button } from '@/components/ui';
@@ -78,7 +79,7 @@ export default function BookingsEnterprisePage() {
           subtitle="Operator queue with assignment and execution visibility"
           actions={
             <Link href="/bookings/new">
-              <Button>New booking</Button>
+              <Button leftIcon={<Plus className="w-3.5 h-3.5" />}>New booking</Button>
             </Link>
           }
         />
@@ -163,7 +164,7 @@ export default function BookingsEnterprisePage() {
                       render: (r) => (
                         <div>
                           <div className="font-medium">{r.firstName} {r.lastName}</div>
-                          <div className="text-xs text-[var(--color-text-secondary)]">{r.service}</div>
+                          <div className="text-xs text-text-secondary">{r.service}</div>
                         </div>
                       ),
                     },
@@ -222,7 +223,7 @@ export default function BookingsEnterprisePage() {
                 />
               </DataTableShell>
               <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-[var(--color-text-secondary)]">
+                <div className="text-sm text-text-secondary">
                   Page {page} · {total} bookings
                 </div>
                 <div className="flex gap-2">

@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Card, Button, Input, Badge, EmptyState, Skeleton, Select, Modal, Textarea } from '@/components/ui';
+import { ArrowLeft, UserPlus, Send } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 
 interface Message {
@@ -281,7 +282,7 @@ export default function ConversationView({
             variant="ghost"
             size="sm"
             onClick={onBack}
-            leftIcon={<i className="fas fa-arrow-left" />}
+            leftIcon={<ArrowLeft className="w-4 h-4" />}
           >
             Back
           </Button>
@@ -355,7 +356,7 @@ export default function ConversationView({
               setSelectedSitterId(assignedSitterId || '');
               setShowAssignModal(true);
             }}
-            leftIcon={<i className="fas fa-user-plus" />}
+            leftIcon={<UserPlus className="w-4 h-4" />}
           >
             {assignedSitterId ? 'Reassign' : 'Assign'}
           </Button>
@@ -538,7 +539,7 @@ export default function ConversationView({
             variant="primary"
             onClick={handleSend}
             disabled={!messageText.trim() || sending || (role === 'sitter' && !sitterHasActiveWindow)}
-            leftIcon={<i className="fas fa-paper-plane" />}
+            leftIcon={<Send className="w-4 h-4" />}
           >
             {sending ? 'Sending...' : 'Send'}
           </Button>

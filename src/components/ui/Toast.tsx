@@ -19,6 +19,7 @@
 'use client';
 
 import { ReactNode, createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { CheckCircle2, AlertTriangle, XCircle, Info, X } from 'lucide-react';
 import { setToastHandler } from '@/lib/toast';
 import { tokens } from '@/lib/design-tokens';
 import { IconButton } from './IconButton';
@@ -116,10 +117,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
   };
 
   const variantIcons = {
-    success: 'fa-check-circle',
-    warning: 'fa-exclamation-triangle',
-    error: 'fa-times-circle',
-    info: 'fa-info-circle',
+    success: <CheckCircle2 className="w-5 h-5" style={{ color: variantColors.success }} />,
+    warning: <AlertTriangle className="w-5 h-5" style={{ color: variantColors.warning }} />,
+    error: <XCircle className="w-5 h-5" style={{ color: variantColors.error }} />,
+    info: <Info className="w-5 h-5" style={{ color: variantColors.info }} />,
   };
 
   useEffect(() => {
@@ -153,15 +154,9 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
       }}
     >
       {icon && (
-        <i
-          className={`fas ${icon}`}
-          style={{
-            color,
-            fontSize: tokens.typography.fontSize.lg[0],
-            flexShrink: 0,
-            marginTop: '2px',
-          }}
-        />
+        <span style={{ flexShrink: 0, marginTop: '2px' }}>
+          {icon}
+        </span>
       )}
       <div
         style={{
@@ -173,7 +168,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
         {toast.message}
       </div>
       <IconButton
-        icon={<i className="fas fa-times" />}
+        icon={<X className="w-3.5 h-3.5" />}
         variant="ghost"
         size="sm"
         onClick={() => onDismiss(toast.id)}

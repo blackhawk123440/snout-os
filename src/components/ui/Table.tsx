@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { Inbox } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { Card } from './Card';
@@ -303,7 +304,7 @@ export function Table<T extends Record<string, any>>({
                       color: tokens.colors.text.secondary,
                     }}
                   >
-<i className="fas fa-inbox" style={{ fontSize: tokens.typography.fontSize['2xl'][0], opacity: 0.5 }} aria-hidden />
+<Inbox className="w-7 h-7 opacity-50" aria-hidden />
                     <p
                       style={{
                         fontSize: tokens.typography.fontSize.base[0],

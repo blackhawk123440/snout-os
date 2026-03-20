@@ -16,6 +16,8 @@ import { useMobile } from '@/lib/use-mobile';
 import { ownerNavigation, navigation, type NavItem } from '@/lib/navigation';
 import { useAuth } from '@/lib/auth-client';
 import { useTheme } from '@/lib/theme-context';
+import { Icon } from '@/components/ui/Icon';
+import { X, Menu as MenuIcon, Search, Sun, Moon } from 'lucide-react';
 
 export type { NavItem } from '@/lib/navigation';
 
@@ -260,13 +262,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                   }}
                 >
                   {item.icon && (
-                    <i
-                      className={item.icon}
-                      style={{
-                        width: '1.25rem',
-                        textAlign: 'center',
-                      }}
-                    />
+                    <Icon name={item.icon} className="w-4 h-4" />
                   )}
                   <span
                     style={{
@@ -345,13 +341,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                           }}
                         >
                           {child.icon && (
-                            <i
-                              className={child.icon}
-                              style={{
-                                width: '1.25rem',
-                                textAlign: 'center',
-                              }}
-                            />
+                            <Icon name={child.icon} className="w-4 h-4" />
                           )}
                           <span
                             style={{
@@ -441,7 +431,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             aria-label="Toggle sidebar"
             aria-expanded={sidebarOpen}
           >
-            <i className={`fas ${sidebarOpen ? 'fa-times' : 'fa-bars'}`} />
+            {sidebarOpen ? <X className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
           </button>
           {/* Global search stub - opens Command Palette (Cmd+K) */}
           <button
@@ -465,7 +455,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             }}
             aria-label="Search (Cmd+K)"
           >
-            <i className="fas fa-search" style={{ color: tokens.colors.text.tertiary }} />
+            <Search className="w-4 h-4 text-text-tertiary" />
             <span>Search...</span>
             <span style={{ marginLeft: 'auto', fontSize: tokens.typography.fontSize.xs[0] }}>⌘K</span>
           </button>
@@ -510,7 +500,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 }}
                 aria-label={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               >
-                <i className={mode === 'dark' ? 'fas fa-sun' : 'fas fa-moon'} />
+                {mode === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
             </div>
           )}

@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { Filter } from 'lucide-react';
 import { Drawer } from '@/components/ui/Drawer';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/components/ui/utils';
@@ -38,7 +39,7 @@ export function MobileFilterDrawer({
           onClick={() => setOpen(true)}
           aria-label={`Open ${triggerLabel}`}
         >
-          <i className="fas fa-filter mr-2" aria-hidden />
+          <Filter className="w-4 h-4 mr-2" />
           {triggerLabel}
           {activeCount != null && activeCount > 0 && (
             <span className="ml-2 rounded-full bg-[var(--color-accent-primary)] px-2 py-0.5 text-xs text-text-inverse">

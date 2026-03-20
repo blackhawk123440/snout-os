@@ -17,6 +17,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 import { cn } from './utils';
 
@@ -65,7 +66,7 @@ export function ErrorState({
             fontSize: '32px',
           }}
         >
-          <i className="fas fa-exclamation-triangle" />
+          <AlertTriangle className="w-8 h-8" />
         </div>
       )}
       

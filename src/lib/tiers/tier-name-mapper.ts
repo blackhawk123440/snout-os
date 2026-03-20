@@ -87,12 +87,12 @@ export function getTierLevel(tierName: CanonicalTierName | string): number {
 export function getTierIcon(tierName: CanonicalTierName | string): string {
   const canonical = toCanonicalTierName(tierName);
   const icons: Record<CanonicalTierName, string> = {
-    Trainee: 'fa-seedling', // Growing/learning
-    Certified: 'fa-certificate', // Certified/badge
-    Trusted: 'fa-shield-check', // Trusted/shield
-    Elite: 'fa-crown', // Elite/crown
+    Trainee: 'seedling',
+    Certified: 'certificate',
+    Trusted: 'shield-check',
+    Elite: 'crown',
   };
-  return icons[canonical] || 'fa-seedling';
+  return icons[canonical] || 'seedling';
 }
 
 /**

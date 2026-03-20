@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { UserPlus, MessageSquare, Download, Columns3 } from 'lucide-react';
 import { AppStatusPill } from './AppStatCard';
 
 export interface AppTableColumn<T> {
@@ -33,10 +34,16 @@ export interface AppTableProps<T> {
   onVisibleColumnsChange?: (visible: Set<string>) => void;
 }
 
+const BULK_ACTION_ICONS: Record<string, React.ReactNode> = {
+  assign: <UserPlus className="w-4 h-4" />,
+  message: <MessageSquare className="w-4 h-4" />,
+  export: <Download className="w-4 h-4" />,
+};
+
 const DEFAULT_BULK_ACTIONS = [
-  { id: 'assign', label: 'Assign', icon: 'fas fa-user-plus' },
-  { id: 'message', label: 'Message', icon: 'fas fa-comment' },
-  { id: 'export', label: 'Export', icon: 'fas fa-download' },
+  { id: 'assign', label: 'Assign' },
+  { id: 'message', label: 'Message' },
+  { id: 'export', label: 'Export' },
 ];
 
 export function AppTable<T extends Record<string, unknown>>({
@@ -134,7 +141,7 @@ export function AppTable<T extends Record<string, unknown>>({
                 onClick={() => onBulkAction?.(a.id, selectedIds)}
                 className="flex items-center gap-2 rounded-lg border border-[var(--color-border-default)] bg-[var(--color-surface-primary)] px-3 py-1.5 text-sm font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-offset-2"
               >
-                {a.icon && <i className={a.icon} />}
+                {BULK_ACTION_ICONS[a.id]}
                 {a.label}
               </button>
             ))}
@@ -185,7 +192,7 @@ export function AppTable<T extends Record<string, unknown>>({
                       aria-label="Column picker"
                       aria-expanded={columnPickerOpen}
                     >
-                      <i className="fas fa-columns" />
+                      <Columns3 className="w-4 h-4" />
                     </button>
                     {columnPickerOpen && (
                       <>

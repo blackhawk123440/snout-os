@@ -9,6 +9,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { ExternalLink } from 'lucide-react';
 import { Card, Button, EmptyState, Skeleton, Badge } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { formatDistanceToNow } from 'date-fns';
@@ -202,7 +203,7 @@ export function SitterMessagesTab({ sitterId }: SitterMessagesTabProps) {
           size="md"
           onClick={() => window.location.href = `/messages?tab=inbox&sitterId=${sitterId}`}
           style={{ marginTop: tokens.spacing[4], width: '100%' }}
-          leftIcon={<i className="fas fa-external-link-alt" />}
+          leftIcon={<ExternalLink className="w-4 h-4" />}
         >
           Open Full Inbox
         </Button>

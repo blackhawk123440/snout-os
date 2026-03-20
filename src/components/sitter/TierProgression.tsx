@@ -8,6 +8,8 @@
 'use client';
 
 import { Card, SectionHeader, Badge } from '@/components/ui';
+import { Lock, Circle } from 'lucide-react';
+import { Icon } from '@/components/ui/Icon';
 import { tokens } from '@/lib/design-tokens';
 import { 
   getAllTiers, 
@@ -150,7 +152,7 @@ export function TierProgression({ currentTierName, metrics }: TierProgressionPro
                     flexShrink: 0,
                   }}
                 >
-                  <i className={`fas ${tierIcon}`} />
+                  <Icon name={tierIcon} size={20} />
                 </div>
 
                 {/* Tier Info */}
@@ -172,7 +174,7 @@ export function TierProgression({ currentTierName, metrics }: TierProgressionPro
                     )}
                     {!isUnlocked && (
                       <Badge variant="error" style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
-                        <i className="fas fa-lock" style={{ marginRight: tokens.spacing[1] }} />
+                        <Lock className="w-3.5 h-3.5 mr-1" />
                         Locked
                       </Badge>
                     )}
@@ -216,7 +218,7 @@ export function TierProgression({ currentTierName, metrics }: TierProgressionPro
                   alignItems: 'center',
                   gap: tokens.spacing[2],
                 }}>
-                  <i className="fas fa-circle" style={{ fontSize: '4px', color: tokens.colors.primary.DEFAULT }} />
+                  <Circle className="w-1 h-1 fill-current text-accent-primary" />
                   {req}
                 </div>
               ))}

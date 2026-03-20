@@ -9,6 +9,7 @@
 'use client';
 
 import { ReactNode, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Command, CommandContext } from '@/commands/types';
 import { tokens } from '@/lib/design-tokens';
 import { Button } from '@/components/ui/Button';
@@ -54,11 +55,10 @@ export function CommandPreview({
             gap: tokens.spacing[3],
           }}
         >
-          <i
-            className="fas fa-exclamation-triangle"
+          <AlertTriangle
+            className="w-5 h-5"
             style={{
               color: tokens.colors.error.DEFAULT,
-              fontSize: tokens.typography.fontSize.xl[0],
               flexShrink: 0,
               marginTop: '2px',
             }}

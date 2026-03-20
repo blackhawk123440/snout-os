@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { tokens } from '@/lib/design-tokens';
+import { Icon } from '@/components/ui/Icon';
 import type { NavItem } from '@/lib/navigation';
 
 export interface AppSidebarProps {
@@ -68,7 +69,7 @@ export function AppSidebar({
               }`}
             >
               {item.icon && (
-                <i className={`${item.icon} w-5 shrink-0 text-center`} style={{ width: '1.25rem' }} />
+                <Icon name={item.icon} className="w-5 h-5 shrink-0" />
               )}
               {!collapsed && (
                 <>

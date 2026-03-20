@@ -17,6 +17,7 @@
 'use client';
 
 import { ReactNode, useState } from 'react';
+import { Check, Copy } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 import { IconButton } from './IconButton';
 import { cn } from './utils';
@@ -96,7 +97,7 @@ export function DataRow({
         </div>
         {copyable && typeof value === 'string' && (
           <IconButton
-            icon={<i className={`fas fa-${copied ? 'check' : 'copy'}`} />}
+            icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             variant="ghost"
             size="sm"
             onClick={handleCopy}

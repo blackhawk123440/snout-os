@@ -10,6 +10,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import {
+  DollarSign, Clock, AlertTriangle, Undo2, Download,
+  Search, AlertCircle,
+} from 'lucide-react';
+import {
   Card,
   Button,
   Select,
@@ -27,7 +31,6 @@ import {
 import { StatusChip } from '@/components/ui/status-chip';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { PageSkeleton } from '@/components/ui/loading-state';
-import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
 import { getStatusPill } from '@/components/app/getStatusPill';
 import { AppFilterBar } from '@/components/app';
@@ -341,18 +344,9 @@ export default function PaymentsPage() {
       mobileOrder: 1,
       render: (payment) => (
         <div>
-          <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
-            {payment.customerName || payment.customerEmail}
-          </div>
+          <div className="font-medium">{payment.customerName || payment.customerEmail}</div>
           {payment.customerName && (
-            <div
-              style={{
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-              }}
-            >
-              {payment.customerEmail}
-            </div>
+            <div className="text-sm text-text-secondary">{payment.customerEmail}</div>
           )}
         </div>
       ),
@@ -364,9 +358,7 @@ export default function PaymentsPage() {
       mobileOrder: 2,
       align: 'right',
       render: (payment) => (
-        <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
-          {formatCurrency(payment.amount)}
-        </div>
+        <div className="font-heading font-semibold tabular-nums">{formatCurrency(payment.amount)}</div>
       ),
     },
     {
@@ -383,24 +375,13 @@ export default function PaymentsPage() {
             {getStatusLabel(payment.status)}
           </StatusChip>
           {(payment.status === 'paid' || payment.status === 'succeeded') && (
-            <div
-              style={{
-                marginTop: tokens.spacing[1],
-                fontSize: tokens.typography.fontSize.xs[0],
-                color: tokens.colors.text.secondary,
-              }}
-            >
+            <div className="mt-1 text-xs text-text-secondary">
               Paid at {formatDateTime(payment.created)}
             </div>
           )}
           {payment.status === 'failed' && payment.lastError && (
             <div
-              style={{
-                fontSize: tokens.typography.fontSize.xs[0],
-                color: tokens.colors.error.DEFAULT,
-                marginTop: tokens.spacing[1],
-                maxWidth: 200,
-              }}
+              className="mt-1 text-xs text-status-danger-fill max-w-[200px]"
               title={payment.lastError}
             >
               {payment.lastError.slice(0, 50)}{payment.lastError.length > 50 ? '…' : ''}
@@ -418,23 +399,13 @@ export default function PaymentsPage() {
       hideBelow: 'md',
       render: (payment) => (
         <div>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-              fontFamily: tokens.typography.fontFamily.mono.join(', '),
-            }}
-          >
+          <div className="text-sm text-text-secondary font-mono tabular-nums">
             #{payment.id.slice(-8).toUpperCase()}
           </div>
           {payment.bookingId ? (
             <Link
               href={`/bookings/${payment.bookingId}`}
-              style={{
-                fontSize: tokens.typography.fontSize.xs[0],
-                color: tokens.colors.primary.DEFAULT,
-                textDecoration: 'underline',
-              }}
+              className="text-xs text-accent-primary underline"
             >
               Booking {payment.bookingId.slice(0, 8)}
             </Link>
@@ -449,9 +420,7 @@ export default function PaymentsPage() {
       mobileOrder: 5,
       hideBelow: 'md',
       render: (payment) => (
-        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
-          {getPaymentMethodLabel(payment.paymentMethod)}
-        </div>
+        <div className="text-sm">{getPaymentMethodLabel(payment.paymentMethod)}</div>
       ),
     },
     {
@@ -461,9 +430,7 @@ export default function PaymentsPage() {
       mobileOrder: 6,
       hideBelow: 'lg',
       render: (payment) => (
-        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
-          {formatDateTime(payment.created)}
-        </div>
+        <div className="text-sm tabular-nums">{formatDateTime(payment.created)}</div>
       ),
     },
   ];
@@ -500,17 +467,11 @@ export default function PaymentsPage() {
 
         <Section>
       {error && (
-        <Card
-          style={{
-            marginBottom: tokens.spacing[6],
-            borderColor: tokens.colors.error.DEFAULT,
-            backgroundColor: tokens.colors.error[50],
-          }}
-        >
+        <Card className="mb-6 border-status-danger-fill bg-status-danger-bg">
           <Flex align="center" justify="space-between">
-            <div style={{ color: tokens.colors.error.DEFAULT }}>
+            <div className="text-status-danger-fill">
               <Flex align="center" gap={3}>
-                <i className="fas fa-exclamation-circle" />
+                <AlertCircle className="w-4 h-4" />
                 <span>{error}</span>
               </Flex>
             </div>
@@ -521,20 +482,20 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* Period comparison - compact, enterprise tone */}
+      {/* Period comparison */}
       {comparison && !isMobile && (
-        <Card className="border border-slate-200 bg-slate-50/50" style={{ marginBottom: tokens.spacing[4] }}>
-          <div style={{ padding: tokens.spacing[3] }}>
+        <Card className="border border-border-default bg-surface-secondary mb-4">
+          <div className="p-3">
             <Flex align="center" justify="space-between" gap={4}>
               <div>
-                <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+                <span className="text-xs text-text-secondary">
                   {selectedTimeRange.label} vs previous period
                 </span>
-                <span style={{ marginLeft: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.primary }}>
+                <span className="ml-2 text-sm font-semibold text-text-primary tabular-nums">
                   {comparison.isPositive ? '+' : ''}{comparison.periodComparison.toFixed(1)}%
                 </span>
               </div>
-              <span style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary }}>
+              <span className="text-xs text-text-secondary tabular-nums">
                 {formatCurrency(comparison.previousPeriodTotal)} → {formatCurrency(kpis.totalCollected)}
               </span>
             </Flex>
@@ -542,35 +503,35 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* KPI Summary Row - Phase E: Match Dashboard density */}
-      <div style={{ marginBottom: isMobile ? tokens.spacing[4] : tokens.spacing[4] }}>
-        <Grid gap={isMobile ? 3 : 2}> {/* Batch 5: UI Constitution compliance */}
+      {/* KPI Summary Row */}
+      <div className="mb-4">
+        <Grid gap={isMobile ? 3 : 2}>
           <GridCol span={12} md={6} lg={3}>
             <StatCard
               label="Total Collected"
               value={formatCurrency(kpis.totalCollected)}
-              icon={<i className="fas fa-dollar-sign" />}
+              icon={<DollarSign className="w-4 h-4" />}
             />
           </GridCol>
           <GridCol span={12} md={6} lg={3}>
             <StatCard
               label="Pending Payments"
               value={`${kpis.pendingCount} (${formatCurrency(kpis.pendingAmount)})`}
-              icon={<i className="fas fa-clock" />}
+              icon={<Clock className="w-4 h-4" />}
             />
           </GridCol>
           <GridCol span={12} md={6} lg={3}>
             <StatCard
               label="Failed Payments"
               value={`${kpis.failedCount} (${formatCurrency(kpis.failedAmount)})`}
-              icon={<i className="fas fa-exclamation-triangle" />}
+              icon={<AlertTriangle className="w-4 h-4" />}
             />
           </GridCol>
           <GridCol span={12} md={6} lg={3}>
             <StatCard
               label="Refunded"
               value={formatCurrency(kpis.refundedAmount || 0)}
-              icon={<i className="fas fa-undo" />}
+              icon={<Undo2 className="w-4 h-4" />}
             />
           </GridCol>
         </Grid>
@@ -578,11 +539,11 @@ export default function PaymentsPage() {
 
       {/* Mobile Export Button */}
       {isMobile && (
-        <Card style={{ marginBottom: tokens.spacing[4] }}>
+        <Card className="mb-4">
           <Button
             variant="secondary"
             style={{ width: '100%' }}
-            leftIcon={<i className="fas fa-download" />}
+            leftIcon={<Download className="w-4 h-4" />}
             onClick={handleExportCSV}
           >
             Export CSV
@@ -590,8 +551,8 @@ export default function PaymentsPage() {
         </Card>
       )}
 
-      {/* Filters - Phase E: Match Bookings density */}
-      <Card style={{ marginBottom: tokens.spacing[4], padding: isMobile ? tokens.spacing[3] : undefined }}>
+      {/* Filters */}
+      <Card className={`mb-4 ${isMobile ? 'p-3' : ''}`}>
         {isMobile ? (
           <MobileFilterDrawer triggerLabel="Filters" activeCount={Number(Boolean(searchTerm)) + Number(statusFilter !== 'all')}>
             <AppFilterBar
@@ -627,7 +588,7 @@ export default function PaymentsPage() {
               placeholder="Search by client, email, or invoice..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              leftIcon={<i className="fas fa-search" />}
+              leftIcon={<Search className="w-4 h-4" />}
               style={{ flex: 1 }}
             />
             <Select

@@ -10,6 +10,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Search } from 'lucide-react';
 import { useCommandPalette } from '@/hooks/useCommandPalette';
 import { useMobile } from '@/lib/use-mobile';
 import { Command } from '@/commands/types';
@@ -100,7 +101,7 @@ export function CommandPalette({ context }: CommandPaletteProps) {
           placeholder="Type to search..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          leftIcon={<i className="fas fa-search" />}
+          leftIcon={<Search className="w-4 h-4" />}
           autoFocus
         />
       </div>
@@ -207,7 +208,7 @@ export function CommandPalette({ context }: CommandPaletteProps) {
               placeholder="Type to search commands..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              leftIcon={<i className="fas fa-search" />}
+              leftIcon={<Search className="w-4 h-4" />}
               autoFocus
             />
           </div>

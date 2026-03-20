@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useCallback } from 'react';
+import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface AppDrawerProps {
@@ -134,7 +135,7 @@ export function AppDrawer({
                   className="rounded-lg p-2 text-[var(--color-text-tertiary)] transition hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-teal-500)] focus:ring-offset-2"
                   aria-label="Close drawer"
                 >
-                  <i className="fas fa-times" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             )}

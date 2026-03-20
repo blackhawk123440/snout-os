@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CLIENT_TABS } from '@/lib/client-nav';
 import { cn } from '@/components/ui/utils';
+import { Icon } from '@/components/ui/Icon';
 
 export function ClientBottomNav() {
   const pathname = usePathname();
@@ -33,7 +34,7 @@ export function ClientBottomNav() {
                 : 'border-transparent text-text-tertiary hover:text-text-secondary'
             )}
           >
-            <i className={cn('text-lg', item.icon)} aria-hidden />
+            <Icon name={item.icon} className="w-5 h-5" />
             <span className="text-xs font-medium">{item.label}</span>
           </Link>
         );

@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  MapPin, RefreshCw, Clock, CalendarCheck, TrendingUp,
+} from 'lucide-react';
 import { Button } from '@/components/ui';
 import { statusBadgeClass, statusLabel } from '@/lib/status-colors';
 import { toastSuccess, toastError, toastWarning } from '@/lib/toast';
@@ -240,14 +243,29 @@ function QuickInsightsStrip({
   totalVisits: number;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-4 rounded-2xl border border-border-default bg-surface-primary px-4 py-3 shadow-sm">
-      <span className="text-sm text-text-secondary">
-        <span className="font-semibold text-text-primary">Earnings today</span> — Coming soon
-      </span>
-      <span className="text-sm text-text-secondary">
-        <span className="font-semibold text-text-primary">{visitsRemaining}</span> visit{visitsRemaining !== 1 ? 's' : ''} remaining
-      </span>
-      <span className="text-sm text-status-warning-text-secondary">On track</span>
+    <div className="mb-4 grid grid-cols-3 gap-3">
+      <div className="rounded-xl border border-border-default bg-surface-primary px-4 py-3 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+        <div className="flex items-center gap-1.5 mb-1">
+          <CalendarCheck className="w-3.5 h-3.5 text-text-disabled" />
+          <span className="text-[11px] text-text-tertiary tracking-wide uppercase">Remaining</span>
+        </div>
+        <span className="font-heading text-xl font-bold text-text-primary tabular-nums">{visitsRemaining}</span>
+        <span className="text-xs text-text-tertiary ml-1">of {totalVisits}</span>
+      </div>
+      <div className="rounded-xl border border-border-default bg-surface-primary px-4 py-3 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+        <div className="flex items-center gap-1.5 mb-1">
+          <TrendingUp className="w-3.5 h-3.5 text-text-disabled" />
+          <span className="text-[11px] text-text-tertiary tracking-wide uppercase">Earnings</span>
+        </div>
+        <span className="text-sm font-medium text-text-tertiary">Coming soon</span>
+      </div>
+      <div className="rounded-xl border border-border-default bg-surface-primary px-4 py-3 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+        <div className="flex items-center gap-1.5 mb-1">
+          <Clock className="w-3.5 h-3.5 text-text-disabled" />
+          <span className="text-[11px] text-text-tertiary tracking-wide uppercase">Status</span>
+        </div>
+        <span className="text-sm font-semibold text-status-success-text">On track</span>
+      </div>
     </div>
   );
 }
@@ -681,7 +699,7 @@ export default function SitterTodayPage() {
                   rel="noopener noreferrer"
                   className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-border-strong bg-surface-primary px-3 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary focus:outline-none focus:ring-2 focus:ring-border-focus"
                 >
-                  <i className="fas fa-map-marker-alt mr-1.5" />
+                  <MapPin className="w-3.5 h-3.5 mr-1.5" />
                   Open in Maps
                 </a>
               )}
@@ -745,7 +763,7 @@ export default function SitterTodayPage() {
         ) : (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-text-primary">Today command center</h2>
+              <h2 className="font-heading text-lg font-semibold text-text-primary tracking-tight">Today command center</h2>
               <button
                 type="button"
                 onClick={toggleShowCancelled}

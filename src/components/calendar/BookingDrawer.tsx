@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 import { Card, SectionHeader, Button, Badge, Modal } from '@/components/ui';
 import { BookingScheduleDisplay } from '@/components/booking';
@@ -120,7 +121,7 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
           </Badge>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
-          <i className="fas fa-times" />
+          <X className="w-4 h-4" />
         </Button>
       </div>
 

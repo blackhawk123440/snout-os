@@ -7,6 +7,7 @@
 'use client';
 
 import { Card, SectionHeader, EmptyState, Skeleton, Badge } from '@/components/ui';
+import { Info } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 import { useQuery } from '@tanstack/react-query';
 
@@ -166,7 +167,7 @@ export function ActivityTab({ sitterId }: ActivityTabProps) {
                       marginBottom: tokens.spacing[1],
                       color: tokens.colors.warning[900],
                     }}>
-                      <i className="fas fa-info-circle" style={{ marginRight: tokens.spacing[1] }} />
+                      <Info className="w-3.5 h-3.5 mr-1" />
                       What to do:
                     </div>
                     <div style={{ color: tokens.colors.text.secondary }}>

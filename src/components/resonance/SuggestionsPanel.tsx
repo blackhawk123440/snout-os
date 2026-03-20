@@ -7,6 +7,7 @@
 
 'use client';
 
+import { CheckCircle2 } from 'lucide-react';
 import { Suggestion } from '@/lib/resonance/types';
 import { FrostedCard } from '@/components/ui/FrostedCard';
 import { SuggestionCard } from './SuggestionCard';
@@ -55,7 +56,7 @@ export function SuggestionsPanel({
           <EmptyState
             title="No suggestions"
             description="All bookings are up to date"
-            icon={<i className="fas fa-check-circle" style={{ fontSize: '32px' }} />}
+            icon={<CheckCircle2 className="w-8 h-8" />}
           />
         ) : (
           <Flex direction="column" gap={3}>

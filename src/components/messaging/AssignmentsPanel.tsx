@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { Card, Button, Badge, Table, TableColumn, EmptyState, Skeleton, Modal, Input } from '@/components/ui';
+import { CalendarCheck } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api/client';
@@ -201,7 +202,7 @@ export function AssignmentsPanel() {
           <EmptyState
             title="No assignment windows"
             description="Create an assignment window to assign a sitter to a thread"
-            icon={<i className="fas fa-calendar-check" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+            icon={<CalendarCheck className="w-12 h-12 text-neutral-300" />}
           />
         ) : (
           <Table data={windows} columns={windowColumns} />

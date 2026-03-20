@@ -34,10 +34,6 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-        />
         <link rel="manifest" href="/manifest.json" />
         {/* Google Ads + GA4 Global Tag */}
         {/* eslint-disable-next-line @next/next/next-script-for-ga */}

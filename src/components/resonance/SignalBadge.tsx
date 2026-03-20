@@ -7,6 +7,7 @@
 
 'use client';
 
+import { AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { Signal } from '@/lib/resonance/types';
 import { Badge } from '@/components/ui/Badge';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -27,15 +28,11 @@ export function SignalBadge({ signal, compact = false }: SignalBadgeProps) {
   const badge = (
     <Badge variant={variant}>
       {compact ? (
-        <i 
-          className={
-            signal.severity === 'critical' 
-              ? 'fas fa-exclamation-circle' 
-              : signal.severity === 'warning' 
-              ? 'fas fa-exclamation-triangle' 
-              : 'fas fa-info-circle'
-          }
-        />
+        signal.severity === 'critical'
+          ? <AlertCircle className="w-3.5 h-3.5" />
+          : signal.severity === 'warning'
+          ? <AlertTriangle className="w-3.5 h-3.5" />
+          : <Info className="w-3.5 h-3.5" />
       ) : (
         signal.label
       )}

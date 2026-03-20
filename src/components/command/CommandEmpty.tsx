@@ -7,6 +7,7 @@
 
 'use client';
 
+import { Search } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 import { EmptyState } from '@/components/ui/EmptyState';
 
@@ -17,7 +18,7 @@ export interface CommandEmptyProps {
 export function CommandEmpty({ searchQuery }: CommandEmptyProps) {
   return (
     <EmptyState
-      icon={<i className="fas fa-search" style={{ fontSize: '48px' }} />}
+      icon={<Search className="w-12 h-12" />}
       title="No commands found"
       description={
         searchQuery

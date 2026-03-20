@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
 import { OwnerAppShell, LayoutWrapper, PageHeader, Section } from '@/components/layout';
 import { AppErrorState, AppFilterBar } from '@/components/app';
 import { DataTableShell, EmptyState, Table, TableSkeleton, Button } from '@/components/ui';
@@ -64,7 +65,7 @@ export default function ClientsEnterprisePage() {
           subtitle="Operator surface for client health and actions"
           actions={
             <Link href="/bookings/new">
-              <Button>New booking</Button>
+              <Button leftIcon={<Plus className="w-3.5 h-3.5" />}>New booking</Button>
             </Link>
           }
         />
@@ -130,7 +131,7 @@ export default function ClientsEnterprisePage() {
                       render: (r) => (
                         <div>
                           <div className="font-medium">{r.firstName} {r.lastName}</div>
-                          <div className="text-xs text-[var(--color-text-secondary)]">{r.email}</div>
+                          <div className="text-xs text-text-secondary">{r.email}</div>
                         </div>
                       ),
                     },
@@ -159,7 +160,7 @@ export default function ClientsEnterprisePage() {
                 />
               </DataTableShell>
               <div className="mt-4 flex items-center justify-between">
-                <div className="text-sm text-[var(--color-text-secondary)]">
+                <div className="text-sm text-text-secondary">
                   Page {page} · {total} clients
                 </div>
                 <div className="flex gap-2">

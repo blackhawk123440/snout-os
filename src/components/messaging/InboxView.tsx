@@ -25,6 +25,7 @@ import {
 } from '@/lib/api/hooks';
 import { formatDistanceToNow } from 'date-fns';
 import { Card, Button, Badge, EmptyState, Skeleton, Input, Textarea } from '@/components/ui';
+import { Plus, MessageSquare, Users, ChevronRight, HelpCircle, RefreshCw } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 import { useAuth } from '@/lib/auth-client';
 import { isMessagingEnabled } from '@/lib/flags';
@@ -369,7 +370,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Threads</h2>
             {role === 'owner' && (
-              <Button variant="primary" size="sm" onClick={() => setShowNewMessageModal(true)} leftIcon={<i className="fas fa-plus" />}>
+              <Button variant="primary" size="sm" onClick={() => setShowNewMessageModal(true)} leftIcon={<Plus className="w-4 h-4" />}>
                 New message
               </Button>
             )}
@@ -453,7 +454,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                   description={process.env.NODE_ENV === 'development' || process.env.ALLOW_DEV_SEED === 'true'
                     ? "Create demo data to get started with messaging"
                     : "Start a conversation or send a new message to see threads here."}
-                  icon={<i className="fas fa-comments" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                  icon={<MessageSquare className="w-12 h-12 text-neutral-300" />}
                   action={
                     role === 'owner'
                       ? { label: 'New message', onClick: () => setShowNewMessageModal(true), variant: 'primary' as const }
@@ -466,7 +467,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                     <EmptyState
                       title="No active conversations for this sitter"
                       description="Create an assignment window and thread to enable messaging for this sitter."
-                      icon={<i className="fas fa-user-friends" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+                      icon={<Users className="w-12 h-12 text-neutral-300" />}
                     />
                   ) : (
                     <div>No threads match your filters</div>
@@ -547,7 +548,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                     </div>
                     <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                       <span className="text-xs text-[var(--color-text-tertiary)]">Open</span>
-                      <i className="fas fa-chevron-right text-[var(--color-text-tertiary)]" style={{ fontSize: '0.65rem' }} aria-hidden />
+                      <ChevronRight className="w-2.5 h-2.5 text-text-tertiary" />
                     </div>
                   </div>
                 </div>
@@ -778,7 +779,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                   variant="secondary"
                   size="sm"
                   onClick={() => setShowRoutingDrawer(true)}
-                  leftIcon={<i className="fas fa-question-circle" />}
+                  leftIcon={<HelpCircle className="w-4 h-4" />}
                 >
                   Why routed here?
                 </Button>
@@ -883,7 +884,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                               size="sm"
                               onClick={() => handleRetry(message.id)}
                               disabled={retryMessage.isPending}
-                              leftIcon={<i className="fas fa-redo" />}
+                              leftIcon={<RefreshCw className="w-4 h-4" />}
                             >
                               {retryMessage.isPending ? 'Retrying...' : 'Retry'}
                             </Button>
@@ -943,7 +944,7 @@ function InboxViewContent({ role = 'owner', sitterId, initialThreadId, inbox = '
                               size="sm"
                               onClick={() => handleRetryPending(p.tempId)}
                               disabled={sendMessage.isPending}
-                              leftIcon={<i className="fas fa-redo" />}
+                              leftIcon={<RefreshCw className="w-4 h-4" />}
                             >
                               Retry
                             </Button>

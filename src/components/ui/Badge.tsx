@@ -1,11 +1,11 @@
 /**
  * Badge Component
- * 
+ *
  * Status and type indicators with semantic variants.
  */
 
 import React from 'react';
-import { tokens } from '@/lib/design-tokens';
+import { cn } from './utils';
 
 export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info' | 'neutral';
 
@@ -14,61 +14,31 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   children: React.ReactNode;
 }
 
-const variantStyles: Record<BadgeVariant, { background: string; color: string; border?: string }> = {
-  default: {
-    background: tokens.colors.primary[100],
-    color: tokens.colors.primary[700],
-  },
-  success: {
-    background: tokens.colors.success[100],
-    color: tokens.colors.success[700],
-  },
-  warning: {
-    background: tokens.colors.warning[100],
-    color: tokens.colors.warning[700],
-  },
-  error: {
-    background: tokens.colors.error[100],
-    color: tokens.colors.error[700],
-  },
-  info: {
-    background: tokens.colors.info[100],
-    color: tokens.colors.info[700],
-  },
-  neutral: {
-    background: tokens.colors.neutral[100],
-    color: tokens.colors.neutral[700],
-  },
+const variantClasses: Record<BadgeVariant, string> = {
+  default: 'bg-accent-secondary text-accent-primary',
+  success: 'bg-status-success-bg text-status-success-text',
+  warning: 'bg-status-warning-bg text-status-warning-text',
+  error: 'bg-status-danger-bg text-status-danger-text',
+  info: 'bg-status-info-bg text-status-info-text',
+  neutral: 'bg-surface-secondary text-text-secondary',
 };
 
 export const Badge: React.FC<BadgeProps> = ({
   variant = 'default',
   children,
-  className = '',
+  className,
   ...props
 }) => {
-  const style = variantStyles[variant];
-
   return (
     <span
       {...props}
-      className={className}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-        fontSize: tokens.typography.fontSize.xs[0],
-        fontWeight: tokens.typography.fontWeight.medium,
-        lineHeight: '1',
-        borderRadius: tokens.radius.sm, // Phase B2: Tighter radius for badges
-        backgroundColor: style.background,
-        color: style.color,
-        border: style.border ? `1px solid ${style.border}` : 'none',
-        ...props.style,
-      }}
+      className={cn(
+        'inline-flex items-center px-2 py-1 text-xs font-medium leading-none rounded-sm',
+        variantClasses[variant],
+        className
+      )}
     >
       {children}
     </span>
   );
 };
-

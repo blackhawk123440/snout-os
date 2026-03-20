@@ -1,13 +1,13 @@
 /**
  * Card Component
- * 
+ *
  * Content container with consistent styling and optional header/footer.
  * On mobile, uses compact padding automatically.
  */
 
 import React from 'react';
-import { tokens } from '@/lib/design-tokens';
 import { useMobile } from '@/lib/use-mobile';
+import { cn } from './utils';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -21,57 +21,38 @@ export const Card: React.FC<CardProps> = ({
   header,
   footer,
   padding = true,
-  className = '',
+  className,
   ...props
 }) => {
   const isMobile = useMobile();
-  const cardPadding = isMobile ? tokens.spacing[3] : tokens.spacing[4];
 
   return (
     <div
       {...props}
-      className={className}
-      style={{
-        backgroundColor: tokens.colors.background.primary, // White cards
-        border: `1px solid ${tokens.colors.border.default}`, // Ultra light pink stroke
-        borderRadius: tokens.borderRadius.lg,
-        boxShadow: tokens.shadows.sm, // Subtle shadow for depth
-        overflow: 'visible', // Changed from 'hidden' to allow content to be visible - only clip if explicitly needed
-        ...props.style,
-      }}
+      className={cn(
+        'bg-surface-primary border border-border-default rounded-lg shadow-sm overflow-visible',
+        className
+      )}
     >
       {header && (
         <div
-          style={{
-            padding: padding
-              ? isMobile
-                ? `${cardPadding} ${cardPadding} ${tokens.spacing[2]}`
-                : `${tokens.spacing[4]} ${tokens.spacing[4]} ${tokens.spacing[3]}`
-              : 0,
-            borderBottom: header ? `1px solid ${tokens.colors.border.default}` : 'none',
-          }}
+          className={cn(
+            'border-b border-border-default',
+            padding && (isMobile ? 'px-3 pt-3 pb-2' : 'px-4 pt-4 pb-3')
+          )}
         >
           {header}
         </div>
       )}
-      <div
-        style={{
-          padding: padding ? cardPadding : 0,
-        }}
-      >
+      <div className={cn(padding && (isMobile ? 'p-3' : 'p-4'))}>
         {children}
       </div>
       {footer && (
         <div
-          style={{
-            padding: padding
-              ? isMobile
-                ? `${tokens.spacing[2]} ${cardPadding} ${cardPadding}`
-                : `${tokens.spacing[3]} ${tokens.spacing[4]} ${tokens.spacing[4]}`
-              : 0,
-            borderTop: footer ? `1px solid ${tokens.colors.border.default}` : 'none',
-            backgroundColor: tokens.colors.background.secondary,
-          }}
+          className={cn(
+            'border-t border-border-default bg-surface-secondary',
+            padding && (isMobile ? 'px-3 pt-2 pb-3' : 'px-4 pt-3 pb-4')
+          )}
         >
           {footer}
         </div>
@@ -79,4 +60,3 @@ export const Card: React.FC<CardProps> = ({
     </div>
   );
 };
-

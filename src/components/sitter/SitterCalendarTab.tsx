@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { Calendar, Clock, Info, MapPin, Pause, Play } from 'lucide-react';
 import { Card, Button, Badge, EmptyState, Skeleton, SectionHeader } from '@/components/ui';
 import { tokens } from '@/lib/design-tokens';
 import { toastError } from '@/lib/toast';
@@ -149,7 +150,7 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
 
               {calendarStatus.calendarName && (
                 <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                  <i className="fas fa-calendar" style={{ marginRight: tokens.spacing[2] }} />
+                  <Calendar className="w-4 h-4 mr-2" />
                   {calendarStatus.calendarName}
                   {calendarStatus.calendarId && calendarStatus.calendarId !== 'primary' && (
                     <span style={{ marginLeft: tokens.spacing[2], opacity: 0.7 }}>
@@ -161,12 +162,12 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
 
               {calendarStatus.lastSyncAt ? (
                 <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                  <i className="fas fa-clock" style={{ marginRight: tokens.spacing[2] }} />
+                  <Clock className="w-4 h-4 mr-2" />
                   Last synced: {formatDate(calendarStatus.lastSyncAt)} at {formatTime(calendarStatus.lastSyncAt)}
                 </div>
               ) : (
                 <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, fontStyle: 'italic' }}>
-                  <i className="fas fa-info-circle" style={{ marginRight: tokens.spacing[2] }} />
+                  <Info className="w-4 h-4 mr-2" />
                   No syncs yet
                 </div>
               )}
@@ -176,7 +177,7 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
                   variant={calendarStatus.syncEnabled ? 'secondary' : 'primary'}
                   onClick={handleToggleSync}
                   disabled={toggling}
-                  leftIcon={<i className={`fas fa-${calendarStatus.syncEnabled ? 'pause' : 'play'}`} />}
+                  leftIcon={calendarStatus.syncEnabled ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 >
                   {toggling ? 'Updating...' : calendarStatus.syncEnabled ? 'Disable Sync' : 'Enable Sync'}
                 </Button>
@@ -194,7 +195,7 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
                 variant="primary"
                 onClick={handleConnect}
                 disabled={connecting}
-                leftIcon={<i className="fab fa-google" />}
+                leftIcon={<span className="font-bold text-sm">G</span>}
               >
                 {connecting ? 'Connecting...' : 'Connect Google Calendar'}
               </Button>
@@ -247,7 +248,7 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
                   />
                   {booking.address && (
                     <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
-                      <i className="fas fa-map-marker-alt" style={{ marginRight: tokens.spacing[2] }} />
+                      <MapPin className="w-4 h-4 mr-2" />
                       {booking.address}
                     </div>
                   )}

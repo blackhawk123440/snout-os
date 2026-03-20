@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, Button, Badge, Table, TableColumn, EmptyState, Skeleton } from '@/components/ui';
+import { Users } from 'lucide-react';
 import { tokens } from '@/lib/design-tokens';
 import { useSitters } from '@/lib/api/numbers-hooks';
 import { useQuery } from '@tanstack/react-query';
@@ -107,7 +108,7 @@ export function SittersPanel() {
         <EmptyState
           title="No sitters found"
           description="No sitters exist in this org yet. Add sitters in Bookings → Sitters Management."
-          icon={<i className="fas fa-user-friends" style={{ fontSize: '3rem', color: tokens.colors.neutral[300] }} />}
+          icon={<Users className="w-12 h-12 text-neutral-300" />}
         />
       </Card>
     );

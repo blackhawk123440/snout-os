@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { Bell } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
@@ -15,6 +16,8 @@ import { SITTER_TABS } from '@/lib/sitter-nav';
 import { SitterOfflineBanner } from '@/components/sitter/SitterOfflineBanner';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useSitterMe, useSitterBadges } from '@/lib/api/sitter-portal-hooks';
+import { Icon } from '@/components/ui/Icon';
+import { Bell } from 'lucide-react';
 
 const NAV_ITEMS = SITTER_TABS;
 
@@ -134,7 +137,7 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
               aria-label="Notifications"
               className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-text-tertiary transition hover:bg-surface-secondary hover:text-text-secondary focus:outline-none focus:ring-2 focus:ring-border-focus focus:ring-offset-2"
             >
-              <i className="fas fa-bell text-lg" />
+              <Bell className="w-5 h-5" />
             </button>
             <button
               type="button"
@@ -168,7 +171,7 @@ export function SitterAppShell({ children }: SitterAppShellProps) {
                 active ? 'text-text-primary' : 'text-text-tertiary hover:text-text-secondary'
               }`}
             >
-              <i className={`${item.icon} text-lg`} />
+              <Icon name={item.icon} className="w-5 h-5" />
               <span className="text-[10px] font-medium">
                 {item.label}
                 {showDot ? ' •' : ''}

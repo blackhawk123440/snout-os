@@ -4,6 +4,11 @@ import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  ChevronLeft, ChevronRight, RefreshCw, MessageCircle,
+  ChevronDown, ChevronUp, Check, Circle, AlertTriangle,
+  TrendingUp, CalendarCheck, DollarSign, Clock, Plus,
+} from 'lucide-react';
 import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
 import { Button } from '@/components/ui';
 import { useQuickAssign } from '@/lib/api/owner-hooks';
@@ -250,16 +255,16 @@ function DashboardContent() {
               <button
                 type="button"
                 onClick={() => navigateDate(-1)}
-                className="flex h-11 w-11 items-center justify-center rounded-lg border border-border-default bg-surface-primary text-text-secondary hover:bg-surface-secondary transition"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-border-default bg-surface-primary text-text-secondary hover:bg-surface-secondary transition-all duration-fast"
                 aria-label="Previous day"
               >
-                <i className="fas fa-chevron-left text-xs" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
               {!isToday(currentDate) && (
                 <button
                   type="button"
                   onClick={goToday}
-                  className="min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-3 text-sm font-medium text-text-secondary hover:bg-surface-secondary transition"
+                  className="min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-3 text-sm font-medium text-text-secondary hover:bg-surface-secondary transition-all duration-fast"
                 >
                   Today
                 </button>
@@ -267,21 +272,21 @@ function DashboardContent() {
               <button
                 type="button"
                 onClick={() => navigateDate(1)}
-                className="flex h-11 w-11 items-center justify-center rounded-lg border border-border-default bg-surface-primary text-text-secondary hover:bg-surface-secondary transition"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-border-default bg-surface-primary text-text-secondary hover:bg-surface-secondary transition-all duration-fast"
                 aria-label="Next day"
               >
-                <i className="fas fa-chevron-right text-xs" />
+                <ChevronRight className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={() => void refetchBoard()}
-                className="flex h-11 w-11 items-center justify-center rounded-lg border border-border-default bg-surface-primary text-text-secondary hover:bg-surface-secondary transition"
+                className="flex h-11 w-11 items-center justify-center rounded-lg border border-border-default bg-surface-primary text-text-secondary hover:bg-surface-secondary transition-all duration-fast"
                 aria-label="Refresh"
               >
-                <i className={`fas fa-sync-alt text-xs ${boardLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${boardLoading ? 'animate-spin' : ''}`} />
               </button>
               <Link href="/bookings/new">
-                <Button size="sm">New booking</Button>
+                <Button size="sm" leftIcon={<Plus className="w-3.5 h-3.5" />}>New booking</Button>
               </Link>
             </div>
           }
@@ -305,27 +310,27 @@ function DashboardContent() {
 
         {/* Payment stats strip */}
         {paymentStats && (
-          <div className="mb-4 flex gap-3 overflow-x-auto pb-1">
-            <div className="shrink-0 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-w-[140px]">
-              <p className="text-xs text-text-tertiary">Today</p>
-              <p className="text-lg font-bold text-text-primary tabular-nums">${paymentStats.collected.today.amount.toFixed(0)}</p>
+          <div className="mb-4 flex gap-3 overflow-x-auto pb-1 scrollbar-thin">
+            <div className="shrink-0 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-w-[140px] shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+              <p className="text-[11px] text-text-tertiary tracking-wide uppercase">Today</p>
+              <p className="font-heading text-lg font-bold text-text-primary tabular-nums mt-0.5">${paymentStats.collected.today.amount.toFixed(0)}</p>
             </div>
-            <div className="shrink-0 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-w-[140px]">
-              <p className="text-xs text-text-tertiary">This week</p>
-              <p className="text-lg font-bold text-text-primary tabular-nums">${paymentStats.collected.week.amount.toFixed(0)}</p>
+            <div className="shrink-0 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-w-[140px] shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+              <p className="text-[11px] text-text-tertiary tracking-wide uppercase">This week</p>
+              <p className="font-heading text-lg font-bold text-text-primary tabular-nums mt-0.5">${paymentStats.collected.week.amount.toFixed(0)}</p>
             </div>
             {paymentStats.outstanding.count > 0 && (
               <div className="shrink-0 rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3 min-w-[140px]">
-                <p className="text-xs text-status-warning-text-secondary">Outstanding</p>
-                <p className="text-lg font-bold text-status-warning-text tabular-nums">${paymentStats.outstanding.amount.toFixed(0)}</p>
-                <p className="text-xs text-status-warning-text-secondary">{paymentStats.outstanding.count} unpaid</p>
+                <p className="text-[11px] text-status-warning-text-secondary tracking-wide uppercase">Outstanding</p>
+                <p className="font-heading text-lg font-bold text-status-warning-text tabular-nums mt-0.5">${paymentStats.outstanding.amount.toFixed(0)}</p>
+                <p className="text-xs text-status-warning-text-secondary mt-0.5">{paymentStats.outstanding.count} unpaid</p>
               </div>
             )}
             {paymentStats.failedPayments > 0 && (
               <div className="shrink-0 rounded-xl border border-status-danger-border bg-status-danger-bg px-4 py-3 min-w-[140px]">
-                <p className="text-xs text-status-danger-text-secondary">Failed</p>
-                <p className="text-lg font-bold text-status-danger-text tabular-nums">{paymentStats.failedPayments}</p>
-                <p className="text-xs text-status-danger-text-secondary">last 30 days</p>
+                <p className="text-[11px] text-status-danger-text-secondary tracking-wide uppercase">Failed</p>
+                <p className="font-heading text-lg font-bold text-status-danger-text tabular-nums mt-0.5">{paymentStats.failedPayments}</p>
+                <p className="text-xs text-status-danger-text-secondary mt-0.5">last 30 days</p>
               </div>
             )}
           </div>
@@ -420,42 +425,54 @@ function QuickStatsStrip({ stats }: { stats: BoardStats }) {
       label: 'Visits',
       value: `${stats.completedVisits}/${stats.totalVisits}`,
       sub: stats.inProgressVisits > 0 ? `${stats.inProgressVisits} in progress` : undefined,
+      icon: CalendarCheck,
     },
     {
       label: 'Unassigned',
       value: String(stats.unassignedCount),
       alert: stats.unassignedCount > 0,
+      icon: AlertTriangle,
     },
     {
       label: "Today's revenue",
       value: `$${stats.todayRevenue.toLocaleString()}`,
+      icon: DollarSign,
     },
     {
       label: 'On-time',
       value: `${stats.onTimeRate}%`,
+      icon: Clock,
     },
   ];
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-thin">
-      {cards.map((card) => (
-        <div
-          key={card.label}
-          className={`shrink-0 flex-1 min-w-[120px] rounded-xl border bg-surface-primary p-3 lg:p-4 ${
-            card.alert ? 'border-status-danger-border bg-status-danger-bg' : 'border-border-default'
-          }`}
-        >
-          <p className={`text-xs font-medium ${card.alert ? 'text-status-danger-text' : 'text-text-tertiary'}`}>
-            {card.label}
-          </p>
-          <p className={`mt-1 text-2xl font-bold ${card.alert ? 'text-status-danger-text' : 'text-text-primary'}`}>
-            {card.value}
-          </p>
-          {card.sub && (
-            <p className="mt-0.5 text-xs text-text-tertiary">{card.sub}</p>
-          )}
-        </div>
-      ))}
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {cards.map((card) => {
+        const IconComp = card.icon;
+        return (
+          <div
+            key={card.label}
+            className={`rounded-xl border p-4 transition-shadow duration-fast ${
+              card.alert
+                ? 'border-status-danger-border bg-status-danger-bg shadow-none'
+                : 'border-border-default bg-surface-primary shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <p className={`text-xs font-medium tracking-wide uppercase ${card.alert ? 'text-status-danger-text' : 'text-text-tertiary'}`}>
+                {card.label}
+              </p>
+              <IconComp className={`w-4 h-4 ${card.alert ? 'text-status-danger-text' : 'text-text-disabled'}`} />
+            </div>
+            <p className={`font-heading text-2xl font-bold tabular-nums tracking-tight ${card.alert ? 'text-status-danger-text' : 'text-text-primary'}`}>
+              {card.value}
+            </p>
+            {card.sub && (
+              <p className="mt-1 text-xs text-text-tertiary">{card.sub}</p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -521,13 +538,13 @@ function SitterScheduleCard({ schedule, boardDate }: { schedule: SitterSchedule;
             <a
               href={`sms:${sitter.phone}`}
               onClick={(e) => e.stopPropagation()}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default text-text-secondary hover:bg-surface-tertiary transition"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-default text-text-secondary hover:bg-surface-tertiary transition-all duration-fast"
               aria-label={`Message ${sitter.firstName}`}
             >
-              <i className="fas fa-comment-dots text-xs" />
+              <MessageCircle className="w-3.5 h-3.5" />
             </a>
           )}
-          <i className={`fas fa-chevron-${collapsed ? 'down' : 'up'} text-xs text-text-tertiary`} />
+          {collapsed ? <ChevronDown className="w-3.5 h-3.5 text-text-tertiary" /> : <ChevronUp className="w-3.5 h-3.5 text-text-tertiary" />}
         </div>
       </button>
 
@@ -704,7 +721,7 @@ function AttentionQueue({
       {allItems.length === 0 ? (
         <div className="px-4 py-6 lg:px-5 text-center">
           <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-status-success-bg text-status-success-text mb-2">
-            <i className="fas fa-check text-sm" />
+            <Check className="w-5 h-5" />
           </div>
           <p className="text-sm font-medium text-status-success-text">All clear</p>
           <p className="text-xs text-text-tertiary mt-0.5">No items need attention right now.</p>
@@ -822,39 +839,47 @@ function PredictionsCard() {
   if (alerts.length === 0 && forecast.length === 0 && !revenue) return null;
 
   return (
-    <div className="rounded-xl border border-border-default bg-surface-primary p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-text-primary">Predictions & Insights</h3>
-        <span className="text-xs text-text-tertiary">Powered by booking history</span>
+    <div className="rounded-xl border border-border-default bg-surface-primary p-5 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-text-tertiary" />
+          <h3 className="font-heading text-sm font-semibold text-text-primary">Predictions & Insights</h3>
+        </div>
+        <span className="text-[11px] text-text-disabled tracking-wide uppercase">Booking history</span>
       </div>
 
       {/* Missing booking alerts */}
       {alerts.length > 0 && (
-        <div className="mb-3">
-          <div className="text-xs font-medium text-status-warning-text mb-1">Missing bookings</div>
-          {alerts.slice(0, 3).map((a: any) => (
-            <div key={a.clientId} className="flex items-center justify-between rounded-lg border border-status-warning-border bg-status-warning-bg p-2 mb-1 text-sm">
-              <span>{a.clientName} usually books on {a.usualDay}s</span>
-              <span className="text-xs text-text-tertiary">{a.service}</span>
-            </div>
-          ))}
+        <div className="mb-4">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-status-warning-text mb-2">
+            <AlertTriangle className="w-3 h-3" />
+            Missing bookings
+          </div>
+          <div className="space-y-1.5">
+            {alerts.slice(0, 3).map((a: any) => (
+              <div key={a.clientId} className="flex items-center justify-between rounded-lg border border-status-warning-border bg-status-warning-bg px-3 py-2 text-sm">
+                <span className="text-text-primary">{a.clientName} usually books on {a.usualDay}s</span>
+                <span className="text-xs text-text-tertiary shrink-0 ml-2">{a.service}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Revenue projection */}
       {revenue && (
-        <div className="mb-3 flex gap-3">
-          <div className="flex-1 rounded-lg border p-3 text-center">
-            <div className="text-xs text-text-tertiary">This month</div>
-            <div className="text-lg font-bold tabular-nums">${(revenue.currentMonthTotal || 0).toLocaleString()}</div>
+        <div className="mb-4 grid grid-cols-3 gap-3">
+          <div className="rounded-lg border border-border-default bg-surface-secondary p-3 text-center">
+            <div className="text-[11px] text-text-tertiary tracking-wide uppercase mb-1">This month</div>
+            <div className="font-heading text-lg font-bold tabular-nums text-text-primary">${(revenue.currentMonthTotal || 0).toLocaleString()}</div>
           </div>
-          <div className="flex-1 rounded-lg border p-3 text-center">
-            <div className="text-xs text-text-tertiary">Projected</div>
-            <div className="text-lg font-bold tabular-nums">${(revenue.projectedMonthEnd || 0).toLocaleString()}</div>
+          <div className="rounded-lg border border-accent-tertiary bg-accent-tertiary/30 p-3 text-center">
+            <div className="text-[11px] text-text-tertiary tracking-wide uppercase mb-1">Projected</div>
+            <div className="font-heading text-lg font-bold tabular-nums text-text-primary">${(revenue.projectedMonthEnd || 0).toLocaleString()}</div>
           </div>
-          <div className="flex-1 rounded-lg border p-3 text-center">
-            <div className="text-xs text-text-tertiary">Last month</div>
-            <div className="text-lg font-bold tabular-nums">${(revenue.lastMonthTotal || 0).toLocaleString()}</div>
+          <div className="rounded-lg border border-border-default bg-surface-secondary p-3 text-center">
+            <div className="text-[11px] text-text-tertiary tracking-wide uppercase mb-1">Last month</div>
+            <div className="font-heading text-lg font-bold tabular-nums text-text-primary">${(revenue.lastMonthTotal || 0).toLocaleString()}</div>
           </div>
         </div>
       )}
@@ -862,12 +887,12 @@ function PredictionsCard() {
       {/* Demand forecast */}
       {forecast.length > 0 && (
         <div>
-          <div className="text-xs font-medium text-text-secondary mb-1">Next week forecast</div>
-          <div className="flex gap-1">
+          <div className="text-xs font-medium text-text-secondary mb-2">Next week forecast</div>
+          <div className="grid grid-cols-7 gap-1.5">
             {forecast.slice(0, 7).map((d: any) => (
-              <div key={d.date} className="flex-1 rounded-lg border p-2 text-center">
-                <div className="text-[10px] text-text-tertiary">{d.dayOfWeek?.slice(0, 3)}</div>
-                <div className="text-sm font-semibold tabular-nums">{d.predicted}</div>
+              <div key={d.date} className="rounded-lg border border-border-default bg-surface-primary p-2 text-center">
+                <div className="text-[10px] font-medium text-text-disabled tracking-wide uppercase">{d.dayOfWeek?.slice(0, 3)}</div>
+                <div className="font-heading text-sm font-bold tabular-nums text-text-primary mt-0.5">{d.predicted}</div>
               </div>
             ))}
           </div>
@@ -921,9 +946,9 @@ function OnboardingWizard() {
           <Link
             key={step.key}
             href={STEP_LINKS[step.key] || '/settings'}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border-default bg-surface-secondary px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-tertiary transition"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border-default bg-surface-secondary px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-tertiary transition-all duration-fast"
           >
-            <i className="fas fa-circle text-[6px] text-status-warning-fill" />
+            <Circle className="w-2 h-2 fill-status-warning-fill text-status-warning-fill" />
             {step.label}
           </Link>
         ))}
