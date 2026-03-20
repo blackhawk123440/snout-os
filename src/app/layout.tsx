@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { BuildHash } from "@/components/ui/BuildHash";
 import { tokens } from '@/lib/design-tokens';
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta", weight: ["500", "600", "700", "800"] });
 
 export const metadata: Metadata = {
   title: "Snout OS — Professional Pet Care Management",
@@ -25,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} overflow-x-hidden font-sans theme-snout`}>
+    <html lang="en" className={`${inter.variable} ${jakarta.variable} overflow-x-hidden font-sans theme-snout`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('snout-theme');if(t==='light'){document.documentElement.classList.remove('theme-snout')}else if(t==='dark'){document.documentElement.classList.remove('theme-snout');document.documentElement.classList.add('dark')}else if(t==='snout-dark'){document.documentElement.classList.remove('theme-snout');document.documentElement.classList.add('theme-snout-dark')}}catch(e){}})();` }} />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />

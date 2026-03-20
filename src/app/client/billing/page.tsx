@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
 import { ClientAtAGlanceSidebarLazy } from '@/components/client/ClientAtAGlanceSidebarLazy';
 import {
@@ -210,6 +211,9 @@ export default function ClientBillingPage() {
                 </AppCard>
               )}
 
+              {/* Service Bundles */}
+              <BundlesSection />
+
               {/* Saved payment methods */}
               <SavedPaymentMethods />
 
@@ -227,6 +231,130 @@ export default function ClientBillingPage() {
         <ClientAtAGlanceSidebarLazy />
       </div>
     </LayoutWrapper>
+  );
+}
+
+/* ─── Saved Payment Methods ──────────────────────────────────────── */
+
+/* ─── Service Bundles ────────────────────────────────────────────── */
+
+function BundlesSection() {
+  const queryClient = useQueryClient();
+  const [buyingId, setBuyingId] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery<{
+    bundles: Array<{ id: string; name: string; serviceType: string; visitCount: number; priceInCents: number; discountPercent: number; expirationDays: number }>;
+    purchases: Array<{ id: string; bundleId: string; remainingVisits: number; expiresAt: string; status: string }>;
+  }>({
+    queryKey: ['client', 'bundles'],
+    queryFn: async () => {
+      const res = await fetch('/api/client/bundles');
+      if (!res.ok) return { bundles: [], purchases: [] };
+      return res.json();
+    },
+  });
+
+  const purchaseMutation = useMutation({
+    mutationFn: async (bundleId: string) => {
+      setBuyingId(bundleId);
+      const res = await fetch('/api/client/bundles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bundleId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Purchase failed');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toastSuccess('Bundle purchased!');
+      queryClient.invalidateQueries({ queryKey: ['client', 'bundles'] });
+      setBuyingId(null);
+    },
+    onError: (err: Error) => {
+      toastError(err.message);
+      setBuyingId(null);
+    },
+  });
+
+  if (isLoading) return null;
+
+  const bundles = data?.bundles || [];
+  const purchases = (data?.purchases || []).filter(p => p.status === 'active');
+
+  // Don't render the section at all if no bundles available and no active purchases
+  if (bundles.length === 0 && purchases.length === 0) return null;
+
+  return (
+    <div>
+      <h2 className="mb-2 text-sm font-semibold text-text-primary">Service Bundles</h2>
+
+      {/* Available bundles */}
+      {bundles.length > 0 && (
+        <div className="space-y-2 mb-3">
+          {bundles.map((b) => (
+            <AppCard key={b.id}>
+              <AppCardBody>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-text-primary">{b.name}</p>
+                    <p className="text-xs text-text-tertiary">
+                      {b.visitCount} {b.serviceType} visits · {b.discountPercent}% off · Expires in {b.expirationDays} days
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-lg font-bold tabular-nums text-text-primary">
+                      ${(b.priceInCents / 100).toFixed(2)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Buy "${b.name}" for $${(b.priceInCents / 100).toFixed(2)}?`)) {
+                          purchaseMutation.mutate(b.id);
+                        }
+                      }}
+                      disabled={buyingId === b.id}
+                      className="min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition disabled:opacity-50"
+                    >
+                      {buyingId === b.id ? 'Buying…' : 'Buy'}
+                    </button>
+                  </div>
+                </div>
+              </AppCardBody>
+            </AppCard>
+          ))}
+        </div>
+      )}
+
+      {/* Active purchases */}
+      {purchases.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-text-tertiary">Your active bundles</p>
+          {purchases.map((p) => {
+            const bundle = bundles.find(b => b.id === p.bundleId);
+            return (
+              <AppCard key={p.id}>
+                <AppCardBody>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-text-primary">
+                        {bundle?.name || 'Bundle'}
+                      </p>
+                      <p className="text-xs text-text-tertiary">
+                        {p.remainingVisits} visits remaining · Expires {new Date(p.expiresAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <AppStatusPill status="active" />
+                  </div>
+                </AppCardBody>
+              </AppCard>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
