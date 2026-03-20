@@ -37,8 +37,9 @@ function formatTime(d: string) {
   return new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
-export function RouteMap({ date, apiUrl }: { date?: string; apiUrl?: string }) {
+export function RouteMap({ date, apiUrl, showShare = false }: { date?: string; apiUrl?: string; showShare?: boolean }) {
   const [expandedStop, setExpandedStop] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   const targetDate = date || new Date().toISOString().slice(0, 10);
   const endpoint = apiUrl || `/api/sitter/route?date=${targetDate}`;
@@ -50,6 +51,7 @@ export function RouteMap({ date, apiUrl }: { date?: string; apiUrl?: string }) {
       if (!res.ok) throw new Error('Failed to load route');
       return res.json();
     },
+    refetchInterval: 30000, // Live updates every 30s
   });
 
   if (isLoading) {
@@ -100,23 +102,60 @@ export function RouteMap({ date, apiUrl }: { date?: string; apiUrl?: string }) {
             {stops.filter(s => s.status === 'completed').length} completed
           </span>
         </div>
-        {data.navigation?.googleMapsUrl && (
-          <a
-            href={data.navigation.googleMapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              minHeight: 44, display: 'inline-flex', alignItems: 'center',
-              padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
-              borderRadius: 8, fontSize: tokens.typography.fontSize.sm[0],
-              fontWeight: 600, color: 'var(--color-text-inverse)',
-              backgroundColor: 'var(--color-accent-primary)',
-              textDecoration: 'none',
-            }}
-          >
-            Start Route →
-          </a>
-        )}
+        <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center' }}>
+          {showShare && (
+            <button
+              type="button"
+              onClick={async () => {
+                setSharing(true);
+                try {
+                  const res = await fetch('/api/sitter/route/share', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ date: targetDate }),
+                  });
+                  const json = await res.json();
+                  if (json.shareUrl) {
+                    if (navigator.share) {
+                      await navigator.share({ title: 'My Route', url: json.shareUrl });
+                    } else {
+                      await navigator.clipboard.writeText(json.shareUrl);
+                      alert('Route link copied!');
+                    }
+                  }
+                } catch {} finally { setSharing(false); }
+              }}
+              disabled={sharing}
+              style={{
+                minHeight: 44, display: 'inline-flex', alignItems: 'center',
+                padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+                borderRadius: 8, fontSize: tokens.typography.fontSize.sm[0],
+                fontWeight: 500, color: 'var(--color-text-secondary)',
+                border: '1px solid var(--color-border-default)',
+                backgroundColor: 'transparent', cursor: 'pointer',
+              }}
+            >
+              {sharing ? 'Sharing...' : '📤 Share'}
+            </button>
+          )}
+          {data.navigation?.googleMapsUrl && (
+            <a
+              href={data.navigation.googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                minHeight: 44, display: 'inline-flex', alignItems: 'center',
+                padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+                borderRadius: 8, fontSize: tokens.typography.fontSize.sm[0],
+                fontWeight: 600, color: 'var(--color-text-inverse)',
+                backgroundColor: 'var(--color-accent-primary)',
+                textDecoration: 'none',
+              }}
+            >
+              Start Route →
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Stop list with route line */}
