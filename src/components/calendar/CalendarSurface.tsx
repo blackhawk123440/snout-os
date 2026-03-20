@@ -1,6 +1,6 @@
 /**
  * CalendarSurface Component
- * 
+ *
  * Shared primitive for calendar month grid rendering.
  * Universal Law: ONE CALENDAR RENDERING SYSTEM
  */
@@ -80,49 +80,25 @@ export const CalendarSurface: React.FC<CalendarSurfaceProps> = ({
 
   return (
     <div
-      style={{
-        width: '100%',
-        maxWidth: '100%',
-        margin: 0,
-        overflowX: 'auto',
-        overflowY: 'visible',
-        WebkitOverflowScrolling: 'touch',
-      }}
+      className="w-full max-w-full m-0 overflow-x-auto overflow-y-visible"
+      style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <Card
         padding={false}
-        style={{
-          width: '100%',
-          minWidth: minGridWidth,
-          margin: 0,
-        }}
+        className="w-full m-0"
+        style={{ minWidth: minGridWidth }}
       >
         {/* Day Names Header */}
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            borderBottom: `1px solid ${tokens.colors.border.default}`,
-            width: '100%',
-            minWidth: minGridWidth,
-          }}
+          className="grid grid-cols-7 border-b border-border-default w-full"
+          style={{ minWidth: minGridWidth }}
         >
         {dayNames.map((day) => (
           <div
             key={day}
-            style={{
-              padding: isMobile
-                ? `${tokens.spacing[2]} ${tokens.spacing[1]}`
-                : tokens.spacing[3],
-              textAlign: 'center',
-              fontSize: isMobile
-                ? tokens.typography.fontSize.xs[0]
-                : tokens.typography.fontSize.sm[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-              color: tokens.colors.text.primary,
-              backgroundColor: tokens.colors.background.secondary,
-              borderRight: day !== 'Sat' ? `1px solid ${tokens.colors.border.default}` : 'none',
-            }}
+            className={`text-center font-semibold text-text-primary bg-surface-secondary ${
+              isMobile ? 'py-2 px-1 text-xs' : 'p-3 text-sm'
+            } ${day !== 'Sat' ? 'border-r border-border-default' : ''}`}
           >
             {day}
           </div>
@@ -131,12 +107,8 @@ export const CalendarSurface: React.FC<CalendarSurfaceProps> = ({
 
         {/* Calendar Grid */}
         <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            width: '100%',
-            minWidth: minGridWidth,
-          }}
+          className="grid grid-cols-7 w-full"
+          style={{ minWidth: minGridWidth }}
         >
         {days.map((day, index) => {
           const maxVisibleEvents = 2;
@@ -147,11 +119,12 @@ export const CalendarSurface: React.FC<CalendarSurfaceProps> = ({
             <div
               key={index}
               onClick={() => day.isCurrentMonth && onDateSelect(day.date)}
+              className={`overflow-hidden break-words relative min-w-0 transition-colors duration-normal ${
+                isMobile ? 'min-h-[60px] p-1' : 'min-h-[120px] p-2'
+              } ${index % 7 !== 6 ? 'border-r border-border-default' : ''} border-b border-border-default ${
+                day.isCurrentMonth ? 'cursor-pointer opacity-100' : 'cursor-default opacity-50'
+              }`}
               style={{
-                minHeight: isMobile ? '60px' : '120px',
-                borderRight: index % 7 !== 6 ? `1px solid ${tokens.colors.border.default}` : 'none',
-                borderBottom: `1px solid ${tokens.colors.border.default}`,
-                padding: isMobile ? tokens.spacing[1] : tokens.spacing[2],
                 backgroundColor: day.isCurrentMonth
                   ? isSelected
                     ? tokens.colors.primary[50]
@@ -159,13 +132,6 @@ export const CalendarSurface: React.FC<CalendarSurfaceProps> = ({
                     ? tokens.colors.background.tertiary
                     : tokens.colors.background.primary
                   : tokens.colors.background.secondary,
-                cursor: day.isCurrentMonth ? 'pointer' : 'default',
-                opacity: day.isCurrentMonth ? 1 : 0.5,
-                transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
-                overflow: 'hidden',
-                wordBreak: 'break-word',
-                position: 'relative',
-                minWidth: 0,
               }}
               onMouseEnter={(e) => {
                 if (day.isCurrentMonth && !day.isPast && !isSelected) {
@@ -183,47 +149,21 @@ export const CalendarSurface: React.FC<CalendarSurfaceProps> = ({
               }}
             >
               {/* Date Number */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: tokens.spacing[1],
-                }}
-              >
+              <div className="flex items-center justify-between mb-1">
                 <span
-                  style={{
-                    fontSize: tokens.typography.fontSize.sm[0],
-                    fontWeight: day.isToday
-                      ? tokens.typography.fontWeight.bold
-                      : tokens.typography.fontWeight.normal,
-                    color: day.isToday
-                      ? tokens.colors.primary.DEFAULT
-                      : tokens.colors.text.primary,
-                  }}
+                  className={`text-sm ${
+                    day.isToday ? 'font-bold text-primary' : 'font-normal text-text-primary'
+                  }`}
                 >
                   {day.date.getDate()}
                 </span>
                 {day.isToday && (
-                  <div
-                    style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: tokens.borderRadius.full,
-                      backgroundColor: tokens.colors.primary.DEFAULT,
-                    }}
-                  />
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                 )}
               </div>
 
               {/* Events */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: tokens.spacing[1],
-                }}
-              >
+              <div className="flex flex-col gap-1">
                 {day.events.slice(0, maxVisibleEvents).map((event) => {
                   const dateStr = day.date.toISOString().split('T')[0];
                   let displayTime = '';
@@ -263,37 +203,14 @@ export const CalendarSurface: React.FC<CalendarSurfaceProps> = ({
                           onDateSelect(day.date);
                         }
                       }}
-                      style={{
-                        padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                        borderRadius: tokens.borderRadius.sm,
-                        fontSize: tokens.typography.fontSize.xs[0],
-                        backgroundColor: tokens.colors.primary[100],
-                        color: tokens.colors.text.primary,
-                        cursor: 'pointer',
-                        borderLeft: `3px solid ${tokens.colors.primary.DEFAULT}`,
-                      }}
+                      className="py-1 px-2 rounded-sm text-xs bg-[#fef2f8] text-text-primary cursor-pointer border-l-[3px] border-l-primary"
                       title={`${renderEventLabel(event)} - ${event.service}`}
                     >
-                      <div
-                        style={{
-                          fontWeight: tokens.typography.fontWeight.semibold,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <div className="font-semibold overflow-hidden text-ellipsis whitespace-nowrap">
                         {renderEventLabel(event)}
                       </div>
                       {displayTime && (
-                        <div
-                          style={{
-                            fontSize: tokens.typography.fontSize.xs[0],
-                            opacity: 0.8,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
+                        <div className="text-xs opacity-80 overflow-hidden text-ellipsis whitespace-nowrap">
                           {displayTime}
                         </div>
                       )}
@@ -307,17 +224,7 @@ export const CalendarSurface: React.FC<CalendarSurfaceProps> = ({
                       e.stopPropagation();
                       onDateSelect(day.date);
                     }}
-                    style={{
-                      padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
-                      borderRadius: tokens.borderRadius.sm,
-                      fontSize: tokens.typography.fontSize.xs[0],
-                      backgroundColor: tokens.colors.primary[50],
-                      color: tokens.colors.primary.DEFAULT,
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontWeight: tokens.typography.fontWeight.medium,
-                      textAlign: 'left',
-                    }}
+                    className="py-1 px-2 rounded-sm text-xs bg-[#fef7fb] text-primary border-none cursor-pointer font-medium text-left"
                   >
                     {remainingCount} more
                   </button>
@@ -331,4 +238,3 @@ export const CalendarSurface: React.FC<CalendarSurfaceProps> = ({
     </div>
   );
 };
-

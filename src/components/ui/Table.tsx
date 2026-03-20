@@ -1,6 +1,6 @@
 /**
  * Table Component
- * 
+ *
  * Enterprise data table with sticky header, row hover, empty states, and loading skeletons.
  * On mobile, renders as card list instead of table.
  */
@@ -49,7 +49,7 @@ export function Table<T extends Record<string, any>>({
   ...props
 }: TableProps<T>) {
   const isMobile = useMobile();
-  
+
   const getKey = (row: T, index: number): string => {
     if (keyExtractor) return keyExtractor(row, index);
     return row.id || row.key || `row-${index}`;
@@ -64,52 +64,19 @@ export function Table<T extends Record<string, any>>({
     });
 
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: tokens.spacing[3],
-          width: '100%',
-          maxWidth: '100%',
-          overflowX: 'hidden', // Part A: Zero horizontal scroll enforcement
-        }}
-      >
+      <div className="flex flex-col gap-3 w-full max-w-full overflow-x-hidden">
         {loading ? (
           Array.from({ length: 5 }).map((_, index) => (
-            <Card key={`skeleton-${index}`} style={{ padding: tokens.spacing[4] }}>
-              <div
-                style={{
-                  height: '1rem',
-                  backgroundColor: tokens.colors.neutral[200],
-                  borderRadius: tokens.borderRadius.sm,
-                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                  marginBottom: tokens.spacing[2],
-                }}
-              />
-              <div
-                style={{
-                  height: '1rem',
-                  width: '60%',
-                  backgroundColor: tokens.colors.neutral[200],
-                  borderRadius: tokens.borderRadius.sm,
-                  animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                }}
-              />
+            <Card key={`skeleton-${index}`} className="p-4">
+              <div className="h-4 bg-neutral-200 rounded-sm animate-pulse mb-2" />
+              <div className="h-4 w-[60%] bg-neutral-200 rounded-sm animate-pulse" />
             </Card>
           ))
         ) : data.length === 0 ? (
-          <Card style={{ padding: tokens.spacing[6] }}>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: tokens.spacing[2],
-                color: tokens.colors.text.secondary,
-              }}
-            >
-              <div style={{ fontSize: tokens.typography.fontSize['2xl'][0], opacity: 0.5 }}>📭</div>
-              <p style={{ fontSize: tokens.typography.fontSize.base[0], margin: 0 }}>{emptyMessage}</p>
+          <Card className="p-6">
+            <div className="flex flex-col items-center gap-2 text-text-secondary">
+              <div className="text-2xl opacity-50">📭</div>
+              <p className="text-base m-0">{emptyMessage}</p>
             </div>
           </Card>
         ) : (
@@ -117,11 +84,10 @@ export function Table<T extends Record<string, any>>({
             <Card
               key={getKey(row, index)}
               onClick={() => onRowClick?.(row, index)}
-              style={{
-                padding: tokens.spacing[4],
-                cursor: onRowClick ? 'pointer' : 'default',
-                transition: `all ${tokens.transitions.duration.DEFAULT}`,
-              }}
+              className={cn(
+                'p-4 transition-all duration-normal',
+                onRowClick ? 'cursor-pointer' : 'cursor-default'
+              )}
               onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                 if (onRowClick) {
                   e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
@@ -131,40 +97,30 @@ export function Table<T extends Record<string, any>>({
                 e.currentTarget.style.backgroundColor = tokens.colors.background.primary;
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+              <div className="flex flex-col gap-3">
                 {sortedColumns.map((column) => {
                   const content = column.render ? column.render(row, index) : row[column.key];
                   const label = column.mobileLabel || column.header;
-                  
+
                   return (
-                    <div key={column.key} style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[1] }}>
-                      <div
-                        style={{
-                          fontSize: tokens.typography.fontSize.xs[0],
-                          fontWeight: tokens.typography.fontWeight.medium,
-                          color: tokens.colors.text.secondary,
-                          textTransform: 'uppercase',
-                          letterSpacing: tokens.typography.letterSpacing.wide,
-                        }}
-                      >
+                    <div key={column.key} className="flex flex-col gap-1">
+                      <div className="text-xs font-medium text-text-secondary uppercase tracking-wide">
                         {label}
                       </div>
                       <div
-                        style={{
-                          fontSize: column.key === 'client' || column.key === 'service' 
-                            ? tokens.typography.fontSize.xl[0]  // Even larger font for key info (client name, service) - mobile readability
+                        className={cn(
+                          'text-text-primary break-words leading-[1.4]',
+                          column.key === 'client' || column.key === 'service'
+                            ? 'text-xl'
                             : column.key === 'date' || column.key === 'schedule'
-                            ? tokens.typography.fontSize.base[0]  // Standard size for dates
-                            : tokens.typography.fontSize.sm[0],  // Slightly smaller for secondary info
-                          fontWeight: column.key === 'client' 
-                            ? tokens.typography.fontWeight.bold  // Bold client name for emphasis
+                            ? 'text-base'
+                            : 'text-sm',
+                          column.key === 'client'
+                            ? 'font-bold'
                             : column.key === 'service'
-                            ? tokens.typography.fontWeight.semibold
-                            : tokens.typography.fontWeight.normal,
-                          color: tokens.colors.text.primary,
-                          wordBreak: 'break-word',
-                          lineHeight: 1.4,
-                        }}
+                            ? 'font-semibold'
+                            : 'font-normal'
+                        )}
                       >
                         {content}
                       </div>
@@ -175,80 +131,43 @@ export function Table<T extends Record<string, any>>({
             </Card>
           ))
         )}
-        <style jsx>{`
-          @keyframes pulse {
-            0%, 100% {
-              opacity: 1;
-            }
-            50% {
-              opacity: 0.5;
-            }
-          }
-        `}</style>
       </div>
     );
   }
 
   // Desktop Table Layout
   return (
-    <div
-      style={{
-        border: `1px solid ${tokens.colors.border.default}`,
-        borderRadius: tokens.borderRadius.lg,
-        overflow: 'visible', // Changed to visible to allow dropdowns to render outside
-        backgroundColor: tokens.colors.background.primary,
-      }}
-    >
+    <div className="border border-border-default rounded-lg overflow-visible bg-surface-primary">
       <div
-        className="table-wrapper"
+        className="table-wrapper overflow-y-auto w-full max-w-full relative"
         style={{
           overflowX: forceTableLayout ? 'auto' : isMobile ? 'hidden' : 'auto',
-          overflowY: 'auto',
           maxHeight: 'calc(100vh - 300px)',
-          width: '100%',
-          maxWidth: '100%',
           WebkitOverflowScrolling: 'touch',
-          position: 'relative', // Create stacking context for table cells
         }}
       >
         <table
           {...props}
+          className={cn('w-full max-w-full border-collapse', props.className)}
           style={{
-            width: '100%',
-            maxWidth: '100%', // Part A: Zero horizontal scroll enforcement
-            borderCollapse: 'collapse',
             tableLayout: isMobile && !forceTableLayout ? 'fixed' : 'auto',
             ...props.style,
           }}
         >
-          <thead
-            style={{
-              position: 'sticky',
-              top: 0,
-              zIndex: tokens.zIndex.sticky,
-              backgroundColor: tokens.colors.background.secondary,
-              borderBottom: `2px solid ${tokens.colors.border.default}`,
-            }}
-          >
+          <thead className="sticky top-0 z-[1020] bg-surface-secondary border-b-2 border-border-default">
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
                   className={cn(
+                    'py-3 px-4 text-sm font-semibold text-text-primary uppercase tracking-wide whitespace-nowrap',
                     column.hideBelow === 'md' && colPriorityMd,
                     column.hideBelow === 'lg' && colPriorityLg
                   )}
                   style={{
-                    padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
                     textAlign: column.align || 'left',
-                    fontSize: tokens.typography.fontSize.sm[0],
-                    fontWeight: tokens.typography.fontWeight.semibold,
-                    color: tokens.colors.text.primary,
-                    textTransform: 'uppercase',
-                    letterSpacing: tokens.typography.letterSpacing.wide,
                     width: column.width,
                     minWidth: column.width,
-                    whiteSpace: 'nowrap',
                   }}
                 >
                   {column.header}
@@ -265,22 +184,13 @@ export function Table<T extends Record<string, any>>({
                     <td
                       key={column.key}
                       className={cn(
+                        'p-4',
                         column.hideBelow === 'md' && colPriorityMd,
                         column.hideBelow === 'lg' && colPriorityLg
                       )}
-                      style={{
-                        padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
-                        textAlign: column.align || 'left',
-                      }}
+                      style={{ textAlign: column.align || 'left' }}
                     >
-                      <div
-                        style={{
-                          height: '1rem',
-                          backgroundColor: tokens.colors.neutral[200],
-                          borderRadius: tokens.borderRadius.sm,
-                          animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        }}
-                      />
+                      <div className="h-4 bg-neutral-200 rounded-sm animate-pulse" />
                     </td>
                   ))}
                 </tr>
@@ -290,27 +200,11 @@ export function Table<T extends Record<string, any>>({
               <tr>
                 <td
                   colSpan={columns.length}
-                  style={{
-                    padding: tokens.spacing[12],
-                    textAlign: 'center',
-                  }}
+                  className="p-12 text-center"
                 >
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: tokens.spacing[2],
-                      color: tokens.colors.text.secondary,
-                    }}
-                  >
+                  <div className="flex flex-col items-center gap-2 text-text-secondary">
 <Inbox className="w-7 h-7 opacity-50" aria-hidden />
-                    <p
-                      style={{
-                        fontSize: tokens.typography.fontSize.base[0],
-                        margin: 0,
-                      }}
-                    >
+                    <p className="text-base m-0">
                       {emptyMessage}
                     </p>
                   </div>
@@ -322,16 +216,10 @@ export function Table<T extends Record<string, any>>({
                 <tr
                   key={getKey(row, index)}
                   onClick={() => onRowClick?.(row, index)}
-                  style={{
-                    cursor: onRowClick ? 'pointer' : 'default',
-                    borderBottom: `1px solid ${tokens.colors.border.muted}`,
-                    transition: `background-color ${tokens.transitions.duration.DEFAULT}`,
-                    ...(onRowClick && {
-                      ':hover': {
-                        backgroundColor: tokens.colors.background.secondary,
-                      },
-                    }),
-                  }}
+                  className={cn(
+                    'border-b border-border-muted transition-colors duration-normal',
+                    onRowClick ? 'cursor-pointer hover:bg-surface-secondary' : 'cursor-default'
+                  )}
                   onMouseEnter={(e) => {
                     if (onRowClick) {
                       e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
@@ -345,15 +233,11 @@ export function Table<T extends Record<string, any>>({
                     <td
                       key={column.key}
                       className={cn(
+                        'p-4 text-base text-text-primary',
                         column.hideBelow === 'md' && colPriorityMd,
                         column.hideBelow === 'lg' && colPriorityLg
                       )}
-                      style={{
-                        padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
-                        textAlign: column.align || 'left',
-                        fontSize: tokens.typography.fontSize.base[0],
-                        color: tokens.colors.text.primary,
-                      }}
+                      style={{ textAlign: column.align || 'left' }}
                     >
                       {column.render ? column.render(row, index) : row[column.key]}
                     </td>
@@ -364,17 +248,6 @@ export function Table<T extends Record<string, any>>({
           </tbody>
         </table>
       </div>
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-        }
-      `}</style>
     </div>
   );
 }
-

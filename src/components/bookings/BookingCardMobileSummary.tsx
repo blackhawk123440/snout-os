@@ -1,6 +1,6 @@
 /**
  * BookingCardMobileSummary Component
- * 
+ *
  * Mobile booking card with exact field order and inline controls.
  * Part B requirement: Exact order - Service+Status, Client name, Schedule, Pets+Total, Address, Inline controls
  */
@@ -92,18 +92,9 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
   return (
     <div
       onClick={handleCardClick}
-      style={{
-        width: '100%',
-        padding: tokens.spacing[4],
-        backgroundColor: tokens.colors.background.primary,
-        border: `1px solid ${tokens.colors.border.default}`,
-        borderRadius: tokens.borderRadius.lg,
-        cursor: onOpen ? 'pointer' : 'default',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: tokens.spacing[4],
-        position: 'relative',
-      }}
+      className={`w-full p-4 bg-surface-primary border border-border-default rounded-lg flex flex-col gap-4 relative ${
+        onOpen ? 'cursor-pointer' : 'cursor-default'
+      }`}
     >
       {/* Selection Checkbox */}
       {showSelection && onToggleSelected && (
@@ -113,12 +104,7 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
             e.stopPropagation();
             onToggleSelected();
           }}
-          style={{
-            position: 'absolute',
-            top: tokens.spacing[3],
-            left: tokens.spacing[3],
-            zIndex: 10,
-          }}
+          className="absolute top-3 left-3 z-10"
         >
           <input
             type="checkbox"
@@ -127,59 +113,31 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
               e.stopPropagation();
               onToggleSelected();
             }}
-            style={{
-              width: '20px',
-              height: '20px',
-              cursor: 'pointer',
-              accentColor: tokens.colors.primary.DEFAULT,
-            }}
+            className="w-5 h-5 cursor-pointer"
+            style={{ accentColor: tokens.colors.primary.DEFAULT }}
           />
         </div>
       )}
 
       {/* Line 1: Service (left) + Status badge (right) */}
       <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: tokens.spacing[2],
-          paddingRight: showSelection ? tokens.spacing[6] : 0,
-        }}
+        className={`flex justify-between items-center gap-2 ${
+          showSelection ? 'pr-6' : ''
+        }`}
       >
-        <div
-          style={{
-            fontSize: tokens.typography.fontSize.lg[0], // Made bigger per requirements
-            fontWeight: tokens.typography.fontWeight.medium,
-            color: tokens.colors.text.secondary, // Lighter color
-            lineHeight: 1.4,
-          }}
-        >
+        <div className="text-lg font-medium text-text-secondary leading-[1.4]">
           {booking.service}
         </div>
-        <Badge variant={getStatusVariant(booking.status)} style={{ fontSize: tokens.typography.fontSize.base[0] }}>{booking.status}</Badge>
+        <Badge variant={getStatusVariant(booking.status)} className="text-base">{booking.status}</Badge>
       </div>
 
       {/* Line 2: Client name (dominant anchor) */}
-      <div
-        style={{
-          fontSize: tokens.typography.fontSize['2xl'][0], // Larger, dominant
-          fontWeight: tokens.typography.fontWeight.bold,
-          color: tokens.colors.text.primary,
-          lineHeight: 1.3,
-        }}
-      >
+      <div className="text-2xl font-bold text-text-primary leading-[1.3]">
         {booking.firstName} {booking.lastName}
       </div>
 
       {/* Line 3: Date and time summary (secondary) - Made bigger */}
-      <div
-        style={{
-          fontSize: tokens.typography.fontSize.base[0], // Made bigger per requirements
-          color: tokens.colors.text.secondary,
-          lineHeight: 1.4,
-        }}
-      >
+      <div className="text-base text-text-secondary leading-[1.4]">
         <BookingScheduleDisplay
           service={booking.service}
           startAt={booking.startAt}
@@ -190,76 +148,30 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
       </div>
 
       {/* Compact info stack: Pets count, Total, Address, Sitter pool summary */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: tokens.spacing[2],
-        }}
-      >
+      <div className="flex flex-col gap-2">
         {/* Pets count + Total on same line - Made bigger */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: tokens.spacing[2],
-          }}
-        >
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-              fontWeight: tokens.typography.fontWeight.semibold,
-            }}
-          >
+        <div className="flex flex-col gap-2">
+          <div className="text-sm text-text-secondary font-semibold">
             Total Price
           </div>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize['2xl'][0], // Made bigger per requirements
-              fontWeight: tokens.typography.fontWeight.bold,
-              color: tokens.colors.text.primary,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+          <div className="text-2xl font-bold text-text-primary tabular-nums">
             {formatCurrency(booking.totalPrice)}
           </div>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.base[0],
-              color: tokens.colors.text.secondary,
-            }}
-          >
+          <div className="text-base text-text-secondary">
             {formatPetsByQuantity(booking.pets)}
           </div>
         </div>
 
         {/* Address */}
         {booking.address && (
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-              wordBreak: 'break-word',
-              overflow: 'hidden',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              lineHeight: 1.4,
-            }}
-          >
+          <div className="text-sm text-text-secondary break-words overflow-hidden leading-[1.4] line-clamp-2">
             {booking.address}
           </div>
         )}
 
         {/* Sitter pool summary */}
         {sitterPoolSitters.length > 0 && (
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-            }}
-          >
+          <div className="text-sm text-text-secondary">
             Pool: {sitterPoolSitters.map(s => s.firstName).join(', ')}
             {sitterPoolSitters.length > 2 && ` +${sitterPoolSitters.length - 2}`}
           </div>
@@ -269,12 +181,7 @@ export const BookingCardMobileSummary: React.FC<BookingCardMobileSummaryProps> =
       {/* Inline controls: Status control + Sitter pool control */}
       <div
         data-inline-control
-        style={{
-          display: 'flex',
-          gap: tokens.spacing[2],
-          marginTop: tokens.spacing[2],
-          flexWrap: 'wrap',
-        }}
+        className="flex gap-2 mt-2 flex-wrap"
       >
         <BookingStatusInlineControl
           bookingId={booking.id}

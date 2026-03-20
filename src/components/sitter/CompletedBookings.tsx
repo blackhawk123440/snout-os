@@ -1,6 +1,6 @@
 /**
  * Completed Bookings Component
- * 
+ *
  * Collapsed by default. Shows earnings breakdown and history
  */
 
@@ -8,7 +8,6 @@
 
 import { useState } from 'react';
 import { Card, Button } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 import { type SitterBooking } from '@/lib/api/sitter-dashboard-hooks';
 import { format } from 'date-fns';
 
@@ -21,33 +20,21 @@ export function CompletedBookings({ bookings, totalEarnings }: CompletedBookings
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Sort by completion date (most recent first)
-  const sortedBookings = [...bookings].sort((a, b) => 
+  const sortedBookings = [...bookings].sort((a, b) =>
     new Date(b.endAt).getTime() - new Date(a.endAt).getTime()
   );
 
   return (
-    <Card style={{ padding: tokens.spacing[4] }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: isExpanded ? tokens.spacing[4] : 0,
-      }}>
+    <Card className="p-4">
+      <div className={`flex justify-between items-center ${isExpanded ? 'mb-4' : ''}`}>
         <div>
-          <h2 style={{ 
-            fontSize: tokens.typography.fontSize.xl[0], 
-            fontWeight: tokens.typography.fontWeight.bold,
-            marginBottom: tokens.spacing[1],
-          }}>
+          <h2 className="text-xl font-bold mb-1">
             Completed Bookings
           </h2>
-          <div style={{ 
-            fontSize: tokens.typography.fontSize.sm[0],
-            color: tokens.colors.text.secondary,
-          }}>
+          <div className="text-sm text-text-secondary">
             {bookings.length} {bookings.length === 1 ? 'booking' : 'bookings'} completed
             {totalEarnings !== null && (
-              <span style={{ marginLeft: tokens.spacing[2] }}>
+              <span className="ml-2">
                 • Total earnings: <strong>${totalEarnings.toFixed(2)}</strong>
               </span>
             )}
@@ -63,19 +50,14 @@ export function CompletedBookings({ bookings, totalEarnings }: CompletedBookings
       </div>
 
       {isExpanded && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+        <div className="flex flex-col gap-3">
           {sortedBookings.length === 0 ? (
-            <div style={{ 
-              padding: tokens.spacing[4],
-              textAlign: 'center',
-              color: tokens.colors.text.secondary,
-              fontSize: tokens.typography.fontSize.sm[0],
-            }}>
+            <div className="p-4 text-center text-text-secondary text-sm">
               No completed bookings yet. Completed bookings will appear here with earnings details.
             </div>
           ) : (
             sortedBookings.map((booking) => {
-              const clientName = booking.client 
+              const clientName = booking.client
                 ? `${booking.client.firstName} ${booking.client.lastName}`
                 : `${booking.firstName} ${booking.lastName}`;
 
@@ -84,36 +66,18 @@ export function CompletedBookings({ bookings, totalEarnings }: CompletedBookings
               return (
                 <Card
                   key={booking.id}
-                  style={{
-                    padding: tokens.spacing[3],
-                    border: `1px solid ${tokens.colors.border.default}`,
-                    backgroundColor: tokens.colors.neutral[50],
-                  }}
+                  className="p-3 border border-border-default bg-neutral-50"
                 >
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}>
+                  <div className="flex justify-between items-center">
                     <div>
-                      <div style={{ 
-                        fontWeight: tokens.typography.fontWeight.medium,
-                        marginBottom: tokens.spacing[1],
-                      }}>
+                      <div className="font-medium mb-1">
                         {clientName} • {booking.service}
                       </div>
-                      <div style={{ 
-                        fontSize: tokens.typography.fontSize.sm[0],
-                        color: tokens.colors.text.secondary,
-                      }}>
+                      <div className="text-sm text-text-secondary">
                         {format(new Date(booking.endAt), 'MMM d, yyyy')}
                       </div>
                     </div>
-                    <div style={{ 
-                      fontSize: tokens.typography.fontSize.lg[0],
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      color: tokens.colors.success.DEFAULT,
-                    }}>
+                    <div className="text-lg font-semibold text-success">
                       ${payout.toFixed(2)}
                     </div>
                   </div>

@@ -1,6 +1,6 @@
 /**
  * Tier Summary Card
- * 
+ *
  * Shows tier summary for Dashboard tab
  */
 
@@ -67,7 +67,7 @@ export function TierSummaryCard({ sitterId, onViewDetails }: TierSummaryCardProp
 
   if (isLoading) {
     return (
-      <Card style={{ padding: tokens.spacing[4] }}>
+      <Card className="p-4">
         <SectionHeader title="Tier Summary" />
         <Skeleton height={120} />
       </Card>
@@ -77,7 +77,7 @@ export function TierSummaryCard({ sitterId, onViewDetails }: TierSummaryCardProp
   // Foundation state - no data yet
   if (!data?.currentTier && !data?.metrics) {
     return (
-      <Card style={{ padding: tokens.spacing[4] }}>
+      <Card className="p-4">
         <SectionHeader title="Tier Summary" />
         <EmptyState
           title="Tier activates after activity"
@@ -88,7 +88,7 @@ export function TierSummaryCard({ sitterId, onViewDetails }: TierSummaryCardProp
           variant="secondary"
           size="sm"
           onClick={onViewDetails}
-          style={{ marginTop: tokens.spacing[3], width: '100%' }}
+          className="mt-3 w-full"
         >
           View Tier Details
         </Button>
@@ -97,22 +97,21 @@ export function TierSummaryCard({ sitterId, onViewDetails }: TierSummaryCardProp
   }
 
   return (
-    <Card style={{ padding: tokens.spacing[4] }}>
+    <Card className="p-4">
       <SectionHeader title="Tier Summary" />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+      <div className="flex flex-col gap-3">
         {/* Current Tier Badge */}
         {data.currentTier && (() => {
           const canonicalName = toCanonicalTierName(data.currentTier.name);
           return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+            <div className="flex items-center gap-2">
               <Badge
                 variant="default"
                 style={{
                   backgroundColor: tierColors[canonicalName] || tokens.colors.neutral[500],
                   color: 'white',
-                  fontSize: tokens.typography.fontSize.base[0],
-                  padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
                 }}
+                className="text-base px-3 py-2"
               >
                 {canonicalName}
               </Badge>
@@ -122,42 +121,37 @@ export function TierSummaryCard({ sitterId, onViewDetails }: TierSummaryCardProp
 
         {/* Metrics */}
         {data.metrics && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: tokens.spacing[2],
-            fontSize: tokens.typography.fontSize.sm[0],
-          }}>
+          <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[0.5] }}>
+              <div className="text-text-secondary mb-0.5">
                 Avg Response
               </div>
-              <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+              <div className="font-semibold">
                 {formatResponseTime(data.metrics.avgResponseSeconds)}
               </div>
             </div>
             <div>
-              <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[0.5] }}>
+              <div className="text-text-secondary mb-0.5">
                 Accept Rate
               </div>
-              <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+              <div className="font-semibold">
                 {formatPercentage(data.metrics.offerAcceptRate)}
               </div>
             </div>
             <div>
-              <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[0.5] }}>
+              <div className="text-text-secondary mb-0.5">
                 Expire Rate
               </div>
-              <div style={{ fontWeight: tokens.typography.fontWeight.semibold }}>
+              <div className="font-semibold">
                 {formatPercentage(data.metrics.offerExpireRate)}
               </div>
             </div>
             {data.metrics.lastUpdated && (
               <div>
-                <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[0.5] }}>
+                <div className="text-text-secondary mb-0.5">
                   Last Updated
                 </div>
-                <div style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
+                <div className="text-xs">
                   {new Date(data.metrics.lastUpdated).toLocaleDateString()}
                 </div>
               </div>
@@ -170,7 +164,7 @@ export function TierSummaryCard({ sitterId, onViewDetails }: TierSummaryCardProp
           variant="secondary"
           size="sm"
           onClick={onViewDetails}
-          style={{ marginTop: tokens.spacing[2], width: '100%' }}
+          className="mt-2 w-full"
         >
           View Tier Details
         </Button>

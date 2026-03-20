@@ -1,6 +1,6 @@
 /**
  * Assignments Panel - Embedded in Messages tab
- * 
+ *
  * Owner can create, edit, delete assignment windows with overlap prevention
  */
 
@@ -9,7 +9,6 @@
 import { useState } from 'react';
 import { Card, Button, Badge, Table, TableColumn, EmptyState, Skeleton, Modal, Input } from '@/components/ui';
 import { CalendarCheck } from 'lucide-react';
-import { tokens } from '@/lib/design-tokens';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api/client';
 import { z } from 'zod';
@@ -82,7 +81,7 @@ export function AssignmentsPanel() {
     endsAt: '',
     bookingRef: '',
   });
-  
+
   const createWindow = useCreateWindow();
   const deleteWindow = useDeleteWindow();
 
@@ -141,9 +140,9 @@ export function AssignmentsPanel() {
       key: 'window',
       header: 'Window',
       render: (w) => (
-        <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+        <div className="text-sm">
           <div>{new Date(w.startsAt).toLocaleString()}</div>
-          <div style={{ color: tokens.colors.text.secondary }}>to {new Date(w.endsAt).toLocaleString()}</div>
+          <div className="text-text-secondary">to {new Date(w.endsAt).toLocaleString()}</div>
         </div>
       ),
     },
@@ -183,12 +182,12 @@ export function AssignmentsPanel() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[4] }}>
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[1] }}>
+          <h2 className="text-xl font-bold mb-1">
             Assignment Windows
           </h2>
-          <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+          <p className="text-text-secondary text-sm">
             Create, edit, and manage assignment windows. Overlaps are prevented automatically.
           </p>
         </div>
@@ -211,15 +210,15 @@ export function AssignmentsPanel() {
 
       {showCreateModal && (
         <Modal isOpen={showCreateModal} title="Create Assignment Window" onClose={() => setShowCreateModal(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div className="flex flex-col gap-4">
             <div>
-              <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+              <label className="block mb-2 font-medium">
                 Thread (Client)
               </label>
               <select
                 value={createForm.threadId}
                 onChange={(e) => setCreateForm({ ...createForm, threadId: e.target.value })}
-                style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}`, width: '100%' }}
+                className="p-2 rounded-md w-full border border-border-default"
               >
                 <option value="">Select thread...</option>
                 {threads.map((t: any) => (
@@ -231,13 +230,13 @@ export function AssignmentsPanel() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+              <label className="block mb-2 font-medium">
                 Sitter
               </label>
               <select
                 value={createForm.sitterId}
                 onChange={(e) => setCreateForm({ ...createForm, sitterId: e.target.value })}
-                style={{ padding: tokens.spacing[2], borderRadius: tokens.borderRadius.md, border: `1px solid ${tokens.colors.border.default}`, width: '100%' }}
+                className="p-2 rounded-md w-full border border-border-default"
               >
                 <option value="">Select sitter...</option>
                 {sitters.map((s: any) => (
@@ -249,7 +248,7 @@ export function AssignmentsPanel() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+              <label className="block mb-2 font-medium">
                 Start Date & Time
               </label>
               <Input
@@ -260,7 +259,7 @@ export function AssignmentsPanel() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+              <label className="block mb-2 font-medium">
                 End Date & Time
               </label>
               <Input
@@ -271,7 +270,7 @@ export function AssignmentsPanel() {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+              <label className="block mb-2 font-medium">
                 Booking Reference (optional)
               </label>
               <Input
@@ -281,7 +280,7 @@ export function AssignmentsPanel() {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+            <div className="flex gap-3 justify-end">
               <Button onClick={() => setShowCreateModal(false)} variant="secondary">
                 Cancel
               </Button>

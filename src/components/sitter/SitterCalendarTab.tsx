@@ -1,6 +1,6 @@
 /**
  * Sitter Calendar Tab
- * 
+ *
  * Displays Google Calendar sync status and upcoming bookings.
  */
 
@@ -9,7 +9,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Calendar, Clock, Info, MapPin, Pause, Play } from 'lucide-react';
 import { Card, Button, Badge, EmptyState, Skeleton, SectionHeader } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 import { toastError } from '@/lib/toast';
 import { BookingScheduleDisplay } from '@/components/booking';
 import { useMobile } from '@/lib/use-mobile';
@@ -126,7 +125,7 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <div className="flex flex-col gap-4">
         <Skeleton height={200} />
         <Skeleton height={400} />
       </div>
@@ -134,14 +133,14 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+    <div className="flex flex-col gap-4">
       {/* Sync Status Card */}
       <Card>
         <SectionHeader title="Google Calendar Sync" />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div className="p-4">
           {calendarStatus?.connected ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3] }}>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
                 <Badge variant="success">Connected</Badge>
                 <Badge variant={calendarStatus.syncEnabled ? 'success' : 'default'}>
                   {calendarStatus.syncEnabled ? 'Sync Enabled' : 'Sync Disabled'}
@@ -149,11 +148,11 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
               </div>
 
               {calendarStatus.calendarName && (
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                <div className="text-sm text-text-secondary">
                   <Calendar className="w-4 h-4 mr-2" />
                   {calendarStatus.calendarName}
                   {calendarStatus.calendarId && calendarStatus.calendarId !== 'primary' && (
-                    <span style={{ marginLeft: tokens.spacing[2], opacity: 0.7 }}>
+                    <span className="ml-2 opacity-70">
                       ({calendarStatus.calendarId})
                     </span>
                   )}
@@ -161,18 +160,18 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
               )}
 
               {calendarStatus.lastSyncAt ? (
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                <div className="text-sm text-text-secondary">
                   <Clock className="w-4 h-4 mr-2" />
                   Last synced: {formatDate(calendarStatus.lastSyncAt)} at {formatTime(calendarStatus.lastSyncAt)}
                 </div>
               ) : (
-                <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, fontStyle: 'italic' }}>
+                <div className="text-sm text-text-secondary italic">
                   <Info className="w-4 h-4 mr-2" />
                   No syncs yet
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: tokens.spacing[3] }}>
+              <div className="flex gap-3">
                 <Button
                   variant={calendarStatus.syncEnabled ? 'secondary' : 'primary'}
                   onClick={handleToggleSync}
@@ -184,11 +183,11 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
               </div>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[3] }}>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
                 <Badge variant="error">Not Connected</Badge>
               </div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+              <div className="text-sm text-text-secondary">
                 Connect your Google Calendar to automatically sync booking assignments.
               </div>
               <Button
@@ -207,7 +206,7 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
       {/* Upcoming Bookings */}
       <Card>
         <SectionHeader title="Upcoming Bookings" />
-        <div style={{ padding: tokens.spacing[4] }}>
+        <div className="p-4">
           {upcomingBookings.length === 0 ? (
             <EmptyState
               icon="📅"
@@ -215,25 +214,18 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
               description="Bookings will appear here once assigned"
             />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+            <div className="flex flex-col gap-3">
               {upcomingBookings.map((booking) => (
                 <div
                   key={booking.id}
-                  style={{
-                    padding: tokens.spacing[3],
-                    border: `1px solid ${tokens.colors.border.default}`,
-                    borderRadius: tokens.borderRadius.md,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: tokens.spacing[2],
-                  }}
+                  className="p-3 border border-border-default rounded-md flex flex-col gap-2"
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div className="flex justify-between items-start">
                     <div>
-                      <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                      <div className="font-semibold mb-1">
                         {booking.firstName} {booking.lastName}
                       </div>
-                      <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                      <div className="text-sm text-text-secondary">
                         {booking.service}
                       </div>
                     </div>
@@ -247,7 +239,7 @@ export function SitterCalendarTab({ sitterId }: SitterCalendarTabProps) {
                     endAt={booking.endAt}
                   />
                   {booking.address && (
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    <div className="text-sm text-text-secondary">
                       <MapPin className="w-4 h-4 mr-2" />
                       {booking.address}
                     </div>

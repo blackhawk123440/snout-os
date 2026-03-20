@@ -1,6 +1,6 @@
 /**
  * Edit Booking Modal
- * 
+ *
  * Modal for editing booking details with validation and pricing recalculation.
  */
 
@@ -8,7 +8,6 @@
 
 import { useState, useEffect } from 'react';
 import { Modal, Button, Input, Select, Textarea } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 
 interface Pet {
   id: string;
@@ -131,22 +130,14 @@ export function EditBookingModal({ isOpen, onClose, booking, onSave }: EditBooki
       title="Edit Booking"
       size="full"
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && (
-          <div
-            style={{
-              padding: tokens.spacing[3],
-              backgroundColor: tokens.colors.error[50],
-              color: tokens.colors.error.DEFAULT,
-              borderRadius: tokens.borderRadius.md,
-              fontSize: tokens.typography.fontSize.sm[0],
-            }}
-          >
+          <div className="p-3 bg-status-danger-bg text-status-danger-text rounded-md text-sm">
             {error}
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: tokens.spacing[4] }}>
+        <div className="grid grid-cols-2 gap-4">
           <Input
             label="First Name *"
             value={formData.firstName}
@@ -161,7 +152,7 @@ export function EditBookingModal({ isOpen, onClose, booking, onSave }: EditBooki
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: tokens.spacing[4] }}>
+        <div className="grid grid-cols-2 gap-4">
           <Input
             label="Phone *"
             type="tel"
@@ -178,30 +169,14 @@ export function EditBookingModal({ isOpen, onClose, booking, onSave }: EditBooki
         </div>
 
         <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: tokens.typography.fontSize.sm[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-              marginBottom: tokens.spacing[2],
-              color: tokens.colors.text.primary,
-            }}
-          >
+          <label className="block text-sm font-semibold mb-2 text-text-primary">
             Service *
           </label>
           <select
             required
             value={formData.service}
             onChange={(e) => setFormData({ ...formData, service: e.target.value })}
-            style={{
-              width: '100%',
-              padding: tokens.spacing[3],
-              border: `1px solid ${tokens.colors.border.default}`,
-              borderRadius: tokens.borderRadius.md,
-              fontSize: tokens.typography.fontSize.base[0],
-              backgroundColor: tokens.colors.background.primary,
-              color: tokens.colors.text.primary,
-            }}
+            className="w-full p-3 border border-border-default rounded-md text-base bg-surface-primary text-text-primary"
           >
             <option value="Dog Walking">Dog Walking</option>
             <option value="Housesitting">Housesitting</option>
@@ -211,7 +186,7 @@ export function EditBookingModal({ isOpen, onClose, booking, onSave }: EditBooki
           </select>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: tokens.spacing[4] }}>
+        <div className="grid grid-cols-2 gap-4">
           <Input
             label="Start Date & Time *"
             type="datetime-local"
@@ -234,7 +209,7 @@ export function EditBookingModal({ isOpen, onClose, booking, onSave }: EditBooki
           onChange={(e) => setFormData({ ...formData, address: e.target.value })}
         />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: tokens.spacing[4] }}>
+        <div className="grid grid-cols-2 gap-4">
           <Input
             label="Pickup Address"
             value={formData.pickupAddress}
@@ -247,7 +222,7 @@ export function EditBookingModal({ isOpen, onClose, booking, onSave }: EditBooki
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: tokens.spacing[4] }}>
+        <div className="grid grid-cols-3 gap-4">
           <Input
             label="Quantity"
             type="number"
@@ -255,25 +230,25 @@ export function EditBookingModal({ isOpen, onClose, booking, onSave }: EditBooki
             value={formData.quantity}
             onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], paddingTop: tokens.spacing[6] }}>
+          <div className="flex items-center gap-2 pt-6">
             <input
               type="checkbox"
               id="afterHours"
               checked={formData.afterHours}
               onChange={(e) => setFormData({ ...formData, afterHours: e.target.checked })}
             />
-            <label htmlFor="afterHours" style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+            <label htmlFor="afterHours" className="text-sm">
               After Hours
             </label>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], paddingTop: tokens.spacing[6] }}>
+          <div className="flex items-center gap-2 pt-6">
             <input
               type="checkbox"
               id="holiday"
               checked={formData.holiday}
               onChange={(e) => setFormData({ ...formData, holiday: e.target.checked })}
             />
-            <label htmlFor="holiday" style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+            <label htmlFor="holiday" className="text-sm">
               Holiday
             </label>
           </div>
@@ -286,7 +261,7 @@ export function EditBookingModal({ isOpen, onClose, booking, onSave }: EditBooki
           rows={4}
         />
 
-        <div style={{ display: 'flex', gap: tokens.spacing[3], paddingTop: tokens.spacing[4] }}>
+        <div className="flex gap-3 pt-4">
           <Button
             type="submit"
             variant="primary"
@@ -308,5 +283,3 @@ export function EditBookingModal({ isOpen, onClose, booking, onSave }: EditBooki
     </Modal>
   );
 }
-
-

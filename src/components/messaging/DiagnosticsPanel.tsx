@@ -1,6 +1,6 @@
 /**
  * Diagnostics Panel for Messaging
- * 
+ *
  * Dev + owner-only panel that shows exactly why threads aren't showing.
  * Provides actionable diagnostics for troubleshooting.
  */
@@ -91,31 +91,28 @@ export function DiagnosticsPanel({
     issueSeverity = 'info';
   }
 
+  const borderColor = issueSeverity === 'error'
+    ? tokens.colors.error[500]
+    : issueSeverity === 'warning'
+      ? tokens.colors.warning[500]
+      : tokens.colors.info[500];
+
+  const statusColor = messagingFlag ? tokens.colors.success[600] : tokens.colors.error[600];
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 20,
-        right: 20,
-        zIndex: 1000,
-        maxWidth: '400px',
-      }}
-    >
+    <div className="fixed bottom-5 right-5 z-[1000] max-w-[400px]">
       <Card
-        style={{
-          backgroundColor: 'white',
-          border: `2px solid ${issueSeverity === 'error' ? tokens.colors.error[500] : issueSeverity === 'warning' ? tokens.colors.warning[500] : tokens.colors.info[500]}`,
-          boxShadow: tokens.shadow.lg,
-        }}
+        className="bg-white shadow-lg"
+        style={{ border: `2px solid ${borderColor}` }}
       >
-        <div style={{ padding: tokens.spacing[3] }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[2] }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-              <strong style={{ fontSize: tokens.typography.fontSize.sm[0] }}>Ops / Diagnostics</strong>
+        <div className="p-3">
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex items-center gap-2">
+              <strong className="text-sm">Ops / Diagnostics</strong>
               {issue && (
                 <Badge
                   variant={issueSeverity === 'error' ? 'error' : issueSeverity === 'warning' ? 'warning' : 'info'}
-                  style={{ fontSize: tokens.typography.fontSize.xs[0] }}
+                  className="text-xs"
                 >
                   {issueSeverity === 'error' ? 'ERROR' : issueSeverity === 'warning' ? 'WARNING' : 'INFO'}
                 </Badge>
@@ -131,17 +128,17 @@ export function DiagnosticsPanel({
           </div>
 
           {expanded && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3], fontSize: tokens.typography.fontSize.xs[0] }}>
+            <div className="flex flex-col gap-3 text-xs">
               {/* Feature Flag */}
               <div>
-                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                <div className="font-semibold mb-1">
                   Feature Flag:
                 </div>
-                <div style={{ fontFamily: 'monospace', color: messagingFlag ? tokens.colors.success[600] : tokens.colors.error[600] }}>
+                <div className="font-mono" style={{ color: statusColor }}>
                   NEXT_PUBLIC_ENABLE_MESSAGING_V1 = {messagingFlagValue}
                 </div>
                 {!messagingFlag && (
-                  <div style={{ color: tokens.colors.error[600], marginTop: tokens.spacing[1] }}>
+                  <div className="mt-1 text-error">
                     Set to 'true' to enable messaging
                   </div>
                 )}
@@ -149,20 +146,20 @@ export function DiagnosticsPanel({
 
               {/* API URL */}
               <div>
-                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                <div className="font-semibold mb-1">
                   API Base URL (resolved):
                 </div>
-                <div style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                <div className="font-mono break-all">
                   {apiBaseUrl}
                 </div>
-                <div style={{ fontSize: '10px', color: tokens.colors.text.tertiary, marginTop: tokens.spacing[1] }}>
+                <div className="mt-1 text-text-tertiary text-[10px]">
                   Raw: {process.env.NEXT_PUBLIC_API_URL || 'not set'}
                 </div>
               </div>
 
               {/* User Info */}
               <div>
-                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                <div className="font-semibold mb-1">
                   User (from session):
                 </div>
                 <div>
@@ -173,17 +170,17 @@ export function DiagnosticsPanel({
               {/* Last Fetch */}
               {lastFetchUrl && (
                 <div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                  <div className="font-semibold mb-1">
                     Last Fetch:
                   </div>
-                  <div style={{ fontFamily: 'monospace', wordBreak: 'break-all', fontSize: '10px' }}>
+                  <div className="font-mono break-all text-[10px]">
                     {lastFetchUrl}
                   </div>
                   {lastFetchStatus && (
-                    <div style={{ marginTop: tokens.spacing[1] }}>
+                    <div className="mt-1">
                       Status: <Badge variant={lastFetchStatus >= 400 ? 'error' : 'success'}>{lastFetchStatus}</Badge>
                       {lastFetchResponseSize !== undefined && (
-                        <span style={{ marginLeft: tokens.spacing[2] }}>
+                        <span className="ml-2">
                           Size: {lastFetchResponseSize} bytes
                         </span>
                       )}
@@ -195,16 +192,16 @@ export function DiagnosticsPanel({
               {/* Error Details */}
               {threadsError && (
                 <div>
-                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1], color: tokens.colors.error[600] }}>
+                  <div className="font-semibold mb-1 text-error">
                     Error:
                   </div>
-                  <div style={{ fontFamily: 'monospace', fontSize: '10px', color: tokens.colors.error[600], wordBreak: 'break-word' }}>
+                  <div className="font-mono break-words text-[10px] text-error">
                     {threadsError.message}
                   </div>
                   {process.env.NODE_ENV === 'development' && threadsError.stack && (
-                    <details style={{ marginTop: tokens.spacing[1] }}>
-                      <summary style={{ cursor: 'pointer', fontSize: '10px' }}>Stack Trace</summary>
-                      <pre style={{ fontSize: '9px', overflow: 'auto', maxHeight: '200px', marginTop: tokens.spacing[1] }}>
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-[10px]">Stack Trace</summary>
+                      <pre className="overflow-auto max-h-[200px] mt-1 text-[9px]">
                         {threadsError.stack}
                       </pre>
                     </details>
@@ -214,7 +211,7 @@ export function DiagnosticsPanel({
 
               {/* Thread Count */}
               <div>
-                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+                <div className="font-semibold mb-1">
                   Threads:
                 </div>
                 <div>
@@ -223,13 +220,13 @@ export function DiagnosticsPanel({
               </div>
 
               {/* Actions */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+              <div className="flex flex-col gap-2">
                 {issue === 'DB empty — seed required' && onSeed && (
                   <Button
                     variant="primary"
                     size="sm"
                     onClick={onSeed}
-                    style={{ width: '100%' }}
+                    className="w-full"
                   >
                     Create Demo Data
                   </Button>
@@ -239,11 +236,11 @@ export function DiagnosticsPanel({
               </div>
 
               {/* Help Text */}
-              <div style={{ padding: tokens.spacing[2], backgroundColor: tokens.colors.neutral[50], borderRadius: tokens.radius.sm, fontSize: '10px' }}>
-                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[1] }}>
+              <div className="p-2 rounded-sm bg-neutral-50 text-[10px]">
+                <div className="font-semibold mb-1">
                   Troubleshooting:
                 </div>
-                <ul style={{ margin: 0, paddingLeft: tokens.spacing[3] }}>
+                <ul className="m-0 pl-3">
                   {!messagingFlag && (
                     <li>Set NEXT_PUBLIC_ENABLE_MESSAGING_V1=true in .env.local (local) or Render env (staging)</li>
                   )}

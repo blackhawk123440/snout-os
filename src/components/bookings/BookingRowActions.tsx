@@ -1,6 +1,6 @@
 /**
  * BookingRowActions Component
- * 
+ *
  * Shared primitive for sitter assignment actions on booking rows.
  * Works on both mobile and desktop.
  */
@@ -38,7 +38,7 @@ function SuggestSittersSection({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+    <div className="flex flex-col gap-2">
       <Button
         variant="tertiary"
         size="sm"
@@ -49,8 +49,8 @@ function SuggestSittersSection({
         {loading ? 'Loading...' : 'Suggest sitters'}
       </Button>
       {suggestions && suggestions.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], padding: tokens.spacing[2], backgroundColor: tokens.colors.background.secondary, borderRadius: tokens.borderRadius.md }}>
-          <div style={{ fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text.secondary }}>
+        <div className="flex flex-col gap-2 p-2 bg-surface-secondary rounded-md">
+          <div className="text-sm font-semibold text-text-secondary">
             AI suggestions
           </div>
           {suggestions.map((s) => (
@@ -58,21 +58,18 @@ function SuggestSittersSection({
               key={s.sitterId}
               type="button"
               onClick={() => onSelect(s.sitterId)}
-              style={{
-                padding: tokens.spacing[2],
-                textAlign: 'left',
-                border: `1px solid ${selectedSitterId === s.sitterId ? tokens.colors.primary.DEFAULT : tokens.colors.border.default}`,
-                borderRadius: tokens.borderRadius.sm,
-                backgroundColor: selectedSitterId === s.sitterId ? tokens.colors.primary[100] : tokens.colors.background.primary,
-                cursor: 'pointer',
-              }}
+              className={`p-2 text-left rounded-sm cursor-pointer border ${
+                selectedSitterId === s.sitterId
+                  ? 'border-primary bg-[#fef2f8]'
+                  : 'border-border-default bg-surface-primary'
+              }`}
             >
-              <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+              <div className="font-medium">
                 {s.firstName} {s.lastName} (score: {s.score})
               </div>
               {s.reasons?.length > 0 && (
-                <div style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
-                  {s.reasons.join(' • ')}
+                <div className="text-xs text-text-secondary mt-1">
+                  {s.reasons.join(' \u2022 ')}
                 </div>
               )}
             </button>
@@ -86,7 +83,6 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { Tabs, TabPanel } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 import { SitterAssignmentDisplay, SitterInfo } from '@/components/sitter/SitterAssignmentDisplay';
 import { SitterTierBadge } from '@/components/sitter';
 import { useMobile } from '@/lib/use-mobile';
@@ -178,14 +174,14 @@ export const BookingRowActions: React.FC<BookingRowActionsProps> = ({
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+      <div className="flex items-center gap-2 flex-wrap">
         <SitterAssignmentDisplay
           sitter={sitter}
           showUnassigned={true}
           compact={true}
           showTierBadge={true}
         />
-        <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
+        <div className="flex gap-2">
           {!sitter ? (
             <Button
               variant="secondary"
@@ -245,7 +241,7 @@ export const BookingRowActions: React.FC<BookingRowActionsProps> = ({
           onTabChange={(tab) => setAssignMode(tab as 'direct' | 'pool')}
         >
           <TabPanel id="direct">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+            <div className="flex flex-col gap-4">
               <SuggestSittersSection
                 bookingId={bookingId}
                 sitters={sitters}
@@ -264,7 +260,7 @@ export const BookingRowActions: React.FC<BookingRowActionsProps> = ({
                   })),
                 ]}
               />
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[3] }}>
+              <div className="flex justify-end gap-3">
                 <Button
                   variant="secondary"
                   onClick={() => {
@@ -286,45 +282,34 @@ export const BookingRowActions: React.FC<BookingRowActionsProps> = ({
               </div>
             </div>
           </TabPanel>
-          
+
           <TabPanel id="pool">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+            <div className="flex flex-col gap-4">
+              <div className="text-sm text-text-secondary mb-2">
                 Select one or more sitters for the pool. Multiple sitters can be assigned to this booking.
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], maxHeight: '400px', overflowY: 'auto' }}>
+              <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto">
                 {sitters.map(sitterOption => {
                   const isSelected = selectedPoolSitterIds.has(sitterOption.id);
                   return (
                     <label
                       key={sitterOption.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: tokens.spacing[3],
-                        padding: tokens.spacing[3],
-                        cursor: 'pointer',
-                        borderRadius: tokens.borderRadius.md,
-                        border: `1px solid ${tokens.colors.border.default}`,
-                        backgroundColor: isSelected ? tokens.colors.background.secondary : tokens.colors.background.primary,
-                      }}
+                      className={`flex items-center gap-3 p-3 cursor-pointer rounded-md border border-border-default ${
+                        isSelected ? 'bg-surface-secondary' : 'bg-surface-primary'
+                      }`}
                     >
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => handleTogglePoolSitter(sitterOption.id)}
-                        style={{
-                          width: '18px',
-                          height: '18px',
-                          cursor: 'pointer',
-                        }}
+                        className="w-[18px] h-[18px] cursor-pointer"
                       />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: tokens.typography.fontWeight.medium }}>
+                      <div className="flex-1">
+                        <div className="font-medium">
                           {sitterOption.firstName} {sitterOption.lastName}
                         </div>
                         {sitterOption.currentTier && (
-                          <div style={{ marginTop: tokens.spacing[1] }}>
+                          <div className="mt-1">
                             <SitterTierBadge tier={sitterOption.currentTier} />
                           </div>
                         )}
@@ -333,7 +318,7 @@ export const BookingRowActions: React.FC<BookingRowActionsProps> = ({
                   );
                 })}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[3] }}>
+              <div className="flex justify-end gap-3">
                 <Button
                   variant="secondary"
                   onClick={() => {
@@ -365,11 +350,11 @@ export const BookingRowActions: React.FC<BookingRowActionsProps> = ({
         title="Unassign Sitter"
         size={isMobile ? 'full' : 'md'}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-          <p style={{ margin: 0, color: tokens.colors.text.secondary }}>
+        <div className="flex flex-col gap-4">
+          <p className="m-0 text-text-secondary">
             Are you sure you want to unassign {sitter ? `${sitter.firstName} ${sitter.lastName}` : 'this sitter'} from this booking?
           </p>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: tokens.spacing[3] }}>
+          <div className="flex justify-end gap-3">
             <Button
               variant="secondary"
               onClick={() => setShowUnassignModal(false)}
@@ -389,4 +374,3 @@ export const BookingRowActions: React.FC<BookingRowActionsProps> = ({
     </>
   );
 };
-

@@ -1,13 +1,12 @@
 /**
  * Payroll Tab
- * 
+ *
  * Earnings summary, pending payouts, completed payouts, adjustments
  */
 
 'use client';
 
 import { Card, SectionHeader, EmptyState, Skeleton, Table, TableColumn } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 import { useQuery } from '@tanstack/react-query';
 
 interface PayrollData {
@@ -79,7 +78,7 @@ export function PayrollTab({ sitterId }: PayrollTabProps) {
 
   if (isLoading) {
     return (
-      <div style={{ padding: tokens.spacing[4] }}>
+      <div className="p-4">
         <Skeleton height={400} />
       </div>
     );
@@ -88,8 +87,8 @@ export function PayrollTab({ sitterId }: PayrollTabProps) {
   // Foundation state - no data yet
   if (!data) {
     return (
-      <div style={{ padding: tokens.spacing[4] }}>
-        <Card style={{ padding: tokens.spacing[4] }}>
+      <div className="p-4">
+        <Card className="p-4">
           <SectionHeader title="Payroll" />
           <EmptyState
             title="Payroll activates after completed bookings"
@@ -121,55 +120,41 @@ export function PayrollTab({ sitterId }: PayrollTabProps) {
   ];
 
   return (
-    <div style={{ padding: tokens.spacing[4], display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+    <div className="p-4 flex flex-col gap-4">
       {/* Earnings Summary */}
-      <Card style={{ padding: tokens.spacing[4] }}>
+      <Card className="p-4">
         <SectionHeader title="Earnings Summary" />
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: tokens.spacing[4],
-        }}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
           <div>
-            <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+            <div className="text-text-secondary mb-1">
               Total Earnings
             </div>
-            <div style={{
-              fontSize: tokens.typography.fontSize.xl[0],
-              fontWeight: tokens.typography.fontWeight.bold,
-              color: tokens.colors.success.DEFAULT,
-            }}>
+            <div className="text-xl font-bold text-success">
               {formatCurrency(data.earningsSummary.totalEarnings)}
             </div>
           </div>
           <div>
-            <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+            <div className="text-text-secondary mb-1">
               Pending Payouts
             </div>
-            <div style={{
-              fontSize: tokens.typography.fontSize.lg[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-            }}>
+            <div className="text-lg font-semibold">
               {formatCurrency(data.earningsSummary.pendingPayouts)}
             </div>
           </div>
           <div>
-            <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+            <div className="text-text-secondary mb-1">
               Completed Payouts
             </div>
-            <div style={{
-              fontSize: tokens.typography.fontSize.lg[0],
-              fontWeight: tokens.typography.fontWeight.semibold,
-            }}>
+            <div className="text-lg font-semibold">
               {formatCurrency(data.earningsSummary.completedPayouts)}
             </div>
           </div>
           {data.earningsSummary.nextPayoutDate && (
             <div>
-              <div style={{ color: tokens.colors.text.secondary, marginBottom: tokens.spacing[1] }}>
+              <div className="text-text-secondary mb-1">
                 Next Payout
               </div>
-              <div style={{ fontSize: tokens.typography.fontSize.sm[0] }}>
+              <div className="text-sm">
                 {formatDate(data.earningsSummary.nextPayoutDate)}
               </div>
             </div>
@@ -179,7 +164,7 @@ export function PayrollTab({ sitterId }: PayrollTabProps) {
 
       {/* Pending Payouts */}
       {data.pendingPayouts.length > 0 && (
-        <Card style={{ padding: tokens.spacing[4] }}>
+        <Card className="p-4">
           <SectionHeader title="Pending Payouts" />
           <Table
             columns={payoutColumns}
@@ -192,7 +177,7 @@ export function PayrollTab({ sitterId }: PayrollTabProps) {
 
       {/* Completed Payouts */}
       {data.completedPayouts.length > 0 && (
-        <Card style={{ padding: tokens.spacing[4] }}>
+        <Card className="p-4">
           <SectionHeader title="Completed Payouts" />
           <Table
             columns={[
@@ -212,7 +197,7 @@ export function PayrollTab({ sitterId }: PayrollTabProps) {
 
       {/* Adjustments */}
       {data.adjustments.length > 0 && (
-        <Card style={{ padding: tokens.spacing[4] }}>
+        <Card className="p-4">
           <SectionHeader title="Adjustments" />
           <Table
             columns={[

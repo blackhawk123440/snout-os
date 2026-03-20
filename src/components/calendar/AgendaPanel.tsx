@@ -1,6 +1,6 @@
 /**
  * Agenda Panel Component
- * 
+ *
  * Desktop side panel that displays bookings for selected date
  */
 
@@ -67,7 +67,7 @@ export const AgendaPanel: React.FC<AgendaPanelProps> = ({
     return (
       <Card style={{ height: '100%' }}>
         <SectionHeader title="Agenda" />
-        <div style={{ padding: tokens.spacing[6], textAlign: 'center', color: tokens.colors.text.secondary }}>
+        <div className="p-6 text-center text-text-secondary">
           Select a date to view bookings
         </div>
       </Card>
@@ -91,30 +91,27 @@ export const AgendaPanel: React.FC<AgendaPanelProps> = ({
   };
 
   return (
-    <Card style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Card style={{ height: '100%' }} className="flex flex-col">
       <SectionHeader title="Agenda" />
-      <div style={{ padding: tokens.spacing[4], borderBottom: `1px solid ${tokens.colors.border.default}` }}>
-        <div style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+      <div className="p-4 border-b border-border-default">
+        <div className="text-lg font-semibold">
           {formatDate(selectedDate)}
         </div>
-        <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+        <div className="text-sm text-text-secondary mt-1">
           {dayBookings.length} {dayBookings.length === 1 ? 'booking' : 'bookings'}
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: tokens.spacing[4] }}>
+      <div className="flex-1 overflow-y-auto p-4">
         {dayBookings.length === 0 ? (
-          <div style={{ textAlign: 'center', color: tokens.colors.text.secondary, padding: tokens.spacing[6] }}>
+          <div className="text-center text-text-secondary p-6">
             No bookings scheduled for this date
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+          <div className="flex flex-col gap-3">
             {dayBookings.map((booking) => (
               <Card
                 key={booking.id}
-                style={{
-                  cursor: 'pointer',
-                  transition: `all ${tokens.transitions.duration.DEFAULT}`,
-                }}
+                className="cursor-pointer transition-all duration-normal"
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
                 }}
@@ -123,20 +120,20 @@ export const AgendaPanel: React.FC<AgendaPanelProps> = ({
                 }}
                 onClick={() => onBookingClick(booking)}
               >
-                <div style={{ padding: tokens.spacing[3] }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: tokens.spacing[2] }}>
-                    <div style={{ fontWeight: tokens.typography.fontWeight.bold, fontSize: tokens.typography.fontSize.base[0] }}>
+                <div className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-bold text-base">
                       {booking.firstName} {booking.lastName}
                     </div>
                     <Badge variant={getStatusBadgeVariant(booking.status)}>
                       {booking.status}
                     </Badge>
                   </div>
-                  <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+                  <div className="text-sm text-text-secondary mb-2">
                     {booking.service}
                   </div>
                   {booking.timeSlots && booking.timeSlots.length > 0 ? (
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    <div className="text-sm text-text-secondary">
                       {booking.timeSlots.map((slot, idx) => (
                         <div key={slot.id}>
                           {formatTime(slot.startAt)} - {formatTime(slot.endAt)}
@@ -145,12 +142,12 @@ export const AgendaPanel: React.FC<AgendaPanelProps> = ({
                       ))}
                     </div>
                   ) : (
-                    <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+                    <div className="text-sm text-text-secondary">
                       {formatTime(booking.startAt)} - {formatTime(booking.endAt)}
                     </div>
                   )}
                   {booking.sitter && (
-                    <div style={{ marginTop: tokens.spacing[2], paddingTop: tokens.spacing[2], borderTop: `1px solid ${tokens.colors.border.default}` }}>
+                    <div className="mt-2 pt-2 border-t border-border-default">
                       <SitterAssignmentDisplay sitter={booking.sitter} showTierBadge compact />
                     </div>
                   )}
@@ -163,4 +160,3 @@ export const AgendaPanel: React.FC<AgendaPanelProps> = ({
     </Card>
   );
 };
-

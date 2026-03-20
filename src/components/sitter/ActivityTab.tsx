@@ -1,6 +1,6 @@
 /**
  * Activity/Logs Tab
- * 
+ *
  * Audit/event stream of status changes, availability, offer actions, tier changes, admin overrides
  */
 
@@ -90,7 +90,7 @@ export function ActivityTab({ sitterId }: ActivityTabProps) {
 
   if (isLoading) {
     return (
-      <div style={{ padding: tokens.spacing[4] }}>
+      <div className="p-4">
         <Skeleton height={400} />
       </div>
     );
@@ -99,8 +99,8 @@ export function ActivityTab({ sitterId }: ActivityTabProps) {
   // Foundation state - no data yet
   if (!data || data.length === 0) {
     return (
-      <div style={{ padding: tokens.spacing[4] }}>
-        <Card style={{ padding: tokens.spacing[4] }}>
+      <div className="p-4">
+        <Card className="p-4">
           <SectionHeader title="Activity Log" />
           <EmptyState
             title="Activity log tracks all sitter actions"
@@ -113,36 +113,29 @@ export function ActivityTab({ sitterId }: ActivityTabProps) {
   }
 
   return (
-    <div style={{ padding: tokens.spacing[4] }}>
-      <Card style={{ padding: tokens.spacing[4] }}>
+    <div className="p-4">
+      <Card className="p-4">
         <SectionHeader title="Activity Log" />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+        <div className="flex flex-col gap-3">
           {data.map((event) => {
             const isError = event.eventType === 'messaging.routing_failed';
             const remediation = getRemediationGuidance(event);
-            
+
             return (
               <div
                 key={event.id}
+                className="p-3 rounded-md"
                 style={{
-                  padding: tokens.spacing[3],
                   borderLeft: `3px solid ${isError ? tokens.colors.error.DEFAULT : tokens.colors.primary.DEFAULT}`,
                   backgroundColor: isError ? tokens.colors.error[50] : tokens.colors.neutral[50],
-                  borderRadius: tokens.borderRadius.md,
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[2] }}>
+                <div className="flex justify-between items-start mb-2">
                   <div>
-                    <div style={{
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      marginBottom: tokens.spacing[1],
-                    }}>
+                    <div className="font-semibold mb-1">
                       {getEventTypeLabel(event.eventType)}
                     </div>
-                    <div style={{
-                      fontSize: tokens.typography.fontSize.sm[0],
-                      color: tokens.colors.text.secondary,
-                    }}>
+                    <div className="text-sm text-text-secondary">
                       {formatTimestamp(event.timestamp)}
                     </div>
                   </div>
@@ -150,47 +143,39 @@ export function ActivityTab({ sitterId }: ActivityTabProps) {
                     {getActorTypeLabel(event.actorType)}
                   </Badge>
                 </div>
-                
+
                 {/* Show remediation guidance for errors */}
                 {remediation && (
-                  <div style={{
-                    padding: tokens.spacing[2],
-                    marginTop: tokens.spacing[2],
-                    marginBottom: tokens.spacing[2],
-                    backgroundColor: tokens.colors.warning[50],
-                    border: `1px solid ${tokens.colors.warning[200]}`,
-                    borderRadius: tokens.borderRadius.md,
-                    fontSize: tokens.typography.fontSize.sm[0],
-                  }}>
-                    <div style={{
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      marginBottom: tokens.spacing[1],
-                      color: tokens.colors.warning[900],
-                    }}>
+                  <div
+                    className="p-2 my-2 rounded-md text-sm"
+                    style={{
+                      backgroundColor: tokens.colors.warning[50],
+                      border: `1px solid ${tokens.colors.warning[200]}`,
+                    }}
+                  >
+                    <div
+                      className="font-semibold mb-1"
+                      style={{ color: tokens.colors.warning[900] }}
+                    >
                       <Info className="w-3.5 h-3.5 mr-1" />
                       What to do:
                     </div>
-                    <div style={{ color: tokens.colors.text.secondary }}>
+                    <div className="text-text-secondary">
                       {remediation}
                     </div>
                   </div>
                 )}
-                
+
                 {/* Show error details */}
                 {isError && event.payload && (
-                  <div style={{
-                    marginTop: tokens.spacing[2],
-                    padding: tokens.spacing[2],
-                    backgroundColor: tokens.colors.neutral[100],
-                    borderRadius: tokens.borderRadius.sm,
-                    fontSize: tokens.typography.fontSize.xs[0],
-                    fontFamily: 'monospace',
-                    color: tokens.colors.text.secondary,
-                  }}>
-                    <div style={{ marginBottom: tokens.spacing[1] }}>
+                  <div
+                    className="mt-2 p-2 rounded-sm text-xs font-mono text-text-secondary"
+                    style={{ backgroundColor: tokens.colors.neutral[100] }}
+                  >
+                    <div className="mb-1">
                       <strong>From:</strong> {event.payload.fromNumber || 'N/A'}
                     </div>
-                    <div style={{ marginBottom: tokens.spacing[1] }}>
+                    <div className="mb-1">
                       <strong>To:</strong> {event.payload.toNumber || 'N/A'}
                     </div>
                     <div>
@@ -198,18 +183,13 @@ export function ActivityTab({ sitterId }: ActivityTabProps) {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Show other payload data for non-error events */}
                 {!isError && event.payload && Object.keys(event.payload).length > 0 && (
-                  <div style={{
-                    fontSize: tokens.typography.fontSize.xs[0],
-                    color: tokens.colors.text.secondary,
-                    fontFamily: 'monospace',
-                    backgroundColor: tokens.colors.neutral[100],
-                    padding: tokens.spacing[2],
-                    borderRadius: tokens.borderRadius.sm,
-                    marginTop: tokens.spacing[2],
-                  }}>
+                  <div
+                    className="text-xs text-text-secondary font-mono p-2 rounded-sm mt-2"
+                    style={{ backgroundColor: tokens.colors.neutral[100] }}
+                  >
                     {JSON.stringify(event.payload, null, 2)}
                   </div>
                 )}

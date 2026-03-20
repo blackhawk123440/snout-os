@@ -1,6 +1,6 @@
 /**
  * Conversation List Component
- * 
+ *
  * Displays a list of conversations with masked numbers
  */
 
@@ -8,7 +8,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Badge, EmptyState, Skeleton, Tabs, TabPanel } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 
 interface Conversation {
   id: string;
@@ -39,8 +38,8 @@ interface ConversationListProps {
   scope?: 'internal' | 'all'; // Phase 4.1: Filter by scope (internal = owner inbox)
 }
 
-export default function ConversationList({ 
-  role = 'owner', 
+export default function ConversationList({
+  role = 'owner',
   sitterId,
   onSelectConversation,
   scope = 'all', // Phase 4.1: Default to all threads
@@ -56,7 +55,7 @@ export default function ConversationList({
       // Phase 4.1: Use new messaging endpoints with scope filtering
       // Feature flag is checked server-side in the API route
       const params = new URLSearchParams();
-      
+
       // Add filters if provided
       if (sitterId) {
         params.append('sitterId', sitterId);
@@ -119,7 +118,7 @@ export default function ConversationList({
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <div className="flex flex-col gap-4">
         <Skeleton height={80} />
         <Skeleton height={80} />
         <Skeleton height={80} />
@@ -129,20 +128,12 @@ export default function ConversationList({
 
   if (error) {
     return (
-      <Card style={{ backgroundColor: tokens.colors.error[50], borderColor: tokens.colors.error[200] }}>
-        <div style={{ padding: tokens.spacing[4], color: tokens.colors.error[700] }}>
+      <Card className="bg-[#fef2f2] border-[#fecaca]">
+        <div className="p-4 text-[#b91c1c]">
           {error}
           <button
             onClick={fetchConversations}
-            style={{
-              marginLeft: tokens.spacing[3],
-              padding: `${tokens.spacing[1]} ${tokens.spacing[3]}`,
-              backgroundColor: tokens.colors.error.DEFAULT,
-              color: 'white',
-              border: 'none',
-              borderRadius: tokens.borderRadius.md,
-              cursor: 'pointer',
-            }}
+            className="ml-3 px-3 py-1 text-white border-none rounded-md cursor-pointer bg-error"
           >
             Retry
           </button>
@@ -162,52 +153,25 @@ export default function ConversationList({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+    <div className="flex flex-col gap-3">
       {conversations.map((conversation) => (
         <Card
           key={conversation.id}
-          style={{
-            cursor: 'pointer',
-            transition: 'background-color 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = tokens.colors.background.tertiary;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = tokens.colors.background.secondary;
-          }}
+          className="cursor-pointer transition-colors duration-200 bg-surface-secondary hover:bg-surface-tertiary"
           onClick={() => onSelectConversation?.(conversation)}
         >
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: tokens.spacing[4] }}>
-            <div
-              style={{
-                width: '3rem',
-                height: '3rem',
-                borderRadius: '50%',
-                backgroundColor: tokens.colors.primary[100],
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                fontSize: tokens.typography.fontSize.xl[0],
-              }}
-            >
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-xl bg-primaryLight">
               {conversation.participantName.charAt(0).toUpperCase()}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[1], flexWrap: 'wrap' }}>
-                <div
-                  style={{
-                    fontWeight: tokens.typography.fontWeight.semibold,
-                    fontSize: tokens.typography.fontSize.base[0],
-                    color: tokens.colors.text.primary,
-                  }}
-                >
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <div className="font-semibold text-base text-text-primary">
                   {conversation.participantName}
                 </div>
                 {/* Phase 4.1: Number class badge */}
                 {conversation.numberClass && (
-                  <Badge 
+                  <Badge
                     variant={
                       conversation.numberClass === 'front_desk' ? 'default' :
                       conversation.numberClass === 'sitter' ? 'info' :
@@ -221,7 +185,7 @@ export default function ConversationList({
                 )}
                 {/* Phase 4.1: Assignment status */}
                 {conversation.assignedSitterName && (
-                  <Badge variant="info" style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
+                  <Badge variant="info" className="text-xs">
                     {conversation.assignedSitterName}
                   </Badge>
                 )}
@@ -240,35 +204,15 @@ export default function ConversationList({
                 )}
               </div>
               {conversation.bookingTitle && (
-                <div
-                  style={{
-                    fontSize: tokens.typography.fontSize.sm[0],
-                    color: tokens.colors.text.secondary,
-                    marginBottom: tokens.spacing[1],
-                  }}
-                >
+                <div className="text-sm text-text-secondary mb-1">
                   {conversation.bookingTitle}
                 </div>
               )}
-              <div
-                style={{
-                  fontSize: tokens.typography.fontSize.sm[0],
-                  color: tokens.colors.text.secondary,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <div className="text-sm text-text-secondary overflow-hidden text-ellipsis whitespace-nowrap">
                 {conversation.lastMessage}
               </div>
             </div>
-            <div
-              style={{
-                fontSize: tokens.typography.fontSize.xs[0],
-                color: tokens.colors.text.tertiary,
-                flexShrink: 0,
-              }}
-            >
+            <div className="text-xs text-text-tertiary shrink-0">
               {formatTime(conversation.lastMessageAt)}
             </div>
           </div>
@@ -277,5 +221,3 @@ export default function ConversationList({
     </div>
   );
 }
-
-

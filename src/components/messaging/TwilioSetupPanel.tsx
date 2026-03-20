@@ -1,6 +1,6 @@
 /**
  * Twilio Setup Panel - Embedded in Messages tab
- * 
+ *
  * Owner can save credentials, test connection, install webhooks, check readiness
  */
 
@@ -9,7 +9,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Card, Button, Badge, EmptyState, Skeleton, Modal, Input } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost } from '@/lib/api/client';
 import { z } from 'zod';
@@ -175,7 +174,7 @@ export function TwilioSetupPanel() {
   const { data: providerStatus, isLoading: providerLoading } = useProviderStatus();
   const { data: webhookStatus, isLoading: webhookLoading } = useWebhookStatus();
   const { data: readiness, isLoading: readinessLoading } = useReadiness();
-  
+
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [connectForm, setConnectForm] = useState({ accountSid: '', authToken: '' });
   const [showTestModal, setShowTestModal] = useState(false);
@@ -265,25 +264,25 @@ export function TwilioSetupPanel() {
 
   return (
     <div>
-      <div style={{ marginBottom: tokens.spacing[4] }}>
-        <h2 style={{ fontSize: tokens.typography.fontSize.xl[0], fontWeight: tokens.typography.fontWeight.bold, marginBottom: tokens.spacing[1] }}>
+      <div className="mb-4">
+        <h2 className="text-xl font-bold mb-1">
           Twilio Setup
         </h2>
-        <p style={{ color: tokens.colors.text.secondary, fontSize: tokens.typography.fontSize.sm[0] }}>
+        <p className="text-text-secondary text-sm">
           Save credentials, test connection, install webhooks, and check readiness
         </p>
-        <div style={{ display: 'flex', gap: tokens.spacing[2], alignItems: 'center', marginTop: tokens.spacing[2] }}>
+        <div className="flex gap-2 items-center mt-2">
           <Button variant="secondary" size="sm" onClick={handleCopyDiagnostics}>
             {diagnosticsCopied ? 'Copied' : 'Copy Setup Diagnostics'}
           </Button>
         </div>
       </div>
 
-      <Card style={{ marginBottom: tokens.spacing[4] }}>
-        <h3 style={{ fontSize: tokens.typography.fontSize.base[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[2] }}>
+      <Card className="mb-4">
+        <h3 className="text-base font-semibold mb-2">
           What masking does
         </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2], fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+        <div className="flex flex-col gap-2 text-sm text-text-secondary">
           <p>Client messages the business number and the message is routed to the assigned sitter.</p>
           <p>Sitter replies and the client still sees the business number.</p>
           <p>Owner can audit, intervene, and verify message delivery end to end.</p>
@@ -291,12 +290,12 @@ export function TwilioSetupPanel() {
       </Card>
 
       {verificationFailedBanner && (
-        <Card style={{ marginBottom: tokens.spacing[4], borderLeft: '4px solid #dc2626', backgroundColor: '#fef2f2' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: tokens.spacing[3] }}>
-            <p style={{ margin: 0, fontSize: tokens.typography.fontSize.sm[0], fontWeight: tokens.typography.fontWeight.medium }}>
+        <Card className="mb-4" style={{ borderLeft: '4px solid #dc2626', backgroundColor: '#fef2f2' }}>
+          <div className="flex justify-between items-start gap-3">
+            <p className="m-0 text-sm font-medium">
               {verificationFailedBanner}
             </p>
-            <div style={{ display: 'flex', gap: tokens.spacing[2], flexShrink: 0 }}>
+            <div className="flex gap-2 shrink-0">
               <Button variant="secondary" size="sm" onClick={handleCopyDiagnostics}>
                 Copy Setup Diagnostics
               </Button>
@@ -309,12 +308,12 @@ export function TwilioSetupPanel() {
       )}
 
       {/* Provider Status */}
-      <Card style={{ marginBottom: tokens.spacing[4] }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[3] }}>
-          <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+      <Card className="mb-4">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-lg font-semibold">
             Provider Connection
           </h3>
-          <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
+          <div className="flex gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -334,10 +333,10 @@ export function TwilioSetupPanel() {
 
         {providerStatus?.connected ? (
           <div>
-            <Badge variant="success" style={{ marginBottom: tokens.spacing[2] }}>
+            <Badge variant="success" className="mb-2">
               Connected ✓
             </Badge>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+            <div className="text-sm text-text-secondary">
               <div>Account SID: {providerStatus.accountSid || 'Not set'}</div>
               {providerStatus.checkedAt && (
                 <div>Last checked: {new Date(providerStatus.checkedAt).toLocaleString()}</div>
@@ -358,15 +357,15 @@ export function TwilioSetupPanel() {
           <div>
             <Badge variant="error">Not Connected</Badge>
             {providerStatus?.errorDetail && (
-              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: '#dc2626', marginTop: tokens.spacing[2] }}>
+              <p className="text-sm text-[#dc2626] mt-2">
                 {providerStatus.errorDetail}
               </p>
             )}
-            <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
+            <p className="text-sm text-text-secondary mt-2">
               Connect your Twilio account to enable messaging
             </p>
             {providerStatus?.checkedAt && (
-              <div style={{ fontSize: tokens.typography.fontSize.xs?.[0] || '11px', color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+              <div className="text-xs text-text-secondary mt-1">
                 Last checked: {new Date(providerStatus.checkedAt).toLocaleString()}
               </div>
             )}
@@ -375,9 +374,9 @@ export function TwilioSetupPanel() {
       </Card>
 
       {/* Webhook Status */}
-      <Card style={{ marginBottom: tokens.spacing[4] }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[3] }}>
-          <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+      <Card className="mb-4">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-lg font-semibold">
             Webhooks
           </h3>
           <Button
@@ -392,14 +391,14 @@ export function TwilioSetupPanel() {
 
         {webhookStatus?.installed ? (
           <div>
-            <Badge variant="success" style={{ marginBottom: tokens.spacing[2] }}>
+            <Badge variant="success" className="mb-2">
               Installed ✓
             </Badge>
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+            <div className="text-sm text-text-secondary">
               {(webhookStatus.matchedNumbers?.length ?? 0) > 0 && (
                 <div>Installed on {webhookStatus.matchedNumbers!.length} number{webhookStatus.matchedNumbers!.length !== 1 ? 's' : ''}</div>
               )}
-              <div>URL: <code style={{ fontFamily: 'monospace', fontSize: '11px' }}>{webhookStatus.url || 'Not set'}</code></div>
+              <div>URL: <code className="font-mono text-[11px]">{webhookStatus.url || 'Not set'}</code></div>
               {webhookStatus.checkedAt && (
                 <div>Last checked: {new Date(webhookStatus.checkedAt).toLocaleString()}</div>
               )}
@@ -413,20 +412,20 @@ export function TwilioSetupPanel() {
           <div>
             <Badge variant="error">Not Installed</Badge>
             {webhookStatus?.errorDetail && (
-              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: '#dc2626', marginTop: tokens.spacing[2] }}>
+              <p className="text-sm text-[#dc2626] mt-2">
                 {webhookStatus.errorDetail}
               </p>
             )}
             {webhookStatus?.unmatchedNumbers?.length ? (
-              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: '#dc2626', marginTop: tokens.spacing[2] }}>
+              <p className="text-sm text-[#dc2626] mt-2">
                 First mismatch: {webhookStatus.unmatchedNumbers[0].e164} → {webhookStatus.unmatchedNumbers[0].smsUrl || 'not set'}
               </p>
             ) : null}
-            <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
+            <p className="text-sm text-text-secondary mt-2">
               Install webhooks to receive inbound messages
             </p>
             {webhookStatus?.checkedAt && (
-              <div style={{ fontSize: tokens.typography.fontSize.xs?.[0] || '11px', color: tokens.colors.text.secondary, marginTop: tokens.spacing[1] }}>
+              <div className="text-xs text-text-secondary mt-1">
                 Last checked: {new Date(webhookStatus.checkedAt).toLocaleString()}
               </div>
             )}
@@ -435,12 +434,12 @@ export function TwilioSetupPanel() {
       </Card>
 
       {/* Test SMS */}
-      <Card style={{ marginBottom: tokens.spacing[4] }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[3] }}>
-          <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold }}>
+      <Card className="mb-4">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-lg font-semibold">
             Test SMS
           </h3>
-          <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
+          <div className="flex gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -459,39 +458,39 @@ export function TwilioSetupPanel() {
             </Button>
           </div>
         </div>
-        <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+        <p className="text-sm text-text-secondary">
           Sync Twilio numbers into the app first if Test SMS says no number. Then send a test SMS using the same send pipeline.
         </p>
       </Card>
 
       {/* Readiness Checks */}
       <Card>
-        <h3 style={{ fontSize: tokens.typography.fontSize.lg[0], fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[3] }}>
+        <h3 className="text-lg font-semibold mb-3">
           Readiness Checks
         </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-between items-center">
             <span>Provider Connection</span>
             <Badge variant={readiness?.provider.ready ? 'success' : 'error'}>
               {readiness?.provider.ready ? 'Ready' : 'Not Ready'}
             </Badge>
           </div>
           {!readiness?.provider.ready && (
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginLeft: tokens.spacing[4] }}>
+            <div className="text-sm text-text-secondary ml-4">
               {readiness?.provider.message}
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="flex justify-between items-center">
             <span>Numbers</span>
             <Badge variant={readiness?.numbers.ready ? 'success' : 'error'}>
               {readiness?.numbers.ready ? 'Ready' : 'Not Ready'}
             </Badge>
           </div>
           {!readiness?.numbers.ready && (
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginLeft: tokens.spacing[4] }}>
+            <div className="text-sm text-text-secondary ml-4">
               {readiness?.numbers.message}
-              <div style={{ marginTop: tokens.spacing[2], display: 'flex', gap: tokens.spacing[2] }}>
+              <div className="mt-2 flex gap-2">
                 <Button
                   variant="secondary"
                   size="sm"
@@ -507,27 +506,27 @@ export function TwilioSetupPanel() {
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="flex justify-between items-center">
             <span>Webhooks</span>
             <Badge variant={readiness?.webhooks.ready ? 'success' : 'error'}>
               {readiness?.webhooks.ready ? 'Ready' : 'Not Ready'}
             </Badge>
           </div>
           {!readiness?.webhooks.ready && (
-            <div style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginLeft: tokens.spacing[4] }}>
+            <div className="text-sm text-text-secondary ml-4">
               {readiness?.webhooks.message}
             </div>
           )}
 
-          <div style={{ marginTop: tokens.spacing[3], paddingTop: tokens.spacing[3], borderTop: `1px solid ${tokens.colors.border.default}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: tokens.typography.fontWeight.semibold }}>Overall Status</span>
+          <div className="mt-3 pt-3 border-t border-border-default">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">Overall Status</span>
               <Badge variant={readiness?.overall ? 'success' : 'error'}>
                 {readiness?.overall ? 'Ready' : 'Not Ready'}
               </Badge>
             </div>
             {readiness?.checkedAt && (
-              <div style={{ fontSize: tokens.typography.fontSize.xs?.[0] || '11px', color: tokens.colors.text.secondary, marginTop: tokens.spacing[2] }}>
+              <div className="text-xs text-text-secondary mt-2">
                 Last checked: {new Date(readiness.checkedAt).toLocaleString()}
               </div>
             )}
@@ -538,9 +537,9 @@ export function TwilioSetupPanel() {
       {/* Connect Modal */}
       {showConnectModal && (
         <Modal isOpen={showConnectModal} title="Connect Twilio Provider" onClose={() => setShowConnectModal(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+          <div className="flex flex-col gap-4">
             <div>
-              <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+              <label className="block mb-2 font-medium">
                 Account SID
               </label>
               <Input
@@ -551,7 +550,7 @@ export function TwilioSetupPanel() {
               />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+              <label className="block mb-2 font-medium">
                 Auth Token
               </label>
               <Input
@@ -561,7 +560,7 @@ export function TwilioSetupPanel() {
                 placeholder="Your Twilio Auth Token"
               />
             </div>
-            <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+            <div className="flex gap-3 justify-end">
               <Button onClick={() => setShowConnectModal(false)} variant="secondary">
                 Cancel
               </Button>
@@ -580,12 +579,12 @@ export function TwilioSetupPanel() {
       {/* Test Modal */}
       {showTestModal && (
         <Modal isOpen={showTestModal} title="Test Connection" onClose={() => setShowTestModal(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-text-secondary">
               Test connection with credentials (optional - uses saved credentials if not provided)
             </p>
             <div>
-              <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+              <label className="block mb-2 font-medium">
                 Account SID (optional)
               </label>
               <Input
@@ -596,7 +595,7 @@ export function TwilioSetupPanel() {
               />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: tokens.spacing[2], fontWeight: tokens.typography.fontWeight.medium }}>
+              <label className="block mb-2 font-medium">
                 Auth Token (optional)
               </label>
               <Input
@@ -606,7 +605,7 @@ export function TwilioSetupPanel() {
                 placeholder="Leave empty to use saved credentials"
               />
             </div>
-            <div style={{ display: 'flex', gap: tokens.spacing[3], justifyContent: 'flex-end' }}>
+            <div className="flex gap-3 justify-end">
               <Button onClick={() => setShowTestModal(false)} variant="secondary">
                 Cancel
               </Button>
@@ -625,12 +624,12 @@ export function TwilioSetupPanel() {
       {/* Test SMS Modal - enter phone number to send test SMS */}
       {showTestSMSModal && (
         <Modal isOpen={showTestSMSModal} title="Send Test SMS" onClose={() => setShowTestSMSModal(false)}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
-            <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-text-secondary">
               Enter your phone number in E.164 format (e.g. +15551234567). The test message will be sent from your connected Twilio number.
             </p>
             <div>
-              <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500, marginBottom: tokens.spacing[1] }}>
+              <label className="block text-sm font-medium mb-1">
                 Phone number
               </label>
               <Input
@@ -638,30 +637,24 @@ export function TwilioSetupPanel() {
                 placeholder="+15551234567"
                 value={testSMSForm.destinationE164}
                 onChange={(e) => setTestSMSForm((f) => ({ ...f, destinationE164: e.target.value }))}
-                style={{ width: '100%' }}
+                className="w-full"
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: tokens.typography.fontSize.sm[0], fontWeight: 500, marginBottom: tokens.spacing[1] }}>
+              <label className="block text-sm font-medium mb-1">
                 Send from
               </label>
               <select
                 value={testSMSForm.fromClass}
                 onChange={(e) => setTestSMSForm((f) => ({ ...f, fromClass: e.target.value as 'front_desk' | 'pool' | 'sitter' }))}
-                style={{
-                  width: '100%',
-                  padding: tokens.spacing[2],
-                  borderRadius: 4,
-                  border: `1px solid ${tokens.colors.border?.default ?? '#ccc'}`,
-                  fontSize: tokens.typography.fontSize.sm[0],
-                }}
+                className="w-full p-2 rounded text-sm border border-border-default"
               >
                 <option value="front_desk">Front desk</option>
                 <option value="pool">Pool</option>
                 <option value="sitter">Sitter</option>
               </select>
             </div>
-            <div style={{ display: 'flex', gap: tokens.spacing[2], justifyContent: 'flex-end' }}>
+            <div className="flex gap-2 justify-end">
               <Button onClick={() => setShowTestSMSModal(false)} variant="secondary">
                 Cancel
               </Button>
@@ -688,11 +681,11 @@ export function TwilioSetupPanel() {
 
       {/* Test to Owner Button */}
       {providerStatus?.connected && (
-        <Card style={{ padding: tokens.spacing[4], marginTop: tokens.spacing[4] }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Card className="p-4 mt-4">
+          <div className="flex justify-between items-center">
             <div>
-              <p style={{ fontWeight: 600 }}>Send Test to Owner</p>
-              <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary }}>
+              <p className="font-semibold">Send Test to Owner</p>
+              <p className="text-sm text-text-secondary">
                 Verify SMS delivery to the owner's personal phone
               </p>
             </div>
@@ -715,23 +708,23 @@ export function TwilioSetupPanel() {
 
       {/* A2P 10DLC Status */}
       {providerStatus?.connected && (
-        <Card style={{ padding: tokens.spacing[4], marginTop: tokens.spacing[4] }}>
-          <p style={{ fontWeight: 600, marginBottom: tokens.spacing[2] }}>A2P 10DLC Compliance</p>
-          <p style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.text.secondary, marginBottom: tokens.spacing[2] }}>
+        <Card className="p-4 mt-4">
+          <p className="font-semibold mb-2">A2P 10DLC Compliance</p>
+          <p className="text-sm text-text-secondary mb-2">
             US carriers require A2P 10DLC registration for business SMS. Without it, messages may be filtered or blocked.
           </p>
-          <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+          <div className="flex gap-2 flex-wrap">
             <Badge variant="warning">Check Twilio Console</Badge>
             <a
               href="https://console.twilio.com/us1/develop/sms/regulatory-compliance/a2p-10dlc"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ fontSize: tokens.typography.fontSize.sm[0], color: tokens.colors.primary.DEFAULT, textDecoration: 'underline' }}
+              className="text-sm underline text-primary"
             >
               Open A2P registration →
             </a>
           </div>
-          <p style={{ fontSize: tokens.typography.fontSize.xs[0], color: tokens.colors.text.tertiary, marginTop: tokens.spacing[2] }}>
+          <p className="text-xs text-text-tertiary mt-2">
             If you're using OpenPhone, A2P registration is handled by OpenPhone automatically.
           </p>
         </Card>

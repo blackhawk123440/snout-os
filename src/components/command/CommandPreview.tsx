@@ -1,7 +1,7 @@
 /**
  * CommandPreview Component
  * UI Constitution V1 - Phase 3
- * 
+ *
  * Shows safety preview before command execution.
  * Blocks execution for dangerous commands until confirmation.
  */
@@ -35,51 +35,19 @@ export function CommandPreview({
   return (
     <div
       data-testid="command-preview"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: tokens.spacing[4],
-        padding: tokens.spacing[6],
-      }}
+      className="flex flex-col gap-4 p-6"
     >
       {/* Danger Warning */}
       {command.danger && (
-        <div
-          style={{
-            padding: tokens.spacing[4],
-            backgroundColor: tokens.colors.error[50],
-            border: `1px solid ${tokens.colors.error[200]}`,
-            borderRadius: tokens.radius.md,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: tokens.spacing[3],
-          }}
-        >
+        <div className="p-4 bg-status-danger-bg border border-status-danger-border rounded-md flex items-start gap-3">
           <AlertTriangle
-            className="w-5 h-5"
-            style={{
-              color: tokens.colors.error.DEFAULT,
-              flexShrink: 0,
-              marginTop: '2px',
-            }}
+            className="w-5 h-5 text-status-danger-text flex-shrink-0 mt-[2px]"
           />
-          <div style={{ flex: 1 }}>
-            <div
-              style={{
-                fontSize: tokens.typography.fontSize.base[0],
-                fontWeight: tokens.typography.fontWeight.bold,
-                color: tokens.colors.error.DEFAULT,
-                marginBottom: tokens.spacing[1],
-              }}
-            >
+          <div className="flex-1">
+            <div className="text-base font-bold text-status-danger-text mb-1">
               Dangerous Action
             </div>
-            <div
-              style={{
-                fontSize: tokens.typography.fontSize.sm[0],
-                color: tokens.colors.text.secondary,
-              }}
-            >
+            <div className="text-sm text-text-secondary">
               This action cannot be undone. Please confirm before proceeding.
             </div>
           </div>
@@ -87,76 +55,31 @@ export function CommandPreview({
       )}
 
       {/* Command Info */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: tokens.spacing[3],
-          paddingBottom: tokens.spacing[4],
-          borderBottom: `1px solid ${tokens.colors.border.default}`,
-        }}
-      >
+      <div className="flex items-center gap-3 pb-4 border-b border-border-default">
         {command.icon && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              borderRadius: tokens.radius.md,
-              backgroundColor: tokens.colors.accent.primary,
-            }}
-          >
+          <div className="flex items-center justify-center w-10 h-10 rounded-md bg-accent-primary">
             {command.icon}
           </div>
         )}
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.lg[0],
-              fontWeight: tokens.typography.fontWeight.bold,
-              color: tokens.colors.text.primary,
-              marginBottom: tokens.spacing[1],
-            }}
-          >
+        <div className="flex-1">
+          <div className="text-lg font-bold text-text-primary mb-1">
             {command.label}
           </div>
-          <div
-            style={{
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-            }}
-          >
+          <div className="text-sm text-text-secondary">
             {command.description}
           </div>
         </div>
       </div>
 
       {/* Preview Content */}
-      <div
-        style={{
-          padding: tokens.spacing[4],
-          backgroundColor: tokens.colors.surface.secondary,
-          borderRadius: tokens.radius.md,
-          minHeight: '100px',
-        }}
-      >
+      <div className="p-4 bg-surface-secondary rounded-md min-h-[100px]">
         {preview}
       </div>
 
       {/* Confirmation Checkbox for Dangerous Commands */}
       {command.danger && (
         <label
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: tokens.spacing[2],
-            cursor: 'pointer',
-            padding: tokens.spacing[3],
-            borderRadius: tokens.radius.md,
-            transition: `background-color ${tokens.motion.duration.fast} ${tokens.motion.easing.standard}`,
-          }}
+          className="flex items-center gap-2 cursor-pointer p-3 rounded-md transition-colors duration-fast ease-standard"
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = tokens.colors.accent.secondary;
           }}
@@ -168,18 +91,9 @@ export function CommandPreview({
             type="checkbox"
             checked={confirmed}
             onChange={(e) => setConfirmed(e.target.checked)}
-            style={{
-              width: '20px',
-              height: '20px',
-              cursor: 'pointer',
-            }}
+            className="w-5 h-5 cursor-pointer"
           />
-          <span
-            style={{
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.primary,
-            }}
-          >
+          <span className="text-sm text-text-primary">
             I understand this action cannot be undone
           </span>
         </label>

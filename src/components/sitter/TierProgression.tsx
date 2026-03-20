@@ -1,6 +1,6 @@
 /**
  * Tier Progression Component
- * 
+ *
  * Enterprise-grade tier progression visualization with icons, year/level markers,
  * and progress indicators toward next tier.
  */
@@ -11,13 +11,13 @@ import { Card, SectionHeader, Badge } from '@/components/ui';
 import { Lock, Circle } from 'lucide-react';
 import { Icon } from '@/components/ui/Icon';
 import { tokens } from '@/lib/design-tokens';
-import { 
-  getAllTiers, 
-  getTierLevel, 
-  getTierIcon, 
+import {
+  getAllTiers,
+  getTierLevel,
+  getTierIcon,
   getTierColor,
   toCanonicalTierName,
-  type CanonicalTierName 
+  type CanonicalTierName
 } from '@/lib/tiers/tier-name-mapper';
 
 interface TierProgressionProps {
@@ -106,16 +106,11 @@ export function TierProgression({ currentTierName, metrics }: TierProgressionPro
   const nextTierRequirements = getNextTierRequirements();
 
   return (
-    <Card style={{ padding: tokens.spacing[4] }}>
+    <Card className="p-4">
       <SectionHeader title="Tier Progression" />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+      <div className="flex flex-col gap-4">
         {/* Tier Stepper */}
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: tokens.spacing[3],
-          position: 'relative',
-        }}>
+        <div className="flex flex-col gap-3 relative">
           {allTiers.map((tier, index) => {
             const level = index + 1;
             const isCurrent = currentTier === tier;
@@ -126,65 +121,46 @@ export function TierProgression({ currentTierName, metrics }: TierProgressionPro
             return (
               <div
                 key={tier}
+                className="flex items-center gap-3 p-3 rounded-md relative"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: tokens.spacing[3],
-                  padding: tokens.spacing[3],
-                  borderRadius: tokens.borderRadius.md,
                   backgroundColor: isCurrent ? 'var(--color-surface-tertiary)' : 'transparent',
-                  border: isCurrent ? `2px solid ${tierColor}` : `1px solid ${tokens.colors.border.default}`,
-                  position: 'relative',
+                  border: isCurrent ? `2px solid ${tierColor}` : `1px solid var(--color-border-default)`,
                 }}
               >
                 {/* Icon */}
                 <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-xl shrink-0"
                   style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: tokens.borderRadius.full,
                     backgroundColor: isUnlocked ? tierColor : tokens.colors.neutral[200],
                     color: isUnlocked ? 'white' : tokens.colors.text.secondary,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: tokens.typography.fontSize.xl[0],
-                    flexShrink: 0,
                   }}
                 >
                   <Icon name={tierIcon} size={20} />
                 </div>
 
                 {/* Tier Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[1] }}>
-                    <div style={{ 
-                      fontWeight: tokens.typography.fontWeight.bold,
-                      fontSize: tokens.typography.fontSize.base[0],
-                    }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="font-bold text-base">
                       {tier}
                     </div>
                     <Badge variant={isCurrent ? 'success' : isUnlocked ? 'default' : 'error'}>
                       Level {level}
                     </Badge>
                     {isCurrent && (
-                      <Badge variant="info" style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
+                      <Badge variant="info" className="text-xs">
                         Current
                       </Badge>
                     )}
                     {!isUnlocked && (
-                      <Badge variant="error" style={{ fontSize: tokens.typography.fontSize.xs[0] }}>
+                      <Badge variant="error" className="text-xs">
                         <Lock className="w-3.5 h-3.5 mr-1" />
                         Locked
                       </Badge>
                     )}
                   </div>
                   {isCurrent && nextTierRequirements.length > 0 && index < allTiers.length - 1 && (
-                    <div style={{ 
-                      fontSize: tokens.typography.fontSize.xs[0],
-                      color: tokens.colors.text.secondary,
-                      marginTop: tokens.spacing[1],
-                    }}>
+                    <div className="text-xs text-text-secondary mt-1">
                       Next: {allTiers[index + 1]} — {nextTierRequirements[0]}
                     </div>
                   )}
@@ -196,28 +172,13 @@ export function TierProgression({ currentTierName, metrics }: TierProgressionPro
 
         {/* Progress Indicators */}
         {currentTier && metrics && (
-          <div style={{
-            padding: tokens.spacing[3],
-            backgroundColor: 'var(--color-surface-secondary)',
-            borderRadius: tokens.borderRadius.md,
-            border: `1px solid ${tokens.colors.border.default}`,
-          }}>
-            <div style={{
-              fontWeight: tokens.typography.fontWeight.semibold,
-              fontSize: tokens.typography.fontSize.sm[0],
-              marginBottom: tokens.spacing[2],
-            }}>
+          <div className="p-3 bg-surface-secondary rounded-md border border-border-default">
+            <div className="font-semibold text-sm mb-2">
               Progress Toward Next Tier
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+            <div className="flex flex-col gap-2">
               {nextTierRequirements.map((req, i) => (
-                <div key={i} style={{
-                  fontSize: tokens.typography.fontSize.xs[0],
-                  color: tokens.colors.text.secondary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: tokens.spacing[2],
-                }}>
+                <div key={i} className="text-xs text-text-secondary flex items-center gap-2">
                   <Circle className="w-1 h-1 fill-current text-accent-primary" />
                   {req}
                 </div>
@@ -228,16 +189,8 @@ export function TierProgression({ currentTierName, metrics }: TierProgressionPro
 
         {/* Foundation State */}
         {!currentTier && (
-          <div style={{
-            padding: tokens.spacing[4],
-            textAlign: 'center',
-            backgroundColor: 'var(--color-surface-secondary)',
-            borderRadius: tokens.borderRadius.md,
-          }}>
-            <div style={{
-              fontSize: tokens.typography.fontSize.sm[0],
-              color: tokens.colors.text.secondary,
-            }}>
+          <div className="p-4 text-center bg-surface-secondary rounded-md">
+            <div className="text-sm text-text-secondary">
               Complete booking offers and respond to messages to unlock your first tier.
             </div>
           </div>

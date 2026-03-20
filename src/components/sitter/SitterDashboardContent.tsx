@@ -1,13 +1,12 @@
 /**
  * Sitter Dashboard Content
- * 
+ *
  * Main dashboard layout with all sections
  */
 
 'use client';
 
 import { PageHeader, Button } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
 import Link from 'next/link';
 import { PendingRequests } from './PendingRequests';
 import { UpcomingBookings } from './UpcomingBookings';
@@ -40,54 +39,45 @@ export function SitterDashboardContent({ dashboardData, sitterId }: SitterDashbo
           </Link>
         }
       />
-      
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        gap: tokens.spacing[4], 
-        padding: tokens.spacing[4] 
-      }}>
+
+      <div className="flex flex-col gap-4 p-4">
         {/* Status & Availability - Top Priority */}
-        <StatusAvailability 
+        <StatusAvailability
           isAvailable={dashboardData.isAvailable}
           sitterId={sitterId}
         />
 
         {/* Pending Requests - Highest Priority if any exist */}
         {hasPendingRequests && (
-          <PendingRequests 
+          <PendingRequests
             bookings={dashboardData.pendingRequests}
             sitterId={sitterId}
           />
         )}
 
         {/* Performance & Tier - Side by side on desktop */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: tokens.spacing[4],
-        }}>
-          <PerformanceSnapshot 
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
+          <PerformanceSnapshot
             performance={dashboardData.performance}
             currentTier={dashboardData.currentTier}
           />
-          <SitterTierCard 
+          <SitterTierCard
             currentTier={dashboardData.currentTier}
           />
         </div>
 
         {/* Messaging Inbox Card */}
-        <MessagingInboxCard 
+        <MessagingInboxCard
           unreadCount={dashboardData.unreadMessageCount}
         />
 
         {/* Upcoming Bookings */}
-        <UpcomingBookings 
+        <UpcomingBookings
           bookings={dashboardData.upcomingBookings}
         />
 
         {/* Completed Bookings - Collapsed by default */}
-        <CompletedBookings 
+        <CompletedBookings
           bookings={dashboardData.completedBookings}
           totalEarnings={dashboardData.performance.totalEarnings}
         />
