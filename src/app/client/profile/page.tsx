@@ -2,16 +2,10 @@
 
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
-import { Home, Phone } from 'lucide-react';
+import { Home, Phone, Share2 } from 'lucide-react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
-import {
-  AppCard,
-  AppCardHeader,
-  AppCardBody,
-  AppErrorState,
-} from '@/components/app';
+import { AppErrorState } from '@/components/app';
 import { Button, Modal } from '@/components/ui';
-import { PageSkeleton } from '@/components/ui/loading-state';
 import { toastSuccess, toastError } from '@/lib/toast';
 import {
   useClientProfile,
@@ -23,7 +17,7 @@ import {
   type ClientEmergencyContact,
 } from '@/lib/api/client-hooks';
 
-const inputClass = 'w-full min-h-[44px] rounded-lg border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus';
+const inputClass = 'w-full min-h-[44px] rounded-xl border border-border-default bg-surface-primary px-3 py-2 text-sm text-text-primary placeholder:text-text-disabled focus:border-border-focus focus:outline-none focus:ring-1 focus:ring-border-focus';
 
 export default function ClientProfilePage() {
   const { data, isLoading: loading, error, refetch } = useClientProfile();
@@ -47,57 +41,56 @@ export default function ClientProfilePage() {
 
   return (
     <LayoutWrapper variant="narrow">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-text-primary font-heading">Profile</h1>
-            <p className="text-sm text-text-secondary mt-1">Your account</p>
-          </div>
-          <ClientRefreshButton onRefresh={refetch} loading={loading} />
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <div>
+          <h1 className="text-[22px] font-bold tracking-tight text-text-primary font-heading leading-tight sm:text-2xl">
+            Profile
+          </h1>
+          <p className="text-[14px] text-text-secondary mt-0.5">Your account settings</p>
         </div>
+        <ClientRefreshButton onRefresh={refetch} loading={loading} />
+      </div>
 
-        {loading ? (
-          <PageSkeleton />
-        ) : error ? (
-          <AppErrorState title="Couldn't load profile" subtitle={error.message || 'Unable to load'} onRetry={() => void refetch()} />
-        ) : profileData ? (
-          <div className="flex flex-col gap-4 pb-8">
-            <EditableProfileSection data={profileData} onSaved={refetch} />
-            <HomeAccessSection data={profileData} onSaved={refetch} />
-            <EmergencyContactsSection contacts={contacts} onChanged={refetch} />
-            <ReferralSection />
+      {loading ? (
+        <ProfileSkeleton />
+      ) : error ? (
+        <AppErrorState title="Couldn't load profile" subtitle={error.message || 'Unable to load'} onRetry={() => void refetch()} />
+      ) : profileData ? (
+        <div className="space-y-4 mt-4 pb-8">
+          <EditableProfileSection data={profileData} onSaved={refetch} />
+          <HomeAccessSection data={profileData} onSaved={refetch} />
+          <EmergencyContactsSection contacts={contacts} onChanged={refetch} />
+          <ReferralSection />
 
-            <div className="rounded-xl border border-border-default bg-surface-primary p-5 shadow-[var(--shadow-card)]">
-              <div className="space-y-2">
-                <a href="/client/settings/export" className="flex min-h-[44px] w-full items-center justify-center rounded-lg border border-border-default bg-surface-primary px-4 text-sm font-medium text-text-secondary hover:bg-surface-secondary">
-                  Export your data
-                </a>
-                <Button variant="secondary" size="md" onClick={() => signOut({ callbackUrl: '/login' })} className="w-full">
-                  Sign out
-                </Button>
-              </div>
-            </div>
-
-            {/* Danger zone — separated with gap and border */}
-            <div className="pt-12 mt-8 border-t border-border-muted">
-              <div className="rounded-xl border border-border-default bg-surface-primary p-5 shadow-[var(--shadow-card)]">
-                <p className="mb-2 text-sm font-medium text-text-primary">Delete account</p>
-                <p className="mb-3 text-xs text-text-tertiary">Permanently delete your account. This cannot be undone.</p>
-                <Button variant="danger" size="md" onClick={() => setDeleteModalOpen(true)}>
-                  Delete account
-                </Button>
-              </div>
+          <div className="rounded-2xl border border-border-default bg-surface-primary p-5 shadow-sm">
+            <div className="space-y-2">
+              <a href="/client/settings/export" className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border-default bg-surface-primary px-4 text-sm font-medium text-text-secondary hover:bg-surface-secondary transition-colors">
+                Export your data
+              </a>
+              <Button variant="secondary" size="md" onClick={() => signOut({ callbackUrl: '/login' })} className="w-full">
+                Sign out
+              </Button>
             </div>
           </div>
-        ) : null}
-      </div>
+
+          <div className="pt-8 mt-4 border-t border-border-muted">
+            <div className="rounded-2xl border border-border-default bg-surface-primary p-5 shadow-sm">
+              <p className="mb-2 text-[14px] font-semibold text-text-primary">Delete account</p>
+              <p className="mb-3 text-[13px] text-text-tertiary">Permanently delete your account. This cannot be undone.</p>
+              <Button variant="danger" size="md" onClick={() => setDeleteModalOpen(true)}>
+                Delete account
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <Modal isOpen={deleteModalOpen} onClose={() => !deleting && setDeleteModalOpen(false)} title="Delete account" size="sm"
         footer={
           <div className="flex gap-2 justify-end">
             <Button variant="secondary" onClick={() => setDeleteModalOpen(false)} disabled={deleting}>Cancel</Button>
-            <Button variant="secondary" onClick={() => void handleDeleteAccount()} disabled={deleting} className="bg-status-danger-fill text-status-danger-text-on-fill hover:bg-status-danger-fill-hover">
-              {deleting ? 'Deleting...' : 'Delete account'}
+            <Button variant="danger" onClick={() => void handleDeleteAccount()} disabled={deleting}>
+              {deleting ? 'Deleting\u2026' : 'Delete account'}
             </Button>
           </div>
         }
@@ -142,23 +135,21 @@ function EditableProfileSection({ data, onSaved }: { data: ClientProfileData; on
   };
 
   return (
-    <AppCard>
-      <AppCardHeader>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text-primary">Personal Info</h3>
-          {!editing && <button type="button" onClick={handleEdit} className="min-h-[44px] text-sm font-medium text-accent-primary hover:underline">Edit</button>}
-        </div>
-      </AppCardHeader>
-      <AppCardBody>
+    <div className="rounded-2xl border border-border-default bg-surface-primary shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">Personal info</h3>
+        {!editing && <button type="button" onClick={handleEdit} className="min-h-[44px] text-[12px] font-semibold text-accent-primary hover:underline">Edit</button>}
+      </div>
+      <div className="px-5 pb-5">
         {editing ? (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-xs text-text-tertiary mb-1">First name</label><input value={draft.firstName} onChange={(e) => setDraft((d) => ({ ...d, firstName: e.target.value }))} className={inputClass} /></div>
-              <div><label className="block text-xs text-text-tertiary mb-1">Last name</label><input value={draft.lastName} onChange={(e) => setDraft((d) => ({ ...d, lastName: e.target.value }))} className={inputClass} /></div>
+              <div><label className="block text-[11px] text-text-tertiary mb-1">First name</label><input value={draft.firstName} onChange={(e) => setDraft((d) => ({ ...d, firstName: e.target.value }))} className={inputClass} /></div>
+              <div><label className="block text-[11px] text-text-tertiary mb-1">Last name</label><input value={draft.lastName} onChange={(e) => setDraft((d) => ({ ...d, lastName: e.target.value }))} className={inputClass} /></div>
             </div>
-            <div><label className="block text-xs text-text-tertiary mb-1">Email</label><input type="email" value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} className={inputClass} /></div>
-            <div><label className="block text-xs text-text-tertiary mb-1">Phone</label><input type="tel" value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} className={inputClass} /></div>
-            <div><label className="block text-xs text-text-tertiary mb-1">Address</label><input value={draft.address} onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))} placeholder="123 Main St, City, State" className={inputClass} /></div>
+            <div><label className="block text-[11px] text-text-tertiary mb-1">Email</label><input type="email" value={draft.email} onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))} className={inputClass} /></div>
+            <div><label className="block text-[11px] text-text-tertiary mb-1">Phone</label><input type="tel" value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} className={inputClass} /></div>
+            <div><label className="block text-[11px] text-text-tertiary mb-1">Address</label><input value={draft.address} onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))} placeholder="123 Main St, City, State" className={inputClass} /></div>
             <div className="flex gap-2 justify-end">
               <Button variant="secondary" size="md" onClick={() => setEditing(false)}>Cancel</Button>
               <Button variant="primary" size="md" onClick={handleSave} disabled={updateProfile.isPending} isLoading={updateProfile.isPending}>Save</Button>
@@ -166,14 +157,14 @@ function EditableProfileSection({ data, onSaved }: { data: ClientProfileData; on
           </div>
         ) : (
           <div className="space-y-1.5">
-            <p className="text-sm font-medium text-text-primary">{data.name || 'Client'}</p>
-            {data.email && <p className="text-sm text-text-secondary">{data.email}</p>}
-            {data.phone && <p className="text-sm text-text-secondary">{data.phone}</p>}
-            {data.address ? <p className="text-sm text-text-secondary">{data.address}</p> : <p className="text-sm text-text-tertiary italic">No address on file</p>}
+            <p className="text-[14px] font-medium text-text-primary">{data.name || 'Client'}</p>
+            {data.email && <p className="text-[13px] text-text-secondary">{data.email}</p>}
+            {data.phone && <p className="text-[13px] text-text-secondary">{data.phone}</p>}
+            {data.address ? <p className="text-[13px] text-text-secondary">{data.address}</p> : <p className="text-[13px] text-text-tertiary italic">No address on file</p>}
           </div>
         )}
-      </AppCardBody>
-    </AppCard>
+      </div>
+    </div>
   );
 }
 
@@ -198,18 +189,20 @@ function ReferralSection() {
   if (isLoading) return null;
 
   return (
-    <AppCard>
-      <AppCardHeader>
-        <h3 className="text-sm font-semibold text-text-primary">Refer a Friend</h3>
-      </AppCardHeader>
-      <AppCardBody>
-        <p className="text-sm text-text-secondary mb-3">
-          Share your code and you both get $10 off your next booking!
+    <div className="rounded-2xl border border-border-default bg-surface-primary shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
+          <Share2 className="w-3.5 h-3.5" /> Refer a friend
+        </h3>
+      </div>
+      <div className="px-5 pb-5">
+        <p className="text-[13px] text-text-secondary mb-3">
+          Share your code and you both get $10 off your next booking.
         </p>
         {data?.referralCode ? (
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg border border-border-default bg-surface-secondary px-4 py-2 font-mono text-sm font-semibold text-text-primary tracking-wider">
+              <div className="rounded-xl border border-border-default bg-surface-secondary px-4 py-2.5 font-mono text-sm font-semibold text-text-primary tracking-wider">
                 {data.referralCode}
               </div>
               <Button variant="secondary" size="md" onClick={handleCopy}>
@@ -217,16 +210,16 @@ function ReferralSection() {
               </Button>
             </div>
             {data.referralCount > 0 && (
-              <p className="text-xs text-text-tertiary">
+              <p className="text-[12px] text-text-tertiary">
                 {data.referralCount} friend{data.referralCount !== 1 ? 's' : ''} joined with your code
               </p>
             )}
           </div>
         ) : (
-          <p className="text-xs text-text-tertiary italic">Referral code unavailable</p>
+          <p className="text-[12px] text-text-tertiary italic">Referral code unavailable</p>
         )}
-      </AppCardBody>
-    </AppCard>
+      </div>
+    </div>
   );
 }
 
@@ -238,10 +231,10 @@ function MaskedField({ label, value }: { label: string; value: string | null }) 
   return (
     <div className="flex items-center justify-between gap-2">
       <div>
-        <p className="text-xs text-text-tertiary">{label}</p>
-        <p className="text-sm text-text-primary font-mono">{revealed ? value : '\u2022\u2022\u2022\u2022\u2022\u2022'}</p>
+        <p className="text-[11px] text-text-tertiary">{label}</p>
+        <p className="text-[13px] text-text-primary font-mono">{revealed ? value : '\u2022\u2022\u2022\u2022\u2022\u2022'}</p>
       </div>
-      <button type="button" onClick={() => setRevealed(!revealed)} className="min-h-[44px] min-w-[44px] text-xs font-medium text-accent-primary hover:underline">
+      <button type="button" onClick={() => setRevealed(!revealed)} className="min-h-[44px] min-w-[44px] text-[12px] font-medium text-accent-primary hover:underline">
         {revealed ? 'Hide' : 'Show'}
       </button>
     </div>
@@ -279,45 +272,45 @@ function HomeAccessSection({ data, onSaved }: { data: ClientProfileData; onSaved
   };
 
   return (
-    <AppCard>
-      <AppCardHeader>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2"><Home size={18} /> Home Access</h3>
-          {!editing && <button type="button" onClick={handleEdit} className="min-h-[44px] text-sm font-medium text-accent-primary hover:underline">Edit</button>}
-        </div>
-      </AppCardHeader>
-      <AppCardBody>
+    <div className="rounded-2xl border border-border-default bg-surface-primary shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
+          <Home className="w-3.5 h-3.5" /> Home access
+        </h3>
+        {!editing && <button type="button" onClick={handleEdit} className="min-h-[44px] text-[12px] font-semibold text-accent-primary hover:underline">Edit</button>}
+      </div>
+      <div className="px-5 pb-5">
         {editing ? (
           <div className="space-y-3">
-            <div><label className="block text-xs text-text-tertiary mb-1">Key location</label><input value={draft.keyLocation} onChange={(e) => setDraft((d) => ({ ...d, keyLocation: e.target.value }))} placeholder="Under the mat, lockbox on porch\u2026" className={inputClass} /></div>
-            <div><label className="block text-xs text-text-tertiary mb-1">Lockbox code</label><input value={draft.lockboxCode} onChange={(e) => setDraft((d) => ({ ...d, lockboxCode: e.target.value }))} placeholder="1234" className={inputClass} /></div>
-            <div><label className="block text-xs text-text-tertiary mb-1">Door / alarm code</label><input value={draft.doorAlarmCode} onChange={(e) => setDraft((d) => ({ ...d, doorAlarmCode: e.target.value }))} placeholder="4567#" className={inputClass} /></div>
+            <div><label className="block text-[11px] text-text-tertiary mb-1">Key location</label><input value={draft.keyLocation} onChange={(e) => setDraft((d) => ({ ...d, keyLocation: e.target.value }))} placeholder="Under the mat, lockbox on porch\u2026" className={inputClass} /></div>
+            <div><label className="block text-[11px] text-text-tertiary mb-1">Lockbox code</label><input value={draft.lockboxCode} onChange={(e) => setDraft((d) => ({ ...d, lockboxCode: e.target.value }))} placeholder="1234" className={inputClass} /></div>
+            <div><label className="block text-[11px] text-text-tertiary mb-1">Door / alarm code</label><input value={draft.doorAlarmCode} onChange={(e) => setDraft((d) => ({ ...d, doorAlarmCode: e.target.value }))} placeholder="4567#" className={inputClass} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className="block text-xs text-text-tertiary mb-1">WiFi network</label><input value={draft.wifiNetwork} onChange={(e) => setDraft((d) => ({ ...d, wifiNetwork: e.target.value }))} className={inputClass} /></div>
-              <div><label className="block text-xs text-text-tertiary mb-1">WiFi password</label><input value={draft.wifiPassword} onChange={(e) => setDraft((d) => ({ ...d, wifiPassword: e.target.value }))} className={inputClass} /></div>
+              <div><label className="block text-[11px] text-text-tertiary mb-1">WiFi network</label><input value={draft.wifiNetwork} onChange={(e) => setDraft((d) => ({ ...d, wifiNetwork: e.target.value }))} className={inputClass} /></div>
+              <div><label className="block text-[11px] text-text-tertiary mb-1">WiFi password</label><input value={draft.wifiPassword} onChange={(e) => setDraft((d) => ({ ...d, wifiPassword: e.target.value }))} className={inputClass} /></div>
             </div>
-            <div><label className="block text-xs text-text-tertiary mb-1">Entry instructions</label><textarea value={draft.entryInstructions} onChange={(e) => setDraft((d) => ({ ...d, entryInstructions: e.target.value }))} rows={2} placeholder="Use side gate, ring doorbell\u2026" className={`${inputClass} resize-y`} /></div>
-            <div><label className="block text-xs text-text-tertiary mb-1">Parking</label><input value={draft.parkingNotes} onChange={(e) => setDraft((d) => ({ ...d, parkingNotes: e.target.value }))} placeholder="Driveway, street parking\u2026" className={inputClass} /></div>
+            <div><label className="block text-[11px] text-text-tertiary mb-1">Entry instructions</label><textarea value={draft.entryInstructions} onChange={(e) => setDraft((d) => ({ ...d, entryInstructions: e.target.value }))} rows={2} placeholder="Use side gate, ring doorbell\u2026" className={`${inputClass} resize-y`} /></div>
+            <div><label className="block text-[11px] text-text-tertiary mb-1">Parking</label><input value={draft.parkingNotes} onChange={(e) => setDraft((d) => ({ ...d, parkingNotes: e.target.value }))} placeholder="Driveway, street parking\u2026" className={inputClass} /></div>
             <div className="flex gap-2 justify-end">
               <Button variant="secondary" size="md" onClick={() => setEditing(false)}>Cancel</Button>
               <Button variant="primary" size="md" onClick={handleSave} disabled={updateProfile.isPending} isLoading={updateProfile.isPending}>Save</Button>
             </div>
           </div>
         ) : hasAny ? (
-          <div className="space-y-2">
-            {data.keyLocation && <div><p className="text-xs text-text-tertiary">Key location</p><p className="text-sm text-text-primary">{data.keyLocation}</p></div>}
+          <div className="space-y-2.5">
+            {data.keyLocation && <div><p className="text-[11px] text-text-tertiary">Key location</p><p className="text-[13px] text-text-primary">{data.keyLocation}</p></div>}
             <MaskedField label="Lockbox code" value={data.lockboxCode} />
             <MaskedField label="Door / alarm code" value={data.doorAlarmCode} />
-            {data.wifiNetwork && <div><p className="text-xs text-text-tertiary">WiFi</p><p className="text-sm text-text-primary">{data.wifiNetwork}</p></div>}
+            {data.wifiNetwork && <div><p className="text-[11px] text-text-tertiary">WiFi</p><p className="text-[13px] text-text-primary">{data.wifiNetwork}</p></div>}
             <MaskedField label="WiFi password" value={data.wifiPassword} />
-            {data.entryInstructions && <div><p className="text-xs text-text-tertiary">Entry instructions</p><p className="text-sm text-text-secondary whitespace-pre-wrap">{data.entryInstructions}</p></div>}
-            {data.parkingNotes && <div><p className="text-xs text-text-tertiary">Parking</p><p className="text-sm text-text-secondary">{data.parkingNotes}</p></div>}
+            {data.entryInstructions && <div><p className="text-[11px] text-text-tertiary">Entry instructions</p><p className="text-[13px] text-text-secondary whitespace-pre-wrap">{data.entryInstructions}</p></div>}
+            {data.parkingNotes && <div><p className="text-[11px] text-text-tertiary">Parking</p><p className="text-[13px] text-text-secondary">{data.parkingNotes}</p></div>}
           </div>
         ) : (
-          <p className="text-sm text-text-tertiary italic">No home access info yet. Tap edit to add key location, codes, and entry instructions.</p>
+          <p className="text-[13px] text-text-tertiary italic">No home access info yet. Tap edit to add key location, codes, and entry instructions.</p>
         )}
-      </AppCardBody>
-    </AppCard>
+      </div>
+    </div>
   );
 }
 
@@ -349,32 +342,32 @@ function EmergencyContactsSection({ contacts, onChanged }: { contacts: ClientEme
   };
 
   return (
-    <AppCard>
-      <AppCardHeader>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2"><Phone size={18} /> Emergency Contacts</h3>
-          {!adding && <button type="button" onClick={() => setAdding(true)} className="min-h-[44px] text-sm font-medium text-accent-primary hover:underline">Add</button>}
-        </div>
-      </AppCardHeader>
-      <AppCardBody>
+    <div className="rounded-2xl border border-border-default bg-surface-primary shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <h3 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider flex items-center gap-2">
+          <Phone className="w-3.5 h-3.5" /> Emergency contacts
+        </h3>
+        {!adding && <button type="button" onClick={() => setAdding(true)} className="min-h-[44px] text-[12px] font-semibold text-accent-primary hover:underline">Add</button>}
+      </div>
+      <div className="px-5 pb-5">
         {contacts.length > 0 && (
           <div className="space-y-3 mb-3">
             {contacts.map((c) => (
-              <div key={c.id} className="flex items-center justify-between gap-2">
+              <div key={c.id} className="flex items-center justify-between gap-2 py-1">
                 <div>
-                  <p className="text-sm font-medium text-text-primary">{c.name}{c.relationship ? ` (${c.relationship})` : ''}</p>
-                  <a href={`tel:${c.phone}`} className="text-sm text-accent-primary hover:underline">{c.phone}</a>
+                  <p className="text-[14px] font-medium text-text-primary">{c.name}{c.relationship ? ` (${c.relationship})` : ''}</p>
+                  <a href={`tel:${c.phone}`} className="text-[13px] text-accent-primary hover:underline">{c.phone}</a>
                 </div>
-                <button type="button" onClick={() => handleDelete(c.id)} className="min-h-[44px] min-w-[44px] text-xs text-status-danger-text-secondary hover:underline">Remove</button>
+                <button type="button" onClick={() => handleDelete(c.id)} className="min-h-[44px] min-w-[44px] text-[12px] text-status-danger-text hover:underline">Remove</button>
               </div>
             ))}
           </div>
         )}
         {contacts.length === 0 && !adding && (
-          <p className="text-sm text-text-tertiary italic mb-2">No emergency contacts yet. Add one so your sitter knows who to call.</p>
+          <p className="text-[13px] text-text-tertiary italic mb-2">No emergency contacts yet. Add one so your sitter knows who to call.</p>
         )}
         {adding && (
-          <div className="space-y-3 rounded-lg border border-border-default p-3">
+          <div className="space-y-3 rounded-xl border border-border-default bg-surface-secondary p-4">
             <input value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Name" className={inputClass} />
             <input type="tel" value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))} placeholder="Phone number" className={inputClass} />
             <input value={draft.relationship} onChange={(e) => setDraft((d) => ({ ...d, relationship: e.target.value }))} placeholder="Relationship (optional)" className={inputClass} />
@@ -384,7 +377,28 @@ function EmergencyContactsSection({ contacts, onChanged }: { contacts: ClientEme
             </div>
           </div>
         )}
-      </AppCardBody>
-    </AppCard>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Skeleton ──────────────────────────────────────────────────────── */
+
+function ProfileSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse mt-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden">
+          <div className="px-5 pt-5 pb-3">
+            <div className="h-3 w-24 rounded bg-surface-tertiary" />
+          </div>
+          <div className="px-5 pb-5 space-y-2">
+            <div className="h-4 w-40 rounded bg-surface-tertiary" />
+            <div className="h-3 w-48 rounded bg-surface-tertiary" />
+            <div className="h-3 w-36 rounded bg-surface-tertiary" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

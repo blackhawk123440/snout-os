@@ -3,13 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Calendar, Plus } from 'lucide-react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
-import {
-  AppSkeletonList,
-  AppErrorState,
-  AppStatusPill,
-} from '@/components/app';
+import { AppErrorState } from '@/components/app';
 import { Button } from '@/components/ui';
+import { statusDotClass, statusLabel } from '@/lib/status-colors';
 import { useClientBookings, type ClientBooking } from '@/lib/api/client-hooks';
 
 const pageSize = 20;
@@ -58,88 +56,133 @@ export default function ClientBookingsPage() {
 
   return (
     <LayoutWrapper variant="narrow">
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-text-primary font-heading">Your visits</h1>
-            <p className="text-sm text-text-secondary mt-1">Upcoming and past bookings</p>
-          </div>
-          <ClientRefreshButton onRefresh={handleRefresh} loading={loading} />
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <div>
+          <h1 className="text-[22px] font-bold tracking-tight text-text-primary font-heading leading-tight sm:text-2xl">
+            Your visits
+          </h1>
+          <p className="text-[14px] text-text-secondary mt-0.5">
+            {displayed.length > 0
+              ? `${total} booking${total !== 1 ? 's' : ''}`
+              : 'Upcoming and past bookings'}
+          </p>
         </div>
+        <div className="flex items-center gap-2">
+          <ClientRefreshButton onRefresh={handleRefresh} loading={loading} />
+          <Link href="/client/bookings/new">
+            <Button variant="primary" size="md" leftIcon={<Plus className="w-4 h-4" />}>Book</Button>
+          </Link>
+        </div>
+      </div>
 
-        {loading ? (
-          <AppSkeletonList count={3} />
-        ) : error ? (
-          <AppErrorState title="Couldn't load bookings" subtitle={error.message || 'Unable to load bookings'} onRetry={handleRefresh} />
-        ) : displayed.length === 0 ? (
-          <div className="rounded-2xl border border-border-default bg-surface-primary p-12 text-center">
-            <h2 className="text-lg font-semibold text-text-primary mb-2">No visits yet</h2>
-            <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6">
-              Book your first visit and we&apos;ll handle the rest.
-            </p>
+      {loading ? (
+        <BookingsSkeleton />
+      ) : error ? (
+        <AppErrorState title="Couldn't load bookings" subtitle={error.message || 'Unable to load bookings'} onRetry={handleRefresh} />
+      ) : displayed.length === 0 ? (
+        <div className="rounded-2xl bg-accent-tertiary p-8 text-center mt-4">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-primary shadow-sm mb-4">
+            <Calendar className="h-7 w-7 text-text-inverse" />
+          </div>
+          <p className="text-xl font-bold text-text-primary">No visits yet</p>
+          <p className="mt-2 text-sm text-text-secondary max-w-[280px] mx-auto leading-relaxed">
+            Book your first visit and we&apos;ll handle the rest.
+          </p>
+          <div className="mt-6 flex justify-center gap-3">
             <Link href="/client/bookings/new">
               <Button variant="primary" size="md">Book a visit</Button>
             </Link>
           </div>
-        ) : (
-          <>
-            {/* Filter tabs */}
-            <div className="inline-flex rounded-lg bg-surface-secondary p-1 mb-6">
-              {(['All', 'Upcoming', 'Past'] as TabFilter[]).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`rounded-md px-4 py-1.5 text-sm font-medium transition-all ${
-                    activeTab === tab
-                      ? 'bg-surface-primary shadow-sm text-text-primary'
-                      : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
+        </div>
+      ) : (
+        <div className="space-y-4 mt-4">
+          {/* Filter tabs */}
+          <div className="inline-flex rounded-xl bg-surface-secondary p-1">
+            {(['All', 'Upcoming', 'Past'] as TabFilter[]).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`rounded-lg px-4 py-2 text-sm font-medium min-h-[36px] transition-all ${
+                  activeTab === tab
+                    ? 'bg-surface-primary shadow-sm text-text-primary'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
 
-            {/* Booking cards */}
-            <div className="space-y-3">
-              {filtered.map((booking) => (
-                <Link key={booking.id} href={`/client/bookings/${booking.id}`}>
-                  <div className="rounded-xl border border-border-default bg-surface-primary p-4 hover:shadow-[var(--shadow-md)] hover:border-border-strong transition-all duration-200 cursor-pointer">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                          <span className="text-sm font-semibold text-orange-700">{booking.service?.[0] || 'V'}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-text-primary">{booking.service}</p>
-                          <p className="text-xs text-text-secondary tabular-nums">{formatDate(booking.startAt)} · {formatTime(booking.startAt)}</p>
-                          {booking.sitter?.name && <p className="text-xs text-text-tertiary">with {booking.sitter.name}</p>}
-                        </div>
-                      </div>
-                      <AppStatusPill status={booking.status} />
+          {/* Booking list */}
+          <div className="rounded-2xl bg-surface-primary shadow-sm overflow-hidden">
+            <div className="divide-y divide-border-muted">
+              {filtered.map((booking) => {
+                const isCompleted = ['completed', 'cancelled', 'no_show'].includes(booking.status.toLowerCase());
+                return (
+                  <div
+                    key={booking.id}
+                    className={`flex items-center gap-3 px-5 py-3.5 min-h-[56px] cursor-pointer hover:bg-surface-secondary transition-colors ${isCompleted ? 'opacity-50' : ''}`}
+                    onClick={() => router.push(`/client/bookings/${booking.id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && router.push(`/client/bookings/${booking.id}`)}
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent-tertiary text-sm font-bold text-accent-primary">
+                      {booking.service?.[0] || 'V'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-text-primary truncate">{booking.service}</p>
+                      <p className="text-[12px] text-text-secondary tabular-nums mt-0.5">
+                        {formatDate(booking.startAt)} {'\u00b7'} {formatTime(booking.startAt)}
+                        {booking.sitter?.name ? ` \u00b7 ${booking.sitter.name}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`h-2 w-2 rounded-full ${statusDotClass(booking.status)}`} />
+                      <span className="text-xs font-medium text-text-tertiary">{statusLabel(booking.status)}</span>
                     </div>
                   </div>
-                </Link>
-              ))}
+                );
+              })}
             </div>
+          </div>
 
-            {displayed.length < total && (
-              <div className="flex justify-center mt-4">
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={loadingMore}
-                  isLoading={loadingMore}
-                >
-                  Load more
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+          {displayed.length < total && (
+            <div className="flex justify-center">
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={loadingMore}
+                isLoading={loadingMore}
+              >
+                Load more
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
     </LayoutWrapper>
+  );
+}
+
+function BookingsSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse mt-4">
+      <div className="h-10 w-48 rounded-xl bg-surface-tertiary" />
+      <div className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex items-center gap-3 px-5 py-3.5">
+            <div className="h-10 w-10 rounded-2xl bg-surface-tertiary shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-32 rounded bg-surface-tertiary" />
+              <div className="h-3 w-48 rounded bg-surface-tertiary" />
+            </div>
+            <div className="h-2 w-2 rounded-full bg-surface-tertiary" />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

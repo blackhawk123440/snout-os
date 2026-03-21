@@ -2,11 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { RefreshCw, Plus } from 'lucide-react';
 import { LayoutWrapper, ClientRefreshButton } from '@/components/layout';
-import {
-  AppSkeletonList,
-  AppErrorState,
-} from '@/components/app';
+import { AppErrorState } from '@/components/app';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import {
@@ -24,13 +22,13 @@ function formatTime(t: string) {
   return `${hour12}:${String(m).padStart(2, '0')} ${suffix}`;
 }
 
-function statusColor(s: string) {
+function statusChip(s: string) {
   switch (s) {
-    case 'active': return 'bg-green-50 text-green-700 border-green-200';
-    case 'paused': return 'bg-amber-50 text-amber-700 border-amber-200';
-    case 'pending': return 'bg-blue-50 text-blue-700 border-blue-200';
-    case 'cancelled': return 'bg-neutral-100 text-neutral-500 border-neutral-200';
-    default: return 'bg-neutral-100 text-neutral-600 border-neutral-200';
+    case 'active': return 'bg-status-success-bg text-status-success-text';
+    case 'paused': return 'bg-status-warning-bg text-status-warning-text';
+    case 'pending': return 'bg-status-info-bg text-status-info-text';
+    case 'cancelled': return 'bg-surface-tertiary text-text-secondary';
+    default: return 'bg-surface-tertiary text-text-secondary';
   }
 }
 
@@ -64,49 +62,52 @@ export default function ClientRecurringPage() {
     setCancelId(null);
   }
 
-  if (error) {
-    return (
-      <LayoutWrapper>
-        <AppErrorState message="Could not load recurring schedules." onRetry={refetch} />
-      </LayoutWrapper>
-    );
-  }
-
   return (
-    <LayoutWrapper>
-      <div className="flex items-center justify-between mb-6">
+    <LayoutWrapper variant="narrow">
+      <div className="flex items-start justify-between gap-3 mb-1">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">Recurring Bookings</h1>
-          <p className="text-sm text-text-secondary mt-1">
-            Manage your regular pet care schedules
+          <h1 className="text-[22px] font-bold tracking-tight text-text-primary font-heading leading-tight sm:text-2xl">
+            Recurring bookings
+          </h1>
+          <p className="text-[14px] text-text-secondary mt-0.5">
+            {schedules.length > 0
+              ? `${active.length} active schedule${active.length !== 1 ? 's' : ''}`
+              : 'Manage your regular pet care'}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <ClientRefreshButton onRefresh={refetch} />
           <Link href="/client/bookings/new">
-            <Button size="sm">New Booking</Button>
+            <Button variant="primary" size="md" leftIcon={<Plus className="w-4 h-4" />}>New</Button>
           </Link>
         </div>
       </div>
 
       {isLoading ? (
-        <AppSkeletonList count={3} />
+        <RecurringSkeleton />
+      ) : error ? (
+        <AppErrorState message="Could not load recurring schedules." onRetry={refetch} />
       ) : schedules.length === 0 ? (
-        <div className="rounded-xl border border-border-default bg-surface-primary p-8 text-center">
-          <h2 className="text-lg font-semibold text-text-primary mb-1">No recurring schedules</h2>
-          <p className="text-sm text-text-secondary mb-4">
-            Set up a regular schedule so you never have to book the same service twice.
+        <div className="rounded-2xl bg-accent-tertiary p-8 text-center mt-4">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-primary shadow-sm mb-4">
+            <RefreshCw className="h-7 w-7 text-text-inverse" />
+          </div>
+          <p className="text-xl font-bold text-text-primary">No recurring schedules</p>
+          <p className="mt-2 text-sm text-text-secondary max-w-[300px] mx-auto leading-relaxed">
+            Set up a regular schedule so you never have to rebook the same service.
           </p>
-          <Link href="/client/bookings/new">
-            <Button>Book a Visit</Button>
-          </Link>
+          <div className="mt-6 flex justify-center gap-3">
+            <Link href="/client/bookings/new">
+              <Button variant="primary" size="md">Book a visit</Button>
+            </Link>
+          </div>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 mt-4">
           {active.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">
-                Active Schedules
+              <h2 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">
+                Active schedules
               </h2>
               <div className="space-y-3">
                 {active.map((s: any) => (
@@ -124,8 +125,8 @@ export default function ClientRecurringPage() {
 
           {inactive.length > 0 && (
             <section>
-              <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">
-                Paused &amp; Cancelled
+              <h2 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">
+                Paused &amp; cancelled
               </h2>
               <div className="space-y-3">
                 {inactive.map((s: any) => (
@@ -143,7 +144,6 @@ export default function ClientRecurringPage() {
         </div>
       )}
 
-      {/* Cancel confirmation modal */}
       <Modal
         isOpen={!!cancelId}
         onClose={() => setCancelId(null)}
@@ -159,11 +159,10 @@ export default function ClientRecurringPage() {
               Keep Schedule
             </Button>
             <Button
-              variant="primary"
+              variant="danger"
               size="sm"
               onClick={handleCancel}
               isLoading={cancelMutation.isPending}
-              className="bg-red-600 hover:bg-red-700 text-white"
             >
               Cancel Schedule
             </Button>
@@ -191,30 +190,30 @@ function ScheduleCard({
     : schedule.frequency;
 
   return (
-    <div className="rounded-xl border border-border-default bg-surface-primary p-4 hover:shadow-sm transition-shadow">
+    <div className="rounded-2xl border border-border-default bg-surface-primary p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-text-primary truncate">
+            <h3 className="text-[15px] font-semibold text-text-primary truncate">
               {schedule.service}
             </h3>
-            <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${statusColor(schedule.status)}`}>
+            <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${statusChip(schedule.status)}`}>
               {schedule.status}
             </span>
           </div>
-          <p className="text-sm text-text-secondary">
-            {schedule.frequency.charAt(0).toUpperCase() + schedule.frequency.slice(1)} &middot; {dayLabels}
+          <p className="text-[13px] text-text-secondary">
+            {schedule.frequency.charAt(0).toUpperCase() + schedule.frequency.slice(1)} {'\u00b7'} {dayLabels}
           </p>
-          <p className="text-sm text-text-secondary">
-            {formatTime(schedule.startTime)} &ndash; {formatTime(schedule.endTime)}
+          <p className="text-[13px] text-text-secondary">
+            {formatTime(schedule.startTime)} {'\u2013'} {formatTime(schedule.endTime)}
           </p>
           {schedule.totalPrice > 0 && (
-            <p className="text-sm font-medium text-text-primary mt-1">
+            <p className="text-[14px] font-semibold text-text-primary mt-1.5 tabular-nums">
               ${schedule.totalPrice.toFixed(2)} per visit
             </p>
           )}
           {schedule.effectiveUntil && (
-            <p className="text-xs text-text-tertiary mt-1">
+            <p className="text-[12px] text-text-tertiary mt-1">
               Until {new Date(schedule.effectiveUntil).toLocaleDateString()}
             </p>
           )}
@@ -235,13 +234,30 @@ function ScheduleCard({
               variant="secondary"
               size="sm"
               onClick={onCancel}
-              className="text-red-600 hover:text-red-700"
+              className="text-status-danger-text hover:text-status-danger-text"
             >
               Cancel
             </Button>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function RecurringSkeleton() {
+  return (
+    <div className="space-y-3 animate-pulse mt-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="rounded-2xl border border-border-default bg-surface-primary p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-4 w-32 rounded bg-surface-tertiary" />
+            <div className="h-5 w-14 rounded-full bg-surface-tertiary" />
+          </div>
+          <div className="h-3 w-48 rounded bg-surface-tertiary mt-2" />
+          <div className="h-3 w-36 rounded bg-surface-tertiary mt-2" />
+        </div>
+      ))}
     </div>
   );
 }
