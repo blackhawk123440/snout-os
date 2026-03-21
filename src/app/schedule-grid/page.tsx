@@ -13,7 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
 import { Panel, Button, Badge, Skeleton, EmptyState, Flex, IconButton } from '@/components/ui';
-import { tokens } from '@/lib/design-tokens';
+
 
 interface GridBooking {
   id: string;
@@ -178,16 +178,17 @@ export default function ScheduleGridPage() {
                           <td
                             key={day.date}
                             onClick={() => setExpandedCell(isExpanded ? null : cellKey)}
-                            className="p-2 border-b border-border-default text-center align-top"
+                            className={`p-2 border-b border-border-default text-center align-top ${
+                              !day.available
+                                ? 'bg-status-danger-bg'
+                                : isToday
+                                ? 'bg-accent-tertiary'
+                                : day.bookingCount > 6
+                                ? 'bg-status-warning-bg'
+                                : ''
+                            }`}
                             style={{
                               cursor: day.bookingCount > 0 ? 'pointer' : 'default',
-                              backgroundColor: !day.available
-                                ? '#fef2f2'
-                                : isToday
-                                ? tokens.colors.accent.primary
-                                : day.bookingCount > 6
-                                ? '#fef3c7'
-                                : undefined,
                             }}
                           >
                             {!day.available ? (

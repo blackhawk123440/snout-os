@@ -10,10 +10,11 @@ import {
   TrendingUp, CalendarCheck, DollarSign, Clock, Plus,
 } from 'lucide-react';
 import { OwnerAppShell, LayoutWrapper, PageHeader } from '@/components/layout';
+import { AppErrorState } from '@/components/app';
 import { Button } from '@/components/ui';
 import { useQuickAssign } from '@/lib/api/owner-hooks';
 import { toastSuccess, toastError } from '@/lib/toast';
-import { statusDotClass } from '@/lib/status-colors';
+import { statusDotClass, statusLabel } from '@/lib/status-colors';
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
@@ -111,20 +112,8 @@ const isToday = (dateStr: string) => {
   return dateStr === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 };
 
-const statusIndicator = (status: string, checkedInAt: string | null) => {
-  switch (status) {
-    case 'completed':
-      return { dot: 'bg-status-success-fill', label: 'Complete' };
-    case 'in_progress':
-      return { dot: checkedInAt ? 'bg-status-success-fill animate-pulse' : 'bg-status-success-fill', label: 'In progress' };
-    case 'confirmed':
-      return { dot: 'bg-status-info-fill', label: 'Upcoming' };
-    case 'pending':
-      return { dot: 'bg-status-warning-fill', label: 'Pending' };
-    default:
-      return { dot: 'bg-surface-tertiary', label: status };
-  }
-};
+// Status helpers — use shared utilities from status-colors.ts for cross-portal consistency
+// statusDotClass and statusLabel are imported at the top of this file
 
 const severityColor = (severity: string) => {
   switch (severity) {
@@ -297,7 +286,7 @@ function DashboardContent() {
 
         {/* Messaging status banner */}
         {msgStatus && !msgStatus.active && (
-          <div className="mb-4 flex items-center justify-between rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3">
+          <div className="mb-4 flex items-center justify-between rounded-2xl border border-status-warning-border bg-status-warning-bg px-4 py-3">
             <div>
               <p className="text-sm font-medium text-status-warning-text">Messaging not configured</p>
               <p className="text-xs text-status-warning-text-secondary">SMS notifications won't send until you connect a provider.</p>
@@ -311,23 +300,23 @@ function DashboardContent() {
         {/* Payment stats strip */}
         {paymentStats && (
           <div className="mb-4 flex gap-3 overflow-x-auto pb-1 scrollbar-thin">
-            <div className="shrink-0 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-w-[140px] shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+            <div className="shrink-0 rounded-2xl border border-border-default bg-surface-primary px-4 py-3 min-w-[140px] shadow-sm">
               <p className="text-[11px] text-text-tertiary tracking-wide uppercase">Today</p>
               <p className="font-heading text-lg font-bold text-text-primary tabular-nums mt-0.5">${paymentStats.collected.today.amount.toFixed(0)}</p>
             </div>
-            <div className="shrink-0 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-w-[140px] shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+            <div className="shrink-0 rounded-2xl border border-border-default bg-surface-primary px-4 py-3 min-w-[140px] shadow-sm">
               <p className="text-[11px] text-text-tertiary tracking-wide uppercase">This week</p>
               <p className="font-heading text-lg font-bold text-text-primary tabular-nums mt-0.5">${paymentStats.collected.week.amount.toFixed(0)}</p>
             </div>
             {paymentStats.outstanding.count > 0 && (
-              <div className="shrink-0 rounded-xl border border-status-warning-border bg-status-warning-bg px-4 py-3 min-w-[140px]">
+              <div className="shrink-0 rounded-2xl border border-status-warning-border bg-status-warning-bg px-4 py-3 min-w-[140px]">
                 <p className="text-[11px] text-status-warning-text-secondary tracking-wide uppercase">Outstanding</p>
                 <p className="font-heading text-lg font-bold text-status-warning-text tabular-nums mt-0.5">${paymentStats.outstanding.amount.toFixed(0)}</p>
                 <p className="text-xs text-status-warning-text-secondary mt-0.5">{paymentStats.outstanding.count} unpaid</p>
               </div>
             )}
             {paymentStats.failedPayments > 0 && (
-              <div className="shrink-0 rounded-xl border border-status-danger-border bg-status-danger-bg px-4 py-3 min-w-[140px]">
+              <div className="shrink-0 rounded-2xl border border-status-danger-border bg-status-danger-bg px-4 py-3 min-w-[140px]">
                 <p className="text-[11px] text-status-danger-text-secondary tracking-wide uppercase">Failed</p>
                 <p className="font-heading text-lg font-bold text-status-danger-text tabular-nums mt-0.5">{paymentStats.failedPayments}</p>
                 <p className="text-xs text-status-danger-text-secondary mt-0.5">last 30 days</p>
@@ -339,16 +328,11 @@ function DashboardContent() {
         {boardLoading && !boardData ? (
           <BoardSkeleton />
         ) : boardError ? (
-          <div className="rounded-xl border border-border-default bg-surface-primary p-8 text-center">
-            <p className="text-sm text-text-secondary">{boardError.message}</p>
-            <button
-              type="button"
-              onClick={() => void refetchBoard()}
-              className="mt-3 min-h-[44px] rounded-lg bg-accent-primary px-4 text-sm font-semibold text-text-inverse hover:opacity-90 transition"
-            >
-              Retry
-            </button>
-          </div>
+          <AppErrorState
+            title="Couldn't load dashboard"
+            subtitle={boardError.message || 'Unable to load daily operations'}
+            onRetry={() => void refetchBoard()}
+          />
         ) : boardData ? (
           <div className="space-y-6">
             {/* Quick Stats */}
@@ -359,7 +343,7 @@ function DashboardContent() {
               {/* Left: Schedule Timeline */}
               <div className="space-y-4 min-w-0">
                 {sitterSchedules.length === 0 && unassigned.length === 0 ? (
-                  <div className="rounded-xl border border-border-default bg-surface-primary p-8 text-center">
+                  <div className="rounded-2xl border border-border-default bg-surface-primary p-8 text-center">
                     <p className="text-lg font-semibold text-text-primary">No visits scheduled</p>
                     <p className="mt-1 text-sm text-text-secondary">
                       No visits scheduled for {formatDateLabel(boardData.date)}. Book a visit or check another day.
@@ -452,19 +436,19 @@ function QuickStatsStrip({ stats }: { stats: BoardStats }) {
         return (
           <div
             key={card.label}
-            className={`rounded-xl border p-4 transition-shadow duration-fast ${
+            className={`rounded-2xl p-4 ${
               card.alert
-                ? 'border-status-danger-border bg-status-danger-bg shadow-none'
-                : 'border-border-default bg-surface-primary shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]'
+                ? 'border-2 border-status-danger-border bg-status-danger-bg'
+                : 'bg-surface-primary shadow-sm'
             }`}
           >
             <div className="flex items-center justify-between mb-2">
-              <p className={`text-xs font-medium tracking-wide uppercase ${card.alert ? 'text-status-danger-text' : 'text-text-tertiary'}`}>
+              <p className={`text-[11px] font-semibold uppercase tracking-wider ${card.alert ? 'text-status-danger-text' : 'text-text-tertiary'}`}>
                 {card.label}
               </p>
               <IconComp className={`w-4 h-4 ${card.alert ? 'text-status-danger-text' : 'text-text-disabled'}`} />
             </div>
-            <p className={`font-heading text-2xl font-bold tabular-nums tracking-tight ${card.alert ? 'text-status-danger-text' : 'text-text-primary'}`}>
+            <p className={`text-3xl font-bold tabular-nums ${card.alert ? 'text-status-danger-text' : 'text-text-primary'}`}>
               {card.value}
             </p>
             {card.sub && (
@@ -510,7 +494,7 @@ function SitterScheduleCard({ schedule, boardDate }: { schedule: SitterSchedule;
   const completed = visits.filter((v) => v.status === 'completed').length;
 
   return (
-    <div className="rounded-xl border border-border-default bg-surface-primary overflow-hidden">
+    <div className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden">
       {/* Header */}
       <button
         type="button"
@@ -589,29 +573,21 @@ function SitterScheduleCard({ schedule, boardDate }: { schedule: SitterSchedule;
 
 function VisitRow({ visit }: { visit: Visit }) {
   const router = useRouter();
-  const indicator = statusIndicator(visit.status, visit.checkedInAt);
   const petNames = visit.pets.map((p) => p.name || p.species).join(', ');
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 lg:px-5 hover:bg-surface-secondary transition cursor-pointer min-h-[44px]"
+      className="flex items-center gap-3 px-4 py-3 lg:px-5 hover:bg-surface-secondary transition-colors cursor-pointer min-h-[44px]"
       onClick={() => router.push(`/bookings/${visit.bookingId}`)}
       onKeyDown={(e) => e.key === 'Enter' && router.push(`/bookings/${visit.bookingId}`)}
       role="button"
       tabIndex={0}
       aria-label={`${visit.service} for ${visit.clientName}`}
     >
-      {/* Time */}
       <div className="w-20 shrink-0 text-sm font-medium tabular-nums text-text-primary">
         {formatTime(visit.startAt)}
       </div>
-
-      {/* Status dot */}
-      <div className="shrink-0">
-        <span className={`block h-2.5 w-2.5 rounded-full ${indicator.dot}`} />
-      </div>
-
-      {/* Details */}
+      <span className={`shrink-0 h-2.5 w-2.5 rounded-full ${statusDotClass(visit.status)}`} />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium text-text-primary truncate">
           {visit.service}
@@ -621,15 +597,11 @@ function VisitRow({ visit }: { visit: Visit }) {
           <p className="text-xs text-text-tertiary truncate">{petNames}</p>
         )}
       </div>
-
-      {/* Status label */}
-      <span className="shrink-0 text-xs text-text-tertiary hidden sm:block">
-        {indicator.label}
+      <span className="shrink-0 text-xs font-medium text-text-tertiary">
+        {statusLabel(visit.status)}
       </span>
-
-      {/* Payment indicator */}
       {visit.paymentStatus === 'unpaid' && (
-        <span className="shrink-0 rounded-full bg-status-warning-bg px-2 py-0.5 text-xs font-medium text-status-warning-text">
+        <span className="shrink-0 rounded-full bg-status-warning-bg px-2 py-0.5 text-[11px] font-semibold text-status-warning-text">
           Unpaid
         </span>
       )}
@@ -649,7 +621,7 @@ function UnassignedCard({
   onAssign: (bookingId: string, sitterId: string) => void;
 }) {
   return (
-    <div className="rounded-xl border-2 border-status-danger-border bg-status-danger-bg overflow-hidden">
+    <div className="rounded-2xl border-2 border-status-danger-border bg-status-danger-bg overflow-hidden">
       <div className="px-4 py-3 lg:px-5 lg:py-4">
         <p className="text-sm font-semibold text-status-danger-text">
           Unassigned \u2014 {visits.length} visit{visits.length !== 1 ? 's' : ''}
@@ -710,7 +682,7 @@ function AttentionQueue({
   const allItems = [...attention.alerts, ...attention.staffing];
 
   return (
-    <div className="rounded-xl border border-border-default bg-surface-primary overflow-hidden">
+    <div className="rounded-2xl border border-border-default bg-surface-primary overflow-hidden">
       <div className="px-4 py-3 lg:px-5 lg:py-4 border-b border-border-default">
         <p className="text-sm font-semibold text-text-primary">Attention Queue</p>
         {allItems.length > 0 && (
@@ -778,7 +750,7 @@ function BoardSkeleton() {
       {/* Stats */}
       <div className="flex gap-3">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex-1 min-w-[120px] rounded-xl border border-border-default bg-surface-primary p-4">
+          <div key={i} className="flex-1 min-w-[120px] rounded-2xl border border-border-default bg-surface-primary p-4">
             <div className="h-3 w-16 rounded bg-surface-tertiary" />
             <div className="mt-2 h-8 w-12 rounded bg-surface-tertiary" />
           </div>
@@ -789,7 +761,7 @@ function BoardSkeleton() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr,380px]">
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-xl border border-border-default bg-surface-primary p-4">
+            <div key={i} className="rounded-2xl border border-border-default bg-surface-primary p-4">
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-9 w-9 rounded-full bg-surface-tertiary" />
                 <div className="flex-1">
@@ -807,7 +779,7 @@ function BoardSkeleton() {
             </div>
           ))}
         </div>
-        <div className="rounded-xl border border-border-default bg-surface-primary p-4">
+        <div className="rounded-2xl border border-border-default bg-surface-primary p-4">
           <div className="h-4 w-32 rounded bg-surface-tertiary mb-4" />
           {[1, 2, 3].map((i) => (
             <div key={i} className="mb-3 h-16 rounded bg-surface-tertiary" />
@@ -839,7 +811,7 @@ function PredictionsCard() {
   if (alerts.length === 0 && forecast.length === 0 && !revenue) return null;
 
   return (
-    <div className="rounded-xl border border-border-default bg-surface-primary p-5 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
+    <div className="rounded-2xl border border-border-default bg-surface-primary p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-text-tertiary" />
@@ -933,7 +905,7 @@ function OnboardingWizard() {
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="mb-4 rounded-xl border border-border-default bg-surface-primary p-4">
+    <div className="mb-4 rounded-2xl border border-border-default bg-surface-primary p-4">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-text-primary">Complete Your Setup</h3>
         <span className="text-xs text-text-tertiary">{completed}/{total} steps</span>

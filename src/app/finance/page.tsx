@@ -193,8 +193,8 @@ export default function FinancePage() {
               {/* Unpaid invoices */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-semibold text-text-primary">
-                    Unpaid Invoices ({data.unpaidInvoices.length})
+                  <h2 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
+                    Unpaid invoices <span className="text-text-disabled tabular-nums">{data.unpaidInvoices.length}</span>
                   </h2>
                   {data.unpaidInvoices.length > 0 && (
                     <button
@@ -209,7 +209,7 @@ export default function FinancePage() {
                 </div>
 
                 {data.unpaidInvoices.length === 0 ? (
-                  <div className="rounded-xl border border-status-success-border bg-status-success-bg p-4 text-center">
+                  <div className="rounded-2xl border border-status-success-border bg-status-success-bg p-4 text-center">
                     <p className="text-sm font-medium text-status-success-text">All caught up \u2014 no unpaid invoices</p>
                   </div>
                 ) : (
@@ -217,7 +217,7 @@ export default function FinancePage() {
                     {data.unpaidInvoices.map((inv: any) => (
                       <div
                         key={inv.bookingId}
-                        className="flex items-center justify-between gap-3 rounded-xl border border-border-default bg-surface-primary px-4 py-3"
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-border-default bg-surface-primary px-4 py-3"
                       >
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-text-primary">
@@ -252,8 +252,8 @@ export default function FinancePage() {
 
               {/* Recent payments */}
               <div>
-                <h2 className="text-sm font-semibold text-text-primary mb-3">
-                  Recent Payments
+                <h2 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">
+                  Recent payments
                 </h2>
                 {data.recentPayments.length === 0 ? (
                   <EmptyState
@@ -265,7 +265,7 @@ export default function FinancePage() {
                     {data.recentPayments.map((p: any) => (
                       <div
                         key={p.chargeId}
-                        className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary px-4 py-3"
+                        className="flex items-center gap-3 rounded-2xl border border-border-default bg-surface-primary px-4 py-3"
                       >
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-status-success-bg text-status-success-text text-sm">
                           {'\u2713'}
@@ -334,8 +334,8 @@ function AnnualSummarySection() {
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-text-primary mb-3">Year in Review ({summary.year})</h2>
-      <div className="rounded-xl border border-border-default bg-surface-primary p-4">
+      <h2 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">Year in review ({summary.year})</h2>
+      <div className="rounded-2xl border border-border-default bg-surface-primary p-4">
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div>
             <p className="text-xs text-text-tertiary">Total collected</p>
@@ -395,8 +395,8 @@ function RevenueOptimizationSection() {
   if (!data) return null;
 
   return (
-    <div className="rounded-xl border border-border-default bg-surface-primary p-4 mt-4">
-      <h2 className="text-sm font-semibold text-text-primary mb-3">Revenue Optimization</h2>
+    <div className="rounded-2xl border border-border-default bg-surface-primary p-4 mt-4">
+      <h2 className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider mb-3">Revenue optimization</h2>
 
       {/* Capacity alert */}
       {data.capacityAlert && data.capacityAlert.utilizationPercent < 60 && (
@@ -481,7 +481,7 @@ function BulkCancelSection({ onDone }: { onDone: () => void }) {
           Bulk cancel bookings (weather/emergency)
         </button>
       ) : (
-        <div className="rounded-xl border border-status-danger-border bg-status-danger-bg p-4 space-y-3">
+        <div className="rounded-2xl border border-status-danger-border bg-status-danger-bg p-4 space-y-3">
           <p className="text-sm font-semibold text-status-danger-text">Bulk Cancel</p>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
           <select value={reason} onChange={(e) => setReason(e.target.value)} className={inputClass}>
