@@ -3,12 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { Calendar, Wallet, BarChart3, GraduationCap, LogOut } from 'lucide-react';
 import { Button, Modal } from '@/components/ui';
 import { StatusChip } from '@/components/ui/status-chip';
-import { Icon } from '@/components/ui/Icon';
 import { LayoutWrapper } from '@/components/layout';
-import { SITTER_MORE_LINKS } from '@/lib/sitter-nav';
 import { toastError } from '@/lib/toast';
 import {
   SitterCard,
@@ -113,6 +111,11 @@ export default function SitterProfilePage() {
     }
   };
 
+  const handleSignOut = async () => {
+    const { signOut } = await import('next-auth/react');
+    await signOut({ callbackUrl: '/login' });
+  };
+
   const handleDeleteAccount = async () => {
     try {
       await deleteAccount.mutateAsync();
@@ -167,6 +170,45 @@ export default function SitterProfilePage() {
                     {availabilityEnabled ? 'Available' : 'Off duty'}
                   </p>
                 </div>
+              </div>
+            </SitterCardBody>
+          </SitterCard>
+
+          {/* ── Account Readiness ──────────────────────────────────── */}
+          <SitterCard>
+            <SitterCardHeader>
+              <h3 className="text-base font-semibold text-text-primary">Account readiness</h3>
+            </SitterCardHeader>
+            <SitterCardBody>
+              <div className="grid grid-cols-2 gap-3">
+                <Link href="/sitter/availability" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary p-3 min-h-[44px] hover:bg-surface-secondary transition">
+                  <Calendar className="h-4 w-4 text-text-tertiary shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-text-tertiary">Availability</p>
+                    <p className="text-sm font-medium text-text-primary">{availabilityEnabled ? 'Available' : 'Off duty'}</p>
+                  </div>
+                </Link>
+                <Link href="#payouts" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary p-3 min-h-[44px] hover:bg-surface-secondary transition" onClick={(e) => { e.preventDefault(); document.getElementById('payouts')?.scrollIntoView({ behavior: 'smooth' }); }}>
+                  <Wallet className="h-4 w-4 text-text-tertiary shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-text-tertiary">Payouts</p>
+                    <p className="text-sm font-medium text-text-primary">{stripeStatus.connected && stripeStatus.payoutsEnabled ? 'Connected' : 'Setup needed'}</p>
+                  </div>
+                </Link>
+                <Link href="/sitter/performance" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary p-3 min-h-[44px] hover:bg-surface-secondary transition">
+                  <BarChart3 className="h-4 w-4 text-text-tertiary shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-text-tertiary">Performance</p>
+                    <p className="text-sm font-medium text-text-primary">View metrics</p>
+                  </div>
+                </Link>
+                <Link href="/sitter/training" className="flex items-center gap-3 rounded-xl border border-border-default bg-surface-primary p-3 min-h-[44px] hover:bg-surface-secondary transition">
+                  <GraduationCap className="h-4 w-4 text-text-tertiary shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-text-tertiary">Training</p>
+                    <p className="text-sm font-medium text-text-primary">View progress</p>
+                  </div>
+                </Link>
               </div>
             </SitterCardBody>
           </SitterCard>
@@ -240,6 +282,7 @@ export default function SitterProfilePage() {
           </SitterCard>
 
           {/* ── Stripe Connect ───────────────────────────────────────── */}
+          <div id="payouts">
           <SitterCard>
             <SitterCardHeader>
               <div className="flex items-center justify-between">
@@ -269,26 +312,20 @@ export default function SitterProfilePage() {
               )}
             </SitterCardBody>
           </SitterCard>
+          </div>
 
-          {/* ── More ─────────────────────────────────────────────────── */}
+          {/* ── Sign Out ───────────────────────────────────────── */}
           <SitterCard>
-            <SitterCardHeader>
-              <h3 className="text-base font-semibold text-text-primary">More</h3>
-            </SitterCardHeader>
-            <SitterCardBody className="pt-0">
-              <nav className="divide-y divide-border-muted -mx-5">
-                {SITTER_MORE_LINKS.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="flex min-h-[48px] items-center gap-3 px-5 py-3 text-sm font-medium text-text-secondary transition hover:bg-surface-secondary hover:text-text-primary"
-                  >
-                    <Icon name={item.icon} className="w-4 h-4 text-text-tertiary shrink-0" />
-                    <span className="flex-1">{item.label}</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-text-disabled shrink-0" />
-                  </Link>
-                ))}
-              </nav>
+            <SitterCardBody>
+              <Button
+                variant="secondary"
+                size="md"
+                className="w-full"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign out
+              </Button>
             </SitterCardBody>
           </SitterCard>
 

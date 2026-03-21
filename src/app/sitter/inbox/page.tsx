@@ -6,7 +6,7 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
-import { ArrowLeft, Paperclip } from 'lucide-react';
+import { ArrowLeft, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui';
 import {
   SitterPageHeader,
@@ -203,7 +203,13 @@ function SitterInboxContent() {
               {messagesLoading ? (
                 <SitterSkeletonList count={2} />
               ) : messages.length === 0 && pendingMessages.length === 0 ? (
-                <p className="py-8 text-center text-sm text-text-tertiary">No messages yet. Start with a short professional update.</p>
+                <div className="py-8 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-secondary mb-3">
+                    <MessageSquare className="h-5 w-5 text-text-disabled" />
+                  </div>
+                  <p className="text-sm font-medium text-text-secondary">No messages yet</p>
+                  <p className="mt-1 text-xs text-text-tertiary max-w-[220px] mx-auto">Use the quick templates below or type a professional visit update.</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {messages.map((msg) => (
@@ -391,14 +397,9 @@ function SitterInboxContent() {
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" size="sm" onClick={() => router.push('/sitter/today')}>
-                    Details
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => router.push('/sitter/today')}>
-                    ✨ Daily Delight
-                  </Button>
-                </div>
+                <Button variant="secondary" size="sm" onClick={() => router.push('/sitter/today')}>
+                  View visit
+                </Button>
               </div>
 
               {/* Messages */}
@@ -406,7 +407,13 @@ function SitterInboxContent() {
                 {messagesLoading ? (
                   <SitterSkeletonList count={2} />
                 ) : messages.length === 0 && pendingMessages.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-text-tertiary">No messages yet. Say hi!</p>
+                  <div className="py-8 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-secondary mb-3">
+                      <MessageSquare className="h-5 w-5 text-text-disabled" />
+                    </div>
+                    <p className="text-sm font-medium text-text-secondary">No messages yet</p>
+                    <p className="mt-1 text-xs text-text-tertiary max-w-[220px] mx-auto">Send a quick update to let the client know you've arrived or how the visit is going.</p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {messages.map((msg) => (
@@ -516,13 +523,6 @@ function SitterInboxContent() {
                   </div>
                 ) : (
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      aria-label="Add attachment"
-                      className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-border-strong text-text-tertiary hover:bg-surface-secondary"
-                    >
-                      <Paperclip className="h-5 w-5" />
-                    </button>
                     <textarea
                       value={composeMessage}
                       onChange={(e) => setComposeMessage(e.target.value)}
@@ -545,8 +545,16 @@ function SitterInboxContent() {
               </div>
             </>
           ) : (
-            <div className="flex flex-1 items-center justify-center p-8 text-center text-text-tertiary">
-              <p>{isMobile ? 'Tap a thread to open' : 'Select a thread to view messages'}</p>
+            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-secondary mb-4">
+                <MessageSquare className="h-6 w-6 text-text-disabled" />
+              </div>
+              <p className="text-sm font-medium text-text-secondary">
+                {isMobile ? 'Tap a thread to open' : 'Select a conversation'}
+              </p>
+              <p className="mt-1 text-xs text-text-tertiary max-w-[240px]">
+                Choose a client thread from the list to view and send messages during your active visit window.
+              </p>
             </div>
           )}
             </div>

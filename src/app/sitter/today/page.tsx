@@ -238,9 +238,11 @@ function NextVisitHero({
 function QuickInsightsStrip({
   visitsRemaining,
   totalVisits,
+  completedCount,
 }: {
   visitsRemaining: number;
   totalVisits: number;
+  completedCount: number;
 }) {
   return (
     <div className="mb-4 grid grid-cols-3 gap-3">
@@ -255,16 +257,19 @@ function QuickInsightsStrip({
       <div className="rounded-xl border border-border-default bg-surface-primary px-4 py-3 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
         <div className="flex items-center gap-1.5 mb-1">
           <TrendingUp className="w-3.5 h-3.5 text-text-disabled" />
-          <span className="text-[11px] text-text-tertiary tracking-wide uppercase">Earnings</span>
+          <span className="text-[11px] text-text-tertiary tracking-wide uppercase">Completed</span>
         </div>
-        <span className="text-sm font-medium text-text-tertiary">Coming soon</span>
+        <span className="font-heading text-xl font-bold text-text-primary tabular-nums">{completedCount}</span>
+        <span className="text-xs text-text-tertiary ml-1">visits</span>
       </div>
       <div className="rounded-xl border border-border-default bg-surface-primary px-4 py-3 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_0_0_1px_rgba(28,25,23,0.06)]">
         <div className="flex items-center gap-1.5 mb-1">
           <Clock className="w-3.5 h-3.5 text-text-disabled" />
-          <span className="text-[11px] text-text-tertiary tracking-wide uppercase">Status</span>
+          <span className="text-[11px] text-text-tertiary tracking-wide uppercase">Progress</span>
         </div>
-        <span className="text-sm font-semibold text-status-success-text">On track</span>
+        <span className={`text-sm font-semibold ${visitsRemaining === 0 && totalVisits > 0 ? 'text-status-success-text' : 'text-text-primary'}`}>
+          {totalVisits === 0 ? 'No visits' : visitsRemaining === 0 ? 'All done' : `${visitsRemaining} left`}
+        </span>
       </div>
     </div>
   );
@@ -723,6 +728,7 @@ export default function SitterTodayPage() {
             <QuickInsightsStrip
               visitsRemaining={bookings.filter((b) => !['completed', 'cancelled'].includes(b.status)).length}
               totalVisits={bookings.length}
+              completedCount={bookings.filter((b) => b.status === 'completed').length}
             />
           </>
         )}

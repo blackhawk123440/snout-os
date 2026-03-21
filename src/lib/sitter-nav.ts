@@ -5,7 +5,7 @@
  *
  * Architecture:
  * - Bottom nav: 5 primary tabs (Home, Today, Messages, Earnings, Profile)
- * - Profile → More section: secondary pages (Calendar, Jobs, Availability, Pets, Performance, Training, Reports)
+ * - Profile → More section: secondary pages (Calendar, Pets, Reports, Performance, Training, Call Out)
  * - Home is the dashboard overview; Today is the operational check-in/out work view
  */
 
@@ -32,10 +32,7 @@ export const SITTER_BOTTOM_TABS = [
 
 /** Secondary pages accessible from Profile → More section. */
 export const SITTER_MORE_LINKS = [
-  { href: '/sitter/bookings', label: 'All Bookings', icon: 'fas fa-clipboard-list' },
   { href: '/sitter/calendar', label: 'Calendar', icon: 'fas fa-calendar-alt' },
-  { href: '/sitter/jobs', label: 'Jobs', icon: 'fas fa-briefcase' },
-  { href: '/sitter/availability', label: 'Availability', icon: 'fas fa-calendar-check' },
   { href: '/sitter/pets', label: 'Pets', icon: 'fas fa-paw' },
   { href: '/sitter/reports', label: 'Reports', icon: 'fas fa-file-alt' },
   { href: '/sitter/performance', label: 'Performance', icon: 'fas fa-chart-line' },

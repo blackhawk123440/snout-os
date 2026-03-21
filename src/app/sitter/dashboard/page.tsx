@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Calendar, DollarSign, PhoneOff, GraduationCap } from 'lucide-react';
+import { ChevronRight, Calendar, PhoneOff, GraduationCap, FileText, BarChart3, CalendarCheck } from 'lucide-react';
 import { useAuth } from '@/lib/auth-client';
 import { useSitterDashboard } from '@/lib/api/sitter-dashboard-hooks';
 import { statusDotClass, statusLabel } from '@/lib/status-colors';
@@ -97,7 +97,7 @@ function SitterDashboardContent() {
         </div>
 
         {/* Next Visit Hero */}
-        {nextVisit && (
+        {nextVisit ? (
           <SitterCard className="border-2 border-status-info-border bg-status-info-bg">
             <SitterCardBody>
               <p className="text-xs font-medium uppercase tracking-wide text-status-info-text">Next up</p>
@@ -121,11 +121,28 @@ function SitterDashboardContent() {
             </SitterCardBody>
             <SitterCardActions stopPropagation>
               <Button variant="primary" size="md" className="w-full min-h-[44px]" onClick={() => router.push('/sitter/today')}>
-                Go to Today
+                Start working
               </Button>
             </SitterCardActions>
           </SitterCard>
-        )}
+        ) : totalToday === 0 ? (
+          <SitterCard className="border border-border-default">
+            <SitterCardBody>
+              <div className="text-center py-4">
+                <p className="text-base font-semibold text-text-primary">No visits today</p>
+                <p className="mt-1 text-sm text-text-secondary">You're all set. Check your calendar for upcoming bookings.</p>
+                <div className="mt-4 flex justify-center gap-3">
+                  <Link href="/sitter/calendar">
+                    <Button variant="secondary" size="sm">View calendar</Button>
+                  </Link>
+                  <Link href="/sitter/availability">
+                    <Button variant="secondary" size="sm">Set availability</Button>
+                  </Link>
+                </div>
+              </div>
+            </SitterCardBody>
+          </SitterCard>
+        ) : null}
 
         {/* Action Required */}
         {(pendingRequests.length > 0 || dash.unreadMessageCount > 0 || reportsNeeded > 0) && (
@@ -156,23 +173,23 @@ function SitterDashboardContent() {
           </SitterCard>
         )}
 
-        {/* Today's Schedule */}
+        {/* Schedule Preview */}
         <SitterCard>
           <SitterCardHeader>
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-text-primary">Today's Schedule</h3>
-              <Link href="/sitter/today" className="text-xs font-medium text-accent-primary hover:underline">View all</Link>
+              <h3 className="text-sm font-semibold text-text-primary">Schedule</h3>
+              <Link href="/sitter/today" className="text-xs font-medium text-accent-primary hover:underline">Start working →</Link>
             </div>
           </SitterCardHeader>
           <SitterCardBody>
             {allToday.length === 0 ? (
-              <div className="py-6 text-center">
+              <div className="py-4 text-center">
                 <p className="text-sm text-text-tertiary">No visits scheduled today.</p>
                 <Link href="/sitter/calendar" className="mt-2 inline-block text-sm font-medium text-accent-primary hover:underline">Check calendar</Link>
               </div>
             ) : (
               <div className="divide-y divide-border-muted -mx-5">
-                {allToday.map((b) => {
+                {allToday.slice(0, 3).map((b) => {
                   const isCompleted = b.status === 'completed';
                   const clientName = b.client ? `${b.client.firstName} ${b.client.lastName}` : `${b.firstName} ${b.lastName}`;
                   return (
@@ -194,6 +211,11 @@ function SitterDashboardContent() {
                     </div>
                   );
                 })}
+                {allToday.length > 3 && (
+                  <Link href="/sitter/today" className="flex items-center justify-center px-5 py-3 min-h-[44px] text-sm font-medium text-accent-primary hover:bg-surface-secondary transition">
+                    +{allToday.length - 3} more — view full schedule
+                  </Link>
+                )}
               </div>
             )}
           </SitterCardBody>
@@ -238,17 +260,17 @@ function SitterDashboardContent() {
             <Calendar className="h-4 w-4 text-text-tertiary" />
             <span className="text-sm font-medium text-text-primary">Calendar</span>
           </Link>
-          <Link href="/sitter/earnings" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
-            <DollarSign className="h-4 w-4 text-text-tertiary" />
-            <span className="text-sm font-medium text-text-primary">Earnings</span>
+          <Link href="/sitter/reports" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
+            <FileText className="h-4 w-4 text-text-tertiary" />
+            <span className="text-sm font-medium text-text-primary">Reports</span>
           </Link>
-          <Link href="/sitter/callout" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
-            <PhoneOff className="h-4 w-4 text-text-tertiary" />
-            <span className="text-sm font-medium text-text-primary">Call out</span>
+          <Link href="/sitter/performance" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
+            <BarChart3 className="h-4 w-4 text-text-tertiary" />
+            <span className="text-sm font-medium text-text-primary">Performance</span>
           </Link>
-          <Link href="/sitter/training" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
-            <GraduationCap className="h-4 w-4 text-text-tertiary" />
-            <span className="text-sm font-medium text-text-primary">Training</span>
+          <Link href="/sitter/availability" className="flex items-center gap-2 rounded-xl border border-border-default bg-surface-primary px-4 py-3 min-h-[44px] hover:bg-surface-secondary transition">
+            <CalendarCheck className="h-4 w-4 text-text-tertiary" />
+            <span className="text-sm font-medium text-text-primary">Availability</span>
           </Link>
         </div>
       </div>

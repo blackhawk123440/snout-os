@@ -12,12 +12,9 @@ import {
   SitterSkeletonList,
   SitterErrorState,
   SitterEmptyState,
-  FeatureStatusPill,
 } from '@/components/sitter';
 import { calculateTransferSummary } from './earnings-helpers';
 import { useSitterEarnings, useSitterCompletedJobs, useSitterTransfers } from '@/lib/api/sitter-portal-hooks';
-
-type PeriodTab = 'today' | 'week' | 'month';
 
 interface EarningsData {
   commissionPercentage: number;
@@ -63,7 +60,6 @@ const formatDate = (d: string) =>
   new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 
 export default function SitterEarningsPage() {
-  const [periodTab, setPeriodTab] = useState<PeriodTab>('month');
   const [selectedJob, setSelectedJob] = useState<CompletedJob | null>(null);
 
   const earningsQuery = useSitterEarnings();
@@ -101,20 +97,6 @@ export default function SitterEarningsPage() {
         />
       ) : data ? (
         <div className="space-y-4">
-          <div className="flex gap-2 rounded-xl border border-border-default p-0.5">
-            {(['today', 'week', 'month'] as const).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPeriodTab(p)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium capitalize transition ${
-                  periodTab === p ? 'bg-surface-tertiary text-text-primary' : 'text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
           <SitterCard>
             <SitterCardHeader>
               <p className="text-sm font-medium text-text-tertiary">Total earnings</p>
@@ -154,54 +136,49 @@ export default function SitterEarningsPage() {
 
           <SitterCard>
             <SitterCardBody>
-              <p className="text-sm font-medium text-text-tertiary">This month</p>
-              <p className="mt-1 text-xl font-semibold text-text-primary">
-                ${data.earningsThisMonth.toFixed(2)}
-              </p>
-              <p className="mt-1 text-sm text-text-secondary">
-                {data.completedThisMonthCount} bookings · Gross ${data.grossThisMonth.toFixed(2)}
-              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide">This month</p>
+                  <p className="mt-1 text-xl font-semibold text-text-primary tabular-nums">
+                    ${data.earningsThisMonth.toFixed(2)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-tertiary">
+                    {data.completedThisMonthCount} visits
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Last month</p>
+                  <p className="mt-1 text-xl font-semibold text-text-primary tabular-nums">
+                    ${data.earningsLastMonth.toFixed(2)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-tertiary">
+                    {data.completedLastMonthCount} visits
+                  </p>
+                </div>
+              </div>
             </SitterCardBody>
           </SitterCard>
 
           <SitterCard>
             <SitterCardBody>
-              <p className="text-sm font-medium text-text-tertiary">Last month</p>
-              <p className="mt-1 text-xl font-semibold text-text-primary">
-                ${data.earningsLastMonth.toFixed(2)}
-              </p>
-              <p className="mt-1 text-sm text-text-secondary">
-                {data.completedLastMonthCount} bookings · Gross ${data.grossLastMonth.toFixed(2)}
-              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Pending</p>
+                  <p className="mt-1 text-xl font-semibold text-text-primary tabular-nums">
+                    ${(transferSummary.pendingCents / 100).toFixed(2)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-tertiary">Awaiting payout</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-text-tertiary uppercase tracking-wide">Paid (30d)</p>
+                  <p className="mt-1 text-xl font-semibold text-text-primary tabular-nums">
+                    ${(transferSummary.paid30dCents / 100).toFixed(2)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-tertiary">Last 30 days</p>
+                </div>
+              </div>
             </SitterCardBody>
           </SitterCard>
-
-          <SitterCard>
-            <SitterCardBody>
-              <p className="text-sm font-medium text-text-tertiary">Pending</p>
-              <p className="mt-1 text-xl font-semibold text-text-primary">
-                ${(transferSummary.pendingCents / 100).toFixed(2)}
-              </p>
-              <p className="mt-1 text-xs text-text-tertiary">Transfers not yet paid</p>
-            </SitterCardBody>
-          </SitterCard>
-
-          <SitterCard>
-            <SitterCardBody>
-              <p className="text-sm font-medium text-text-tertiary">Paid (30d)</p>
-              <p className="mt-1 text-xl font-semibold text-text-primary">
-                ${(transferSummary.paid30dCents / 100).toFixed(2)}
-              </p>
-              <p className="mt-1 text-xs text-text-tertiary">Completed payouts in the last 30 days</p>
-            </SitterCardBody>
-          </SitterCard>
-
-          <div className="flex items-center justify-center gap-2">
-            <Button variant="secondary" size="md" disabled>
-              Instant payout
-            </Button>
-            <FeatureStatusPill featureKey="instant_payout" />
-          </div>
 
           <h3 className="text-base font-semibold text-text-primary">Payout transfers</h3>
           {transfersLoading ? (
